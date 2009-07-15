@@ -1,0 +1,663 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+//
+//-----------------------------------------------------------------------------
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Microsoft.Contracts;
+using Bpl = Microsoft.Boogie;
+
+namespace Microsoft.Dafny {
+  class Printer {
+    TextWriter! wr;
+    public Printer(TextWriter! wr) {
+      this.wr = wr;
+    }
+    
+    public void PrintProgram(Program! prog) {
+      if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {
+        wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
+        wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
+      }
+      wr.WriteLine("// {0}", prog.Name);
+      foreach (ClassDecl c in prog.Classes) {
+        wr.WriteLine();
+        PrintClass(c);
+      }
+    }
+    
+    public void PrintClass(ClassDecl! c) {
+      PrintClassMethodHelper("class", c.Attributes, "", c.Name, c.TypeArgs);
+      if (c.Members.Count == 0) {
+        wr.WriteLine(" { }");
+      } else {
+        int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
+        wr.WriteLine(" {");
+        foreach (MemberDecl m in c.Members) {
+          if (m is Method) {
+            if (state != 0) { wr.WriteLine(); }
+            PrintMethod((Method)m);
+            state = 2;
+          } else if (m is Field) {
+            if (state == 2) { wr.WriteLine(); }
+            PrintField((Field)m);
+            state = 1;
+          } else if (m is Function) {
+            if (state != 0) { wr.WriteLine(); }
+            PrintFunction((Function)m);
+            state = 2;
+          } else {
+            assert false;  // unexpected member
+          }
+        }
+        wr.WriteLine("}");
+      }
+    }
+    
+    void PrintClassMethodHelper(string! kind, Attributes attrs, string! modifiers, string! name, List<TypeParameter!>! typeArgs) {
+      wr.Write("{0} ", kind);
+      PrintAttributes(attrs);
+      wr.Write(modifiers);
+      wr.Write(name);
+      if (typeArgs.Count != 0) {
+        wr.Write("<");
+        string sep = "";
+        foreach (TypeParameter tp in typeArgs) {
+          wr.Write("{0}{1}", sep, tp.Name);
+          sep = ", ";
+        }
+        wr.Write(">");
+      }
+    }
+    
+    public void PrintAttributes(Attributes a) {
+      if (a != null) {
+        PrintAttributes(a.Prev);
+        
+        wr.Write("{ :{0}", a.Name);
+        string prefix = " ";
+        foreach (Attributes.Argument arg in a.Args) {
+          wr.Write(prefix);
+          prefix = ", ";
+          if (arg.S != null) {
+            wr.Write("\"{0}\"", arg.S);
+          } else {
+            assert arg.E != null;
+            PrintExpression(arg.E);
+          }
+        }
+        wr.Write(" } ");
+      }
+    }
+    
+    public void PrintField(Field! field) {
+      Indent(IndentAmount);
+      wr.Write("var ");
+      PrintAttributes(field.Attributes);
+      wr.Write("{0}: ", field.Name);
+      PrintType(field.Type);
+      wr.WriteLine(";");
+    }
+    
+    public void PrintFunction(Function! f) {
+      Indent(IndentAmount);
+      PrintClassMethodHelper("function", f.Attributes, f.Use ? "use " : "", f.Name, f.TypeArgs);
+      PrintFormals(f.Formals);
+      wr.Write(": ");
+      PrintType(f.ResultType);
+      if (f.Body == null) {
+        wr.WriteLine(";");
+      }
+      foreach (Expression r in f.Req) {
+        Indent(2 * IndentAmount);
+        wr.Write("requires ");
+        PrintExpression(r);
+        wr.WriteLine(";");
+      }
+      foreach (Expression r in f.Reads) {
+        Indent(2 * IndentAmount);
+        wr.Write("reads ");
+        PrintExpression(r);
+        wr.WriteLine(";");
+      }
+      if (f.Body != null) {
+        Indent(IndentAmount);
+        PrintExtendedExpr(f.Body, IndentAmount);
+        wr.WriteLine();
+      }
+    }
+    
+    // ----------------------------- PrintMethod -----------------------------
+
+    const int IndentAmount = 2;
+    const string! BunchaSpaces = "                                ";
+    void Indent(int amount)
+      requires 0 <= amount;
+    {
+      while (0 < amount) {
+        wr.Write(BunchaSpaces.Substring(0, amount));
+        amount -= BunchaSpaces.Length;
+      }
+    }
+    
+    public void PrintMethod(Method! method) {
+      Indent(IndentAmount);
+      PrintClassMethodHelper("method", method.Attributes, "", method.Name, method.TypeArgs);
+      PrintFormals(method.Ins);
+      if (method.Outs.Count != 0) {
+        if (method.Ins.Count + method.Outs.Count <= 3) {
+          wr.Write(" returns ");
+        } else {
+          wr.WriteLine();
+          Indent(3 * IndentAmount);
+          wr.Write("returns ");
+        }
+        PrintFormals(method.Outs);
+      }
+      wr.WriteLine(method.Body == null ? ";" : ":");
+      
+      PrintSpec("requires", method.Req, 2 * IndentAmount);
+      PrintSpec("modifies", method.Mod, 2 * IndentAmount);
+      PrintSpec("ensures", method.Ens, 2 * IndentAmount);
+      
+      if (method.Body != null) {
+        Indent(IndentAmount);
+        PrintStatement(method.Body, IndentAmount);
+        wr.WriteLine();
+      }
+    }
+    
+    void PrintFormals(List<Formal!>! ff) {
+      wr.Write("(");
+      string sep = "";
+      foreach (Formal f in ff) {
+        wr.Write(sep);
+        sep = ", ";
+        PrintFormal(f);
+      }
+      wr.Write(")");
+    }
+    
+    void PrintFormal(Formal! f) {
+      if (!f.Name.StartsWith("#")) {
+        wr.Write("{0}: ", f.Name);
+      }
+      PrintType(f.Type);
+    }
+    
+    void PrintSpec(string! kind, List<Expression!>! ee, int indent) {
+      foreach (Expression e in ee) {
+        Indent(indent);
+        wr.Write("{0} ", kind);
+        PrintExpression(e);
+        wr.WriteLine(";");
+      }
+    }
+
+    void PrintSpec(string! kind, List<MaybeFreeExpression!>! ee, int indent) {
+      foreach (MaybeFreeExpression e in ee) {
+        Indent(indent);
+        wr.Write("{0}{1} ", e.IsFree ? "free " : "", kind);
+        PrintExpression(e.E);
+        wr.WriteLine(";");
+      }
+    }
+
+    // ----------------------------- PrintType -----------------------------
+    
+    public void PrintType(Type! ty) {
+      wr.Write(ty.ToString());
+    }
+
+    // ----------------------------- PrintStatement -----------------------------
+    
+    /// <summary>
+    /// Prints from the current position of the current line.
+    /// If the statement requires several lines, subsequent lines are indented at "indent".
+    /// No newline is printed after the statement.
+    /// </summary>
+    public void PrintStatement(Statement! stmt, int indent) {
+      if (stmt is AssertStmt) {
+        wr.Write("assert ");
+        PrintExpression(((AssertStmt)stmt).Expr);
+        wr.Write(";");
+        
+      } else if (stmt is AssumeStmt) {
+        wr.Write("assume ");
+        PrintExpression(((AssertStmt)stmt).Expr);
+        wr.Write(";");
+        
+      } else if (stmt is UseStmt) {
+        wr.Write("use ");
+        PrintExpression(((AssertStmt)stmt).Expr);
+        wr.Write(";");
+        
+      } else if (stmt is LabelStmt) {
+        wr.Write("label {0}:", ((LabelStmt)stmt).Label);
+        
+      } else if (stmt is BreakStmt) {
+        BreakStmt s = (BreakStmt)stmt;
+        if (s.TargetLabel == null) {
+          wr.Write("break;");
+        } else {
+          wr.Write("break {0};", s.TargetLabel);
+        }
+        
+      } else if (stmt is ReturnStmt) {
+        wr.Write("return;");
+        
+      } else if (stmt is AssignStmt) {
+        AssignStmt s = (AssignStmt)stmt;
+        if (s.Rhs is HavocRhs) {
+          wr.Write("havoc ");
+          PrintExpression(s.Lhs);
+        } else {
+          PrintExpression(s.Lhs);
+          wr.Write(" := ");
+          PrintDeterminedRhs((DeterminedAssignmentRhs)s.Rhs);
+        }
+        wr.Write(";");
+        
+      } else if (stmt is VarDecl) {
+        VarDecl s = (VarDecl)stmt;
+        wr.Write("var {0}", s.Name);
+        if (s.OptionalType != null) {
+          wr.Write(": ");
+          PrintType(s.OptionalType);
+        }
+        if (s.Rhs != null) {
+          wr.Write(" := ");
+          PrintDeterminedRhs(s.Rhs);
+        }
+        wr.Write(";");
+      
+      } else if (stmt is CallStmt) {
+        CallStmt s = (CallStmt)stmt;
+        wr.Write("call ");
+        if (s.Lhs.Count != 0) {
+          string sep = "";
+          foreach (IdentifierExpr v in s.Lhs) {
+            wr.Write(sep);
+            PrintExpression(v);
+            sep = ", ";
+          }
+          wr.Write(" := ");
+        }
+        if (!(s.Receiver is ThisExpr)) {
+          PrintExpr(s.Receiver, 0x70, false, -1);
+          wr.Write(".");
+        }
+        wr.Write("{0}(", s.MethodName);
+        PrintExpressionList(s.Args);
+        wr.Write(")");
+        
+      } else if (stmt is BlockStmt) {
+        wr.WriteLine("{");
+        int ind = indent + IndentAmount;
+        foreach (Statement s in ((BlockStmt)stmt).Body) {
+          Indent(ind);
+          PrintStatement(s, ind);
+          wr.WriteLine();
+        }
+        Indent(indent);
+        wr.Write("}");
+        
+      } else if (stmt is IfStmt) {
+        IfStmt s = (IfStmt)stmt;
+        while (true) {
+          wr.Write("if (");
+          PrintGuard(s.Guard);
+          wr.Write(") ");
+          PrintStatement(s.Thn, indent);
+          if (s.Els == null) {
+            break;
+          }
+          wr.Write(" else ");
+          if (s.Els is IfStmt) {
+            s = (IfStmt)s.Els;
+          } else {
+            PrintStatement(s.Els, indent);
+            break;
+          }
+        }
+      
+      } else if (stmt is WhileStmt) {
+        WhileStmt s = (WhileStmt)stmt;
+        wr.Write("while (");
+        PrintGuard(s.Guard);
+        wr.WriteLine(")");
+
+        int ind = indent + IndentAmount;
+        PrintSpec("invariant", s.Invariants, ind);
+        if (s.Decreases.Count != 0) {
+          Indent(indent);
+          string sep = "decreases ";
+          foreach (Expression e in s.Decreases) {
+            wr.Write(sep);
+            sep = ", ";
+            PrintExpression(e);
+          }
+          wr.WriteLine(";");
+        }
+        Indent(indent);
+        PrintStatement(s.Body, indent);
+        
+      } else if (stmt is ForeachStmt) {
+        ForeachStmt s = (ForeachStmt)stmt;
+        wr.Write("foreach ({0} in ", s.BoundVar);
+        PrintExpression(s.Collection);
+        if (!LiteralExpr.IsTrue(s.Range)) {
+          wr.Write(" | ");
+          PrintExpression(s.Range);
+        }
+        wr.WriteLine(") {");
+        int ind = indent + IndentAmount;
+        foreach (PredicateStmt t in s.BodyPrefix) {
+          Indent(ind);
+          PrintStatement(t, ind);
+          wr.WriteLine();
+        }
+        if (s.BodyAssign != null) {
+          Indent(ind);
+          PrintStatement(s.BodyAssign, ind);
+          wr.WriteLine();
+        }
+        wr.Write("}");
+        
+      } else {
+        assert false;  // unexpected statement
+      }
+    }
+    
+    void PrintDeterminedRhs(DeterminedAssignmentRhs! rhs) {
+      if (rhs is ExprRhs) {
+        PrintExpression(((ExprRhs)rhs).Expr);
+      } else if (rhs is TypeRhs) {
+        wr.Write("new ");
+        PrintType(((TypeRhs)rhs).Type);
+      } else {
+        assert false;  // unexpected RHS
+      }
+    }
+    
+    void PrintGuard(Expression guard) {
+      if (guard == null) {
+        wr.Write("*");
+      } else {
+        PrintExpression(guard);
+      }
+    }
+    
+    // ----------------------------- PrintExpression -----------------------------
+
+    public void PrintExtendedExpr(Expression! expr, int indent) {
+      wr.WriteLine("{");
+      int ind = indent + IndentAmount;
+      Indent(ind);
+      if (expr is ITEExpr) {
+        Expression els = expr;  // bogus assignment, just to please the compiler
+        for (ITEExpr ite = (ITEExpr)expr; ite != null; ite = els as ITEExpr) {
+          wr.Write("if (");
+          PrintExpression(ite.Test);
+          wr.Write(") ");
+          PrintExtendedExpr(ite.Thn, ind);
+          wr.Write(" else ");
+          els = ite.Els;
+        }
+        PrintExtendedExpr(els, ind);
+      } else {
+        PrintExpression(expr, ind);
+        wr.WriteLine();
+      }
+      Indent(indent);
+      wr.Write("}");
+    }
+    
+    public void PrintExpression(Expression! expr) {
+      PrintExpr(expr, 0, false, -1);
+    }
+    
+    /// <summary>
+    /// An indent of -1 means print the entire expression on one line.
+    /// </summary>
+    public void PrintExpression(Expression! expr, int indent) {
+      PrintExpr(expr, 0, false, indent);
+    }
+    
+    /// <summary>
+    /// An indent of -1 means print the entire expression on one line.
+    /// </summary>
+    void PrintExpr(Expression! expr, int contextBindingStrength, bool fragileContext, int indent)
+      requires -1 <= indent;
+    {
+      if (expr is LiteralExpr) {
+        LiteralExpr e = (LiteralExpr)expr;
+        if (e.Value == null) {
+          wr.Write("null");
+        } else if (e.Value is bool) {
+          wr.Write((bool)e.Value ? "true" : "false");
+        } else {
+          wr.Write((int)e.Value);
+        }
+      
+      } else if (expr is ThisExpr) {
+        wr.Write("this");
+        
+      } else if (expr is IdentifierExpr) {
+        wr.Write(((IdentifierExpr)expr).Name);
+      
+      } else if (expr is DisplayExpression) {
+        DisplayExpression e = (DisplayExpression)expr;
+        wr.Write(e is SetDisplayExpr ? "{" : "[");
+        PrintExpressionList(e.Elements);
+        wr.Write(e is SetDisplayExpr ? "}" : "]");
+        
+      } else if (expr is FieldSelectExpr) {
+        FieldSelectExpr e = (FieldSelectExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = !(e.Obj is ImplicitThisExpr) &&
+          opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+        
+        if (parensNeeded) { wr.Write("("); }
+        if (!(e.Obj is ImplicitThisExpr)) {
+          PrintExpr(e.Obj, opBindingStrength, false, -1);
+          wr.Write(".");
+        }
+        wr.Write(e.FieldName);
+        if (parensNeeded) { wr.Write(")"); }
+
+      } else if (expr is SeqSelectExpr) {
+        SeqSelectExpr e = (SeqSelectExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+        
+        if (parensNeeded) { wr.Write("("); }
+        PrintExpr(e.Seq, 00, false, indent);  // BOGUS: fix me
+        wr.Write("[");
+        if (e.SelectOne) {
+          assert e.E0 != null;
+          PrintExpression(e.E0);
+        } else {
+          if (e.E0 != null) {
+            PrintExpression(e.E0);
+          }
+          wr.Write(e.E0 != null && e.E1 != null ? " .. " : "..");
+          if (e.E1 != null) {
+            PrintExpression(e.E1);
+          }
+        }
+        wr.Write("]");
+        if (parensNeeded) { wr.Write(")"); }
+      
+      } else if (expr is FunctionCallExpr) {
+        FunctionCallExpr e = (FunctionCallExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = !(e.Receiver is ThisExpr) &&
+          opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+        
+        if (parensNeeded) { wr.Write("("); }
+        if (!(e.Receiver is ThisExpr)) {
+          PrintExpr(e.Receiver, opBindingStrength, false, -1);
+          wr.Write(".");
+        }
+        wr.Write(e.Name);
+        wr.Write("(");
+        PrintExpressionList(e.Args);
+        wr.Write(")");
+        if (parensNeeded) { wr.Write(")"); }
+      
+      } else if (expr is OldExpr) {
+        wr.Write("old(");
+        PrintExpression(((OldExpr)expr).E);
+        wr.Write(")");
+      
+      } else if (expr is FreshExpr) {
+        wr.Write("fresh(");
+        PrintExpression(((FreshExpr)expr).E);
+        wr.Write(")");
+      
+      } else if (expr is UnaryExpr) {
+        UnaryExpr e = (UnaryExpr)expr;
+        if (e.Op == UnaryExpr.Opcode.SeqLength) {
+          wr.Write("|");
+          PrintExpression(e.E);
+          wr.Write("|");
+        } else {
+          // Prefix operator.
+          // determine if parens are needed
+          string op;
+          int opBindingStrength;
+          switch (e.Op) {
+            case UnaryExpr.Opcode.Not:
+              op = "!";  opBindingStrength = 0x60;  break;
+            default:
+              assert false;  // unexpected unary opcode
+          }
+          bool parensNeeded = opBindingStrength < contextBindingStrength ||
+            (fragileContext && opBindingStrength == contextBindingStrength);
+
+          if (parensNeeded) { wr.Write("("); }
+          wr.Write(op);
+          PrintExpr(e.E, opBindingStrength, false, -1);
+          if (parensNeeded) { wr.Write(")"); }
+        }
+      
+      } else if (expr is BinaryExpr) {
+        BinaryExpr e = (BinaryExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength;
+        bool fragileLeftContext = false;  // false means "allow same binding power on left without parens"
+        bool fragileRightContext = false;  // false means "allow same binding power on right without parens"
+        switch (e.Op) 
+        {
+          case BinaryExpr.Opcode.Add:
+            opBindingStrength = 0x40; break;
+          case BinaryExpr.Opcode.Sub:
+            opBindingStrength = 0x40; fragileRightContext = true; break;
+          case BinaryExpr.Opcode.Mul:
+            opBindingStrength = 0x50; break;
+          case BinaryExpr.Opcode.Div:
+          case BinaryExpr.Opcode.Mod:
+            opBindingStrength = 0x50; fragileRightContext = true; break;
+          case BinaryExpr.Opcode.Eq:
+          case BinaryExpr.Opcode.Neq:
+          case BinaryExpr.Opcode.Gt:
+          case BinaryExpr.Opcode.Ge:
+          case BinaryExpr.Opcode.Lt:
+          case BinaryExpr.Opcode.Le:
+          case BinaryExpr.Opcode.Disjoint:
+          case BinaryExpr.Opcode.In:
+            opBindingStrength = 0x30; fragileLeftContext = fragileRightContext = true; break;
+          case BinaryExpr.Opcode.And:
+            opBindingStrength = 0x20; break;
+          case BinaryExpr.Opcode.Or:
+            opBindingStrength = 0x21; break;
+          case BinaryExpr.Opcode.Imp:
+            opBindingStrength = 0x10; fragileLeftContext = true; break;
+          case BinaryExpr.Opcode.Iff:
+            opBindingStrength = 0x00; break;
+          default:
+            assert false;  // unexpected binary operator
+        }
+        int opBS = opBindingStrength & 0xF0;
+        int ctxtBS = contextBindingStrength & 0xF0;
+        bool parensNeeded = opBS < ctxtBS ||
+          (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+
+        string op = BinaryExpr.OpcodeString(e.Op);
+        if (parensNeeded) { wr.Write("("); }
+        if (0 <= indent && e.Op == BinaryExpr.Opcode.And) {
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, indent);
+          wr.WriteLine(" {0}", op);
+          Indent(indent);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, indent);
+        } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Imp) {
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, indent);
+          wr.WriteLine(" {0}", op);
+          int ind = indent + IndentAmount;
+          Indent(ind);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, ind);
+        } else {
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, -1);
+          wr.Write(" {0} ", op);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, -1);
+        }
+        if (parensNeeded) { wr.Write(")"); }
+      
+      } else if (expr is QuantifierExpr) {
+        QuantifierExpr e = (QuantifierExpr)expr;
+        wr.Write(e is ForallExpr ? "(forall " : "(exists ");
+        string sep = "";
+        foreach (BoundVar bv in e.BoundVars) {
+          wr.Write("{0}{1}: ", sep, bv.Name);
+          sep = ", ";
+          PrintType(bv.Type);
+        }
+        wr.Write(" :: ");
+        PrintAttributes(e.Attributes);
+        PrintTriggers(e.Trigs);
+        if (0 <= indent) {
+          int ind = indent + IndentAmount;
+          wr.WriteLine();
+          Indent(ind);
+          PrintExpression(e.Body, ind);
+        } else {
+          PrintExpression(e.Body);
+        }
+        wr.Write(")");
+        
+      } else if (expr is ITEExpr) {
+        assert false;  // ITE is an extended expression and should be printed only using PrintExtendedExpr
+      } else {
+        assert false;  // unexpected expression
+      }
+    }
+    
+    void PrintTriggers(Triggers trigs) {
+      if (trigs != null) {
+        PrintTriggers(trigs.Prev);
+        
+        wr.Write("{ ");
+        PrintExpressionList(trigs.Terms);
+        wr.Write(" } ");
+      }
+    }
+    
+    void PrintExpressionList(List<Expression!>! exprs) {
+      string sep = "";
+      foreach (Expression e in exprs) {
+        wr.Write(sep);
+        sep = ", ";
+        PrintExpression(e);
+      }
+    }
+  }
+}

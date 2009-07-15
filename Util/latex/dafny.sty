@@ -1,0 +1,101 @@
+% dafny.sty
+% Dafny mode for the LaTeX listings package.
+% Rustan Leino, 22 June 2008.
+
+\usepackage{listings}
+
+\lstdefinelanguage{dafny}{
+  morekeywords={class,bool,int,object,set,seq,%
+      function,returns,
+      var,
+      method,in,
+      requires,modifies,ensures,reads,free,
+      % expressions
+      false,true,null,old,fresh,this,
+      % statements
+      assert,assume,new,havoc,call,if,else,while,invariant,break,return,foreach,
+      },
+  literate=%
+    {:}{$\colon$}1
+    {::}{$\bullet$}2
+    {:=}{$:$$=$}2
+    {!}{$\lnot$}1
+    {!!}{$\nparallel$}1
+    {==}{$=$}1
+    {!=}{$\neq$}1
+    {&&}{$\land$}1
+    {||}{$\lor$}1
+    {<=}{$\le$}1
+    {=>}{$\ge$}1
+    {<=set}{$\subseteq$}1
+    {+set}{$\cup$}1
+    {==>}{$\Longrightarrow$}3 
+    {<==>}{$\Longleftrightarrow$}4 
+    {forall}{$\forall$}1
+    {exists}{$\exists$}1
+    {\\in}{$\in$}1
+    % the following isn't actually Dafny, but it gives the option to produce nicer latex
+    {<<}{$\langle$}1
+    {>>}{$\rangle$}1
+    {\\alpha}{$\alpha$}1
+    {\\beta}{$\beta$}1
+    {\\gamma}{$\gamma$}1
+    {\\delta}{$\delta$}1
+    {\\epsilon}{$\epsilon$}1
+    {\\zeta}{$\zeta$}1
+    {\\eta}{$\eta$}1
+    {\\theta}{$\theta$}1
+    {\\iota}{$\iota$}1
+    {\\kappa}{$\kappa$}1
+    {\\lambda}{$\lambda$}1
+    {\\mu}{$\mu$}1
+    {\\nu}{$\nu$}1
+    {\\xi}{$\xi$}1
+    {\\pi}{$\pi$}1
+    {\\rho}{$\rho$}1
+    {\\sigma}{$\sigma$}1
+    {\\tau}{$\tau$}1
+    {\\upsilon}{$\upsilon$}1
+    {\\phi}{$\phi$}1
+    {\\chi}{$\chi$}1
+    {\\psi}{$\psi$}1
+    {\\omega}{$\omega$}1
+    {\\Gamma}{$\Gamma$}1
+    {\\Delta}{$\Delta$}1
+    {\\Theta}{$\Theta$}1
+    {\\Lambda}{$\Lambda$}1
+    {\\Xi}{$\Xi$}1
+    {\\Pi}{$\Pi$}1
+    {\\Sigma}{$\Sigma$}1
+    {\\Upsilon}{$\Upsilon$}1
+    {\\Phi}{$\Phi$}1
+    {\\Psi}{$\Psi$}1
+    {\\Omega}{$\Omega$}1
+    ,
+  sensitive=true,  % case sensitive
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  numbers=none,
+  firstnumber=0,
+  numberstyle=\tiny,
+  stepnumber=5,
+  basicstyle=\scriptsize\sffamily,
+  commentstyle=\itshape,
+  keywordstyle=\bfseries,
+  ndkeywordstyle=\bfseries,
+}
+\lstnewenvironment{dafny}[1][]{%
+  \lstset{language=dafny,
+    floatplacement={tbp},captionpos=b,
+    frame=lines,xleftmargin=8pt,xrightmargin=8pt,basicstyle=\ttfamily,#1}}{}
+\lstnewenvironment{dafnyNoLines}[1][]{%
+  \lstset{language=dafny,
+    floatplacement={tbp},captionpos=b,
+    xleftmargin=8pt,xrightmargin=8pt,basicstyle=\ttfamily,#1}}{}
+\def\inlinedafny{%
+    \lstinline[language=dafny,basicstyle=\ttfamily,columns=fixed]}
+\newcommand{\lstfile}[1]{
+  \lstinputlisting[language=dafny,%
+    frame=lines,xleftmargin=8pt,xrightmargin=8pt,basicstyle=\ttfamily,columns=fixed]{#1}
+}

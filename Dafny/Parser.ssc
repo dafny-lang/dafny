@@ -1,0 +1,1592 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+//
+//-----------------------------------------------------------------------------
+using System.Collections.Generic;
+using Microsoft.Boogie;
+using Microsoft.Contracts;
+
+namespace Microsoft.Dafny {
+
+public class Parser {
+	const int maxT = 86;
+
+	const bool T = true;
+	const bool x = false;
+	const int minErrDist = 2;
+	
+	static Token/*!*/ token;			// last recognized token
+	static Token/*!*/ t;				// lookahead token
+	static int errDist = minErrDist;
+
+	static List<ClassDecl!>! theClasses = new List<ClassDecl!>();    
+
+
+static Expression! dummyExpr = new LiteralExpr(Token.NoToken);
+static Statement! dummyStmt = new ReturnStmt(Token.NoToken);
+static Attributes.Argument! dummyAttrArg = new Attributes.Argument("dummyAttrArg");
+static Scope<string>! parseVarScope = new Scope<string>();
+
+///<summary>
+/// Parses top level declarations from "filename" and appends them to "classes".
+/// Returns the number of parsing errors encountered.
+/// Note: first initialize the Scanner.
+///</summary>
+public static int Parse (string! filename, List<ClassDecl!>! classes) /* throws System.IO.IOException */ {
+  using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
+    BoogiePL.Buffer.Fill(reader);
+    Scanner.Init(filename);
+    return Parse(classes);
+  }
+}
+
+///<summary>
+/// Parses top level declarations and appends them to "classes".
+/// Returns the number of parsing errors encountered.
+/// Note: first initialize the Scanner.
+///</summary>
+public static int Parse (List<ClassDecl!>! classes) {
+  List<ClassDecl!> oldClasses = theClasses;
+  theClasses = classes;
+  Parse();
+  theClasses = oldClasses;
+  return Errors.count;
+}
+
+/*--------------------------------------------------------------------------*/
+
+
+	static void Error(int n) {
+		if (errDist >= minErrDist) Errors.SynErr(n, t.filename, t.line, t.col);
+		errDist = 0;
+	}
+	
+	public static void SemErr(string! msg) {
+		if (errDist >= minErrDist) Errors.SemErr(token.filename, token.line, token.col, msg);
+		errDist = 0;
+	}
+
+	public static void SemErr(Token! tok, string! msg) {
+		if (errDist >= minErrDist) Errors.SemErr(tok.filename, tok.line, tok.col, msg);
+		errDist = 0;
+	}
+
+	static void Get() {
+		for (;;) {
+			token = t;
+			t = Scanner.Scan();
+			if (t.kind<=maxT) {errDist++; return;}
+
+			t = token;
+		}
+	}
+	
+	static void Expect(int n) {
+		if (t.kind==n) Get(); else Error(n);
+	}
+	
+	static bool StartOf(int s) {
+		return set[s, t.kind];
+	}
+	
+	static void ExpectWeak(int n, int follow) {
+		if (t.kind == n) Get();
+		else {
+			Error(n);
+			while (!StartOf(follow)) Get();
+		}
+	}
+	
+	static bool WeakSeparator(int n, int syFol, int repFol) {
+		bool[] s = new bool[maxT+1];
+		if (t.kind == n) {Get(); return true;}
+		else if (StartOf(repFol)) return false;
+		else {
+			for (int i=0; i <= maxT; i++) {
+				s[i] = set[syFol, i] || set[repFol, i] || set[0, i];
+			}
+			Error(n);
+			while (!s[t.kind]) Get();
+			return StartOf(syFol);
+		}
+	}
+	
+	static void Dafny() {
+		ClassDecl! c; 
+		while (t.kind == 4) {
+			ClassDecl(out c);
+			theClasses.Add(c); 
+		}
+		Expect(0);
+	}
+
+	static void ClassDecl(out ClassDecl! c) {
+		Token! id;
+		Attributes attrs = null;
+		List<TypeParameter!> typeArgs = new List<TypeParameter!>();
+		List<MemberDecl!> members = new List<MemberDecl!>();
+		
+		Expect(4);
+		while (t.kind == 5) {
+			Attribute(ref attrs);
+		}
+		Ident(out id);
+		if (t.kind == 11) {
+			GenericParameters(typeArgs);
+		}
+		Expect(5);
+		while (StartOf(1)) {
+			ClassMemberDecl(members);
+		}
+		Expect(6);
+		c = new ClassDecl(id, id.val, typeArgs, members, attrs); 
+	}
+
+	static void Attribute(ref Attributes attrs) {
+		Expect(5);
+		AttributeBody(ref attrs);
+		Expect(6);
+	}
+
+	static void Ident(out Token! x) {
+		Expect(1);
+		x = token; 
+	}
+
+	static void GenericParameters(List<TypeParameter!>! typeArgs) {
+		Token! id; 
+		Expect(11);
+		Ident(out id);
+		typeArgs.Add(new TypeParameter(id, id.val)); 
+		while (t.kind == 8) {
+			Get();
+			Ident(out id);
+			typeArgs.Add(new TypeParameter(id, id.val)); 
+		}
+		Expect(12);
+	}
+
+	static void ClassMemberDecl(List<MemberDecl!>! mm) {
+		Method! m;
+		Function! f;
+		
+		if (t.kind == 7) {
+			FieldDecl(mm);
+		} else if (t.kind == 27) {
+			FunctionDecl(out f);
+			mm.Add(f); 
+		} else if (t.kind == 14) {
+			MethodDecl(out m);
+			mm.Add(m); 
+		} else if (t.kind == 13) {
+			FrameDecl();
+		} else Error(87);
+	}
+
+	static void FieldDecl(List<MemberDecl!>! mm) {
+		Attributes attrs = null;
+		Token! id;  Type! ty;
+		
+		Expect(7);
+		while (t.kind == 5) {
+			Attribute(ref attrs);
+		}
+		IdentType(out id, out ty);
+		mm.Add(new Field(id, id.val, ty, attrs)); 
+		while (t.kind == 8) {
+			Get();
+			IdentType(out id, out ty);
+			mm.Add(new Field(id, id.val, ty, attrs)); 
+		}
+		Expect(9);
+	}
+
+	static void FunctionDecl(out Function! f) {
+		Attributes attrs = null;
+		Token! id;
+		List<TypeParameter!> typeArgs = new List<TypeParameter!>();
+		List<Formal!> formals = new List<Formal!>();
+		Type! returnType;
+		List<Expression!> reqs = new List<Expression!>();
+		List<Expression!> reads = new List<Expression!>();
+		Expression! bb;  Expression body = null;
+		bool use = false;
+		
+		Expect(27);
+		while (t.kind == 5) {
+			Attribute(ref attrs);
+		}
+		if (t.kind == 28) {
+			Get();
+			use = true; 
+		}
+		Ident(out id);
+		if (t.kind == 11) {
+			GenericParameters(typeArgs);
+		}
+		parseVarScope.PushMarker(); 
+		Formals(true, formals);
+		Expect(10);
+		Type(out returnType);
+		if (t.kind == 9) {
+			Get();
+			while (t.kind == 18 || t.kind == 29) {
+				FunctionSpec(reqs, reads);
+			}
+		} else if (t.kind == 5 || t.kind == 18 || t.kind == 29) {
+			while (t.kind == 18 || t.kind == 29) {
+				FunctionSpec(reqs, reads);
+			}
+			ExtendedExpr(out bb);
+			body = bb; 
+		} else Error(88);
+		parseVarScope.PopMarker();
+		f = new Function(id, id.val, use, typeArgs, formals, returnType, reqs, reads, body, attrs);
+		
+	}
+
+	static void MethodDecl(out Method! m) {
+		Token! id;
+		Attributes attrs = null;
+		List<TypeParameter!>! typeArgs = new List<TypeParameter!>();
+		List<Formal!> ins = new List<Formal!>();
+		List<Formal!> outs = new List<Formal!>();
+		List<MaybeFreeExpression!> req = new List<MaybeFreeExpression!>();
+		List<Expression!> mod = new List<Expression!>();
+		List<MaybeFreeExpression!> ens = new List<MaybeFreeExpression!>();
+		Statement! bb;  Statement body = null;
+		
+		Expect(14);
+		while (t.kind == 5) {
+			Attribute(ref attrs);
+		}
+		Ident(out id);
+		if (t.kind == 11) {
+			GenericParameters(typeArgs);
+		}
+		parseVarScope.PushMarker(); 
+		Formals(true, ins);
+		if (t.kind == 15) {
+			Get();
+			Formals(false, outs);
+		}
+		if (t.kind == 9) {
+			Get();
+			while (StartOf(2)) {
+				MethodSpec(req, mod, ens);
+			}
+		} else if (StartOf(3)) {
+			while (StartOf(2)) {
+				MethodSpec(req, mod, ens);
+			}
+			BlockStmt(out bb);
+			body = bb; 
+		} else Error(89);
+		parseVarScope.PopMarker();
+		m = new Method(id, id.val, typeArgs, ins, outs, req, mod, ens, body, attrs);
+		
+	}
+
+	static void FrameDecl() {
+		Token! id;
+		Attributes attrs = null;
+		
+		Expect(13);
+		while (t.kind == 5) {
+			Attribute(ref attrs);
+		}
+		Ident(out id);
+		Expect(5);
+		Expect(6);
+	}
+
+	static void IdentType(out Token! id, out Type! ty) {
+		Ident(out id);
+		Expect(10);
+		Type(out ty);
+	}
+
+	static void Type(out Type! ty) {
+		ty = new BoolType();  /*keep compiler happy*/
+		
+		if (t.kind == 22) {
+			Get();
+			
+		} else if (t.kind == 23) {
+			Get();
+			ty = new IntType(); 
+		} else if (StartOf(4)) {
+			ReferenceType(out ty);
+		} else Error(90);
+	}
+
+	static void IdentTypeOptional(out BoundVar! var) {
+		Token! id;  Type! ty;  Type optType = null;
+		
+		Ident(out id);
+		if (t.kind == 10) {
+			Get();
+			Type(out ty);
+			optType = ty; 
+		}
+		var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); 
+	}
+
+	static void Formals(bool incoming, List<Formal!>! formals) {
+		Token! id;  Type! ty; 
+		Expect(20);
+		if (t.kind == 1) {
+			IdentType(out id, out ty);
+			formals.Add(new Formal(id, id.val, ty, incoming));  parseVarScope.Push(id.val, id.val); 
+			while (t.kind == 8) {
+				Get();
+				IdentType(out id, out ty);
+				formals.Add(new Formal(id, id.val, ty, incoming));  parseVarScope.Push(id.val, id.val); 
+			}
+		}
+		Expect(21);
+	}
+
+	static void MethodSpec(List<MaybeFreeExpression!>! req, List<Expression!>! mod, List<MaybeFreeExpression!>! ens) {
+		Expression! e;  bool isFree = false;
+		
+		if (t.kind == 16) {
+			Get();
+			if (StartOf(5)) {
+				Expression(out e);
+				mod.Add(e); 
+				while (t.kind == 8) {
+					Get();
+					Expression(out e);
+					mod.Add(e); 
+				}
+			}
+			Expect(9);
+		} else if (t.kind == 17 || t.kind == 18 || t.kind == 19) {
+			if (t.kind == 17) {
+				Get();
+				isFree = true; 
+			}
+			if (t.kind == 18) {
+				Get();
+				Expression(out e);
+				Expect(9);
+				req.Add(new MaybeFreeExpression(e, isFree)); 
+			} else if (t.kind == 19) {
+				Get();
+				Expression(out e);
+				Expect(9);
+				ens.Add(new MaybeFreeExpression(e, isFree)); 
+			} else Error(91);
+		} else Error(92);
+	}
+
+	static void BlockStmt(out Statement! block) {
+		Token! x;
+		List<Statement!> body = new List<Statement!>();
+		Statement! s;
+		
+		parseVarScope.PushMarker(); 
+		Expect(5);
+		x = token; 
+		while (StartOf(6)) {
+			Stmt(body);
+		}
+		Expect(6);
+		block = new BlockStmt(x, body); 
+		parseVarScope.PopMarker(); 
+	}
+
+	static void Expression(out Expression! e0) {
+		Token! x;  Expression! e1; 
+		ImpliesExpression(out e0);
+		while (t.kind == 48 || t.kind == 49) {
+			EquivOp();
+			x = token; 
+			ImpliesExpression(out e1);
+			e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); 
+		}
+	}
+
+	static void ReferenceType(out Type! ty) {
+		Token! x;
+		ty = new BoolType();  /*keep compiler happy*/
+		List<Type!>! gt;
+		
+		if (t.kind == 24) {
+			Get();
+			ty = new ObjectType(); 
+		} else if (t.kind == 1) {
+			gt = new List<Type!>(); 
+			Ident(out x);
+			if (t.kind == 11) {
+				GenericInstantiation(gt);
+			}
+			ty = new ClassType(x, x.val, gt); 
+		} else if (t.kind == 25) {
+			gt = new List<Type!>(); 
+			Get();
+			GenericInstantiation(gt);
+			if (gt.Count != 1) {
+			 SemErr("set type expects exactly one type argument");
+			}
+			ty = new SetType(gt[0]);
+			
+		} else if (t.kind == 26) {
+			gt = new List<Type!>(); 
+			Get();
+			GenericInstantiation(gt);
+			if (gt.Count != 1) {
+			 SemErr("seq type expects exactly one type argument");
+			}
+			ty = new SeqType(gt[0]);
+			
+		} else Error(93);
+	}
+
+	static void GenericInstantiation(List<Type!>! gt) {
+		Type! ty; 
+		Expect(11);
+		Type(out ty);
+		gt.Add(ty); 
+		while (t.kind == 8) {
+			Get();
+			Type(out ty);
+			gt.Add(ty); 
+		}
+		Expect(12);
+	}
+
+	static void FunctionSpec(List<Expression!>! reqs, List<Expression!>! reads) {
+		Expression! e; 
+		if (t.kind == 18) {
+			Get();
+			Expression(out e);
+			Expect(9);
+			reqs.Add(e); 
+		} else if (t.kind == 29) {
+			ReadsClause(reads);
+		} else Error(94);
+	}
+
+	static void ExtendedExpr(out Expression! e) {
+		e = dummyExpr; 
+		Expect(5);
+		if (t.kind == 30) {
+			IfThenElseExpr(out e);
+		} else if (StartOf(5)) {
+			Expression(out e);
+		} else Error(95);
+		Expect(6);
+	}
+
+	static void ReadsClause(List<Expression!>! reads) {
+		Expect(29);
+		if (StartOf(5)) {
+			Expressions(reads);
+		}
+		Expect(9);
+	}
+
+	static void Expressions(List<Expression!>! args) {
+		Expression! e; 
+		Expression(out e);
+		args.Add(e); 
+		while (t.kind == 8) {
+			Get();
+			Expression(out e);
+			args.Add(e); 
+		}
+	}
+
+	static void IfThenElseExpr(out Expression! e) {
+		Token! x;  Expression! e0;  Expression! e1 = dummyExpr; 
+		Expect(30);
+		x = token; 
+		Expect(20);
+		Expression(out e);
+		Expect(21);
+		ExtendedExpr(out e0);
+		Expect(31);
+		if (t.kind == 30) {
+			IfThenElseExpr(out e1);
+		} else if (t.kind == 5) {
+			ExtendedExpr(out e1);
+		} else Error(96);
+		e = new ITEExpr(x, e, e0, e1); 
+	}
+
+	static void Stmt(List<Statement!>! ss) {
+		Statement! s; 
+		while (t.kind == 5) {
+			BlockStmt(out s);
+			ss.Add(s); 
+		}
+		if (StartOf(7)) {
+			OneStmt(out s);
+			ss.Add(s); 
+		} else if (t.kind == 7) {
+			VarDeclStmts(ss);
+		} else Error(97);
+	}
+
+	static void OneStmt(out Statement! s) {
+		Token! x;  Token! id;  string label = null;
+		s = dummyStmt;  /* to please the compiler */
+		
+		switch (t.kind) {
+		case 46: {
+			AssertStmt(out s);
+			break;
+		}
+		case 47: {
+			AssumeStmt(out s);
+			break;
+		}
+		case 28: {
+			UseStmt(out s);
+			break;
+		}
+		case 1: case 2: case 5: case 20: case 45: case 65: case 68: case 69: case 70: case 71: case 72: case 73: case 74: case 78: case 79: {
+			AssignStmt(out s);
+			break;
+		}
+		case 37: {
+			HavocStmt(out s);
+			break;
+		}
+		case 42: {
+			CallStmt(out s);
+			break;
+		}
+		case 30: {
+			IfStmt(out s);
+			break;
+		}
+		case 38: {
+			WhileStmt(out s);
+			break;
+		}
+		case 43: {
+			ForeachStmt(out s);
+			break;
+		}
+		case 32: {
+			Get();
+			x = token; 
+			Ident(out id);
+			Expect(10);
+			s = new LabelStmt(x, id.val); 
+			break;
+		}
+		case 33: {
+			Get();
+			x = token; 
+			if (t.kind == 1) {
+				Ident(out id);
+				label = id.val; 
+			}
+			Expect(9);
+			s = new BreakStmt(x, label); 
+			break;
+		}
+		case 34: {
+			Get();
+			x = token; 
+			Expect(9);
+			s = new ReturnStmt(x); 
+			break;
+		}
+		default: Error(98); break;
+		}
+	}
+
+	static void VarDeclStmts(List<Statement!>! ss) {
+		VarDecl! d; 
+		Expect(7);
+		IdentTypeRhs(out d);
+		ss.Add(d);  parseVarScope.Push(d.Name, d.Name); 
+		while (t.kind == 8) {
+			Get();
+			IdentTypeRhs(out d);
+			ss.Add(d);  parseVarScope.Push(d.Name, d.Name); 
+		}
+		Expect(9);
+	}
+
+	static void AssertStmt(out Statement! s) {
+		Token! x;  Expression! e; 
+		Expect(46);
+		x = token; 
+		Expression(out e);
+		Expect(9);
+		s = new AssertStmt(x, e); 
+	}
+
+	static void AssumeStmt(out Statement! s) {
+		Token! x;  Expression! e; 
+		Expect(47);
+		x = token; 
+		Expression(out e);
+		Expect(9);
+		s = new AssumeStmt(x, e); 
+	}
+
+	static void UseStmt(out Statement! s) {
+		Token! x;  Expression! e; 
+		Expect(28);
+		x = token; 
+		Expression(out e);
+		Expect(9);
+		s = new UseStmt(x, e); 
+	}
+
+	static void AssignStmt(out Statement! s) {
+		Token! x;
+		Expression! lhs;
+		Expression rhs;
+		Type ty;
+		s = dummyStmt;
+		
+		LhsExpr(out lhs);
+		Expect(35);
+		x = token; 
+		AssignRhs(out rhs, out ty);
+		if (rhs != null) {
+		 s = new AssignStmt(x, lhs, rhs);
+		} else {
+		  assert ty != null;
+		  s = new AssignStmt(x, lhs, ty);
+		}
+		
+		Expect(9);
+	}
+
+	static void HavocStmt(out Statement! s) {
+		Token! x;  Expression! lhs; 
+		Expect(37);
+		x = token; 
+		LhsExpr(out lhs);
+		Expect(9);
+		s = new AssignStmt(x, lhs); 
+	}
+
+	static void CallStmt(out Statement! s) {
+		Token! x, id;
+		Expression! e;
+		List<IdentifierExpr!> lhs = new List<IdentifierExpr!>();
+		
+		Expect(42);
+		x = token; 
+		CallStmtSubExpr(out e);
+		if (t.kind == 8 || t.kind == 35) {
+			if (t.kind == 8) {
+				Get();
+				if (e is IdentifierExpr) {
+				 lhs.Add((IdentifierExpr)e);
+				} else if (e is FieldSelectExpr) {
+				  SemErr(e.tok, "each LHS of call statement must be a variable, not a field");
+				} else {
+				  SemErr(e.tok, "each LHS of call statement must be a variable");
+				}
+				
+				Ident(out id);
+				lhs.Add(new IdentifierExpr(id, id.val)); 
+				while (t.kind == 8) {
+					Get();
+					Ident(out id);
+					lhs.Add(new IdentifierExpr(id, id.val)); 
+				}
+				Expect(35);
+				CallStmtSubExpr(out e);
+			} else {
+				Get();
+				if (e is IdentifierExpr) {
+				 lhs.Add((IdentifierExpr)e);
+				} else if (e is FieldSelectExpr) {
+				  SemErr(e.tok, "each LHS of call statement must be a variable, not a field");
+				} else {
+				  SemErr(e.tok, "each LHS of call statement must be a variable");
+				}
+				
+				CallStmtSubExpr(out e);
+			}
+		}
+		Expect(9);
+		if (e is FunctionCallExpr) {
+		 FunctionCallExpr fce = (FunctionCallExpr)e;
+		 s = new CallStmt(x, lhs, fce.Receiver, fce.Name, fce.Args);  // this actually does an ownership transfer of fce.Args
+		} else {
+		  SemErr("RHS of call statement must denote a method invocation");
+		  s = new CallStmt(x, lhs, dummyExpr, "dummyMethodName", new List<Expression!>());
+		}
+		
+	}
+
+	static void IfStmt(out Statement! ifStmt) {
+		Token! x;
+		Expression guard;
+		Statement! thn;
+		Statement! s;
+		Statement els = null;
+		
+		Expect(30);
+		x = token; 
+		Guard(out guard);
+		BlockStmt(out thn);
+		if (t.kind == 31) {
+			Get();
+			if (t.kind == 30) {
+				IfStmt(out s);
+				els = s; 
+			} else if (t.kind == 5) {
+				BlockStmt(out s);
+				els = s; 
+			} else Error(99);
+		}
+		ifStmt = new IfStmt(x, guard, thn, els); 
+	}
+
+	static void WhileStmt(out Statement! stmt) {
+		Token! x;
+		Expression guard;
+		bool isFree;  Expression! e;
+		List<MaybeFreeExpression!> invariants = new List<MaybeFreeExpression!>();
+		List<Expression!> decreases = new List<Expression!>();
+		Statement! body;
+		
+		Expect(38);
+		x = token; 
+		Guard(out guard);
+		assume guard == null || Owner.None(guard); 
+		while (t.kind == 17 || t.kind == 39 || t.kind == 40) {
+			if (t.kind == 17 || t.kind == 39) {
+				isFree = false; 
+				if (t.kind == 17) {
+					Get();
+					isFree = true; 
+				}
+				Expect(39);
+				Expression(out e);
+				invariants.Add(new MaybeFreeExpression(e, isFree)); 
+				Expect(9);
+			} else {
+				Get();
+				Expression(out e);
+				decreases.Add(e); 
+				while (t.kind == 8) {
+					Get();
+					Expression(out e);
+					decreases.Add(e); 
+				}
+				Expect(9);
+			}
+		}
+		BlockStmt(out body);
+		stmt = new WhileStmt(x, guard, invariants, decreases, body); 
+	}
+
+	static void ForeachStmt(out Statement! s) {
+		Token! x, boundVar;
+		Type! ty;
+		Expression! collection;
+		Expression! range;
+		List<PredicateStmt!> bodyPrefix = new List<PredicateStmt!>();
+		AssignStmt bodyAssign = null;
+		
+		parseVarScope.PushMarker(); 
+		Expect(43);
+		x = token;
+		range = new LiteralExpr(x, true);
+		ty = new InferredTypeProxy();
+		
+		Expect(20);
+		Ident(out boundVar);
+		if (t.kind == 10) {
+			Get();
+			Type(out ty);
+		}
+		Expect(44);
+		Expression(out collection);
+		parseVarScope.Push(boundVar.val, boundVar.val); 
+		if (t.kind == 45) {
+			Get();
+			Expression(out range);
+		}
+		Expect(21);
+		Expect(5);
+		while (t.kind == 28 || t.kind == 46 || t.kind == 47) {
+			if (t.kind == 46) {
+				AssertStmt(out s);
+				if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } 
+			} else if (t.kind == 47) {
+				AssumeStmt(out s);
+				if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } 
+			} else {
+				UseStmt(out s);
+				if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } 
+			}
+		}
+		if (StartOf(5)) {
+			AssignStmt(out s);
+			if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } 
+		} else if (t.kind == 37) {
+			HavocStmt(out s);
+			if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } 
+		} else Error(100);
+		Expect(6);
+		s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign); 
+		parseVarScope.PopMarker(); 
+	}
+
+	static void LhsExpr(out Expression! e) {
+		Expression(out e);
+	}
+
+	static void AssignRhs(out Expression e, out Type ty) {
+		Expression! ee;  Type! tt;
+		e = null;  ty = null;
+		
+		if (t.kind == 36) {
+			Get();
+			ReferenceType(out tt);
+			ty = tt; 
+		} else if (StartOf(5)) {
+			Expression(out ee);
+			e = ee; 
+		} else Error(101);
+		if (e == null && ty == null) { e = dummyExpr; } 
+	}
+
+	static void IdentTypeRhs(out VarDecl! d) {
+		Token! id;  Type! ty;  Expression! e;
+		Expression rhs = null;  Type newType = null;
+		Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
+		
+		Ident(out id);
+		if (t.kind == 10) {
+			Get();
+			Type(out ty);
+			optionalType = ty; 
+		}
+		if (t.kind == 35) {
+			Get();
+			AssignRhs(out rhs, out newType);
+		}
+		if (rhs != null) {
+		 assert newType == null;
+		 optionalRhs = new ExprRhs(rhs);
+		} else if (newType != null) {
+		  optionalRhs = new TypeRhs(newType);
+		} else if (optionalType == null) {
+		  optionalType = new InferredTypeProxy();
+		}
+		d = new VarDecl(id, id.val, optionalType, optionalRhs);
+		
+	}
+
+	static void Guard(out Expression e) {
+		Expression! ee;  e = null; 
+		Expect(20);
+		if (t.kind == 41) {
+			Get();
+			e = null; 
+		} else if (StartOf(5)) {
+			Expression(out ee);
+			e = ee; 
+		} else Error(102);
+		Expect(21);
+	}
+
+	static void CallStmtSubExpr(out Expression! e) {
+		e = dummyExpr; 
+		if (t.kind == 1) {
+			IdentOrFuncExpression(out e);
+		} else if (t.kind == 20 || t.kind == 78 || t.kind == 79) {
+			ObjectExpression(out e);
+			SelectOrCallSuffix(ref e);
+		} else Error(103);
+		while (t.kind == 74 || t.kind == 76) {
+			SelectOrCallSuffix(ref e);
+		}
+	}
+
+	static void ImpliesExpression(out Expression! e0) {
+		Token! x;  Expression! e1; 
+		LogicalExpression(out e0);
+		if (t.kind == 50 || t.kind == 51) {
+			ImpliesOp();
+			x = token; 
+			ImpliesExpression(out e1);
+			e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
+		}
+	}
+
+	static void EquivOp() {
+		if (t.kind == 48) {
+			Get();
+		} else if (t.kind == 49) {
+			Get();
+		} else Error(104);
+	}
+
+	static void LogicalExpression(out Expression! e0) {
+		Token! x;  Expression! e1; 
+		RelationalExpression(out e0);
+		if (StartOf(8)) {
+			if (t.kind == 52 || t.kind == 53) {
+				AndOp();
+				x = token; 
+				RelationalExpression(out e1);
+				e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); 
+				while (t.kind == 52 || t.kind == 53) {
+					AndOp();
+					x = token; 
+					RelationalExpression(out e1);
+					e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); 
+				}
+			} else {
+				OrOp();
+				x = token; 
+				RelationalExpression(out e1);
+				e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); 
+				while (t.kind == 54 || t.kind == 55) {
+					OrOp();
+					x = token; 
+					RelationalExpression(out e1);
+					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); 
+				}
+			}
+		}
+	}
+
+	static void ImpliesOp() {
+		if (t.kind == 50) {
+			Get();
+		} else if (t.kind == 51) {
+			Get();
+		} else Error(105);
+	}
+
+	static void RelationalExpression(out Expression! e0) {
+		Token! x;  Expression! e1;  BinaryExpr.Opcode op; 
+		Term(out e0);
+		if (StartOf(9)) {
+			RelOp(out x, out op);
+			Term(out e1);
+			e0 = new BinaryExpr(x, op, e0, e1); 
+		}
+	}
+
+	static void AndOp() {
+		if (t.kind == 52) {
+			Get();
+		} else if (t.kind == 53) {
+			Get();
+		} else Error(106);
+	}
+
+	static void OrOp() {
+		if (t.kind == 54) {
+			Get();
+		} else if (t.kind == 55) {
+			Get();
+		} else Error(107);
+	}
+
+	static void Term(out Expression! e0) {
+		Token! x;  Expression! e1;  BinaryExpr.Opcode op; 
+		Factor(out e0);
+		while (t.kind == 64 || t.kind == 65) {
+			AddOp(out x, out op);
+			Factor(out e1);
+			e0 = new BinaryExpr(x, op, e0, e1); 
+		}
+	}
+
+	static void RelOp(out Token! x, out BinaryExpr.Opcode op) {
+		x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; 
+		switch (t.kind) {
+		case 56: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Eq; 
+			break;
+		}
+		case 11: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Lt; 
+			break;
+		}
+		case 12: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Gt; 
+			break;
+		}
+		case 57: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Le; 
+			break;
+		}
+		case 58: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Ge; 
+			break;
+		}
+		case 59: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Neq; 
+			break;
+		}
+		case 60: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Disjoint; 
+			break;
+		}
+		case 44: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.In; 
+			break;
+		}
+		case 61: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Neq; 
+			break;
+		}
+		case 62: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Le; 
+			break;
+		}
+		case 63: {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Ge; 
+			break;
+		}
+		default: Error(108); break;
+		}
+	}
+
+	static void Factor(out Expression! e0) {
+		Token! x;  Expression! e1;  BinaryExpr.Opcode op; 
+		UnaryExpression(out e0);
+		while (t.kind == 41 || t.kind == 66 || t.kind == 67) {
+			MulOp(out x, out op);
+			UnaryExpression(out e1);
+			e0 = new BinaryExpr(x, op, e0, e1); 
+		}
+	}
+
+	static void AddOp(out Token! x, out BinaryExpr.Opcode op) {
+		x = Token.NoToken;  op=BinaryExpr.Opcode.Add/*(dummy)*/; 
+		if (t.kind == 64) {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Add; 
+		} else if (t.kind == 65) {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Sub; 
+		} else Error(109);
+	}
+
+	static void UnaryExpression(out Expression! e) {
+		Token! x;  e = dummyExpr; 
+		if (t.kind == 65) {
+			Get();
+			x = token; 
+			UnaryExpression(out e);
+			e = new BinaryExpr(x, BinaryExpr.Opcode.Sub, new LiteralExpr(x, 0), e); 
+		} else if (t.kind == 68 || t.kind == 69) {
+			NegOp();
+			x = token; 
+			UnaryExpression(out e);
+			e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); 
+		} else if (StartOf(10)) {
+			SelectExpression(out e);
+		} else if (StartOf(11)) {
+			ConstAtomExpression(out e);
+		} else Error(110);
+	}
+
+	static void MulOp(out Token! x, out BinaryExpr.Opcode op) {
+		x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; 
+		if (t.kind == 41) {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Mul; 
+		} else if (t.kind == 66) {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Div; 
+		} else if (t.kind == 67) {
+			Get();
+			x = token;  op = BinaryExpr.Opcode.Mod; 
+		} else Error(111);
+	}
+
+	static void NegOp() {
+		if (t.kind == 68) {
+			Get();
+		} else if (t.kind == 69) {
+			Get();
+		} else Error(112);
+	}
+
+	static void SelectExpression(out Expression! e) {
+		Token! id;  e = dummyExpr; 
+		if (t.kind == 1) {
+			IdentOrFuncExpression(out e);
+		} else if (t.kind == 20 || t.kind == 78 || t.kind == 79) {
+			ObjectExpression(out e);
+		} else Error(113);
+		while (t.kind == 74 || t.kind == 76) {
+			SelectOrCallSuffix(ref e);
+		}
+	}
+
+	static void ConstAtomExpression(out Expression! e) {
+		Token! x;  int n;  List<Expression!>! elements;
+		e = dummyExpr;  
+		
+		switch (t.kind) {
+		case 70: {
+			Get();
+			e = new LiteralExpr(token, false); 
+			break;
+		}
+		case 71: {
+			Get();
+			e = new LiteralExpr(token, true); 
+			break;
+		}
+		case 72: {
+			Get();
+			e = new LiteralExpr(token); 
+			break;
+		}
+		case 2: {
+			Nat(out n);
+			e = new LiteralExpr(token, n); 
+			break;
+		}
+		case 73: {
+			Get();
+			x = token; 
+			Expect(20);
+			Expression(out e);
+			Expect(21);
+			e = new FreshExpr(x, e); 
+			break;
+		}
+		case 45: {
+			Get();
+			x = token; 
+			Expression(out e);
+			e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); 
+			Expect(45);
+			break;
+		}
+		case 5: {
+			Get();
+			x = token;  elements = new List<Expression!>(); 
+			if (StartOf(5)) {
+				Expressions(elements);
+			}
+			e = new SetDisplayExpr(x, elements); 
+			Expect(6);
+			break;
+		}
+		case 74: {
+			Get();
+			x = token;  elements = new List<Expression!>(); 
+			if (StartOf(5)) {
+				Expressions(elements);
+			}
+			e = new SeqDisplayExpr(x, elements); 
+			Expect(75);
+			break;
+		}
+		default: Error(114); break;
+		}
+	}
+
+	static void Nat(out int n) {
+		Expect(2);
+		try {
+		 n = System.Convert.ToInt32(token.val);
+		} catch (System.FormatException) {
+		  SemErr("incorrectly formatted number");
+		  n = 0;
+		}
+		
+	}
+
+	static void IdentOrFuncExpression(out Expression! e) {
+		Token! id;  e = dummyExpr;  List<Expression!>! args; 
+		Ident(out id);
+		if (t.kind == 20) {
+			Get();
+			args = new List<Expression!>(); 
+			if (StartOf(5)) {
+				Expressions(args);
+			}
+			Expect(21);
+			e = new FunctionCallExpr(id, id.val, new ImplicitThisExpr(id), args); 
+		}
+		if (e == dummyExpr) {
+		 if (parseVarScope.Find(id.val) != null) {
+		   e = new IdentifierExpr(id, id.val);
+		 } else {
+		   e = new FieldSelectExpr(id, new ImplicitThisExpr(id), id.val);
+		 }
+		}
+		
+	}
+
+	static void ObjectExpression(out Expression! e) {
+		Token! x;  e = dummyExpr; 
+		if (t.kind == 78) {
+			Get();
+			e = new ThisExpr(token); 
+		} else if (t.kind == 79) {
+			Get();
+			x = token; 
+			Expect(20);
+			Expression(out e);
+			Expect(21);
+			e = new OldExpr(x, e); 
+		} else if (t.kind == 20) {
+			Get();
+			if (StartOf(12)) {
+				QuantifierGuts(out e);
+			} else if (StartOf(5)) {
+				Expression(out e);
+			} else Error(115);
+			Expect(21);
+		} else Error(116);
+	}
+
+	static void SelectOrCallSuffix(ref Expression! e) {
+		Token! id, x;  List<Expression!>! args;
+		Expression e0 = null;  Expression e1 = null;  Expression! ee;  bool anyDots = false;
+		bool func = false;
+		
+		if (t.kind == 76) {
+			Get();
+			Ident(out id);
+			if (t.kind == 20) {
+				Get();
+				args = new List<Expression!>();  func = true; 
+				if (StartOf(5)) {
+					Expressions(args);
+				}
+				Expect(21);
+				e = new FunctionCallExpr(id, id.val, e, args); 
+			}
+			if (!func) { e = new FieldSelectExpr(id, e, id.val); } 
+		} else if (t.kind == 74) {
+			Get();
+			x = token; 
+			if (StartOf(5)) {
+				Expression(out ee);
+				e0 = ee; 
+				if (t.kind == 77) {
+					Get();
+					anyDots = true; 
+					if (StartOf(5)) {
+						Expression(out ee);
+						e1 = ee; 
+					}
+				}
+			} else if (t.kind == 77) {
+				Get();
+				Expression(out ee);
+				anyDots = true;  e1 = ee; 
+			} else Error(117);
+			if (!anyDots) {
+			 assert e1 == null;
+			 e = new SeqSelectExpr(x, true, e, e0, null);
+			} else {
+			  assert e0 != null || e1 != null;
+			  e = new SeqSelectExpr(x, false, e, e0, e1);
+			}
+			
+			Expect(75);
+		} else Error(118);
+	}
+
+	static void QuantifierGuts(out Expression! q) {
+		Token! x = Token.NoToken;
+		bool univ = false;
+		BoundVar! bv;
+		List<BoundVar!> bvars = new List<BoundVar!>();
+		Token! tok;  Expr! e;  ExprSeq! es;
+		Attributes attrs = null;
+		Triggers trigs = null;
+		Expression! body;
+		
+		if (t.kind == 80 || t.kind == 81) {
+			Forall();
+			x = token;  univ = true; 
+		} else if (t.kind == 82 || t.kind == 83) {
+			Exists();
+			x = token; 
+		} else Error(119);
+		parseVarScope.PushMarker(); 
+		IdentTypeOptional(out bv);
+		bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); 
+		while (t.kind == 8) {
+			Get();
+			IdentTypeOptional(out bv);
+			bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); 
+		}
+		QSep();
+		while (t.kind == 5) {
+			AttributeOrTrigger(ref attrs, ref trigs);
+		}
+		Expression(out body);
+		if (univ) {
+		 q = new ForallExpr(x, bvars, body, trigs, attrs);
+		} else {
+		  q = new ExistsExpr(x, bvars, body, trigs, attrs);
+		}
+		parseVarScope.PopMarker();
+		
+	}
+
+	static void Forall() {
+		if (t.kind == 80) {
+			Get();
+		} else if (t.kind == 81) {
+			Get();
+		} else Error(120);
+	}
+
+	static void Exists() {
+		if (t.kind == 82) {
+			Get();
+		} else if (t.kind == 83) {
+			Get();
+		} else Error(121);
+	}
+
+	static void QSep() {
+		if (t.kind == 84) {
+			Get();
+		} else if (t.kind == 85) {
+			Get();
+		} else Error(122);
+	}
+
+	static void AttributeOrTrigger(ref Attributes attrs, ref Triggers trigs) {
+		List<Expression!> es = new List<Expression!>();
+		
+		Expect(5);
+		if (t.kind == 10) {
+			AttributeBody(ref attrs);
+		} else if (StartOf(5)) {
+			es = new List<Expression!>(); 
+			Expressions(es);
+			trigs = new Triggers(es, trigs); 
+		} else Error(123);
+		Expect(6);
+	}
+
+	static void AttributeBody(ref Attributes attrs) {
+		string aName;
+		List<Attributes.Argument!> aArgs = new List<Attributes.Argument!>();
+		Attributes.Argument! aArg;
+		
+		Expect(10);
+		Expect(1);
+		aName = token.val; 
+		if (StartOf(13)) {
+			AttributeArg(out aArg);
+			aArgs.Add(aArg); 
+			while (t.kind == 8) {
+				Get();
+				AttributeArg(out aArg);
+				aArgs.Add(aArg); 
+			}
+		}
+		attrs = new Attributes(aName, aArgs, attrs); 
+	}
+
+	static void AttributeArg(out Attributes.Argument! arg) {
+		Expression! e;  arg = dummyAttrArg; 
+		if (t.kind == 3) {
+			Get();
+			arg = new Attributes.Argument(token.val.Substring(1, token.val.Length-2)); 
+		} else if (StartOf(5)) {
+			Expression(out e);
+			arg = new Attributes.Argument(e); 
+		} else Error(124);
+	}
+
+
+
+	public static void Parse() {
+		Errors.SynErr = new ErrorProc(SynErr);
+		t = new Token();
+		Get();
+		Dafny();
+
+	}
+
+	[Microsoft.Contracts.Verify(false)]
+	static void SynErr(int n, string filename, int line, int col) {
+		Errors.count++;
+		System.Console.Write("{0}({1},{2}): syntax error: ", filename, line, col);
+		string s;
+		switch (n) {
+			case 0: s = "EOF expected"; break;
+			case 1: s = "ident expected"; break;
+			case 2: s = "digits expected"; break;
+			case 3: s = "string expected"; break;
+			case 4: s = "class expected"; break;
+			case 5: s = "{ expected"; break;
+			case 6: s = "} expected"; break;
+			case 7: s = "var expected"; break;
+			case 8: s = ", expected"; break;
+			case 9: s = "; expected"; break;
+			case 10: s = ": expected"; break;
+			case 11: s = "< expected"; break;
+			case 12: s = "> expected"; break;
+			case 13: s = "frame expected"; break;
+			case 14: s = "method expected"; break;
+			case 15: s = "returns expected"; break;
+			case 16: s = "modifies expected"; break;
+			case 17: s = "free expected"; break;
+			case 18: s = "requires expected"; break;
+			case 19: s = "ensures expected"; break;
+			case 20: s = "( expected"; break;
+			case 21: s = ") expected"; break;
+			case 22: s = "bool expected"; break;
+			case 23: s = "int expected"; break;
+			case 24: s = "object expected"; break;
+			case 25: s = "set expected"; break;
+			case 26: s = "seq expected"; break;
+			case 27: s = "function expected"; break;
+			case 28: s = "use expected"; break;
+			case 29: s = "reads expected"; break;
+			case 30: s = "if expected"; break;
+			case 31: s = "else expected"; break;
+			case 32: s = "label expected"; break;
+			case 33: s = "break expected"; break;
+			case 34: s = "return expected"; break;
+			case 35: s = ":= expected"; break;
+			case 36: s = "new expected"; break;
+			case 37: s = "havoc expected"; break;
+			case 38: s = "while expected"; break;
+			case 39: s = "invariant expected"; break;
+			case 40: s = "decreases expected"; break;
+			case 41: s = "* expected"; break;
+			case 42: s = "call expected"; break;
+			case 43: s = "foreach expected"; break;
+			case 44: s = "in expected"; break;
+			case 45: s = "| expected"; break;
+			case 46: s = "assert expected"; break;
+			case 47: s = "assume expected"; break;
+			case 48: s = "<==> expected"; break;
+			case 49: s = "\\u21d4 expected"; break;
+			case 50: s = "==> expected"; break;
+			case 51: s = "\\u21d2 expected"; break;
+			case 52: s = "&& expected"; break;
+			case 53: s = "\\u2227 expected"; break;
+			case 54: s = "|| expected"; break;
+			case 55: s = "\\u2228 expected"; break;
+			case 56: s = "== expected"; break;
+			case 57: s = "<= expected"; break;
+			case 58: s = ">= expected"; break;
+			case 59: s = "!= expected"; break;
+			case 60: s = "!! expected"; break;
+			case 61: s = "\\u2260 expected"; break;
+			case 62: s = "\\u2264 expected"; break;
+			case 63: s = "\\u2265 expected"; break;
+			case 64: s = "+ expected"; break;
+			case 65: s = "- expected"; break;
+			case 66: s = "/ expected"; break;
+			case 67: s = "% expected"; break;
+			case 68: s = "! expected"; break;
+			case 69: s = "\\u00ac expected"; break;
+			case 70: s = "false expected"; break;
+			case 71: s = "true expected"; break;
+			case 72: s = "null expected"; break;
+			case 73: s = "fresh expected"; break;
+			case 74: s = "[ expected"; break;
+			case 75: s = "] expected"; break;
+			case 76: s = ". expected"; break;
+			case 77: s = ".. expected"; break;
+			case 78: s = "this expected"; break;
+			case 79: s = "old expected"; break;
+			case 80: s = "forall expected"; break;
+			case 81: s = "\\u2200 expected"; break;
+			case 82: s = "exists expected"; break;
+			case 83: s = "\\u2203 expected"; break;
+			case 84: s = ":: expected"; break;
+			case 85: s = "\\u2022 expected"; break;
+			case 86: s = "??? expected"; break;
+			case 87: s = "invalid ClassMemberDecl"; break;
+			case 88: s = "invalid FunctionDecl"; break;
+			case 89: s = "invalid MethodDecl"; break;
+			case 90: s = "invalid Type"; break;
+			case 91: s = "invalid MethodSpec"; break;
+			case 92: s = "invalid MethodSpec"; break;
+			case 93: s = "invalid ReferenceType"; break;
+			case 94: s = "invalid FunctionSpec"; break;
+			case 95: s = "invalid ExtendedExpr"; break;
+			case 96: s = "invalid IfThenElseExpr"; break;
+			case 97: s = "invalid Stmt"; break;
+			case 98: s = "invalid OneStmt"; break;
+			case 99: s = "invalid IfStmt"; break;
+			case 100: s = "invalid ForeachStmt"; break;
+			case 101: s = "invalid AssignRhs"; break;
+			case 102: s = "invalid Guard"; break;
+			case 103: s = "invalid CallStmtSubExpr"; break;
+			case 104: s = "invalid EquivOp"; break;
+			case 105: s = "invalid ImpliesOp"; break;
+			case 106: s = "invalid AndOp"; break;
+			case 107: s = "invalid OrOp"; break;
+			case 108: s = "invalid RelOp"; break;
+			case 109: s = "invalid AddOp"; break;
+			case 110: s = "invalid UnaryExpression"; break;
+			case 111: s = "invalid MulOp"; break;
+			case 112: s = "invalid NegOp"; break;
+			case 113: s = "invalid SelectExpression"; break;
+			case 114: s = "invalid ConstAtomExpression"; break;
+			case 115: s = "invalid ObjectExpression"; break;
+			case 116: s = "invalid ObjectExpression"; break;
+			case 117: s = "invalid SelectOrCallSuffix"; break;
+			case 118: s = "invalid SelectOrCallSuffix"; break;
+			case 119: s = "invalid QuantifierGuts"; break;
+			case 120: s = "invalid Forall"; break;
+			case 121: s = "invalid Exists"; break;
+			case 122: s = "invalid QSep"; break;
+			case 123: s = "invalid AttributeOrTrigger"; break;
+			case 124: s = "invalid AttributeArg"; break;
+
+			default: s = "error " + n; break;
+		}
+		System.Console.WriteLine(s);
+	}
+
+	static bool[,]! set = {
+	{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,x,x,x, x,x,x,T, x,x,x,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,T,T,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, T,T,T,T, T,T,T,x, x,x,T,T, x,x,x,x, x,x,x,x},
+	{x,T,T,x, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, T,x,T,x, T,T,T,x, x,T,T,x, x,x,T,T, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, T,T,T,T, T,T,T,x, x,x,T,T, x,x,x,x, x,x,x,x},
+	{x,T,T,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, T,x,T,x, T,T,T,x, x,T,T,x, x,x,T,T, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, T,T,T,T, T,T,T,x, x,x,T,T, x,x,x,x, x,x,x,x},
+	{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,x,x,x, x,x,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x},
+	{x,x,T,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x},
+	{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x},
+	{x,T,T,T, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, T,T,T,T, T,T,T,x, x,x,T,T, x,x,x,x, x,x,x,x}
+
+	};
+
+	[Microsoft.Contracts.Verify(false)]
+	static Parser() {}
+} // end Parser
+
+} // end namespace

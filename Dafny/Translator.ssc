@@ -1,0 +1,2446 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+//
+//-----------------------------------------------------------------------------
+using System;
+using System.Collections.Generic;
+using Microsoft.Contracts;
+using Bpl = Microsoft.Boogie;
+
+// TODO:  wellformedness checks for function bodies
+// TODO:  totality checks for statements
+// TODO:  totality checks for pre/post conditions
+
+namespace Microsoft.Dafny {
+  public class Translator {
+    public Translator() {
+      Bpl.Program boogieProgram = ReadPrelude();
+      if (boogieProgram != null) {
+        sink = boogieProgram;
+        predef = FindPredefinedDecls(boogieProgram);
+      }
+    }
+    
+    // translation state
+    readonly Dictionary<ClassDecl!,Bpl.Constant!>! classes = new Dictionary<ClassDecl!,Bpl.Constant!>();
+    readonly Dictionary<Field!,Bpl.Constant!>! fields = new Dictionary<Field!,Bpl.Constant!>();
+    readonly Dictionary<Function!,Bpl.Function!>! functions = new Dictionary<Function!,Bpl.Function!>();
+    readonly Dictionary<Method!,Bpl.Procedure!>! methods = new Dictionary<Method!,Bpl.Procedure!>();
+    
+    readonly Bpl.Program sink;
+    readonly PredefinedDecls predef;
+    internal class PredefinedDecls {
+      public readonly Bpl.Type! RefType;
+      private readonly Bpl.TypeCtorDecl! seqTypeCtor;
+      public Bpl.Type! SeqType(Token! tok, Bpl.Type! ty) {
+        return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new Bpl.TypeSeq(ty));
+      }
+      readonly Bpl.TypeCtorDecl! fieldName;
+      public Bpl.Type! FieldName(Token! tok, Bpl.Type! ty) {
+        return new Bpl.CtorType(tok, fieldName, new Bpl.TypeSeq(ty));
+      }
+      public readonly Bpl.Type! HeapType;
+      public readonly Bpl.Type! ClassNameType;
+      public readonly Bpl.Expr! Null;
+      private readonly Bpl.Constant! allocField;
+      public Bpl.IdentifierExpr! Alloc(Token! tok) {
+        return new Bpl.IdentifierExpr(tok, allocField);
+      }
+
+      public PredefinedDecls(Bpl.TypeCtorDecl! refType, Bpl.TypeCtorDecl! seqTypeCtor, Bpl.TypeCtorDecl! fieldNameType,
+                             Bpl.GlobalVariable! heap, Bpl.TypeCtorDecl! classNameType, Bpl.Constant! allocField) {
+        Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new Bpl.TypeSeq());
+        this.RefType = refT;
+        this.seqTypeCtor = seqTypeCtor;
+        this.fieldName = fieldNameType;
+        this.HeapType = heap.TypedIdent.Type;
+        this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
+        this.allocField = allocField;
+        this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
+      }
+    }
+    
+    static PredefinedDecls FindPredefinedDecls(Bpl.Program! prog) {
+      if (prog.Resolve() != 0) {
+        Console.WriteLine("Error: resolution errors encountered in Dafny prelude");
+        return null;
+      }
+      
+      Bpl.TypeCtorDecl refType = null;
+      Bpl.TypeCtorDecl seqTypeCtor = null;
+      Bpl.TypeCtorDecl fieldNameType = null;
+      Bpl.TypeCtorDecl classNameType = null;
+      Bpl.GlobalVariable heap = null;
+      Bpl.Constant allocField = null;
+      foreach (Bpl.Declaration d in prog.TopLevelDeclarations) {
+        if (d is Bpl.TypeCtorDecl) {
+          Bpl.TypeCtorDecl dt = (Bpl.TypeCtorDecl)d;
+          if (dt.Name == "Seq") {
+            seqTypeCtor = dt;
+          } else if (dt.Name == "Field") {
+            fieldNameType = dt;
+          } else if (dt.Name == "ClassName") {
+            classNameType = dt;
+          } else if (dt.Name == "ref") {
+            refType = dt;
+          }
+        } else if (d is Bpl.Constant) {
+          Bpl.Constant c = (Bpl.Constant)d;
+          if (c.Name == "alloc") {
+            allocField = c;
+          }
+        } else if (d is Bpl.GlobalVariable) {
+          Bpl.GlobalVariable v = (Bpl.GlobalVariable)d;
+          if (v.Name == "$Heap") {
+            heap = v;
+          }
+        }
+      }
+      if (seqTypeCtor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
+      } else if (fieldNameType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
+      } else if (classNameType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+      } else if (refType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
+      } else if (heap == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
+      } else if (allocField == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
+      } else {
+        return new PredefinedDecls(refType, seqTypeCtor, fieldNameType, heap, classNameType, allocField);
+      }
+      return null;
+    }
+    
+    static Bpl.Program ReadPrelude() {
+      //using (System.IO.Stream stream = (!) System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
+      string! codebase = (!) System.IO.Path.GetDirectoryName((!)System.Reflection.Assembly.GetExecutingAssembly().Location);
+      string! preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+      List<string!> defines = new List<string!>();
+      using (System.IO.Stream stream = new System.IO.FileStream(preludePath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+      {
+        BoogiePL.Buffer.Fill(new System.IO.StreamReader(stream), defines);
+        BoogiePL.Scanner.Init("<DafnyPrelude.bpl>");
+        Bpl.Program prelude;
+        int errorCount = BoogiePL.Parser.Parse(out prelude);
+        if (prelude == null || errorCount > 0) {
+          return null;
+        } else {
+          return prelude;
+        }
+      }
+    }
+    
+    public Bpl.Program! Translate(Program! program) {
+      if (sink == null || predef == null) {
+        // something went wrong during construction, which reads the prelude; an error has
+        // already been printed, so just return an empty program here (which is non-null)
+        return new Bpl.Program();
+      }
+      foreach (ClassDecl c in program.Classes) {
+        AddClassMembers(c);
+      }
+      foreach (ClassDecl c in program.Classes) {
+        foreach (MemberDecl member in c.Members) {
+          if (member is Method) {
+            Method m = (Method)member;
+            if (m.Body != null) {
+              AddMethodImpl(m);
+            }
+          } else if (member is Function) {
+            Function f = (Function)member;
+            AddFrameAxiom(f);
+            // TODO: also need a well-formedness check for the preconditions
+            if (f.Body != null) {
+              AddWellformednessCheck(f);
+            }
+          }
+        }
+      }
+      return sink;
+    }
+    
+    void AddClassMembers(ClassDecl! c)
+      requires sink != null && predef != null;
+    {
+      sink.TopLevelDeclarations.Add(GetClass(c));
+      
+      foreach (MemberDecl member in c.Members) {
+        if (member is Field) {
+          Field f = (Field)member;
+          Bpl.Constant fc = GetField(f);
+          sink.TopLevelDeclarations.Add(fc);
+          
+          AddAllocationAxiom(f);
+          
+        } else if (member is Function) {
+          Function f = (Function)member;
+          Bpl.Function useFunc;
+          Bpl.Function func = GetFunction(f, out useFunc);
+          sink.TopLevelDeclarations.Add(func);
+          if (useFunc != null) {
+            sink.TopLevelDeclarations.Add(useFunc);
+          }
+          if (f.Body != null) {
+            ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
+            
+            // axiom (forall $Heap, formals :: f#use(formals) && this != null && $IsHeap($Heap) && Pre($Heap,formals) ==> f(formals) == body)
+            // The antecedent f#use(formals) is included only if the function has been declared as 'use'.
+            // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
+            // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
+            // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
+            // sound after that, then it would also have been sound just before the allocation.
+            Bpl.VariableSeq formals = new Bpl.VariableSeq();
+            Bpl.ExprSeq args = new Bpl.ExprSeq();
+            Bpl.BoundVariable bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$Heap", predef.HeapType));
+            formals.Add(bv);
+            args.Add(new Bpl.IdentifierExpr(f.tok, bv));
+            Bpl.BoundVariable bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+            formals.Add(bvThis);
+            Bpl.Expr bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
+            args.Add(bvThisIdExpr);
+            foreach (Formal p in f.Formals) {
+              bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
+              formals.Add(bv);
+              args.Add(new Bpl.IdentifierExpr(p.tok, bv));
+            }
+            Bpl.Expr ante = Bpl.Expr.And(
+              Bpl.Expr.Neq(bvThisIdExpr, predef.Null),
+              FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+            foreach (Expression req in f.Req) {
+              ante = Bpl.Expr.And(ante, etran.TrExpr(req));
+            }
+            Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
+            Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
+            Bpl.Trigger tr;
+            if (f.Use) {
+              Bpl.FunctionCall useID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#use", TrType(f.ResultType)));
+              Bpl.Expr useAppl = new Bpl.NAryExpr(f.tok, useID, args);
+              ante = Bpl.Expr.And(useAppl, ante);
+              tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(useAppl));
+            } else {
+              tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
+            }
+            Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+            Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.TrExpr(f.Body))));
+            sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+          }
+          
+        } else if (member is Method) {
+          Method m = (Method)member;
+          Bpl.Procedure proc = GetMethod(m);
+          sink.TopLevelDeclarations.Add(proc);
+          
+        } else {
+          assert false;  // unexpected member
+        }
+      }
+    }
+    
+    void AddAllocationAxiom(Field! f)
+      requires sink != null && predef != null;
+    {
+      if (f.Type is BoolType || f.Type is IntType || f.Type.IsTypeParameter) {
+        return;
+      }
+      
+      Bpl.BoundVariable hVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h", predef.HeapType));
+      Bpl.Expr h = new Bpl.IdentifierExpr(f.tok, hVar);
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, h);
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$o", predef.RefType));
+      Bpl.Expr o = new Bpl.IdentifierExpr(f.tok, oVar);
+      
+      // h[o,f]
+      Bpl.Expr oDotF = Bpl.Expr.SelectTok(f.tok, h, o, new Bpl.IdentifierExpr(f.tok, GetField(f)));
+      // $IsGoodHeap(h) && o != null && h[o,alloc]
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.And(
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, h),
+        Bpl.Expr.Neq(o, predef.Null)),
+        etran.IsAlloced(f.tok, o));
+
+      if (f.Type is SetType) {
+        SetType st = (SetType)f.Type;
+        if (st.Arg.IsRefType) {
+          //   axiom (forall h: [ref, Field x]x, o: ref, t: ref ::
+          //        { h[o,f][t] }
+          //        $IsGoodHeap(h) && o != null && h[o,alloc] && h[o,f][t] ==> t == null || h[t, alloc]);
+          Bpl.BoundVariable tVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$t", predef.RefType));
+          Bpl.Expr t = new Bpl.IdentifierExpr(f.tok, tVar);
+          Bpl.Expr oDotFsubT = Bpl.Expr.SelectTok(f.tok, oDotF, t);
+
+          Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotFsubT));
+          
+          Bpl.Expr goodRef = etran.GoodRef(f.tok, t, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(ante, oDotFsubT), Bpl.Expr.Or(Bpl.Expr.Eq(t, predef.Null), goodRef));
+          Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new Bpl.VariableSeq(hVar, oVar, tVar), tr, body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+        } else {
+          // TODO: should also handle sets of sets, etc.  This will probably require some extra predicates, and these predicates may even replace the above treatment of sets.
+        }
+        
+      } else if (f.Type is SeqType) {
+        SeqType st = (SeqType)f.Type;
+        if (st.Arg.IsRefType) {
+          //   axiom (forall h: [ref, Field x]x, o: ref, i: int ::
+          //        { Seq#Index(h[o,f], i) }
+          //        $IsGoodHeap(h) && o != null && h[o,alloc] && 0 <= i && i < Seq#Length(h[o,f]) ==> Seq#Index(h[o,f], i) == null || h[Seq#Index(h[o,f], i), alloc]);
+          Bpl.BoundVariable iVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$i", Bpl.Type.Int));
+          Bpl.Expr i = new Bpl.IdentifierExpr(f.tok, iVar);
+          Bpl.Expr oDotFsubI = FunctionCall(f.tok, BuiltinFunction.SeqIndex, predef.RefType, oDotF, i);
+          
+          Bpl.Expr range = InSeqRange(f.tok, i, oDotF, null, false);
+          
+          Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotFsubI));
+          
+          Bpl.Expr goodRef = etran.GoodRef(f.tok, oDotFsubI, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(ante, range), Bpl.Expr.Or(Bpl.Expr.Eq(oDotFsubI, predef.Null), goodRef));
+          Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new Bpl.VariableSeq(hVar, oVar, iVar), tr, body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+        } else {
+          // TODO: should also handle sequences of sequences, etc.  This will probably require some extra predicates, and these predicates may even replace the above treatment of sequences.
+        }
+        
+      } else {
+        // reference type:
+        //   axiom (forall h: [ref, Field x]x, o: ref ::
+        //        { h[o,f] }
+        //        $IsGoodHeap(h) && o != null && h[o,alloc] ==> h[o,f] == null || h[h[o,f], alloc]);
+        Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotF));
+        
+        Bpl.Expr goodRef = etran.GoodRef(f.tok, oDotF, f.Type);
+        Bpl.Expr body = Bpl.Expr.Imp(ante, Bpl.Expr.Or(Bpl.Expr.Eq(oDotF, predef.Null), goodRef));
+        Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new Bpl.VariableSeq(hVar, oVar), tr, body);
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+      }
+    }
+
+    Bpl.Expr! InSeqRange(Token! tok, Bpl.Expr! index, Bpl.Expr! seq, Bpl.Expr lowerBound, bool includeUpperBound) {
+      if (lowerBound == null) {
+        lowerBound = Bpl.Expr.Literal(0);
+      }
+      Bpl.Expr lower = Bpl.Expr.Le(lowerBound, index);
+      Bpl.Expr upper;
+      if (includeUpperBound) {
+        upper = Bpl.Expr.Le(index, FunctionCall(tok, BuiltinFunction.SeqLength, null, seq));
+      } else {
+        upper = Bpl.Expr.Lt(index, FunctionCall(tok, BuiltinFunction.SeqLength, null, seq));
+      }
+      return Bpl.Expr.And(lower, upper);
+    }
+    
+    Method currentMethod = null;  // the method whose implementation is currently being translated
+    int loopHeapVarCount = 0;
+    int otherTmpVarCount = 0;
+    Bpl.IdentifierExpr _phvie = null;
+    Bpl.IdentifierExpr! GetPrevHeapVar_IdExpr(Token! tok, Bpl.VariableSeq! locals)  // local variable that's shared between statements that need it
+      requires predef != null;
+    {
+      if (_phvie == null) {
+        // the "tok" of the first request for this variable is the one we use
+        Bpl.LocalVariable prevHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$prevHeap", predef.HeapType));
+        locals.Add(prevHeapVar);
+        _phvie = new Bpl.IdentifierExpr(tok, prevHeapVar);
+      }
+      return _phvie;
+    }
+    Bpl.IdentifierExpr _nwie = null;
+    Bpl.IdentifierExpr! GetNewVar_IdExpr(Token! tok, Bpl.VariableSeq! locals)  // local variable that's shared between statements that need it
+      requires predef != null;
+    {
+      if (_nwie == null) {
+        // the "tok" of the first request for this variable is the one we use
+        Bpl.LocalVariable nwVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$nw", predef.RefType));  // important: no where clause (that's why we're going through the trouble of setting of this variable in the first place)
+        locals.Add(nwVar);
+        _nwie = new Bpl.IdentifierExpr(tok, nwVar);
+      }
+      return _nwie;
+    }
+
+    void AddMethodImpl(Method! m)
+      requires sink != null && predef != null && m.Body != null;
+      requires currentMethod == null && loopHeapVarCount == 0 && _phvie == null && _nwie == null;
+      ensures currentMethod == null && loopHeapVarCount == 0 && _phvie == null && _nwie == null;
+    {
+      Bpl.Procedure proc = GetMethod(m);
+      currentMethod = m;
+
+      Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
+
+      Bpl.StmtList stmts = TrStmt2StmtList(m.Body, localVariables, new ExpressionTranslator(this, predef, m.tok));
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
+      Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
+        typeParams,
+        Bpl.Formal.StripWhereClauses(proc.InParams),
+        Bpl.Formal.StripWhereClauses(proc.OutParams),
+        localVariables, stmts);
+      sink.TopLevelDeclarations.Add(impl);
+      
+      currentMethod = null;
+      loopHeapVarCount = 0;
+      otherTmpVarCount = 0;
+      _phvie = null;
+      _nwie = null;
+    }
+    
+    /// <summary>
+    /// Generates:
+    ///   axiom (forall h0: [ref, Field x]x, h1: [ref, Field x]x, formals... ::
+    ///        { F(h0,formals), F(h1,formals) }
+    ///        (forall(alpha) o: ref, f: Field alpha :: o != null AND h0[o,alloc] AND o in reads clause of formals in h0 IMPLIES h0[o,f] == h1[o,f]) AND
+    ///        (forall(alpha) o: ref, f: Field alpha :: o != null AND h1[o,alloc] AND o in reads clause of formals in h1 IMPLIES h0[o,f] == h1[o,f])
+    ///        IMPLIES
+    ///        F(h0,formals) == F(h1,formals)
+    ///      );
+    /// </summary>
+    void AddFrameAxiom(Function! f)
+      requires sink != null && predef != null;
+    {
+      Bpl.BoundVariable h0Var = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h0", predef.HeapType));
+      Bpl.BoundVariable h1Var = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h1", predef.HeapType));
+      Bpl.Expr h0 = new Bpl.IdentifierExpr(f.tok, h0Var);
+      Bpl.Expr h1 = new Bpl.IdentifierExpr(f.tok, h1Var);
+      ExpressionTranslator etran0 = new ExpressionTranslator(this, predef, h0);
+      ExpressionTranslator etran1 = new ExpressionTranslator(this, predef, h1);
+      
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$o", predef.RefType));
+      Bpl.Expr o = new Bpl.IdentifierExpr(f.tok, oVar);
+      Bpl.BoundVariable fieldVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$f", predef.FieldName(f.tok, alpha)));
+      Bpl.Expr field = new Bpl.IdentifierExpr(f.tok, fieldVar);
+      Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+      Bpl.Expr oNotNullAlloced0 = Bpl.Expr.And(oNotNull, etran0.IsAlloced(f.tok, o));
+      Bpl.Expr oNotNullAlloced1 = Bpl.Expr.And(oNotNull, etran1.IsAlloced(f.tok, o));
+      Bpl.Expr unchanged = Bpl.Expr.Eq(Bpl.Expr.SelectTok(f.tok, h0, o, field), Bpl.Expr.SelectTok(f.tok, h1, o, field));
+      
+      Bpl.Expr r0 = InRWClause(f.tok, o, f.Reads, etran0);
+      Bpl.Expr r1 = InRWClause(f.tok, o, f.Reads, etran1);
+      Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
+        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced0, r0), unchanged));
+      Bpl.Expr q1 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
+        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced1, r1), unchanged));
+      
+      // bvars:  h0, h1, formals
+      // f0args:  h0, formals
+      // f1args:  h1, formals
+      Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+      Bpl.ExprSeq f0args = new Bpl.ExprSeq();
+      Bpl.ExprSeq f1args = new Bpl.ExprSeq();
+      Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+      Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
+      bvars.Add(h0Var);  bvars.Add(h1Var);  bvars.Add(thVar);
+      f0args.Add(h0);  f0args.Add(th);
+      f1args.Add(h1);  f1args.Add(th);
+      foreach (Formal p in f.Formals) {
+        Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
+        bvars.Add(bv);
+        Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
+        f0args.Add(formal);
+        f1args.Add(formal);
+      }
+      
+      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
+      Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
+      Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
+      Bpl.Expr eq = Bpl.Expr.Eq(F0, F1);
+      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(F0, F1));
+      
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr, Bpl.Expr.Imp(Bpl.Expr.And(q0, q1), eq));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
+    }
+    
+    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran) {
+      Bpl.Expr disjunction = null;
+      foreach (Expression e in rw) {
+        Bpl.Expr disjunct;
+        if (e.Type is SetType) {
+          // old(e)[o]
+          disjunct = etran.TrInSet(tok, o, e, null);
+        } else if (e.Type is SeqType) {
+          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) ==> Seq#Index(old(e),i) == o)
+          Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
+          Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
+          Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), null, false);
+          Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, TrType(((SeqType)e.Type).Arg), etran.TrExpr(e), i);
+          // TODO: the equality in the next line should be changed to one that understands extensionality
+          disjunct = new Bpl.ExistsExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(iBounds, Bpl.Expr.Eq(XsubI, o)));
+        } else {
+          // o == old(e)
+          disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
+        }
+        disjunct = Bpl.Expr.And(IsTotal(e, etran), disjunct);
+        if (disjunction == null) {
+          disjunction = disjunct;
+        } else {
+          disjunction = Bpl.Expr.Or(disjunction, disjunct);
+        }
+      }
+      if (disjunction == null) {
+        return Bpl.Expr.False;
+      } else {
+        return disjunction;
+      }
+    }
+    
+    void AddWellformednessCheck(Function! f)
+      requires sink != null && predef != null;
+      requires f.Body != null;
+    {
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
+      Bpl.VariableSeq inParams = new Bpl.VariableSeq();
+      Bpl.Expr wh = Bpl.Expr.And(
+        Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
+        etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, (!)f.EnclosingClass)));
+      Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
+      inParams.Add(thVar);
+      foreach (Formal p in f.Formals) {
+        Bpl.Type varType = TrType(p.Type);
+        wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+      }
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+      Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
+        new Bpl.RequiresSeq(), new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
+      sink.TopLevelDeclarations.Add(proc);
+
+      Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
+      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+
+      CheckWellformed(f.Body, f, Position.Positive, builder, etran);
+
+      Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
+        typeParams,
+        Bpl.Formal.StripWhereClauses(proc.InParams),
+        Bpl.Formal.StripWhereClauses(proc.OutParams),
+        localVariables, builder.Collect(f.tok));
+      sink.TopLevelDeclarations.Add(impl);
+    }
+    
+    Bpl.Expr! IsTotal(Expression! expr, ExpressionTranslator! etran)
+      requires predef != null;
+    {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr) {
+        return Bpl.Expr.True;
+      } else if (expr is DisplayExpression) {
+        DisplayExpression e = (DisplayExpression)expr;
+        return IsTotal(e.Elements, etran);
+      } else if (expr is FieldSelectExpr) {
+        FieldSelectExpr e = (FieldSelectExpr)expr;
+        if (e.Obj is ThisExpr) {
+          return Bpl.Expr.True;
+        } else {
+          return Bpl.Expr.And(IsTotal(e.Obj, etran), Bpl.Expr.Neq(etran.TrExpr(e.Obj), predef.Null));
+        }
+      } else if (expr is SeqSelectExpr) {
+        SeqSelectExpr e = (SeqSelectExpr)expr;
+        Bpl.Expr total = IsTotal(e.Seq, etran);
+        Bpl.Expr seq = etran.TrExpr(e.Seq);
+        Bpl.Expr e0 = null;
+        if (e.E0 != null) {
+          e0 = etran.TrExpr(e.E0);
+          total = BplAnd(total, IsTotal(e.E0, etran));
+          total = BplAnd(total, InSeqRange(expr.tok, e0, seq, null, !e.SelectOne));
+        }
+        if (e.E1 != null) {
+          total = BplAnd(total, IsTotal(e.E1, etran));
+          total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true));
+        }
+        return total;
+      } else if (expr is FunctionCallExpr) {
+        FunctionCallExpr e = (FunctionCallExpr)expr;
+        Bpl.Expr r = IsTotal(e.Receiver, etran);
+        if (!(e.Receiver is ThisExpr)) {
+          r = BplAnd(r, Bpl.Expr.Neq(etran.TrExpr(e.Receiver), predef.Null));
+        }
+        // TODO: check reads permissions and check preconditions
+        return BplAnd(r, IsTotal(e.Args, etran));
+      } else if (expr is OldExpr) {
+        OldExpr e = (OldExpr)expr;
+        return new Bpl.OldExpr(expr.tok, IsTotal(e.E, etran));
+      } else if (expr is FreshExpr) {
+        FreshExpr e = (FreshExpr)expr;
+        return IsTotal(e.E, etran);
+      } else if (expr is UnaryExpr) {
+        UnaryExpr e = (UnaryExpr)expr;
+        return IsTotal(e.E, etran);
+      } else if (expr is BinaryExpr) {
+        BinaryExpr e = (BinaryExpr)expr;
+        Bpl.Expr t0 = IsTotal(e.E0, etran);
+        Bpl.Expr t1 = IsTotal(e.E1, etran);
+        Bpl.Expr z = null;
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.And:
+          case BinaryExpr.ResolvedOpcode.Imp:
+            t1 = Bpl.Expr.Imp(etran.TrExpr(e.E0), t1);
+            break;
+          case BinaryExpr.ResolvedOpcode.Or:
+            t1 = Bpl.Expr.Imp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
+            break;
+          case BinaryExpr.ResolvedOpcode.Div:
+            z = Bpl.Expr.Neq(etran.TrExpr(e.E1), Bpl.Expr.Literal(0));
+            break;
+          default:
+            break;
+        }
+        Bpl.Expr r = BplAnd(t0, t1);
+        return z == null ? r : BplAnd(r, z);
+      } else if (expr is QuantifierExpr) {
+        QuantifierExpr e = (QuantifierExpr)expr;
+        Bpl.Expr total = IsTotal(e.Body, etran);
+        if (total != Bpl.Expr.True) {
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          foreach (BoundVar bv in e.BoundVars) {
+            bvars.Add(new Bpl.BoundVariable(bv.tok, new Bpl.TypedIdent(bv.tok, bv.UniqueName, TrType(bv.Type))));
+          }
+          total = new Bpl.ForallExpr(expr.tok, bvars, total);
+        }
+        return total;
+      } else if (expr is ITEExpr) {
+        ITEExpr e = (ITEExpr)expr;
+        Bpl.Expr total = IsTotal(e.Test, etran);
+        Bpl.Expr test = etran.TrExpr(e.Test);
+        total = BplAnd(total, Bpl.Expr.Imp(test, IsTotal(e.Thn, etran)));
+        total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), IsTotal(e.Els, etran)));
+        return total;
+      } else {
+        assert false;  // unexpected expression
+      }
+    }
+    
+    Bpl.Expr! IsTotal(List<Expression!>! exprs, ExpressionTranslator! etran) {
+      Bpl.Expr total = Bpl.Expr.True;
+      foreach (Expression e in exprs) {
+        total = BplAnd(total, IsTotal(e, etran));
+      }
+      return total;
+    }
+    
+    Bpl.Expr! BplAnd(Bpl.Expr! a, Bpl.Expr! b) {
+      if (a == Bpl.Expr.True) {
+        return b;
+      } else if (b == Bpl.Expr.True) {
+        return a;
+      } else {
+        return Bpl.Expr.And(a, b);
+      }
+    }
+    
+    enum Position { Positive, Negative, Neither }
+    Position Negate(Position pos) {
+      switch (pos) {
+        case Position.Positive:  return Position.Negative;
+        case Position.Negative:  return Position.Positive;
+        case Position.Neither:  return Position.Neither;
+        default:  assert false;  // unexpected Position
+      }
+    }
+
+    void CheckNonNull(Token! tok, Expression! e, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran)
+      requires predef != null;
+    {
+      if (e is ThisExpr) {
+        // already known to be non-null
+      } else {
+        builder.Add(Assert(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), "target object may be null"));
+      }
+    }
+
+    void CheckWellformed(Expression! expr, Function func, Position pos, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr) {
+        // always allowed
+      } else if (expr is DisplayExpression) {
+        DisplayExpression e = (DisplayExpression)expr;
+        foreach (Expression el in e.Elements) {
+          CheckWellformed(el, func, Position.Neither, builder, etran);
+        }
+      } else if (expr is FieldSelectExpr) {
+        FieldSelectExpr e = (FieldSelectExpr)expr;
+        CheckWellformed(e.Obj, func, Position.Neither, builder, etran);
+        CheckNonNull(expr.tok, e.Obj, builder, etran);
+        if (func != null) {
+          builder.Add(Assert(expr.tok, InRWClause(expr.tok, etran.TrExpr(e.Obj), func.Reads, etran), "insufficient reads clause to read field"));
+        }
+      } else if (expr is SeqSelectExpr) {
+        SeqSelectExpr e = (SeqSelectExpr)expr;
+        CheckWellformed(e.Seq, func, Position.Neither, builder, etran);
+        Bpl.Expr seq = etran.TrExpr(e.Seq);
+        Bpl.Expr e0 = null;
+        if (e.E0 != null) {
+          e0 = etran.TrExpr(e.E0);
+          CheckWellformed(e.E0, func, Position.Neither, builder, etran);
+          builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, e0, seq, null, !e.SelectOne)));
+        }
+        if (e.E1 != null) {
+          CheckWellformed(e.E1, func, Position.Neither, builder, etran);
+          builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true)));
+        }
+      } else if (expr is FunctionCallExpr) {
+        FunctionCallExpr e = (FunctionCallExpr)expr;
+        CheckWellformed(e.Receiver, func, Position.Neither, builder, etran);
+        CheckNonNull(expr.tok, e.Receiver, builder, etran);
+        foreach (Expression arg in e.Args) {
+          CheckWellformed(arg, func, Position.Neither, builder, etran);
+        }
+        // TODO: check wellformedness of call (call.reads is subset of reads, and either e.Function returns a boolean and is in a positive position, or e.Function returns something else and the subset is a proper subset)
+        // TODO: and check preconditions of call
+      } else if (expr is OldExpr || expr is FreshExpr) {
+        assert false;  // unexpected expression in function body
+      } else if (expr is UnaryExpr) {
+        UnaryExpr e = (UnaryExpr)expr;
+        CheckWellformed(e.E, func, e.Op == UnaryExpr.Opcode.Not ? Negate(pos) : Position.Neither, builder, etran);
+      } else if (expr is BinaryExpr) {
+        BinaryExpr e = (BinaryExpr)expr;
+        CheckWellformed(e.E0, func, e.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ? Negate(pos) : pos, builder, etran);
+
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.And:
+          case BinaryExpr.ResolvedOpcode.Imp:
+            {
+              Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
+              CheckWellformed(e.E1, func, pos, b, etran);
+              builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.E0), b.Collect(expr.tok), null, null));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Or:
+            {
+              Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
+              CheckWellformed(e.E1, func, pos, b, etran);
+              builder.Add(new Bpl.IfCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(expr.tok), null, null));
+            }
+            break;
+          default:
+            CheckWellformed(e.E1, func, pos, builder, etran);
+            break;
+        }
+
+      } else if (expr is QuantifierExpr) {
+#if TODO
+        QuantifierExpr e = (QuantifierExpr)expr;
+        Bpl.Expr total = IsTotal(e.Body, etran);
+        if (total != Bpl.Expr.True) {
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          foreach (BoundVar bv in e.BoundVars) {
+            // TODO: the following needs to take into account name clashes, for which the Boogie rules are different from the Dafny rules
+            bvars.Add(new Bpl.BoundVariable(bv.tok, new Bpl.TypedIdent(bv.tok, bv.UniqueName, TrType(bv.Type))));
+          }
+          if (expr is ForallExpr) {
+            total = new Bpl.ForallExpr(expr.tok, bvars, total);
+          } else {
+            total = new Bpl.ExistsExpr(expr.tok, bvars, total);
+          }
+        }
+        return total;
+#endif
+      } else if (expr is ITEExpr) {
+#if TODO
+        ITEExpr e = (ITEExpr)expr;
+        Bpl.Expr total = IsTotal(e.Test, etran);
+        total = BplAnd(total, IsTotal(e.Thn, etran));
+        total = BplAnd(total, IsTotal(e.Els, etran));
+        return total;
+#endif
+      } else {
+        assert false;  // unexpected expression
+      }
+    }
+    
+    Bpl.Constant! GetClass(ClassDecl! cl)
+      requires predef != null;
+    {
+      Bpl.Constant cc;
+      if (classes.TryGetValue(cl, out cc)) {
+        assert cc != null;
+      } else {
+        // TODO: make the following a function when the class has type parameters, so that different instantiations
+        // of a class can be distinguished
+        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.Name, predef.ClassNameType), true);
+        classes.Add(cl, cc);
+      }
+      return cc;
+    }
+    
+    Bpl.Expr GetTypeExpr(Token! tok, Type! type)
+      requires predef != null;
+    {
+      while (true) {
+        TypeProxy tp = type as TypeProxy;
+        if (tp == null) {
+          break;
+        } else if (tp.T == null) {
+          // unresolved proxy
+          // TODO: what to do here?
+          return null;
+        } else {
+          type = tp.T;
+        }
+      }
+
+      if (type is BoolType) {
+        return new Bpl.IdentifierExpr(tok, "class.bool", predef.ClassNameType);
+      } else if (type is IntType) {
+        return new Bpl.IdentifierExpr(tok, "class.int", predef.ClassNameType);
+      } else if (type is ObjectType) {
+        return new Bpl.IdentifierExpr(tok, "class.object", predef.ClassNameType);
+      } else if (type is CollectionType) {
+        CollectionType ct = (CollectionType)type;
+        Bpl.Expr a = GetTypeExpr(tok, ct.Arg);
+        if (a == null) {
+         return null;
+        }
+        Bpl.Expr t = new Bpl.IdentifierExpr(tok, ct is SetType ? "class.set" : "class.seq", predef.ClassNameType);
+        return FunctionCall(tok, BuiltinFunction.TypeTuple, null, t, a);
+      } else {
+        ClassType ct = (ClassType)type;
+        if (ct.ResolvedClass == null) {
+         return null;  // TODO: what to do here?
+        }
+        Bpl.Expr t = new Bpl.IdentifierExpr(tok, GetClass(ct.ResolvedClass));
+        foreach (Type arg in ct.TypeArgs) {
+          Bpl.Expr a = GetTypeExpr(tok, arg);
+          if (a == null) {
+            return null;
+          }
+          t = FunctionCall(tok, BuiltinFunction.TypeTuple, null, t, a);
+        }
+        return t;
+      }
+    }
+    
+    Bpl.Constant! GetField(Field! f)
+      requires predef != null;
+    {
+      Bpl.Constant fc;
+      if (fields.TryGetValue(f, out fc)) {
+        assert fc != null;
+      } else {
+        Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
+        fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullName, ty), true);
+        fields.Add(f, fc);
+      }
+      return fc;
+    }
+    
+    Bpl.Expr! GetField(FieldSelectExpr! fse)
+      requires fse.Field != null;
+    {
+      return new Bpl.IdentifierExpr(fse.tok, GetField(fse.Field));
+    }
+    
+    Bpl.Function! GetFunction(Function! f, out Bpl.Function useF)
+      requires predef != null;
+    {
+      useF = null;
+      Bpl.Function func;
+      if (functions.TryGetValue(f, out func)) {
+        assert func != null;
+      } else {
+        Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+        Bpl.VariableSeq args = new Bpl.VariableSeq();
+        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$heap", predef.HeapType), true));
+        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
+        foreach (Formal p in f.Formals) {
+          args.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)), true));
+        }
+        Bpl.Formal res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
+        func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
+        
+        functions.Add(f, func);
+        
+        if (f.Use) {
+          Bpl.Formal boolRes = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
+        }
+      }
+      return func;
+    }
+    
+    Bpl.Procedure! GetMethod(Method! m)
+      requires predef != null;
+    {
+      Bpl.Procedure proc;
+      if (methods.TryGetValue(m, out proc)) {
+        assert proc != null;
+      } else {
+        ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+        
+        Bpl.VariableSeq inParams = new Bpl.VariableSeq();
+        Bpl.VariableSeq outParams = new Bpl.VariableSeq();
+        Bpl.Expr wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
+          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
+        Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
+        inParams.Add(thVar);
+        foreach (Formal p in m.Ins) {
+          Bpl.Type varType = TrType(p.Type);
+          wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+        }
+        foreach (Formal p in m.Outs) {
+          Bpl.Type varType = TrType(p.Type);
+          wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
+        }
+        
+        Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+        Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
+        Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
+        mod.Add(etran.HeapExpr);
+        string comment = "user-defined preconditions";
+        foreach (MaybeFreeExpression p in m.Req) {
+          Bpl.RequiresSeq pieces = new Bpl.RequiresSeq();
+          if (!p.IsFree) {
+            foreach (Expression se in SplitExpr(p.E, true)) {
+              pieces.Add(Requires(se.tok, false, etran.TrExpr(se), null, null));
+            }
+          }
+          if (pieces.Length == 1) {
+            // add 1 checked precondition (the whole thing)
+            req.Add(Requires(p.E.tok, false, etran.TrExpr(p.E), null, comment));
+          } else {
+            // add 1 free precondition, followed by each piece (if any) as a checked precondition
+            req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            req.AddRange(pieces);
+          }
+          comment = null;
+        }
+        comment = "user-defined postconditions";
+        foreach (MaybeFreeExpression p in m.Ens) {
+          Bpl.EnsuresSeq pieces = new Bpl.EnsuresSeq();
+          if (!p.IsFree) {
+            foreach (Expression se in SplitExpr(p.E, true)) {
+              pieces.Add(Ensures(se.tok, false, etran.TrExpr(se), null, null));
+            }
+          }
+          if (pieces.Length == 1) {
+            ens.Add(Ensures(p.E.tok, false, etran.TrExpr(p.E), comment, null));
+          } else {
+            ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), comment, null));
+            ens.AddRange(pieces);
+          }
+          comment = null;
+        }
+        
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m, etran.Old, etran)) {
+          ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+        }
+
+        Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
+        proc = new Bpl.Procedure(m.tok, m.FullName, typeParams, inParams, outParams, req, mod, ens);
+        
+        methods.Add(m, proc);
+      }
+      return proc;
+    }
+    
+    class BoilerplateTriple {  // a triple that is now a quintuple
+      public readonly Token! tok;
+      public readonly bool IsFree;
+      public readonly Bpl.Expr! Expr;
+      public readonly string ErrorMessage;
+      invariant IsFree || ErrorMessage != null;
+      public readonly string Comment;
+      public BoilerplateTriple(Token! tok, bool isFree, Bpl.Expr! expr, string errorMessage, string comment)
+        requires isFree || errorMessage != null;
+      {
+        this.tok = tok;
+        IsFree = isFree;
+        Expr = expr;
+        ErrorMessage = errorMessage;
+        Comment = comment;
+      }
+    }
+    
+    /// <summary>
+    /// There are 3 states of interest when generating two-state boilerplate:
+    ///  S0. the beginning of the method, which is where the modifies clause is interpreted
+    ///  S1. the pre-state of the two-state interval
+    ///  S2. the post-state of the two-state interval
+    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
+    /// </summary>
+    List<BoilerplateTriple!>! GetTwoStateBoilerplate(Token! tok, Method! method, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
+    {
+      List<BoilerplateTriple!> boilerplate = new List<BoilerplateTriple!>();
+      
+      boilerplate.Add(new BoilerplateTriple(tok, false, FrameCondition(tok, method.Mod, etranPre, etran), "frame condition does not hold", "frame condition"));
+
+      // free specifications
+      Bpl.Expr heapSucc = FunctionCall(tok, BuiltinFunction.HeapSucc, null, etranPre.HeapExpr, etran.HeapExpr);
+      boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
+      
+      return boilerplate;
+    }
+    
+    /// <summary>
+    /// There are 3 states of interest when generating a freame condition:
+    ///  S0. the beginning of the method, which is where the modifies clause is interpreted
+    ///  S1. the pre-state of the two-state interval
+    ///  S2. the post-state of the two-state interval
+    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
+    /// </summary>
+    Bpl.Expr! FrameCondition(Token! tok, List<Expression!>! modifiesClause, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
+      requires predef != null;
+    {
+      // generate:
+      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
+      //      o != null && old($Heap)[o,alloc] ==>
+      //        $Heap[o,f] == PreHeap[o,f] ||
+      //        o in modifiesClause)
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      
+      Bpl.Expr heapOF = Bpl.Expr.SelectTok(tok, etran.HeapExpr, o, f);
+      Bpl.Expr preHeapOF = Bpl.Expr.SelectTok(tok, etranPre.HeapExpr, o, f);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.Old.IsAlloced(tok, o));
+      Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
+      
+      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, modifiesClause, etran.Old));
+      
+      Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
+      return new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, Bpl.Expr.Imp(ante, consequent));
+    }
+    
+    // ----- Type ---------------------------------------------------------------------------------
+    
+    Bpl.Type! TrType(Type! type)
+      requires predef != null;
+    {
+      while (true) {
+        TypeProxy tp = type as TypeProxy;
+        if (tp == null) {
+          break;
+        } else if (tp.T == null) {
+          // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+          return predef.RefType;
+        } else {
+          type = tp.T;
+        }
+      }
+      
+      if (type is BoolType) {
+        return Bpl.Type.Bool;
+      } else if (type is IntType) {
+        return Bpl.Type.Int;
+      } else if (type.IsTypeParameter) {
+        return predef.RefType;
+      } else if (type.IsRefType) {
+        // object and class types translate to ref
+        return predef.RefType;
+      } else if (type is SetType) {
+        return new Bpl.MapType(Token.NoToken, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(TrType(((SetType)type).Arg)), Bpl.Type.Bool);
+      } else if (type is SeqType) {
+        return predef.SeqType(Token.NoToken, TrType(((SeqType)type).Arg));
+      } else {
+        assert false;  // unexpected type
+      }
+    }
+    
+    Bpl.TypeVariableSeq! TrTypeParamDecls(List<TypeParameter!>! tps)
+    {
+      Bpl.TypeVariableSeq typeParams = new Bpl.TypeVariableSeq();
+      return typeParams;
+    }
+
+    // ----- Statement ----------------------------------------------------------------------------
+    
+    Bpl.AssertCmd! Assert(Token! tok, Bpl.Expr! condition, string! errorMessage)
+    {
+      Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition);
+      cmd.ErrorData = "Error: " + errorMessage;
+      return cmd;
+    }
+
+    Bpl.Ensures! Ensures(Token! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
+    {
+      Bpl.Ensures ens = new Bpl.Ensures(tok, free, condition, comment);
+      if (errorMessage != null) {
+        ens.ErrorData = errorMessage;
+      }
+      return ens;
+    }
+
+    Bpl.Requires! Requires(Token! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
+    {
+      Bpl.Requires req = new Bpl.Requires(tok, free, condition, comment);
+      if (errorMessage != null) {
+        req.ErrorData = errorMessage;
+      }
+      return req;
+    }
+
+    Bpl.StmtList! TrStmt2StmtList(Statement! block, Bpl.VariableSeq! locals, ExpressionTranslator! etran)
+      requires currentMethod != null && predef != null;
+    {
+      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      TrStmt(block, builder, locals, etran);
+      return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
+    }
+    
+    void TrStmt(Statement! stmt, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! locals, ExpressionTranslator! etran)
+      requires currentMethod != null && predef != null;
+    {
+      if (stmt is AssertStmt) {
+        AddComment(builder, stmt, "assert statement");
+        AssertStmt s = (AssertStmt)stmt;
+        int pieces = 0;
+        foreach (Expression p in SplitExpr(s.Expr, true)) {
+          builder.Add(Assert(stmt.Tok, IsTotal(p, etran), "assert condition must be well defined"));  // totality check
+          builder.Add(new Bpl.AssertCmd(stmt.Tok, etran.TrExpr(p)));
+          pieces++;
+        }
+        if (2 <= pieces) {
+          builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+        }
+      } else if (stmt is AssumeStmt) {
+        AddComment(builder, stmt, "assume statement");
+        AssumeStmt s = (AssumeStmt)stmt;
+        builder.Add(Assert(stmt.Tok, IsTotal(s.Expr, etran), "assume condition must be well defined"));  // totality check
+        builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+      } else if (stmt is UseStmt) {
+        AddComment(builder, stmt, "use statement");
+        UseStmt s = (UseStmt)stmt;
+        builder.Add(Assert(stmt.Tok, IsTotal(s.Expr, etran), "use expression must be well defined"));  // totality check
+        builder.Add(new Bpl.AssumeCmd(stmt.Tok, (s.EvalInOld ? etran.Old : etran).TrUseExpr(s.FunctionCallExpr)));
+      } else if (stmt is LabelStmt) {
+        AddComment(builder, stmt, "label statement");  // TODO: ouch, comments probably mess up what the label labels in the Boogie program
+        builder.AddLabelCmd(((LabelStmt)stmt).Label);
+      } else if (stmt is BreakStmt) {
+        AddComment(builder, stmt, "break statement");
+        builder.Add(new Bpl.BreakCmd(stmt.Tok, ((BreakStmt)stmt).TargetLabel));  // TODO: handle name clashes of labels
+      } else if (stmt is ReturnStmt) {
+        AddComment(builder, stmt, "return statement");
+        builder.Add(new Bpl.ReturnCmd(stmt.Tok));
+      } else if (stmt is AssignStmt) {
+        AddComment(builder, stmt, "assignment statement");
+        AssignStmt s = (AssignStmt)stmt;
+        TrAssignment(stmt.Tok, s.Lhs, s.Rhs, builder, locals, etran);
+      } else if (stmt is VarDecl) {
+        AddComment(builder, stmt, "var-declaration statement");
+        VarDecl s = (VarDecl)stmt;
+        Bpl.Type varType = TrType(s.Type);
+        Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.UniqueName, varType), s.Type, etran);
+        Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.UniqueName, varType, wh));
+        locals.Add(var);
+        if (s.Rhs != null) {
+          IdentifierExpr ide = new IdentifierExpr(stmt.Tok, var.Name);  // allocate an expression for the assignment LHS...
+          ide.Var = s;  ide.Type = s.Type;  // ... and resolve it right here
+          TrAssignment(stmt.Tok, ide, s.Rhs, builder, locals, etran);
+        }
+        
+      } else if (stmt is CallStmt) {
+        AddComment(builder, stmt, "call statement");
+        CallStmt s = (CallStmt)stmt;
+        Bpl.ExprSeq ins = new Bpl.ExprSeq();
+        ins.Add(etran.TrExpr(s.Receiver));
+        for (int i = 0; i < s.Args.Count; i++) {
+          Expression e = s.Args[i];
+          Type t = ((!)s.Method).Ins[i].Type;
+          ins.Add(etran.CondApplyBox(stmt.Tok, etran.TrExpr(e), (!)e.Type, t));
+        }
+        Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
+        List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
+        for (int i = 0; i < s.Lhs.Count; i++) {
+          Expression e = s.Lhs[i];
+          if (ExpressionTranslator.ModeledAsRef(((!)s.Method).Outs[i].Type) && !ExpressionTranslator.ModeledAsRef((!)e.Type)) {
+            // we need an Unbox
+            Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$tmp#" + otherTmpVarCount, predef.RefType));
+            otherTmpVarCount++;
+            locals.Add(var);
+            Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(stmt.Tok, var.Name, predef.RefType);
+            tmpOuts.Add(varIdE);
+            outs.Add(varIdE);
+          } else {
+            tmpOuts.Add(null);
+            outs.Add(etran.TrExpr(e));
+          }
+        }
+        
+        Bpl.CallCmd call = new Bpl.CallCmd(stmt.Tok, ((!)s.Method).FullName, ins, outs);
+        builder.Add(call);
+        for (int i = 0; i < s.Lhs.Count; i++) {
+          Bpl.IdentifierExpr tmpVarIdE = tmpOuts[i];
+          if (tmpVarIdE != null) {
+            IdentifierExpr e = s.Lhs[i];
+            // e := UnBox(tmpVar);
+            Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(e);  // TODO: is this cast always justified?
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(stmt.Tok, lhs, FunctionSpecial(stmt.Tok, BuiltinFunction.Unbox, TrType((!)e.Type), tmpVarIdE));
+            builder.Add(cmd);
+          }
+        }
+        
+      } else if (stmt is BlockStmt) {
+        foreach (Statement ss in ((BlockStmt)stmt).Body) {
+          TrStmt(ss, builder, locals, etran);
+        }
+      } else if (stmt is IfStmt) {
+        AddComment(builder, stmt, "if statement");
+        IfStmt s = (IfStmt)stmt;
+        Bpl.Expr guard = s.Guard == null ? null : etran.TrExpr(s.Guard);
+        Bpl.StmtList thn = TrStmt2StmtList(s.Thn, locals, etran);
+        Bpl.StmtList els = null;
+        Bpl.IfCmd elsIf = null;
+        if (s.Els != null) {
+          els = TrStmt2StmtList(s.Els, locals, etran);
+          if (els.BigBlocks.Count == 1) {
+            Bpl.BigBlock bb = els.BigBlocks[0];
+            if (bb.LabelName == null && bb.simpleCmds.Length == 0 && bb.ec is Bpl.IfCmd) {
+              elsIf = (Bpl.IfCmd)bb.ec;
+              els = null;
+            }
+          }
+        }
+        builder.Add(new Bpl.IfCmd(stmt.Tok, guard, thn, elsIf, els));
+        
+      } else if (stmt is WhileStmt) {
+        AddComment(builder, stmt, "while statement");
+        WhileStmt s = (WhileStmt)stmt;
+        
+        Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopHeap" + loopHeapVarCount, predef.HeapType));
+        locals.Add(preLoopHeapVar);
+        Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(stmt.Tok, preLoopHeapVar);
+        ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
+        builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
+        
+        Bpl.Expr guard = s.Guard == null ? null : etran.TrExpr(s.Guard);
+        List<Bpl.PredicateCmd!> invariants = new List<Bpl.PredicateCmd!>();
+        foreach (MaybeFreeExpression loopInv in s.Invariants) {
+          int pieces = 0;
+          if (!loopInv.IsFree) {
+            foreach (Expression se in SplitExpr(loopInv.E, true)) {
+              invariants.Add(new Bpl.AssertCmd(se.tok, etran.TrExpr(se)));
+              pieces++;
+            }
+          }
+          if (pieces != 1) {
+            invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
+          }
+        }
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(stmt.Tok, currentMethod, etranPreLoop, etran)) {
+          if (tri.IsFree) {
+            invariants.Add(new Bpl.AssumeCmd(stmt.Tok, tri.Expr));
+          } else {
+            assert tri.ErrorMessage != null;  // follows from BoilerplateTriple invariant
+            invariants.Add(Assert(stmt.Tok, tri.Expr, tri.ErrorMessage));
+          }
+        }
+
+        Bpl.StmtList body;
+        if (s.Decreases.Count == 0) {
+          body = TrStmt2StmtList(s.Body, locals, etran);
+        } else {
+          Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
+
+          List<Bpl.IdentifierExpr!> oldBfs = new List<Bpl.IdentifierExpr!>();
+          int c = 0;
+          foreach (Expression e in s.Decreases) {
+            Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, "$decr" + loopHeapVarCount + "$" + c, TrType((!)e.Type)));
+            locals.Add(bfVar);
+            Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
+            oldBfs.Add(bf);
+            // record value of each decreases expression at beginning of the loop iteration
+            invariants.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at top of each loop iteration"));  // totality check
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(e.tok, bf, etran.TrExpr(e));
+            loopBodyBuilder.Add(cmd);
+            
+            c++;
+          }
+          // time for the actual loop body
+          TrStmt(s.Body, loopBodyBuilder, locals, etran);
+          // check definedness of decreases expressions
+          foreach (Expression e in s.Decreases) {
+            // The following totality check implies that the loop invariant stating the same property will hold;
+            // thus, an alternative (perhaps preferable) design would be:  add the totality check also just before
+            // the loop, and change the loop invariant to be free.
+            loopBodyBuilder.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at end of loop iteration"));  // totality check
+          }
+          // compute eq and less for each component of the lexicographic pair
+          List<Bpl.Expr!> Eq = new List<Bpl.Expr!>();
+          List<Bpl.Expr!> Less = new List<Bpl.Expr!>();
+          for (int i = 0; i < s.Decreases.Count; i++) {
+            Expression e = s.Decreases[i];
+            Bpl.Expr d = etran.TrExpr(e);
+            Bpl.IdentifierExpr bf = oldBfs[i];
+            
+            Bpl.Expr less;
+            Bpl.Expr eq;
+            Type ty = (!)e.Type;
+            if (ty is BoolType) {
+              eq = Bpl.Expr.Iff(d, bf);
+              less = Bpl.Expr.And(Bpl.Expr.Not(d), bf);
+            } else if (ty is IntType) {
+              eq = Bpl.Expr.Eq(d, bf);
+              less = Bpl.Expr.Lt(d, bf);
+            } else if (ty is SetType) {
+              eq = FunctionCall(stmt.Tok, BuiltinFunction.SetEqual, null, d, bf);
+              less = etran.ProperSubset(stmt.Tok, d, bf);
+            } else if (ty is SeqType) {
+              Bpl.Expr e0 = FunctionCall(stmt.Tok, BuiltinFunction.SeqLength, null, d);
+              Bpl.Expr e1 = FunctionCall(stmt.Tok, BuiltinFunction.SeqLength, null, bf);
+              eq = Bpl.Expr.Eq(e0, e1);
+              less = Bpl.Expr.Lt(e0, e1);
+            } else {
+              // reference type
+              Bpl.Expr e0 = Bpl.Expr.Neq(d, predef.Null);
+              Bpl.Expr e1 = Bpl.Expr.Neq(bf, predef.Null);
+              eq = Bpl.Expr.Iff(e0, e1);
+              less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
+            }
+            Eq.Add(eq);
+            Less.Add(less);
+          }
+          // check: 0 <= old(decreases)
+          // more precisely, for component k of the lexicographic decreases function, check:
+          //   0 <= old(dec(k)) || dec0 < old(dec0) || dec1 < old(dec1) || ... || dec(k-1) < old(dec((k-1) || old(dec(k)) == dec(k)
+          for (int k = 0; k < s.Decreases.Count; k++) {
+            Expression e = s.Decreases[k];
+            // we only need to check lower bound for integers--sets, sequences, booleans, and references all have natural lower bounds
+            if (e.Type is IntType) {
+              Bpl.IdentifierExpr bf = oldBfs[k];
+              Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), bf);
+              for (int i = 0; i < k; i++) {
+                bounded = Bpl.Expr.Or(bounded, Less[i]);
+              }
+              Bpl.Cmd cmd = Assert(e.tok, Bpl.Expr.Or(bounded, Eq[k]), "decreases expression must be bounded below by 0");
+              loopBodyBuilder.Add(cmd);
+            }
+          }
+          // check: decreases < old(decreases)
+          Bpl.Expr decrCheck = null;
+          for (int i = s.Decreases.Count; 0 <= --i; )
+            invariant i != s.Decreases.Count ==> decrCheck != null;
+          {
+            Bpl.Expr less = Less[i];
+            Bpl.Expr eq = Eq[i];
+            if (decrCheck == null) {
+              decrCheck = less;
+            } else {
+              // decrCheck = less || (eq && decrCheck)
+              decrCheck = Bpl.Expr.Or(less, Bpl.Expr.And(eq, decrCheck));
+            }
+          }
+          assert decrCheck != null;  // follows from loop invariant and the fact that s.Decreases.Count != 0
+          loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, "decreases expression might not decrease"));
+          
+          body = loopBodyBuilder.Collect(stmt.Tok);
+        }
+
+        builder.Add(new Bpl.WhileCmd(stmt.Tok, guard, invariants, body));
+        loopHeapVarCount++;
+
+      } else if (stmt is ForeachStmt) {
+        AddComment(builder, stmt, "foreach statement");
+        ForeachStmt s = (ForeachStmt)stmt;
+        // assert/assume (forall o: ref ::  o in S ==> Expr);
+        // var oldHeap := $Heap;
+        // havoc $Heap;
+        // assume $HeapSucc(oldHeap, $Heap);
+        // assume (forall o: ref, f: Field ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o in S));
+        // assume (forall o: ref ::  o != null && o in S ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
+        // Note, $Heap[o,alloc] is intentionally omitted from the antecedent of the quantifier in the previous line.  That
+        // allocatedness property should hold automatically, because the set/seq quantified is a program expression, which
+        // will have been constructed from allocated objects.
+        // For sets, "o in S" means just that.  For sequences, "o in S" is:
+        //   (exists i :: { Seq#Index(S,i) }  0 <= i && i < Seq#Length(S) && Seq#Index(S,i) == o)
+        
+        Bpl.BoundVariable oVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.BoundVar.UniqueName, TrType(s.BoundVar.Type)));
+        Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(stmt.Tok, oVar);
+
+        Bpl.Expr oInS;
+        if (s.Collection.Type is SetType) {
+          oInS = etran.TrInSet(stmt.Tok, o, s.Collection, null);
+        } else {
+          Bpl.BoundVariable iVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$i", Bpl.Type.Int));
+          Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(stmt.Tok, iVar);
+          Bpl.Expr S = etran.TrExpr(s.Collection);
+          Bpl.Expr range = InSeqRange(stmt.Tok, i, S, null, false);
+          Bpl.Expr Si = FunctionCall(stmt.Tok, BuiltinFunction.SeqIndex, TrType(((SeqType!)s.Collection.Type).Arg), S, i);
+          Bpl.Trigger tr = new Bpl.Trigger(stmt.Tok, true, new Bpl.ExprSeq(Si));
+          // TODO: in the next line, the == should be replaced by something that understands extensionality, for sets and sequences
+          oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, o)));
+        }
+
+        foreach (PredicateStmt ps in s.BodyPrefix) {
+          int pieces = 0;
+          if (ps is AssertStmt) {
+            foreach (Expression se in SplitExpr(ps.Expr, true)) {
+              Bpl.Expr e = etran.TrExpr(se);
+              Bpl.Expr q = new Bpl.ForallExpr(se.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
+              builder.Add(new Bpl.AssertCmd(se.tok, q));
+              pieces++;
+            }
+          }
+          if (pieces != 1) {
+            Bpl.Expr e;
+            if (ps is UseStmt) {
+              UseStmt us = (UseStmt)ps;
+              e = (us.EvalInOld ? etran.Old : etran).TrUseExpr(us.FunctionCallExpr);
+            } else {
+              e = etran.TrExpr(ps.Expr);
+            }
+            Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
+            builder.Add(new Bpl.AssumeCmd(ps.Expr.tok, q));
+          }
+        }
+        
+        Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(stmt.Tok, locals);
+        builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, prevHeap, etran.HeapExpr));
+        builder.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
+        builder.Add(new Bpl.AssumeCmd(stmt.Tok, FunctionCall(stmt.Tok, BuiltinFunction.HeapSucc, null, prevHeap, etran.HeapExpr)));
+
+        // Here comes:  assume (forall<alpha> o: ref, f: Field alpha ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o in S));
+        Bpl.TypeVariable alpha = new Bpl.TypeVariable(stmt.Tok, "alpha");
+        Bpl.BoundVariable fVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$f", predef.FieldName(stmt.Tok, alpha)));
+        Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(stmt.Tok, fVar);
+        Bpl.Expr heapOF = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, f);
+        Bpl.Expr oldHeapOF = Bpl.Expr.SelectTok(stmt.Tok, prevHeap, o, f);
+        Bpl.Expr body = Bpl.Expr.Or(
+          Bpl.Expr.Eq(heapOF, oldHeapOF),
+          Bpl.Expr.And(
+            Bpl.Expr.Eq(f, GetField((FieldSelectExpr)((!)s.BodyAssign).Lhs)),
+            oInS));
+        Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), body);
+        builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
+
+        // Here comes:  assume (forall o: ref ::  o != null && o in S ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
+        Bpl.Expr heapOField = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
+        ExpressionTranslator oldEtran = new ExpressionTranslator(this, predef, prevHeap);
+        body = Bpl.Expr.Imp(
+          Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS),
+          Bpl.Expr.Eq(heapOField, oldEtran.TrExpr(((ExprRhs)s.BodyAssign.Rhs).Expr)));
+        qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
+        builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
+        
+      } else {
+        assert false;  // unexpected statement
+      }
+    }
+    
+    void AddComment(Bpl.StmtListBuilder! builder, Statement! stmt, string! comment) {
+      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.filename, stmt.Tok.line, stmt.Tok.col)));
+    }
+    
+    Bpl.Expr GetWhereClause(Token! tok, Bpl.Expr! x, Type! type, ExpressionTranslator! etran)
+      requires predef != null;
+    {
+      if (type is TypeProxy) {
+        // unresolved proxy
+        assert ((TypeProxy)type).T == null;
+        // omit where clause (in other places, unresolved proxies are treated as a reference type; we could do that here too, but
+        // we might as well leave out the where clause altogether)
+        return null;
+      } else if (type is BoolType || type is IntType) {
+        return null;
+      } else if (type is SetType) {
+        SetType st = (SetType)type;
+        if (st.Arg.IsRefType) {
+          // (forall t: ref :: { x[t] } x[t] ==> t == null || $Heap[t,alloc])
+          Bpl.BoundVariable tVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$t", predef.RefType));
+          Bpl.Expr t = new Bpl.IdentifierExpr(tok, tVar);
+          Bpl.Expr xSubT = Bpl.Expr.SelectTok(tok, x, t);
+
+          Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubT));
+          
+          Bpl.Expr goodRef = etran.GoodRef(tok, t, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(xSubT, Bpl.Expr.Or(Bpl.Expr.Eq(t, predef.Null), goodRef));
+          return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, body);
+        } else {
+          // TODO:  should also handle sets of sets, etc.
+          return null;
+        }
+        
+      } else if (type is SeqType) {
+        SeqType st = (SeqType)type;
+        if (st.Arg.IsRefType) {
+          // (forall i: int :: { Seq#Index(x,i) }
+          //      0 <= i && i < Seq#Length(x) ==> Seq#Index(x,i) == null || $Heap[Seq#Index(x,i), alloc])
+          Bpl.BoundVariable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
+          Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
+          Bpl.Expr xSubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.RefType, x, i);
+
+          Bpl.Expr range = InSeqRange(tok, i, x, null, false);
+
+          Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubI));
+
+          Bpl.Expr goodRef = etran.GoodRef(tok, xSubI, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(range, Bpl.Expr.Or(Bpl.Expr.Eq(xSubI, predef.Null), goodRef));
+          return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), tr, body);
+        } else {
+          // TODO: should also handle sequences or sequences, etc.
+          return null;
+        }
+
+      } else if (type.IsRefType) {
+        // reference type:
+        // x == null || $Heap[x,alloc]
+        return Bpl.Expr.Or(Bpl.Expr.Eq(x, predef.Null), etran.GoodRef(tok, x, type));
+      } else {
+        // type parameter
+        return null;
+      }
+    }
+    
+    void TrAssignment(Token! tok, Expression! lhs, AssignmentRhs! rhs, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! locals,
+                      ExpressionTranslator! etran)
+      requires predef != null;
+    {
+      if (rhs is ExprRhs) {
+        builder.Add(Assert(tok, IsTotal(lhs, etran), "LHS expression must be well defined"));  // totality check
+        builder.Add(Assert(tok, IsTotal(((ExprRhs)rhs).Expr, etran), "RHS expression must be well defined"));  // totality check
+        Bpl.Expr bRhs = etran.TrExpr(((ExprRhs)rhs).Expr);
+        if (lhs is IdentifierExpr) {
+          Bpl.IdentifierExpr bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
+          builder.Add(cmd);
+        } else {
+          Bpl.NAryExpr bLhs = (Bpl.NAryExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+          assert bLhs.Args.Length == 3;  // we're expecting h[o,f]
+          Bpl.IdentifierExpr h = (Bpl.IdentifierExpr!)bLhs.Args[0];  // TODO: is this cast always justified?
+          Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, h, (!)bLhs.Args[1], (!)bLhs.Args[2], bRhs);
+          builder.Add(cmd);
+          // assume $IsGoodHeap($Heap);
+          builder.Add(AssumeGoodHeap(tok, etran));
+        }
+        
+      } else if (rhs is HavocRhs) {
+        assert lhs is IdentifierExpr;  // for this kind of RHS, the LHS is restricted to be a simple variable
+        Bpl.IdentifierExpr x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+        builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(x)));
+
+      } else {
+        assert rhs is TypeRhs;  // otherwise, an unexpected AssignmentRhs
+        assert lhs is IdentifierExpr;  // for this kind of RHS, the LHS is restricted to be a simple variable
+        
+        Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
+        builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(nw)));
+        // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
+        Bpl.Expr nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
+        builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, etran.GoodRef_Class(tok, nw, (ClassType)((TypeRhs)rhs).Type, true))));
+        // $Heap[$nw, alloc] := true;
+        Bpl.Expr alloc = predef.Alloc(tok);
+        Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, nw, alloc, Bpl.Expr.True);
+        builder.Add(cmd);
+        // x := $nw;
+        Bpl.IdentifierExpr x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+        builder.Add(Bpl.Cmd.SimpleAssign(tok, x, nw));
+        // assume $IsGoodHeap($Heap);
+        builder.Add(AssumeGoodHeap(tok, etran));
+      }
+    }
+    
+    Bpl.AssumeCmd! AssumeGoodHeap(Token! tok, ExpressionTranslator! etran) {
+      return new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+    }
+    
+    // ----- Expression ---------------------------------------------------------------------------
+    
+    internal class ExpressionTranslator {
+      public readonly Bpl.Expr! HeapExpr;
+      public readonly PredefinedDecls! predef;
+      public readonly Translator! translator;
+      public ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Token! heapToken) {
+        this.translator = translator;
+        this.predef = predef;
+        HeapExpr = new Bpl.IdentifierExpr(heapToken, "$Heap", predef.HeapType);
+      }
+      
+      public ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Bpl.Expr! heap) {
+        this.translator = translator;
+        this.predef = predef;
+        this.HeapExpr = heap;
+      }
+      
+      ExpressionTranslator oldEtran;
+      public ExpressionTranslator! Old {
+        get {
+          if (oldEtran == null) {
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr));
+          }
+          return oldEtran;
+        }
+      }
+      
+      public Bpl.Expr! TrExpr(Expression! expr)
+        requires predef != null;
+      {
+        if (expr is LiteralExpr) {
+          LiteralExpr e = (LiteralExpr)expr;
+          if (e.Value == null) {
+            return predef.Null;
+          } else if (e.Value is bool) {
+            return Bpl.Expr.Literal((bool)e.Value);
+          } else if (e.Value is int) {
+            return Bpl.Expr.Literal((int)e.Value);
+          } else {
+            assert false;  // unexpected literal
+          }
+          
+        } else if (expr is ThisExpr) {
+          return new Bpl.IdentifierExpr(expr.tok, "this", predef.RefType);
+          
+        } else if (expr is IdentifierExpr) {
+          IdentifierExpr e = (IdentifierExpr)expr;
+          return TrVar(expr.tok, (!)e.Var);
+          
+        } else if (expr is SetDisplayExpr) {
+          SetDisplayExpr e = (SetDisplayExpr)expr;
+          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SetEmpty, translator.TrType((!)expr.Type));
+          foreach (Expression ee in e.Elements) {
+            Bpl.Expr ss = TrExpr(ee);
+            s = translator.FunctionCall(expr.tok, BuiltinFunction.SetUnionOne, translator.TrType(expr.Type), s, ss);
+          }
+          return s;
+          
+        } else if (expr is SeqDisplayExpr) {
+          SeqDisplayExpr e = (SeqDisplayExpr)expr;
+          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, translator.TrType((!)expr.Type));
+          int i = 0;
+          foreach (Expression ee in e.Elements) {
+            Bpl.Expr ss = TrExpr(ee);
+            s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, translator.TrType(expr.Type), s, Bpl.Expr.Literal(i), ss, Bpl.Expr.Literal(i+1));
+            i++;
+          }
+          return s;
+        
+        } else if (expr is FieldSelectExpr) {
+          FieldSelectExpr e = (FieldSelectExpr)expr;
+          return Bpl.Expr.SelectTok(expr.tok, HeapExpr, TrExpr(e.Obj), new Bpl.IdentifierExpr(expr.tok, translator.GetField((!)e.Field))); 
+          
+        } else if (expr is SeqSelectExpr) {
+          SeqSelectExpr e = (SeqSelectExpr)expr;
+          Bpl.Expr seq = TrExpr(e.Seq);
+          Bpl.Type elType = translator.TrType(((SeqType!)e.Seq.Type).Arg);
+          Bpl.Expr e0 = e.E0 == null ? null : TrExpr(e.E0);
+          Bpl.Expr e1 = e.E1 == null ? null : TrExpr(e.E1);
+          if (e.SelectOne) {
+            assert e1 == null;
+            return translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, elType, seq, e0);
+          } else {
+            if (e1 != null) {
+              seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqTake, elType, seq, e1);
+            }
+            if (e0 != null) {
+              seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqDrop, elType, seq, e0);
+            }
+            return seq;
+          }
+        
+        } else if (expr is FunctionCallExpr) {
+          FunctionCallExpr e = (FunctionCallExpr)expr;
+          string nm = ((!)e.Function).FullName + (e is UseExpr ? "#use" : "");
+          Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(expr.tok, nm, translator.TrType((!)e.Type));
+          Bpl.ExprSeq args = new Bpl.ExprSeq();
+          args.Add(HeapExpr);
+          args.Add(TrExpr(e.Receiver));
+          for (int i = 0; i < e.Args.Count; i++) {
+            Expression ee = e.Args[i];
+            Type t = e.Function.Formals[i].Type;
+            args.Add(CondApplyBox(expr.tok, TrExpr(ee), (!)ee.Type, t));
+          }
+          Bpl.Expr result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(id), args);
+          return CondApplyUnbox(expr.tok, result, e.Function.ResultType, expr.Type);
+        
+        } else if (expr is OldExpr) {
+          OldExpr e = (OldExpr)expr;
+          return new Bpl.OldExpr(expr.tok, TrExpr(e.E));
+        
+        } else if (expr is FreshExpr) {
+          FreshExpr e = (FreshExpr)expr;
+          Bpl.Expr oldHeap = new Bpl.OldExpr(expr.tok, HeapExpr);
+          if (e.E.Type is SetType) {
+            // generate:  (forall $o: ref :: $o != null && X[$o] ==> !old($Heap)[$o,alloc])
+            // TODO: trigger?
+            Bpl.Variable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
+            Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
+            Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+            Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, null);
+            Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, o, oldHeap));
+            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
+            return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), body);
+          } else if (e.E.Type is SeqType) {
+            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Seq#Index(X,$i) != null ==> !old($Heap)[Seq#Index(X,$i),alloc])
+            // TODO: trigger?
+            Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
+            Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
+            Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), null, false);
+            Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
+            Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, XsubI, oldHeap));
+            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, XsubI), oIsFresh);
+            return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(iVar), body);
+          } else {
+            // generate:  x == null || !old($Heap)[x]
+            Bpl.Expr oNotNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
+            Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, TrExpr(e.E), oldHeap));
+            return Bpl.Expr.Or(oNotNull, oIsFresh);
+          }
+        
+        } else if (expr is UnaryExpr) {
+          UnaryExpr e = (UnaryExpr)expr;
+          Bpl.Expr arg = TrExpr(e.E);
+          switch (e.Op) {
+            case UnaryExpr.Opcode.Not:
+              return Bpl.Expr.Not(arg);
+            case UnaryExpr.Opcode.SeqLength:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
+            default:
+              assert false;  // unexpected unary expression
+          }
+        
+        } else if (expr is BinaryExpr) {
+          BinaryExpr e = (BinaryExpr)expr;
+          Bpl.Expr e0 = TrExpr(e.E0);
+          if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
+            return TrInSet(expr.tok, e0, e.E1, e.E0.Type);  // let TrInSet translate e.E1
+          }
+          Bpl.Expr e1 = TrExpr(e.E1);
+          switch (e.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Iff:
+              return Bpl.Expr.Iff(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Imp:
+              return Bpl.Expr.Imp(e0, e1);
+            case BinaryExpr.ResolvedOpcode.And:
+              return Bpl.Expr.And(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Or:
+              return Bpl.Expr.Or(e0, e1);
+              
+            case BinaryExpr.ResolvedOpcode.EqCommon:
+              return Bpl.Expr.Eq(e0, e1);
+            case BinaryExpr.ResolvedOpcode.NeqCommon:
+              return Bpl.Expr.Neq(e0, e1);
+              
+            case BinaryExpr.ResolvedOpcode.Lt:
+              return Bpl.Expr.Lt(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Le:
+              return Bpl.Expr.Le(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Ge:
+              return Bpl.Expr.Ge(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Gt:
+              return Bpl.Expr.Gt(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Add:
+              return Bpl.Expr.Add(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Sub:
+              return Bpl.Expr.Sub(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Mul:
+              return Bpl.Expr.Mul(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Div:
+              return Bpl.Expr.Div(e0, e1);
+            case BinaryExpr.ResolvedOpcode.Mod:
+              return Bpl.Expr.Mod(e0, e1);
+
+            case BinaryExpr.ResolvedOpcode.SetEq:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1);
+            case BinaryExpr.ResolvedOpcode.SetNeq:
+              return Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1));
+            case BinaryExpr.ResolvedOpcode.ProperSubset:
+              return ProperSubset(expr.tok, e0, e1);
+            case BinaryExpr.ResolvedOpcode.Subset:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e0, e1);
+            case BinaryExpr.ResolvedOpcode.Superset:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0);
+            case BinaryExpr.ResolvedOpcode.ProperSuperset:
+              return Bpl.Expr.And(
+                translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0),
+                Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1)));
+            case BinaryExpr.ResolvedOpcode.Disjoint:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetDisjoint, null, e0, e1);
+            case BinaryExpr.ResolvedOpcode.InSet:
+              assert false;  // this case handled above
+            case BinaryExpr.ResolvedOpcode.Union:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetUnion, translator.TrType(((SetType!)expr.Type).Arg), e0, e1);
+            case BinaryExpr.ResolvedOpcode.Intersection:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetIntersection, translator.TrType(((SetType!)expr.Type).Arg), e0, e1);
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SetDifference, translator.TrType(((SetType!)expr.Type).Arg), e0, e1);
+
+            case BinaryExpr.ResolvedOpcode.SeqEq:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1);
+            case BinaryExpr.ResolvedOpcode.SeqNeq:
+              return Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1));
+            case BinaryExpr.ResolvedOpcode.ProperPrefix:
+              return ProperPrefix(expr.tok, e0, e1);
+            case BinaryExpr.ResolvedOpcode.Prefix:
+              {
+                Bpl.Expr len0 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e0);
+                Bpl.Expr len1 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e1);
+                return Bpl.Expr.And(
+                  Bpl.Expr.Le(len0, len1),
+                  translator.FunctionCall(expr.tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
+              }
+            case BinaryExpr.ResolvedOpcode.Concat:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqAppend, translator.TrType(((SeqType!)expr.Type).Arg), e0, e1);
+            case BinaryExpr.ResolvedOpcode.InSeq:
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1, e0);
+
+            default:
+              assert false;  // unexpected binary expression
+          }
+        
+        } else if (expr is QuantifierExpr) {
+          QuantifierExpr e = (QuantifierExpr)expr;
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          foreach (BoundVar bv in e.BoundVars) {
+            bvars.Add(new Bpl.BoundVariable(bv.tok, new Bpl.TypedIdent(bv.tok, bv.UniqueName, translator.TrType(bv.Type))));
+          }
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes);
+          Bpl.Trigger tr = null;
+          for (Triggers trigs = e.Trigs; trigs != null; trigs = trigs.Prev) {
+            Bpl.ExprSeq tt = new Bpl.ExprSeq();
+            foreach (Expression term in trigs.Terms) {
+              tt.Add(TrExpr(term));
+            }
+            tr = new Bpl.Trigger(expr.tok, true, tt, tr);
+          }
+          Bpl.Expr body = TrExpr(e.Body);
+          
+          if (e is ForallExpr) {
+            return new Bpl.ForallExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, body);
+          } else {
+            assert e is ExistsExpr;
+            return new Bpl.ExistsExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, body);
+          }
+        
+        } else if (expr is ITEExpr) {
+          ITEExpr e = (ITEExpr)expr;
+          Bpl.Expr g = TrExpr(e.Test);
+          Bpl.Expr thn = TrExpr(e.Thn);
+          Bpl.Expr els = TrExpr(e.Els);
+          Bpl.Expr yea = Bpl.Expr.Imp(g, thn);
+          Bpl.Expr nay = Bpl.Expr.Imp(Bpl.Expr.Not(g), els);
+          return Bpl.Expr.And(yea, nay);
+           
+        } else {
+          assert false;  // unexpected expression
+        }
+      }
+      
+      public Bpl.Expr! ProperSubset(Token! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
+        return Bpl.Expr.And(
+          translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
+          Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.SetEqual, null, e0, e1)));
+      }
+      public Bpl.Expr! ProperPrefix(Token! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
+        Bpl.Expr len0 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
+        Bpl.Expr len1 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
+        return Bpl.Expr.And(
+          Bpl.Expr.Lt(len0, len1),
+          translator.FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
+      }
+
+      public Bpl.Expr! TrUseExpr(FunctionCallExpr! e) {
+        Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(e.tok, ((!)e.Function).FullName + "#use", translator.TrType((!)e.Type));
+        Bpl.ExprSeq args = new Bpl.ExprSeq();
+        args.Add(HeapExpr);
+        args.Add(TrExpr(e.Receiver));
+        foreach (Expression ee in e.Args) {
+          args.Add(TrExpr(ee));
+        }
+        return new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+      }
+
+      public Bpl.Expr! CondApplyBox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
+        if (!ModeledAsRef(fromType) && ModeledAsRef(toType)) {
+          return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
+        } else {
+          return e;
+        }
+      }
+      
+      public Bpl.Expr! CondApplyUnbox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
+        if (ModeledAsRef(fromType) && !ModeledAsRef(toType)) {
+          return translator.FunctionSpecial(tok, BuiltinFunction.Unbox, translator.TrType(toType), e);
+        } else {
+          return e;
+        }
+      }
+      
+      public static bool ModeledAsRef(Type! t) {
+        return !(t is BoolType || t is IntType || t is CollectionType);
+      }
+
+      public Bpl.Expr! TrVar(Token! tok, IVariable! var) {
+        return new Bpl.IdentifierExpr(tok, var.UniqueName, translator.TrType(var.Type));
+      }
+      
+      /// <summary>
+      /// Translate like s[elmt], but try to avoid as many set functions as possible in the
+      /// translation, because such functions can mess up triggering.
+      /// If elmtType is non-null, boxing according to elmtType is applied as appropriate.
+      /// </summary>
+      public Bpl.Expr! TrInSet(Token! tok, Bpl.Expr! elmt, Expression! s, Type elmtType) {
+        if (s is BinaryExpr) {
+          BinaryExpr bin = (BinaryExpr)s;
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Union:
+              return Bpl.Expr.Or(TrInSet(tok, elmt, bin.E0, elmtType), TrInSet(tok, elmt, bin.E1, elmtType));
+            case BinaryExpr.ResolvedOpcode.Intersection:
+              return Bpl.Expr.And(TrInSet(tok, elmt, bin.E0, elmtType), TrInSet(tok, elmt, bin.E1, elmtType));
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+              return Bpl.Expr.And(TrInSet(tok, elmt, bin.E0, elmtType), Bpl.Expr.Not(TrInSet(tok, elmt, bin.E1, elmtType)));
+            default:
+              break;
+          }
+        } else if (s is SetDisplayExpr) {
+          SetDisplayExpr disp = (SetDisplayExpr)s;
+          Bpl.Expr disjunction = null;
+          foreach (Expression a in disp.Elements) {
+            Bpl.Expr disjunct = Bpl.Expr.Eq(elmt, TrExpr(a));
+            if (disjunction == null) {
+              disjunction = disjunct;
+            } else {
+              disjunction = Bpl.Expr.Or(disjunction, disjunct);
+            }
+          }
+          if (disjunction == null) {
+            return Bpl.Expr.False;
+          } else {
+            return disjunction;
+          }
+        }
+        return Bpl.Expr.SelectTok(tok, TrExpr(s), elmt);
+      }
+      
+      Bpl.QKeyValue TrAttributes(Attributes attrs) {
+        Bpl.QKeyValue kv = null;
+        while (attrs != null) {
+          List<object!> parms = new List<object!>();
+          foreach (Attributes.Argument arg in attrs.Args) {
+            if (arg.E != null) {
+              parms.Add(TrExpr(arg.E));
+            } else {
+              parms.Add((!)arg.S);
+            }
+          }
+          kv = new Bpl.QKeyValue(Token.NoToken, attrs.Name, parms, kv);
+          attrs = attrs.Prev;
+        }
+        return kv;
+      }
+      
+      // --------------- help routines ---------------
+
+      public Bpl.Expr! IsAlloced(Token! tok, Bpl.Expr! e) {
+        return IsAlloced(tok, e, HeapExpr);
+      }
+          
+      Bpl.Expr! IsAlloced(Token! tok, Bpl.Expr! e, Bpl.Expr! heap) {
+        return Bpl.Expr.SelectTok(tok, heap, e, predef.Alloc(tok));
+      }
+      
+      public Bpl.Expr! GoodRef(Token! tok, Bpl.Expr! e, Type! type) {
+        Bpl.Expr goodRef;
+        if (type is ClassType && ((ClassType)type).ResolvedClass != null) {
+          // Heap[e, alloc] && dtype(e) == T
+          return GoodRef_Class(tok, e, (ClassType)type, false);
+        } else {
+          // Heap[e, alloc]
+          return IsAlloced(tok, e);
+        }
+      }
+      
+      public Bpl.Expr! GoodRef_Class(Token! tok, Bpl.Expr! e, ClassType! type, bool isNew)
+        requires type.ResolvedClass != null;
+      {
+        // Heap[e, alloc]
+        Bpl.Expr r = IsAlloced(tok, e);
+        if (isNew) {
+          r = Bpl.Expr.Not(r);  // use the conjunct:  !Heap[e, alloc]
+        }
+        
+        // dtype(e) == C
+        Bpl.Expr dtypeFunc = translator.FunctionCall(tok, BuiltinFunction.DynamicType, null, e);
+        Bpl.Expr dtype = Bpl.Expr.Eq(dtypeFunc, new Bpl.IdentifierExpr(tok, translator.GetClass(type.ResolvedClass)));
+        r = Bpl.Expr.And(r, dtype);
+        
+        // dtypeParams(e, #) == T
+        int n = 0;
+        foreach (Type arg in type.TypeArgs) {
+          Bpl.Expr tpFunc = translator.FunctionCall(tok, BuiltinFunction.TypeParams, null, e, Bpl.Expr.Literal(n));
+          Bpl.Expr ta = translator.GetTypeExpr(tok, arg);
+          if (ta != null) {
+            r = Bpl.Expr.And(r, Bpl.Expr.Eq(tpFunc, ta));
+          }
+          n++;
+        }
+        
+        return r;
+      }
+      
+      public Bpl.Expr TypeAlloced(Token! tok, Bpl.Expr! e, Type! type) {
+        while (true) {
+          TypeProxy proxy = type as TypeProxy;
+          if (proxy == null) {
+            break;
+          } else if (proxy.T == null) {
+            return null;
+          } else {
+            type = proxy.T;
+          }
+        }
+        
+        Bpl.BoundVariable bv = null;
+        Bpl.Expr ante = null;
+        if (type.IsRefType) {  // object or class type
+          // e == null || $Heap[e, alloc]
+          // This is done below
+          
+        } else if (type is SetType) {
+          // (forall tp: ref :: e[tp] ==> tp == null || $Heap[tp, alloc])
+          bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$tp", predef.RefType));
+          Bpl.Expr tp = new Bpl.IdentifierExpr(tok, bv);
+          ante = Bpl.Expr.SelectTok(tok, e, tp);  // note, this means the set-inclusion does not undergo the set-inclusion expansion optimization done by TrInSet
+          e = tp;
+          
+        } else if (type is SeqType) {
+          // (forall i: int :: Seq#Index(e,i) == null || $Heap[Seq#Index(e,i), alloc])
+          bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
+          e = translator.FunctionCall(tok, BuiltinFunction.SeqIndex, predef.RefType, e, new Bpl.IdentifierExpr(tok, bv));
+          
+        } else {
+          return null;
+        }
+        
+        Bpl.Expr r = Bpl.Expr.Or(Bpl.Expr.Eq(e, predef.Null), GoodRef(tok, e, type));
+        if (ante != null) {
+          r = Bpl.Expr.Imp(ante, r);
+        }
+        if (bv != null) {
+          r = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(bv), r);
+        }
+        return r;
+      }
+    }
+    
+    enum BuiltinFunction {
+      SetEmpty,
+      SetUnionOne,
+      SetUnion,
+      SetIntersection,
+      SetDifference,
+      SetEqual,
+      SetSubset,
+      SetDisjoint,
+      
+      SeqLength,
+      SeqEmpty,
+      SeqBuild,
+      SeqAppend,
+      SeqIndex,
+      SeqContains,
+      SeqDrop,
+      SeqTake,
+      SeqEqual,
+      SeqSameUntil,
+      
+      Box,
+      Unbox,
+      
+      IsGoodHeap,
+      HeapSucc,
+      
+      DynamicType,  // allocated type
+      TypeParams,   // type parameters to allocated type
+      TypeTuple
+    }
+    
+    Bpl.NAryExpr! FunctionCall(Token! tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[]! args)
+      requires predef != null;
+    {
+      switch (f) {
+        case BuiltinFunction.SetEmpty:
+          assert args.Length == 0;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Set#Empty",
+            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+        case BuiltinFunction.SetUnionOne:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Set#UnionOne",
+            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+        case BuiltinFunction.SetUnion:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Set#Union",
+            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+        case BuiltinFunction.SetIntersection:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Set#Intersection",
+            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+        case BuiltinFunction.SetDifference:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Set#Difference",
+            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+        case BuiltinFunction.SetEqual:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Set#Equal", Bpl.Type.Bool, args);
+        case BuiltinFunction.SetSubset:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Set#Subset", Bpl.Type.Bool, args);
+        case BuiltinFunction.SetDisjoint:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
+
+        case BuiltinFunction.SeqLength:
+          assert args.Length == 1;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
+        case BuiltinFunction.SeqEmpty:
+          assert args.Length == 0;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Empty",
+            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+        case BuiltinFunction.SeqBuild:
+          assert args.Length == 4;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Build", predef.SeqType(tok, typeInstantiation), args);
+        case BuiltinFunction.SeqAppend:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Append", predef.SeqType(tok, typeInstantiation), args);
+        case BuiltinFunction.SeqIndex:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Index", typeInstantiation, args);
+        case BuiltinFunction.SeqContains:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Seq#Contains", Bpl.Type.Bool, args);
+        case BuiltinFunction.SeqDrop:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Drop", predef.SeqType(tok, typeInstantiation), args);
+        case BuiltinFunction.SeqTake:
+          assert args.Length == 2;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Take", predef.SeqType(tok, typeInstantiation), args);
+        case BuiltinFunction.SeqEqual:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Seq#Equal", Bpl.Type.Bool, args);
+        case BuiltinFunction.SeqSameUntil:
+          assert args.Length == 3;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Seq#SameUntil", Bpl.Type.Bool, args);
+
+        case BuiltinFunction.Box:
+          assert args.Length == 1;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "$Box", predef.RefType, args);
+        case BuiltinFunction.Unbox:
+          assert false;  // Unbox should be handled by a call to FunctionSpecial
+
+        case BuiltinFunction.IsGoodHeap:
+          assert args.Length == 1;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "$IsGoodHeap", Bpl.Type.Bool, args);
+        case BuiltinFunction.HeapSucc:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "$HeapSucc", Bpl.Type.Bool, args);
+
+        case BuiltinFunction.DynamicType:
+          assert args.Length == 1;
+          return FunctionCall(tok, "dtype", predef.ClassNameType, args);
+        case BuiltinFunction.TypeParams:
+          assert args.Length == 2;
+          return FunctionCall(tok, "TypeParams", predef.ClassNameType, args);
+        case BuiltinFunction.TypeTuple:
+          assert args.Length == 2;
+          return FunctionCall(tok, "TypeTuple", predef.ClassNameType, args);
+          
+        default:
+          assert false;  // unexpected built-in function
+      }
+    }
+    
+    Bpl.NAryExpr! FunctionSpecial(Token! tok, BuiltinFunction f, Bpl.Type! resultType, params Bpl.Expr[]! args)
+    {
+      switch (f) {
+        case BuiltinFunction.Unbox:
+          assert args.Length == 1;
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", resultType, args), resultType);
+        default:
+          assert false;  // unexpected enum value
+      }
+    }
+
+    Bpl.NAryExpr! FunctionCall(Token! tok, string! function, Bpl.Type! returnType, params Bpl.Expr[]! args)
+    {
+      return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), new Bpl.ExprSeq(args));
+    }
+
+    public IEnumerable<Expression!>! SplitExpr(Expression! expr, bool expandFunctions)
+      requires expr.Type is BoolType;
+    {
+      if (expr is BinaryExpr) {
+        BinaryExpr bin = (BinaryExpr)expr;
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          foreach (Expression e in SplitExpr(bin.E0, expandFunctions)) {
+            yield return e;
+          }
+          assert bin != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+          foreach (Expression e in SplitExpr(bin.E1, expandFunctions)) {
+            yield return e;
+          }
+          yield break;
+        
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+          foreach (Expression e in SplitExpr(bin.E1, expandFunctions)) {
+            assert bin != null;
+            BinaryExpr redistributedExpr = new BinaryExpr(e.tok, bin.Op, bin.E0, e);
+            redistributedExpr.ResolvedOp = bin.ResolvedOp;  redistributedExpr.Type = bin.Type;  // resolve on the fly
+            yield return redistributedExpr;
+          }
+          yield break;
+        }
+      
+      } else if (expr is ITEExpr) {
+        ITEExpr ite = (ITEExpr)expr;
+        foreach (Expression e in SplitExpr(ite.Thn, expandFunctions)) {
+          assert ite != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+          BinaryExpr bin = new BinaryExpr(e.tok, BinaryExpr.Opcode.Imp, ite.Test, e);
+          bin.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  bin.Type = ite.Type;  // resolve on the fly
+          yield return bin;
+        }
+        assert ite != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+        Expression negatedGuard = new UnaryExpr(ite.Test.tok, UnaryExpr.Opcode.Not, ite.Test);
+        negatedGuard.Type = ite.Test.Type;  // resolve on the fly
+        foreach (Expression e in SplitExpr(ite.Els, expandFunctions)) {
+          assert ite != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+          assert negatedGuard != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+          BinaryExpr bin = new BinaryExpr(e.tok, BinaryExpr.Opcode.Imp, negatedGuard, e);
+          bin.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  bin.Type = ite.Type;  // resolve on the fly
+          yield return bin;
+        }
+        yield break;
+      
+      } else if (expr is OldExpr) {
+        foreach (Expression se in SplitExpr(((OldExpr)expr).E, expandFunctions)) {
+          OldExpr oe = new OldExpr(expr.tok, se);
+          oe.Type = se.Type;
+          yield return oe;
+        }
+        yield break;
+        
+      } else if (expandFunctions && expr is FunctionCallExpr) {
+        FunctionCallExpr fexp = (FunctionCallExpr)expr;
+        assert fexp.Function != null;  // filled in during resolution
+        if (fexp.Function.Body != null) {
+          // inline this body
+          Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
+          assert fexp.Args.Count == fexp.Function.Formals.Count;
+          for (int i = 0; i < fexp.Function.Formals.Count; i++) {
+            substMap.Add(fexp.Function.Formals[i], fexp.Args[i]);
+          }
+          Expression body = Substitute(fexp.Function.Body, fexp.Receiver, substMap);
+          foreach (Expression se in SplitExpr(body, false)) {
+            assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
+            if (fexp.Function.Use) {
+              BinaryExpr imp = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, new UseExpr(fexp), se);
+              imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
+              imp.Type = Type.Bool;
+              yield return imp;
+            } else {
+              yield return se;
+            }
+          }
+          assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
+          if (fexp.Function.Use) {
+            UnaryExpr ue = new UnaryExpr(expr.tok, UnaryExpr.Opcode.Not, new UseExpr(fexp));
+            ue.Type = Type.Bool;
+            BinaryExpr imp = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, ue, expr);
+            imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
+            imp.Type = Type.Bool;
+            yield return imp;
+          }
+          yield break;
+        }
+      }
+      
+      yield return expr;
+    }
+
+    static Expression! Substitute(Expression! expr, Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+      Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
+      
+      if (expr is LiteralExpr) {
+        // nothing to substitute
+      } else if (expr is ThisExpr) {
+        return receiverReplacement;
+      } else if (expr is IdentifierExpr) {
+        IdentifierExpr e = (IdentifierExpr)expr;
+        Expression substExpr;
+        if (substMap.TryGetValue(e.Var, out substExpr)) {
+          return (!)substExpr;
+        }
+      } else if (expr is DisplayExpression) {
+        DisplayExpression e = (DisplayExpression)expr;
+        List<Expression!> newElements = SubstituteExprList(e.Elements, receiverReplacement, substMap);
+        DisplayExpression newDisplayExpr;
+        if (newElements != e.Elements) {
+          if (expr is SetDisplayExpr) {
+            newExpr = new SetDisplayExpr(expr.tok, newElements);
+          } else {
+            newExpr = new SeqDisplayExpr(expr.tok, newElements);
+          }
+        }
+        
+      } else if (expr is FieldSelectExpr) {
+        FieldSelectExpr fse = (FieldSelectExpr)expr;
+        Expression substE = Substitute(fse.Obj, receiverReplacement, substMap);
+        if (substE != fse.Obj) {
+          FieldSelectExpr fseNew = new FieldSelectExpr(fse.tok, substE, fse.FieldName);
+          fseNew.Field = fse.Field;  // resolve on the fly (and fseExpr.Type is set at end of method)
+          newExpr = fseNew;
+        }
+        
+      } else if (expr is SeqSelectExpr) {
+        SeqSelectExpr sse = (SeqSelectExpr)expr;
+        Expression seq = Substitute(sse.Seq, receiverReplacement, substMap);
+        Expression e0 = sse.E0 == null ? null : Substitute(sse.E0, receiverReplacement, substMap);
+        Expression e1 = sse.E1 == null ? null : Substitute(sse.E1, receiverReplacement, substMap);
+        if (seq != sse.Seq || e0 != sse.E0 || e1 != sse.E1) {
+          newExpr = new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1);
+        }
+        
+      } else if (expr is FunctionCallExpr) {
+        FunctionCallExpr e = (FunctionCallExpr)expr;
+        Expression receiver = Substitute(e.Receiver, receiverReplacement, substMap);
+        List<Expression!> newArgs = SubstituteExprList(e.Args, receiverReplacement, substMap);
+        if (receiver != e.Receiver || newArgs != e.Args) {
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, newArgs);
+          newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
+          newExpr = newFce;
+        }
+      
+      } else if (expr is OldExpr) {
+        OldExpr e = (OldExpr)expr;
+        Expression se = Substitute(e.E, receiverReplacement, substMap);
+        if (se != e.E) {
+          newExpr = new OldExpr(expr.tok, se);
+        }
+      } else if (expr is FreshExpr) {
+        FreshExpr e = (FreshExpr)expr;
+        Expression se = Substitute(e.E, receiverReplacement, substMap);
+        if (se != e.E) {
+          newExpr = new FreshExpr(expr.tok, se);
+        }
+      } else if (expr is UnaryExpr) {
+        UnaryExpr e = (UnaryExpr)expr;
+        Expression se = Substitute(e.E, receiverReplacement, substMap);
+        if (se != e.E) {
+          newExpr = new UnaryExpr(expr.tok, e.Op, se);
+        }
+      } else if (expr is BinaryExpr) {
+        BinaryExpr e = (BinaryExpr)expr;
+        Expression e0 = Substitute(e.E0, receiverReplacement, substMap);
+        Expression e1 = Substitute(e.E1, receiverReplacement, substMap);
+        if (e0 != e.E0 || e1 != e.E1) {
+          BinaryExpr newBin = new BinaryExpr(expr.tok, e.Op, e0, e1);
+          newBin.ResolvedOp = e.ResolvedOp;  // part of what needs to be done to resolve on the fly (newBin.Type is set below, at end)
+          newExpr = newBin;
+        }
+        
+      } else if (expr is QuantifierExpr) {
+        QuantifierExpr e = (QuantifierExpr)expr;
+        Expression newBody = Substitute(e.Body, receiverReplacement, substMap);
+        Triggers newTrigs = SubstTriggers(e.Trigs, receiverReplacement, substMap);
+        Attributes newAttrs = SubstAttributes(e.Attributes, receiverReplacement, substMap);
+        if (newBody != e.Body || newTrigs != e.Trigs || newAttrs != e.Attributes) {
+          if (expr is ForallExpr) {
+            newExpr = new ForallExpr(expr.tok, e.BoundVars, newBody, newTrigs, newAttrs);
+          } else {
+            newExpr = new ExistsExpr(expr.tok, e.BoundVars, newBody, newTrigs, newAttrs);
+          }
+        }
+        
+      } else if (expr is ITEExpr) {
+        ITEExpr e = (ITEExpr)expr;
+        Expression test = Substitute(e.Test, receiverReplacement, substMap);
+        Expression thn = Substitute(e.Thn, receiverReplacement, substMap);
+        Expression els = Substitute(e.Els, receiverReplacement, substMap);
+        if (test != e.Test || thn != e.Thn || els != e.Els) {
+          newExpr = new ITEExpr(expr.tok, test, thn, els);
+        }
+      }
+      
+      if (newExpr == null) {
+        return expr;
+      } else {
+        newExpr.Type = expr.Type;  // resolve on the fly (any additional resolution must be done above)
+        return newExpr;
+      }
+    }
+    
+    static List<Expression!>! SubstituteExprList(List<Expression!>! elist,
+                                                 Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+      List<Expression!> newElist = null;  // initialized lazily
+      for (int i = 0; i < elist.Count; i++)
+        invariant newElist == null || newElist.Count == i;
+      {
+        Expression substE = Substitute(elist[i], receiverReplacement, substMap);
+        if (substE != elist[i] && newElist == null) {
+          newElist = new List<Expression!>();
+          for (int j = 0; j < i; j++) {
+            newElist.Add(elist[j]);
+          }
+        }
+        if (newElist != null) {
+          newElist.Add(substE);
+        }
+      }
+      if (newElist == null) {
+        return elist;
+      } else {
+        return newElist;
+      }
+    }
+    
+    static Triggers SubstTriggers(Triggers trigs, Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+      if (trigs != null) {
+        List<Expression!> terms = SubstituteExprList(trigs.Terms, receiverReplacement, substMap);
+        Triggers prev = SubstTriggers(trigs.Prev, receiverReplacement, substMap);
+        if (terms != trigs.Terms || prev != trigs.Prev) {
+          return new Triggers(terms, prev);
+        }
+      }
+      return trigs;
+    }
+        
+    static Attributes SubstAttributes(Attributes attrs, Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+      if (attrs != null) {
+        List<Attributes.Argument!> newArgs = new List<Attributes.Argument!>();  // allocate it eagerly, what the heck, it doesn't seem worth the extra complexity in the code to do it lazily for the infrequently occurring attributes
+        bool anyArgSubst = false;
+        foreach (Attributes.Argument arg in attrs.Args) {
+          Attributes.Argument newArg = arg;
+          if (arg.E != null) {
+            Expression newE = Substitute(arg.E, receiverReplacement, substMap);
+            if (newE != arg.E) {
+              newArg = new Attributes.Argument(newE);
+              anyArgSubst = true;
+            }
+          }
+          newArgs.Add(newArg);
+        }
+        if (!anyArgSubst) {
+          newArgs = attrs.Args;
+        }
+        
+        Attributes prev = SubstAttributes(attrs.Prev, receiverReplacement, substMap);
+        if (newArgs != attrs.Args || prev != attrs.Prev) {
+          return new Attributes(attrs.Name, newArgs, prev);
+        }
+      }
+      return attrs;
+    }
+        
+  }
+}

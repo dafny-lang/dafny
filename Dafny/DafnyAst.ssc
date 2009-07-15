@@ -1,0 +1,1049 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+//
+//-----------------------------------------------------------------------------
+using System;
+using System.Collections.Generic;
+using Microsoft.Contracts;
+
+namespace Microsoft.Dafny
+{
+  public class Program {
+    public readonly string! Name;
+    public readonly List<ClassDecl!>! Classes;
+    public Program(string! name, [Captured] List<ClassDecl!>! classes) {
+      Name = name;
+      Classes = classes;
+    }
+  }
+  
+  public class Attributes {
+    public readonly string! Name;
+    /*Frozen*/ public readonly List<Argument!>! Args;
+    public readonly Attributes Prev;
+    
+    public Attributes(string! name, [Captured] List<Argument!>! args, Attributes prev)
+    {
+      Name = name;
+      Args = args;
+      Prev = prev;
+    }
+    
+    public class Argument {
+      public readonly string S;
+      public readonly Expression E;
+      invariant (S == null) != (E == null);
+      
+      public Argument(string! s) {
+        S = s;
+      }
+      public Argument(Expression! e) {
+        E = e;
+      }
+    }
+  }
+  
+  // ------------------------------------------------------------------------------------------------------
+  
+  public abstract class Type {
+    public static readonly BoolType! Bool = new BoolType();
+    public static readonly IntType! Int = new IntType();
+    /// <summary>
+    /// Used in error situations in order to reduce further error messages.
+    /// </summary>
+    [Pure(false)]
+    public static Type! Flexible {
+      get { return new InferredTypeProxy(); }
+    }
+    
+    public bool IsRefType {
+      get {
+        if (this is ObjectType) {
+          return true;
+        } else {
+          ClassType ct = this as ClassType;
+          return ct != null && ct.ResolvedParam == null;
+        }
+      }
+    }
+    public bool IsTypeParameter {
+      get
+        ensures result ==> this is ClassType && ((ClassType)this).ResolvedParam != null;
+      {
+        ClassType ct = this as ClassType;
+        return ct != null && ct.ResolvedParam != null;
+      }
+    }
+  }
+  
+  public abstract class BasicType : Type {
+  }
+  
+  public class BoolType : BasicType {
+    [Pure] public override string! ToString() {
+      return "bool";
+    }
+  }
+  
+  public class IntType : BasicType {
+    [Pure] public override string! ToString() {
+      return "int";
+    }
+  }
+  
+  public class ObjectType : BasicType {
+    [Pure] public override string! ToString() {
+      return "object";
+    }
+  }
+  
+  public abstract class CollectionType : Type {
+    public readonly Type! Arg;
+    public CollectionType(Type! arg) {
+      this.Arg = arg;
+    }
+  }
+  
+  public class SetType : CollectionType {
+    public SetType(Type! arg) {
+      base(arg);
+    }
+    [Pure] public override string! ToString() {
+      assume Arg.IsPeerConsistent;
+      return "set<" + Arg + ">";
+    }
+  }
+  
+  public class SeqType : CollectionType {
+    public SeqType(Type! arg) {
+      base(arg);
+    }
+    [Pure] public override string! ToString() {
+      assume Arg.IsPeerConsistent;
+      return "seq<" + Arg + ">";
+    }
+  }
+
+  public class ClassType : Type {
+    public readonly Token! tok;
+    public readonly string! Name;
+    [Rep] public readonly List<Type!>! TypeArgs;
+    
+    public ClassDecl ResolvedClass;  // filled in by resolution, if Name denotes a class and TypeArgs match the type parameters of that class
+    public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
+    
+    public ClassType(Token! tok, string! name, [Captured] List<Type!>! typeArgs) {
+      this.tok = tok;
+      this.Name = name;
+      this.TypeArgs = typeArgs;
+    }
+    
+    /// <summary>
+    /// This constructor constructs a resolved class type
+    /// </summary>
+    public ClassType(Token! tok, string! name, ClassDecl! cd, [Captured] List<Type!>! typeArgs) {
+      this.tok = tok;
+      this.Name = name;
+      this.TypeArgs = typeArgs;
+      this.ResolvedClass = cd;
+    }
+    
+    /// <summary>
+    /// This constructor constructs a resolved type parameter
+    /// </summary>
+    public ClassType(Token! tok, string! name, TypeParameter! tp) {
+      this.tok = tok;
+      this.Name = name;
+      this.TypeArgs = new List<Type!>();
+      this.ResolvedParam = tp;
+    }
+    
+    /// <summary>
+    /// If type denotes a resolved class type, then return that class type.
+    /// Otherwise, return null.
+    /// </summary>
+    public static ClassType DenotesClass(Type! type)
+      ensures result != null ==> result.ResolvedClass != null;
+    {
+      while (true)
+        invariant type.IsPeerConsistent;
+      {
+        TypeProxy pt = type as TypeProxy;
+        if (pt != null && pt.T != null) {
+          type = pt.T;
+          assume type.IsPeerConsistent;
+        } else {
+          break;
+        }
+      }
+      ClassType ct = type as ClassType;
+      if (ct != null && ct.ResolvedClass != null) {
+        return ct;
+      } else {
+        return null;
+      }
+    }
+    
+    [Pure] public override string! ToString() {
+      string s = Name;
+      if (TypeArgs.Count != 0) {
+        string sep = "<";
+        foreach (Type t in TypeArgs) {
+          assume t.IsPeerConsistent;
+          s += sep + t;
+          sep = ",";
+        }
+        s += ">";
+      }
+      return s;
+    }
+  }
+  
+  public abstract class TypeProxy : Type {
+    public Type T;  // filled in during resolution
+    internal TypeProxy() { }
+    
+    [Pure] public override string! ToString() {
+      assume T == null || T.IsPeerConsistent;
+      return T == null ? "?" : T.ToString();
+    }
+  }
+  
+  public abstract class UnrestrictedTypeProxy : TypeProxy { }
+  
+  /// <summary>
+  /// This proxy stands for any type.
+  /// </summary>  
+  public class InferredTypeProxy : UnrestrictedTypeProxy {
+  }
+  
+  /// <summary>
+  /// This proxy stands for any type, but it originates from an instantiated type parameter.
+  /// </summary>  
+  public class ParamTypeProxy : UnrestrictedTypeProxy {
+    TypeParameter! orig;
+    public ParamTypeProxy(TypeParameter! orig) {
+      this.orig = orig;
+    }
+  }
+  
+  public abstract class RestrictedTypeProxy : TypeProxy {
+    /// <summary>
+    /// The OrderID is used to simplify the unification code.  Each restricted type proxy should use its
+    /// own OrderID.
+    /// </summary>
+    public abstract int OrderID { get; }
+  }
+  
+  /// <summary>
+  /// This proxy stands for object or any class type.
+  /// </summary>  
+  public class ObjectTypeProxy : RestrictedTypeProxy {
+    public override int OrderID { get { return 0; } }
+  }
+  
+  /// <summary>
+  /// This proxy stands for object or any class type or a set or sequence of object or a class type.
+  /// </summary>
+  public class ObjectsTypeProxy : RestrictedTypeProxy {
+    public override int OrderID { get { return 1; } }
+  }
+  
+  /// <summary>
+  /// This proxy stands for either:
+  ///     set(Arg) or seq(Arg)
+  /// </summary>  
+  public class CollectionTypeProxy : RestrictedTypeProxy {
+    public readonly Type! Arg;
+    public CollectionTypeProxy(Type! arg) {
+      Arg = arg;
+    }
+    public override int OrderID { get { return 2; } }
+  }
+
+  /// <summary>
+  /// This proxy stands for either:
+  ///     int or set or seq
+  /// if AllowSeq, or:
+  ///     int or set
+  /// if !AllowSeq.
+  /// </summary>  
+  public class OperationTypeProxy : RestrictedTypeProxy {
+    public readonly bool AllowSeq;
+    public OperationTypeProxy(bool allowSeq) {
+      AllowSeq = allowSeq;
+    }
+    public override int OrderID { get { return 3; } }
+  }
+  
+  // ------------------------------------------------------------------------------------------------------
+  
+  public abstract class Declaration {
+    public Token! tok;
+    public readonly string! Name;
+    public readonly Attributes Attributes;
+    
+    public Declaration(Token! tok, string! name, Attributes attributes) {
+      this.tok = tok;
+      this.Name = name;
+      this.Attributes = attributes;
+    }
+  }
+  
+  public class TypeParameter : Declaration {
+    public interface ParentType { }
+    [Peer] ParentType parent;
+    public ParentType Parent {
+      get {
+        return parent;
+      }
+      [param: Captured]
+      set
+        requires Parent == null;  // set it only once
+        requires value != null;
+        // BUGBUG:  The following line is a workaround to tell the verifier that 'value' is not of an Immutable type.
+        // A proper solution would be to be able to express that in the program (in a specification or attribute) or
+        // to be able to declare 'parent' as [PeerOrImmutable].
+        requires value is ClassDecl || value is Function || value is Method;
+        modifies parent;
+      {
+        parent = value;
+      }
+    }
+    public TypeParameter(Token! tok, string! name) {
+      base(tok, name, null);
+    }
+  }
+  
+  public class ClassDecl : Declaration, TypeParameter.ParentType {
+    public List<TypeParameter!>! TypeArgs;
+    public List<MemberDecl!>! Members;
+    
+    public ClassDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
+      TypeArgs = typeArgs;
+      Members = members;
+      base(tok, name, attributes);
+    }
+  }
+  
+  public abstract class MemberDecl : Declaration {
+    public ClassDecl EnclosingClass;  // filled in during resolution
+    
+    public MemberDecl(Token! tok, string! name, Attributes attributes) {
+      base(tok, name, attributes);
+    }
+    /// <summary>
+    /// Returns className+"."+memberName.  Available only after resolution.
+    /// </summary>
+    public string! FullName {
+      get
+        requires EnclosingClass != null;
+      {
+        return EnclosingClass.Name + "." + Name;
+      }
+    }
+  }
+  
+  public class Field : MemberDecl {
+    public readonly Type! Type;
+    
+    public Field(Token! tok, string! name, Type! type, Attributes attributes) {
+      Type = type;
+      base(tok, name, attributes);
+    }
+  }
+  
+  public interface IVariable {
+    string! Name { get; }
+    string! UniqueName { get; }
+    Type! Type { get; }
+    bool IsMutable { get; }
+  }
+  
+  public abstract class NonglobalVariable : IVariable {
+    public readonly Token! tok;
+    readonly string! name;
+    public string! Name { get { return name; } }
+    readonly int varId = varIdCount++;
+    public string! UniqueName { get { return name + "#" + varId; } }
+    Type! type;
+    [Pure(false)]  // TODO: if Type gets the status of [Frozen], then this attribute is not needed
+    public Type! Type { get {
+      assume type.IsPeerConsistent;
+      while (true)
+        invariant type.IsPeerConsistent;
+      {
+        TypeProxy t = type as TypeProxy;
+        if (t != null && t.T != null) {
+          type = t.T;
+          assume type.IsPeerConsistent;
+        } else {
+          return type;
+        }
+      }
+    } }
+    public abstract bool IsMutable { get; }
+    
+    public NonglobalVariable(Token! tok, string! name, Type! type) {
+      this.tok = tok;
+      this.name = name;
+      this.type = type;
+    }
+    
+    internal static int varIdCount;  // this varIdCount is used for both NonglobalVariable's and VarDecl's.
+  }
+  
+  public class Formal : NonglobalVariable {
+    public readonly bool InParam;  // true to in-parameter, false for out-parameter
+    public override bool IsMutable { get { return !InParam; } }
+    
+    public Formal(Token! tok, string! name, Type! type, bool inParam) {
+      InParam = inParam;
+      base(tok, name, type);
+    }
+  }
+  
+  public class BoundVar : NonglobalVariable {
+    public override bool IsMutable { get { return false; } }
+    
+    public BoundVar(Token! tok, string! name, Type! type) {
+      base(tok, name, type);
+    }
+  }
+  
+  public class Function : MemberDecl, TypeParameter.ParentType {
+    public readonly bool Use;
+    public readonly List<TypeParameter!>! TypeArgs;
+    public readonly List<Formal!>! Formals;
+    public readonly Type! ResultType;
+    public readonly List<Expression!>! Req;
+    public readonly List<Expression!>! Reads;
+    public readonly Expression Body;  // an extended expression
+    
+    public Function(Token! tok, string! name, bool use, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
+                    List<Expression!>! req, List<Expression!>! reads, Expression body, Attributes attributes) {
+      this.Use = use;
+      this.TypeArgs = typeArgs;
+      this.Formals = formals;
+      this.ResultType = resultType;
+      this.Req = req;
+      this.Reads = reads;
+      this.Body = body;
+      base(tok, name, attributes);
+    }
+  }
+  
+  public class Method : MemberDecl, TypeParameter.ParentType {
+    public readonly List<TypeParameter!>! TypeArgs;
+    public readonly List<Formal!>! Ins;
+    public readonly List<Formal!>! Outs;
+    public readonly List<MaybeFreeExpression!>! Req;
+    public readonly List<Expression!>! Mod;
+    public readonly List<MaybeFreeExpression!>! Ens;
+    public readonly Statement Body;
+    
+    public Method(Token! tok, string! name,
+                  [Captured] List<TypeParameter!>! typeArgs,
+                  [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
+                  [Captured] List<MaybeFreeExpression!>! req, [Captured] List<Expression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
+                  [Captured] Statement body,
+                  Attributes attributes) {
+      this.TypeArgs = typeArgs;
+      this.Ins = ins;
+      this.Outs = outs;
+      this.Req = req;
+      this.Mod = mod;
+      this.Ens = ens;
+      this.Body = body;
+      base(tok, name, attributes);
+    }
+  }
+  
+  // ------------------------------------------------------------------------------------------------------
+  
+  public abstract class Statement {
+    public readonly Token! Tok;
+    public Statement(Token! tok) {
+      this.Tok = tok;
+    }
+  }
+  
+  public abstract class PredicateStmt : Statement {
+    [Peer] public readonly Expression! Expr;
+    [Captured]
+    public PredicateStmt(Token! tok, Expression! expr)
+      ensures Owner.Same(this, expr);
+    {
+      base(tok);
+      Owner.AssignSame(this, expr);
+      this.Expr = expr;
+    }
+  }
+  
+  public class AssertStmt : PredicateStmt {
+    [Captured]
+    public AssertStmt(Token! tok, Expression! expr)
+      ensures Owner.Same(this, expr);
+    {
+      base(tok, expr);
+    }
+  }
+  
+  public class AssumeStmt : PredicateStmt {
+    [Captured]
+    public AssumeStmt(Token! tok, Expression! expr)
+      ensures Owner.Same(this, expr);
+    {
+      base(tok, expr);
+    }
+  }
+  
+  public class UseStmt : PredicateStmt {
+    [Captured]
+    public UseStmt(Token! tok, Expression! expr)
+      ensures Owner.Same(this, expr);
+    {
+      base(tok, expr);
+    }
+    [Peer] private FunctionCallExpr fce;
+    /// <summary>
+    /// This method assumes the statement has been successfully resolved.
+    /// </summary>
+    [Pure(false)]
+    public FunctionCallExpr! FunctionCallExpr {
+      get {
+        if (fce == null) {
+          Expression expr = Expr;
+          while (true)
+            invariant Owner.Same(this, expr);
+          {
+            if (expr is OldExpr) {
+              expr = ((OldExpr)expr).E;
+            } else {
+              break;
+            }
+          }
+          assume expr is FunctionCallExpr;
+          fce = (FunctionCallExpr)expr;
+        }
+        return fce;
+      }
+    }
+    public bool EvalInOld {
+      get {
+        return Expr is OldExpr;
+      }
+    }
+  }
+  
+  public class LabelStmt : Statement {
+    public readonly string! Label;
+    public LabelStmt(Token! tok, string! label) {
+      this.Label = label;
+      base(tok);
+    }
+  }
+  
+  public class BreakStmt : Statement {
+    public readonly string TargetLabel;
+    public Statement TargetStmt;  // filled in during resolution
+    
+    public BreakStmt(Token! tok, string targetLabel) {
+      this.TargetLabel = targetLabel;
+      base(tok);
+    }
+  }
+  
+  public class ReturnStmt : Statement {
+    public ReturnStmt(Token! tok) {
+      base(tok);
+    }
+  }
+  
+  public abstract class AssignmentRhs {
+    internal AssignmentRhs() { }
+  }
+  
+  public abstract class DeterminedAssignmentRhs : AssignmentRhs {
+    internal DeterminedAssignmentRhs() { }
+  }
+  
+  public class ExprRhs : DeterminedAssignmentRhs {
+    public readonly Expression! Expr;
+    public ExprRhs(Expression! expr) {
+      Expr = expr;
+    }
+  }
+  
+  public class TypeRhs : DeterminedAssignmentRhs {
+    public readonly Type! Type;
+    public TypeRhs(Type! type) {
+      Type = type;
+    }
+  }
+  
+  public class HavocRhs : AssignmentRhs {
+  }
+
+  public class AssignStmt : Statement {
+    public readonly Expression! Lhs;
+    public readonly AssignmentRhs! Rhs;
+    public AssignStmt(Token! tok, Expression! lhs, Expression! rhs) {  // ordinary assignment statement
+      this.Lhs = lhs;
+      this.Rhs = new ExprRhs(rhs);
+      base(tok);
+    }
+    public AssignStmt(Token! tok, Expression! lhs, Type! type) {  // alloc statement
+      this.Lhs = lhs;
+      this.Rhs = new TypeRhs(type);
+      base(tok);
+    }
+    public AssignStmt(Token! tok, Expression! lhs) {  // havoc
+      this.Lhs = lhs;
+      this.Rhs = new HavocRhs();
+      base(tok);
+    }
+  }
+  
+  public class VarDecl : Statement, IVariable {
+    readonly string! name;
+    public string! Name { get { return name; } }
+    readonly int varId = NonglobalVariable.varIdCount++;
+    public string! UniqueName { get { return name + "#" + varId; } }
+    public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
+    internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
+    [Pure(false)]
+    public Type! Type { get {
+      assume type != null;  /* we assume object has been resolved */
+      assume type.IsPeerConsistent;
+      while (true)
+        invariant type != null && type.IsPeerConsistent;
+      {
+        TypeProxy t = type as TypeProxy;
+        if (t != null && t.T != null) {
+          type = t.T;
+          assume type.IsPeerConsistent;
+        } else {
+          return type;
+        }
+      }
+    } }
+    public bool IsMutable { get { return true; } }
+
+    public readonly DeterminedAssignmentRhs Rhs;
+    invariant OptionalType != null || Rhs != null;
+    
+    public VarDecl(Token! tok, string! name, Type type, DeterminedAssignmentRhs rhs)
+      requires type != null || rhs != null;
+    {
+      this.name = name;
+      this.OptionalType = type;
+      this.Rhs = rhs;
+      base(tok);
+    }
+  }
+  
+  public class CallStmt : Statement {
+    public readonly List<IdentifierExpr!>! Lhs;
+    public readonly Expression! Receiver;
+    public readonly string! MethodName;
+    public readonly List<Expression!>! Args;
+    public Method Method;  // filled in by resolution
+    
+    public CallStmt(Token! tok, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
+      this.Lhs = lhs;
+      this.Receiver = receiver;
+      this.MethodName = methodName;
+      this.Args = args;
+      base(tok);
+    }
+  }
+  
+  public class BlockStmt : Statement {
+    public readonly List<Statement!>! Body;
+    public BlockStmt(Token! tok, [Captured] List<Statement!>! body) {
+      this.Body = body;
+      base(tok);
+    }
+  }
+  
+  public class IfStmt : Statement {
+    public readonly Expression Guard;
+    public readonly Statement! Thn;
+    public readonly Statement Els;
+    invariant Els == null || Els is BlockStmt || Els is IfStmt;
+    
+    public IfStmt(Token! tok, Expression guard, Statement! thn, Statement els)
+      requires els == null || els is BlockStmt || els is IfStmt;
+    {
+      this.Guard = guard;
+      this.Thn = thn;
+      this.Els = els;
+      base(tok);
+    }
+  }
+
+  public class WhileStmt : Statement {
+    public readonly Expression Guard;
+    public readonly List<MaybeFreeExpression!>! Invariants;
+    public readonly List<Expression!>! Decreases;
+    public readonly Statement! Body;
+    
+    public WhileStmt(Token! tok, Expression guard,
+                     List<MaybeFreeExpression!>! invariants, List<Expression!>! decreases,
+                     Statement! body) {
+      this.Guard = guard;
+      this.Invariants = invariants;
+      this.Decreases = decreases;
+      this.Body = body;
+      base(tok);
+    }
+  }
+  
+  public class ForeachStmt : Statement {
+    public readonly BoundVar! BoundVar;
+    public readonly Expression! Collection;
+    public readonly Expression! Range;
+    public readonly List<PredicateStmt!>! BodyPrefix;
+    public readonly AssignStmt BodyAssign;
+    
+    public ForeachStmt(Token! tok, BoundVar! boundVar, Expression! collection, Expression! range, List<PredicateStmt!>! bodyPrefix, AssignStmt bodyAssign) {
+      this.BoundVar = boundVar;
+      this.Collection = collection;
+      this.Range = range;
+      this.BodyPrefix = bodyPrefix;
+      this.BodyAssign = bodyAssign;
+      base(tok);
+    }
+  }
+  
+  // ------------------------------------------------------------------------------------------------------
+  
+  public abstract class Expression {
+    public readonly Token! tok;
+    protected Type type;
+    public Type Type {  // filled in during resolution
+      [Verify(false)]  // TODO: how do we allow Type.get to modify type and still be [Pure]?
+      [Additive]  // validity of proper subclasses is not required
+      get
+        ensures type == null ==> result == null;  // useful in conjunction with postcondition of constructor
+      {
+        while (true) {
+          TypeProxy t = type as TypeProxy;
+          if (t != null && t.T != null) {
+            type = t.T;
+          } else {
+            assume type == null || type.IsPeerConsistent;
+            return type;
+          }
+        }
+      }
+      [NoDefaultContract]  // no particular validity of 'this' is required, except that it not be committed
+      set
+        requires this.IsValid;
+        requires Type == null;  // set it only once
+        requires value != null && value.IsPeerConsistent;
+        modifies type;
+      {
+        type = value;
+        while (true) {
+          TypeProxy t = type as TypeProxy;
+          if (t != null && t.T != null) {
+            type = t.T;
+          } else {
+            return;
+          }
+        }
+      }
+    }
+    
+    public Expression(Token! tok)
+      ensures type == null;  // we would have liked to have written Type==null, but that's not admissible or provable
+    {
+      this.tok = tok;
+    }
+  }
+  
+  public class LiteralExpr : Expression {
+    public readonly object Value;
+    
+    public static bool IsTrue(Expression! e) {
+      if (e is LiteralExpr) {
+        LiteralExpr le = (LiteralExpr)e;
+        return le.Value is bool && (bool)le.Value;
+      } else {
+        return false;
+      }
+    }
+    
+    public LiteralExpr(Token! tok) {  // represents the Dafny literal "null"
+      this.Value = null;
+      base(tok);
+    }
+    
+    public LiteralExpr(Token! tok, int n)
+      requires 0 <= n;
+    {
+      this.Value = n;
+      base(tok);
+    }
+    
+    public LiteralExpr(Token! tok, bool b) {
+      this.Value = b;
+      base(tok);
+    }
+  }
+  
+  public class ThisExpr : Expression {
+    public ThisExpr(Token! tok) {
+      base(tok);
+    }
+  }
+  
+  public class ImplicitThisExpr : ThisExpr {
+    public ImplicitThisExpr(Token! tok) {
+      base(tok);
+    }
+  }
+  
+  public class IdentifierExpr : Expression {
+    public readonly string! Name;
+    public IVariable Var;  // filled in by resolution
+
+    public IdentifierExpr(Token! tok, string! name) {
+      Name = name;
+      base(tok);
+    }
+  }
+
+  public abstract class DisplayExpression : Expression {
+    public readonly List<Expression!>! Elements;
+    public DisplayExpression(Token! tok, List<Expression!>! elements) {
+      Elements = elements;
+      base(tok);
+    }
+  }
+    
+  public class SetDisplayExpr : DisplayExpression {
+    public SetDisplayExpr(Token! tok, List<Expression!>! elements) {
+      base(tok, elements);
+    }
+  }
+    
+  public class SeqDisplayExpr : DisplayExpression {
+    public SeqDisplayExpr(Token! tok, List<Expression!>! elements) {
+      base(tok, elements);
+    }
+  }
+    
+  public class FieldSelectExpr : Expression {
+    public readonly Expression! Obj;
+    public readonly string! FieldName;
+    public Field Field;  // filled in by resolution
+    
+    public FieldSelectExpr(Token! tok, Expression! obj, string! fieldName) {
+      this.Obj = obj;
+      this.FieldName = fieldName;
+      base(tok);
+    }
+  }
+  
+  public class SeqSelectExpr : Expression {
+    public readonly bool SelectOne;  // false means select a range
+    public readonly Expression! Seq;
+    public readonly Expression E0;
+    public readonly Expression E1;
+    invariant SelectOne ==> E1 == null;
+    invariant E0 != null || E1 != null;
+    
+    public SeqSelectExpr(Token! tok, bool selectOne, Expression! seq, Expression e0, Expression e1)
+      requires selectOne ==> e1 == null;
+      requires e0 != null || e1 != null;
+    {
+      SelectOne = selectOne;
+      Seq = seq;
+      E0 = e0;
+      E1 = e1;
+      base(tok);
+    }
+  }
+
+  public class FunctionCallExpr : Expression {
+    public readonly string! Name;
+    [Peer] public readonly Expression! Receiver;
+    [Peer] public readonly List<Expression!>! Args;
+    public Function Function;  // filled in by resolution
+    
+    [Captured]
+    public FunctionCallExpr(Token! tok, string! fn, Expression! receiver, [Captured] List<Expression!>! args)
+      ensures type == null;
+      ensures Owner.Same(this, receiver);
+    {
+      base(tok);
+      this.Name = fn;
+      Owner.AssignSame(this, receiver);
+      this.Receiver = receiver;
+      this.Args = args;
+    }
+  }
+  
+  /// <summary>
+  /// UseExpr's are used only temporarily during translation.
+  /// </summary>
+  public class UseExpr : FunctionCallExpr {
+    [NotDelayed] [Captured]
+    public UseExpr(FunctionCallExpr! fce)
+      requires fce.Function != null && fce.Function.Use;
+    {
+      base(fce.tok, fce.Name, fce.Receiver, new List<Expression!>(fce.Args));
+      this.Function = fce.Function;
+      assume Type.Bool.IsPeerConsistent;  // This would follow from BoolType being an Immutable type, or from Type.Bool being [Frozen]
+      this.Type = Type.Bool;
+    }
+  }
+  
+  public class OldExpr : Expression {
+    [Peer] public readonly Expression! E;
+    [Captured]
+    public OldExpr(Token! tok, Expression! expr) {
+      base(tok);
+      Owner.AssignSame(this, expr);
+      E = expr;
+    }
+  }
+
+  public class FreshExpr : Expression {
+    public readonly Expression! E;
+    public FreshExpr(Token! tok, Expression! expr) {
+      E = expr;
+      base(tok);
+    }
+  }
+  
+  public class UnaryExpr : Expression {
+    public enum Opcode { Not, SeqLength }
+    public readonly Opcode Op;
+    public readonly Expression! E;
+    
+    public UnaryExpr(Token! tok, Opcode op, Expression! e) {
+      this.Op = op;
+      this.E = e;
+      base(tok);
+    }
+  }
+  
+  public class BinaryExpr : Expression {
+    public enum Opcode { Iff, Imp, And, Or,
+                         Eq, Neq, Lt, Le, Ge, Gt,
+                         Disjoint, In,
+                         Add, Sub, Mul, Div, Mod }
+    public readonly Opcode Op;
+    public enum ResolvedOpcode {
+      // logical operators
+      Iff, Imp, And, Or,
+      // non-collection types
+      EqCommon, NeqCommon,
+      // integers
+      Lt, Le, Ge, Gt, Add, Sub, Mul, Div, Mod,
+      // sets
+      SetEq, SetNeq, ProperSubset, Subset, Superset, ProperSuperset, Disjoint, InSet,
+      Union, Intersection, SetDifference,
+      // sequences
+      SeqEq, SeqNeq, ProperPrefix, Prefix, Concat, InSeq
+    }
+    public ResolvedOpcode ResolvedOp;  // filled in by resolution
+                                 
+    public static string! OpcodeString(Opcode op) {
+      switch (op) {
+        case Opcode.Iff:  return "<==>";
+        case Opcode.Imp:  return "==>";
+        case Opcode.And:  return "&&";
+        case Opcode.Or:  return "||";
+        case Opcode.Eq:  return "==";
+        case Opcode.Lt:  return "<";
+        case Opcode.Gt:  return ">";
+        case Opcode.Le:  return "<=";
+        case Opcode.Ge:  return ">=";
+        case Opcode.Neq:  return "!=";
+        case Opcode.Disjoint:  return "!!";
+        case Opcode.In:  return "in";
+        case Opcode.Add:  return "+";
+        case Opcode.Sub:  return "-";
+        case Opcode.Mul:  return "*";
+        case Opcode.Div:  return "/";
+        case Opcode.Mod:  return "%";
+        default:
+          assert false;  // unexpected operator
+      }
+    }
+    public readonly Expression! E0;
+    public readonly Expression! E1;
+    
+    public BinaryExpr(Token! tok, Opcode op, Expression! e0, Expression! e1) {
+      this.Op = op;
+      this.E0 = e0;
+      this.E1 = e1;
+      base(tok);
+    }
+  }
+  
+  public abstract class QuantifierExpr : Expression {
+    public readonly List<BoundVar!>! BoundVars;
+    public readonly Expression! Body;
+    public readonly Triggers Trigs;
+    public readonly Attributes Attributes;
+    
+    public QuantifierExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trigs, Attributes attrs) {
+      this.BoundVars = bvars;
+      this.Body = body;
+      this.Trigs = trigs;
+      this.Attributes = attrs;
+      base(tok);
+    }
+  }
+  
+  public class Triggers {
+    public readonly List<Expression!>! Terms;
+    public readonly Triggers Prev;
+    
+    public Triggers(List<Expression!>! terms, Triggers prev) {
+      this.Terms = terms;
+      this.Prev = prev;
+    }
+  }
+  
+  public class ForallExpr : QuantifierExpr {
+    public ForallExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
+      base(tok, bvars, body, trig, attrs);
+    }
+  }
+  
+  public class ExistsExpr : QuantifierExpr {
+    public ExistsExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
+      base(tok, bvars, body, trig, attrs);
+    }
+  }
+  
+  public class ITEExpr : Expression {  // an ITEExpr is an "extended expression" and is only allowed in certain places
+    public readonly Expression! Test;
+    public readonly Expression! Thn;
+    public readonly Expression! Els;
+    
+    public ITEExpr(Token! tok, Expression! test, Expression! thn, Expression! els) {
+      this.Test = test;
+      this.Thn = thn;
+      this.Els = els;
+      base(tok);
+    }
+  }
+  
+  public class MaybeFreeExpression {
+    public readonly Expression! E;
+    public readonly bool IsFree;
+    public MaybeFreeExpression(Expression! e, bool isFree) {
+      E = e;
+      IsFree = isFree;
+    }
+  }
+}

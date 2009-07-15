@@ -1,0 +1,1419 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+//
+//-----------------------------------------------------------------------------
+using System;
+using System.Collections.Generic;
+using Microsoft.Contracts;
+
+namespace Microsoft.Dafny {
+  public class Resolver {
+    public int ErrorCount = 0;
+    void Error(Token! tok, string! msg, params object[] args) {
+      ConsoleColor col = Console.ForegroundColor;
+      Console.ForegroundColor = ConsoleColor.Red;
+      Console.WriteLine("{0}({1},{2}): Error: {3}",
+          tok.filename, tok.line, tok.col-1,
+          string.Format(msg, args));
+      Console.ForegroundColor = col;
+      ErrorCount++;
+    }
+    void Error(Declaration! d, string! msg, params object[] args) {
+      Error(d.tok, msg, args);
+    }
+    void Error(Statement! s, string! msg, params object[] args) {
+      Error(s.Tok, msg, args);
+    }
+    void Error(NonglobalVariable! v, string! msg, params object[] args) {
+      Error(v.tok, msg, args);
+    }
+    void Error(Expression! e, string! msg, params object[] args) {
+      Error(e.tok, msg, args);
+    }
+    
+    readonly Dictionary<string!,ClassDecl!>! classes = new Dictionary<string!,ClassDecl!>();
+    readonly Dictionary<ClassDecl!,Dictionary<string!,MemberDecl!>!>! classMembers = new Dictionary<ClassDecl!,Dictionary<string!,MemberDecl!>!>();
+
+    public void ResolveProgram(Program! prog) {
+      foreach (ClassDecl cl in prog.Classes) {
+        // register the class name
+        if (classes.ContainsKey(cl.Name)) {
+          Error(cl, "Duplicate class name: {0}", cl.Name);
+        } else {
+          classes.Add(cl.Name, cl);
+        }
+        
+        // register the names of the class members
+        Dictionary<string!,MemberDecl!> members = new Dictionary<string!,MemberDecl!>();
+        classMembers.Add(cl, members);
+        
+        foreach (MemberDecl m in cl.Members) {
+          if (members.ContainsKey(m.Name)) {
+            Error(m, "Duplicate member name: {0}", m.Name);
+          } else {
+            members.Add(m.Name, m);
+          }
+        }
+      }
+
+      // resolve each class
+      foreach (ClassDecl cl in prog.Classes) {
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(cl.TypeArgs, true, cl);
+        ResolveClassMemberTypes(cl);
+        allTypeParameters.PopMarker();
+      }
+      foreach (ClassDecl cl in prog.Classes) {
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(cl.TypeArgs, false, cl);
+        ResolveClassMemberBodies(cl);
+        allTypeParameters.PopMarker();
+      }
+    }
+    
+    ClassDecl currentClass;
+    readonly Scope<TypeParameter>! allTypeParameters = new Scope<TypeParameter>();
+    readonly Scope<IVariable>! scope = new Scope<IVariable>();
+    readonly Scope<Statement>! labeledStatements = new Scope<Statement>();
+    
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveClassMemberTypes(ClassDecl! cl)
+      requires currentClass == null;
+      ensures currentClass == null;
+    {
+      currentClass = cl;
+      foreach (MemberDecl member in cl.Members) {
+        member.EnclosingClass = cl;
+        if (member is Field) {
+          ResolveType(((Field)member).Type);
+          
+        } else if (member is Function) {
+          Function f = (Function)member;
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(f.TypeArgs, true, f);
+          ResolveFunctionSignature(f);
+          allTypeParameters.PopMarker();
+
+        } else if (member is Method) {
+          Method m = (Method)member;
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(m.TypeArgs, true, m);
+          ResolveMethodSignature(m);
+          allTypeParameters.PopMarker();
+
+        } else {
+          assert false;  // unexpected member type
+        }
+      }
+      currentClass = null;
+    }
+
+    /// <summary>
+    /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
+    /// </summary>
+    void ResolveClassMemberBodies(ClassDecl! cl)
+      requires currentClass == null;
+      ensures currentClass == null;
+    {
+      ResolveAttributes(cl.Attributes, false);
+      currentClass = cl;
+      foreach (MemberDecl member in cl.Members) {
+        ResolveAttributes(member.Attributes, false);
+        if (member is Field) {
+          // nothing more to do
+          
+        } else if (member is Function) {
+          Function f = (Function)member;
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(f.TypeArgs, false, f);
+          ResolveFunction(f);
+          allTypeParameters.PopMarker();
+
+        } else if (member is Method) {
+          Method m = (Method)member;
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(m.TypeArgs, false, m);
+          ResolveMethod(m);
+          allTypeParameters.PopMarker();
+
+        } else {
+          assert false;  // unexpected member type
+        }
+      }
+      currentClass = null;
+    }
+
+    void ResolveAttributes(Attributes attrs, bool twoState) {
+      // order does not matter for resolution, so resolve them in reverse order
+      for (; attrs != null; attrs = attrs.Prev) {
+        foreach (Attributes.Argument aa in attrs.Args) {
+          if (aa.E != null) {
+            ResolveExpression(aa.E, twoState);
+          }
+        }
+      }
+    }
+        
+    void ResolveTriggers(Triggers trigs, bool twoState) {
+      // order does not matter for resolution, so resolve them in reverse order
+      for (; trigs != null; trigs = trigs.Prev) {
+        foreach (Expression e in trigs.Terms) {
+          ResolveExpression(e, twoState);
+        }
+      }
+    }
+        
+    void ResolveTypeParameters(List<TypeParameter!>! tparams, bool emitErrors, TypeParameter.ParentType! parent) {
+      // push non-duplicated type parameter names
+      foreach (TypeParameter tp in tparams) {
+        if (emitErrors) {
+          // we're seeing this TypeParameter for the first time
+          tp.Parent = parent;
+        }
+        if (!allTypeParameters.Push(tp.Name, tp) && emitErrors) {
+          Error(tp, "Duplicate type-parameter name: {0}", tp.Name);
+        }
+      }
+    }
+    
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveFunctionSignature(Function! f) {
+      scope.PushMarker();
+      foreach (Formal p in f.Formals) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Duplicate parameter name: {0}", p.Name);
+        }
+        ResolveType(p.Type);
+      }
+      ResolveType(f.ResultType);
+      scope.PopMarker();
+    }
+
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveFunction(Function! f) {
+      scope.PushMarker();
+      foreach (Formal p in f.Formals) {
+        scope.Push(p.Name, p);
+      }
+      foreach (Expression r in f.Req) {
+        ResolveExpression(r, false);
+        assert r.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(r.Type, Type.Bool)) {
+          Error(r, "Precondition must be a boolean (got {0})", r.Type);
+        }
+      }
+      foreach (Expression r in f.Reads) {
+        ResolveExpression(r, false);
+        Type t = r.Type;
+        assert t != null;  // follows from postcondition of ResolveExpression
+        if (t is CollectionType) {
+          t = ((CollectionType)t).Arg;
+        }
+        if (t is ObjectType) {
+          // fine
+        } else if (ClassType.DenotesClass(t) != null) {
+          // fine
+        } else {
+          Error(r, "a reads-clause expression must denote an object or a collection of objects (instead got {0})", r.Type);
+        }
+      }
+      if (f.Body != null) {
+        ResolveExpression(f.Body, false);
+        assert f.Body.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(f.Body.Type, f.ResultType)) {
+          Error(f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
+        }
+      }
+      scope.PopMarker();
+    }
+    
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveMethodSignature(Method! m) {
+      scope.PushMarker();
+      // resolve in-parameters
+      foreach (Formal p in m.Ins) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Duplicate parameter name: {0}", p.Name);
+        }
+        ResolveType(p.Type);
+      }
+      // resolve out-parameters
+      foreach (Formal p in m.Outs) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Duplicate parameter name: {0}", p.Name);
+        }
+        ResolveType(p.Type);
+      }
+      scope.PopMarker();
+    }
+    
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveMethod(Method! m) {
+      // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
+      scope.PushMarker();
+      foreach (Formal p in m.Ins) {
+        scope.Push(p.Name, p);
+      }
+      
+      // Start resolving specification...
+      foreach (MaybeFreeExpression e in m.Req) {
+        ResolveExpression(e.E, false);
+        assert e.E.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+      foreach (Expression e in m.Mod) {
+        ResolveExpression(e, false);
+        Type t = e.Type;
+        assert t != null;  // follows from postcondition of ResolveExpression
+        if (t is CollectionType) {
+          t = ((CollectionType)t).Arg;
+        }
+        if (t is ObjectType) {
+          // fine
+        } else if (ClassType.DenotesClass(t) != null) {
+          // fine
+        } else {
+          Error(e, "a modifies-clause expression must denote an object or a collection of objects (instead got {0})", e.Type);
+        }
+      }
+      
+      // Add out-parameters to the scope, but don't care about any duplication errors, since they have already been reported
+      foreach (Formal p in m.Outs) {
+        scope.Push(p.Name, p);
+      }
+
+      // ... continue resolving specification
+      foreach (MaybeFreeExpression e in m.Ens) {
+        ResolveExpression(e.E, true);
+        assert e.E.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+      
+      // Resolve body
+      if (m.Body != null) {
+        ResolveStatement(m.Body);
+      }
+      
+      scope.PopMarker();
+    }
+    
+    public void ResolveType(Type! type) {
+      if (type is BasicType) {
+        // nothing to resolve
+      } else if (type is CollectionType) {
+        ResolveType(((CollectionType)type).Arg);
+      } else if (type is ClassType) {
+        ClassType t = (ClassType)type;
+        foreach (Type tt in t.TypeArgs) {
+          ResolveType(tt);
+        }
+        TypeParameter tp = allTypeParameters.Find(t.Name);
+        if (tp != null) {
+          if (t.TypeArgs.Count == 0) {
+            t.ResolvedParam = tp;
+          } else {
+            Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
+          }
+        } else {
+          ClassDecl cl;
+          if (!classes.TryGetValue(t.Name, out cl)) {
+            Error(t.tok, "Undeclared class type or type parameter: {0}", t.Name);
+          } else if (((!)cl).TypeArgs.Count == t.TypeArgs.Count) {
+            t.ResolvedClass = cl;
+          } else {
+            Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class: {2}", t.TypeArgs.Count, cl.TypeArgs.Count, t.Name);
+          }
+        }
+      
+      } else if (type is TypeProxy) {
+        TypeProxy t = (TypeProxy)type;
+        if (t.T != null) {
+          ResolveType(t.T);
+        }
+        
+      } else {
+        assert false;  // unexpected type
+      }
+    }
+    
+    public bool UnifyTypes(Type! a, Type! b) {
+      while (a is TypeProxy) {
+        TypeProxy proxy = (TypeProxy)a;
+        if (proxy.T == null) {
+          // merge a and b; to avoid cycles, first get to the bottom of b
+          while (b is TypeProxy && ((TypeProxy)b).T != null) {
+            b = ((TypeProxy)b).T;
+          }
+          return AssignProxy(proxy, b);
+        } else {
+          a = proxy.T;
+        }
+      }
+      
+      while (b is TypeProxy) {
+        TypeProxy proxy = (TypeProxy)b;
+        if (proxy.T == null) {
+          // merge a and b (we have already got to the bottom of a)
+          return AssignProxy(proxy, a);
+        } else {
+          b = proxy.T;
+        }
+      }
+      
+#if !NO_CHEAP_OBJECT_WORKAROUND
+      if (a is ObjectType || b is ObjectType) {  // TODO: remove this temporary hack
+        // allow anything with object; this is BOGUS
+        return true;
+      }
+#endif
+      // Now, a and b are non-proxies and stand for the same things as the original a and b, respectively.
+      
+      if (a is BoolType) {
+        return b is BoolType;
+      } else if (a is IntType) {
+        return b is IntType;
+      } else if (a is ObjectType) {
+        return b is ObjectType;
+      } else if (a is SetType) {
+        return b is SetType && UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
+      } else if (a is SeqType) {
+        return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
+      } else if (a is ClassType) {
+        if (!(b is ClassType)) {
+          return false;
+        }
+        ClassType aa = (ClassType)a;
+        ClassType bb = (ClassType)b;
+        if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
+          // these are both resolved class types
+          assert aa.TypeArgs.Count == bb.TypeArgs.Count;
+          bool successSoFar = true;
+          for (int i = 0; i < aa.TypeArgs.Count; i++) {
+            if (!UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i])) {
+              successSoFar = false;
+            }
+          }
+          return successSoFar;
+        } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
+          // these are both resolved type parameters
+          assert aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0;
+          return true;
+        } else {
+          // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
+          return false;
+        }
+        
+      } else {
+        assert false;  // unexpected type
+      }
+    }
+    
+    bool AssignProxy(TypeProxy! proxy, Type! t)
+      requires proxy.T == null;
+      requires t is TypeProxy ==> ((TypeProxy)t).T == null;
+      modifies proxy.T, ((TypeProxy)t).T;  // might also change t.T if t is a proxy
+      ensures result ==> proxy == t || proxy.T != null || (t is TypeProxy && ((TypeProxy)t).T != null);
+    {
+      if (proxy == t) {
+        // they are already in the same equivalence class
+        return true;
+      
+      } else if (proxy is UnrestrictedTypeProxy) {
+        // it's fine to redirect proxy to t (done below)
+        
+      } else if (t is UnrestrictedTypeProxy) {
+          // merge proxy and t by redirecting t to proxy, rather than the other way around
+          ((TypeProxy)t).T = proxy;
+          return true;
+      
+      } else if (t is RestrictedTypeProxy) {
+        // Both proxy and t are restricted type proxies.  To simplify unification, order proxy and t
+        // according to their types.
+        RestrictedTypeProxy r0 = (RestrictedTypeProxy)proxy;
+        RestrictedTypeProxy r1 = (RestrictedTypeProxy)t;
+        if (r0.OrderID <= r1.OrderID) {
+          return AssignRestrictedProxies(r0, r1);
+        } else {
+          return AssignRestrictedProxies(r1, r0);
+        }
+      
+      // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
+      } else if (proxy is ObjectTypeProxy) {
+        if (t is ObjectType || ClassType.DenotesClass(t) != null) {
+          // all is fine, proxy can be redirected to t
+        } else {
+          return false;
+        }
+      
+      } else if (proxy is ObjectsTypeProxy) {
+        if (t is ObjectType || ClassType.DenotesClass(t) != null) {
+          // all is good
+        } else if (t is CollectionType) {
+          proxy.T = new CollectionTypeProxy(new ObjectTypeProxy());
+          return UnifyTypes(proxy.T, t);
+        }
+        
+      } else if (proxy is CollectionTypeProxy) {
+        CollectionTypeProxy collProxy = (CollectionTypeProxy)proxy;
+        if (t is CollectionType) {
+          if (!UnifyTypes(collProxy.Arg, ((CollectionType)t).Arg)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+        
+      } else if (proxy is OperationTypeProxy) {
+        OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
+        if (t is IntType || t is SetType || (opProxy.AllowSeq && t is SeqType)) {
+          // this is the expected case
+        } else {
+          return false;
+        }
+        
+      } else {
+        assert false;  // unexpected proxy type
+      }
+      
+      // do the merge
+      proxy.T = t;
+      return true;
+    }
+    
+    bool AssignRestrictedProxies(RestrictedTypeProxy! a, RestrictedTypeProxy! b)
+      requires a != b;
+      requires a.T == null && b.T == null;
+      requires a.OrderID <= b.OrderID;
+      modifies a.T, b.T;
+      ensures result ==> a.T != null || b.T != null;
+    {
+      if (a is ObjectTypeProxy) {
+        if (b is ObjectTypeProxy) {
+          // all is fine
+          a.T = b;
+          return true;
+        } else if (b is ObjectsTypeProxy) {
+          // unify a and b by redirecting b to a, since a gives the stronger requirement
+          b.T = a;
+          return true;
+        } else {
+          return false;
+        }
+        
+      } else if (a is ObjectsTypeProxy) {
+        if (b is ObjectsTypeProxy) {
+          // fine
+          a.T = b;
+          return true;
+        } else if (b is CollectionTypeProxy) {
+          // fine provided b's collection-element-type can be unified with object or a class type
+          a.T = new ObjectTypeProxy();
+          return UnifyTypes(a.T, ((CollectionTypeProxy)b).Arg);
+        } else if (b is OperationTypeProxy) {
+          // fine; restrict a to sets of object/class, and restrict b to set/seq of object/class
+          if (((OperationTypeProxy)b).AllowSeq) {
+            a.T = new CollectionTypeProxy(new ObjectTypeProxy());
+            b.T = a.T;
+          } else {
+            a.T = new SetType(new ObjectTypeProxy());
+            b.T = a.T;
+          }
+          return true;
+        } else {
+          assert false;  // unexpected restricted-proxy type
+        }
+          
+      } else if (a is CollectionTypeProxy) {
+        if (b is CollectionTypeProxy) {
+          a.T = b;
+          return UnifyTypes(((CollectionTypeProxy)a).Arg, ((CollectionTypeProxy)b).Arg);
+        } else if (b is OperationTypeProxy) {
+          if (((OperationTypeProxy)b).AllowSeq) {
+            b.T = a;  // a is a stronger constraint than b
+          } else {
+            // a says set<T>,seq<T> and b says int,set; the intersection is set<T>
+            a.T = new SetType(((CollectionTypeProxy)a).Arg);
+            b.T = a.T;
+          }
+          return true;
+        } else {
+          assert false;  // unexpected restricted-proxy type
+        }
+        
+      } else if (a is OperationTypeProxy) {
+        assert b is OperationTypeProxy;  // else we we have unexpected restricted-proxy type
+        if (((OperationTypeProxy)a).AllowSeq ==> ((OperationTypeProxy)b).AllowSeq) {
+          b.T = a;
+        } else {
+          a.T = b;  // b has the stronger requirement
+        }
+        return true;
+        
+      } else {
+        assert false;  // unexpected restricted-proxy type
+      }
+    }
+    
+    public void ResolveStatement(Statement! stmt)
+      requires !(stmt is LabelStmt);  // these should be handled inside lists of statements
+    {
+      if (stmt is UseStmt) {
+        UseStmt s = (UseStmt)stmt;
+        ResolveExpression(s.Expr, true);
+        assert s.Expr.Type != null;  // follows from postcondition of ResolveExpression
+        Expression expr = s.Expr;
+        while (true) {
+          if (expr is OldExpr) {
+            expr = ((OldExpr)expr).E;
+          } else {
+            break;
+          }
+        }
+        FunctionCallExpr fce = expr as FunctionCallExpr;
+        if (fce == null || fce.Function == null || !fce.Function.Use) {
+          Error(s.Expr, "use statement must indicate a function declared as use");
+        }
+      } else if (stmt is PredicateStmt) {
+        PredicateStmt s = (PredicateStmt)stmt;
+        ResolveExpression(s.Expr, true);
+        assert s.Expr.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
+          Error(s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
+        }
+        
+      } else if (stmt is BreakStmt) {
+        BreakStmt s = (BreakStmt)stmt;
+        if (s.TargetLabel != null) {
+          Statement target = labeledStatements.Find(s.TargetLabel);
+          if (target == null) {
+            Error(s, "break label is undefined or not in scope: {0}", s.TargetLabel);
+          } else {
+            s.TargetStmt = target;
+          }
+        }
+      
+      } else if (stmt is ReturnStmt) {
+        // nothing to resolve
+        
+      } else if (stmt is AssignStmt) {
+        AssignStmt s = (AssignStmt)stmt;
+        ResolveExpression(s.Lhs, true);
+        assert s.Lhs.Type != null;  // follows from postcondition of ResolveExpression
+        // check that LHS denotes a mutable variable or a field
+        if (s.Lhs is IdentifierExpr) {
+          IVariable var = ((IdentifierExpr)s.Lhs).Var;
+          if (var == null) {
+            // the LHS didn't resolve correctly; some error would already have been reported
+          } else if (!var.IsMutable) {
+            Error(stmt, "LHS of assignment must denote a mutable variable or field");
+          }
+        } else if (s.Lhs is FieldSelectExpr) {
+          // LHS is fine, but restrict the RHS to ExprRhs
+          if (!(s.Rhs is ExprRhs)) {
+            Error(stmt, "Assignment to field must have an expression RHS; try using a temporary local variable");
+          }
+        } else {
+          Error(stmt, "LHS of assignment must denote a mutable variable or field");
+        }
+        
+        if (s.Rhs is ExprRhs) {
+          ExprRhs rr = (ExprRhs)s.Rhs;
+          ResolveExpression(rr.Expr, true);
+          assert rr.Expr.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(s.Lhs.Type, rr.Expr.Type)) {
+            Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, s.Lhs.Type);
+          }
+        } else if (s.Rhs is TypeRhs) {
+          TypeRhs rr = (TypeRhs)s.Rhs;
+          ResolveType(rr.Type);
+          if (!UnifyTypes(s.Lhs.Type, rr.Type)) {
+            Error(stmt, "type {0} is not assignable to LHS (of type {1})", rr.Type, s.Lhs.Type);
+          }
+        } else if (s.Rhs is HavocRhs) {
+          // nothing else to do
+        } else {
+          assert false;  // unexpected RHS
+        }
+        
+      } else if (stmt is VarDecl) {
+        VarDecl s = (VarDecl)stmt;
+        if (s.OptionalType != null) {
+          ResolveType(s.OptionalType);
+          s.type = s.OptionalType;
+        }
+        if (s.Rhs != null) {
+          Type! rhsType;
+          if (s.Rhs is ExprRhs) {
+            ExprRhs rr = (ExprRhs)s.Rhs;
+            ResolveExpression(rr.Expr, true);
+            assert rr.Expr.Type != null;  // follows from postcondition of ResolveExpression
+            rhsType = rr.Expr.Type;
+          } else if (s.Rhs is TypeRhs) {
+            TypeRhs rr = (TypeRhs)s.Rhs;
+            ResolveType(rr.Type);
+            rhsType = rr.Type;
+          } else {
+            assert false;  // unexpected RHS
+          }
+          if (s.OptionalType == null) {
+            s.type = rhsType;
+          } else if (!UnifyTypes(s.OptionalType, rhsType)) {
+            Error(stmt, "initialization RHS (of type {0}) not assignable to variable (of type {1})", rhsType, s.OptionalType);
+          }
+        }
+        // now that the declaration has been processed, add the name to the scope
+        if (!scope.Push(s.Name, s)) {
+          Error(s, "Duplicate local-variable name: {0}", s.Name);
+        }
+      
+      } else if (stmt is CallStmt) {
+        CallStmt s = (CallStmt)stmt;
+        
+        // resolve left-hand side
+        Dictionary<string!,object> lhsNameSet = new Dictionary<string!,object>();
+        foreach (IdentifierExpr lhs in s.Lhs) {
+          ResolveExpression(lhs, true);
+          if (lhsNameSet.ContainsKey(lhs.Name)) {
+            Error(s, "Duplicate variable in left-hand side of call statement: {0}", lhs.Name);
+          } else {
+            lhsNameSet.Add(lhs.Name, null);
+          }
+        }
+        // resolve receiver
+        ResolveExpression(s.Receiver, true);
+        assert s.Receiver.Type != null;  // follows from postcondition of ResolveExpression
+        // resolve arguments
+        foreach (Expression e in s.Args) {
+          ResolveExpression(e, true);
+        }
+        
+        // resolve the method name
+        ClassType ctype;
+        MemberDecl member = ResolveMember(s.Tok, s.Receiver.Type, s.MethodName, out ctype);
+        if (member == null) {
+          // error has already been reported by ResolveMember
+        } else if (!(member is Method)) {
+          Error(s, "member {0} in class {1} does not refer to a method", s.MethodName, ((!)ctype).Name);
+        } else {
+          Method method = (Method)member;
+          s.Method = method;
+          if (method.Ins.Count != s.Args.Count) {
+            Error(s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, method.Ins.Count);
+          } else if (method.Outs.Count != s.Lhs.Count) {
+            Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, method.Outs.Count);
+          } else {
+            assert ctype != null;  // follows from postcondition of ResolveMember
+            // build the type substitution map
+            Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
+            for (int i = 0; i < ctype.TypeArgs.Count; i++) {
+              subst.Add(((!)ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
+            }
+            foreach (TypeParameter p in method.TypeArgs) {
+              subst.Add(p, new ParamTypeProxy(p));
+            }
+            // type check the arguments
+            for (int i = 0; i < method.Ins.Count; i++) {
+              UnifyTypes((!)s.Args[i].Type, SubstType(method.Ins[i].Type, subst));
+            }
+            for (int i = 0; i < method.Outs.Count; i++) {
+              UnifyTypes((!)s.Lhs[i].Type, SubstType(method.Outs[i].Type, subst));
+            }
+          }
+        }
+        
+      } else if (stmt is BlockStmt) {
+        scope.PushMarker();
+        int labelsToPop = 0;
+        foreach (Statement ss in ((BlockStmt)stmt).Body) {
+          if (ss is LabelStmt) {
+            LabelStmt ls = (LabelStmt)ss;
+            labeledStatements.PushMarker();
+            bool b = labeledStatements.Push(ls.Label, ls);
+            assert b;  // since we just pushed a marker, we expect the Push to succeed
+            labelsToPop++;
+          } else {
+            ResolveStatement(ss);
+            for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
+          }
+        }
+        for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
+        scope.PopMarker();
+      
+      } else if (stmt is IfStmt) {
+        IfStmt s = (IfStmt)stmt;
+        if (s.Guard != null) {
+          ResolveExpression(s.Guard, true);
+          assert s.Guard.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
+            Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
+          }
+        }
+        ResolveStatement(s.Thn);
+        if (s.Els != null) {
+          ResolveStatement(s.Els);
+        }
+      
+      } else if (stmt is WhileStmt) {
+        WhileStmt s = (WhileStmt)stmt;
+        if (s.Guard != null) {
+          ResolveExpression(s.Guard, true);
+          assert s.Guard.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
+            Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
+          }
+        }
+        foreach (MaybeFreeExpression inv in s.Invariants) {
+          ResolveExpression(inv.E, true);
+          assert inv.E.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(inv.E.Type, Type.Bool)) {
+            Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
+          }
+        }
+        foreach (Expression e in s.Decreases) {
+          ResolveExpression(e, true);
+          // any type is fine
+        }
+        ResolveStatement(s.Body);
+      
+      } else if (stmt is ForeachStmt) {
+        ForeachStmt s = (ForeachStmt)stmt;
+        scope.PushMarker();
+        bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
+        assert b;  // since we just pushed a marker, we expect the Push to succeed
+        ResolveType(s.BoundVar.Type);
+        
+        ResolveExpression(s.Collection, true);
+        assert s.Collection.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(s.Collection.Type, new CollectionTypeProxy(s.BoundVar.Type))) {
+          Error(s.Collection, "The type is expected to be a collection of {0} (instead got {1})", s.BoundVar.Type, s.Collection.Type);
+        }
+        
+        ResolveExpression(s.Range, true);
+        assert s.Range.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(s.Range.Type, Type.Bool)) {
+          Error(s.Range, "range condition is expected to be of type {0}, but is {1}", Type.Bool, s.Range.Type);
+        }
+        
+        foreach (PredicateStmt ss in s.BodyPrefix) {
+          ResolveStatement(ss);
+        }
+        if (s.BodyAssign != null) {
+          ResolveStatement(s.BodyAssign);
+          // check for correct usage of BoundVar in LHS and RHS of this assignment
+          FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
+          IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
+          if (obj != null && obj.Var == s.BoundVar) {
+            // exemplary!
+          } else {
+            Error(s, "assignment inside foreach must assign to a field of the bound variable of the foreach statement");
+          }
+        }
+        scope.PopMarker();
+      
+      } else {
+        assert false;
+      }
+    }
+
+    MemberDecl ResolveMember(Token! tok, Type! receiverType, string! memberName, out ClassType ctype)
+      ensures result != null ==> ctype != null && ctype.ResolvedClass != null;
+    {
+      ctype = ClassType.DenotesClass(receiverType);
+      if (ctype == null) {
+        Error(tok, "receiver (of type {0}) must be of a class type", receiverType);
+      } else {
+        assert ctype.ResolvedClass != null;  // follows from postcondition of DenotesClass
+        assert ctype.TypeArgs.Count == ctype.ResolvedClass.TypeArgs.Count;  // follows from the fact that ctype was resolved
+        MemberDecl member;
+        if (!classMembers[ctype.ResolvedClass].TryGetValue(memberName, out member)) {
+          Error(tok, "member {0} does not exist in class {1}", memberName, ctype.Name);
+        } else {
+          return (!)member;
+        }
+      }
+      ctype = null;
+      return null;
+    }
+
+    Type! SubstType(Type! type, Dictionary<TypeParameter!,Type!>! subst) {
+      if (type is BasicType) {
+        return type;
+      } else if (type is CollectionType) {
+        CollectionType t = (CollectionType)type;
+        Type arg = SubstType(t.Arg, subst);
+        if (arg == t.Arg) {
+          return type;
+        } else if (type is SetType) {
+          return new SetType(arg);
+        } else if (type is SeqType) {
+          return new SeqType(arg);
+        } else {
+          assert false;  // unexpected collection type
+        }
+      } else if (type is ClassType) {
+        ClassType t = (ClassType)type;
+        if (t.ResolvedParam != null) {
+          assert t.TypeArgs.Count == 0;
+          Type s;
+          if (subst.TryGetValue(t.ResolvedParam, out s)) {
+            return (!)s;
+          } else {
+            return type;
+          }
+        } else if (t.ResolvedClass != null) {
+          List<Type!> newArgs = null;  // allocate it lazily
+          for (int i = 0; i < t.TypeArgs.Count; i++) {
+            Type p = t.TypeArgs[i];
+            Type s = SubstType(p, subst);
+            if (s != p && newArgs == null) {
+              // lazily construct newArgs
+              newArgs = new List<Type!>();
+              for (int j = 0; j < i; j++) {
+                newArgs.Add(t.TypeArgs[j]);
+              }
+            }
+            if (newArgs != null) {
+              newArgs.Add(s);
+            }
+          }
+          if (newArgs == null) {
+            // there were no substitutions
+            return type;
+          } else {
+            return new ClassType(t.tok, t.Name, t.ResolvedClass, newArgs);
+          }
+        } else {
+          // there's neither a resolved param nor a resolved class, which means the ClassType wasn't
+          // properly resolved; just return it
+          return type;
+        }
+      } else if (type is TypeProxy) {
+        TypeProxy t = (TypeProxy)type;
+        if (t.T == null) {
+          return type;
+        } else {
+          // bypass the proxy
+          return SubstType(t.T, subst);
+        }
+      } else {
+        assert false;  // unexpected type
+      }
+    }
+
+    public static ClassType! GetThisType(Token! tok, ClassDecl! cl) {
+      List<Type!> args = new List<Type!>();
+      foreach (TypeParameter tp in cl.TypeArgs) {
+        args.Add(new ClassType(tok, tp.Name, tp));
+      }
+      return new ClassType(tok, cl.Name, cl, args);
+    }
+    
+    /// <summary>
+    /// "twoState" implies that "old" and "fresh" expressions are allowed
+    /// </summary>
+    void ResolveExpression(Expression! expr, bool twoState)
+      requires currentClass != null;
+      ensures expr.Type != null;
+    {
+      if (expr.Type != null) {
+        // expression has already been resovled
+        return;
+      }
+      
+      // The following cases will resolve the subexpressions and will attempt to assign a type of expr.  However, if errors occur
+      // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
+      // of this method will assign proxy type to the expression, which reduces the number of error messages that are produced
+      // while type checking the rest of the program.
+      
+      if (expr is LiteralExpr) {
+        LiteralExpr e = (LiteralExpr)expr;
+        if (e.Value == null) {
+          e.Type = new ObjectTypeProxy();
+        } else if (e.Value is int) {
+          e.Type = Type.Int;
+        } else if (e.Value is bool) {
+          e.Type = Type.Bool;
+        } else {
+          assert false;  // unexpected literal type
+        }
+        
+      } else if (expr is ThisExpr) {
+        expr.Type = GetThisType(expr.tok, currentClass);
+        
+      } else if (expr is IdentifierExpr) {
+        IdentifierExpr e = (IdentifierExpr)expr;
+        e.Var = scope.Find(e.Name);
+        if (e.Var == null) {
+          Error(expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
+        } else {
+          expr.Type = e.Var.Type;
+        }
+        
+      } else if (expr is DisplayExpression) {
+        DisplayExpression e = (DisplayExpression)expr;
+        Type elementType = new InferredTypeProxy();
+        foreach (Expression ee in e.Elements) {
+          ResolveExpression(ee, twoState);
+          assert ee.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(elementType, ee.Type)) {
+            Error(ee, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", ee.Type, elementType); 
+          }
+        }
+        if (expr is SetDisplayExpr) {
+          expr.Type = new SetType(elementType);
+        } else {
+          expr.Type = new SeqType(elementType);
+        }
+        
+      } else if (expr is FieldSelectExpr) {
+        FieldSelectExpr e = (FieldSelectExpr)expr;
+        ResolveExpression(e.Obj, twoState);
+        assert e.Obj.Type != null;  // follows from postcondition of ResolveExpression
+        ClassType ctype;
+        MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.FieldName, out ctype);
+        if (member == null) {
+          // error has already been reported by ResolveMember
+        } else if (!(member is Field)) {
+          Error(expr, "member {0} in class {1} does not refer to a field", e.FieldName, ((!)ctype).Name);
+        } else {
+          assert ctype != null && ctype.ResolvedClass != null;  // follows from postcondition of ResolveMember
+          e.Field = (Field)member;
+          // build the type substitution map
+          Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
+          for (int i = 0; i < ctype.TypeArgs.Count; i++) {
+            subst.Add(ctype.ResolvedClass.TypeArgs[i], ctype.TypeArgs[i]);
+          }
+          e.Type = SubstType(e.Field.Type, subst);
+        }
+      
+      } else if (expr is SeqSelectExpr) {
+        SeqSelectExpr e = (SeqSelectExpr)expr;
+        bool seqErr = false;
+        ResolveExpression(e.Seq, twoState);
+        assert e.Seq.Type != null;  // follows from postcondition of ResolveExpression
+        Type elementType = new InferredTypeProxy();
+        if (!UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
+          Error(expr, "sequence selection requires a sequence (got {0})", e.Seq.Type);
+          seqErr = true;
+        }
+        if (e.E0 != null) {
+          ResolveExpression(e.E0, twoState);
+          assert e.E0.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.E0.Type, Type.Int)) {
+            Error(e.E0, "sequence selections requires integer indices (got {0})", e.E0.Type);
+          }
+        }
+        if (e.E1 != null) {
+          ResolveExpression(e.E1, twoState);
+          assert e.E1.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.E1.Type, Type.Int)) {
+            Error(e.E1, "sequence selections requires integer indices (got {0})", e.E1.Type);
+          }
+        }
+        if (!seqErr) {
+          if (e.SelectOne) {
+            expr.Type = elementType;
+          } else {
+            expr.Type = e.Seq.Type;
+          }
+        }
+        
+      } else if (expr is FunctionCallExpr) {
+        FunctionCallExpr e = (FunctionCallExpr)expr;
+        ResolveExpression(e.Receiver, twoState);
+        assert e.Receiver.Type != null;  // follows from postcondition of ResolveExpression
+        ClassType ctype;
+        MemberDecl member = ResolveMember(expr.tok, e.Receiver.Type, e.Name, out ctype);
+        if (member == null) {
+          // error has already been reported by ResolveMember
+        } else if (!(member is Function)) {
+          Error(expr, "member {0} in class {1} does not refer to a function", e.Name, ((!)ctype).Name);
+        } else {
+          Function function = (Function)member;
+          e.Function = function;
+          if (function.Formals.Count != e.Args.Count) {
+            Error(expr, "wrong number of function arguments (got {0}, expected {1})", e.Args.Count, function.Formals.Count);
+          } else {
+            assert ctype != null;  // follows from postcondition of ResolveMember
+            // build the type substitution map
+            Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
+            for (int i = 0; i < ctype.TypeArgs.Count; i++) {
+              subst.Add(((!)ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
+            }
+            foreach (TypeParameter p in function.TypeArgs) {
+              subst.Add(p, new ParamTypeProxy(p));
+            }
+            // type check the arguments
+            for (int i = 0; i < function.Formals.Count; i++) {
+              Expression farg = e.Args[i];
+              ResolveExpression(farg, twoState);
+              assert farg.Type != null;  // follows from postcondition of ResolveExpression
+              UnifyTypes(farg.Type, SubstType(function.Formals[i].Type, subst));
+            }
+            expr.Type = SubstType(function.ResultType, subst);
+          }
+        }
+        
+      } else if (expr is OldExpr) {
+        OldExpr e = (OldExpr)expr;
+        if (!twoState) {
+          Error(expr, "old expressions are not allowed in this context");
+        }
+        ResolveExpression(e.E, twoState);
+        expr.Type = e.E.Type;
+        
+      } else if (expr is FreshExpr) {
+        FreshExpr e = (FreshExpr)expr;
+        if (!twoState) {
+          Error(expr, "fresh expressions are not allowed in this context");
+        }
+        ResolveExpression(e.E, twoState);
+        // the type of e.E must be either an object or a collection of objects
+        Type t = e.E.Type;
+        assert t != null;  // follows from postcondition of ResolveExpression
+        if (t is CollectionType) {
+          t = ((CollectionType)t).Arg;
+        }
+        if (t is ObjectType) {
+          // fine
+        } else if (ClassType.DenotesClass(t) != null) {
+          // fine
+        } else {
+          Error(expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);
+        }
+        expr.Type = Type.Bool;
+        
+      } else if (expr is UnaryExpr) {
+        UnaryExpr e = (UnaryExpr)expr;
+        ResolveExpression(e.E, twoState);
+        assert e.E.Type != null;  // follows from postcondition of ResolveExpression
+        switch (e.Op) {
+          case UnaryExpr.Opcode.Not:
+            if (!UnifyTypes(e.E.Type, Type.Bool)) {
+              Error(expr, "logical negation expects a boolean argument (instead got {0})", e.E.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
+          case UnaryExpr.Opcode.SeqLength:
+            if (!UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
+              Error(expr, "sequence-length operator expects a sequence argument (instead got {0})", e.E.Type);
+            }
+            expr.Type = Type.Int;
+            break;
+          default:
+            assert false;  // unexpected unary operator
+        }
+        
+      } else if (expr is BinaryExpr) {
+        BinaryExpr e = (BinaryExpr)expr;
+        ResolveExpression(e.E0, twoState);
+        assert e.E0.Type != null;  // follows from postcondition of ResolveExpression
+        ResolveExpression(e.E1, twoState);
+        assert e.E1.Type != null;  // follows from postcondition of ResolveExpression
+        switch (e.Op) {
+          case BinaryExpr.Opcode.Iff:
+          case BinaryExpr.Opcode.Imp:
+          case BinaryExpr.Opcode.And:
+          case BinaryExpr.Opcode.Or:
+            if (!UnifyTypes(e.E0.Type, Type.Bool)) {
+              Error(expr, "first argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            }
+            if (!UnifyTypes(e.E1.Type, Type.Bool)) {
+              Error(expr, "second argument to {0} must be of type bool (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
+          
+          case BinaryExpr.Opcode.Eq:
+          case BinaryExpr.Opcode.Neq:
+            if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
+              Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
+          
+          case BinaryExpr.Opcode.Disjoint:
+            if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy()))) {
+              Error(expr, "arguments must be of a set type (got {0})", e.E0.Type);
+            }
+            if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
+              Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
+          
+          case BinaryExpr.Opcode.Lt:
+          case BinaryExpr.Opcode.Le:
+          case BinaryExpr.Opcode.Add:
+            {
+              bool err = false;
+              if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
+                Error(expr, "arguments to {0} must be int or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                err = true;
+              }
+              if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
+                Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+                err = true;
+              }
+              if (e.Op != BinaryExpr.Opcode.Add) {
+                expr.Type = Type.Bool;
+              } else if (!err) {
+                expr.Type = e.E0.Type;
+              }
+            }
+            break;
+          
+          case BinaryExpr.Opcode.Sub:
+          case BinaryExpr.Opcode.Mul:
+          case BinaryExpr.Opcode.Gt:
+          case BinaryExpr.Opcode.Ge:
+            {
+              bool err = false;
+              if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
+                Error(expr, "arguments to {0} must be int or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                err = true;
+              }
+              if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
+                Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+                err = true;
+              }
+              if (e.Op == BinaryExpr.Opcode.Gt || e.Op == BinaryExpr.Opcode.Ge) {
+                expr.Type = Type.Bool;
+              } else if (!err) {
+                expr.Type = e.E0.Type;
+              }
+            }
+            break;
+
+          case BinaryExpr.Opcode.In:
+            if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type))) {
+              Error(expr, "second argument to {0} must be a set or sequence of type {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
+            
+          case BinaryExpr.Opcode.Div:
+          case BinaryExpr.Opcode.Mod:
+            if (!UnifyTypes(e.E0.Type, Type.Int)) {
+              Error(expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            }
+            if (!UnifyTypes(e.E1.Type, Type.Int)) {
+              Error(expr, "second argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E1.Type);
+            }
+            expr.Type = Type.Int;
+            break;
+          
+          default:
+            assert false;  // unexpected operator
+        }
+        e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
+        
+      } else if (expr is QuantifierExpr) {
+        QuantifierExpr e = (QuantifierExpr)expr;
+        scope.PushMarker();
+        foreach (BoundVar v in e.BoundVars) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate parameter name: {0}", v.Name);
+          }
+          ResolveType(v.Type);
+        }
+        ResolveExpression(e.Body, twoState);
+        assert e.Body.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Body.Type, Type.Bool)) {
+          Error(expr, "body of quantifier must be of type bool (instead got {0})", e.Body.Type);
+        }
+        // Since the body is more likely to infer the types of the bound variables, resolve it
+        // first (above) and only then resolve the attributes and triggers (below).
+        ResolveAttributes(e.Attributes, twoState);
+        ResolveTriggers(e.Trigs, twoState);
+        scope.PopMarker();
+        expr.Type = Type.Bool;
+        
+      } else if (expr is ITEExpr) {
+        ITEExpr e = (ITEExpr)expr;
+        assert !twoState;
+        ResolveExpression(e.Test, twoState);
+        assert e.Test.Type != null;  // follows from postcondition of ResolveExpression
+        ResolveExpression(e.Thn, twoState);
+        assert e.Thn.Type != null;  // follows from postcondition of ResolveExpression
+        ResolveExpression(e.Els, twoState);
+        assert e.Els.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Test.Type, Type.Bool)) {
+          Error(expr, "guard condition in if-then-else expression must be a boolean (instead got {0})", e.Test.Type);
+        }
+        if (!UnifyTypes(e.Thn.Type, Type.Bool)) {
+          Error(expr, "the then branch of an if-then-else expression must be a boolean (instead got {0})", e.Thn.Type);
+        }
+        if (!UnifyTypes(e.Els.Type, Type.Bool)) {
+          Error(expr, "the else branch of an if-then-else expression must be a boolean (instead got {0})", e.Els.Type);
+        }
+        expr.Type = Type.Bool;
+        
+      } else {
+        assert false;  // unexpected expression
+      }
+
+      if (expr.Type == null) {
+        // some resolution error occurred
+        expr.Type = Type.Flexible;
+      }
+    }
+    
+    /// <summary>
+    /// Note: this method is allowed to be called even if "type" does not make sense for "op", as might be the case if
+    /// resolution of the binary expression failed.  If so, an arbitrary resolved opcode is returned.
+    /// </summary>
+    BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type! operandType) {
+      switch (op) {
+        case BinaryExpr.Opcode.Iff:  return BinaryExpr.ResolvedOpcode.Iff;
+        case BinaryExpr.Opcode.Imp:  return BinaryExpr.ResolvedOpcode.Imp;
+        case BinaryExpr.Opcode.And:  return BinaryExpr.ResolvedOpcode.And;
+        case BinaryExpr.Opcode.Or:  return BinaryExpr.ResolvedOpcode.Or;
+        case BinaryExpr.Opcode.Eq:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.SetEq;
+          } else if (operandType is SeqType) {
+            return BinaryExpr.ResolvedOpcode.SeqEq;
+          } else {
+            return BinaryExpr.ResolvedOpcode.EqCommon;
+          }
+        case BinaryExpr.Opcode.Neq:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.SetNeq;
+          } else if (operandType is SeqType) {
+            return BinaryExpr.ResolvedOpcode.SeqNeq;
+          } else {
+            return BinaryExpr.ResolvedOpcode.NeqCommon;
+          }
+        case BinaryExpr.Opcode.Disjoint:  return BinaryExpr.ResolvedOpcode.Disjoint;
+        case BinaryExpr.Opcode.Lt:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.ProperSubset;
+          } else if (operandType is SeqType) {
+            return BinaryExpr.ResolvedOpcode.ProperPrefix;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Lt;
+          }
+        case BinaryExpr.Opcode.Le:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.Subset;
+          } else if (operandType is SeqType) {
+            return BinaryExpr.ResolvedOpcode.Prefix;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Le;
+          }
+        case BinaryExpr.Opcode.Add:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.Union;
+          } else if (operandType is SeqType) {
+            return BinaryExpr.ResolvedOpcode.Concat;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Add;
+          }
+        case BinaryExpr.Opcode.Sub:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.SetDifference;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Sub;
+          }
+        case BinaryExpr.Opcode.Mul:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.Intersection;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Mul;
+          }
+        case BinaryExpr.Opcode.Gt:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.ProperSuperset;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Gt;
+          }
+        case BinaryExpr.Opcode.Ge:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.Superset;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Ge;
+          }
+        case BinaryExpr.Opcode.In:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.InSet;
+          } else {
+            return BinaryExpr.ResolvedOpcode.InSeq;
+          }
+        case BinaryExpr.Opcode.Div:  return BinaryExpr.ResolvedOpcode.Div;
+        case BinaryExpr.Opcode.Mod:  return BinaryExpr.ResolvedOpcode.Mod;
+        default:
+          assert false;  // unexpected operator
+      }
+    }
+  }
+    
+  class Scope<Thing> where Thing : class {
+    [Rep] readonly List<string>! names = new List<string>();  // a null means a marker
+    [Rep] readonly List<Thing?>! things = new List<Thing?>();
+    invariant names.Count == things.Count;
+    
+    public void PushMarker() {
+      names.Add(null);
+      things.Add(null);
+    }
+    
+    public void PopMarker() {
+      int n = names.Count;
+      while (true) {
+        n--;
+        if (names[n] == null) {
+          break;
+        }
+      }
+      names.RemoveRange(n, names.Count - n);
+      things.RemoveRange(n, things.Count - n);
+    }
+    
+    // Pushes name-->var association and returns "true", if name has not already been pushed since the last marker.
+    // If name already has been pushed since the last marker, does nothing and returns "false".
+    public bool Push(string! name, Thing! thing) {
+      if (Find(name, true) != null) {
+        return false;
+      } else {
+        names.Add(name);
+        things.Add(thing);
+        return true;
+      }
+    }
+    
+    Thing? Find(string! name, bool topScopeOnly) {
+      for (int n = names.Count; 0 <= --n; ) {
+        if (names[n] == null) {
+          if (topScopeOnly) {
+            return null;  // no present
+          }
+        } else if (names[n] == name) {
+          Thing t = things[n];
+          assert t != null;
+          return t;
+        }
+      }
+      return null;  // not present
+    }
+    
+    public Thing? Find(string! name) {
+      return Find(name, false);
+    }
+  }
+}

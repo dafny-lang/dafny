@@ -1,0 +1,73 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+//
+//-----------------------------------------------------------------------------
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Microsoft.Contracts;
+using Bpl = Microsoft.Boogie;
+
+namespace Microsoft.Dafny {
+  public class Main {
+    /// <summary>
+    /// Returns null on success, or an error string otherwise.
+    /// </summary>
+    public static string ParseCheck(List<string!>! fileNames, string! programName, out Program program)
+      modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
+    {
+      program = null;
+      Dafny.Errors.count = 0;
+      List<ClassDecl!> classes = new List<ClassDecl!>();
+      foreach (string! dafnyFileName in fileNames){
+        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
+          Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFileName);
+        }
+        if (Bpl.CommandLineOptions.Clo.Trace) 
+        {
+          Console.WriteLine("Parsing " + dafnyFileName);
+        }
+
+        int errorCount;
+        try 
+        {
+          errorCount = Dafny.Parser.Parse(dafnyFileName, classes);
+          if (errorCount != 0) 
+          {
+            return string.Format("{0} parse errors detected in {1}", Dafny.Errors.count, dafnyFileName);
+          }
+        } 
+        catch (IOException e) 
+        {
+          return string.Format("Error opening file \"{0}\": {1}", dafnyFileName, e.Message);
+        }
+      }
+
+      program = new Program(programName, classes);
+
+      if (Bpl.CommandLineOptions.Clo.DafnyPrintFile != null) {
+        string filename = Bpl.CommandLineOptions.Clo.DafnyPrintFile;
+        if (filename == "-") {
+          Printer pr = new Printer(System.Console.Out);
+          pr.PrintProgram(program);
+        } else {
+          using (TextWriter writer = new System.IO.StreamWriter(filename)) {
+            Printer pr = new Printer(writer);
+            pr.PrintProgram(program);
+          }
+        }
+      }
+      
+      if (Bpl.CommandLineOptions.Clo.NoResolve) { return null; }
+
+      Dafny.Resolver r = new Dafny.Resolver();
+      r.ResolveProgram(program);
+      if (r.ErrorCount != 0) {
+        return string.Format("{0} resolution/type errors detected in {1}", r.ErrorCount, programName);
+      }
+
+      return null;  // success
+    }
+  }
+}

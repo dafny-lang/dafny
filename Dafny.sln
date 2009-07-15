@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{07C4E3D1-6B67-4060-8A92-940DB82041ED}") = "DafnyDriver", "DafnyDriver\DafnyDriver.sscproj", "{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}"
+EndProject
+Project("{07C4E3D1-6B67-4060-8A92-940DB82041ED}") = "Dafny", "Dafny\DafnyPipeline.sscproj", "{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|.NET = Debug|.NET
+		Release|.NET = Release|.NET
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Debug|.NET.ActiveCfg = Debug|.NET
+		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Debug|.NET.Build.0 = Debug|.NET
+		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Release|.NET.ActiveCfg = Release|.NET
+		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Release|.NET.Build.0 = Release|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|.NET.ActiveCfg = Debug|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|.NET.Build.0 = Debug|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|.NET.ActiveCfg = Release|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|.NET.Build.0 = Release|.NET
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

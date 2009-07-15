@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VisualStudioProject>
+  <XEN ProjectType="Local"
+     SchemaVersion="1.0"
+     Name="DafnyDriver"
+     ProjectGuid="1f1e6f68-e9df-4181-8cd3-e8c98637084d"
+    >
+    <Build>
+      <Settings ApplicationIcon=""
+         AssemblyName="Dafny"
+         OutputType="Exe"
+         RootNamespace="Dafny"
+         StartupObject=""
+         StandardLibraryLocation=""
+         TargetPlatform="v2"
+         TargetPlatformLocation=""
+        >
+        <Config Name="Debug"
+           AllowUnsafeBlocks="False"
+           BaseAddress="285212672"
+           CheckForOverflowUnderflow="False"
+           ConfigurationOverrideFile=""
+           DefineConstants="DEBUG;TRACE"
+           DocumentationFile=""
+           DebugSymbols="True"
+           FileAlignment="4096"
+           IncrementalBuild="True"
+           Optimize="False"
+           OutputPath="..\..\Binaries"
+           RegisterForComInterop="False"
+           RemoveIntegerChecks="false"
+           TreatWarningsAsErrors="False"
+           WarningLevel="4"
+           CheckContractAdmissibility="True"
+           CheckPurity="False"
+           />
+        <Config Name="Release"
+           AllowUnsafeBlocks="false"
+           BaseAddress="285212672"
+           CheckForOverflowUnderflow="false"
+           ConfigurationOverrideFile=""
+           DefineConstants="TRACE"
+           DocumentationFile=""
+           DebugSymbols="false"
+           FileAlignment="4096"
+           IncrementalBuild="false"
+           Optimize="true"
+           OutputPath="bin\release"
+           RegisterForComInterop="false"
+           RemoveIntegerChecks="false"
+           TreatWarningsAsErrors="false"
+           WarningLevel="4"
+           CheckContractAdmissibility="True"
+           CheckPurity="False"
+           />
+      </Settings>
+      <References>
+        <Reference Name="System"
+             AssemblyName="System"
+             Private="false"
+             />
+        <Reference Name="System.Data"
+             AssemblyName="System.Data"
+             Private="false"
+             />
+        <Reference Name="System.Xml"
+             AssemblyName="System.Xml"
+             Private="false"
+             />
+        <Reference Name="System.Compiler"
+             AssemblyName="System.Compiler"
+             Private="false"
+             HintPath="../../Binaries/System.Compiler.dll"
+             />
+        <Reference Name="Microsoft.SpecSharp"
+             AssemblyName="Microsoft.SpecSharp"
+             Private="false"
+             HintPath="../../Binaries/Microsoft.SpecSharp.dll"
+             />
+        <Reference Name="System.Compiler.Framework"
+             AssemblyName="System.Compiler.Framework"
+             Private="false"
+             HintPath="../../Binaries/System.Compiler.Framework.dll"
+             />
+        <Reference Name="AbsInt"
+             AssemblyName="AbsInt"
+             Private="false"
+             HintPath="../AbsInt/bin/Debug/AbsInt.dll"
+             />
+        <Reference Name="AIFramework"
+             AssemblyName="AIFramework"
+             Private="false"
+             HintPath="../AIFramework/bin/debug/AIFramework.dll"
+             />
+        <Reference Name="Core"
+             AssemblyName="Core"
+             Private="false"
+             HintPath="../Core/bin/Debug/Core.dll"
+             />
+        <Reference Name="VCGeneration"
+             AssemblyName="VCGeneration"
+             Private="false"
+             HintPath="../VCGeneration/bin/debug/VCGeneration.dll"
+             />
+        <Reference Name="Dafny"
+             Project="{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}"
+             Private="true"
+             />
+      </References>
+    </Build>
+    <Files>
+      <Include>
+        <File RelPath="DafnyDriver.ssc"
+                 SubType="Code"
+                 BuildAction="Compile"
+                 />
+        <File BuildAction="Compile"
+                 SubType="Code"
+                 RelPath="..\version.ssc"
+                 />
+      </Include>
+    </Files>
+  </XEN>
+</VisualStudioProject>
