@@ -1673,9 +1673,9 @@ namespace Microsoft.Dafny {
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(iVar), body);
           } else {
             // generate:  x == null || !old($Heap)[x]
-            Bpl.Expr oNotNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
+            Bpl.Expr oNull = Bpl.Expr.Eq(TrExpr(e.E), predef.Null);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, TrExpr(e.E), oldHeap));
-            return Bpl.Expr.Or(oNotNull, oIsFresh);
+            return Bpl.Expr.Or(oNull, oIsFresh);
           }
         
         } else if (expr is UnaryExpr) {
