@@ -176,10 +176,84 @@ type Field alpha;
 type HeapType = <alpha>[ref,Field alpha]alpha;
 
 function $IsGoodHeap(HeapType) returns (bool);
-var $Heap: HeapType where $IsGoodHeap($Heap);
+var $Heap: HeapType where $IsGoodHeap($Heap) && #cev_var_update(#cev_pc, cev_implicit, #loc.$Heap, $Heap);
+const unique #loc.$Heap: $token;
 
 const unique alloc: Field bool;
 
 function $HeapSucc(HeapType, HeapType) returns (bool);
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { k[o,alloc] } h[o,alloc] ==> k[o,alloc]));
+
+// ---------------------------------------------------------------
+
+type $token;
+function $file_name_is(id:int, tok:$token) returns(bool);
+
+
+type cf_event;
+type var_locglob;
+
+const unique conditional_moment : cf_event;
+const unique took_then_branch : cf_event;
+const unique took_else_branch : cf_event;
+
+const unique loop_register : cf_event;
+const unique loop_entered : cf_event;
+const unique loop_exited : cf_event;
+
+const unique cev_local : var_locglob;
+const unique cev_global : var_locglob;
+const unique cev_parameter : var_locglob;
+const unique cev_implicit : var_locglob;
+
+
+function #cev_init(n:int) returns(bool);
+
+function #cev_save_position(n:int) returns($token);
+
+function #cev_var_intro<T,U>(n:int, locorglob:var_locglob, name:$token, val:T, typ: U) returns(bool);
+
+function #cev_var_update<T>(n:int, locorglob:var_locglob, name:$token, val:T) returns(bool);
+
+function #cev_control_flow_event(n:int, tag : cf_event) returns(bool);
+
+function #cev_function_call(n:int) returns(bool);
+
+
+
+var #cev_pc: int;
+
+procedure CevVarIntro<T>(pos: $token, locorglob: var_locglob, name: $token, val: T);
+  modifies #cev_pc;
+  ensures #cev_var_intro(old(#cev_pc), locorglob, name, val, 0);
+  ensures #cev_save_position(old(#cev_pc)) == pos;
+  ensures #cev_pc == old(#cev_pc) + 1;
+
+procedure CevUpdateHere<T>(name: $token, val: T);
+  ensures #cev_var_update(#cev_pc, cev_global/*BOGUS*/, name, val);
+
+procedure CevStep(pos: $token);
+  modifies #cev_pc;
+  ensures #cev_save_position(old(#cev_pc)) == pos;
+  ensures #cev_pc == old(#cev_pc) + 1;
+
+// CevUpdate == CevUpdateHere + CevStep
+procedure CevUpdate<T>(pos: $token, name: $token, val: T);
+  modifies #cev_pc;
+  ensures #cev_var_update(old(#cev_pc), cev_global/*BOGUS*/, name, val);
+  ensures #cev_save_position(old(#cev_pc)) == pos;
+  ensures #cev_pc == old(#cev_pc) + 1;
+
+procedure CevEvent(pos: $token, tag: cf_event);
+  modifies #cev_pc;
+  ensures #cev_control_flow_event(old(#cev_pc), tag);
+  ensures #cev_save_position(old(#cev_pc)) == pos;
+  ensures #cev_pc == old(#cev_pc) + 1;
+
+procedure CevPreLoop(pos: $token) returns (oldPC: int);
+  ensures #cev_control_flow_event(#cev_pc, loop_register);
+  ensures #cev_save_position(#cev_pc) == pos;
+  ensures oldPC == #cev_pc;
+
+// ---------------------------------------------------------------
