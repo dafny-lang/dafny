@@ -446,6 +446,7 @@ namespace Microsoft.Dafny {
       Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
 
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      builder.Add(Bpl.Cmd.SimpleAssign(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(1))));
       foreach (Bpl.Variable p in proc.InParams) {
         assert p != null;
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
@@ -453,7 +454,7 @@ namespace Microsoft.Dafny {
             CevLocation((Dafny.Token)p.tok),
             new Bpl.IdentifierExpr(p.tok, "cev_parameter", predef.CevVariableKind),
             CevVariable(p.tok, p.Name),
-            new Bpl.IdentifierExpr(p.tok, p)),
+            new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
           new Bpl.IdentifierExprSeq()));
       }
       foreach (Bpl.Variable p in proc.OutParams) {
@@ -461,9 +462,9 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
           new Bpl.ExprSeq(
             CevLocation((Dafny.Token)p.tok),
-            new Bpl.IdentifierExpr(p.tok, "cev_parameter", predef.CevVariableKind),
+            new Bpl.IdentifierExpr(p.tok, "cev_local", predef.CevVariableKind),  // treat out-parameters as locals
             CevVariable(p.tok, p.Name),
-            new Bpl.IdentifierExpr(p.tok, p)),
+            new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
           new Bpl.IdentifierExprSeq()));
       }
 
@@ -1040,6 +1041,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Literal(0)), null, null));
         // free requires #cev_save_position(0) == #tok.Tok;
         req.Add(Requires(m.tok, true, Bpl.Expr.Eq(FunctionCall(m.tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Literal(0)), CevLocation(m.tok)), null, null));
+        // free ensures old(#cev_pc) < #cev_pc;
+        ens.Add(Ensures(m.tok, true, Bpl.Expr.Lt(new Bpl.OldExpr(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), null, "CEV information"));
 
         Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
         proc = new Bpl.Procedure(m.tok, m.FullName, typeParams, inParams, outParams, req, mod, ens);
@@ -1244,7 +1247,7 @@ namespace Microsoft.Dafny {
             new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, v.Name), v),
             new Bpl.IdentifierExprSeq()));
         } else {
-          builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdate",
+          builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
             new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
             new Bpl.IdentifierExprSeq()));
         }
@@ -1317,9 +1320,6 @@ namespace Microsoft.Dafny {
             new Bpl.ExprSeq(CevVariable(stmt.Tok, e.Name), lhs),
             new Bpl.IdentifierExprSeq()));
         }
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHere",
-          new Bpl.ExprSeq(CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
-          new Bpl.IdentifierExprSeq()));
         builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStep", new Bpl.ExprSeq(CevLocation(stmt.Tok)), new Bpl.IdentifierExprSeq()));
         
       } else if (stmt is BlockStmt) {
@@ -1405,18 +1405,23 @@ namespace Microsoft.Dafny {
         }
         
         // CEV information
-        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Le(preLoopCevPC, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int))));
+        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Eq(FunctionCall(stmt.Tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), CevLocation(stmt.Tok))));
+        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Lt(preLoopCevPC, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int))));
+        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, FunctionCall(stmt.Tok, BuiltinFunction.CevControlFlowEvent,
+          null,
+          Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int),
+          new Bpl.IdentifierExpr(stmt.Tok, "loop_register", predef.CevEventType))));
         foreach (Formal p in currentMethod.Outs) {
           Bpl.Expr wh = FunctionCall(stmt.Tok, BuiltinFunction.CevVarUpdate, null,
             Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int),
-            new Bpl.IdentifierExpr(stmt.Tok, "cev_parameter", predef.CevVariableKind),
+            new Bpl.IdentifierExpr(stmt.Tok, "cev_local", predef.CevVariableKind),
             CevVariable(stmt.Tok, p.UniqueName),
             etran.TrVar(stmt.Tok, p));
           invariants.Add(new Bpl.AssumeCmd(stmt.Tok, wh));
         }
 
         Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
-        loopBodyBuilder.Add(new Bpl.CallCmd(stmt.Tok, "CevEvent",
+        loopBodyBuilder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_entered", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
         if (s.Decreases.Count == 0) {
@@ -1516,7 +1521,7 @@ namespace Microsoft.Dafny {
         Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
 
         builder.Add(new Bpl.WhileCmd(stmt.Tok, guard, invariants, body));
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevEvent",
+        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_exited", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
         loopHeapVarCount++;
@@ -1605,7 +1610,7 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
         
         // CEV information
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdate",
+        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
           new Bpl.IdentifierExprSeq()));
         
@@ -2243,7 +2248,8 @@ namespace Microsoft.Dafny {
       CevInit,
       CevVarIntro,
       CevVarUpdate,
-      CevProgramLocation
+      CevControlFlowEvent,
+      CevProgramLocation,
     }
     
     Bpl.NAryExpr! FunctionCall(Token! tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[]! args)
@@ -2371,11 +2377,15 @@ namespace Microsoft.Dafny {
           assert args.Length == 4;
           assert typeInstantiation == null;
           return FunctionCall(tok, "#cev_var_update", Bpl.Type.Bool, args);
+        case BuiltinFunction.CevControlFlowEvent:
+          assert args.Length == 2;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "#cev_control_flow_event", Bpl.Type.Bool, args);
         case BuiltinFunction.CevProgramLocation:
           assert args.Length == 1;
           assert typeInstantiation == null;
           return FunctionCall(tok, "#cev_save_position", predef.CevTokenType, args);
-          
+           
         default:
           assert false;  // unexpected built-in function
       }

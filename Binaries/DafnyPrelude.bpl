@@ -231,7 +231,7 @@ procedure CevVarIntro<T>(pos: $token, locorglob: var_locglob, name: $token, val:
   ensures #cev_pc == old(#cev_pc) + 1;
 
 procedure CevUpdateHere<T>(name: $token, val: T);
-  ensures #cev_var_update(#cev_pc, cev_global/*BOGUS*/, name, val);
+  ensures #cev_var_update(#cev_pc, cev_local, name, val);
 
 procedure CevStep(pos: $token);
   modifies #cev_pc;
@@ -241,7 +241,13 @@ procedure CevStep(pos: $token);
 // CevUpdate == CevUpdateHere + CevStep
 procedure CevUpdate<T>(pos: $token, name: $token, val: T);
   modifies #cev_pc;
-  ensures #cev_var_update(old(#cev_pc), cev_global/*BOGUS*/, name, val);
+  ensures #cev_var_update(old(#cev_pc), cev_local, name, val);
+  ensures #cev_save_position(old(#cev_pc)) == pos;
+  ensures #cev_pc == old(#cev_pc) + 1;
+
+procedure CevUpdateHeap(pos: $token, name: $token, val: HeapType);
+  modifies #cev_pc;
+  ensures #cev_var_update(old(#cev_pc), cev_implicit, name, val);
   ensures #cev_save_position(old(#cev_pc)) == pos;
   ensures #cev_pc == old(#cev_pc) + 1;
 
@@ -251,9 +257,16 @@ procedure CevEvent(pos: $token, tag: cf_event);
   ensures #cev_save_position(old(#cev_pc)) == pos;
   ensures #cev_pc == old(#cev_pc) + 1;
 
+procedure CevStepEvent(pos: $token, tag: cf_event);
+  modifies #cev_pc;
+  ensures #cev_control_flow_event(old(#cev_pc)+1, tag);
+  ensures #cev_save_position(old(#cev_pc)+1) == pos;
+  ensures #cev_pc == old(#cev_pc) + 2;
+
 procedure CevPreLoop(pos: $token) returns (oldPC: int);
-  ensures #cev_control_flow_event(#cev_pc, loop_register);
-  ensures #cev_save_position(#cev_pc) == pos;
-  ensures oldPC == #cev_pc;
+  modifies #cev_pc;
+  ensures #cev_control_flow_event(old(#cev_pc), conditional_moment);
+  ensures #cev_save_position(old(#cev_pc)) == pos;
+  ensures oldPC == old(#cev_pc) && #cev_pc == old(#cev_pc) + 1;
 
 // ---------------------------------------------------------------
