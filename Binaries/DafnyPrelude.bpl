@@ -181,6 +181,8 @@ const unique #loc.$Heap: $token;
 
 const unique alloc: Field bool;
 
+function DeclType<T>(Field T) returns (ClassName);
+
 function $HeapSucc(HeapType, HeapType) returns (bool);
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { k[o,alloc] } h[o,alloc] ==> k[o,alloc]));

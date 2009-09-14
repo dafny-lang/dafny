@@ -909,7 +909,7 @@ namespace Microsoft.Dafny {
     }
     
     Bpl.Constant! GetField(Field! f)
-      requires predef != null;
+      requires sink != null && predef != null;
     {
       Bpl.Constant fc;
       if (fields.TryGetValue(f, out fc)) {
@@ -918,6 +918,9 @@ namespace Microsoft.Dafny {
         Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullName, ty), true);
         fields.Add(f, fc);
+        // axiom DeclType(f) == C;
+        Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.DeclType, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, GetClass((!)f.EnclosingClass))));
+        sink.TopLevelDeclarations.Add(ax);
       }
       return fc;
     }
@@ -2243,6 +2246,7 @@ namespace Microsoft.Dafny {
       DynamicType,  // allocated type
       TypeParams,   // type parameters to allocated type
       TypeTuple,
+      DeclType,
       
       // CEV
       CevInit,
@@ -2364,6 +2368,10 @@ namespace Microsoft.Dafny {
           assert args.Length == 2;
           assert typeInstantiation == null;
           return FunctionCall(tok, "TypeTuple", predef.ClassNameType, args);
+        case BuiltinFunction.DeclType:
+          assert args.Length == 1;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "DeclType", predef.ClassNameType, args);
           
         case BuiltinFunction.CevInit:
           assert args.Length == 1;
