@@ -189,6 +189,19 @@ axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
 
 // ---------------------------------------------------------------
 
+// the connection between % and /
+axiom (forall x:int, y:int :: {x % y} {x / y}  x % y == x - x / y * y);
+
+// sign of denominator determines sign of remainder
+axiom (forall x:int, y:int :: {x % y}  0 < y  ==>  0 <= x % y  &&  x % y < y);
+axiom (forall x:int, y:int :: {x % y}  y < 0  ==>  y < x % y  &&  x % y <= 0);
+
+// the following axiom has some unfortunate matching, but it does state a property about % that
+// is sometime useful
+axiom (forall a: int, b: int, d: int :: { a % d, b % d } 2 <= d && a % d == b % d && a < b  ==>  a + d <= b);
+
+// ---------------------------------------------------------------
+
 type $token;
 function $file_name_is(id:int, tok:$token) returns(bool);
 

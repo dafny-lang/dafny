@@ -589,6 +589,7 @@ namespace Microsoft.Dafny {
       requires f.Body != null;
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
+      // parameters of the procedure
       Bpl.VariableSeq inParams = new Bpl.VariableSeq();
       Bpl.Expr wh = Bpl.Expr.And(
         Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
@@ -601,8 +602,16 @@ namespace Microsoft.Dafny {
         inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
       }
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+      // preconditions of the procedure
+      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      string comment = "user-defined preconditions";
+      foreach (Expression p in f.Req) {
+        req.Add(Requires(p.tok, false, etran.TrExpr(p), null, comment));
+        comment = null;
+      }
+      // the procedure itself
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
-        new Bpl.RequiresSeq(), new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
+        req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
       sink.TopLevelDeclarations.Add(proc);
 
       Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
