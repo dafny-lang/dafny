@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Contracts;
 using Bpl = Microsoft.Boogie;
+using System.Text;
 
 // TODO:  wellformedness checks for function bodies
 // TODO:  totality checks for statements
@@ -49,7 +50,7 @@ namespace Microsoft.Dafny {
         if (!cevFilenames.TryGetValue(filename, out fileId)) {
           fileId = cevFilenames.Count;
           cevFilenames.Add(filename, fileId);
-          Bpl.Constant fn = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, filename, predef.CevTokenType), true);
+          Bpl.Constant fn = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, Sanitize(filename), predef.CevTokenType), true);
           sink.TopLevelDeclarations.Add(fn);
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, FunctionCall(tok, "$file_name_is", Bpl.Type.Bool, Bpl.Expr.Literal(fileId), new Bpl.IdentifierExpr(tok, fn))));
         }
@@ -58,6 +59,17 @@ namespace Microsoft.Dafny {
         sink.TopLevelDeclarations.Add(c);
       }
       return new Bpl.IdentifierExpr(tok, c);
+    }
+    static string! Sanitize(string! s) {
+      StringBuilder sb = new StringBuilder();
+      foreach (char ch in s) {
+        if (char.IsLetterOrDigit(ch) || ch == '#' || ch == '^' || ch == '$' || ch == '.' || ch == '@') {
+          sb.Append(ch);
+        } else {
+          sb.Append(string.Format("%{0:X4}", (int)ch));
+        }
+      }
+      return sb.ToString();
     }
     Bpl.Expr! CevVariable(Bpl.IToken! tok, string! name)
       requires predef != null && sink != null;
