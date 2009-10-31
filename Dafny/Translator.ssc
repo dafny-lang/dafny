@@ -1389,15 +1389,17 @@ namespace Microsoft.Dafny {
       } else if (stmt is WhileStmt) {
         AddComment(builder, stmt, "while statement");
         WhileStmt s = (WhileStmt)stmt;
+        int loopId = loopHeapVarCount;
+        loopHeapVarCount++;
         
-        Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopHeap" + loopHeapVarCount, predef.HeapType));
+        Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
         locals.Add(preLoopHeapVar);
         Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(stmt.Tok, preLoopHeapVar);
         ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
         builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
 
         // CEV information
-        Bpl.LocalVariable preLoopCevPCVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopCevPC" + loopHeapVarCount, Bpl.Type.Int));
+        Bpl.LocalVariable preLoopCevPCVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopCevPC" + loopId, Bpl.Type.Int));
         locals.Add(preLoopCevPCVar);
         Bpl.IdentifierExpr preLoopCevPC = new Bpl.IdentifierExpr(stmt.Tok, preLoopCevPCVar);
         // call preLoopCevPC := CevPreLoop(loc);
@@ -1454,7 +1456,7 @@ namespace Microsoft.Dafny {
           List<Bpl.IdentifierExpr!> oldBfs = new List<Bpl.IdentifierExpr!>();
           int c = 0;
           foreach (Expression e in s.Decreases) {
-            Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, "$decr" + loopHeapVarCount + "$" + c, TrType((!)e.Type)));
+            Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, "$decr" + loopId + "$" + c, TrType((!)e.Type)));
             locals.Add(bfVar);
             Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
             oldBfs.Add(bf);
@@ -1548,7 +1550,6 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_exited", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
-        loopHeapVarCount++;
 
       } else if (stmt is ForeachStmt) {
         AddComment(builder, stmt, "foreach statement");
