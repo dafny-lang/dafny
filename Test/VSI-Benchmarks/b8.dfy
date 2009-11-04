@@ -28,9 +28,7 @@ class Queue<T> {
 
 
 class Glossary {
- 
- 
-   method Sort(q: Queue<Word>) returns (r: Queue<Word>, perm:seq<int>);
+  method Sort(q: Queue<Word>) returns (r: Queue<Word>, perm:seq<int>);
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);
@@ -38,160 +36,153 @@ class Glossary {
     ensures (forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
                 r.Get(i).AtMost(r.Get(j)));
     //perm is a permutation
-   ensures |perm| == |r.contents|; // ==|pperm|
-   ensures (forall i: int :: 0 <= i && i < |perm|==> 0 <= perm[i] && perm[i] < |perm| );
-   ensures (forall i, j: int :: 0 <= i && i < j && j < |perm| ==> perm[i] != perm[j]); 
-   // the final Queue is a permutation of the input Queue
-  ensures (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
-  
+    ensures |perm| == |r.contents|; // ==|pperm|
+    ensures (forall i: int :: 0 <= i && i < |perm|==> 0 <= perm[i] && perm[i] < |perm| );
+    ensures (forall i, j: int :: 0 <= i && i < j && j < |perm| ==> perm[i] != perm[j]); 
+    // the final Queue is a permutation of the input Queue
+    ensures (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
 
-
-	method main()
-	{
-		var rs:= new ReaderStream;
-		call rs.Open();
-		var glossary := new Map<Word,seq<Word>>;
-		call glossary.Init();
-		var q:= new Queue<Word>;
-		call q.Init();
-		
-		while (true)
-			invariant rs.Valid() && fresh(rs.footprint);
-			invariant glossary.Valid();
-			invariant !(glossary in rs.footprint);
-			invariant !(null in glossary.keys);
-			//to do add invariant  invariant (forall d:: d in glossary.values ==>!(null in d)); ***
-			invariant !(q in rs.footprint);
-			//  ** invariant q.contents == glossary.keys; need a quantifer to express this (map doesnt necessarily add to end)
-			// we leave out the decreases clause - unbounded stream
-		{
-			var term,definition;
-			call term,definition := readDefinition(rs);
-			if (term == null)
-			{
-				break;
-			}	
-			call glossary.Add(term,definition);	
-			call q.Enqueue(term);
-		}	
-		
-		call rs.Close();
-		var p;
-	    call q,p := Sort(q);
-	    var wr := new WriterStream;
-	    call wr.Create();
-	    
-	    while (0<|q.contents|)
-			invariant wr.Valid() && fresh(wr.footprint);
-			invariant glossary.Valid();
-			invariant !(glossary in wr.footprint);
-			invariant !(null in glossary.keys);
-			invariant !(q in wr.footprint);
-			decreases |q.contents|;
-		{
-			var term, present, definition;
-			call term:= q.Dequeue();
-			call present,definition:= glossary.Find(term);
-			assume present; // to change this into an assert we need the loop invariant ** above that we commented out
-			
-			// write term with a html anchor
-			call wr.PutWordInsideTag(term, term);
-			var i := 0;
-			
-			while ( i < |definition|)
-		    invariant wr.Valid() && fresh(wr.footprint);
-			invariant !(glossary in wr.footprint);
-			invariant !(q in wr.footprint); 
-				decreases |definition| -i;
-			{
-				var w := definition[i];
-				var d;
-				assume w != null; // to convert this into an assert we need invariant *** above
-				call present, d := glossary.Find(w);
-				if (present)
-				{
-					call wr. PutWordInsideHyperlink(w, w);
-				}
-				else 
-				{
-					call wr. PutWord(w);
-				}
-				i:= i +1;
-			}
-		}
-		call wr.Close();		  
-	}
-	
-
-	method readDefinition(rs:ReaderStream) returns (term:Word, definition:seq<Word>)
-	requires rs != null && rs.Valid();
-	modifies rs.footprint;
-	ensures rs.Valid() && fresh(rs.footprint - old(rs.footprint));
-	ensures term != null ==> !(null in definition);
-	{
-		call term := rs.GetWord();
-		if (term != null)
-		{
-			definition := [];
-			while (true)
-				invariant rs.Valid() && fresh(rs.footprint - old(rs.footprint));
-				invariant !(null in definition);
-			{
-				var w;
-				call w := rs.GetWord();
-				if (w == null)
-				{
-					break;
-				}
-				definition := definition + [w];
-			}
-		}
-		
-	}
-  
-  }
-  
-  class Word
+  method Main()
   {
-  
-	function AtMost(w:Word) :bool;
-  
+    var rs:= new ReaderStream;
+    call rs.Open();
+    var glossary := new Map<Word,seq<Word>>;
+    call glossary.Init();
+    var q:= new Queue<Word>;
+    call q.Init();
+    
+    while (true)
+      invariant rs.Valid() && fresh(rs.footprint);
+      invariant glossary.Valid();
+      invariant !(glossary in rs.footprint);
+      invariant !(null in glossary.keys);
+      //to do add invariant  invariant (forall d:: d in glossary.values ==>!(null in d)); ***
+      invariant !(q in rs.footprint);
+      //  ** invariant q.contents == glossary.keys; need a quantifer to express this (map doesnt necessarily add to end)
+      // we leave out the decreases clause - unbounded stream
+    {
+      var term,definition;
+      call term,definition := readDefinition(rs);
+      if (term == null)
+      {
+        break;
+      }    
+      call glossary.Add(term,definition);    
+      call q.Enqueue(term);
+    }    
+    
+    call rs.Close();
+    var p;
+    call q,p := Sort(q);
+    var wr := new WriterStream;
+    call wr.Create();
+    
+    while (0<|q.contents|)
+      invariant wr.Valid() && fresh(wr.footprint);
+      invariant glossary.Valid();
+      invariant !(glossary in wr.footprint) && !(null in glossary.keys);
+      invariant !(q in wr.footprint);
+      decreases |q.contents|;
+    {
+      var term, present, definition;
+      call term:= q.Dequeue();
+      call present,definition:= glossary.Find(term);
+      assume present; // to change this into an assert we need the loop invariant ** above that we commented out
+      
+      // write term with a html anchor
+      call wr.PutWordInsideTag(term, term);
+      var i := 0;
+
+      var qcon := q.contents;
+      while (i < |definition|)
+        invariant wr.Valid() && fresh(wr.footprint);
+        invariant glossary.Valid();
+        invariant !(glossary in wr.footprint) && !(null in glossary.keys);
+        invariant !(q in wr.footprint); 
+        invariant qcon == q.contents;
+        decreases |definition| -i;
+      {
+        var w := definition[i];
+        var d;
+        assume w != null; // to convert this into an assert we need invariant *** above
+        call present, d := glossary.Find(w);
+        if (present)
+        {
+          call wr. PutWordInsideHyperlink(w, w);
+        }
+        else 
+        {
+          call wr. PutWord(w);
+        }
+        i:= i +1;
+      }
+    }
+    call wr.Close();          
   }
+    
+
+  method readDefinition(rs:ReaderStream) returns (term:Word, definition:seq<Word>)
+    requires rs != null && rs.Valid();
+    modifies rs.footprint;
+    ensures rs.Valid() && fresh(rs.footprint - old(rs.footprint));
+    ensures term != null ==> !(null in definition);
+  {
+    call term := rs.GetWord();
+    if (term != null)
+    {
+      definition := [];
+      while (true)
+        invariant rs.Valid() && fresh(rs.footprint - old(rs.footprint));
+        invariant !(null in definition);
+      {
+        var w;
+        call w := rs.GetWord();
+        if (w == null)
+        {
+          break;
+        }
+        definition := definition + [w];
+      }
+    }
+  }
+}
   
-  class ReaderStream {
+class Word
+{
+  function AtMost(w:Word) :bool;
+}
+  
+class ReaderStream {
   var footprint:set<object>;
   var isOpen:bool;
   
   function Valid():bool
   reads this, footprint;
   {
-	!(null in footprint) && this in footprint && isOpen
+    !(null in footprint) && this in footprint && isOpen
   }
   
   method Open() //reading
   modifies this;
   ensures Valid() && fresh(footprint -{this});
   {
-		footprint := {this}; 
-		isOpen :=true;
+    footprint := {this}; 
+    isOpen :=true;
   }
   
   method GetWord()returns(x:Word)
-  requires Valid() ;
-  modifies footprint;
-  ensures Valid() && fresh(footprint - old(footprint));
+    requires Valid() ;
+    modifies footprint;
+    ensures Valid() && fresh(footprint - old(footprint));
   {
-	
   }
   
- method Close() 
- requires Valid();
- modifies footprint;
- {
-	isOpen := false;
-	
- }
-  
+  method Close() 
+    requires Valid();
+    modifies footprint;
+  {
+    isOpen := false;
+  }
 }
 
 class WriterStream {
@@ -202,59 +193,58 @@ class WriterStream {
   function Valid():bool
   reads this, footprint;
   {
-	!(null in footprint) && this in footprint && isOpen
+    !(null in footprint) && this in footprint && isOpen
   }
   
-method Create() //writing
-  modifies this;
-  ensures Valid() && fresh(footprint -{this});
-  ensures stream == [];
+  method Create() //writing
+    modifies this;
+    ensures Valid() && fresh(footprint -{this});
+    ensures stream == [];
   {
-		stream := [];
-		footprint := {this}; 
-		isOpen:= true;
+    stream := [];
+    footprint := {this}; 
+    isOpen:= true;
   }
   method GetCount() returns (c:int)
-  requires Valid();
-  ensures 0<=c;
+    requires Valid();
+    ensures 0<=c;
   {
-		c:=|stream|;
+    c:=|stream|;
   }
   
   method PutWord(w:Word )
-  requires Valid();
-  requires  w != null; 
-  modifies footprint;
-  ensures Valid() && fresh(footprint - old(footprint));
-  ensures old(stream)<= stream;
+    requires Valid();
+    requires  w != null; 
+    modifies footprint;
+    ensures Valid() && fresh(footprint - old(footprint));
+    ensures old(stream)<= stream;
   {
   }
+
   method PutWordInsideTag(tag:Word,w:Word )
-  requires Valid();
-  requires tag != null && w != null;
-  modifies footprint;
-  ensures Valid() && fresh(footprint - old(footprint));
-  ensures old(stream)<= stream;
+    requires Valid();
+    requires tag != null && w != null;
+    modifies footprint;
+    ensures Valid() && fresh(footprint - old(footprint));
+    ensures old(stream)<= stream;
   {
   }
   
   method PutWordInsideHyperlink(tag:Word,w:Word )
-  requires Valid();
-  requires tag != null && w != null;
-  modifies footprint;
-  ensures Valid() && fresh(footprint - old(footprint));
-  ensures old(stream)<= stream;
+    requires Valid();
+    requires tag != null && w != null;
+    modifies footprint;
+    ensures Valid() && fresh(footprint - old(footprint));
+    ensures old(stream)<= stream;
   {
   }
    
- method Close() 
- requires Valid();
- modifies footprint;
- {
-	isOpen := false;
-	
- }
-  
+  method Close() 
+    requires Valid();
+    modifies footprint;
+  {
+    isOpen := false;
+  }
 }
 
   
@@ -264,7 +254,6 @@ class Map<Key,Value> {
   var keys: seq<Key>;
   var values: seq<Value>;
   
-
   function Valid(): bool
     reads this;
   {
