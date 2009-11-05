@@ -936,7 +936,7 @@ namespace Microsoft.Dafny
   public class BinaryExpr : Expression {
     public enum Opcode { Iff, Imp, And, Or,
                          Eq, Neq, Lt, Le, Ge, Gt,
-                         Disjoint, In,
+                         Disjoint, In, NotIn,
                          Add, Sub, Mul, Div, Mod }
     public readonly Opcode Op;
     public enum ResolvedOpcode {
@@ -947,10 +947,10 @@ namespace Microsoft.Dafny
       // integers
       Lt, Le, Ge, Gt, Add, Sub, Mul, Div, Mod,
       // sets
-      SetEq, SetNeq, ProperSubset, Subset, Superset, ProperSuperset, Disjoint, InSet,
+      SetEq, SetNeq, ProperSubset, Subset, Superset, ProperSuperset, Disjoint, InSet, NotInSet,
       Union, Intersection, SetDifference,
       // sequences
-      SeqEq, SeqNeq, ProperPrefix, Prefix, Concat, InSeq
+      SeqEq, SeqNeq, ProperPrefix, Prefix, Concat, InSeq, NotInSeq
     }
     public ResolvedOpcode ResolvedOp;  // filled in by resolution
                                  
@@ -968,6 +968,7 @@ namespace Microsoft.Dafny
         case Opcode.Neq:  return "!=";
         case Opcode.Disjoint:  return "!!";
         case Opcode.In:  return "in";
+        case Opcode.NotIn:  return "!in";
         case Opcode.Add:  return "+";
         case Opcode.Sub:  return "-";
         case Opcode.Mul:  return "*";

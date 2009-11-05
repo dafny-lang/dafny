@@ -575,6 +575,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Disjoint:
           case BinaryExpr.Opcode.In:
+          case BinaryExpr.Opcode.NotIn:
             opBindingStrength = 0x30; fragileLeftContext = fragileRightContext = true; break;
           case BinaryExpr.Opcode.And:
             opBindingStrength = 0x20; break;

@@ -8,11 +8,11 @@ class Node<T> {
   function Valid(): bool
     reads this, footprint;
   {
-    this in this.footprint && !(null in this.footprint) &&
+    this in this.footprint && null !in this.footprint &&
     (next == null ==> list == [data]) &&
     (next != null ==>
         next in footprint && next.footprint <= footprint &&
-        !(this in next.footprint) &&
+        this !in next.footprint &&
         list == [data] + next.list &&
         next.Valid())
   }

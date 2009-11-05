@@ -36,7 +36,7 @@ class Stream {
   function Valid():bool
   reads this, footprint;
   {
-	!(null in footprint) && this in footprint && isOpen
+	null !in footprint && this in footprint && isOpen
   }
   
   method GetCount() returns (c:int)
@@ -152,7 +152,7 @@ class Client {
 	    var wr:= new Stream;
 	    call wr.Create();
 	    while (0<|q.contents|)
-	    invariant wr.Valid() && fresh(wr.footprint) && fresh(q) && !(q in wr.footprint);
+	    invariant wr.Valid() && fresh(wr.footprint) && fresh(q) && q !in wr.footprint;
 	    decreases |q.contents|;
 		{
 				call ch:= q.Dequeue();	

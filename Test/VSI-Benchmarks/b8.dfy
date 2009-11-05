@@ -54,10 +54,10 @@ class Glossary {
     while (true)
       invariant rs.Valid() && fresh(rs.footprint);
       invariant glossary.Valid();
-      invariant !(glossary in rs.footprint);
-      invariant !(null in glossary.keys);
+      invariant glossary !in rs.footprint;
+      invariant null !in glossary.keys;
       //to do add invariant  invariant (forall d:: d in glossary.values ==>!(null in d)); ***
-      invariant !(q in rs.footprint);
+      invariant q !in rs.footprint;
       //  ** invariant q.contents == glossary.keys; need a quantifer to express this (map doesnt necessarily add to end)
       // we leave out the decreases clause - unbounded stream
     {
@@ -80,8 +80,8 @@ class Glossary {
     while (0<|q.contents|)
       invariant wr.Valid() && fresh(wr.footprint);
       invariant glossary.Valid();
-      invariant !(glossary in wr.footprint) && !(null in glossary.keys);
-      invariant !(q in wr.footprint);
+      invariant glossary !in wr.footprint && null !in glossary.keys;
+      invariant q !in wr.footprint;
       decreases |q.contents|;
     {
       var term, present, definition;
@@ -97,8 +97,8 @@ class Glossary {
       while (i < |definition|)
         invariant wr.Valid() && fresh(wr.footprint);
         invariant glossary.Valid();
-        invariant !(glossary in wr.footprint) && !(null in glossary.keys);
-        invariant !(q in wr.footprint); 
+        invariant glossary !in wr.footprint && null !in glossary.keys;
+        invariant q !in wr.footprint;
         invariant qcon == q.contents;
         decreases |definition| -i;
       {
@@ -125,7 +125,7 @@ class Glossary {
     requires rs != null && rs.Valid();
     modifies rs.footprint;
     ensures rs.Valid() && fresh(rs.footprint - old(rs.footprint));
-    ensures term != null ==> !(null in definition);
+    ensures term != null ==> null !in definition;
   {
     call term := rs.GetWord();
     if (term != null)
@@ -133,7 +133,7 @@ class Glossary {
       definition := [];
       while (true)
         invariant rs.Valid() && fresh(rs.footprint - old(rs.footprint));
-        invariant !(null in definition);
+        invariant null !in definition;
       {
         var w;
         call w := rs.GetWord();
@@ -159,7 +159,7 @@ class ReaderStream {
   function Valid():bool
   reads this, footprint;
   {
-    !(null in footprint) && this in footprint && isOpen
+    null !in footprint && this in footprint && isOpen
   }
   
   method Open() //reading
@@ -193,7 +193,7 @@ class WriterStream {
   function Valid():bool
   reads this, footprint;
   {
-    !(null in footprint) && this in footprint && isOpen
+    null !in footprint && this in footprint && isOpen
   }
   
   method Create() //writing
@@ -271,7 +271,7 @@ class Map<Key,Value> {
 
   method Find(key: Key) returns (present: bool, val: Value)
     requires Valid();
-    ensures !present ==> !(key in keys);
+    ensures !present ==> key !in keys;
     ensures present ==> (exists i :: 0 <= i && i < |keys| &&
                                      keys[i] == key && values[i] == val);
   {
@@ -323,9 +323,9 @@ class Map<Key,Value> {
     ensures (forall k :: k in old(keys) ==> k in keys || k == key);
     // the given key is not there:
     // other values don't change:
-    ensures !(key in old(keys)) ==> keys == old(keys) && values == old(values);
+    ensures key !in old(keys) ==> keys == old(keys) && values == old(values);
     ensures key in old(keys) ==>
-            !(key in keys) &&
+            key !in keys &&
             (exists h ::
               0 <= h && h <= |keys| &&
               keys[..h] == old(keys)[..h] &&
@@ -344,13 +344,13 @@ class Map<Key,Value> {
   method FindIndex(key: Key) returns (idx: int)
     requires Valid();
     ensures -1 <= idx && idx < |keys|;
-    ensures idx == -1 ==> !(key in keys);
+    ensures idx == -1 ==> key !in keys;
     ensures 0 <= idx ==> keys[idx] == key;
   {
     var j := 0;
     while (j < |keys|)
       invariant j <= |keys|;
-      invariant !(key in keys[..j]);
+      invariant key !in keys[..j];
       decreases |keys| -j;
     {
       if (keys[j] == key) {

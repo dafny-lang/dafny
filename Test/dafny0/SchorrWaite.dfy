@@ -92,7 +92,7 @@ class Main {
     var stackNodes := [];
     var unmarkedNodes := S - {t};  // used as ghost variable
     while (true)
-      invariant root.marked && t in S && !(t in stackNodes);
+      invariant root.marked && t in S && t !in stackNodes;
       // stackNodes has no duplicates:
       invariant (forall i, j :: 0 <= i && i < j && j < |stackNodes| ==>
                   stackNodes[i] != stackNodes[j]);
@@ -108,9 +108,9 @@ class Main {
                   stackNodes[j].children[stackNodes[j].childrenVisited] == stackNodes[j+1]);
       invariant 0 < |stackNodes| ==>
         stackNodes[|stackNodes|-1].children[stackNodes[|stackNodes|-1].childrenVisited] == t;
-      invariant (forall n :: n in S && n.marked && !(n in stackNodes) && n != t ==>
+      invariant (forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
                   (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
-      invariant (forall n :: n in S && !(n in stackNodes) && n != t ==>
+      invariant (forall n :: n in S && n !in stackNodes && n != t ==>
                 n.childrenVisited == old(n.childrenVisited));
       invariant (forall n: Node :: n.children == old(n.children));
       invariant (forall n :: n in S && !n.marked ==> n in unmarkedNodes);
@@ -161,7 +161,7 @@ class Main {
     var stackNodes := [];  // used as ghost variable
     var unmarkedNodes := S - {t};  // used as ghost variable
     while (true)
-      invariant root.marked && t != null && t in S && !(t in stackNodes);
+      invariant root.marked && t != null && t in S && t !in stackNodes;
       invariant |stackNodes| == 0 <==> p == null;
       invariant 0 < |stackNodes| ==> p == stackNodes[|stackNodes|-1];
       // stackNodes has no duplicates:
@@ -174,9 +174,9 @@ class Main {
                   (forall j :: 0 <= j && j < n.childrenVisited ==>
                     n.children[j] == null || n.children[j].marked));
       invariant (forall n :: n in stackNodes ==> n.childrenVisited < |n.children|);
-      invariant (forall n :: n in S && n.marked && !(n in stackNodes) && n != t ==>
+      invariant (forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
                   (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
-      invariant (forall n :: n in S && !(n in stackNodes) && n != t ==>
+      invariant (forall n :: n in S && n !in stackNodes && n != t ==>
                 n.childrenVisited == old(n.childrenVisited));
       invariant (forall n :: n in stackNodes || n.children == old(n.children));
       invariant (forall n :: n in stackNodes ==>

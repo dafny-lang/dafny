@@ -3,7 +3,7 @@ class Node {
   var nxt: Node;
 
   method ReverseInPlace(x: Node, r: set<Node>) returns (reverse: Node)
-    requires !(null in r);
+    requires null !in r;
     requires x == null || x in r;
     requires (forall y :: y in r ==> y.nxt == null || y.nxt in r);  // region closure
     modifies r;

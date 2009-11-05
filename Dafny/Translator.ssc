@@ -1919,6 +1919,9 @@ namespace Microsoft.Dafny {
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             return TrInSet(expr.tok, e0, e.E1, e.E0.Type);  // let TrInSet translate e.E1
+          } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
+            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, e.E0.Type);  // let TrInSet translate e.E1
+            return Bpl.Expr.Not(arg);
           }
           Bpl.Expr e1 = TrExpr(e.E1);
           switch (e.ResolvedOp) {
@@ -1998,6 +2001,9 @@ namespace Microsoft.Dafny {
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqAppend, translator.TrType(((SeqType!)expr.Type).Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.InSeq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1, e0);
+            case BinaryExpr.ResolvedOpcode.NotInSeq:
+              Bpl.Expr arg = translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1, e0);
+              return Bpl.Expr.Not(arg);
 
             default:
               assert false;  // unexpected binary expression

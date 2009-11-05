@@ -12,7 +12,7 @@ class IntSet {
     (root != null ==>
        root in footprint && root.Valid() &&
        contents == root.contents &&
-       root.footprint <= footprint && !(this in root.footprint))
+       root.footprint <= footprint && this !in root.footprint)
   }
 
   method Init()
@@ -112,14 +112,14 @@ class Node {
     reads this, footprint;
   {
     this in footprint &&
-    !(null in footprint) &&
+    null !in footprint &&
     (left != null ==>
       left in footprint && left.Valid() &&
-      left.footprint <= footprint && !(this in left.footprint) &&
+      left.footprint <= footprint && this !in left.footprint &&
       (forall y :: y in left.contents ==> y < data)) &&
     (right != null ==>
       right in footprint && right.Valid() &&
-      right.footprint <= footprint && !(this in right.footprint) &&
+      right.footprint <= footprint && this !in right.footprint &&
       (forall y :: y in right.contents ==> data < y)) &&
     (left == null && right == null ==>
       contents == {data}) &&

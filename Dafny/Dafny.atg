@@ -1,8 +1,8 @@
-//-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
-//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
 // Dafny
@@ -679,6 +679,7 @@ RelOp<out Token! x, out BinaryExpr.Opcode op>
   | "!="           (. x = token;  op = BinaryExpr.Opcode.Neq; .)
   | "!!"           (. x = token;  op = BinaryExpr.Opcode.Disjoint; .)
   | "in"           (. x = token;  op = BinaryExpr.Opcode.In; .)
+  | "!in"          (. x = token;  op = BinaryExpr.Opcode.NotIn; .)
   | '\u2260'       (. x = token;  op = BinaryExpr.Opcode.Neq; .)
   | '\u2264'       (. x = token;  op = BinaryExpr.Opcode.Le; .)
   | '\u2265'       (. x = token;  op = BinaryExpr.Opcode.Ge; .)

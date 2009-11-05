@@ -5,14 +5,14 @@ class C {
     requires v != null;
   {
     var o: object := v;
-    assert !(o in n);  // should be known from the types involved
+    assert o !in n;  // should be known from the types involved
   }
 
   method N(v: Stack)
     /* this time without the precondition */
   {
     var o: object := v;
-    assert !(o in n);  // error: v may be null
+    assert o !in n;  // error: v may be null
   }
 
   method A0(a: CP<int,C>, b: CP<int,object>)
@@ -31,7 +31,7 @@ class C {
 
   var a2x: set<CP<C,Node>>;
   method A2(b: set<CP<Node,C>>)
-    requires !(null in b);
+    requires null !in b;
   {
     var x: set<object> := a2x;
     var y: set<object> := b;

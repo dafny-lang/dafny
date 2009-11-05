@@ -26,7 +26,7 @@ class Map<Key,Value> {
 
   method Find(key: Key) returns (present: bool, val: Value)
     requires Valid();
-    ensures !present ==> !(key in keys);
+    ensures !present ==> key !in keys;
     ensures present ==> (exists i :: 0 <= i && i < |keys| &&
                                      keys[i] == key && values[i] == val);
   {
@@ -78,9 +78,9 @@ class Map<Key,Value> {
     ensures (forall k :: k in old(keys) ==> k in keys || k == key);
     // the given key is not there:
     // other values don't change:
-    ensures !(key in old(keys)) ==> keys == old(keys) && values == old(values);
+    ensures key !in old(keys) ==> keys == old(keys) && values == old(values);
     ensures key in old(keys) ==>
-            !(key in keys) &&
+            key !in keys &&
             (exists h ::
               0 <= h && h <= |keys| &&
               keys[..h] == old(keys)[..h] &&
@@ -99,13 +99,13 @@ class Map<Key,Value> {
   method FindIndex(key: Key) returns (idx: int)
     requires Valid();
     ensures -1 <= idx && idx < |keys|;
-    ensures idx == -1 ==> !(key in keys);
+    ensures idx == -1 ==> key !in keys;
     ensures 0 <= idx ==> keys[idx] == key;
   {
     var j := 0;
     while (j < |keys|)
       invariant j <= |keys|;
-      invariant !(key in keys[..j]);
+      invariant key !in keys[..j];
       decreases |keys| -j;
     {
       if (keys[j] == key) {

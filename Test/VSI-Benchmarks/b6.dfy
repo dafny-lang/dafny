@@ -63,7 +63,7 @@ class Iterator {
   function Valid():bool
   reads this, footprint;
   {
-		this in footprint && c!= null && -1<= pos && !(null in footprint)
+		this in footprint && c!= null && -1<= pos && null !in footprint
   }
   
   method Init(coll:Collection)

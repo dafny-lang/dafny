@@ -1201,6 +1201,7 @@ namespace Microsoft.Dafny {
             break;
 
           case BinaryExpr.Opcode.In:
+          case BinaryExpr.Opcode.NotIn:
             if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type))) {
               Error(expr, "second argument to {0} must be a set or sequence of type {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             }
@@ -1354,6 +1355,12 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.InSet;
           } else {
             return BinaryExpr.ResolvedOpcode.InSeq;
+          }
+        case BinaryExpr.Opcode.NotIn:
+          if (operandType is SetType) {
+            return BinaryExpr.ResolvedOpcode.NotInSet;
+          } else {
+            return BinaryExpr.ResolvedOpcode.NotInSeq;
           }
         case BinaryExpr.Opcode.Div:  return BinaryExpr.ResolvedOpcode.Div;
         case BinaryExpr.Opcode.Mod:  return BinaryExpr.ResolvedOpcode.Mod;
