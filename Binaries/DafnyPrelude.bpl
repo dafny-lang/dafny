@@ -1,6 +1,7 @@
 // Dafny prelude
 // Created 9 February 2008 by Rustan Leino.
 // Converted to Boogie 2 on 28 June 2008.
+// Edited sequence axioms 20 October 2009 by Alex Summers.
 // Copyright (c) 2008, Microsoft.
 
 type ref;
@@ -67,7 +68,7 @@ axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singlet
 
 function Seq#Build<T>(s: Seq T, index: int, val: T, newLength: int) returns (Seq T);
 axiom (forall<T> s: Seq T, i: int, v: T, len: int :: { Seq#Length(Seq#Build(s,i,v,len)) }
-  Seq#Length(Seq#Build(s,i,v,len)) == len);
+  0 <= len ==> Seq#Length(Seq#Build(s,i,v,len)) == len);
 
 function Seq#Append<T>(Seq T, Seq T) returns (Seq T);
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
@@ -79,8 +80,9 @@ axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Index(Seq#Append(s0,s1), 
   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
   (Seq#Length(s0) <= n ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s1, n - Seq#Length(s0))));
 axiom (forall<T> s: Seq T, i: int, v: T, len: int, n: int :: { Seq#Index(Seq#Build(s,i,v,len),n) }
-  (i == n ==> Seq#Index(Seq#Build(s,i,v,len),n) == v) &&
-  (i != n ==> Seq#Index(Seq#Build(s,i,v,len),n) == Seq#Index(s,n)));
+  0 <= n && n < len ==>
+    (i == n ==> Seq#Index(Seq#Build(s,i,v,len),n) == v) &&
+    (i != n ==> Seq#Index(Seq#Build(s,i,v,len),n) == Seq#Index(s,n)));
 
 function Seq#Contains<T>(Seq T, T) returns (bool);
 axiom (forall<T> s: Seq T, x: T :: { Seq#Contains(s,x) }
@@ -96,12 +98,13 @@ axiom (forall<T> s0: Seq T, s1: Seq T, x: T ::
 axiom (forall<T> s: Seq T, i: int, v: T, len: int, x: T ::
   { Seq#Contains(Seq#Build(s, i, v, len), x) }
   Seq#Contains(Seq#Build(s, i, v, len), x) <==>
-    x == v || Seq#Contains(s, x));
+    (0 <= i && i < len && x == v)  ||  
+    (exists j: int :: { Seq#Index(s,j) } 0 <= j && j < Seq#Length(s) && j < len && j!=i && Seq#Index(s,j) == x));
 axiom (forall<T> s: Seq T, n: int, x: T ::
   { Seq#Contains(Seq#Take(s, n), x) }
   Seq#Contains(Seq#Take(s, n), x) <==>
     (exists i: int :: { Seq#Index(s, i) }
-      0 <= i && i < n && n <= Seq#Length(s) && Seq#Index(s, i) == x));
+      0 <= i && i < n && i < Seq#Length(s) && Seq#Index(s, i) == x));
 axiom (forall<T> s: Seq T, n: int, x: T ::
   { Seq#Contains(Seq#Drop(s, n), x) }
   Seq#Contains(Seq#Drop(s, n), x) <==>
