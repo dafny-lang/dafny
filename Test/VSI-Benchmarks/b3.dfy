@@ -94,7 +94,6 @@ class Benchmark3 {
    
     decreases |q.contents|;
     {  
-      var m,k;
       call m,k := RemoveMin(q);
       perm := perm + [p[k]]; //adds  index of min to perm
       p := p[k+1..]+ p[..k]; //remove index of min from p  
@@ -126,7 +125,6 @@ class Benchmark3 {
       invariant (forall i ::0<= i && i < j ==> m <= old(q.contents)[i]); //m is min so far   
       decreases n-j;
     {
-		var x;
 		call x:= q.Dequeue();
 		call q.Enqueue(x);
 		if ( x < m) {k := j; m := x;}
@@ -140,7 +138,6 @@ class Benchmark3 {
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
       decreases k-j;
     {     
-      var x;
       call x := q.Dequeue();
       call q.Enqueue(x);
       j:= j +1;

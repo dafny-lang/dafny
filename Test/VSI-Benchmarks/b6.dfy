@@ -114,7 +114,7 @@ class Client
 		call c.Add(45);
 		call c.Add(78);
 		
-		var iter,b,x, s:= [ ];
+		var s:= [ ];
 		
 		call iter:=c.GetIterator();
 		call b:= iter.MoveNext();

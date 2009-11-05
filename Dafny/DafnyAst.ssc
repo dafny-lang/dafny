@@ -645,13 +645,15 @@ namespace Microsoft.Dafny
   }
   
   public class CallStmt : Statement {
+    public readonly List<VarDecl!>! NewVars;
     public readonly List<IdentifierExpr!>! Lhs;
     public readonly Expression! Receiver;
     public readonly string! MethodName;
     public readonly List<Expression!>! Args;
     public Method Method;  // filled in by resolution
     
-    public CallStmt(Token! tok, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
+    public CallStmt(Token! tok, List<VarDecl!>! newVars, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
+      this.NewVars = newVars;
       this.Lhs = lhs;
       this.Receiver = receiver;
       this.MethodName = methodName;

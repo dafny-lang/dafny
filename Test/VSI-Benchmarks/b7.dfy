@@ -129,12 +129,10 @@ class Client {
 		call rd.Open();
 		
 		var q:= new Queue<int>;	
-		var ch;
 		while (true)
 		 invariant rd.Valid() && fresh(rd.footprint) && fresh(q);
 		 decreases |rd.stream|;
 		{
-				var eos:bool;
 				call eos := rd.AtEndOfStream();
 				if (eos) 
 				{
@@ -146,7 +144,6 @@ class Client {
 	    }
 	    
 	    call rd.Close();
-	    var perm;
 	    call q,perm := Sort(q);
 	    
 	    var wr:= new Stream;

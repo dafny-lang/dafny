@@ -99,7 +99,6 @@ class Queue<T> {
     ensures Valid() && fresh(footprint - old(footprint));
     ensures contents == old(contents)[1..] + old(contents)[..1];
   {
-    var t: T;
     call t := Front();
     call Dequeue();
     call Enqueue(t);
@@ -113,7 +112,6 @@ class Queue<T> {
     ensures (exists i :: 0 <= i && i <= |contents| &&
               contents == old(contents)[i..] + old(contents)[..i]);
   {
-    var t: T;
     call t := Front();
     call Dequeue();
     call Enqueue(t);
@@ -163,7 +161,6 @@ class Main<U> {
 
     assert |q0.contents| == 2;
 
-    var w;
     call w := q0.Front();
     assert w == t;
     call q0.Dequeue();
@@ -191,7 +188,6 @@ class Main<U> {
 
     assert |q0.contents| == 2;
 
-    var w;
     call w := q0.Front();
     assert w == t;
     call q0.Dequeue();

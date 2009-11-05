@@ -13,7 +13,6 @@ class C<U> {
   method Main(u: U)
   {
     var t := F(3,u) && F(this,u);
-    var kz;
     call kz := M(t,u);
     assert kz && (G() || !G());
   }

@@ -684,6 +684,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
         
+        // resolve any local variables declared here
+        foreach (VarDecl local in s.NewVars) {
+          ResolveStatement(local);
+        }
+        
         // resolve left-hand side
         Dictionary<string!,object> lhsNameSet = new Dictionary<string!,object>();
         foreach (IdentifierExpr lhs in s.Lhs) {

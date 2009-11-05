@@ -28,7 +28,6 @@ class Termination {
   }
 
   method Lex() {
-    var x: int, y: int;
     call x := Update();
     call y := Update();
     while (!(x == 0 && y == 0))

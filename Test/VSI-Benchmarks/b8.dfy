@@ -61,7 +61,6 @@ class Glossary {
       //  ** invariant q.contents == glossary.keys; need a quantifer to express this (map doesnt necessarily add to end)
       // we leave out the decreases clause - unbounded stream
     {
-      var term,definition;
       call term,definition := readDefinition(rs);
       if (term == null)
       {
@@ -72,7 +71,6 @@ class Glossary {
     }    
     
     call rs.Close();
-    var p;
     call q,p := Sort(q);
     var wr := new WriterStream;
     call wr.Create();
@@ -84,7 +82,6 @@ class Glossary {
       invariant q !in wr.footprint;
       decreases |q.contents|;
     {
-      var term, present, definition;
       call term:= q.Dequeue();
       call present,definition:= glossary.Find(term);
       assume present; // to change this into an assert we need the loop invariant ** above that we commented out
@@ -103,7 +100,6 @@ class Glossary {
         decreases |definition| -i;
       {
         var w := definition[i];
-        var d;
         assume w != null; // to convert this into an assert we need invariant *** above
         call present, d := glossary.Find(w);
         if (present)
@@ -135,7 +131,6 @@ class Glossary {
         invariant rs.Valid() && fresh(rs.footprint - old(rs.footprint));
         invariant null !in definition;
       {
-        var w;
         call w := rs.GetWord();
         if (w == null)
         {
@@ -275,7 +270,6 @@ class Map<Key,Value> {
     ensures present ==> (exists i :: 0 <= i && i < |keys| &&
                                      keys[i] == key && values[i] == val);
   {
-    var j;
     call j := FindIndex(key);
     if (j == -1) {
       present := false;
@@ -300,7 +294,6 @@ class Map<Key,Value> {
     ensures (forall i :: 0 <= i && i < |keys| && keys[i] != key ==>
                 values[i] == old(values)[i]);
   {
-    var j;
     call j := FindIndex(key);
     if (j == -1) {
       keys := keys + [key];
@@ -333,7 +326,6 @@ class Map<Key,Value> {
               keys[h..] == old(keys)[h+1..] &&
               values[h..] == old(values)[h+1..]);
   {
-    var j;
     call j := FindIndex(key);
     if (0 <= j) {
       keys := keys[..j] + keys[j+1..];

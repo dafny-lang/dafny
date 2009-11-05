@@ -1304,6 +1304,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is CallStmt) {
         AddComment(builder, stmt, "call statement");
         CallStmt s = (CallStmt)stmt;
+        foreach (VarDecl local in s.NewVars) {
+          TrStmt(local, builder, locals, etran);
+        }
         Bpl.ExprSeq ins = new Bpl.ExprSeq();
         ins.Add(etran.TrExpr(s.Receiver));
         for (int i = 0; i < s.Args.Count; i++) {

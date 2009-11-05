@@ -23,6 +23,28 @@ static Statement! dummyStmt = new ReturnStmt(Token.NoToken);
 static Attributes.Argument! dummyAttrArg = new Attributes.Argument("dummyAttrArg");
 static Scope<string>! parseVarScope = new Scope<string>();
 
+// helper routine for parsing call statements
+private static void RecordCallLhs(IdentifierExpr! e,
+                                  List<IdentifierExpr!>! lhs,
+                                  List<VarDecl!>! newVars) {
+  lhs.Add(e);
+  if (parseVarScope.Find(e.Name) == null) {
+    VarDecl d = new VarDecl(e.tok, e.Name, new InferredTypeProxy(), null);
+    newVars.Add(d);
+    parseVarScope.Push(e.Name, e.Name);
+  }
+}
+
+// helper routine for parsing call statements
+private static Expression! ConvertToLocal(Expression! e)
+{
+  FieldSelectExpr fse = e as FieldSelectExpr;
+  if (fse != null && fse.Obj is ImplicitThisExpr) {
+    return new IdentifierExpr(fse.tok, fse.FieldName);
+  }
+  return e;  // cannot convert to IdentifierExpr (or is already an IdentifierExpr)
+}
+
 ///<summary>
 /// Parses top level declarations from "filename" and appends them to "classes".
 /// Returns the number of parsing errors encountered.
@@ -671,6 +693,7 @@ public static int Parse (List<ClassDecl!>! classes) {
 		Token! x, id;
 		Expression! e;
 		List<IdentifierExpr!> lhs = new List<IdentifierExpr!>();
+		List<VarDecl!> newVars = new List<VarDecl!>();
 		
 		Expect(42);
 		x = token; 
@@ -678,8 +701,9 @@ public static int Parse (List<ClassDecl!>! classes) {
 		if (t.kind == 8 || t.kind == 35) {
 			if (t.kind == 8) {
 				Get();
+				e = ConvertToLocal(e);
 				if (e is IdentifierExpr) {
-				 lhs.Add((IdentifierExpr)e);
+				  RecordCallLhs((IdentifierExpr)e, lhs, newVars);
 				} else if (e is FieldSelectExpr) {
 				  SemErr(e.tok, "each LHS of call statement must be a variable, not a field");
 				} else {
@@ -687,18 +711,19 @@ public static int Parse (List<ClassDecl!>! classes) {
 				}
 				
 				Ident(out id);
-				lhs.Add(new IdentifierExpr(id, id.val)); 
+				RecordCallLhs(new IdentifierExpr(id, id.val), lhs, newVars); 
 				while (t.kind == 8) {
 					Get();
 					Ident(out id);
-					lhs.Add(new IdentifierExpr(id, id.val)); 
+					RecordCallLhs(new IdentifierExpr(id, id.val), lhs, newVars); 
 				}
 				Expect(35);
 				CallStmtSubExpr(out e);
 			} else {
 				Get();
+				e = ConvertToLocal(e);
 				if (e is IdentifierExpr) {
-				 lhs.Add((IdentifierExpr)e);
+				  RecordCallLhs((IdentifierExpr)e, lhs, newVars);
 				} else if (e is FieldSelectExpr) {
 				  SemErr(e.tok, "each LHS of call statement must be a variable, not a field");
 				} else {
@@ -711,10 +736,10 @@ public static int Parse (List<ClassDecl!>! classes) {
 		Expect(9);
 		if (e is FunctionCallExpr) {
 		 FunctionCallExpr fce = (FunctionCallExpr)e;
-		 s = new CallStmt(x, lhs, fce.Receiver, fce.Name, fce.Args);  // this actually does an ownership transfer of fce.Args
+		 s = new CallStmt(x, newVars, lhs, fce.Receiver, fce.Name, fce.Args);  // this actually does an ownership transfer of fce.Args
 		} else {
 		  SemErr("RHS of call statement must denote a method invocation");
-		  s = new CallStmt(x, lhs, dummyExpr, "dummyMethodName", new List<Expression!>());
+		  s = new CallStmt(x, newVars, lhs, dummyExpr, "dummyMethodName", new List<Expression!>());
 		}
 		
 	}

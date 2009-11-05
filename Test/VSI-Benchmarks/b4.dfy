@@ -30,7 +30,6 @@ class Map<Key,Value> {
     ensures present ==> (exists i :: 0 <= i && i < |keys| &&
                                      keys[i] == key && values[i] == val);
   {
-    var j;
     call j := FindIndex(key);
     if (j == -1) {
       present := false;
@@ -55,7 +54,6 @@ class Map<Key,Value> {
     ensures (forall i :: 0 <= i && i < |keys| && keys[i] != key ==>
                 values[i] == old(values)[i]);
   {
-    var j;
     call j := FindIndex(key);
     if (j == -1) {
       keys := keys + [key];
@@ -88,7 +86,6 @@ class Map<Key,Value> {
               keys[h..] == old(keys)[h+1..] &&
               values[h..] == old(values)[h+1..]);
   {
-    var j;
     call j := FindIndex(key);
     if (0 <= j) {
       keys := keys[..j] + keys[j+1..];

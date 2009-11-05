@@ -42,7 +42,6 @@ class IntSet {
     ensures Valid() && fresh(footprint - old(footprint));
     ensures contents == old(contents) + {x};
   { 
-    var t;
     call t := InsertHelper(x, root);
     root := t;
     contents := root.contents;
@@ -64,12 +63,10 @@ class IntSet {
       m := n;
     } else {
       if (x < n.data) {
-        var t;
         call t := InsertHelper(x, n.left);
         n.left := t;
         n.footprint := n.footprint + n.left.footprint;
       } else {
-        var t;
         call t := InsertHelper(x, n.right);
         n.right := t;
         n.footprint := n.footprint + n.right.footprint;
@@ -86,7 +83,6 @@ class IntSet {
     ensures contents == old(contents) - {x};
   {
     if (root != null) {
-      var newRoot;
       call newRoot := root.Remove(x);
       root := newRoot;
       if (root == null) {
@@ -169,13 +165,11 @@ class Node {
   {
     node := this;
     if (left != null && x < data) {
-      var t;
       call t := left.Remove(x);
       left := t;
       contents := contents - {x};
       if (left != null) { footprint := footprint + left.footprint; }
     } else if (right != null && data < x) {
-      var t;
       call t := right.Remove(x);
       right := t;
       contents := contents - {x};
@@ -189,7 +183,6 @@ class Node {
         node := left;
       } else {
         // rotate
-        var min, r;
         call min, r := right.RemoveMin();
         data := min;  right := r;
         contents := contents - {x};
@@ -211,7 +204,6 @@ class Node {
       min := data;
       node := right;
     } else {
-      var t;
       call min, t := left.RemoveMin();
       left := t;
       node := this;
@@ -229,7 +221,6 @@ class Main {
 
     call s.Insert(12);
     call s.Insert(24);
-    var present;
     call present := s.Find(x);
     assert present <==> x == 12 || x == 24;
   }
