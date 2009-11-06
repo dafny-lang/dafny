@@ -89,9 +89,14 @@ namespace Microsoft.Dafny {
     readonly PredefinedDecls predef;
     internal class PredefinedDecls {
       public readonly Bpl.Type! RefType;
+      public readonly Bpl.Type! BoxType;
       public readonly Bpl.Type! CevTokenType;
       public readonly Bpl.Type! CevVariableKind;
       public readonly Bpl.Type! CevEventType;
+      private readonly Bpl.TypeSynonymDecl! setTypeCtor;
+      public Bpl.Type! SetType(Token! tok, Bpl.Type! ty) {
+        return new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new Bpl.TypeSeq(ty));
+      }
       private readonly Bpl.TypeCtorDecl! seqTypeCtor;
       public Bpl.Type! SeqType(Token! tok, Bpl.Type! ty) {
         return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new Bpl.TypeSeq(ty));
@@ -110,14 +115,16 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(tok, allocField);
       }
 
-      public PredefinedDecls(Bpl.TypeCtorDecl! refType, Bpl.TypeCtorDecl! cevTokenType, Bpl.TypeCtorDecl! cevVariableKind, Bpl.TypeCtorDecl! cevEventType,
-                             Bpl.TypeCtorDecl! seqTypeCtor, Bpl.TypeCtorDecl! fieldNameType,
+      public PredefinedDecls(Bpl.TypeCtorDecl! refType, Bpl.TypeCtorDecl! boxType, Bpl.TypeCtorDecl! cevTokenType, Bpl.TypeCtorDecl! cevVariableKind, Bpl.TypeCtorDecl! cevEventType,
+                             Bpl.TypeSynonymDecl! setTypeCtor, Bpl.TypeCtorDecl! seqTypeCtor, Bpl.TypeCtorDecl! fieldNameType,
                              Bpl.GlobalVariable! heap, Bpl.TypeCtorDecl! classNameType, Bpl.Constant! allocField, Bpl.Constant! cevHeapNameConst) {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new Bpl.TypeSeq());
         this.RefType = refT;
+        this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new Bpl.TypeSeq());
         this.CevTokenType = new Bpl.CtorType(Token.NoToken, cevTokenType, new Bpl.TypeSeq());
         this.CevVariableKind = new Bpl.CtorType(Token.NoToken, cevVariableKind, new Bpl.TypeSeq());
         this.CevEventType = new Bpl.CtorType(Token.NoToken, cevEventType, new Bpl.TypeSeq());
+        this.setTypeCtor = setTypeCtor;
         this.seqTypeCtor = seqTypeCtor;
         this.fieldName = fieldNameType;
         this.HeapType = heap.TypedIdent.Type;
@@ -139,9 +146,11 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl cevTokenType = null;
       Bpl.TypeCtorDecl cevVariableKind = null;
       Bpl.TypeCtorDecl cevEventType = null;
+      Bpl.TypeSynonymDecl setTypeCtor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
+      Bpl.TypeCtorDecl boxType = null;
       Bpl.GlobalVariable heap = null;
       Bpl.Constant allocField = null;
       Bpl.Constant cevHeapNameConst = null;
@@ -156,12 +165,19 @@ namespace Microsoft.Dafny {
             classNameType = dt;
           } else if (dt.Name == "ref") {
             refType = dt;
+          } else if (dt.Name == "BoxType") {
+            boxType = dt;
           } else if (dt.Name == "$token") {
             cevTokenType = dt;
           } else if (dt.Name == "var_locglob") {
             cevVariableKind = dt;
           } else if (dt.Name == "cf_event") {
             cevEventType = dt;
+          }
+        } else if (d is Bpl.TypeSynonymDecl) {
+          Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
+          if (dt.Name == "Set") {
+            setTypeCtor = dt;
           }
         } else if (d is Bpl.Constant) {
           Bpl.Constant c = (Bpl.Constant)d;
@@ -179,12 +195,16 @@ namespace Microsoft.Dafny {
       }
       if (seqTypeCtor == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
+      } else if (setTypeCtor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type Set");
       } else if (fieldNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
       } else if (refType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
+      } else if (boxType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type BoxType");
       } else if (cevTokenType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type $token");
       } else if (cevVariableKind == null) {
@@ -198,7 +218,7 @@ namespace Microsoft.Dafny {
       } else if (cevHeapNameConst == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant #loc.$Heap");
       } else {
-        return new PredefinedDecls(refType, cevTokenType, cevVariableKind, cevEventType, seqTypeCtor, fieldNameType, heap, classNameType, allocField, cevHeapNameConst);
+        return new PredefinedDecls(refType, boxType, cevTokenType, cevVariableKind, cevEventType, setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, allocField, cevHeapNameConst);
       }
       return null;
     }
@@ -352,17 +372,18 @@ namespace Microsoft.Dafny {
       if (f.Type is SetType) {
         SetType st = (SetType)f.Type;
         if (st.Arg.IsRefType) {
-          //   axiom (forall h: [ref, Field x]x, o: ref, t: ref ::
+          //   axiom (forall h: [ref, Field x]x, o: ref, t: BoxType ::
           //        { h[o,f][t] }
-          //        $IsGoodHeap(h) && o != null && h[o,alloc] && h[o,f][t] ==> t == null || h[t, alloc]);
-          Bpl.BoundVariable tVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$t", predef.RefType));
+          //        $IsGoodHeap(h) && o != null && h[o,alloc] && h[o,f][t] ==> UnBox(t) == null || h[UnBox(t), alloc]);
+          Bpl.BoundVariable tVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$t", predef.BoxType));
           Bpl.Expr t = new Bpl.IdentifierExpr(f.tok, tVar);
           Bpl.Expr oDotFsubT = Bpl.Expr.SelectTok(f.tok, oDotF, t);
+          Bpl.Expr unboxT = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, t);
 
           Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotFsubT));
           
-          Bpl.Expr goodRef = etran.GoodRef(f.tok, t, st.Arg);
-          Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(ante, oDotFsubT), Bpl.Expr.Or(Bpl.Expr.Eq(t, predef.Null), goodRef));
+          Bpl.Expr goodRef = etran.GoodRef(f.tok, unboxT, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(ante, oDotFsubT), Bpl.Expr.Or(Bpl.Expr.Eq(unboxT, predef.Null), goodRef));
           Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new Bpl.VariableSeq(hVar, oVar, tVar), tr, body);
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
         } else {
@@ -374,17 +395,18 @@ namespace Microsoft.Dafny {
         if (st.Arg.IsRefType) {
           //   axiom (forall h: [ref, Field x]x, o: ref, i: int ::
           //        { Seq#Index(h[o,f], i) }
-          //        $IsGoodHeap(h) && o != null && h[o,alloc] && 0 <= i && i < Seq#Length(h[o,f]) ==> Seq#Index(h[o,f], i) == null || h[Seq#Index(h[o,f], i), alloc]);
+          //        $IsGoodHeap(h) && o != null && h[o,alloc] && 0 <= i && i < Seq#Length(h[o,f]) ==> Unbox(Seq#Index(h[o,f], i)) == null || h[Unbox(Seq#Index(h[o,f], i)), alloc]);
           Bpl.BoundVariable iVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(f.tok, iVar);
-          Bpl.Expr oDotFsubI = FunctionCall(f.tok, BuiltinFunction.SeqIndex, predef.RefType, oDotF, i);
+          Bpl.Expr oDotFsubI = FunctionCall(f.tok, BuiltinFunction.SeqIndex, predef.BoxType, oDotF, i);
+          Bpl.Expr unbox = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, oDotFsubI);
           
           Bpl.Expr range = InSeqRange(f.tok, i, oDotF, null, false);
           
           Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotFsubI));
           
-          Bpl.Expr goodRef = etran.GoodRef(f.tok, oDotFsubI, st.Arg);
-          Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(ante, range), Bpl.Expr.Or(Bpl.Expr.Eq(oDotFsubI, predef.Null), goodRef));
+          Bpl.Expr goodRef = etran.GoodRef(f.tok, unbox, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(ante, range), Bpl.Expr.Or(Bpl.Expr.Eq(unbox, predef.Null), goodRef));
           Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new Bpl.VariableSeq(hVar, oVar, iVar), tr, body);
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
         } else {
@@ -563,21 +585,25 @@ namespace Microsoft.Dafny {
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
     }
     
-    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran) {
+    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran)
+      requires predef != null;
+      // requires o to denote an expression of type RefType
+    {
       Bpl.Expr disjunction = null;
       foreach (Expression e in rw) {
         Bpl.Expr disjunct;
         if (e.Type is SetType) {
-          // old(e)[o]
-          disjunct = etran.TrInSet(tok, o, e, null);
+          // old(e)[Box(o)]
+          disjunct = etran.TrInSet(tok, o, e, ((SetType)e.Type).Arg);
         } else if (e.Type is SeqType) {
-          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) ==> Seq#Index(old(e),i) == o)
+          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) ==> Seq#Index(old(e),i) == Box(o))
+          Bpl.Expr boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
           Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), null, false);
-          Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, TrType(((SeqType)e.Type).Arg), etran.TrExpr(e), i);
+          Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, etran.TrExpr(e), i);
           // TODO: the equality in the next line should be changed to one that understands extensionality
-          disjunct = new Bpl.ExistsExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(iBounds, Bpl.Expr.Eq(XsubI, o)));
+          disjunct = new Bpl.ExistsExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(iBounds, Bpl.Expr.Eq(XsubI, boxO)));
         } else {
           // o == old(e)
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
@@ -768,7 +794,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckWellformed(Expression! expr, Function func, Position pos, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran) {
+    void CheckWellformed(Expression! expr, Function func, Position pos, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran)
+      requires predef != null;
+    {
       if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr) {
         // always allowed
       } else if (expr is DisplayExpression) {
@@ -1168,14 +1196,14 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return Bpl.Type.Int;
       } else if (type.IsTypeParameter) {
-        return predef.RefType;
+        return predef.BoxType;
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
       } else if (type is SetType) {
-        return new Bpl.MapType(Token.NoToken, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(TrType(((SetType)type).Arg)), Bpl.Type.Bool);
+        return predef.SetType(Token.NoToken, predef.BoxType);
       } else if (type is SeqType) {
-        return predef.SeqType(Token.NoToken, TrType(((SeqType)type).Arg));
+        return predef.SeqType(Token.NoToken, predef.BoxType);
       } else {
         assert false;  // unexpected type
       }
@@ -1318,12 +1346,12 @@ namespace Microsoft.Dafny {
         List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
         for (int i = 0; i < s.Lhs.Count; i++) {
           Expression e = s.Lhs[i];
-          if (ExpressionTranslator.ModeledAsRef(((!)s.Method).Outs[i].Type) && !ExpressionTranslator.ModeledAsRef((!)e.Type)) {
+          if (ExpressionTranslator.ModeledAsBoxType(((!)s.Method).Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType((!)e.Type)) {
             // we need an Unbox
-            Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$tmp#" + otherTmpVarCount, predef.RefType));
+            Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
             otherTmpVarCount++;
             locals.Add(var);
-            Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(stmt.Tok, var.Name, predef.RefType);
+            Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(stmt.Tok, var.Name, predef.BoxType);
             tmpOuts.Add(varIdE);
             outs.Add(varIdE);
           } else {
@@ -1340,7 +1368,7 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(e);  // TODO: is this cast always justified?
           if (tmpVarIdE != null) {
             // e := UnBox(tmpVar);
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(stmt.Tok, lhs, FunctionSpecial(stmt.Tok, BuiltinFunction.Unbox, TrType((!)e.Type), tmpVarIdE));
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(stmt.Tok, lhs, FunctionCall(stmt.Tok, BuiltinFunction.Unbox, TrType((!)e.Type), tmpVarIdE));
             builder.Add(cmd);
           }
           builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHere",
@@ -1574,13 +1602,13 @@ namespace Microsoft.Dafny {
 
         Bpl.Expr oInS;
         if (s.Collection.Type is SetType) {
-          oInS = etran.TrInSet(stmt.Tok, o, s.Collection, null);
+          oInS = etran.TrInSet(stmt.Tok, o, s.Collection, ((SetType)s.Collection.Type).Arg);
         } else {
           Bpl.BoundVariable iVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$i", Bpl.Type.Int));
           Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(stmt.Tok, iVar);
           Bpl.Expr S = etran.TrExpr(s.Collection);
           Bpl.Expr range = InSeqRange(stmt.Tok, i, S, null, false);
-          Bpl.Expr Si = FunctionCall(stmt.Tok, BuiltinFunction.SeqIndex, TrType(((SeqType!)s.Collection.Type).Arg), S, i);
+          Bpl.Expr Si = FunctionCall(stmt.Tok, BuiltinFunction.SeqIndex, predef.BoxType, S, i);
           Bpl.Trigger tr = new Bpl.Trigger(stmt.Tok, true, new Bpl.ExprSeq(Si));
           // TODO: in the next line, the == should be replaced by something that understands extensionality, for sets and sequences
           oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, o)));
@@ -1665,15 +1693,16 @@ namespace Microsoft.Dafny {
       } else if (type is SetType) {
         SetType st = (SetType)type;
         if (st.Arg.IsRefType) {
-          // (forall t: ref :: { x[t] } x[t] ==> t == null || $Heap[t,alloc])
-          Bpl.BoundVariable tVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$t", predef.RefType));
+          // (forall t: BoxType :: { x[t] } x[t] ==> Unbox(t) == null || $Heap[Unbox(t),alloc])
+          Bpl.BoundVariable tVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$t", predef.BoxType));
           Bpl.Expr t = new Bpl.IdentifierExpr(tok, tVar);
           Bpl.Expr xSubT = Bpl.Expr.SelectTok(tok, x, t);
+          Bpl.Expr unboxT = FunctionCall(tok, BuiltinFunction.Unbox, predef.RefType, t);
 
           Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubT));
           
-          Bpl.Expr goodRef = etran.GoodRef(tok, t, st.Arg);
-          Bpl.Expr body = Bpl.Expr.Imp(xSubT, Bpl.Expr.Or(Bpl.Expr.Eq(t, predef.Null), goodRef));
+          Bpl.Expr goodRef = etran.GoodRef(tok, unboxT, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(xSubT, Bpl.Expr.Or(Bpl.Expr.Eq(unboxT, predef.Null), goodRef));
           return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, body);
         } else {
           // TODO:  should also handle sets of sets, etc.
@@ -1684,17 +1713,18 @@ namespace Microsoft.Dafny {
         SeqType st = (SeqType)type;
         if (st.Arg.IsRefType) {
           // (forall i: int :: { Seq#Index(x,i) }
-          //      0 <= i && i < Seq#Length(x) ==> Seq#Index(x,i) == null || $Heap[Seq#Index(x,i), alloc])
+          //      0 <= i && i < Seq#Length(x) ==> Unbox(Seq#Index(x,i)) == null || $Heap[Unbox(Seq#Index(x,i)), alloc])
           Bpl.BoundVariable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
-          Bpl.Expr xSubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.RefType, x, i);
+          Bpl.Expr xSubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, x, i);
+          Bpl.Expr unbox = FunctionCall(tok, BuiltinFunction.Unbox, predef.RefType, xSubI);
 
           Bpl.Expr range = InSeqRange(tok, i, x, null, false);
 
           Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubI));
 
-          Bpl.Expr goodRef = etran.GoodRef(tok, xSubI, st.Arg);
-          Bpl.Expr body = Bpl.Expr.Imp(range, Bpl.Expr.Or(Bpl.Expr.Eq(xSubI, predef.Null), goodRef));
+          Bpl.Expr goodRef = etran.GoodRef(tok, unbox, st.Arg);
+          Bpl.Expr body = Bpl.Expr.Imp(range, Bpl.Expr.Or(Bpl.Expr.Eq(unbox, predef.Null), goodRef));
           return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), tr, body);
         } else {
           // TODO: should also handle sequences or sequences, etc.
@@ -1815,20 +1845,20 @@ namespace Microsoft.Dafny {
           
         } else if (expr is SetDisplayExpr) {
           SetDisplayExpr e = (SetDisplayExpr)expr;
-          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SetEmpty, translator.TrType((!)expr.Type));
+          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
           foreach (Expression ee in e.Elements) {
-            Bpl.Expr ss = TrExpr(ee);
-            s = translator.FunctionCall(expr.tok, BuiltinFunction.SetUnionOne, translator.TrType(expr.Type), s, ss);
+            Bpl.Expr ss = BoxIfNecessary(expr.tok, TrExpr(ee), (!)ee.Type);
+            s = translator.FunctionCall(expr.tok, BuiltinFunction.SetUnionOne, predef.BoxType, s, ss);
           }
           return s;
           
         } else if (expr is SeqDisplayExpr) {
           SeqDisplayExpr e = (SeqDisplayExpr)expr;
-          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, translator.TrType((!)expr.Type));
+          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
           int i = 0;
           foreach (Expression ee in e.Elements) {
-            Bpl.Expr ss = TrExpr(ee);
-            s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, translator.TrType(expr.Type), s, Bpl.Expr.Literal(i), ss, Bpl.Expr.Literal(i+1));
+            Bpl.Expr ss = BoxIfNecessary(expr.tok, TrExpr(ee), (!)ee.Type);
+            s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, s, Bpl.Expr.Literal(i), ss, Bpl.Expr.Literal(i+1));
             i++;
           }
           return s;
@@ -1840,12 +1870,17 @@ namespace Microsoft.Dafny {
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
           Bpl.Expr seq = TrExpr(e.Seq);
-          Bpl.Type elType = translator.TrType(((SeqType!)e.Seq.Type).Arg);
+          Type elmtType = ((SeqType!)e.Seq.Type).Arg;
+          Bpl.Type elType = translator.TrType(elmtType);
           Bpl.Expr e0 = e.E0 == null ? null : TrExpr(e.E0);
           Bpl.Expr e1 = e.E1 == null ? null : TrExpr(e.E1);
           if (e.SelectOne) {
             assert e1 == null;
-            return translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, elType, seq, e0);
+            Bpl.Expr x = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
+            if (!ModeledAsBoxType(elmtType)) {
+              x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, elType, x);
+            }
+            return x;
           } else {
             if (e1 != null) {
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqTake, elType, seq, e1);
@@ -1879,24 +1914,25 @@ namespace Microsoft.Dafny {
           FreshExpr e = (FreshExpr)expr;
           Bpl.Expr oldHeap = new Bpl.OldExpr(expr.tok, HeapExpr);
           if (e.E.Type is SetType) {
-            // generate:  (forall $o: ref :: $o != null && X[$o] ==> !old($Heap)[$o,alloc])
+            // generate:  (forall $o: ref :: $o != null && X[Box($o)] ==> !old($Heap)[$o,alloc])
             // TODO: trigger?
             Bpl.Variable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
             Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
             Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-            Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, null);
+            Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)e.E.Type).Arg);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, o, oldHeap));
             Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), body);
           } else if (e.E.Type is SeqType) {
-            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Seq#Index(X,$i) != null ==> !old($Heap)[Seq#Index(X,$i),alloc])
+            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Seq#Index(X,$i),alloc])
             // TODO: trigger?
             Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
             Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
             Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), null, false);
             Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, XsubI, oldHeap));
-            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, XsubI), oIsFresh);
+            Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI), predef.Null);
+            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(iVar), body);
           } else {
             // generate:  x == null || !old($Heap)[x]
@@ -1921,9 +1957,9 @@ namespace Microsoft.Dafny {
           BinaryExpr e = (BinaryExpr)expr;
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-            return TrInSet(expr.tok, e0, e.E1, e.E0.Type);  // let TrInSet translate e.E1
+            return TrInSet(expr.tok, e0, e.E1, (!)e.E0.Type);  // let TrInSet translate e.E1
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, e.E0.Type);  // let TrInSet translate e.E1
+            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, (!)e.E0.Type);  // let TrInSet translate e.E1
             return Bpl.Expr.Not(arg);
           }
           Bpl.Expr e1 = TrExpr(e.E1);
@@ -2003,9 +2039,11 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Concat:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqAppend, translator.TrType(((SeqType!)expr.Type).Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.InSeq:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1, e0);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1,
+                       BoxIfNecessary(expr.tok, e0, (!)e.E0.Type));
             case BinaryExpr.ResolvedOpcode.NotInSeq:
-              Bpl.Expr arg = translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1, e0);
+              Bpl.Expr arg = translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1,
+                       BoxIfNecessary(expr.tok, e0, (!)e.E0.Type));
               return Bpl.Expr.Not(arg);
 
             default:
@@ -2075,7 +2113,15 @@ namespace Microsoft.Dafny {
       }
 
       public Bpl.Expr! CondApplyBox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
-        if (!ModeledAsRef(fromType) && ModeledAsRef(toType)) {
+        if (!ModeledAsBoxType(fromType) && ModeledAsBoxType(toType)) {
+          return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
+        } else {
+          return e;
+        }
+      }
+      
+      public Bpl.Expr! BoxIfNecessary(Token! tok, Bpl.Expr! e, Type! fromType) {
+        if (!ModeledAsBoxType(fromType)) {
           return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
         } else {
           return e;
@@ -2083,15 +2129,15 @@ namespace Microsoft.Dafny {
       }
       
       public Bpl.Expr! CondApplyUnbox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
-        if (ModeledAsRef(fromType) && !ModeledAsRef(toType)) {
-          return translator.FunctionSpecial(tok, BuiltinFunction.Unbox, translator.TrType(toType), e);
+        if (ModeledAsBoxType(fromType) && !ModeledAsBoxType(toType)) {
+          return translator.FunctionCall(tok, BuiltinFunction.Unbox, translator.TrType(toType), e);
         } else {
           return e;
         }
       }
       
-      public static bool ModeledAsRef(Type! t) {
-        return !(t is BoolType || t is IntType || t is CollectionType);
+      public static bool ModeledAsBoxType(Type! t) {
+        return t.IsTypeParameter;
       }
 
       public Bpl.IdentifierExpr! TrVar(Token! tok, IVariable! var) {
@@ -2099,11 +2145,10 @@ namespace Microsoft.Dafny {
       }
       
       /// <summary>
-      /// Translate like s[elmt], but try to avoid as many set functions as possible in the
+      /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
-      /// If elmtType is non-null, boxing according to elmtType is applied as appropriate.
       /// </summary>
-      public Bpl.Expr! TrInSet(Token! tok, Bpl.Expr! elmt, Expression! s, Type elmtType) {
+      public Bpl.Expr! TrInSet(Token! tok, Bpl.Expr! elmt, Expression! s, Type! elmtType) {
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
@@ -2133,7 +2178,7 @@ namespace Microsoft.Dafny {
             return disjunction;
           }
         }
-        return Bpl.Expr.SelectTok(tok, TrExpr(s), elmt);
+        return Bpl.Expr.SelectTok(tok, TrExpr(s), BoxIfNecessary(tok, elmt, elmtType));
       }
       
       Bpl.QKeyValue TrAttributes(Attributes attrs) {
@@ -2221,16 +2266,17 @@ namespace Microsoft.Dafny {
           // This is done below
           
         } else if (type is SetType) {
-          // (forall tp: ref :: e[tp] ==> tp == null || $Heap[tp, alloc])
-          bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$tp", predef.RefType));
+          // (forall tp: BoxType :: e[tp] ==> Unbox(tp) == null || $Heap[Unbox(tp), alloc])
+          bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$tp", predef.BoxType));
           Bpl.Expr tp = new Bpl.IdentifierExpr(tok, bv);
           ante = Bpl.Expr.SelectTok(tok, e, tp);  // note, this means the set-inclusion does not undergo the set-inclusion expansion optimization done by TrInSet
-          e = tp;
+          e = translator.FunctionCall(tok, BuiltinFunction.Unbox, predef.RefType, tp);
           
         } else if (type is SeqType) {
-          // (forall i: int :: Seq#Index(e,i) == null || $Heap[Seq#Index(e,i), alloc])
+          // (forall i: int :: Unbox(Seq#Index(e,i)) == null || $Heap[Unbox(Seq#Index(e,i)), alloc])
           bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
-          e = translator.FunctionCall(tok, BuiltinFunction.SeqIndex, predef.RefType, e, new Bpl.IdentifierExpr(tok, bv));
+          e = translator.FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, e, new Bpl.IdentifierExpr(tok, bv));
+          e = translator.FunctionCall(tok, BuiltinFunction.Unbox, predef.RefType, e);
           
         } else {
           return null;
@@ -2287,35 +2333,33 @@ namespace Microsoft.Dafny {
       CevProgramLocation,
     }
     
+    // The "typeInstantiation" argument is passed in to help construct the result type of the function.
     Bpl.NAryExpr! FunctionCall(Token! tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[]! args)
       requires predef != null;
     {
       switch (f) {
-        case BuiltinFunction.SetEmpty:
+        case BuiltinFunction.SetEmpty: {
           assert args.Length == 0;
           assert typeInstantiation != null;
-          return FunctionCall(tok, "Set#Empty",
-            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+          Bpl.Type resultType = predef.SetType(tok, typeInstantiation);
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
+        }
         case BuiltinFunction.SetUnionOne:
           assert args.Length == 2;
           assert typeInstantiation != null;
-          return FunctionCall(tok, "Set#UnionOne",
-            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+          return FunctionCall(tok, "Set#UnionOne", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetUnion:
           assert args.Length == 2;
           assert typeInstantiation != null;
-          return FunctionCall(tok, "Set#Union",
-            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+          return FunctionCall(tok, "Set#Union", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetIntersection:
           assert args.Length == 2;
           assert typeInstantiation != null;
-          return FunctionCall(tok, "Set#Intersection",
-            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+          return FunctionCall(tok, "Set#Intersection", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetDifference:
           assert args.Length == 2;
           assert typeInstantiation != null;
-          return FunctionCall(tok, "Set#Difference",
-            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+          return FunctionCall(tok, "Set#Difference", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetEqual:
           assert args.Length == 2;
           assert typeInstantiation == null;
@@ -2333,11 +2377,12 @@ namespace Microsoft.Dafny {
           assert args.Length == 1;
           assert typeInstantiation == null;
           return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
-        case BuiltinFunction.SeqEmpty:
+        case BuiltinFunction.SeqEmpty: {
           assert args.Length == 0;
           assert typeInstantiation != null;
-          return FunctionCall(tok, "Seq#Empty",
-            new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(typeInstantiation), Bpl.Type.Bool), args);
+          Bpl.Type resultType = predef.SeqType(tok, typeInstantiation);
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
+        }
         case BuiltinFunction.SeqBuild:
           assert args.Length == 4;
           assert typeInstantiation != null;
@@ -2374,9 +2419,11 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.Box:
           assert args.Length == 1;
           assert typeInstantiation == null;
-          return FunctionCall(tok, "$Box", predef.RefType, args);
+          return FunctionCall(tok, "$Box", predef.BoxType, args);
         case BuiltinFunction.Unbox:
-          assert false;  // Unbox should be handled by a call to FunctionSpecial
+          assert args.Length == 1;
+          assert typeInstantiation != null;
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
 
         case BuiltinFunction.IsGoodHeap:
           assert args.Length == 1;
@@ -2430,17 +2477,6 @@ namespace Microsoft.Dafny {
       }
     }
     
-    Bpl.NAryExpr! FunctionSpecial(Token! tok, BuiltinFunction f, Bpl.Type! resultType, params Bpl.Expr[]! args)
-    {
-      switch (f) {
-        case BuiltinFunction.Unbox:
-          assert args.Length == 1;
-          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", resultType, args), resultType);
-        default:
-          assert false;  // unexpected enum value
-      }
-    }
-
     Bpl.NAryExpr! FunctionCall(Token! tok, string! function, Bpl.Type! returnType, params Bpl.Expr[]! args)
     {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), new Bpl.ExprSeq(args));

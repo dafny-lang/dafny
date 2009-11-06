@@ -43,16 +43,10 @@ class Map<Key,Value> {
     requires Valid();
     modifies this;
     ensures Valid();
-    // no key is lost:
-    ensures (forall k :: k in old(keys) ==> k in keys);
-    // at most one key is introduced:
-    ensures (forall k :: k in keys ==> k in old(keys) || k == key);
-    // the given key has the given value:
-    ensures (exists i :: 0 <= i && i < |keys| &&
-                         keys[i] == key && values[i] == val);
-    // other values don't change:
-    ensures (forall i :: 0 <= i && i < |keys| && keys[i] != key ==>
-                values[i] == old(values)[i]);
+    ensures (forall i :: 0 <= i && i < |keys| && old(keys)[i] == key ==>
+              keys[i] == key && values[i] == val &&
+              (forall j :: 0 <= j && j < |values| && i != j ==> keys[j] == old(keys)[j] && values[j] == old(values)[j]));
+    ensures key !in old(keys) ==> keys == old(keys) + [key] && values == old(values) + [val];
   {
     call j := FindIndex(key);
     if (j == -1) {
@@ -60,7 +54,6 @@ class Map<Key,Value> {
       values := values + [val];
       assert values[|keys|-1] == val;  // lemma
     } else {
-      keys := keys[..j] + [key] + keys[j+1..];
       values := values[..j] + [val] + values[j+1..];
       assert values[j] == val; //lemma
     }

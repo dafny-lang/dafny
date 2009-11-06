@@ -7,22 +7,22 @@
 
 
 class Queue<T> {
-  var contents: seq<int>;
+  var contents: seq<T>;
   method Init();
     modifies this;
     ensures |contents| == 0;
-  method Enqueue(x: int);
+  method Enqueue(x: T);
     modifies this;
     ensures contents == old(contents) + [x];
-  method Dequeue() returns (x: int);
+  method Dequeue() returns (x: T);
     requires 0 < |contents|;
     modifies this;
     ensures contents == old(contents)[1..] && x == old(contents)[0];
-  function Head(): int
+  function Head(): T
     requires 0 < |contents|;
     reads this;
   { contents[0] }
-  function Get(i: int): int
+  function Get(i: int): T
     requires 0 <= i && i < |contents|;
     reads this;
   { contents[i] }

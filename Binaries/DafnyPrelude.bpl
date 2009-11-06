@@ -148,10 +148,17 @@ axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Drop(s,n), j) }
 // -- Boxing and unboxing ----------------------------------------
 // ---------------------------------------------------------------
 
-function $Box<T>(T) returns (ref);
-function $Unbox<T>(ref) returns (T);
+type BoxType;
+
+function $Box<T>(T) returns (BoxType);
+function $Unbox<T>(BoxType) returns (T);
 
 axiom (forall<T> x: T :: { $Box(x) } $Unbox($Box(x)) == x);
+axiom (forall b: BoxType :: { $Unbox(b): int } $Box($Unbox(b): int) == b);
+axiom (forall b: BoxType :: { $Unbox(b): ref } $Box($Unbox(b): ref) == b);
+axiom (forall b: BoxType :: { $Unbox(b): Set BoxType } $Box($Unbox(b): Set BoxType) == b);
+axiom (forall b: BoxType :: { $Unbox(b): Seq BoxType } $Box($Unbox(b): Seq BoxType) == b);
+// note: an axiom like this for bool would not be sound
 
 // ---------------------------------------------------------------
 

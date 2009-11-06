@@ -96,5 +96,11 @@ Execution trace:
 Dafny program verifier finished with 5 verified, 3 errors
 
 -------------------- TypeParameters.dfy --------------------
+TypeParameters.dfy(41,5): Error BP5001: This assertion might not hold.
+Execution trace:
+    (0,0): anon0
+TypeParameters.dfy(63,5): Error BP5001: This assertion might not hold.
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 7 verified, 2 errors

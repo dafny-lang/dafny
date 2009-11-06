@@ -1,7 +1,7 @@
 
-class Collection {
+class Collection<T> {
   var footprint:set<object>;
-  var elements:seq<int>;
+  var elements:seq<T>;
   
   function Valid():bool
   reads this, footprint;
@@ -24,7 +24,7 @@ class Collection {
 		footprint := {this}; 
   }
   
-  method GetItem(i:int ) returns (x:int)
+  method GetItem(i:int ) returns (x:T)
   requires Valid();
   requires 0<=i && i<|elements|;
   ensures elements[i] ==x;
@@ -32,7 +32,7 @@ class Collection {
 		x:=elements[i];
   }
   
-  method Add(x:int )
+  method Add(x:T )
   requires Valid();
   modifies footprint;
   ensures Valid() && fresh(footprint - old(footprint));
@@ -41,21 +41,21 @@ class Collection {
 		elements:= elements + [x];
   }
   
-  method GetIterator() returns (iter:Iterator)
+  method GetIterator() returns (iter:Iterator<T>)
   requires Valid();
   ensures iter != null && iter.Valid();
   ensures fresh(iter.footprint) && iter.pos == -1;
   ensures iter.c == this;
   {
-      iter:= new Iterator;
+      iter:= new Iterator<T>;
       call iter.Init(this);
   }
   
 }
 
-class Iterator {
+class Iterator<T> {
  
-  var c:Collection;
+  var c:Collection<T>;
   var pos:int;
   
   var footprint:set<object>;
@@ -66,7 +66,7 @@ class Iterator {
 		this in footprint && c!= null && -1<= pos && null !in footprint
   }
   
-  method Init(coll:Collection)
+  method Init(coll:Collection<T>)
   requires coll != null;
   modifies this;
   ensures Valid() && fresh(footprint -{this}) && pos ==-1;
@@ -94,7 +94,7 @@ class Iterator {
 	0<= pos && pos < |c.elements|
  }
  
- method GetCurrent() returns (x:int)
+ method GetCurrent() returns (x:T)
  requires Valid() && HasCurrent();
  ensures c.elements[pos] == x;
   {
@@ -108,7 +108,7 @@ class Client
 
 	method Main()
 	{
-		var c:= new Collection;
+		var c:= new Collection<int>;
 		call c.Init();
 		call c.Add(33);
 		call c.Add(45);
