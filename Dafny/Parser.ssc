@@ -1312,10 +1312,16 @@ public static int Parse (List<ClassDecl!>! classes) {
 			if (StartOf(5)) {
 				Expression(out ee);
 				e0 = ee; 
-				if (t.kind == 78) {
-					Get();
-					anyDots = true; 
-					if (StartOf(5)) {
+				if (t.kind == 35 || t.kind == 78) {
+					if (t.kind == 78) {
+						Get();
+						anyDots = true; 
+						if (StartOf(5)) {
+							Expression(out ee);
+							e1 = ee; 
+						}
+					} else {
+						Get();
 						Expression(out ee);
 						e1 = ee; 
 					}
@@ -1325,12 +1331,16 @@ public static int Parse (List<ClassDecl!>! classes) {
 				Expression(out ee);
 				anyDots = true;  e1 = ee; 
 			} else Error(118);
-			if (!anyDots) {
-			 assert e1 == null;
-			 e = new SeqSelectExpr(x, true, e, e0, null);
-			} else {
+			assert !anyDots ==> e0 != null;
+			if (anyDots) {
 			  assert e0 != null || e1 != null;
 			  e = new SeqSelectExpr(x, false, e, e0, e1);
+			} else if (e1 == null) {
+			  assert e0 != null;
+			  e = new SeqSelectExpr(x, true, e, e0, null);
+			} else {
+			  assert e0 != null;
+			  e = new SeqUpdateExpr(x, e, e0, e1);
 			}
 			
 			Expect(76);

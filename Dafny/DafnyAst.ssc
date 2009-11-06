@@ -871,6 +871,20 @@ namespace Microsoft.Dafny
     }
   }
 
+  public class SeqUpdateExpr : Expression {
+    public readonly Expression! Seq;
+    public readonly Expression! Index;
+    public readonly Expression! Value;
+    
+    public SeqUpdateExpr(Token! tok, Expression! seq, Expression! index, Expression! val)
+    {
+      Seq = seq;
+      Index = index;
+      Value = val;
+      base(tok);
+    }
+  }
+
   public class FunctionCallExpr : Expression {
     public readonly string! Name;
     [Peer] public readonly Expression! Receiver;

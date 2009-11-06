@@ -1020,14 +1020,14 @@ namespace Microsoft.Dafny {
           ResolveExpression(e.E0, twoState);
           assert e.E0.Type != null;  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(e.E0.Type, Type.Int)) {
-            Error(e.E0, "sequence selections requires integer indices (got {0})", e.E0.Type);
+            Error(e.E0, "sequence selection requires integer indices (got {0})", e.E0.Type);
           }
         }
         if (e.E1 != null) {
           ResolveExpression(e.E1, twoState);
           assert e.E1.Type != null;  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(e.E1.Type, Type.Int)) {
-            Error(e.E1, "sequence selections requires integer indices (got {0})", e.E1.Type);
+            Error(e.E1, "sequence selection requires integer indices (got {0})", e.E1.Type);
           }
         }
         if (!seqErr) {
@@ -1036,6 +1036,30 @@ namespace Microsoft.Dafny {
           } else {
             expr.Type = e.Seq.Type;
           }
+        }
+        
+      } else if (expr is SeqUpdateExpr) {
+        SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        bool seqErr = false;
+        ResolveExpression(e.Seq, twoState);
+        assert e.Seq.Type != null;  // follows from postcondition of ResolveExpression
+        Type elementType = new InferredTypeProxy();
+        if (!UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
+          Error(expr, "sequence update requires a sequence (got {0})", e.Seq.Type);
+          seqErr = true;
+        }
+        ResolveExpression(e.Index, twoState);
+        assert e.Index.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Index.Type, Type.Int)) {
+          Error(e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
+        }
+        ResolveExpression(e.Value, twoState);
+        assert e.Value.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Value.Type, elementType)) {
+          Error(e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
+        }
+        if (!seqErr) {
+          expr.Type = e.Seq.Type;
         }
         
       } else if (expr is FunctionCallExpr) {

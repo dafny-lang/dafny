@@ -695,6 +695,15 @@ namespace Microsoft.Dafny {
           total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true));
         }
         return total;
+      } else if (expr is SeqUpdateExpr) {
+        SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        Bpl.Expr total = IsTotal(e.Seq, etran);
+        Bpl.Expr seq = etran.TrExpr(e.Seq);
+        Bpl.Expr index = etran.TrExpr(e.Index);
+        total = BplAnd(total, IsTotal(e.Index, etran));
+        total = BplAnd(total, InSeqRange(expr.tok, index, seq, null, false));
+        total = BplAnd(total, IsTotal(e.Value, etran));
+        return total;
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Bpl.Expr r = IsTotal(e.Receiver, etran);
@@ -825,6 +834,14 @@ namespace Microsoft.Dafny {
           CheckWellformed(e.E1, func, Position.Neither, builder, etran);
           builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true)));
         }
+      } else if (expr is SeqUpdateExpr) {
+        SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        CheckWellformed(e.Seq, func, Position.Neither, builder, etran);
+        Bpl.Expr seq = etran.TrExpr(e.Seq);
+        Bpl.Expr index = etran.TrExpr(e.Index);
+        CheckWellformed(e.Index, func, Position.Neither, builder, etran);
+        builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, index, seq, null, false)));
+        CheckWellformed(e.Value, func, Position.Neither, builder, etran);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         CheckWellformed(e.Receiver, func, Position.Neither, builder, etran);
@@ -1891,6 +1908,15 @@ namespace Microsoft.Dafny {
             return seq;
           }
         
+        } else if (expr is SeqUpdateExpr) {
+          SeqUpdateExpr e = (SeqUpdateExpr)expr;
+          Bpl.Expr seq = TrExpr(e.Seq);
+          Type elmtType = ((SeqType!)e.Seq.Type).Arg;
+          Bpl.Type elType = translator.TrType(elmtType);
+          Bpl.Expr index = TrExpr(e.Index);
+          Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
+          return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
+        
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           string nm = ((!)e.Function).FullName + (e is UseExpr ? "#use" : "");
@@ -2308,6 +2334,7 @@ namespace Microsoft.Dafny {
       SeqBuild,
       SeqAppend,
       SeqIndex,
+      SeqUpdate,
       SeqContains,
       SeqDrop,
       SeqTake,
@@ -2395,6 +2422,10 @@ namespace Microsoft.Dafny {
           assert args.Length == 2;
           assert typeInstantiation != null;
           return FunctionCall(tok, "Seq#Index", typeInstantiation, args);
+        case BuiltinFunction.SeqUpdate:
+          assert args.Length == 3;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "Seq#Update", predef.SeqType(tok, typeInstantiation), args);
         case BuiltinFunction.SeqContains:
           assert args.Length == 2;
           assert typeInstantiation == null;
@@ -2614,6 +2645,15 @@ namespace Microsoft.Dafny {
         Expression e1 = sse.E1 == null ? null : Substitute(sse.E1, receiverReplacement, substMap);
         if (seq != sse.Seq || e0 != sse.E0 || e1 != sse.E1) {
           newExpr = new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1);
+        }
+        
+      } else if (expr is SeqUpdateExpr) {
+        SeqUpdateExpr sse = (SeqUpdateExpr)expr;
+        Expression seq = Substitute(sse.Seq, receiverReplacement, substMap);
+        Expression index = Substitute(sse.Index, receiverReplacement, substMap);
+        Expression val = Substitute(sse.Value, receiverReplacement, substMap);
+        if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
+          newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
         }
         
       } else if (expr is FunctionCallExpr) {

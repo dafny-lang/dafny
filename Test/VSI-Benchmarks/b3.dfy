@@ -100,7 +100,7 @@ class Benchmark3 {
       call r.Enqueue(m);
       pperm:=  pperm[k+1..|p|+1] + pperm[..k] + pperm[|p|+1..] +[pperm[k]];
     }
-    assert (forall i:int :: 0<=i && i < |perm| ==> perm[i] == pperm[i]); //needed to trigger axiom
+    assert (forall i:int :: 0<=i && i < |perm| ==> perm[i] == pperm[i]); //lemma needed to trigger axiom
    }
   
   

@@ -52,10 +52,8 @@ class Map<Key,Value> {
     if (j == -1) {
       keys := keys + [key];
       values := values + [val];
-      assert values[|keys|-1] == val;  // lemma
     } else {
-      values := values[..j] + [val] + values[j+1..];
-      assert values[j] == val; //lemma
+      values := values[j := val];
     }
   }
 

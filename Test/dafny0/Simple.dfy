@@ -24,6 +24,7 @@ class MyClass<T,U> {
       var to: MyClass<T,U>;
       call to, u, v := this.M(true, lotsaObjects);
       call to, u, v := to.M(true, lotsaObjects);
+      assert v[x] != null ==> null !in v[2..x][1..][5 := v[this.x]][..10];
     }
   }
 }

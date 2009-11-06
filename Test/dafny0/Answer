@@ -27,6 +27,7 @@ class MyClass<T, U> {
       var to: MyClass<T,U>;
       call to, u, v := M(true, lotsaObjects)
       call to, u, v := to.M(true, lotsaObjects)
+      assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
     }
   }
 }
@@ -38,8 +39,11 @@ Dafny program verifier finished with 0 verified, 0 errors
 Boogie program verifier finished with 8 verified, 0 errors
 
 -------------------- SmallTests.dfy --------------------
+SmallTests.dfy(29,7): Error: RHS expression must be well defined
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 4 verified, 1 error
 
 -------------------- Queue.dfy --------------------
 

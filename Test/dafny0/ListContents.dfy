@@ -77,10 +77,10 @@ class Node<T> {
         (forall i :: 0 <= i && i < |reverse.list| ==> old(list)[i] == reverse.list[|reverse.list|-1-i]);
     {
       var nx := current.next;
-      assert nx != null ==> (forall i :: 0 <= i && i < |nx.list| ==> current.list[1+i] == nx.list[i]);
+      assert nx != null ==> (forall i :: 0 <= i && i < |nx.list| ==> current.list[1+i] == nx.list[i]); // lemma
 
       // ..., reverse, current, nx, ...
-      assert current.data == current.list[0];
+      assert current.data == current.list[0]; // lemma
       current.next := reverse;
       current.footprint := {current} + reverse.footprint;
       current.list := [current.data] + reverse.list;

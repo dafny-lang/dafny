@@ -84,6 +84,14 @@ axiom (forall<T> s: Seq T, i: int, v: T, len: int, n: int :: { Seq#Index(Seq#Bui
     (i == n ==> Seq#Index(Seq#Build(s,i,v,len),n) == v) &&
     (i != n ==> Seq#Index(Seq#Build(s,i,v,len),n) == Seq#Index(s,n)));
 
+function Seq#Update<T>(Seq T, int, T) returns (Seq T);
+axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Length(Seq#Update(s,i,v)) }
+  0 <= i && i < Seq#Length(s) ==> Seq#Length(Seq#Update(s,i,v)) == Seq#Length(s));
+axiom (forall<T> s: Seq T, i: int, v: T, n: int :: { Seq#Index(Seq#Update(s,i,v),n) }
+  0 <= n && n < Seq#Length(s) ==>
+    (i == n ==> Seq#Index(Seq#Update(s,i,v),n) == v) &&
+    (i != n ==> Seq#Index(Seq#Update(s,i,v),n) == Seq#Index(s,n)));
+
 function Seq#Contains<T>(Seq T, T) returns (bool);
 axiom (forall<T> s: Seq T, x: T :: { Seq#Contains(s,x) }
   Seq#Contains(s,x) <==>
