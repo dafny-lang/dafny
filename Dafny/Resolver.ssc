@@ -32,42 +32,70 @@ namespace Microsoft.Dafny {
       Error(e.tok, msg, args);
     }
     
-    readonly Dictionary<string!,ClassDecl!>! classes = new Dictionary<string!,ClassDecl!>();
+    readonly Dictionary<string!,TopLevelDecl!>! classes = new Dictionary<string!,TopLevelDecl!>();
     readonly Dictionary<ClassDecl!,Dictionary<string!,MemberDecl!>!>! classMembers = new Dictionary<ClassDecl!,Dictionary<string!,MemberDecl!>!>();
+    readonly Dictionary<DatatypeDecl!,Dictionary<string!,DatatypeCtor!>!>! datatypeCtors = new Dictionary<DatatypeDecl!,Dictionary<string!,DatatypeCtor!>!>();
 
     public void ResolveProgram(Program! prog) {
-      foreach (ClassDecl cl in prog.Classes) {
-        // register the class name
-        if (classes.ContainsKey(cl.Name)) {
-          Error(cl, "Duplicate class name: {0}", cl.Name);
+      foreach (TopLevelDecl d in prog.Classes) {
+        // register the class/datatype name
+        if (classes.ContainsKey(d.Name)) {
+          Error(d, "Duplicate name of top-level declaration: {0}", d.Name);
         } else {
-          classes.Add(cl.Name, cl);
+          classes.Add(d.Name, d);
         }
+
+        if (d is ClassDecl) {
+          ClassDecl cl = (ClassDecl)d;
+          
+          // register the names of the class members
+          Dictionary<string!,MemberDecl!> members = new Dictionary<string!,MemberDecl!>();
+          classMembers.Add(cl, members);
         
-        // register the names of the class members
-        Dictionary<string!,MemberDecl!> members = new Dictionary<string!,MemberDecl!>();
-        classMembers.Add(cl, members);
+          foreach (MemberDecl m in cl.Members) {
+            if (members.ContainsKey(m.Name)) {
+              Error(m, "Duplicate member name: {0}", m.Name);
+            } else {
+              members.Add(m.Name, m);
+            }
+          }
+        } else {
+          DatatypeDecl dt = (DatatypeDecl)d;
+
+          // register the names of the constructors
+          Dictionary<string!,DatatypeCtor!> ctors = new Dictionary<string!,DatatypeCtor!>();
+          datatypeCtors.Add(dt, ctors);
         
-        foreach (MemberDecl m in cl.Members) {
-          if (members.ContainsKey(m.Name)) {
-            Error(m, "Duplicate member name: {0}", m.Name);
-          } else {
-            members.Add(m.Name, m);
+          foreach (DatatypeCtor ctor in dt.Ctors) {
+            if (ctors.ContainsKey(ctor.Name)) {
+              Error(ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
+            } else {
+              ctors.Add(ctor.Name, ctor);
+            }
           }
         }
       }
 
       // resolve each class
-      foreach (ClassDecl cl in prog.Classes) {
+      foreach (TopLevelDecl d in prog.Classes) {
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(cl.TypeArgs, true, cl);
-        ResolveClassMemberTypes(cl);
+        ResolveTypeParameters(d.TypeArgs, true, d);
+        if (d is ClassDecl) {
+          ResolveClassMemberTypes((ClassDecl)d);
+        } else {
+          ResolveCtorTypes((DatatypeDecl)d);
+        }
         allTypeParameters.PopMarker();
       }
-      foreach (ClassDecl cl in prog.Classes) {
+      foreach (TopLevelDecl d in prog.Classes) {
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(cl.TypeArgs, false, cl);
-        ResolveClassMemberBodies(cl);
+        ResolveTypeParameters(d.TypeArgs, false, d);
+        if (d is ClassDecl) {
+          ResolveClassMemberBodies((ClassDecl)d);
+        } else {
+          assert d is DatatypeDecl;
+          // nothing else to do (but there will be something to do here if constructors can have preconditions)
+        }
         allTypeParameters.PopMarker();
       }
     }
@@ -146,6 +174,21 @@ namespace Microsoft.Dafny {
       currentClass = null;
     }
 
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveCtorTypes(DatatypeDecl! dt)
+    {
+      foreach (DatatypeCtor ctor in dt.Ctors) {
+        ctor.EnclosingDatatype = dt;
+
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(ctor.TypeArgs, true, ctor);
+        ResolveCtorSignature(ctor);
+        allTypeParameters.PopMarker();
+      }
+    }
+
     void ResolveAttributes(Attributes attrs, bool twoState) {
       // order does not matter for resolution, so resolve them in reverse order
       for (; attrs != null; attrs = attrs.Prev) {
@@ -218,7 +261,7 @@ namespace Microsoft.Dafny {
         }
         if (t is ObjectType) {
           // fine
-        } else if (ClassType.DenotesClass(t) != null) {
+        } else if (UserDefinedType.DenotesClass(t) != null) {
           // fine
         } else {
           Error(r, "a reads-clause expression must denote an object or a collection of objects (instead got {0})", r.Type);
@@ -283,7 +326,7 @@ namespace Microsoft.Dafny {
         }
         if (t is ObjectType) {
           // fine
-        } else if (ClassType.DenotesClass(t) != null) {
+        } else if (UserDefinedType.DenotesClass(t) != null) {
           // fine
         } else {
           Error(e, "a modifies-clause expression must denote an object or a collection of objects (instead got {0})", e.Type);
@@ -312,13 +355,27 @@ namespace Microsoft.Dafny {
       scope.PopMarker();
     }
     
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveCtorSignature(DatatypeCtor! ctor) {
+      scope.PushMarker();
+      foreach (Formal p in ctor.Formals) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Duplicate parameter name: {0}", p.Name);
+        }
+        ResolveType(p.Type);
+      }
+      scope.PopMarker();
+    }
+
     public void ResolveType(Type! type) {
       if (type is BasicType) {
         // nothing to resolve
       } else if (type is CollectionType) {
         ResolveType(((CollectionType)type).Arg);
-      } else if (type is ClassType) {
-        ClassType t = (ClassType)type;
+      } else if (type is UserDefinedType) {
+        UserDefinedType t = (UserDefinedType)type;
         foreach (Type tt in t.TypeArgs) {
           ResolveType(tt);
         }
@@ -330,13 +387,13 @@ namespace Microsoft.Dafny {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
         } else {
-          ClassDecl cl;
-          if (!classes.TryGetValue(t.Name, out cl)) {
-            Error(t.tok, "Undeclared class type or type parameter: {0}", t.Name);
-          } else if (((!)cl).TypeArgs.Count == t.TypeArgs.Count) {
-            t.ResolvedClass = cl;
+          TopLevelDecl d;
+          if (!classes.TryGetValue(t.Name, out d)) {
+            Error(t.tok, "Undeclared top-level type or type parameter: {0}", t.Name);
+          } else if (((!)d).TypeArgs.Count == t.TypeArgs.Count) {
+            t.ResolvedClass = d;
           } else {
-            Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class: {2}", t.TypeArgs.Count, cl.TypeArgs.Count, t.Name);
+            Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
           }
         }
       
@@ -393,14 +450,14 @@ namespace Microsoft.Dafny {
         return b is SetType && UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
       } else if (a is SeqType) {
         return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
-      } else if (a is ClassType) {
-        if (!(b is ClassType)) {
+      } else if (a is UserDefinedType) {
+        if (!(b is UserDefinedType)) {
           return false;
         }
-        ClassType aa = (ClassType)a;
-        ClassType bb = (ClassType)b;
+        UserDefinedType aa = (UserDefinedType)a;
+        UserDefinedType bb = (UserDefinedType)b;
         if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
-          // these are both resolved class types
+          // these are both resolved class/datatype types
           assert aa.TypeArgs.Count == bb.TypeArgs.Count;
           bool successSoFar = true;
           for (int i = 0; i < aa.TypeArgs.Count; i++) {
@@ -454,14 +511,14 @@ namespace Microsoft.Dafny {
       
       // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
       } else if (proxy is ObjectTypeProxy) {
-        if (t is ObjectType || ClassType.DenotesClass(t) != null) {
+        if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
           // all is fine, proxy can be redirected to t
         } else {
           return false;
         }
       
       } else if (proxy is ObjectsTypeProxy) {
-        if (t is ObjectType || ClassType.DenotesClass(t) != null) {
+        if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
           // all is good
         } else if (t is CollectionType) {
           proxy.T = new CollectionTypeProxy(new ObjectTypeProxy());
@@ -641,7 +698,9 @@ namespace Microsoft.Dafny {
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           ResolveType(rr.Type);
-          if (!UnifyTypes(s.Lhs.Type, rr.Type)) {
+          if (!rr.Type.IsRefType) {
+            Error(stmt, "new can be applied only to reference types (got {0})", rr.Type);
+          } else if (!UnifyTypes(s.Lhs.Type, rr.Type)) {
             Error(stmt, "type {0} is not assignable to LHS (of type {1})", rr.Type, s.Lhs.Type);
           }
         } else if (s.Rhs is HavocRhs) {
@@ -666,6 +725,9 @@ namespace Microsoft.Dafny {
           } else if (s.Rhs is TypeRhs) {
             TypeRhs rr = (TypeRhs)s.Rhs;
             ResolveType(rr.Type);
+            if (!rr.Type.IsRefType) {
+              Error(stmt, "new can be applied only to reference types (got {0})", rr.Type);
+            }
             rhsType = rr.Type;
           } else {
             assert false;  // unexpected RHS
@@ -708,7 +770,7 @@ namespace Microsoft.Dafny {
         }
         
         // resolve the method name
-        ClassType ctype;
+        UserDefinedType ctype;
         MemberDecl member = ResolveMember(s.Tok, s.Receiver.Type, s.MethodName, out ctype);
         if (member == null) {
           // error has already been reported by ResolveMember
@@ -835,17 +897,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    MemberDecl ResolveMember(Token! tok, Type! receiverType, string! memberName, out ClassType ctype)
+    MemberDecl ResolveMember(Token! tok, Type! receiverType, string! memberName, out UserDefinedType ctype)
       ensures result != null ==> ctype != null && ctype.ResolvedClass != null;
     {
-      ctype = ClassType.DenotesClass(receiverType);
+      ctype = UserDefinedType.DenotesClass(receiverType);
       if (ctype == null) {
         Error(tok, "receiver (of type {0}) must be of a class type", receiverType);
       } else {
-        assert ctype.ResolvedClass != null;  // follows from postcondition of DenotesClass
+        assert ctype.ResolvedClass is ClassDecl;  // follows from postcondition of DenotesClass
         assert ctype.TypeArgs.Count == ctype.ResolvedClass.TypeArgs.Count;  // follows from the fact that ctype was resolved
         MemberDecl member;
-        if (!classMembers[ctype.ResolvedClass].TryGetValue(memberName, out member)) {
+        if (!classMembers[(ClassDecl)ctype.ResolvedClass].TryGetValue(memberName, out member)) {
           Error(tok, "member {0} does not exist in class {1}", memberName, ctype.Name);
         } else {
           return (!)member;
@@ -870,8 +932,8 @@ namespace Microsoft.Dafny {
         } else {
           assert false;  // unexpected collection type
         }
-      } else if (type is ClassType) {
-        ClassType t = (ClassType)type;
+      } else if (type is UserDefinedType) {
+        UserDefinedType t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
           assert t.TypeArgs.Count == 0;
           Type s;
@@ -900,10 +962,10 @@ namespace Microsoft.Dafny {
             // there were no substitutions
             return type;
           } else {
-            return new ClassType(t.tok, t.Name, t.ResolvedClass, newArgs);
+            return new UserDefinedType(t.tok, t.Name, t.ResolvedClass, newArgs);
           }
         } else {
-          // there's neither a resolved param nor a resolved class, which means the ClassType wasn't
+          // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
           // properly resolved; just return it
           return type;
         }
@@ -920,12 +982,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static ClassType! GetThisType(Token! tok, ClassDecl! cl) {
+    public static UserDefinedType! GetThisType(Token! tok, ClassDecl! cl) {
       List<Type!> args = new List<Type!>();
       foreach (TypeParameter tp in cl.TypeArgs) {
-        args.Add(new ClassType(tok, tp.Name, tp));
+        args.Add(new UserDefinedType(tok, tp.Name, tp));
       }
-      return new ClassType(tok, cl.Name, cl, args);
+      return new UserDefinedType(tok, cl.Name, cl, args);
     }
     
     /// <summary>
@@ -989,7 +1051,7 @@ namespace Microsoft.Dafny {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         ResolveExpression(e.Obj, twoState);
         assert e.Obj.Type != null;  // follows from postcondition of ResolveExpression
-        ClassType ctype;
+        UserDefinedType ctype;
         MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.FieldName, out ctype);
         if (member == null) {
           // error has already been reported by ResolveMember
@@ -1066,7 +1128,7 @@ namespace Microsoft.Dafny {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         ResolveExpression(e.Receiver, twoState);
         assert e.Receiver.Type != null;  // follows from postcondition of ResolveExpression
-        ClassType ctype;
+        UserDefinedType ctype;
         MemberDecl member = ResolveMember(expr.tok, e.Receiver.Type, e.Name, out ctype);
         if (member == null) {
           // error has already been reported by ResolveMember
@@ -1120,7 +1182,7 @@ namespace Microsoft.Dafny {
         }
         if (t is ObjectType) {
           // fine
-        } else if (ClassType.DenotesClass(t) != null) {
+        } else if (UserDefinedType.DenotesClass(t) != null) {
           // fine
         } else {
           Error(expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);

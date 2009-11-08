@@ -17,13 +17,14 @@ COMPILER Dafny
 
 /*--------------------------------------------------------------------------*/
 
-static List<ClassDecl!>! theClasses = new List<ClassDecl!>();    
+static List<TopLevelDecl!>! theClasses = new List<TopLevelDecl!>();    
 
 
 static Expression! dummyExpr = new LiteralExpr(Token.NoToken);
 static Statement! dummyStmt = new ReturnStmt(Token.NoToken);
 static Attributes.Argument! dummyAttrArg = new Attributes.Argument("dummyAttrArg");
 static Scope<string>! parseVarScope = new Scope<string>();
+static int anonymousIds = 0;
 
 // helper routine for parsing call statements
 private static void RecordCallLhs(IdentifierExpr! e,
@@ -52,7 +53,7 @@ private static Expression! ConvertToLocal(Expression! e)
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string! filename, List<ClassDecl!>! classes) /* throws System.IO.IOException */ {
+public static int Parse (string! filename, List<TopLevelDecl!>! classes) /* throws System.IO.IOException */ {
   using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
     BoogiePL.Buffer.Fill(reader);
     Scanner.Init(filename);
@@ -61,12 +62,12 @@ public static int Parse (string! filename, List<ClassDecl!>! classes) /* throws 
 }
 
 ///<summary>
-/// Parses top level declarations and appends them to "classes".
+/// Parses top-level declarations and appends them to "classes" [sic].
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (List<ClassDecl!>! classes) {
-  List<ClassDecl!> oldClasses = theClasses;
+public static int Parse (List<TopLevelDecl!>! classes) {
+  List<TopLevelDecl!> oldClasses = theClasses;
   theClasses = classes;
   Parse();
   theClasses = oldClasses;
@@ -107,8 +108,9 @@ IGNORE cr + lf + tab
 PRODUCTIONS
 
 Dafny
-= (. ClassDecl! c; .)
+= (. ClassDecl! c; DatatypeDecl! dt; .)
   { ClassDecl<out c>           (. theClasses.Add(c); .)
+  | DatatypeDecl<out dt>       (. theClasses.Add(dt); .)
   }
   EOF
   .
@@ -140,6 +142,39 @@ ClassMemberDecl<List<MemberDecl!\>! mm>
   )
   .
 
+DatatypeDecl<out DatatypeDecl! dt>
+= (. Token! id;
+     Attributes attrs = null;
+     List<TypeParameter!> typeArgs = new List<TypeParameter!>();
+     List<DatatypeCtor!> ctors = new List<DatatypeCtor!>();
+  .)
+  "datatype"
+  { Attribute<ref attrs> }
+  Ident<out id>
+  [ GenericParameters<typeArgs> ]
+  "{"
+  { DatatypeMemberDecl<ctors>
+  }
+  "}"                                      (. dt = new DatatypeDecl(id, id.val, typeArgs, ctors, attrs); .)
+  .
+
+DatatypeMemberDecl<List<DatatypeCtor!\>! ctors>
+= (. Attributes attrs = null;
+     Token! id;
+     List<TypeParameter!> typeArgs = new List<TypeParameter!>();
+     List<Formal!> formals = new List<Formal!>();
+  .)
+  { Attribute<ref attrs> }
+  Ident<out id>
+  [ GenericParameters<typeArgs> ]
+  (. parseVarScope.PushMarker(); .)
+  [ FormalsOptionalIds<formals> ]
+  (. parseVarScope.PopMarker();
+     ctors.Add(new DatatypeCtor(id, id.val, typeArgs, formals, attrs));
+  .)
+  ";"
+  .
+
 FieldDecl<List<MemberDecl!\>! mm>
 = (. Attributes attrs = null;
      Token! id;  Type! ty;
@@ -165,6 +200,28 @@ IdentTypeOptional<out BoundVar! var>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
+  .
+
+TypeIdentOptional<out Token! id, out string! identName, out Type! ty>
+= (. string name = null; .)
+  TypeAndToken<out id, out ty>
+  [ ":"
+    (. /* try to convert ty to an identifier */
+       UserDefinedType udt = ty as UserDefinedType;
+       if (udt != null && udt.TypeArgs.Count == 0) {
+         name = udt.Name;
+       } else {
+         SemErr(id, "invalid formal-parameter name in datatype constructor");
+       }
+    .)
+    Type<out ty>
+  ]
+  (. if (name != null) {
+       identName = name;
+     } else {
+       identName = "#" + anonymousIds++;
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -248,43 +305,54 @@ Formals<bool incoming, List<Formal!\>! formals>
   ")"
   .
 
+FormalsOptionalIds<List<Formal!\>! formals> 
+= (. Token! id;  Type! ty;  string! name; .)
+  "("
+  [
+    TypeIdentOptional<out id, out name, out ty>        (. formals.Add(new Formal(id, name, ty, true));  parseVarScope.Push(name, name); .)
+    { "," TypeIdentOptional<out id, out name, out ty>  (. formals.Add(new Formal(id, name, ty, true));  parseVarScope.Push(name, name); .)
+    }
+  ]
+  ")"
+  .
+
 /*------------------------------------------------------------------------*/
 
 Type<out Type! ty>
-= (. ty = new BoolType();  /*keep compiler happy*/
-  .)
-  ( "bool"                          (. /* yeah, that's it! */ .)
-  | "int"                           (. ty = new IntType(); .)
-  | ReferenceType<out ty>
-  )
+= (. Token! tok; .)
+  TypeAndToken<out tok, out ty>
   .
 
-ReferenceType<out Type! ty>
-= (. Token! x;
-     ty = new BoolType();  /*keep compiler happy*/
+TypeAndToken<out Token! tok, out Type! ty>
+= (. tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
      List<Type!>! gt;
   .)
-  ( "object"                        (. ty = new ObjectType(); .)
-  
-  |                                 (. gt = new List<Type!>(); .)
-    Ident<out x>
-    [ GenericInstantiation<gt> ]    (. ty = new ClassType(x, x.val, gt); .)
-                                    
-  |                                 (. gt = new List<Type!>(); .)
-    "set"
+  ( "bool"                          (. tok = token; .)
+  | "int"                           (. tok = token;  ty = new IntType(); .)
+  | "set"                           (. tok = token;  gt = new List<Type!>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("set type expects exactly one type argument");
                                        }
                                        ty = new SetType(gt[0]);
                                     .)
     
-  |                                 (. gt = new List<Type!>(); .)
-    "seq"
+  | "seq"                           (. tok = token;  gt = new List<Type!>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("seq type expects exactly one type argument");
                                        }
                                        ty = new SeqType(gt[0]);
                                     .)
+  | ReferenceType<out tok, out ty>
+  )
+  .
+
+ReferenceType<out Token! tok, out Type! ty>
+= (. tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
+     List<Type!>! gt;
+  .)
+  ( "object"                        (. tok = token;  ty = new ObjectType(); .)
+  | Ident<out tok>                  (. gt = new List<Type!>(); .)
+    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
   )
   .
 
@@ -434,10 +502,10 @@ AssignStmt<out Statement! s>
 
 AssignRhs<out Expression e, out Type ty>
 /* ensures e == null <==> ty == null; */
-= (. Expression! ee;  Type! tt;
+= (. Token! x;  Expression! ee;  Type! tt;
      e = null;  ty = null;
   .)
-  ( "new" ReferenceType<out tt>        (. ty = tt; .)
+  ( "new" ReferenceType<out x, out tt> (. ty = tt; .)
   | Expression<out ee>                 (. e = ee; .)
   )                                    (. if (e == null && ty == null) { e = dummyExpr; } .)
   .

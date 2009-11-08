@@ -28,3 +28,24 @@ class MyClass<T,U> {
     }
   }
 }
+
+// some datatype stuff:
+
+datatype List<T> {
+  Nil;
+  Cons(T, List<T>);
+}
+
+datatype WildData {
+  Something();
+  JustAboutAnything<G,H>(G, myName: set<H>, int, WildData);
+  More(List<int>);
+}
+
+datatype Nothing {
+}
+
+class C {
+  var w: WildData;
+  var list: List<bool>;
+}

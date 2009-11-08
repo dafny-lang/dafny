@@ -190,6 +190,10 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 
 // ---------------------------------------------------------------
 
+type DatatypeType;
+
+// ---------------------------------------------------------------
+
 type Field alpha;
 type HeapType = <alpha>[ref,Field alpha]alpha;
 

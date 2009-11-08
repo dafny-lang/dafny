@@ -19,7 +19,7 @@ namespace Microsoft.Dafny {
     {
       program = null;
       Dafny.Errors.count = 0;
-      List<ClassDecl!> classes = new List<ClassDecl!>();
+      List<TopLevelDecl!> classes = new List<TopLevelDecl!>();
       foreach (string! dafnyFileName in fileNames){
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFileName);

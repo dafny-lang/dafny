@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
     }
     
     // translation state
-    readonly Dictionary<ClassDecl!,Bpl.Constant!>! classes = new Dictionary<ClassDecl!,Bpl.Constant!>();
+    readonly Dictionary<TopLevelDecl!,Bpl.Constant!>! classes = new Dictionary<TopLevelDecl!,Bpl.Constant!>();
     readonly Dictionary<Field!,Bpl.Constant!>! fields = new Dictionary<Field!,Bpl.Constant!>();
     readonly Dictionary<Function!,Bpl.Function!>! functions = new Dictionary<Function!,Bpl.Function!>();
     readonly Dictionary<Method!,Bpl.Procedure!>! methods = new Dictionary<Method!,Bpl.Procedure!>();
@@ -109,6 +109,7 @@ namespace Microsoft.Dafny {
       public readonly string! HeapVarName;
       public readonly Bpl.Constant! CevHeapName;
       public readonly Bpl.Type! ClassNameType;
+      public readonly Bpl.Type! DatatypeType;
       public readonly Bpl.Expr! Null;
       private readonly Bpl.Constant! allocField;
       public Bpl.IdentifierExpr! Alloc(Token! tok) {
@@ -117,7 +118,8 @@ namespace Microsoft.Dafny {
 
       public PredefinedDecls(Bpl.TypeCtorDecl! refType, Bpl.TypeCtorDecl! boxType, Bpl.TypeCtorDecl! cevTokenType, Bpl.TypeCtorDecl! cevVariableKind, Bpl.TypeCtorDecl! cevEventType,
                              Bpl.TypeSynonymDecl! setTypeCtor, Bpl.TypeCtorDecl! seqTypeCtor, Bpl.TypeCtorDecl! fieldNameType,
-                             Bpl.GlobalVariable! heap, Bpl.TypeCtorDecl! classNameType, Bpl.Constant! allocField, Bpl.Constant! cevHeapNameConst) {
+                             Bpl.GlobalVariable! heap, Bpl.TypeCtorDecl! classNameType, Bpl.TypeCtorDecl! datatypeType,
+                             Bpl.Constant! allocField, Bpl.Constant! cevHeapNameConst) {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new Bpl.TypeSeq());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new Bpl.TypeSeq());
@@ -131,6 +133,7 @@ namespace Microsoft.Dafny {
         this.HeapVarName = heap.Name;
         this.CevHeapName = cevHeapNameConst;
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
+        this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new Bpl.TypeSeq());
         this.allocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
       }
@@ -150,6 +153,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
+      Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl boxType = null;
       Bpl.GlobalVariable heap = null;
       Bpl.Constant allocField = null;
@@ -163,6 +167,8 @@ namespace Microsoft.Dafny {
             fieldNameType = dt;
           } else if (dt.Name == "ClassName") {
             classNameType = dt;
+          } else if (dt.Name == "DatatypeType") {
+            datatypeType = dt;
           } else if (dt.Name == "ref") {
             refType = dt;
           } else if (dt.Name == "BoxType") {
@@ -201,6 +207,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+      } else if (datatypeType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (refType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
@@ -218,7 +226,9 @@ namespace Microsoft.Dafny {
       } else if (cevHeapNameConst == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant #loc.$Heap");
       } else {
-        return new PredefinedDecls(refType, boxType, cevTokenType, cevVariableKind, cevEventType, setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, allocField, cevHeapNameConst);
+        return new PredefinedDecls(refType, boxType, cevTokenType, cevVariableKind, cevEventType,
+                                   setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType,
+                                   allocField, cevHeapNameConst);
       }
       return null;
     }
@@ -248,24 +258,35 @@ namespace Microsoft.Dafny {
         // already been printed, so just return an empty program here (which is non-null)
         return new Bpl.Program();
       }
-      foreach (ClassDecl c in program.Classes) {
-        AddClassMembers(c);
+      foreach (TopLevelDecl d in program.Classes) {
+        if (d is ClassDecl) {
+          AddClassMembers((ClassDecl)d);
+        } else {
+          DatatypeDecl dt = (DatatypeDecl)d;
+          // TODO: handle DatatypeDecl
+        }
       }
-      foreach (ClassDecl c in program.Classes) {
-        foreach (MemberDecl member in c.Members) {
-          if (member is Method) {
-            Method m = (Method)member;
-            if (m.Body != null) {
-              AddMethodImpl(m);
-            }
-          } else if (member is Function) {
-            Function f = (Function)member;
-            AddFrameAxiom(f);
-            // TODO: also need a well-formedness check for the preconditions
-            if (f.Body != null) {
-              AddWellformednessCheck(f);
+      foreach (TopLevelDecl d in program.Classes) {
+        if (d is ClassDecl) {
+          ClassDecl c = (ClassDecl)d;
+          foreach (MemberDecl member in c.Members) {
+            if (member is Method) {
+              Method m = (Method)member;
+              if (m.Body != null) {
+                AddMethodImpl(m);
+              }
+            } else if (member is Function) {
+              Function f = (Function)member;
+              AddFrameAxiom(f);
+              // TODO: also need a well-formedness check for the preconditions
+              if (f.Body != null) {
+                AddWellformednessCheck(f);
+              }
             }
           }
+        } else {
+          DatatypeDecl dt = (DatatypeDecl)d;
+          // TODO: handle DatatypeDecl
         }
       }
       return sink;
@@ -412,6 +433,9 @@ namespace Microsoft.Dafny {
         } else {
           // TODO: should also handle sequences of sequences, etc.  This will probably require some extra predicates, and these predicates may even replace the above treatment of sequences.
         }
+      
+      } else if (f.Type.IsDatatype) {
+        // TODO
         
       } else {
         // reference type:
@@ -912,7 +936,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    Bpl.Constant! GetClass(ClassDecl! cl)
+    Bpl.Constant! GetClass(TopLevelDecl! cl)
       requires predef != null;
     {
       Bpl.Constant cc;
@@ -958,7 +982,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr t = new Bpl.IdentifierExpr(tok, ct is SetType ? "class.set" : "class.seq", predef.ClassNameType);
         return FunctionCall(tok, BuiltinFunction.TypeTuple, null, t, a);
       } else {
-        ClassType ct = (ClassType)type;
+        UserDefinedType ct = (UserDefinedType)type;
         if (ct.ResolvedClass == null) {
          return null;  // TODO: what to do here?
         }
@@ -1217,6 +1241,8 @@ namespace Microsoft.Dafny {
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
+      } else if (type.IsDatatype) {
+        return predef.DatatypeType;
       } else if (type is SetType) {
         return predef.SetType(Token.NoToken, predef.BoxType);
       } else if (type is SeqType) {
@@ -1793,7 +1819,7 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(nw)));
         // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
         Bpl.Expr nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-        builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, etran.GoodRef_Class(tok, nw, (ClassType)((TypeRhs)rhs).Type, true))));
+        builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, etran.GoodRef_Class(tok, nw, (UserDefinedType)((TypeRhs)rhs).Type, true))));
         // $Heap[$nw, alloc] := true;
         Bpl.Expr alloc = predef.Alloc(tok);
         Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, nw, alloc, Bpl.Expr.True);
@@ -1912,7 +1938,6 @@ namespace Microsoft.Dafny {
           SeqUpdateExpr e = (SeqUpdateExpr)expr;
           Bpl.Expr seq = TrExpr(e.Seq);
           Type elmtType = ((SeqType!)e.Seq.Type).Arg;
-          Bpl.Type elType = translator.TrType(elmtType);
           Bpl.Expr index = TrExpr(e.Index);
           Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
           return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
@@ -2236,17 +2261,17 @@ namespace Microsoft.Dafny {
       
       public Bpl.Expr! GoodRef(Token! tok, Bpl.Expr! e, Type! type) {
         Bpl.Expr goodRef;
-        if (type is ClassType && ((ClassType)type).ResolvedClass != null) {
+        if (type is UserDefinedType && ((UserDefinedType)type).ResolvedClass != null) {
           // Heap[e, alloc] && dtype(e) == T
-          return GoodRef_Class(tok, e, (ClassType)type, false);
+          return GoodRef_Class(tok, e, (UserDefinedType)type, false);
         } else {
           // Heap[e, alloc]
           return IsAlloced(tok, e);
         }
       }
       
-      public Bpl.Expr! GoodRef_Class(Token! tok, Bpl.Expr! e, ClassType! type, bool isNew)
-        requires type.ResolvedClass != null;
+      public Bpl.Expr! GoodRef_Class(Token! tok, Bpl.Expr! e, UserDefinedType! type, bool isNew)
+        requires type.ResolvedClass is ClassDecl;
       {
         // Heap[e, alloc]
         Bpl.Expr r = IsAlloced(tok, e);

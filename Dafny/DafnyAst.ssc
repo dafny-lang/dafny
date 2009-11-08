@@ -11,8 +11,8 @@ namespace Microsoft.Dafny
 {
   public class Program {
     public readonly string! Name;
-    public readonly List<ClassDecl!>! Classes;
-    public Program(string! name, [Captured] List<ClassDecl!>! classes) {
+    public readonly List<TopLevelDecl!>! Classes;
+    public Program(string! name, [Captured] List<TopLevelDecl!>! classes) {
       Name = name;
       Classes = classes;
     }
@@ -62,16 +62,22 @@ namespace Microsoft.Dafny
         if (this is ObjectType) {
           return true;
         } else {
-          ClassType ct = this as ClassType;
-          return ct != null && ct.ResolvedParam == null;
+          UserDefinedType udt = this as UserDefinedType;
+          return udt != null && udt.ResolvedParam == null && !(udt.ResolvedClass is DatatypeDecl);
         }
+      }
+    }
+    public bool IsDatatype {
+      get {
+        UserDefinedType udt = this as UserDefinedType;
+        return udt != null && udt.ResolvedClass is DatatypeDecl;
       }
     }
     public bool IsTypeParameter {
       get
-        ensures result ==> this is ClassType && ((ClassType)this).ResolvedParam != null;
+        ensures result ==> this is UserDefinedType && ((UserDefinedType)this).ResolvedParam != null;
       {
-        ClassType ct = this as ClassType;
+        UserDefinedType ct = this as UserDefinedType;
         return ct != null && ct.ResolvedParam != null;
       }
     }
@@ -125,15 +131,15 @@ namespace Microsoft.Dafny
     }
   }
 
-  public class ClassType : Type {
+  public class UserDefinedType : Type {
     public readonly Token! tok;
     public readonly string! Name;
     [Rep] public readonly List<Type!>! TypeArgs;
     
-    public ClassDecl ResolvedClass;  // filled in by resolution, if Name denotes a class and TypeArgs match the type parameters of that class
+    public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
     
-    public ClassType(Token! tok, string! name, [Captured] List<Type!>! typeArgs) {
+    public UserDefinedType(Token! tok, string! name, [Captured] List<Type!>! typeArgs) {
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -142,7 +148,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// This constructor constructs a resolved class type
     /// </summary>
-    public ClassType(Token! tok, string! name, ClassDecl! cd, [Captured] List<Type!>! typeArgs) {
+    public UserDefinedType(Token! tok, string! name, TopLevelDecl! cd, [Captured] List<Type!>! typeArgs) {
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -152,7 +158,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// This constructor constructs a resolved type parameter
     /// </summary>
-    public ClassType(Token! tok, string! name, TypeParameter! tp) {
+    public UserDefinedType(Token! tok, string! name, TypeParameter! tp) {
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = new List<Type!>();
@@ -163,8 +169,8 @@ namespace Microsoft.Dafny
     /// If type denotes a resolved class type, then return that class type.
     /// Otherwise, return null.
     /// </summary>
-    public static ClassType DenotesClass(Type! type)
-      ensures result != null ==> result.ResolvedClass != null;
+    public static UserDefinedType DenotesClass(Type! type)
+      ensures result != null ==> result.ResolvedClass is ClassDecl;
     {
       while (true)
         invariant type.IsPeerConsistent;
@@ -177,8 +183,8 @@ namespace Microsoft.Dafny
           break;
         }
       }
-      ClassType ct = type as ClassType;
-      if (ct != null && ct.ResolvedClass != null) {
+      UserDefinedType ct = type as UserDefinedType;
+      if (ct != null && ct.ResolvedClass is ClassDecl) {
         return ct;
       } else {
         return null;
@@ -305,7 +311,7 @@ namespace Microsoft.Dafny
         // BUGBUG:  The following line is a workaround to tell the verifier that 'value' is not of an Immutable type.
         // A proper solution would be to be able to express that in the program (in a specification or attribute) or
         // to be able to declare 'parent' as [PeerOrImmutable].
-        requires value is ClassDecl || value is Function || value is Method;
+        requires value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor;
         modifies parent;
       {
         parent = value;
@@ -316,13 +322,43 @@ namespace Microsoft.Dafny
     }
   }
   
-  public class ClassDecl : Declaration, TypeParameter.ParentType {
-    public List<TypeParameter!>! TypeArgs;
-    public List<MemberDecl!>! Members;
+  public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
+    public readonly List<TypeParameter!>! TypeArgs;
     
-    public ClassDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
+    public TopLevelDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, Attributes attributes) {
       TypeArgs = typeArgs;
+      base(tok, name, attributes);
+    }
+  }
+  
+  public class ClassDecl : TopLevelDecl {
+    public readonly List<MemberDecl!>! Members;
+
+    public ClassDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
       Members = members;
+      base(tok, name, typeArgs, attributes);
+    }
+  }
+  
+  public class DatatypeDecl : TopLevelDecl {
+    public readonly List<DatatypeCtor!>! Ctors;
+    
+    public DatatypeDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
+      Ctors = ctors;
+      base(tok, name, typeArgs, attributes);
+    }
+  }
+  
+  public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+    public readonly List<TypeParameter!>! TypeArgs;
+    public readonly List<Formal!>! Formals;
+    // Todo: One could imagine having a precondition on datatype constructors
+    public DatatypeDecl EnclosingDatatype;  // filled in during resolution
+    
+    public DatatypeCtor(Token! tok, string! name, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals,
+                        Attributes attributes) {
+      this.TypeArgs = typeArgs;
+      this.Formals = formals;
       base(tok, name, attributes);
     }
   }

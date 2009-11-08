@@ -32,6 +32,24 @@ class MyClass<T, U> {
   }
 }
 
+datatype List<T> {
+  Nil;
+  Cons(T, List<T>);
+}
+
+datatype WildData {
+  Something;
+  JustAboutAnything<G, H>(G, myName: set<H>, int, WildData);
+  More(List<int>);
+}
+
+datatype Nothing { }
+
+class C {
+  var w: WildData;
+  var list: List<bool>;
+}
+
 Dafny program verifier finished with 0 verified, 0 errors
 
 -------------------- BQueue.bpl --------------------

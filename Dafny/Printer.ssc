@@ -22,9 +22,13 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
-      foreach (ClassDecl c in prog.Classes) {
+      foreach (TopLevelDecl d in prog.Classes) {
         wr.WriteLine();
-        PrintClass(c);
+        if (d is ClassDecl) {
+          PrintClass((ClassDecl)d);
+        } else {
+          PrintDatatype((DatatypeDecl)d);
+        }
       }
     }
     
@@ -57,7 +61,9 @@ namespace Microsoft.Dafny {
     }
     
     void PrintClassMethodHelper(string! kind, Attributes attrs, string! modifiers, string! name, List<TypeParameter!>! typeArgs) {
-      wr.Write("{0} ", kind);
+      if (kind.Length != 0) {
+        wr.Write("{0} ", kind);
+      }
       PrintAttributes(attrs);
       wr.Write(modifiers);
       wr.Write(name);
@@ -69,6 +75,19 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
         wr.Write(">");
+      }
+    }
+    
+    public void PrintDatatype(DatatypeDecl! dt) {
+      PrintClassMethodHelper("datatype", dt.Attributes, "", dt.Name, dt.TypeArgs);
+      if (dt.Ctors.Count == 0) {
+        wr.WriteLine(" { }");
+      } else {
+        wr.WriteLine(" {");
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          PrintCtor(ctor);
+        }
+        wr.WriteLine("}");
       }
     }
     
@@ -127,6 +146,15 @@ namespace Microsoft.Dafny {
         PrintExtendedExpr(f.Body, IndentAmount);
         wr.WriteLine();
       }
+    }
+    
+    public void PrintCtor(DatatypeCtor! ctor) {
+      Indent(IndentAmount);
+      PrintClassMethodHelper("", ctor.Attributes, "", ctor.Name, ctor.TypeArgs);
+      if (ctor.Formals.Count != 0) {
+        PrintFormals(ctor.Formals);
+      }
+      wr.WriteLine(";");
     }
     
     // ----------------------------- PrintMethod -----------------------------

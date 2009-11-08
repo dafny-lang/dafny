@@ -30,14 +30,14 @@
 ]\\)*" . font-lock-comment-face)
 
    `(,(dafny-regexp-opt '(
-        "class" "function" "frame" "var" "method"
+        "class" "datatype" "function" "frame" "var" "method"
         "returns" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
         "assert" "assume" "break" "call" "else" "havoc" "if" "label" "return" "while"
         "old" "forall" "exists" "new" "foreach" "in" "this" "fresh" "use"
-        "false" "true" "null")) . font-lock-keyword-face)
+        "match" "case" "false" "true" "null")) . font-lock-keyword-face)
    `(,(dafny-regexp-opt '("bool" "int" "object" "set" "seq")) . font-lock-type-face)
    )
   "Minimal highlighting for Dafny mode")
