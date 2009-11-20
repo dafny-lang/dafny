@@ -208,7 +208,7 @@ namespace Microsoft.Boogie
         string err = Dafny.Main.ParseCheck(fileNames, "synthetic program", out dafnyProgram);
         if (err != null) {
           ErrorWriteLine(err);
-        } else if (dafnyProgram != null) {
+        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
           Dafny.Translator translator = new Dafny.Translator();
           Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null) 

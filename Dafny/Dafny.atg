@@ -390,7 +390,7 @@ FunctionDecl<out Function! f>
   ( ";"
     { FunctionSpec<reqs, reads> }
   | { FunctionSpec<reqs, reads> }
-    ExtendedExpr<out bb>                (. body = bb; .)
+    FunctionBody<out bb>                (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
      f = new Function(id, id.val, use, typeArgs, formals, returnType, reqs, reads, body, attrs);
@@ -410,6 +410,16 @@ ReadsClause<List<Expression!\>! reads>
   ";"
   .
 
+FunctionBody<out Expression! e>
+= (. e = dummyExpr; .)
+  "{"
+  ( IfThenElseExpr<out e>
+  | MatchExpression<out e>
+  | Expression<out e>
+  )
+  "}"
+  .
+  
 ExtendedExpr<out Expression! e>
 = (. e = dummyExpr; .)
   "{"
@@ -428,6 +438,43 @@ IfThenElseExpr<out Expression! e>
   ( IfThenElseExpr<out e1>
   | ExtendedExpr<out e1>
   )                                  (. e = new ITEExpr(x, e, e0, e1); .)
+  .
+
+MatchExpression<out Expression! e>
+= (. Token! x;
+     List<MatchCase!> cases = new List<MatchCase!>();
+  .)
+  "match"                     (. x = token; .)
+  Expression<out e>
+  ( "{" CaseExpressions<cases> "}"  /* curly braces are optional; in the future, when match expressions can be nested, this will be handy */
+  | CaseExpressions<cases>
+  )
+  (. e = new MatchExpr(x, e, cases); .)
+  .
+
+CaseExpressions<List<MatchCase!\>! cases>
+= (. MatchCase! c; .)
+  { CaseExpression<out c>     (. cases.Add(c); .)
+  }
+  .
+
+CaseExpression<out MatchCase! c>
+= (. Token! x, id, arg;
+     List<BoundVar!> arguments = new List<BoundVar!>();
+     Expression! body;
+  .)
+  "case"                      (. x = token;  parseVarScope.PushMarker(); .)
+  Ident<out id>
+  [ "("
+    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
+                                 parseVarScope.Push(arg.val, arg.val); .)
+    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
+                                 parseVarScope.Push(arg.val, arg.val); .)
+    }
+  ")" ]
+  "=>"
+  Expression<out body>        (. c = new MatchCase(x, id.val, arguments, body);
+                                 parseVarScope.PopMarker(); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -827,13 +874,20 @@ UnaryExpression<out Expression! e>
 NegOp = "!" | '\u00ac'.
 
 ConstAtomExpression<out Expression! e>            
-= (. Token! x;  int n;  List<Expression!>! elements;
+= (. Token! x, dtName, id;  int n;  List<Expression!>! elements;
      e = dummyExpr;  
   .)
   ( "false"                                    (. e = new LiteralExpr(token, false); .)
   | "true"                                     (. e = new LiteralExpr(token, true); .)
   | "null"                                     (. e = new LiteralExpr(token); .)
   | Nat<out n>                                 (. e = new LiteralExpr(token, n); .)
+  | "#"                                        (. x = token; .)
+    Ident<out dtName>
+    "."
+    Ident<out id>                              (. elements = new List<Expression!>(); .)
+    [ "("
+      [ Expressions<elements> ]
+    ")" ]                                      (. e = new DatatypeValue(token, dtName.val, id.val, elements); .)
   | "fresh"                                    (. x = token; .)
     "(" Expression<out e> ")"                  (. e = new FreshExpr(x, e); .)
   | "|"                                        (. x = token; .)

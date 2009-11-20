@@ -128,6 +128,8 @@ namespace Microsoft.Dafny {
       PrintType(f.ResultType);
       if (f.Body == null) {
         wr.WriteLine(";");
+      } else {
+        wr.WriteLine();
       }
       foreach (Expression r in f.Req) {
         Indent(2 * IndentAmount);
@@ -374,7 +376,7 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is ForeachStmt) {
         ForeachStmt s = (ForeachStmt)stmt;
-        wr.Write("foreach ({0} in ", s.BoundVar);
+        wr.Write("foreach ({0} in ", s.BoundVar.Name);
         PrintExpression(s.Collection);
         if (!LiteralExpr.IsTrue(s.Range)) {
           wr.Write(" | ");
@@ -392,6 +394,7 @@ namespace Microsoft.Dafny {
           PrintStatement(s.BodyAssign, ind);
           wr.WriteLine();
         }
+        Indent(indent);
         wr.Write("}");
         
       } else {
@@ -435,6 +438,33 @@ namespace Microsoft.Dafny {
           els = ite.Els;
         }
         PrintExtendedExpr(els, ind);
+      } else if (expr is MatchExpr) {
+        MatchExpr me = (MatchExpr)expr;
+        wr.Write("match ");
+        PrintExpression(me.Source);
+        bool needsCurlies = exists{MatchCase mc in me.Cases; mc.Body is MatchExpr};
+        wr.WriteLine(needsCurlies ? " {" : "");
+        int caseInd = ind + (needsCurlies ? IndentAmount : 0);
+        foreach (MatchCase mc in me.Cases) {
+          Indent(caseInd);
+          wr.Write("case {0}", mc.Id);
+          if (mc.Arguments.Count != 0) {
+            string sep = "(";
+            foreach (BoundVar bv in mc.Arguments) {
+              wr.Write("{0}{1}", sep, bv.Name);
+              sep = ", ";
+            }
+            wr.Write(")");
+          }
+          wr.WriteLine(" =>");
+          Indent(caseInd + IndentAmount);
+          PrintExpression(mc.Body);
+          wr.WriteLine();
+        }
+        if (needsCurlies) {
+          Indent(ind);
+          wr.WriteLine("}");
+        }
       } else {
         PrintExpression(expr, ind);
         wr.WriteLine();
@@ -476,6 +506,15 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierExpr) {
         wr.Write(((IdentifierExpr)expr).Name);
       
+      } else if (expr is DatatypeValue) {
+        DatatypeValue dtv = (DatatypeValue)expr;
+        wr.Write("#{0}.{1}", dtv.DatatypeName, dtv.MemberName);
+        if (dtv.Arguments.Count != 0) {
+          wr.Write("(");
+          PrintExpressionList(dtv.Arguments);
+          wr.Write(")");
+        }
+        
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         wr.Write(e is SetDisplayExpr ? "{" : "[");
@@ -681,6 +720,8 @@ namespace Microsoft.Dafny {
         
       } else if (expr is ITEExpr) {
         assert false;  // ITE is an extended expression and should be printed only using PrintExtendedExpr
+      } else if (expr is MatchExpr) {
+        assert false;  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr
       } else {
         assert false;  // unexpected expression
       }

@@ -192,6 +192,11 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 
 type DatatypeType;
 
+type DtCtorId;
+function DatatypeCtorId(DatatypeType) returns (DtCtorId);
+
+function DtRank(DatatypeType) returns (int);
+
 // ---------------------------------------------------------------
 
 type Field alpha;

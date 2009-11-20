@@ -7,25 +7,25 @@ class Node {
   var data: int;
   var next: Node;
 
-  function Repr(list: List<int>)
+  function Repr(list: List<int>): bool
     reads this;
   { match list
     case Nil =>
       next == null
     case Cons(d,cdr) =>
-      data == d && next.Repr(cdr)
+      data == d && next != null && next.Repr(cdr)
   }
 
   method Init()
     modifies this;
-    ensures Repr(this, #List<int>.Nil);
+    ensures Repr(#List.Nil);
   {
     next := null;
   }
 
   method Add(d: int, L: List<int>) returns (r: Node)
     requires Repr(L);
-    ensures r.Repr(#List<int>.Cons(d, L));
+    ensures r.Repr(#List.Cons(d, L));
   {
     r := new Node;
     r.data := d;
@@ -37,7 +37,7 @@ class AnotherNode {
   var data: int;
   var next: AnotherNode;
 
-  function Repr(n: AnotherNode, list: List<int>)
+  function Repr(n: AnotherNode, list: List<int>): bool
     reads n;
   { match list
     case Nil =>
@@ -47,14 +47,14 @@ class AnotherNode {
   }
 
   method Create() returns (n: AnotherNode)
-    ensures Repr(n, #List<int>.Nil);
+    ensures Repr(n, #List.Nil);
   {
     n := null;
   }
 
   method Add(n: AnotherNode, d: int, L: List<int>) returns (r: AnotherNode)
     requires Repr(n, L);
-    ensures Repr(r, #List<int>.Cons(d, L));
+    ensures Repr(r, #List.Cons(d, L));
   {
     r := new AnotherNode;
     r.data := d;

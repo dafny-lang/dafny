@@ -361,6 +361,14 @@ namespace Microsoft.Dafny
       this.Formals = formals;
       base(tok, name, attributes);
     }
+    
+    public string! FullName {
+      get
+        requires EnclosingDatatype != null;
+      {
+        return "#" + EnclosingDatatype.Name + "." + Name;
+      }
+    }
   }
   
   public abstract class MemberDecl : Declaration {
@@ -833,6 +841,20 @@ namespace Microsoft.Dafny
     }
   }
   
+  public class DatatypeValue : Expression {
+    public readonly string! DatatypeName;
+    public readonly string! MemberName;
+    public readonly List<Expression!>! Arguments;
+    public DatatypeCtor Ctor;  // filled in by resolution
+    
+    public DatatypeValue(Token! tok, string! datatypeName, string! memberName, [Captured] List<Expression!>! arguments) {
+      this.DatatypeName = datatypeName;
+      this.MemberName = memberName;
+      this.Arguments = arguments;
+      base(tok);
+    }
+  }
+  
   public class ThisExpr : Expression {
     public ThisExpr(Token! tok) {
       base(tok);
@@ -1075,6 +1097,32 @@ namespace Microsoft.Dafny
   public class ExistsExpr : QuantifierExpr {
     public ExistsExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
       base(tok, bvars, body, trig, attrs);
+    }
+  }
+  
+  public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+    public readonly Expression! Source;
+    public readonly List<MatchCase!>! Cases;
+    
+    public MatchExpr(Token! tok, Expression! source, [Captured] List<MatchCase!>! cases) {
+      this.Source = source;
+      this.Cases = cases;
+      base(tok);
+    }
+  }
+  
+  public class MatchCase {
+    public readonly Token! tok;
+    public readonly string! Id;
+    public DatatypeCtor Ctor;  // filled in by resolution
+    public readonly List<BoundVar!>! Arguments;
+    public readonly Expression! Body;
+    
+    public MatchCase(Token! tok, string! id, [Captured] List<BoundVar!>! arguments, Expression! body) {
+      this.tok = tok;
+      this.Id = id;
+      this.Arguments = arguments;
+      this.Body = body;
     }
   }
   

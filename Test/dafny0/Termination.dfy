@@ -76,4 +76,22 @@ class Termination {
       }
     }
   }
+
+  method Q<T>(list: List<T>) {
+    var l := list;
+    while (l != #List.Nil)
+      decreases l;
+    {
+      call x, l := Traverse(l);
+    }
+  }
+
+  method Traverse<T>(a: List<T>) returns (val: T, b: List<T>);
+    requires a != #List.Nil;
+    ensures a == #List.Cons(val, b);
+}
+
+datatype List<T> {
+  Nil;
+  Cons(T, List<T>);
 }

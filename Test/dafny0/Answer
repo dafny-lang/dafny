@@ -89,7 +89,7 @@ Dafny program verifier finished with 4 verified, 0 errors
 
 -------------------- Termination.dfy --------------------
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 
 -------------------- Use.dfy --------------------
 Use.dfy(12,5): Error BP5001: This assertion might not hold.
@@ -125,4 +125,8 @@ TypeParameters.dfy(63,5): Error BP5001: This assertion might not hold.
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 7 verified, 2 errors
+Dafny program verifier finished with 9 verified, 2 errors
+
+-------------------- Datatypes.dfy --------------------
+
+Dafny program verifier finished with 6 verified, 0 errors

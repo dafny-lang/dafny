@@ -1030,6 +1030,54 @@ namespace Microsoft.Dafny {
         } else {
           expr.Type = e.Var.Type;
         }
+      
+      } else if (expr is DatatypeValue) {
+        DatatypeValue dtv = (DatatypeValue)expr;
+        TopLevelDecl d;
+        if (!classes.TryGetValue(dtv.DatatypeName, out d)) {
+          Error(expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
+        } else if (!(d is DatatypeDecl)) {
+          Error(expr.tok, "Expected datatype, found class: {0}", dtv.DatatypeName);
+        } else {
+          // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
+          DatatypeDecl dt = (DatatypeDecl)d;
+          List<Type!> gt = new List<Type!>(dt.TypeArgs.Count);
+          Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
+          for (int i = 0; i < dt.TypeArgs.Count; i++) {
+            Type t = new InferredTypeProxy();
+            gt.Add(t);
+            subst.Add(dt.TypeArgs[i], t);
+          }
+          expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
+          ResolveType(expr.Type);
+          
+          DatatypeCtor ctor;
+          if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
+            Error(expr.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
+          } else {
+            assert ctor != null;  // follows from postcondition of TryGetValue
+            dtv.Ctor = ctor;
+            if (ctor.Formals.Count != dtv.Arguments.Count) {
+              Error(expr.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", dtv.DatatypeName, dtv.Arguments.Count, ctor.Formals.Count);
+            }
+            // add the constructor's own type parameters to the substitution map
+            foreach (TypeParameter p in ctor.TypeArgs) {
+              subst.Add(p, new ParamTypeProxy(p));
+            }
+          }
+          int j = 0;
+          foreach (Expression arg in dtv.Arguments) {
+            ResolveExpression(arg, twoState);
+            assert arg.Type != null;  // follows from postcondition of ResolveExpression
+            if (ctor != null && j < ctor.Formals.Count) {
+              Type st = SubstType(ctor.Formals[j].Type, subst);
+              if (!UnifyTypes(arg.Type, st)) {
+                Error(arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
+              }
+            }
+            j++;
+          }
+        }
         
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -1355,6 +1403,91 @@ namespace Microsoft.Dafny {
           Error(expr, "the else branch of an if-then-else expression must be a boolean (instead got {0})", e.Els.Type);
         }
         expr.Type = Type.Bool;
+      
+      } else if (expr is MatchExpr) {
+        MatchExpr me = (MatchExpr)expr;
+        assert !twoState;  // currently, match expressions are allowed only at the outermost level of function bodies
+        ResolveExpression(me.Source, twoState);
+        assert me.Source.Type != null;  // follows from postcondition of ResolveExpression
+        UserDefinedType sourceType = null;
+        DatatypeDecl dtd = null;
+        Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
+        if (me.Source.Type.IsDatatype) {
+          sourceType = (UserDefinedType)me.Source.Type;
+          dtd = (DatatypeDecl!)sourceType.ResolvedClass;
+        }
+        Dictionary<string!,DatatypeCtor!> ctors;
+        if (dtd == null) {
+          Error(me.Source, "the type of the match source expression must be a datatype");
+          ctors = null;
+        } else {
+          assert sourceType != null;  // dtd and sourceType are set together above
+          ctors = datatypeCtors[dtd];
+          assert ctors != null;  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+          
+          IdentifierExpr ie = me.Source as IdentifierExpr;
+          if (ie == null || !(ie.Var is Formal)) {
+            Error(me.Source.tok, "match source expression must be a formal parameter of the enclosing function");
+          }
+          
+          // build the type-parameter substitution map for this use of the datatype
+          for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+            subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
+          }
+        }
+        
+        Dictionary<string!,object> memberNamesUsed = new Dictionary<string!,object>();  // this is really a set
+        expr.Type = new InferredTypeProxy();
+        foreach (MatchCase mc in me.Cases) {
+          DatatypeCtor ctor = null;
+          if (ctors != null) {
+            assert dtd != null;
+            if (!ctors.TryGetValue(mc.Id, out ctor)) {
+              Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+            } else {
+              assert ctor != null;  // follows from postcondition of TryGetValue
+              mc.Ctor = ctor;
+              if (ctor.Formals.Count != mc.Arguments.Count) {
+                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Arguments.Count, ctor.Formals.Count);
+              }
+              if (memberNamesUsed.ContainsKey(mc.Id)) {
+                Error(mc.tok, "member {0} appears in more than one case", mc.Id);
+              } else {
+                memberNamesUsed.Add(mc.Id, null);  // add mc.Id to the set of names used
+              }
+            }
+          }
+          scope.PushMarker();
+          if (ctor != null) {
+            // add the constructor's own type parameters to the substitution map
+            foreach (TypeParameter p in ctor.TypeArgs) {
+              subst.Add(p, new ParamTypeProxy(p));
+            }
+          }
+          int i = 0;
+          foreach (BoundVar v in mc.Arguments) {
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate parameter name: {0}", v.Name);
+            }
+            ResolveType(v.Type);
+            if (ctor != null && i < ctor.Formals.Count) {
+              Type st = SubstType(ctor.Formals[i].Type, subst);
+              if (!UnifyTypes(v.Type, st)) {
+                Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              }
+            }
+            i++;
+          }
+          ResolveExpression(mc.Body, twoState);
+          assert mc.Body.Type != null;  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(expr.Type, mc.Body.Type)) {
+            Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
+          }
+          scope.PopMarker();
+        }
+        if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+          Error(expr, "match expression does not cover all constructors");
+        }
         
       } else {
         assert false;  // unexpected expression

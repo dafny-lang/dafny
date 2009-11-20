@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
         }
       }
       
-      if (Bpl.CommandLineOptions.Clo.NoResolve) { return null; }
+      if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver();
       r.ResolveProgram(program);

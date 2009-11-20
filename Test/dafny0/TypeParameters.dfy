@@ -60,6 +60,39 @@ class SequenceTest {
   {
     var s := [2, 5, 3];
     call t := Add(s, 7);
-    assert [2,5,7,3] == t || [2,5,3] == t;
+    assert [2,5,7,3] == t || [2,5,3] == t;  // error
+  }
+}
+
+// -------------------------
+
+class CC<T> {
+  var x: T;
+  method M(c: CC<T>, z: T) returns (y: T)
+    requires c != null;
+    modifies this;
+    ensures y == c.x && x == z;
+  {
+    x := c.x;
+    x := z;
+    y := c.x;
+  }
+}
+
+class CClient {
+  method Main() {
+    var c := new CC<int>;
+    var k := c.x + 3;
+    if (c.x == c.x) {
+      k := k + 1;
+    }
+    var m := c.x;
+    if (m == c.x) {
+      k := k + 1;
+    }
+    c.x := 5;
+    c.x := c.x;
+    call z := c.M(c, 17);
+    assert z == c.x;
   }
 }
