@@ -17,8 +17,8 @@ class Queue<T> {
     tail.next == null &&
     (forall n ::
       n in spine ==>
-        n != null && n.Valid() &&
-        n.footprint <= footprint &&
+        n != null && n.footprint <= footprint && this !in n.footprint &&
+        n.Valid() &&
         (n.next == null ==> n == tail)) &&
     (forall n ::
       n in spine ==>

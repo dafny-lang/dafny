@@ -375,6 +375,7 @@ FunctionDecl<out Function! f>
      Type! returnType;
      List<Expression!> reqs = new List<Expression!>();
      List<Expression!> reads = new List<Expression!>();
+     List<Expression!> decreases = new List<Expression!>();
      Expression! bb;  Expression body = null;
      bool use = false;
   .)
@@ -388,26 +389,44 @@ FunctionDecl<out Function! f>
   ":"
   Type<out returnType>
   ( ";"
-    { FunctionSpec<reqs, reads> }
-  | { FunctionSpec<reqs, reads> }
+    { FunctionSpec<reqs, reads, decreases> }
+  | { FunctionSpec<reqs, reads, decreases> }
     FunctionBody<out bb>                (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, use, typeArgs, formals, returnType, reqs, reads, body, attrs);
+     f = new Function(id, id.val, use, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
   .)
   .
 
-FunctionSpec<List<Expression!\>! reqs, List<Expression!\>! reads>
+FunctionSpec<List<Expression!\>! reqs, List<Expression!\>! reads, List<Expression!\>! decreases>
 = (. Expression! e; .)
   ( "requires" Expression<out e> ";"      (. reqs.Add(e); .)
-  | ReadsClause<reads>
+  | "reads" [ PossiblyWildExpressions<reads> ] ";"
+  | "decreases" Expressions<decreases> ";"
   )
   .
 
-ReadsClause<List<Expression!\>! reads>
-= "reads"
-  [ Expressions<reads> ]
-  ";"
+PossiblyWildExpressions<List<Expression!\>! args>
+= (. Expression! e; .)
+  PossiblyWildExpression<out e>                        (. args.Add(e); .)
+  { "," PossiblyWildExpression<out e>                  (. args.Add(e); .)
+  }
+  .
+
+PossiblyWildExpression<out Expression! e>
+= (. e = dummyExpr; .)
+  /* A reads clause can list a wildcard, which allows the enclosing function to
+   * read anything.  In many cases, and in particular in all cases where
+   * the function is defined recursively, this makes it next to impossible to make
+   * any use of the function.  Nevertheless, as an experimental feature, the
+   * language allows it (and it is sound).
+   */
+  /* A decreases clause on a loop asks that no termination check be performed.
+   * Use of this feature is sound only with respect to partial correctness.
+   */
+  ( "*"                        (. e = new WildcardExpr(token); .)
+  | Expression<out e>
+  )
   .
 
 FunctionBody<out Expression! e>
@@ -447,6 +466,7 @@ MatchExpression<out Expression! e>
   "match"                     (. x = token; .)
   Expression<out e>
   ( "{" CaseExpressions<cases> "}"  /* curly braces are optional; in the future, when match expressions can be nested, this will be handy */
+  /* Note, because the curly braces are optional, Coco generates a "CaseExpressions deletable" warning, but that's okay. */
   | CaseExpressions<cases>
   )
   (. e = new MatchExpr(x, e, cases); .)
@@ -627,21 +647,13 @@ WhileStmt<out Statement! stmt>
   .)
   "while"                    (. x = token; .)
   Guard<out guard>           (. assume guard == null || Owner.None(guard); .)
-  {(                         (. isFree = false; .)
-    [ "free"                 (. isFree = true; .)
-    ]
-    "invariant"
-    Expression<out e>        (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
-    ";"
-   )
-   |
-   (
-    "decreases"
-    Expression<out e>        (. decreases.Add(e); .)
-    { "," Expression<out e>  (. decreases.Add(e); .)
-    }
-    ";"
-   )
+  {                          (. isFree = false; .)
+     [ "free"                (. isFree = true; .)
+     ]
+     "invariant"
+     Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
+     ";"
+   | "decreases" PossiblyWildExpressions<decreases> ";"
   }
   BlockStmt<out body>        (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
   .

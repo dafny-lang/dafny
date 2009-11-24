@@ -9,7 +9,7 @@ Dafny program verifier finished with 3 verified, 0 errors
 
 -------------------- b3.dfy --------------------
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 5 verified, 0 errors
 
 -------------------- b4.dfy --------------------
 
@@ -29,4 +29,4 @@ Dafny program verifier finished with 11 verified, 0 errors
 
 -------------------- b8.dfy --------------------
 
-Dafny program verifier finished with 21 verified, 0 errors
+Dafny program verifier finished with 22 verified, 0 errors

@@ -7,6 +7,7 @@ class Node {
   var marked: bool;
   var childrenVisited: int;
   var children: seq<Node>;
+  var pathFromRoot: Path;  // used only as ghost variable
 }
 
 class Main {
@@ -61,11 +62,13 @@ class Main {
         invariant (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
+        decreases |root.children| - i;
       {
         var c := root.children[i];
         if (c != null) {
           call RecursiveMarkWorker(c, S, stackNodes + {root});
         }
+        i := i + 1;
       }
     }
   }
@@ -140,24 +143,48 @@ class Main {
 
   // ---------------------------------------------------------------------------------
 
+  function Reachable(from: Node, to: Node, S: set<Node>): bool
+    requires null !in S;
+    reads S;
+    decreases 1;
+  {
+    (exists via: Path :: ReachableVia(from, via, to, S))
+  }
+
+  function ReachableVia(from: Node, via: Path, to: Node, S: set<Node>): bool
+    requires null !in S;
+    reads S;
+    decreases 0, via;
+  {
+    match via
+    case Empty => from == to
+    case Extend(prefix, n) => n in S && to in n.children && ReachableVia(from, prefix, n, S)
+  }
+
   method SchorrWaite(root: Node, S: set<Node>)
     requires root in S;
     // S is closed under 'children':
     requires (forall n :: n in S ==> n != null &&
                 (forall ch :: ch in n.children ==> ch == null || ch in S));
+    // the graph starts off with nothing marked and nothing being indicated as currently being visited
     requires (forall n :: n in S ==> ! n.marked && n.childrenVisited == 0);
     modifies S;
-    ensures root.marked;
     // nodes reachable from 'root' are marked:
+    ensures root.marked;
     ensures (forall n :: n in S && n.marked ==>
                 (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+    // every marked node was reachable from 'root' in the pre-state
+    ensures (forall n :: n in S && n.marked ==> old(Reachable(root, n, S)));
+    // the graph has not changed
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
   {
     var t := root;
     var p: Node := null;  // parent of t in original graph
+    var path := #Path.Empty;
     t.marked := true;
+    t.pathFromRoot := path;
     var stackNodes := [];  // used as ghost variable
     var unmarkedNodes := S - {t};  // used as ghost variable
     while (true)
@@ -183,6 +210,11 @@ class Main {
                   |n.children| == old(|n.children|) &&
                   (forall j :: 0 <= j && j < |n.children| ==>
                     j == n.childrenVisited || n.children[j] == old(n.children[j])));
+      // every marked node is reachable
+      invariant old(ReachableVia(root, path, t, S));
+      invariant (forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==>
+                  old(ReachableVia(root, pth, n, S)));
+      invariant (forall n :: n in S && n.marked ==> old(Reachable(root, n, S)));
       // the current values of m.children[m.childrenVisited] for m's on the stack:
       invariant 0 < |stackNodes| ==> stackNodes[0].children[stackNodes[0].childrenVisited] == null;
       invariant (forall k :: 0 < k && k < |stackNodes| ==>
@@ -208,10 +240,12 @@ class Main {
         p := oldP;
         stackNodes := stackNodes[..|stackNodes| - 1];
         t.childrenVisited := t.childrenVisited + 1;
+        path := t.pathFromRoot;
 
       } else if (t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked) {
         // just advance to next child
         t.childrenVisited := t.childrenVisited + 1;
+
       } else {
         // push
 
@@ -220,10 +254,17 @@ class Main {
         t.children := t.children[..t.childrenVisited] + [p] + t.children[t.childrenVisited + 1..];
         p := t;
         stackNodes := stackNodes + [t];
+        path := #Path.Extend(path, t);
         t := newT;
         t.marked := true;
+        t.pathFromRoot := path;
         unmarkedNodes := unmarkedNodes - {t};
       }
     }
   }
+}
+
+datatype Path {
+  Empty;
+  Extend(Path, Node);
 }

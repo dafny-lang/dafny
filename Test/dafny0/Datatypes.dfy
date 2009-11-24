@@ -8,7 +8,8 @@ class Node {
   var next: Node;
 
   function Repr(list: List<int>): bool
-    reads this;
+    reads *;
+    decreases list;
   { match list
     case Nil =>
       next == null
@@ -38,7 +39,8 @@ class AnotherNode {
   var next: AnotherNode;
 
   function Repr(n: AnotherNode, list: List<int>): bool
-    reads n;
+    reads *;
+    decreases list;
   { match list
     case Nil =>
       n == null

@@ -463,16 +463,18 @@ namespace Microsoft.Dafny
     public readonly Type! ResultType;
     public readonly List<Expression!>! Req;
     public readonly List<Expression!>! Reads;
+    public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
     public Function(Token! tok, string! name, bool use, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
-                    List<Expression!>! req, List<Expression!>! reads, Expression body, Attributes attributes) {
+                    List<Expression!>! req, List<Expression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
       this.Use = use;
       this.TypeArgs = typeArgs;
       this.Formals = formals;
       this.ResultType = resultType;
       this.Req = req;
       this.Reads = reads;
+      this.Decreases = decreases;
       this.Body = body;
       base(tok, name, attributes);
     }
@@ -1100,6 +1102,25 @@ namespace Microsoft.Dafny
     }
   }
   
+  public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
+    public WildcardExpr(Token! tok) {
+      base(tok);
+    }
+  }
+  
+  public class ITEExpr : Expression {  // an ITEExpr is an "extended expression" and is only allowed in certain places
+    public readonly Expression! Test;
+    public readonly Expression! Thn;
+    public readonly Expression! Els;
+    
+    public ITEExpr(Token! tok, Expression! test, Expression! thn, Expression! els) {
+      this.Test = test;
+      this.Thn = thn;
+      this.Els = els;
+      base(tok);
+    }
+  }
+  
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
     public readonly Expression! Source;
     public readonly List<MatchCase!>! Cases;
@@ -1123,19 +1144,6 @@ namespace Microsoft.Dafny
       this.Id = id;
       this.Arguments = arguments;
       this.Body = body;
-    }
-  }
-  
-  public class ITEExpr : Expression {  // an ITEExpr is an "extended expression" and is only allowed in certain places
-    public readonly Expression! Test;
-    public readonly Expression! Thn;
-    public readonly Expression! Els;
-    
-    public ITEExpr(Token! tok, Expression! test, Expression! thn, Expression! els) {
-      this.Test = test;
-      this.Thn = thn;
-      this.Els = els;
-      base(tok);
     }
   }
   

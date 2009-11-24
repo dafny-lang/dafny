@@ -16,6 +16,7 @@ class Node {
       invariant current == null || current in r;
       invariant reverse == null || reverse in r;
       invariant (forall y :: y in r ==> y.nxt == null || y.nxt in r);  // region closure
+      decreases *;  // omit loop termination check
     {
       var tmp := current.nxt;
       current.nxt := reverse;

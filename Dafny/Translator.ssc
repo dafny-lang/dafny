@@ -283,10 +283,7 @@ namespace Microsoft.Dafny {
             } else if (member is Function) {
               Function f = (Function)member;
               AddFrameAxiom(f);
-              // TODO: also need a well-formedness check for the preconditions
-              if (f.Body != null) {
-                AddWellformednessCheck(f);
-              }
+              AddWellformednessCheck(f);
             }
           }
         } else {
@@ -434,6 +431,8 @@ namespace Microsoft.Dafny {
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
       // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
       // sound after that, then it would also have been sound just before the allocation.
+      //
+      // TODO: Add a CanAssumeFunctionDefs antecedent to this axiom (see Dafny lecture notes from Marktoberdorf 2008).
       Bpl.VariableSeq formals = new Bpl.VariableSeq();
       Bpl.ExprSeq args = new Bpl.ExprSeq();
       Bpl.BoundVariable bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
@@ -490,7 +489,7 @@ namespace Microsoft.Dafny {
         assert r != null;
         Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
         substMap.Add(specializationFormal, r);
-        body = Substitute(body, new ThisExpr(f.tok), substMap);
+        body = Substitute(body, null, substMap);
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.TrExpr(body))));
       return new Bpl.Axiom(f.tok, ax);
@@ -671,13 +670,25 @@ namespace Microsoft.Dafny {
     
     /// <summary>
     /// Generates:
-    ///   axiom (forall h0: [ref, Field x]x, h1: [ref, Field x]x, formals... ::
+    ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
     ///        { F(h0,formals), F(h1,formals) }
-    ///        (forall(alpha) o: ref, f: Field alpha :: o != null AND h0[o,alloc] AND o in reads clause of formals in h0 IMPLIES h0[o,f] == h1[o,f]) AND
-    ///        (forall(alpha) o: ref, f: Field alpha :: o != null AND h1[o,alloc] AND o in reads clause of formals in h1 IMPLIES h0[o,f] == h1[o,f])
+    ///        heaps are well-formed and formals are allocated
+    ///        AND
+    ///        (forall(alpha) o: ref, f: Field alpha ::
+    ///            o != null AND h0[o,alloc] AND h1[o,alloc] AND
+    ///            o in reads clause of formals in h0
+    ///            IMPLIES h0[o,f] == h1[o,f])
+    ///        AND
+    ///        (forall(alpha) o: ref, f: Field alpha ::
+    ///            o != null AND h1[o,alloc] AND h0[o,alloc] AND
+    ///            o in reads clause of formals in h1
+    ///            IMPLIES h0[o,f] == h1[o,f])
     ///        IMPLIES
     ///        F(h0,formals) == F(h1,formals)
     ///      );
+    /// Note, the second h?[o,alloc] in the antecedent of each inner forall above is sound
+    /// because user expressions are not allowed to quantify over all allocated objects, and
+    /// in particular, they have no way to depend on the .alloc field of an object.
     /// </summary>
     void AddFrameAxiom(Function! f)
       requires sink != null && predef != null;
@@ -689,22 +700,25 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran0 = new ExpressionTranslator(this, predef, h0);
       ExpressionTranslator etran1 = new ExpressionTranslator(this, predef, h1);
       
+      Bpl.Expr wellFormed = Bpl.Expr.And(
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr));
+      
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$o", predef.RefType));
       Bpl.Expr o = new Bpl.IdentifierExpr(f.tok, oVar);
       Bpl.BoundVariable fieldVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$f", predef.FieldName(f.tok, alpha)));
       Bpl.Expr field = new Bpl.IdentifierExpr(f.tok, fieldVar);
       Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-      Bpl.Expr oNotNullAlloced0 = Bpl.Expr.And(oNotNull, etran0.IsAlloced(f.tok, o));
-      Bpl.Expr oNotNullAlloced1 = Bpl.Expr.And(oNotNull, etran1.IsAlloced(f.tok, o));
+      Bpl.Expr oNotNullAlloced = Bpl.Expr.And(oNotNull, Bpl.Expr.And(etran0.IsAlloced(f.tok, o), etran1.IsAlloced(f.tok, o)));
       Bpl.Expr unchanged = Bpl.Expr.Eq(Bpl.Expr.SelectTok(f.tok, h0, o, field), Bpl.Expr.SelectTok(f.tok, h1, o, field));
       
-      Bpl.Expr r0 = InRWClause(f.tok, o, f.Reads, etran0);
-      Bpl.Expr r1 = InRWClause(f.tok, o, f.Reads, etran1);
+      Bpl.Expr r0 = InRWClause(f.tok, o, f.Reads, etran0, null, null);
+      Bpl.Expr r1 = InRWClause(f.tok, o, f.Reads, etran1, null, null);
       Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
-        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced0, r0), unchanged));
+        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
       Bpl.Expr q1 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
-        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced1, r1), unchanged));
+        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r1), unchanged));
       
       // bvars:  h0, h1, formals
       // f0args:  h0, formals
@@ -717,12 +731,22 @@ namespace Microsoft.Dafny {
       bvars.Add(h0Var);  bvars.Add(h1Var);  bvars.Add(thVar);
       f0args.Add(h0);  f0args.Add(th);
       f1args.Add(h1);  f1args.Add(th);
+
+      Type thisType = Resolver.GetThisType(f.tok, (!)f.EnclosingClass);
+      Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
+        Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
+      wellFormed = Bpl.Expr.And(wellFormed, wh);
+
       foreach (Formal p in f.Formals) {
         Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
         bvars.Add(bv);
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
         f0args.Add(formal);
         f1args.Add(formal);
+        wh = GetWhereClause(p.tok, formal, p.Type, etran0);
+        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
+        wh = GetWhereClause(p.tok, formal, p.Type, etran1);
+        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
       }
       
       Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
@@ -732,18 +756,30 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(F0, F1));
       
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr, Bpl.Expr.Imp(Bpl.Expr.And(q0, q1), eq));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
+        Bpl.Expr.Imp(wellFormed,
+        Bpl.Expr.Imp(Bpl.Expr.And(q0, q1), eq)));
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
     }
     
-    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran)
+    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran,
+                         Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap)
       requires predef != null;
       // requires o to denote an expression of type RefType
+      // "rw" is is allowed to contain a WildcardExpr
+      requires receiverReplacement == null <==> substMap == null;
     {
       Bpl.Expr disjunction = null;
-      foreach (Expression e in rw) {
+      foreach (Expression rwComponent in rw) {
+        Expression e = rwComponent;
+        if (substMap != null) {
+          assert receiverReplacement != null;
+          e = Substitute(e, receiverReplacement, substMap);
+        }
         Bpl.Expr disjunct;
-        if (e.Type is SetType) {
+        if (e is WildcardExpr) {
+          disjunct = Bpl.Expr.True;
+        } else if (e.Type is SetType) {
           // old(e)[Box(o)]
           disjunct = etran.TrInSet(tok, o, e, ((SetType)e.Type).Arg);
         } else if (e.Type is SeqType) {
@@ -775,7 +811,6 @@ namespace Microsoft.Dafny {
     
     void AddWellformednessCheck(Function! f)
       requires sink != null && predef != null;
-      requires f.Body != null;
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
@@ -791,21 +826,30 @@ namespace Microsoft.Dafny {
         inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
       }
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
-      // preconditions of the procedure
-      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
-      string comment = "user-defined preconditions";
-      foreach (Expression p in f.Req) {
-        req.Add(Requires(p.tok, false, etran.TrExpr(p), null, comment));
-        comment = null;
-      }
       // the procedure itself
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
-        req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
+        new Bpl.RequiresSeq(), new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
       sink.TopLevelDeclarations.Add(proc);
 
       Bpl.VariableSeq locals = new Bpl.VariableSeq();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
-      CheckWellformed(f.Body, f, Position.Positive, locals, builder, etran);
+      // check well-formedness of the preconditions, and then assume each one of them
+      foreach (Expression p in f.Req) {
+        // Note, in this well-formedness check, function is passed in as null.  This will cause there to be
+        // no reads checks or decreases checks.  This seems like a good idea, and I hope it is also sound.
+        CheckWellformed(p, null, Position.Positive, locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
+      }
+      // Note: the reads clauses are not checked for well-formedness (is that sound?), because the syntax is
+      // not rich enough for programmers to specify reads clauses and always being absolutely well-defined.
+      // check well-formedness of the decreases clauses
+      foreach (Expression p in f.Decreases) {
+        CheckWellformed(p, f, Position.Positive, locals, builder, etran);
+      }
+      // check well-formedness of the body
+      if (f.Body != null) {
+        CheckWellformed(f.Body, f, Position.Positive, locals, builder, etran);
+      }
 
       Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
         typeParams,
@@ -818,7 +862,7 @@ namespace Microsoft.Dafny {
     Bpl.Expr! IsTotal(Expression! expr, ExpressionTranslator! etran)
       requires predef != null;
     {
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr) {
         return Bpl.Expr.True;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -971,7 +1015,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Obj, func, Position.Neither, locals, builder, etran);
         CheckNonNull(expr.tok, e.Obj, builder, etran);
         if (func != null) {
-          builder.Add(Assert(expr.tok, InRWClause(expr.tok, etran.TrExpr(e.Obj), func.Reads, etran), "insufficient reads clause to read field"));
+          builder.Add(Assert(expr.tok, InRWClause(expr.tok, etran.TrExpr(e.Obj), func.Reads, etran, null, null), "insufficient reads clause to read field"));
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -981,11 +1025,11 @@ namespace Microsoft.Dafny {
         if (e.E0 != null) {
           e0 = etran.TrExpr(e.E0);
           CheckWellformed(e.E0, func, Position.Neither, locals, builder, etran);
-          builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, e0, seq, null, !e.SelectOne)));
+          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, e0, seq, null, !e.SelectOne), "index out of range"));
         }
         if (e.E1 != null) {
           CheckWellformed(e.E1, func, Position.Neither, locals, builder, etran);
-          builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true)));
+          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true), "end-of-range beyond length of sequence"));
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
@@ -993,17 +1037,102 @@ namespace Microsoft.Dafny {
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr index = etran.TrExpr(e.Index);
         CheckWellformed(e.Index, func, Position.Neither, locals, builder, etran);
-        builder.Add(new Bpl.AssertCmd(expr.tok, InSeqRange(expr.tok, index, seq, null, false)));
+        builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, null, false), "index out of range"));
         CheckWellformed(e.Value, func, Position.Neither, locals, builder, etran);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
+        assert e.Function != null;  // follows from the fact that expr has been successfully resolved
+        // check well-formedness of receiver
         CheckWellformed(e.Receiver, func, Position.Neither, locals, builder, etran);
         CheckNonNull(expr.tok, e.Receiver, builder, etran);
+        // check well-formedness of the other parameters
         foreach (Expression arg in e.Args) {
           CheckWellformed(arg, func, Position.Neither, locals, builder, etran);
         }
-        // TODO: check wellformedness of call (call.reads is subset of reads, and either e.Function returns a boolean and is in a positive position, or e.Function returns something else and the subset is a proper subset)
-        // TODO: and check preconditions of call
+        // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
+        Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
+        for (int i = 0; i < e.Function.Formals.Count; i++) {
+          Formal p = e.Function.Formals[i];
+          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, null);
+          local.type = local.OptionalType;  // resolve local here
+          IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
+          ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
+          substMap.Add(p, ie);
+          locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
+          Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.TrExpr(e.Args[i]));
+          builder.Add(cmd);
+        }
+        // check that the preconditions for the call hold
+        foreach (Expression p in e.Function.Req) {
+          Expression precond = Substitute(p, e.Receiver, substMap);
+          builder.Add(Assert(expr.tok, etran.TrExpr(precond), "possible violation of function precondition"));
+        }
+        if (func != null) {
+          // check that the callee reads only what the caller is already allowed to read
+          // emit: assert (forall o: ref :: o != null && o in callee.reads ==> o in caller.reads);
+          Bpl.BoundVariable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
+          Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
+          Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+          Bpl.Expr oInCallee = InRWClause(expr.tok, o, e.Function.Reads, etran, e.Receiver, substMap);
+          Bpl.Expr oInCaller = InRWClause(expr.tok, o, func.Reads, etran, null, null);
+          Bpl.Expr q = new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInCallee), oInCaller));
+          builder.Add(Assert(expr.tok, q, "insufficient reads clause to invoke function"));
+  
+          // finally, check that the decreases measure goes down
+          Bpl.Expr decrExpr;
+          int N = min{e.Function.Decreases.Count, func.Decreases.Count};
+          if (N != 0) {
+            // both functions have explicit decreases clauses, so use them
+            List<Type!> types = new List<Type!>();
+            List<Bpl.Expr!> calleeTotal = new List<Bpl.Expr!>();
+            List<Bpl.Expr!> callee = new List<Bpl.Expr!>();
+            List<Bpl.Expr!> caller = new List<Bpl.Expr!>();
+            for (int i = 0; i < N; i++) {
+              Expression e0 = Substitute(e.Function.Decreases[i], e.Receiver, substMap);
+              Expression e1 = func.Decreases[i];
+              if (!CompatibleDecreasesTypes((!)e0.Type, (!)e1.Type)) {
+                break;
+              }
+              types.Add(e0.Type);
+              calleeTotal.Add(IsTotal(e0, etran));
+              callee.Add(etran.TrExpr(e0));
+              caller.Add(etran.TrExpr(e1));
+            }
+            decrExpr = DecreasesCheck(expr.tok, types, calleeTotal, callee, caller, builder, etran, "");
+          } else {
+            // todo:  include totality checks for callee in this branch!
+            List<Expression!> d0 = null, d1 = null;
+            if (e.Function.Decreases.Count == 0) {
+              d0 = e.Function.Reads;  // use its reads clause instead
+            } else if (e.Function.Decreases[0].Type is SetType) {
+              d0 = new List<Expression!>(1);
+              d0.Add(e.Function.Decreases[0]);  // use the first component of the declared decreases clause
+            } else {
+              d0 = null;  // there is a declared decreases clause, but its first component has a type that is incomparable with a reads clause
+            }
+            if (func.Decreases.Count == 0) {
+              d1 = func.Reads;  // use its reads clause instead
+            } else if (func.Decreases[0].Type is SetType) {
+              d1 = new List<Expression!>(1);
+              d1.Add(func.Decreases[0]);  // use the first component of the declared decreases clause
+            } else {
+              d1 = null;  // there is a declared decreases clause, but its first component has a type that is incomparable with a reads clause
+            }
+            if (d0 == null || d1 == null) {
+              decrExpr = Bpl.Expr.False;
+            } else {
+              oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$d", predef.RefType));
+              o = new Bpl.IdentifierExpr(expr.tok, oVar);
+              Bpl.Expr r0 = InRWClause(expr.tok, o, d0, etran, e.Receiver, substMap);
+              Bpl.Expr r1 = InRWClause(expr.tok, o, d1, etran, null, null);
+              Bpl.Expr qSubset = new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(r0, r1));
+              Bpl.Expr qProper = new Bpl.ExistsExpr(expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.And(Bpl.Expr.Not(r0), r1));
+              decrExpr = Bpl.Expr.And(qSubset, qProper);
+            }
+          }
+          builder.Add(Assert(expr.tok, decrExpr, "failure to decrease termination measure"));
+        }
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         foreach (Expression arg in dtv.Arguments) {
@@ -1017,7 +1146,6 @@ namespace Microsoft.Dafny {
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         CheckWellformed(e.E0, func, e.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ? Negate(pos) : pos, locals, builder, etran);
-
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
           case BinaryExpr.ResolvedOpcode.Imp:
@@ -1050,7 +1178,7 @@ namespace Microsoft.Dafny {
           substMap.Add(bv, ie);
           locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
         }
-        Expression body = Substitute(e.Body, new ThisExpr(expr.tok), substMap);
+        Expression body = Substitute(e.Body, null, substMap);
         CheckWellformed(body, func, pos, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
@@ -1366,7 +1494,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.Old.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
       
-      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, modifiesClause, etran.Old));
+      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, modifiesClause, etran.Old, null, null));
       
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
       return new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, Bpl.Expr.Imp(ante, consequent));
@@ -1417,7 +1545,7 @@ namespace Microsoft.Dafny {
 
     // ----- Statement ----------------------------------------------------------------------------
     
-    Bpl.AssertCmd! Assert(Token! tok, Bpl.Expr! condition, string! errorMessage)
+    Bpl.AssertCmd! Assert(Bpl.IToken! tok, Bpl.Expr! condition, string! errorMessage)
     {
       Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition);
       cmd.ErrorData = "Error: " + errorMessage;
@@ -1464,7 +1592,7 @@ namespace Microsoft.Dafny {
         int pieces = 0;
         foreach (Expression p in SplitExpr(s.Expr, true)) {
           builder.Add(Assert(stmt.Tok, IsTotal(p, etran), "assert condition must be well defined"));  // totality check
-          builder.Add(new Bpl.AssertCmd(stmt.Tok, etran.TrExpr(p)));
+          builder.Add(Assert(stmt.Tok, etran.TrExpr(p), "assertion violation"));
           pieces++;
         }
         if (2 <= pieces) {
@@ -1644,7 +1772,7 @@ namespace Microsoft.Dafny {
           int pieces = 0;
           if (!loopInv.IsFree) {
             foreach (Expression se in SplitExpr(loopInv.E, true)) {
-              invariants.Add(new Bpl.AssertCmd(se.tok, etran.TrExpr(se)));
+              invariants.Add(Assert(se.tok, etran.TrExpr(se), "loop invariant violation"));
               pieces++;
             }
           }
@@ -1681,10 +1809,11 @@ namespace Microsoft.Dafny {
         loopBodyBuilder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_entered", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
-        if (s.Decreases.Count == 0) {
+        if (exists{Expression e in s.Decreases; e is WildcardExpr}) {
+          // omit termination checking for this loop
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
         } else {
-          List<Bpl.IdentifierExpr!> oldBfs = new List<Bpl.IdentifierExpr!>();
+          List<Bpl.Expr!> oldBfs = new List<Bpl.Expr!>();
           int c = 0;
           foreach (Expression e in s.Decreases) {
             Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, "$decr" + loopId + "$" + c, TrType((!)e.Type)));
@@ -1692,7 +1821,7 @@ namespace Microsoft.Dafny {
             Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
             oldBfs.Add(bf);
             // record value of each decreases expression at beginning of the loop iteration
-            invariants.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at top of each loop iteration"));  // totality check
+            loopBodyBuilder.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at top of each loop iteration"));  // totality check
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(e.tok, bf, etran.TrExpr(e));
             loopBodyBuilder.Add(cmd);
             
@@ -1701,84 +1830,18 @@ namespace Microsoft.Dafny {
           // time for the actual loop body
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
           // check definedness of decreases expressions
+          List<Type!> types = new List<Type!>();
+          List<Bpl.Expr!> decrsTotal = new List<Bpl.Expr!>();
+          List<Bpl.Expr!> decrs = new List<Bpl.Expr!>();
           foreach (Expression e in s.Decreases) {
             // The following totality check implies that the loop invariant stating the same property will hold;
             // thus, an alternative (perhaps preferable) design would be:  add the totality check also just before
             // the loop, and change the loop invariant to be free.
-            loopBodyBuilder.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at end of loop iteration"));  // totality check
+            types.Add((!)e.Type);
+            decrsTotal.Add(IsTotal(e, etran));
+            decrs.Add(etran.TrExpr(e));
           }
-          // compute eq and less for each component of the lexicographic pair
-          List<Bpl.Expr!> Eq = new List<Bpl.Expr!>();
-          List<Bpl.Expr!> Less = new List<Bpl.Expr!>();
-          for (int i = 0; i < s.Decreases.Count; i++) {
-            Expression e = s.Decreases[i];
-            Bpl.Expr d = etran.TrExpr(e);
-            Bpl.IdentifierExpr bf = oldBfs[i];
-            
-            Bpl.Expr less;
-            Bpl.Expr eq;
-            Type ty = (!)e.Type;
-            if (ty is BoolType) {
-              eq = Bpl.Expr.Iff(d, bf);
-              less = Bpl.Expr.And(Bpl.Expr.Not(d), bf);
-            } else if (ty is IntType) {
-              eq = Bpl.Expr.Eq(d, bf);
-              less = Bpl.Expr.Lt(d, bf);
-            } else if (ty is SetType) {
-              eq = FunctionCall(stmt.Tok, BuiltinFunction.SetEqual, null, d, bf);
-              less = etran.ProperSubset(stmt.Tok, d, bf);
-            } else if (ty is SeqType) {
-              Bpl.Expr e0 = FunctionCall(stmt.Tok, BuiltinFunction.SeqLength, null, d);
-              Bpl.Expr e1 = FunctionCall(stmt.Tok, BuiltinFunction.SeqLength, null, bf);
-              eq = Bpl.Expr.Eq(e0, e1);
-              less = Bpl.Expr.Lt(e0, e1);
-            } else if (ty.IsDatatype) {
-              Bpl.Expr e0 = FunctionCall(stmt.Tok, BuiltinFunction.DtRank, null, d);
-              Bpl.Expr e1 = FunctionCall(stmt.Tok, BuiltinFunction.DtRank, null, bf);
-              eq = Bpl.Expr.Eq(e0, e1);
-              less = Bpl.Expr.Lt(e0, e1);
-              
-            } else {
-              // reference type
-              Bpl.Expr e0 = Bpl.Expr.Neq(d, predef.Null);
-              Bpl.Expr e1 = Bpl.Expr.Neq(bf, predef.Null);
-              eq = Bpl.Expr.Iff(e0, e1);
-              less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
-            }
-            Eq.Add(eq);
-            Less.Add(less);
-          }
-          // check: 0 <= old(decreases)
-          // more precisely, for component k of the lexicographic decreases function, check:
-          //   0 <= old(dec(k)) || dec0 < old(dec0) || dec1 < old(dec1) || ... || dec(k-1) < old(dec((k-1) || old(dec(k)) == dec(k)
-          for (int k = 0; k < s.Decreases.Count; k++) {
-            Expression e = s.Decreases[k];
-            // we only need to check lower bound for integers--sets, sequences, booleans, and references all have natural lower bounds
-            if (e.Type is IntType) {
-              Bpl.IdentifierExpr bf = oldBfs[k];
-              Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), bf);
-              for (int i = 0; i < k; i++) {
-                bounded = Bpl.Expr.Or(bounded, Less[i]);
-              }
-              Bpl.Cmd cmd = Assert(e.tok, Bpl.Expr.Or(bounded, Eq[k]), "decreases expression must be bounded below by 0");
-              loopBodyBuilder.Add(cmd);
-            }
-          }
-          // check: decreases < old(decreases)
-          Bpl.Expr decrCheck = null;
-          for (int i = s.Decreases.Count; 0 <= --i; )
-            invariant i != s.Decreases.Count ==> decrCheck != null;
-          {
-            Bpl.Expr less = Less[i];
-            Bpl.Expr eq = Eq[i];
-            if (decrCheck == null) {
-              decrCheck = less;
-            } else {
-              // decrCheck = less || (eq && decrCheck)
-              decrCheck = Bpl.Expr.Or(less, Bpl.Expr.And(eq, decrCheck));
-            }
-          }
-          assert decrCheck != null;  // follows from loop invariant and the fact that s.Decreases.Count != 0
+          Bpl.Expr decrCheck = DecreasesCheck(stmt.Tok, types, decrsTotal, decrs, oldBfs, loopBodyBuilder, etran, "at end of loop iteration");
           loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, "decreases expression might not decrease"));
         }
         Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
@@ -1826,7 +1889,7 @@ namespace Microsoft.Dafny {
             foreach (Expression se in SplitExpr(ps.Expr, true)) {
               Bpl.Expr e = etran.TrExpr(se);
               Bpl.Expr q = new Bpl.ForallExpr(se.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
-              builder.Add(new Bpl.AssertCmd(se.tok, q));
+              builder.Add(Assert(se.tok, q, "assertion violation"));
               pieces++;
             }
           }
@@ -1878,6 +1941,121 @@ namespace Microsoft.Dafny {
         
       } else {
         assert false;  // unexpected statement
+      }
+    }
+    
+    /// <summary>
+    /// Returns the expression that says whether or not the decreases function has gone down.  ee0 represents the new
+    /// values and ee1 represents old values.
+    /// </summary>
+    Bpl.Expr! DecreasesCheck(Token! tok, List<Type!>! types, List<Bpl.Expr!>! total0, List<Bpl.Expr!>! ee0, List<Bpl.Expr!>! ee1,
+                             Bpl.StmtListBuilder! builder, ExpressionTranslator! etran, string! suffixMsg)
+      requires predef != null;
+      requires types.Count == ee0.Count && ee0.Count == ee1.Count;
+    {
+      int N = types.Count;
+      
+      // compute eq and less for each component of the lexicographic pair
+      List<Bpl.Expr!> Eq = new List<Bpl.Expr!>(N);
+      List<Bpl.Expr!> Less = new List<Bpl.Expr!>(N);
+      for (int i = 0; i < N; i++) {
+        Bpl.Expr! less, eq;
+        ComputeLessEq(tok, types[i], ee0[i], ee1[i], out less, out eq, etran);
+        Eq.Add(eq);
+        Less.Add(less);
+      }
+      // check: total(ee0)
+      // more precisely, for component k of the lexicographic decreases function, check:
+      //   ee0[0] < ee1[0] || ee0[1] < ee1[1] || ... || ee0[k-1] < ee1[k-1] || total0[k]
+      // Also:
+      // check: 0 <= ee1
+      // more precisely, for component k of the lexicographic decreases function, check:
+      //   ee0[0] < ee1[0] || ee0[1] < ee1[1] || ... || ee0[k-1] < ee1[k-1] || ee0[k] == ee1[k] || 0 <= ee1[k]
+      for (int k = 0; k < N; k++) {
+        // we only need to check lower bound for integers--sets, sequences, booleans, and references all have natural lower bounds
+        Bpl.Expr prefixIsLess = Bpl.Expr.False;
+        for (int i = 0; i < k; i++) {
+          prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
+        }
+        Bpl.Cmd cmd = Assert(ee0[k].tok, Bpl.Expr.Or(prefixIsLess, total0[k]), "decreases expression (component " + k + ") must be well-defined" + suffixMsg);
+        builder.Add(cmd);
+        
+        if (types[k] is IntType) {
+          Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), ee1[k]);
+          for (int i = 0; i < k; i++) {
+            bounded = Bpl.Expr.Or(bounded, Less[i]);
+          }
+          cmd = Assert(ee0[k].tok, Bpl.Expr.Or(bounded, Eq[k]), "decreases expression (component " + k + ") must be bounded below by 0" + suffixMsg);
+          builder.Add(cmd);
+        }
+      }
+      // check: ee0 < ee1
+      Bpl.Expr decrCheck = null;
+      for (int i = N; 0 <= --i; )
+        invariant i != N ==> decrCheck != null;
+      {
+        Bpl.Expr less = Less[i];
+        Bpl.Expr eq = Eq[i];
+        if (decrCheck == null) {
+          decrCheck = less;
+        } else {
+          // decrCheck = less || (eq && decrCheck)
+          decrCheck = Bpl.Expr.Or(less, Bpl.Expr.And(eq, decrCheck));
+        }
+      }
+      if (decrCheck == null) {
+        return Bpl.Expr.False;
+      } else {
+        return decrCheck;
+      }
+    }
+
+    bool CompatibleDecreasesTypes(Type! t, Type! u) {
+      if (t is BoolType) {
+        return u is BoolType;
+      } else if (t is IntType) {
+        return u is IntType;
+      } else if (t is SetType) {
+        return u is SetType;
+      } else if (t is SeqType) {
+        return u is SeqType;
+      } else if (t.IsDatatype) {
+        return u.IsDatatype;
+      } else {
+        assert t.IsRefType;
+        return u.IsRefType;
+      }
+    }
+    
+    void ComputeLessEq(Token! tok, Type! ty, Bpl.Expr! e0, Bpl.Expr! e1, out Bpl.Expr! less, out Bpl.Expr! eq, ExpressionTranslator! etran)
+      requires predef != null;
+    {
+      if (ty is BoolType) {
+        eq = Bpl.Expr.Iff(e0, e1);
+        less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
+      } else if (ty is IntType) {
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.Lt(e0, e1);
+      } else if (ty is SetType) {
+        eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, e0, e1);
+        less = etran.ProperSubset(tok, e0, e1);
+      } else if (ty is SeqType) {
+        Bpl.Expr b0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
+        Bpl.Expr b1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
+        eq = Bpl.Expr.Eq(b0, b1);
+        less = Bpl.Expr.Lt(b0, b1);
+      } else if (ty.IsDatatype) {
+        Bpl.Expr b0 = FunctionCall(tok, BuiltinFunction.DtRank, null, e0);
+        Bpl.Expr b1 = FunctionCall(tok, BuiltinFunction.DtRank, null, e1);
+        eq = Bpl.Expr.Eq(b0, b1);
+        less = Bpl.Expr.Lt(b0, b1);
+        
+      } else {
+        // reference type
+        Bpl.Expr b0 = Bpl.Expr.Neq(e0, predef.Null);
+        Bpl.Expr b1 = Bpl.Expr.Neq(e1, predef.Null);
+        eq = Bpl.Expr.Iff(b0, b1);
+        less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
       }
     }
     
@@ -2827,13 +3005,13 @@ namespace Microsoft.Dafny {
       yield return expr;
     }
 
-    static Expression! Substitute(Expression! expr, Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+    static Expression! Substitute(Expression! expr, Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
       Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
       
-      if (expr is LiteralExpr) {
+      if (expr is LiteralExpr || expr is WildcardExpr) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
-        return receiverReplacement;
+        return receiverReplacement == null ? expr : receiverReplacement;
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
         Expression substExpr;
@@ -2958,7 +3136,7 @@ namespace Microsoft.Dafny {
     }
     
     static List<Expression!>! SubstituteExprList(List<Expression!>! elist,
-                                                 Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+                                                 Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
       List<Expression!> newElist = null;  // initialized lazily
       for (int i = 0; i < elist.Count; i++)
         invariant newElist == null || newElist.Count == i;
@@ -2981,7 +3159,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    static Triggers SubstTriggers(Triggers trigs, Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+    static Triggers SubstTriggers(Triggers trigs, Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
       if (trigs != null) {
         List<Expression!> terms = SubstituteExprList(trigs.Terms, receiverReplacement, substMap);
         Triggers prev = SubstTriggers(trigs.Prev, receiverReplacement, substMap);
@@ -2992,7 +3170,7 @@ namespace Microsoft.Dafny {
       return trigs;
     }
         
-    static Attributes SubstAttributes(Attributes attrs, Expression! receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
+    static Attributes SubstAttributes(Attributes attrs, Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
       if (attrs != null) {
         List<Attributes.Argument!> newArgs = new List<Attributes.Argument!>();  // allocate it eagerly, what the heck, it doesn't seem worth the extra complexity in the code to do it lazily for the infrequently occurring attributes
         bool anyArgSubst = false;

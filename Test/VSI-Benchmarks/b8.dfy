@@ -59,7 +59,7 @@ class Glossary {
       invariant (forall d :: d in glossary.values ==> null !in d);
       invariant q !in rs.footprint;
       invariant q.contents == glossary.keys;
-      // we leave out the decreases clause - unbounded stream
+      decreases *;  // we leave out the decreases clause - unbounded stream
     {
       call term,definition := readDefinition(rs);
       if (term == null) {
@@ -135,7 +135,7 @@ class Glossary {
       while (true)
         invariant rs.Valid() && fresh(rs.footprint - old(rs.footprint));
         invariant null !in definition;
-        // we leave out the decreases clause - unbounded stream
+        decreases *;  // we leave out the decreases clause - unbounded stream
       {
         call w := rs.GetWord();
         if (w == null)

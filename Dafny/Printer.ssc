@@ -143,6 +143,12 @@ namespace Microsoft.Dafny {
         PrintExpression(r);
         wr.WriteLine(";");
       }
+      foreach (Expression r in f.Decreases) {
+        Indent(2 * IndentAmount);
+        wr.Write("decreases ");
+        PrintExpression(r);
+        wr.WriteLine(";");
+      }
       if (f.Body != null) {
         Indent(IndentAmount);
         PrintExtendedExpr(f.Body, IndentAmount);
@@ -717,6 +723,9 @@ namespace Microsoft.Dafny {
           PrintExpression(e.Body);
         }
         wr.Write(")");
+        
+      } else if (expr is WildcardExpr) {
+        wr.Write("*");
         
       } else if (expr is ITEExpr) {
         assert false;  // ITE is an extended expression and should be printed only using PrintExtendedExpr

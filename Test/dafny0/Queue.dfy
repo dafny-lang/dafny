@@ -17,12 +17,12 @@ class Queue<T> {
     head != null && head in spine &&
     tail != null && tail in spine &&
     tail.next == null &&
-    (forall n ::  // { n in spine }
+    (forall n ::
       n in spine ==>
-        n != null && n.Valid() &&
-        n.footprint <= footprint &&
+        n != null && n.footprint <= footprint && this !in n.footprint &&
+        n.Valid() &&
         (n.next == null ==> n == tail)) &&
-    (forall n ::  // { n.next }
+    (forall n ::
       n in spine ==>
         n.next != null ==> n.next in spine) &&
     contents == head.tailContents

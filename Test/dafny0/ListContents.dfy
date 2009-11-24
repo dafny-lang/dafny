@@ -75,6 +75,7 @@ class Node<T> {
         (forall i :: 0 <= i && i < |current.list| ==> current.list[i] == old(list)[|reverse.list|+i]);
       invariant
         (forall i :: 0 <= i && i < |reverse.list| ==> old(list)[i] == reverse.list[|reverse.list|-1-i]);
+      decreases current, |current.list|;
     {
       var nx := current.next;
       assert nx != null ==> (forall i :: 0 <= i && i < |nx.list| ==> current.list[1+i] == nx.list[i]); // lemma

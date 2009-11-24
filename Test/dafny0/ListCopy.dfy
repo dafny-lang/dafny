@@ -31,6 +31,7 @@ class Node {
         invariant prev in newRegion;
         invariant fresh(newRegion);
         invariant newRegion !! existingRegion;
+        decreases *;  // omit loop termination check
       {
         var tmp := new Node;
         call tmp.Init();

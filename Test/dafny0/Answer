@@ -56,8 +56,18 @@ Dafny program verifier finished with 0 verified, 0 errors
 
 Boogie program verifier finished with 8 verified, 0 errors
 
+-------------------- TypeTests.dfy --------------------
+TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, got D)
+TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
+TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
+TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, got int)
+TypeTests.dfy(11,4): Error: incorrect type of method in-parameter 0 (expected int, got bool)
+TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 0 (expected int, got C)
+TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 1 (expected C, got int)
+7 resolution/type errors detected in synthetic program
+
 -------------------- SmallTests.dfy --------------------
-SmallTests.dfy(29,7): Error: RHS expression must be well defined
+SmallTests.dfy(30,7): Error: RHS expression must be well defined
 Execution trace:
     (0,0): anon0
 
@@ -85,47 +95,47 @@ Dafny program verifier finished with 5 verified, 0 errors
 
 -------------------- SchorrWaite.dfy --------------------
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 
 -------------------- Termination.dfy --------------------
 
 Dafny program verifier finished with 6 verified, 0 errors
 
 -------------------- Use.dfy --------------------
-Use.dfy(12,5): Error BP5001: This assertion might not hold.
+Use.dfy(12,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(25,5): Error BP5001: This assertion might not hold.
+Use.dfy(25,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(50,5): Error BP5001: This assertion might not hold.
+Use.dfy(50,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 6 verified, 3 errors
 
 -------------------- DTypes.dfy --------------------
-DTypes.dfy(15,5): Error BP5001: This assertion might not hold.
+DTypes.dfy(15,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-DTypes.dfy(28,5): Error BP5001: This assertion might not hold.
+DTypes.dfy(28,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-DTypes.dfy(54,5): Error BP5001: This assertion might not hold.
+DTypes.dfy(54,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 5 verified, 3 errors
 
 -------------------- TypeParameters.dfy --------------------
-TypeParameters.dfy(41,5): Error BP5001: This assertion might not hold.
+TypeParameters.dfy(41,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-TypeParameters.dfy(63,5): Error BP5001: This assertion might not hold.
+TypeParameters.dfy(63,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 9 verified, 2 errors
+Dafny program verifier finished with 10 verified, 2 errors
 
 -------------------- Datatypes.dfy --------------------
 
