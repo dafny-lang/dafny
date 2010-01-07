@@ -134,7 +134,7 @@ axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#SameUntil(s0,s1,n) }
     (forall j: int :: { Seq#Index(s0,j) } { Seq#Index(s1,j) }
         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
 
-function Seq#Take<T>(Seq T, howMany: int) returns (Seq T);
+function Seq#Take<T>(s: Seq T, howMany: int) returns (Seq T);
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
@@ -143,7 +143,7 @@ axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Take(s,n), j) }
   0 <= j && j < n && j < Seq#Length(s) ==>
     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
 
-function Seq#Drop<T>(Seq T, howMany: int) returns (Seq T);
+function Seq#Drop<T>(s: Seq T, howMany: int) returns (Seq T);
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&

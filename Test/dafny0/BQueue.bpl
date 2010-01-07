@@ -409,7 +409,7 @@ axiom (forall s0: Seq, s1: Seq :: { EqualSeq(s0,s1) }
     (forall j: int :: { Index(s0,j) } { Index(s1,j) }
         0 <= j && j < Length(s0) ==> Index(s0,j) == Index(s1,j)));
 
-function Take(Seq, howMany: int) returns (Seq);
+function Take(s: Seq, howMany: int) returns (Seq);
 axiom (forall s: Seq, n: int :: { Length(Take(s,n)) }
   0 <= n ==>
     (n <= Length(s) ==> Length(Take(s,n)) == n) &&
@@ -418,7 +418,7 @@ axiom (forall s: Seq, n: int, j: int :: { Index(Take(s,n), j) }
   0 <= j && j < n && j < Length(s) ==>
     Index(Take(s,n), j) == Index(s, j));
 
-function Drop(Seq, howMany: int) returns (Seq);
+function Drop(s: Seq, howMany: int) returns (Seq);
 axiom (forall s: Seq, n: int :: { Length(Drop(s,n)) }
   0 <= n ==>
     (n <= Length(s) ==> Length(Drop(s,n)) == Length(s) - n) &&
