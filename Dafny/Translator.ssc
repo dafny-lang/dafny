@@ -932,6 +932,7 @@ namespace Microsoft.Dafny {
             t1 = Bpl.Expr.Imp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
             break;
           case BinaryExpr.ResolvedOpcode.Div:
+          case BinaryExpr.ResolvedOpcode.Mod:
             z = Bpl.Expr.Neq(etran.TrExpr(e.E1), Bpl.Expr.Literal(0));
             break;
           default:
@@ -2543,6 +2544,17 @@ namespace Microsoft.Dafny {
       }
       
       public static bool ModeledAsBoxType(Type! t) {
+        while (true) {
+          TypeProxy tp = t as TypeProxy;
+          if (tp == null) {
+            break;
+          } else if (tp.T == null) {
+            // unresolved proxy
+            return false;
+          } else {
+            t = tp.T;
+          }
+        }
         return t.IsTypeParameter;
       }
 

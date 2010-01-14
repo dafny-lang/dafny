@@ -179,6 +179,7 @@ FieldDecl<List<MemberDecl!\>! mm>
 = (. Attributes attrs = null;
      Token! id;  Type! ty;
   .)
+  [ "ghost" ]
   "var"
   { Attribute<ref attrs> }
   IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, ty, attrs)); .)
@@ -589,6 +590,7 @@ LhsExpr<out Expression! e>
 
 VarDeclStmts<List<Statement!\>! ss>
 = (. VarDecl! d; .)
+  [ "ghost" ]
   "var"
   IdentTypeRhs<out d>                  (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
   { "," IdentTypeRhs<out d>            (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)

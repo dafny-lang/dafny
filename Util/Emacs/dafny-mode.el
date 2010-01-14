@@ -30,7 +30,7 @@
 ]\\)*" . font-lock-comment-face)
 
    `(,(dafny-regexp-opt '(
-        "class" "datatype" "function" "frame" "var" "method"
+        "class" "datatype" "function" "frame" "ghost" "var" "method"
         "returns" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"
         )) . font-lock-builtin-face)
