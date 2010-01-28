@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Microsoft.Contracts;
 
 namespace Microsoft.Dafny {
@@ -1021,7 +1022,7 @@ namespace Microsoft.Dafny {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
           e.Type = new ObjectTypeProxy();
-        } else if (e.Value is int) {
+        } else if (e.Value is BigInteger) {
           e.Type = Type.Int;
         } else if (e.Value is bool) {
           e.Type = Type.Bool;

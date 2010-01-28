@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Microsoft.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Text;
@@ -2216,8 +2217,8 @@ namespace Microsoft.Dafny {
             return predef.Null;
           } else if (e.Value is bool) {
             return Bpl.Expr.Literal((bool)e.Value);
-          } else if (e.Value is int) {
-            return Bpl.Expr.Literal((int)e.Value);
+          } else if (e.Value is BigInteger) {
+            return Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value));
           } else {
             assert false;  // unexpected literal
           }

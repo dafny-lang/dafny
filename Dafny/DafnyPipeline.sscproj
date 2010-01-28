@@ -72,6 +72,21 @@
              Private="false"
              HintPath="../Core/bin/Debug/Core.dll"
              />
+        <Reference Name="FSharp.Core"
+             AssemblyName="FSharp.Core"
+             Private="true"
+             HintPath="../../Binaries/FSharp.Core.dll"
+             />
+        <Reference Name="FSharp.PowerPack"
+             AssemblyName="FSharp.PowerPack"
+             Private="true"
+             HintPath="../../Binaries/FSharp.PowerPack.dll"
+             />
+        <Reference Name="Basetypes"
+             AssemblyName="Basetypes"
+             Private="true"
+             HintPath="../Basetypes/bin/debug/Basetypes.dll"
+             />
       </References>
     </Build>
     <Files>

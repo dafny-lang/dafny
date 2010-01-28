@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Contracts;
+using System.Numerics;
 
 namespace Microsoft.Dafny
 {
@@ -830,11 +831,17 @@ namespace Microsoft.Dafny
       base(tok);
     }
     
-    public LiteralExpr(Token! tok, int n)
-      requires 0 <= n;
+    public LiteralExpr(Token! tok, BigInteger n)
+      requires 0 <= n.Sign;
     {
       this.Value = n;
       base(tok);
+    }
+    
+    public LiteralExpr(Token! tok, int n)
+      requires 0 <= n;
+    {
+      this(tok, new BigInteger(n));
     }
     
     public LiteralExpr(Token! tok, bool b) {

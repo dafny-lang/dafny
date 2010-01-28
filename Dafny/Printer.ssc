@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using Microsoft.Contracts;
+using System.Numerics;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -503,7 +504,7 @@ namespace Microsoft.Dafny {
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
         } else {
-          wr.Write((int)e.Value);
+          wr.Write((BigInteger)e.Value);
         }
       
       } else if (expr is ThisExpr) {

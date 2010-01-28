@@ -10,6 +10,7 @@
 //--------------------------------------------------------------------------*/
 
 using System.Collections.Generic;
+using System.Numerics;
 using Microsoft.Boogie;
 
 
@@ -888,7 +889,7 @@ UnaryExpression<out Expression! e>
 NegOp = "!" | '\u00ac'.
 
 ConstAtomExpression<out Expression! e>            
-= (. Token! x, dtName, id;  int n;  List<Expression!>! elements;
+= (. Token! x, dtName, id;  BigInteger n;  List<Expression!>! elements;
      e = dummyExpr;  
   .)
   ( "false"                                    (. e = new LiteralExpr(token, false); .)
@@ -1116,14 +1117,14 @@ Ident<out Token! x>
   ident            (. x = token; .)
   .                                  
 
-Nat<out int n>
+Nat<out BigInteger n>
 =
   digits
   (. try {
-       n = System.Convert.ToInt32(token.val);
+       n = BigInteger.Parse(token.val);
      } catch (System.FormatException) {
        SemErr("incorrectly formatted number");
-       n = 0;
+       n = BigInteger.Zero;
      }
   .) 
   .
