@@ -391,9 +391,11 @@ namespace Microsoft.Dafny
   }
   
   public class Field : MemberDecl {
+    public readonly bool IsGhost;
     public readonly Type! Type;
     
-    public Field(Token! tok, string! name, Type! type, Attributes attributes) {
+    public Field(Token! tok, string! name, bool isGhost, Type! type, Attributes attributes) {
+      IsGhost = isGhost;
       Type = type;
       base(tok, name, attributes);
     }
@@ -458,7 +460,8 @@ namespace Microsoft.Dafny
   }
   
   public class Function : MemberDecl, TypeParameter.ParentType {
-    public readonly bool Use;
+    public readonly bool IsClass;
+    public readonly bool IsUse;
     public readonly List<TypeParameter!>! TypeArgs;
     public readonly List<Formal!>! Formals;
     public readonly Type! ResultType;
@@ -467,9 +470,10 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
-    public Function(Token! tok, string! name, bool use, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
+    public Function(Token! tok, string! name, bool isClass, bool isUse, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
                     List<Expression!>! req, List<Expression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
-      this.Use = use;
+      this.IsClass = isClass;
+      this.IsUse = isUse;
       this.TypeArgs = typeArgs;
       this.Formals = formals;
       this.ResultType = resultType;
@@ -482,6 +486,7 @@ namespace Microsoft.Dafny
   }
   
   public class Method : MemberDecl, TypeParameter.ParentType {
+    public readonly bool IsClass;
     public readonly List<TypeParameter!>! TypeArgs;
     public readonly List<Formal!>! Ins;
     public readonly List<Formal!>! Outs;
@@ -491,11 +496,13 @@ namespace Microsoft.Dafny
     public readonly Statement Body;
     
     public Method(Token! tok, string! name,
+                  bool isClass,
                   [Captured] List<TypeParameter!>! typeArgs,
                   [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
                   [Captured] List<MaybeFreeExpression!>! req, [Captured] List<Expression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
                   [Captured] Statement body,
                   Attributes attributes) {
+      this.IsClass = isClass;
       this.TypeArgs = typeArgs;
       this.Ins = ins;
       this.Outs = outs;
@@ -977,7 +984,7 @@ namespace Microsoft.Dafny
   public class UseExpr : FunctionCallExpr {
     [NotDelayed] [Captured]
     public UseExpr(FunctionCallExpr! fce)
-      requires fce.Function != null && fce.Function.Use;
+      requires fce.Function != null && fce.Function.IsUse;
     {
       base(fce.tok, fce.Name, fce.Receiver, new List<Expression!>(fce.Args));
       this.Function = fce.Function;
@@ -1115,7 +1122,7 @@ namespace Microsoft.Dafny
     }
   }
   
-  public class ITEExpr : Expression {  // an ITEExpr is an "extended expression" and is only allowed in certain places
+  public class ITEExpr : Expression {
     public readonly Expression! Test;
     public readonly Expression! Thn;
     public readonly Expression! Els;

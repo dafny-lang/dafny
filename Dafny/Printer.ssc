@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
     }
     
     public void PrintClass(ClassDecl! c) {
-      PrintClassMethodHelper("class", c.Attributes, "", c.Name, c.TypeArgs);
+      PrintClassMethodHelper("class", c.Attributes, c.Name, c.TypeArgs);
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -61,12 +61,11 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void PrintClassMethodHelper(string! kind, Attributes attrs, string! modifiers, string! name, List<TypeParameter!>! typeArgs) {
+    void PrintClassMethodHelper(string! kind, Attributes attrs, string! name, List<TypeParameter!>! typeArgs) {
       if (kind.Length != 0) {
         wr.Write("{0} ", kind);
       }
       PrintAttributes(attrs);
-      wr.Write(modifiers);
       wr.Write(name);
       if (typeArgs.Count != 0) {
         wr.Write("<");
@@ -80,7 +79,7 @@ namespace Microsoft.Dafny {
     }
     
     public void PrintDatatype(DatatypeDecl! dt) {
-      PrintClassMethodHelper("datatype", dt.Attributes, "", dt.Name, dt.TypeArgs);
+      PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
       if (dt.Ctors.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -114,6 +113,9 @@ namespace Microsoft.Dafny {
     
     public void PrintField(Field! field) {
       Indent(IndentAmount);
+      if (field.IsGhost) {
+        wr.Write("ghost ");
+      }
       wr.Write("var ");
       PrintAttributes(field.Attributes);
       wr.Write("{0}: ", field.Name);
@@ -123,7 +125,10 @@ namespace Microsoft.Dafny {
     
     public void PrintFunction(Function! f) {
       Indent(IndentAmount);
-      PrintClassMethodHelper("function", f.Attributes, f.Use ? "use " : "", f.Name, f.TypeArgs);
+      string k = "function";
+      if (f.IsUse) { k = "use " + k; }
+      if (f.IsClass) { k = "class " + k; }
+      PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       PrintFormals(f.Formals);
       wr.Write(": ");
       PrintType(f.ResultType);
@@ -152,14 +157,16 @@ namespace Microsoft.Dafny {
       }
       if (f.Body != null) {
         Indent(IndentAmount);
-        PrintExtendedExpr(f.Body, IndentAmount);
-        wr.WriteLine();
+        wr.WriteLine("{");
+        PrintExtendedExpr(f.Body, IndentAmount + IndentAmount);
+        Indent(IndentAmount);
+        wr.WriteLine("}");
       }
     }
     
     public void PrintCtor(DatatypeCtor! ctor) {
       Indent(IndentAmount);
-      PrintClassMethodHelper("", ctor.Attributes, "", ctor.Name, ctor.TypeArgs);
+      PrintClassMethodHelper("", ctor.Attributes, ctor.Name, ctor.TypeArgs);
       if (ctor.Formals.Count != 0) {
         PrintFormals(ctor.Formals);
       }
@@ -181,7 +188,9 @@ namespace Microsoft.Dafny {
     
     public void PrintMethod(Method! method) {
       Indent(IndentAmount);
-      PrintClassMethodHelper("method", method.Attributes, "", method.Name, method.TypeArgs);
+      string k = "method";
+      if (method.IsClass) { k = "class " + k; }
+      PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
       PrintFormals(method.Ins);
       if (method.Outs.Count != 0) {
         if (method.Ins.Count + method.Outs.Count <= 3) {
@@ -431,27 +440,32 @@ namespace Microsoft.Dafny {
     // ----------------------------- PrintExpression -----------------------------
 
     public void PrintExtendedExpr(Expression! expr, int indent) {
-      wr.WriteLine("{");
-      int ind = indent + IndentAmount;
-      Indent(ind);
+      Indent(indent);
       if (expr is ITEExpr) {
-        Expression els = expr;  // bogus assignment, just to please the compiler
-        for (ITEExpr ite = (ITEExpr)expr; ite != null; ite = els as ITEExpr) {
-          wr.Write("if (");
+        while (true) {
+          ITEExpr ite = (ITEExpr)expr;
+          wr.Write("if ");
           PrintExpression(ite.Test);
-          wr.Write(") ");
-          PrintExtendedExpr(ite.Thn, ind);
-          wr.Write(" else ");
-          els = ite.Els;
+          wr.WriteLine(" then");
+          PrintExtendedExpr(ite.Thn, indent + IndentAmount);
+          expr = ite.Els;
+          if (expr is ITEExpr) {
+            Indent(indent);  wr.Write("else ");
+          } else {
+            Indent(indent);  wr.WriteLine("else");
+            Indent(indent + IndentAmount);
+            PrintExpression(expr);
+            wr.WriteLine();
+            return;
+          }
         }
-        PrintExtendedExpr(els, ind);
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         wr.Write("match ");
         PrintExpression(me.Source);
         bool needsCurlies = exists{MatchCase mc in me.Cases; mc.Body is MatchExpr};
         wr.WriteLine(needsCurlies ? " {" : "");
-        int caseInd = ind + (needsCurlies ? IndentAmount : 0);
+        int caseInd = indent + (needsCurlies ? IndentAmount : 0);
         foreach (MatchCase mc in me.Cases) {
           Indent(caseInd);
           wr.Write("case {0}", mc.Id);
@@ -464,20 +478,16 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           wr.WriteLine(" =>");
-          Indent(caseInd + IndentAmount);
-          PrintExpression(mc.Body);
-          wr.WriteLine();
+          PrintExtendedExpr(mc.Body, caseInd + IndentAmount);
         }
         if (needsCurlies) {
-          Indent(ind);
+          Indent(indent);
           wr.WriteLine("}");
         }
       } else {
-        PrintExpression(expr, ind);
+        PrintExpression(expr, indent);
         wr.WriteLine();
       }
-      Indent(indent);
-      wr.Write("}");
     }
     
     public void PrintExpression(Expression! expr) {
@@ -552,7 +562,7 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
         
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 00, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, 0x00, false, indent);  // BOGUS: fix me
         wr.Write("[");
         if (e.SelectOne) {
           assert e.E0 != null;
@@ -674,12 +684,12 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Imp:
             opBindingStrength = 0x10; fragileLeftContext = true; break;
           case BinaryExpr.Opcode.Iff:
-            opBindingStrength = 0x00; break;
+            opBindingStrength = 0x08; break;
           default:
             assert false;  // unexpected binary operator
         }
-        int opBS = opBindingStrength & 0xF0;
-        int ctxtBS = contextBindingStrength & 0xF0;
+        int opBS = opBindingStrength & 0xF8;
+        int ctxtBS = contextBindingStrength & 0xF8;
         bool parensNeeded = opBS < ctxtBS ||
           (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
 
@@ -729,7 +739,21 @@ namespace Microsoft.Dafny {
         wr.Write("*");
         
       } else if (expr is ITEExpr) {
-        assert false;  // ITE is an extended expression and should be printed only using PrintExtendedExpr
+        ITEExpr ite = (ITEExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x00;
+        bool parensNeeded = opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+        
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("if ");
+        PrintExpression(ite.Test);
+        wr.Write(" then ");
+        PrintExpression(ite.Thn);
+        wr.Write(" else ");
+        PrintExpr(ite.Els, opBindingStrength, false, indent);
+        if (parensNeeded) { wr.Write(")"); }
+        
       } else if (expr is MatchExpr) {
         assert false;  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr
       } else {

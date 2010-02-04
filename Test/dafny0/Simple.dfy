@@ -27,6 +27,14 @@ class MyClass<T,U> {
       assert v[x] != null ==> null !in v[2..x][1..][5 := v[this.x]][..10];
     }
   }
+
+  function F(x: int, y: int, h: WildData, k: WildData): WildData
+  {
+    if x < 0 then h else
+    if (x == 0) then
+      if if h==k then true else false then h else if y == 0 then k else h
+    else k
+  }
 }
 
 // some datatype stuff:

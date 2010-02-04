@@ -27,6 +27,12 @@ static Attributes.Argument! dummyAttrArg = new Attributes.Argument("dummyAttrArg
 static Scope<string>! parseVarScope = new Scope<string>();
 static int anonymousIds = 0;
 
+struct MemberModifiers {
+  public bool IsGhost;
+  public bool IsClass;
+  public bool IsUse;
+}
+
 // helper routine for parsing call statements
 private static void RecordCallLhs(IdentifierExpr! e,
                                   List<IdentifierExpr!>! lhs,
@@ -135,11 +141,15 @@ ClassDecl<out ClassDecl! c>
 ClassMemberDecl<List<MemberDecl!\>! mm>
 = (. Method! m;
      Function! f;
+     MemberModifiers mmod = new MemberModifiers();
   .)
-  ( FieldDecl<mm>
-  | FunctionDecl<out f>                    (. mm.Add(f); .)
-  | MethodDecl<out m>                      (. mm.Add(m); .)
-  | FrameDecl
+  { "ghost"                                (. mmod.IsGhost = true; .)
+  | "class"                                (. mmod.IsClass = true; .)
+  | "use"                                  (. mmod.IsUse = true; .)
+  }
+  ( FieldDecl<mmod, mm>
+  | FunctionDecl<mmod, out f>              (. mm.Add(f); .)
+  | MethodDecl<mmod, out m>                (. mm.Add(m); .)
   )
   .
 
@@ -176,15 +186,17 @@ DatatypeMemberDecl<List<DatatypeCtor!\>! ctors>
   ";"
   .
 
-FieldDecl<List<MemberDecl!\>! mm>
+FieldDecl<MemberModifiers mmod, List<MemberDecl!\>! mm>
 = (. Attributes attrs = null;
      Token! id;  Type! ty;
   .)
-  [ "ghost" ]
   "var"
+  (. if (mmod.IsUse) { SemErr(token, "fields cannot be declared 'use'"); }
+     if (mmod.IsClass) { SemErr(token, "fields cannot be declared 'class'"); }
+  .)
   { Attribute<ref attrs> }
-  IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, ty, attrs)); .)
-  { "," IdentType<out id, out ty>                   (. mm.Add(new Field(id, id.val, ty, attrs)); .)
+  IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
+  { "," IdentType<out id, out ty>                   (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
   ";"
   .
@@ -237,21 +249,9 @@ GenericParameters<List<TypeParameter!\>! typeArgs>
   ">"
   .
 
-FrameDecl
-= (. Token! id;
-     Attributes attrs = null;
-  .)
-  "frame"
-  { Attribute<ref attrs> }
-  Ident<out id>
-  "{"
-       /* TBD */
-  "}"
-  .
-
 /*------------------------------------------------------------------------*/
 
-MethodDecl<out Method! m>
+MethodDecl<MemberModifiers mmod, out Method! m>
 = (. Token! id;
      Attributes attrs = null;
      List<TypeParameter!>! typeArgs = new List<TypeParameter!>();
@@ -263,6 +263,9 @@ MethodDecl<out Method! m>
      Statement! bb;  Statement body = null;
   .)
   "method"
+  (. if (mmod.IsGhost) { SemErr(token, "methods cannot be declared 'ghost'"); }
+     if (mmod.IsUse) { SemErr(token, "methods cannot be declared 'use'"); }
+  .)
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
@@ -277,7 +280,7 @@ MethodDecl<out Method! m>
   )
   
   (. parseVarScope.PopMarker();
-     m = new Method(id, id.val, typeArgs, ins, outs, req, mod, ens, body, attrs);
+     m = new Method(id, id.val, mmod.IsClass, typeArgs, ins, outs, req, mod, ens, body, attrs);
   .)
   .
 
@@ -369,7 +372,7 @@ GenericInstantiation<List<Type!\>! gt>
 
 /*------------------------------------------------------------------------*/
 
-FunctionDecl<out Function! f>
+FunctionDecl<MemberModifiers mmod, out Function! f>
 = (. Attributes attrs = null;
      Token! id;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
@@ -379,11 +382,11 @@ FunctionDecl<out Function! f>
      List<Expression!> reads = new List<Expression!>();
      List<Expression!> decreases = new List<Expression!>();
      Expression! bb;  Expression body = null;
-     bool use = false;
   .)
   "function"
+  (. if (mmod.IsGhost) { SemErr(token, "functions cannot be declared 'ghost'"); }
+  .)
   { Attribute<ref attrs> }
-  [ "use"   (. use = true; .) ]
   Ident<out id> 
   [ GenericParameters<typeArgs> ]
   (. parseVarScope.PushMarker(); .)
@@ -396,7 +399,7 @@ FunctionDecl<out Function! f>
     FunctionBody<out bb>                (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, use, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+     f = new Function(id, id.val, mmod.IsClass, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
   .)
   .
 
@@ -434,33 +437,12 @@ PossiblyWildExpression<out Expression! e>
 FunctionBody<out Expression! e>
 = (. e = dummyExpr; .)
   "{"
-  ( IfThenElseExpr<out e>
-  | MatchExpression<out e>
+  ( MatchExpression<out e>
   | Expression<out e>
   )
   "}"
   .
   
-ExtendedExpr<out Expression! e>
-= (. e = dummyExpr; .)
-  "{"
-  ( IfThenElseExpr<out e>
-  | Expression<out e>
-  )
-  "}"
-  .
-  
-IfThenElseExpr<out Expression! e>
-= (. Token! x;  Expression! e0;  Expression! e1 = dummyExpr; .)
-  "if"                               (. x = token; .)
-  "(" Expression<out e> ")"
-  ExtendedExpr<out e0>
-  "else"
-  ( IfThenElseExpr<out e1>
-  | ExtendedExpr<out e1>
-  )                                  (. e = new ITEExpr(x, e, e0, e1); .)
-  .
-
 MatchExpression<out Expression! e>
 = (. Token! x;
      List<MatchCase!> cases = new List<MatchCase!>();
@@ -586,7 +568,7 @@ HavocStmt<out Statement! s>
   .
 
 LhsExpr<out Expression! e>
-= Expression<out e>                    /* TODO: restrict LHS further */
+= SelectExpression<out e>
   .
 
 VarDeclStmts<List<Statement!\>! ss>
@@ -773,8 +755,20 @@ UseStmt<out Statement! s>
   .
 
 /*------------------------------------------------------------------------*/
+Expression<out Expression! e>
+= (. Token! x;  Expression! e0;  Expression! e1 = dummyExpr;
+     e = dummyExpr;
+  .)
+  ( "if"                               (. x = token; .)
+    Expression<out e>
+    "then" Expression<out e0>
+    "else" Expression<out e1>          (. e = new ITEExpr(x, e, e0, e1); .)
+  | EquivExpression<out e>
+  )
+  .
 
-Expression<out Expression! e0>
+/*------------------------------------------------------------------------*/
+EquivExpression<out Expression! e0>
 = (. Token! x;  Expression! e1; .)
   ImpliesExpression<out e0>
   { EquivOp                                    (. x = token; .)
@@ -908,16 +902,6 @@ ConstAtomExpression<out Expression! e>
   | "|"                                        (. x = token; .)
       Expression<out e>                        (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
     "|"
-  /* Note, the following open-curly-brace causes grammar ambiguities that result in two Coco warnings.
-     One of these is the confusion between BlockStmt and AssignStmt, the former starting with an open
-     curly brace and the latter starting with a left-hand side Expression, which syntactically can
-     start with an open curly brace.  The other is the confusion between a quantifier's triggers/attributes
-     and the quantifier's body.  The disamiguation I've chosen involves giving priority to BlockStmt
-     (since no semantically legal AssignStmt can have a set constructor as its left-hand side) and to
-     triggers/attributes (which, unfortunately, changes what programs are syntactically allowed, but there
-     is a simple workaround, which is for a user to put parentheses around any quantifier body that begins
-     with a set constructor.
-  */
   | "{"                                        (. x = token;  elements = new List<Expression!>(); .)
       [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements); .)
     "}"
@@ -1042,15 +1026,8 @@ QuantifierGuts<out Expression! q>
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
   }
-  QSep
-  /* The grammar is ambiguous in how to resolve triggers/attributes versus the expression body.
-     However, the loop generated by Coco for the next two lines of grammar declarations is still
-     fine--it will loop, picking up as many triggers/attributes it can before going on to parse an
-     expression.  This seems good, because there's a simple workaround for quantifier bodies that
-     begin with a set constructor: simply put parentheses around the quantifier body.  See also
-     the Note in production ConstAtomExpression.
-  */
   { AttributeOrTrigger<ref attrs, ref trigs> }
+  QSep
   Expression<out body>
   (. if (univ) {
        q = new ForallExpr(x, bvars, body, trigs, attrs);

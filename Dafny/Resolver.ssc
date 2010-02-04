@@ -243,6 +243,9 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ResolveFunction(Function! f) {
       scope.PushMarker();
+      if (f.IsClass) {
+        scope.AllowInstance = false;
+      }
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
@@ -310,6 +313,9 @@ namespace Microsoft.Dafny {
     void ResolveMethod(Method! m) {
       // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
       scope.PushMarker();
+      if (m.IsClass) {
+        scope.AllowInstance = false;
+      }
       foreach (Formal p in m.Ins) {
         scope.Push(p.Name, p);
       }
@@ -647,7 +653,7 @@ namespace Microsoft.Dafny {
           }
         }
         FunctionCallExpr fce = expr as FunctionCallExpr;
-        if (fce == null || fce.Function == null || !fce.Function.Use) {
+        if (fce == null || fce.Function == null || !fce.Function.IsUse) {
           Error(s.Expr, "use statement must indicate a function declared as use");
         }
       } else if (stmt is PredicateStmt) {
@@ -767,7 +773,7 @@ namespace Microsoft.Dafny {
           }
         }
         // resolve receiver
-        ResolveExpression(s.Receiver, true);
+        ResolveReceiver(s.Receiver, true);
         assert s.Receiver.Type != null;  // follows from postcondition of ResolveExpression
         // resolve arguments
         foreach (Expression e in s.Args) {
@@ -790,6 +796,12 @@ namespace Microsoft.Dafny {
             Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, method.Outs.Count);
           } else {
             assert ctype != null;  // follows from postcondition of ResolveMember
+            if (!scope.AllowInstance && !method.IsClass && s.Receiver is ThisExpr) {
+              // The call really needs an instance, but that instance is given as 'this', which is not
+              // available in this context.  For more details, see comment in the resolution of a
+              // FunctionCallExpr.
+              Error(s.Receiver, "'this' is not allowed in a 'class' context");
+            }
             // build the type substitution map
             Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
             for (int i = 0; i < ctype.TypeArgs.Count; i++) {
@@ -1031,7 +1043,10 @@ namespace Microsoft.Dafny {
         }
         
       } else if (expr is ThisExpr) {
-        expr.Type = GetThisType(expr.tok, currentClass);
+        if (!scope.AllowInstance) {
+          Error(expr, "'this' is not allowed in a 'class' context");
+        }
+        expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
         
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
@@ -1185,7 +1200,7 @@ namespace Microsoft.Dafny {
         
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        ResolveExpression(e.Receiver, twoState);
+        ResolveReceiver(e.Receiver, twoState);
         assert e.Receiver.Type != null;  // follows from postcondition of ResolveExpression
         UserDefinedType ctype;
         MemberDecl member = ResolveMember(expr.tok, e.Receiver.Type, e.Name, out ctype);
@@ -1200,6 +1215,16 @@ namespace Microsoft.Dafny {
             Error(expr, "wrong number of function arguments (got {0}, expected {1})", e.Args.Count, function.Formals.Count);
           } else {
             assert ctype != null;  // follows from postcondition of ResolveMember
+            if (!scope.AllowInstance && !function.IsClass && e.Receiver is ThisExpr) {
+              // The call really needs an instance, but that instance is given as 'this', which is not
+              // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
+              // have been caught in the recursive call to resolve e.Receiver, but not the specific case
+              // of e.Receiver being 'this' (explicitly or implicitly), for that case needs to be allowed
+              // in the event that a class function calls another class function (and note that we need the
+              // type of the receiver in order to find the method, so we could not have made this check
+              // earlier).
+              Error(e.Receiver, "'this' is not allowed in a 'class' context");
+            }
             // build the type substitution map
             Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
             for (int i = 0; i < ctype.TypeArgs.Count; i++) {
@@ -1403,7 +1428,6 @@ namespace Microsoft.Dafny {
         
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
-        assert !twoState;
         ResolveExpression(e.Test, twoState);
         assert e.Test.Type != null;  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Thn, twoState);
@@ -1413,13 +1437,11 @@ namespace Microsoft.Dafny {
         if (!UnifyTypes(e.Test.Type, Type.Bool)) {
           Error(expr, "guard condition in if-then-else expression must be a boolean (instead got {0})", e.Test.Type);
         }
-        if (!UnifyTypes(e.Thn.Type, Type.Bool)) {
-          Error(expr, "the then branch of an if-then-else expression must be a boolean (instead got {0})", e.Thn.Type);
+        if (UnifyTypes(e.Thn.Type, e.Els.Type)) {
+          expr.Type = e.Thn.Type;
+        } else {
+          Error(expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
         }
-        if (!UnifyTypes(e.Els.Type, Type.Bool)) {
-          Error(expr, "the else branch of an if-then-else expression must be a boolean (instead got {0})", e.Els.Type);
-        }
-        expr.Type = Type.Bool;
       
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
@@ -1513,6 +1535,19 @@ namespace Microsoft.Dafny {
       if (expr.Type == null) {
         // some resolution error occurred
         expr.Type = Type.Flexible;
+      }
+    }
+    
+    void ResolveReceiver(Expression! expr, bool twoState)
+      requires currentClass != null;
+      ensures expr.Type != null;
+    {
+      if (expr is ThisExpr) {
+        // Allow 'this' here, regardless of scope.AllowInstance.  The caller is responsible for
+        // making sure 'this' does not really get used when it's not available.
+        expr.Type = GetThisType(expr.tok, currentClass);
+      } else {
+        ResolveExpression(expr, twoState);
       }
     }
     
@@ -1615,7 +1650,18 @@ namespace Microsoft.Dafny {
     [Rep] readonly List<string>! names = new List<string>();  // a null means a marker
     [Rep] readonly List<Thing?>! things = new List<Thing?>();
     invariant names.Count == things.Count;
+    int scopeSizeWhereInstancesWereDisallowed = -1;
+    invariant -1 <= scopeSizeWhereInstancesWereDisallowed && scopeSizeWhereInstancesWereDisallowed <= names.Count;
     
+    public bool AllowInstance {
+      get { return scopeSizeWhereInstancesWereDisallowed == -1; }
+      set
+        requires AllowInstance && !value;  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
+      {
+        scopeSizeWhereInstancesWereDisallowed = names.Count;
+      }
+    }
+
     public void PushMarker() {
       names.Add(null);
       things.Add(null);
@@ -1631,6 +1677,9 @@ namespace Microsoft.Dafny {
       }
       names.RemoveRange(n, names.Count - n);
       things.RemoveRange(n, things.Count - n);
+      if (names.Count < scopeSizeWhereInstancesWereDisallowed) {
+        scopeSizeWhereInstancesWereDisallowed = -1;
+      }
     }
     
     // Pushes name-->var association and returns "true", if name has not already been pushed since the last marker.

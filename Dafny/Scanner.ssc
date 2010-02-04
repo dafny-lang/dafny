@@ -276,10 +276,10 @@ public class Scanner {
   static void CheckLiteral() {
     switch (t.val) {
 			case "class": t.kind = 4; break;
-			case "datatype": t.kind = 7; break;
-			case "ghost": t.kind = 9; break;
-			case "var": t.kind = 10; break;
-			case "frame": t.kind = 15; break;
+			case "ghost": t.kind = 7; break;
+			case "use": t.kind = 8; break;
+			case "datatype": t.kind = 9; break;
+			case "var": t.kind = 11; break;
 			case "method": t.kind = 16; break;
 			case "returns": t.kind = 17; break;
 			case "modifies": t.kind = 18; break;
@@ -292,25 +292,25 @@ public class Scanner {
 			case "seq": t.kind = 27; break;
 			case "object": t.kind = 28; break;
 			case "function": t.kind = 29; break;
-			case "use": t.kind = 30; break;
-			case "reads": t.kind = 31; break;
-			case "decreases": t.kind = 32; break;
-			case "if": t.kind = 34; break;
-			case "else": t.kind = 35; break;
-			case "match": t.kind = 36; break;
-			case "case": t.kind = 37; break;
-			case "label": t.kind = 39; break;
-			case "break": t.kind = 40; break;
-			case "return": t.kind = 41; break;
-			case "new": t.kind = 43; break;
-			case "havoc": t.kind = 44; break;
-			case "while": t.kind = 45; break;
-			case "invariant": t.kind = 46; break;
-			case "call": t.kind = 47; break;
-			case "foreach": t.kind = 48; break;
-			case "in": t.kind = 49; break;
-			case "assert": t.kind = 51; break;
-			case "assume": t.kind = 52; break;
+			case "reads": t.kind = 30; break;
+			case "decreases": t.kind = 31; break;
+			case "match": t.kind = 33; break;
+			case "case": t.kind = 34; break;
+			case "label": t.kind = 36; break;
+			case "break": t.kind = 37; break;
+			case "return": t.kind = 38; break;
+			case "new": t.kind = 40; break;
+			case "havoc": t.kind = 41; break;
+			case "if": t.kind = 42; break;
+			case "else": t.kind = 43; break;
+			case "while": t.kind = 44; break;
+			case "invariant": t.kind = 45; break;
+			case "call": t.kind = 46; break;
+			case "foreach": t.kind = 47; break;
+			case "in": t.kind = 48; break;
+			case "assert": t.kind = 50; break;
+			case "assume": t.kind = 51; break;
+			case "then": t.kind = 52; break;
 			case "false": t.kind = 76; break;
 			case "true": t.kind = 77; break;
 			case "null": t.kind = 78; break;
@@ -352,36 +352,36 @@ public class Scanner {
 			case 6:
 				{t.kind = 6; goto done;}
 			case 7:
-				{t.kind = 8; goto done;}
+				{t.kind = 10; goto done;}
 			case 8:
-				{t.kind = 11; goto done;}
+				{t.kind = 12; goto done;}
 			case 9:
 				if (ch == '=') {buf.Append(ch); NextCh(); goto case 17;}
 				else if (ch == ':') {buf.Append(ch); NextCh(); goto case 52;}
-				else {t.kind = 12; goto done;}
+				else {t.kind = 13; goto done;}
 			case 10:
 				if (ch == '=') {buf.Append(ch); NextCh(); goto case 19;}
-				else {t.kind = 13; goto done;}
+				else {t.kind = 14; goto done;}
 			case 11:
 				if (ch == '=') {buf.Append(ch); NextCh(); goto case 31;}
-				else {t.kind = 14; goto done;}
+				else {t.kind = 15; goto done;}
 			case 12:
 				{t.kind = 22; goto done;}
 			case 13:
 				{t.kind = 23; goto done;}
 			case 14:
-				{t.kind = 33; goto done;}
+				{t.kind = 32; goto done;}
 			case 15:
 				if (ch == '>') {buf.Append(ch); NextCh(); goto case 16;}
 				else if (ch == '=') {buf.Append(ch); NextCh(); goto case 23;}
 				else {t.kind = noSym; goto done;}
 			case 16:
-				{t.kind = 38; goto done;}
+				{t.kind = 35; goto done;}
 			case 17:
-				{t.kind = 42; goto done;}
+				{t.kind = 39; goto done;}
 			case 18:
 				if (ch == '|') {buf.Append(ch); NextCh(); goto case 29;}
-				else {t.kind = 50; goto done;}
+				else {t.kind = 49; goto done;}
 			case 19:
 				if (ch == '=') {buf.Append(ch); NextCh(); goto case 20;}
 				else {t.kind = 62; goto done;}

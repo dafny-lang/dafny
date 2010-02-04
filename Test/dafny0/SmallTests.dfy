@@ -43,4 +43,27 @@ class Node {
       t := s[..j] + [b] + s[j+1..];
     }
   }
+
+  method Max0(x: int, y: int) returns (r: int)
+    ensures r == (if x < y then y else x);
+  {
+    if (x < y) { r := y; } else { r := x; }
+  }
+
+  method Max1(x: int, y: int) returns (r: int)
+    ensures r == x || r == y;
+    ensures x <= r && y <= r;
+  {
+    r := if x < y then y else x;
+  }
+
+  function PoorlyDefined(x: int): int
+    requires if next == null then 5/x < 20 else true;  // ill-defined then branch
+    requires if next == null then true else 0 <= 5/x;  // ill-defined then branch
+    requires if next.next == null then true else true;  // ill-defined guard
+    requires 10/x != 8;  // this is well-defined, because we get here only if x is non-0
+    reads this;
+  {
+    12
+  }
 }

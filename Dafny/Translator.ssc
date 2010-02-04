@@ -439,10 +439,17 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       formals.Add(bv);
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
-      Bpl.BoundVariable bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
-      formals.Add(bvThis);
-      Bpl.Expr bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
-      args.Add(bvThisIdExpr);
+      Bpl.BoundVariable bvThis;
+      Bpl.Expr bvThisIdExpr;
+      if (f.IsClass) {
+        bvThis = null;
+        bvThisIdExpr = null;
+      } else {
+        bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+        formals.Add(bvThis);
+        bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
+        args.Add(bvThisIdExpr);
+      }
       DatatypeValue r = null;
       if (specializationReplacementFormals != null) {
         assert ctor != null;  // follows from if guard and the precondition
@@ -468,16 +475,18 @@ namespace Microsoft.Dafny {
         }
       }
       
-      Bpl.Expr ante = Bpl.Expr.And(
-        Bpl.Expr.Neq(bvThisIdExpr, predef.Null),
-        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+      Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
+      if (!f.IsClass) {
+        assert bvThisIdExpr != null;  // set to non-null value above when !f.IsClass
+        ante = Bpl.Expr.And(Bpl.Expr.Neq(bvThisIdExpr, predef.Null), ante);
+      }
       foreach (Expression req in f.Req) {
         ante = Bpl.Expr.And(ante, etran.TrExpr(req));
       }
       Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
       Bpl.Trigger tr;
-      if (f.Use) {
+      if (f.IsUse) {
         Bpl.FunctionCall useID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#use", TrType(f.ResultType)));
         Bpl.Expr useAppl = new Bpl.NAryExpr(f.tok, useID, args);
         ante = Bpl.Expr.And(useAppl, ante);
@@ -727,16 +736,21 @@ namespace Microsoft.Dafny {
       Bpl.VariableSeq bvars = new Bpl.VariableSeq();
       Bpl.ExprSeq f0args = new Bpl.ExprSeq();
       Bpl.ExprSeq f1args = new Bpl.ExprSeq();
-      Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
-      Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
-      bvars.Add(h0Var);  bvars.Add(h1Var);  bvars.Add(thVar);
-      f0args.Add(h0);  f0args.Add(th);
-      f1args.Add(h1);  f1args.Add(th);
+      bvars.Add(h0Var);  bvars.Add(h1Var);
+      f0args.Add(h0);
+      f1args.Add(h1);
+      if (!f.IsClass) {
+        Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+        Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
+        bvars.Add(thVar);
+        f0args.Add(th);
+        f1args.Add(th);
 
-      Type thisType = Resolver.GetThisType(f.tok, (!)f.EnclosingClass);
-      Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
-        Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
-      wellFormed = Bpl.Expr.And(wellFormed, wh);
+        Type thisType = Resolver.GetThisType(f.tok, (!)f.EnclosingClass);
+        Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
+          Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
+        wellFormed = Bpl.Expr.And(wellFormed, wh);
+      }
 
       foreach (Formal p in f.Formals) {
         Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
@@ -744,7 +758,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
         f0args.Add(formal);
         f1args.Add(formal);
-        wh = GetWhereClause(p.tok, formal, p.Type, etran0);
+        Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0);
         if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
         wh = GetWhereClause(p.tok, formal, p.Type, etran1);
         if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
@@ -816,14 +830,16 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
       Bpl.VariableSeq inParams = new Bpl.VariableSeq();
-      Bpl.Expr wh = Bpl.Expr.And(
-        Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
-        etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, (!)f.EnclosingClass)));
-      Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
-      inParams.Add(thVar);
+      if (!f.IsClass) {
+        Bpl.Expr wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
+          etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, (!)f.EnclosingClass)));
+        Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
+        inParams.Add(thVar);
+      }
       foreach (Formal p in f.Formals) {
         Bpl.Type varType = TrType(p.Type);
-        wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
         inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
       }
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
@@ -901,8 +917,9 @@ namespace Microsoft.Dafny {
         return total;
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
+        assert e.Function != null;  // follows from the fact that expr has been successfully resolved
         Bpl.Expr r = IsTotal(e.Receiver, etran);
-        if (!(e.Receiver is ThisExpr)) {
+        if (!e.Function.IsClass && !(e.Receiver is ThisExpr)) {
           r = BplAnd(r, Bpl.Expr.Neq(etran.TrExpr(e.Receiver), predef.Null));
         }
         // TODO: check reads permissions and check preconditions
@@ -1046,7 +1063,9 @@ namespace Microsoft.Dafny {
         assert e.Function != null;  // follows from the fact that expr has been successfully resolved
         // check well-formedness of receiver
         CheckWellformed(e.Receiver, func, Position.Neither, locals, builder, etran);
-        CheckNonNull(expr.tok, e.Receiver, builder, etran);
+        if (!e.Function.IsClass && !(e.Receiver is ThisExpr)) {
+          CheckNonNull(expr.tok, e.Receiver, builder, etran);
+        }
         // check well-formedness of the other parameters
         foreach (Expression arg in e.Args) {
           CheckWellformed(arg, func, Position.Neither, locals, builder, etran);
@@ -1163,6 +1182,11 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.E1, func, pos, locals, b, etran);
               builder.Add(new Bpl.IfCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(expr.tok), null, null));
             }
+            break;
+          case BinaryExpr.ResolvedOpcode.Div:
+          case BinaryExpr.ResolvedOpcode.Mod:
+            CheckWellformed(e.E1, func, pos, locals, builder, etran);
+            builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), Bpl.Expr.Literal(0)), "possible division by zero"));
             break;
           default:
             CheckWellformed(e.E1, func, pos, locals, builder, etran);
@@ -1319,7 +1343,9 @@ namespace Microsoft.Dafny {
         Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
         Bpl.VariableSeq args = new Bpl.VariableSeq();
         args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$heap", predef.HeapType), true));
-        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
+        if (!f.IsClass) {
+          args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
+        }
         foreach (Formal p in f.Formals) {
           args.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)), true));
         }
@@ -1328,7 +1354,7 @@ namespace Microsoft.Dafny {
         
         functions.Add(f, func);
         
-        if (f.Use) {
+        if (f.IsUse) {
           Bpl.Formal boolRes = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
         }
@@ -1347,19 +1373,21 @@ namespace Microsoft.Dafny {
         
         Bpl.VariableSeq inParams = new Bpl.VariableSeq();
         Bpl.VariableSeq outParams = new Bpl.VariableSeq();
-        Bpl.Expr wh = Bpl.Expr.And(
-          Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
-        Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
-        inParams.Add(thVar);
+        if (!m.IsClass) {
+          Bpl.Expr wh = Bpl.Expr.And(
+            Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
+            etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
+          Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
+          inParams.Add(thVar);
+        }
         foreach (Formal p in m.Ins) {
           Bpl.Type varType = TrType(p.Type);
-          wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
           inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
         }
         foreach (Formal p in m.Outs) {
           Bpl.Type varType = TrType(p.Type);
-          wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
           outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
         }
         
@@ -1666,17 +1694,20 @@ namespace Microsoft.Dafny {
           TrStmt(local, builder, locals, etran);
         }
         Bpl.ExprSeq ins = new Bpl.ExprSeq();
-        ins.Add(etran.TrExpr(s.Receiver));
+        assert s.Method != null;  // follows from the fact that stmt has been successfully resolved
+        if (!s.Method.IsClass) {
+          ins.Add(etran.TrExpr(s.Receiver));
+        }
         for (int i = 0; i < s.Args.Count; i++) {
           Expression e = s.Args[i];
-          Type t = ((!)s.Method).Ins[i].Type;
+          Type t = s.Method.Ins[i].Type;
           ins.Add(etran.CondApplyBox(stmt.Tok, etran.TrExpr(e), (!)e.Type, t));
         }
         Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
         List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
         for (int i = 0; i < s.Lhs.Count; i++) {
           Expression e = s.Lhs[i];
-          if (ExpressionTranslator.ModeledAsBoxType(((!)s.Method).Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType((!)e.Type)) {
+          if (ExpressionTranslator.ModeledAsBoxType(s.Method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType((!)e.Type)) {
             // we need an Unbox
             Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
             otherTmpVarCount++;
@@ -1690,7 +1721,7 @@ namespace Microsoft.Dafny {
           }
         }
         
-        Bpl.CallCmd call = new Bpl.CallCmd(stmt.Tok, ((!)s.Method).FullName, ins, outs);
+        Bpl.CallCmd call = new Bpl.CallCmd(stmt.Tok, s.Method.FullName, ins, outs);
         builder.Add(call);
         for (int i = 0; i < s.Lhs.Count; i++) {
           Bpl.IdentifierExpr tmpVarIdE = tmpOuts[i];
@@ -2293,7 +2324,9 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(expr.tok, nm, translator.TrType((!)e.Type));
           Bpl.ExprSeq args = new Bpl.ExprSeq();
           args.Add(HeapExpr);
-          args.Add(TrExpr(e.Receiver));
+          if (!e.Function.IsClass) {
+            args.Add(TrExpr(e.Receiver));
+          }
           for (int i = 0; i < e.Args.Count; i++) {
             Expression ee = e.Args[i];
             Type t = e.Function.Formals[i].Type;
@@ -2487,9 +2520,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr g = TrExpr(e.Test);
           Bpl.Expr thn = TrExpr(e.Thn);
           Bpl.Expr els = TrExpr(e.Els);
-          Bpl.Expr yea = Bpl.Expr.Imp(g, thn);
-          Bpl.Expr nay = Bpl.Expr.Imp(Bpl.Expr.Not(g), els);
-          return Bpl.Expr.And(yea, nay);
+          return translator.FunctionCall(expr.tok, BuiltinFunction.IfThenElse, translator.TrType((!)expr.Type), g, thn, els);
            
         } else {
           assert false;  // unexpected expression
@@ -2513,7 +2544,9 @@ namespace Microsoft.Dafny {
         Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(e.tok, ((!)e.Function).FullName + "#use", translator.TrType((!)e.Type));
         Bpl.ExprSeq args = new Bpl.ExprSeq();
         args.Add(HeapExpr);
-        args.Add(TrExpr(e.Receiver));
+        if (!e.Function.IsClass) {
+          args.Add(TrExpr(e.Receiver));
+        }
         foreach (Expression ee in e.Args) {
           args.Add(TrExpr(ee));
         }
@@ -2734,6 +2767,8 @@ namespace Microsoft.Dafny {
       SeqEqual,
       SeqSameUntil,
       
+      IfThenElse,
+      
       Box,
       Unbox,
       
@@ -2842,6 +2877,11 @@ namespace Microsoft.Dafny {
           assert args.Length == 3;
           assert typeInstantiation == null;
           return FunctionCall(tok, "Seq#SameUntil", Bpl.Type.Bool, args);
+          
+        case BuiltinFunction.IfThenElse:
+          assert args.Length == 3;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "$ite", typeInstantiation, args);
 
         case BuiltinFunction.Box:
           assert args.Length == 1;
@@ -2993,7 +3033,7 @@ namespace Microsoft.Dafny {
           Expression body = Substitute(fexp.Function.Body, fexp.Receiver, substMap);
           foreach (Expression se in SplitExpr(body, false)) {
             assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
-            if (fexp.Function.Use) {
+            if (fexp.Function.IsUse) {
               BinaryExpr imp = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, new UseExpr(fexp), se);
               imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
               imp.Type = Type.Bool;
@@ -3003,7 +3043,7 @@ namespace Microsoft.Dafny {
             }
           }
           assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
-          if (fexp.Function.Use) {
+          if (fexp.Function.IsUse) {
             UnaryExpr ue = new UnaryExpr(expr.tok, UnaryExpr.Opcode.Not, new UseExpr(fexp));
             ue.Type = Type.Bool;
             BinaryExpr imp = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, ue, expr);

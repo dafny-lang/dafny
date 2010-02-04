@@ -1,7 +1,7 @@
 class T {
   var x: int;
 
-  function use F(y: int): int {
+  use function F(y: int): int {
     2*y
   }
 
@@ -12,7 +12,7 @@ class T {
     assert F(7) == 14;  // error (definition not engaged)
   }
 
-  function use G(y: int): bool {
+  use function G(y: int): bool {
     0 <= y
   }
 
@@ -25,7 +25,7 @@ class T {
     assert G(7);  // error (definition not engaged)
   }
 
-  function use H(): int
+  use function H(): int
     reads this;
   {
     x
