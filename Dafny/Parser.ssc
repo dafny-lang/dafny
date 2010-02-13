@@ -322,7 +322,6 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 		Statement! bb;  Statement body = null;
 		
 		Expect(16);
-		if (mmod.IsGhost) { SemErr(token, "methods cannot be declared 'ghost'"); }
 		if (mmod.IsUse) { SemErr(token, "methods cannot be declared 'use'"); }
 		
 		while (t.kind == 5) {
@@ -351,7 +350,7 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 			body = bb; 
 		} else Error(96);
 		parseVarScope.PopMarker();
-		m = new Method(id, id.val, mmod.IsClass, typeArgs, ins, outs, req, mod, ens, body, attrs);
+		m = new Method(id, id.val, mmod.IsClass, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, body, attrs);
 		
 	}
 

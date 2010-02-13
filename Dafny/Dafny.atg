@@ -263,8 +263,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      Statement! bb;  Statement body = null;
   .)
   "method"
-  (. if (mmod.IsGhost) { SemErr(token, "methods cannot be declared 'ghost'"); }
-     if (mmod.IsUse) { SemErr(token, "methods cannot be declared 'use'"); }
+  (. if (mmod.IsUse) { SemErr(token, "methods cannot be declared 'use'"); }
   .)
   { Attribute<ref attrs> }
   Ident<out id>
@@ -280,7 +279,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   )
   
   (. parseVarScope.PopMarker();
-     m = new Method(id, id.val, mmod.IsClass, typeArgs, ins, outs, req, mod, ens, body, attrs);
+     m = new Method(id, id.val, mmod.IsClass, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, body, attrs);
   .)
   .
 

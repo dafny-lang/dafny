@@ -377,24 +377,23 @@ namespace Microsoft.Dafny {
           
         } else if (member is Function) {
           Function f = (Function)member;
-          Bpl.Function useFunc;
-          Bpl.Function func = GetFunction(f, out useFunc);
-          sink.TopLevelDeclarations.Add(func);
-          if (useFunc != null) {
-            sink.TopLevelDeclarations.Add(useFunc);
-          }
-          if (f.Body is MatchExpr) {
-            MatchExpr me = (MatchExpr)f.Body;
-            Formal formal = (Formal)((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
-            foreach (MatchCase mc in me.Cases) {
-              assert mc.Ctor != null;  // the field is filled in by resolution
-              Bpl.Axiom ax = FunctionAxiom(f, mc.Body, formal, mc.Ctor, mc.Arguments);
+          AddFunction(f);
+          if (f.Body != null) {
+            if (f.Body is MatchExpr) {
+              MatchExpr me = (MatchExpr)f.Body;
+              Formal formal = (Formal)((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
+              foreach (MatchCase mc in me.Cases) {
+                assert mc.Ctor != null;  // the field is filled in by resolution
+                Bpl.Axiom ax = FunctionAxiom(f, mc.Body, formal, mc.Ctor, mc.Arguments);
+                sink.TopLevelDeclarations.Add(ax);
+              }
+            } else {
+              Bpl.Axiom ax = FunctionAxiom(f, f.Body, null, null, null);
               sink.TopLevelDeclarations.Add(ax);
             }
-            
-          } else if (f.Body != null) {
-            Bpl.Axiom ax = FunctionAxiom(f, f.Body, null, null, null);
-            sink.TopLevelDeclarations.Add(ax);
+            if (f.IsUse) {
+              AddUseAxioms(f);
+            }
           }
           
         } else if (member is Method) {
@@ -416,7 +415,7 @@ namespace Microsoft.Dafny {
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       
-      // axiom (forall $Heap, formals :: f#use(args) && this != null && $IsHeap($Heap) && Pre($Heap,args) ==> f(args) == body)
+      // axiom (forall $Heap, formals :: this != null && $IsHeap($Heap) && Pre($Heap,args) ==> f(args) == body)
       //
       // The variables "formals" are the formals of function "f"; except, if a specialization is provided, then
       // "specializationFormal" (which is expected to be among the formals of "f") is excluded and replaced by
@@ -426,7 +425,7 @@ namespace Microsoft.Dafny {
       // If a specialization is provided, occurrences of "specializationFormal" in "body" are also replaced by
       // that expression.
       //
-      // The antecedent f#use(fff) is included only if the function has been declared as 'use'.
+      // The translation of "body" uses the #alt form of all "use" functions.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
@@ -485,15 +484,7 @@ namespace Microsoft.Dafny {
       }
       Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
-      Bpl.Trigger tr;
-      if (f.IsUse) {
-        Bpl.FunctionCall useID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#use", TrType(f.ResultType)));
-        Bpl.Expr useAppl = new Bpl.NAryExpr(f.tok, useID, args);
-        ante = Bpl.Expr.And(useAppl, ante);
-        tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(useAppl));
-      } else {
-        tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
-      }
+      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       if (specializationFormal != null) {
         assert r != null;
@@ -501,8 +492,55 @@ namespace Microsoft.Dafny {
         substMap.Add(specializationFormal, r);
         body = Substitute(body, null, substMap);
       }
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.TrExpr(body))));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.AltFunctions.TrExpr(body))));
       return new Bpl.Axiom(f.tok, ax);
+    }
+    
+    void AddUseAxioms(Function! f)
+      requires f.IsUse;
+      requires sink != null && predef != null;
+    {
+      // axiom (forall formals :: { f(args) } f(args) == f#alt(args))
+      // axiom (forall formals :: { f#use(args) } f#use(args) ==> f(args) == f#alt(args))
+
+      Bpl.VariableSeq formals = new Bpl.VariableSeq();
+      Bpl.ExprSeq args = new Bpl.ExprSeq();
+      Bpl.BoundVariable bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
+      formals.Add(bv);
+      args.Add(new Bpl.IdentifierExpr(f.tok, bv));
+      Bpl.BoundVariable bvThis;
+      Bpl.Expr bvThisIdExpr;
+      if (f.IsClass) {
+        bvThis = null;
+        bvThisIdExpr = null;
+      } else {
+        bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+        formals.Add(bvThis);
+        bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
+        args.Add(bvThisIdExpr);
+      }
+      foreach (Formal p in f.Formals) {
+        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
+        formals.Add(bv);
+        args.Add(new Bpl.IdentifierExpr(p.tok, bv));
+      }
+      
+      Bpl.FunctionCall origFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
+      Bpl.Expr origFuncAppl = new Bpl.NAryExpr(f.tok, origFuncID, args);
+      Bpl.FunctionCall altFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#alt", TrType(f.ResultType)));
+      Bpl.Expr altFuncAppl = new Bpl.NAryExpr(f.tok, altFuncID, args);
+      Bpl.FunctionCall useFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#use", Bpl.Type.Bool));
+      Bpl.Expr useFuncAppl = new Bpl.NAryExpr(f.tok, useFuncID, args);
+      
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+
+      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(origFuncAppl));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(origFuncAppl, altFuncAppl));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+      
+      tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(useFuncAppl));
+      ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(useFuncAppl, Bpl.Expr.Eq(origFuncAppl, altFuncAppl)));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
     }
     
     void AddAllocationAxiom(Field! f)
@@ -699,6 +737,8 @@ namespace Microsoft.Dafny {
     /// Note, the second h?[o,alloc] in the antecedent of each inner forall above is sound
     /// because user expressions are not allowed to quantify over all allocated objects, and
     /// in particular, they have no way to depend on the .alloc field of an object.
+    ///
+    /// If the function is a "use" function, then "F "in the last line is replaced by "F#alt".
     /// </summary>
     void AddFrameAxiom(Function! f)
       requires sink != null && predef != null;
@@ -764,7 +804,7 @@ namespace Microsoft.Dafny {
         if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
       }
       
-      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
+      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.IsUse ? f.FullName + "#alt" : f.FullName, TrType(f.ResultType)));
       Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
       Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
       Bpl.Expr eq = Bpl.Expr.Eq(F0, F1);
@@ -918,12 +958,24 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         assert e.Function != null;  // follows from the fact that expr has been successfully resolved
+        // check well-formedness of receiver
         Bpl.Expr r = IsTotal(e.Receiver, etran);
         if (!e.Function.IsClass && !(e.Receiver is ThisExpr)) {
           r = BplAnd(r, Bpl.Expr.Neq(etran.TrExpr(e.Receiver), predef.Null));
         }
-        // TODO: check reads permissions and check preconditions
-        return BplAnd(r, IsTotal(e.Args, etran));
+        // check well-formedness of the other parameters
+        r = BplAnd(r, IsTotal(e.Args, etran));
+        // create a substitution map from each formal parameter to the corresponding actual parameter
+        Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
+        for (int i = 0; i < e.Function.Formals.Count; i++) {
+          substMap.Add(e.Function.Formals[i], e.Args[i]);
+        }
+        // check that the preconditions for the call hold
+        foreach (Expression p in e.Function.Req) {
+          Expression precond = Substitute(p, e.Receiver, substMap);
+          r = BplAnd(r, etran.TrExpr(precond));
+        }
+        return r;
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         return IsTotal(dtv.Arguments, etran);
@@ -1332,10 +1384,9 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(fse.tok, GetField(fse.Field));
     }
     
-    Bpl.Function! GetFunction(Function! f, out Bpl.Function useF)
-      requires predef != null;
+    void AddFunction(Function! f)
+      requires predef != null && sink != null;
     {
-      useF = null;
       Bpl.Function func;
       if (functions.TryGetValue(f, out func)) {
         assert func != null;
@@ -1353,13 +1404,17 @@ namespace Microsoft.Dafny {
         func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
         
         functions.Add(f, func);
+        sink.TopLevelDeclarations.Add(func);
         
         if (f.IsUse) {
+          Bpl.Function altF = new Bpl.Function(f.tok, f.FullName + "#alt", args, res);
+          sink.TopLevelDeclarations.Add(altF);
+
           Bpl.Formal boolRes = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-          useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
+          Bpl.Function useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
+          sink.TopLevelDeclarations.Add(useF);
         }
       }
-      return func;
     }
     
     Bpl.Procedure! GetMethod(Method! m)
@@ -2217,6 +2272,8 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Expr! HeapExpr;
       public readonly PredefinedDecls! predef;
       public readonly Translator! translator;
+      readonly bool applyAltFunctions;
+      
       public ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Token! heapToken) {
         this.translator = translator;
         this.predef = predef;
@@ -2229,16 +2286,29 @@ namespace Microsoft.Dafny {
         this.HeapExpr = heap;
       }
       
+      ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Bpl.Expr! heap, bool applyAltFunctions) {
+        this.translator = translator;
+        this.predef = predef;
+        this.HeapExpr = heap;
+        this.applyAltFunctions = applyAltFunctions;
+      }
+
       ExpressionTranslator oldEtran;
       public ExpressionTranslator! Old {
         get {
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr));
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), applyAltFunctions);
           }
           return oldEtran;
         }
       }
       
+      public ExpressionTranslator! AltFunctions {
+        get {
+          return new ExpressionTranslator(translator, predef, HeapExpr, true);
+        }
+      }
+
       public Bpl.Expr! TrExpr(Expression! expr)
         requires predef != null;
       {
@@ -2320,7 +2390,12 @@ namespace Microsoft.Dafny {
         
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          string nm = ((!)e.Function).FullName + (e is UseExpr ? "#use" : "");
+          string nm = ((!)e.Function).FullName;
+          if (e is UseExpr) {
+            nm += "#use";
+          } else if (this.applyAltFunctions && e.Function.IsUse) {
+            nm += "#alt";
+          }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(expr.tok, nm, translator.TrType((!)e.Type));
           Bpl.ExprSeq args = new Bpl.ExprSeq();
           args.Add(HeapExpr);
@@ -3033,24 +3108,9 @@ namespace Microsoft.Dafny {
           Expression body = Substitute(fexp.Function.Body, fexp.Receiver, substMap);
           foreach (Expression se in SplitExpr(body, false)) {
             assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
-            if (fexp.Function.IsUse) {
-              BinaryExpr imp = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, new UseExpr(fexp), se);
-              imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
-              imp.Type = Type.Bool;
-              yield return imp;
-            } else {
-              yield return se;
-            }
+            yield return se;
           }
           assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
-          if (fexp.Function.IsUse) {
-            UnaryExpr ue = new UnaryExpr(expr.tok, UnaryExpr.Opcode.Not, new UseExpr(fexp));
-            ue.Type = Type.Bool;
-            BinaryExpr imp = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, ue, expr);
-            imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
-            imp.Type = Type.Bool;
-            yield return imp;
-          }
           yield break;
         }
       }

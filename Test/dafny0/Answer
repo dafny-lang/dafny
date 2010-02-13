@@ -134,17 +134,35 @@ Dafny program verifier finished with 6 verified, 0 errors
 Dafny program verifier finished with 6 verified, 0 errors
 
 -------------------- Use.dfy --------------------
-Use.dfy(12,5): Error: assertion violation
+Use.dfy(15,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(25,5): Error: assertion violation
+Use.dfy(26,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(50,5): Error: assertion violation
+Use.dfy(35,5): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Use.dfy(56,5): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Use.dfy(88,5): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Use.dfy(130,5): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Use.dfy(152,5): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Use.dfy(170,5): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Use.dfy(215,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 6 verified, 3 errors
+Dafny program verifier finished with 20 verified, 9 errors
 
 -------------------- DTypes.dfy --------------------
 DTypes.dfy(15,5): Error: assertion violation
@@ -172,3 +190,11 @@ Dafny program verifier finished with 10 verified, 2 errors
 -------------------- Datatypes.dfy --------------------
 
 Dafny program verifier finished with 6 verified, 0 errors
+
+-------------------- UnboundedStack.dfy --------------------
+
+Dafny program verifier finished with 7 verified, 0 errors
+
+-------------------- SumOfCubes.dfy --------------------
+
+Dafny program verifier finished with 10 verified, 0 errors
