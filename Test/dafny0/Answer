@@ -87,17 +87,14 @@ Execution trace:
     (0,0): anon0
 SmallTests.dfy(61,36): Error: possible division by zero
 Execution trace:
-    (0,0): anon0
     (0,0): anon10_Then
 SmallTests.dfy(62,51): Error: possible division by zero
 Execution trace:
-    (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon3
     (0,0): anon11_Else
 SmallTests.dfy(63,22): Error: target object may be null
 Execution trace:
-    (0,0): anon0
     (0,0): anon10_Then
     (0,0): anon3
     (0,0): anon11_Then
