@@ -8,8 +8,7 @@ class MyClass<T, U> {
   method M(s: bool, lotsaObjects: set<object>)
       returns (t: object, u: set<int>, v: seq<MyClass<bool,U>>):
     requires s;
-    modifies this;
-    modifies lotsaObjects;
+    modifies this, lotsaObjects;
     ensures t == t;
     ensures old(null) != this;
   {
@@ -195,3 +194,7 @@ Dafny program verifier finished with 7 verified, 0 errors
 -------------------- SumOfCubes.dfy --------------------
 
 Dafny program verifier finished with 10 verified, 0 errors
+
+-------------------- TerminationDemos.dfy --------------------
+
+Dafny program verifier finished with 7 verified, 0 errors

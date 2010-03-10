@@ -21,7 +21,7 @@ for %%f in (TypeTests.dfy SmallTests.dfy Queue.dfy ListCopy.dfy
             BinaryTree.dfy ListReverse.dfy ListContents.dfy
             SchorrWaite.dfy Termination.dfy Use.dfy DTypes.dfy
             TypeParameters.dfy Datatypes.dfy UnboundedStack.dfy
-            SumOfCubes.dfy) do (
+            SumOfCubes.dfy TerminationDemos.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% %* %%f

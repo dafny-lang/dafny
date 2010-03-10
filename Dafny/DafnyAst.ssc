@@ -494,6 +494,7 @@ namespace Microsoft.Dafny
     public readonly List<MaybeFreeExpression!>! Req;
     public readonly List<Expression!>! Mod;
     public readonly List<MaybeFreeExpression!>! Ens;
+    public readonly List<Expression!>! Decreases;
     public readonly Statement Body;
     
     public Method(Token! tok, string! name,
@@ -501,6 +502,7 @@ namespace Microsoft.Dafny
                   [Captured] List<TypeParameter!>! typeArgs,
                   [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
                   [Captured] List<MaybeFreeExpression!>! req, [Captured] List<Expression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
+                  [Captured] List<Expression!>! decreases,
                   [Captured] Statement body,
                   Attributes attributes) {
       this.IsClass = isClass;
@@ -511,6 +513,7 @@ namespace Microsoft.Dafny
       this.Req = req;
       this.Mod = mod;
       this.Ens = ens;
+      this.Decreases = decreases;
       this.Body = body;
       base(tok, name, attributes);
     }

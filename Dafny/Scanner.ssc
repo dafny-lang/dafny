@@ -286,14 +286,14 @@ public class Scanner {
 			case "free": t.kind = 19; break;
 			case "requires": t.kind = 20; break;
 			case "ensures": t.kind = 21; break;
-			case "bool": t.kind = 24; break;
-			case "int": t.kind = 25; break;
-			case "set": t.kind = 26; break;
-			case "seq": t.kind = 27; break;
-			case "object": t.kind = 28; break;
-			case "function": t.kind = 29; break;
-			case "reads": t.kind = 30; break;
-			case "decreases": t.kind = 31; break;
+			case "decreases": t.kind = 22; break;
+			case "bool": t.kind = 25; break;
+			case "int": t.kind = 26; break;
+			case "set": t.kind = 27; break;
+			case "seq": t.kind = 28; break;
+			case "object": t.kind = 29; break;
+			case "function": t.kind = 30; break;
+			case "reads": t.kind = 31; break;
 			case "match": t.kind = 33; break;
 			case "case": t.kind = 34; break;
 			case "label": t.kind = 36; break;
@@ -366,9 +366,9 @@ public class Scanner {
 				if (ch == '=') {buf.Append(ch); NextCh(); goto case 31;}
 				else {t.kind = 15; goto done;}
 			case 12:
-				{t.kind = 22; goto done;}
-			case 13:
 				{t.kind = 23; goto done;}
+			case 13:
+				{t.kind = 24; goto done;}
 			case 14:
 				{t.kind = 32; goto done;}
 			case 15:

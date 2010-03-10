@@ -61,10 +61,16 @@ private static Expression! ConvertToLocal(Expression! e)
 /// Note: first initialize the Scanner.
 ///</summary>
 public static int Parse (string! filename, List<TopLevelDecl!>! classes) /* throws System.IO.IOException */ {
-  using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
-    BoogiePL.Buffer.Fill(reader);
+  if (filename == "stdin.dfy") {
+    BoogiePL.Buffer.Fill(System.Console.In);
     Scanner.Init(filename);
     return Parse(classes);
+  } else {
+    using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
+      BoogiePL.Buffer.Fill(reader);
+      Scanner.Init(filename);
+      return Parse(classes);
+    }
   }
 }
 
@@ -260,6 +266,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      List<MaybeFreeExpression!> req = new List<MaybeFreeExpression!>();
      List<Expression!> mod = new List<Expression!>();
      List<MaybeFreeExpression!> ens = new List<MaybeFreeExpression!>();
+     List<Expression!> dec = new List<Expression!>();
      Statement! bb;  Statement body = null;
   .)
   "method"
@@ -274,16 +281,17 @@ MethodDecl<MemberModifiers mmod, out Method! m>
     Formals<false, outs>
   ]
 
-  ( ";" { MethodSpec<req, mod, ens> }
-  | { MethodSpec<req, mod, ens> } BlockStmt<out bb>    (. body = bb; .)
+  ( ";" { MethodSpec<req, mod, ens, dec> }
+  | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb>    (. body = bb; .)
   )
   
   (. parseVarScope.PopMarker();
-     m = new Method(id, id.val, mmod.IsClass, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, body, attrs);
+     m = new Method(id, id.val, mmod.IsClass, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
   .)
   .
 
-MethodSpec<List<MaybeFreeExpression!\>! req, List<Expression!\>! mod, List<MaybeFreeExpression!\>! ens>
+MethodSpec<List<MaybeFreeExpression!\>! req, List<Expression!\>! mod, List<MaybeFreeExpression!\>! ens,
+           List<Expression!\>! decreases>
 = (. Expression! e;  bool isFree = false;
   .)
   ( "modifies" [ Expression<out e>                           (. mod.Add(e); .)
@@ -295,6 +303,7 @@ MethodSpec<List<MaybeFreeExpression!\>! req, List<Expression!\>! mod, List<Maybe
     ( "requires" Expression<out e> ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures" Expression<out e> ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     )
+  | "decreases" PossiblyWildExpressions<decreases> ";"
   )
   .
 

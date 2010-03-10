@@ -1,6 +1,6 @@
 class IntSet {
-  var contents: set<int>;
-  var footprint: set<object>;
+  ghost var contents: set<int>;
+  ghost var footprint: set<object>;
 
   var root: Node;
 
@@ -48,7 +48,7 @@ class IntSet {
     footprint := root.footprint + {this};
   }
 
-  method InsertHelper(x: int, n: Node) returns (m: Node)
+  class method InsertHelper(x: int, n: Node) returns (m: Node)
     requires n == null || n.Valid();
     modifies n.footprint;
     ensures m != null && m.Valid();
@@ -97,9 +97,9 @@ class IntSet {
 }
 
 class Node {
-  var contents: set<int>;
-  var footprint: set<object>;
-  
+  ghost var contents: set<int>;
+  ghost var footprint: set<object>;
+
   var data: int;
   var left: Node;
   var right: Node;

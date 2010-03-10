@@ -343,6 +343,10 @@ namespace Microsoft.Dafny {
           Error(e, "a modifies-clause expression must denote an object or a collection of objects (instead got {0})", e.Type);
         }
       }
+      foreach (Expression e in m.Decreases) {
+        ResolveExpression(e, false);
+        // any type is fine
+      }
       
       // Add out-parameters to the scope, but don't care about any duplication errors, since they have already been reported
       foreach (Formal p in m.Outs) {

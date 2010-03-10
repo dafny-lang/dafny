@@ -137,24 +137,9 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine();
       }
-      foreach (Expression r in f.Req) {
-        Indent(2 * IndentAmount);
-        wr.Write("requires ");
-        PrintExpression(r);
-        wr.WriteLine(";");
-      }
-      foreach (Expression r in f.Reads) {
-        Indent(2 * IndentAmount);
-        wr.Write("reads ");
-        PrintExpression(r);
-        wr.WriteLine(";");
-      }
-      foreach (Expression r in f.Decreases) {
-        Indent(2 * IndentAmount);
-        wr.Write("decreases ");
-        PrintExpression(r);
-        wr.WriteLine(";");
-      }
+      PrintSpec("requires", f.Req, 2 * IndentAmount);
+      PrintSpecLine("reads", f.Reads, 2 * IndentAmount);
+      PrintSpecLine("decreases", f.Decreases, 2 * IndentAmount);
       if (f.Body != null) {
         Indent(IndentAmount);
         wr.WriteLine("{");
@@ -205,8 +190,9 @@ namespace Microsoft.Dafny {
       wr.WriteLine(method.Body == null ? ";" : ":");
       
       PrintSpec("requires", method.Req, 2 * IndentAmount);
-      PrintSpec("modifies", method.Mod, 2 * IndentAmount);
+      PrintSpecLine("modifies", method.Mod, 2 * IndentAmount);
       PrintSpec("ensures", method.Ens, 2 * IndentAmount);
+      PrintSpecLine("decreases", method.Decreases, 2 * IndentAmount);
       
       if (method.Body != null) {
         Indent(IndentAmount);
@@ -238,6 +224,15 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("{0} ", kind);
         PrintExpression(e);
+        wr.WriteLine(";");
+      }
+    }
+
+    void PrintSpecLine(string! kind, List<Expression!>! ee, int indent) {
+      if (ee.Count != 0) {
+        Indent(indent);
+        wr.Write("{0} ", kind);
+        PrintExpressionList(ee);
         wr.WriteLine(";");
       }
     }
@@ -377,16 +372,7 @@ namespace Microsoft.Dafny {
 
         int ind = indent + IndentAmount;
         PrintSpec("invariant", s.Invariants, ind);
-        if (s.Decreases.Count != 0) {
-          Indent(indent);
-          string sep = "decreases ";
-          foreach (Expression e in s.Decreases) {
-            wr.Write(sep);
-            sep = ", ";
-            PrintExpression(e);
-          }
-          wr.WriteLine(";");
-        }
+        PrintSpecLine("decreases", s.Decreases, indent);
         Indent(indent);
         PrintStatement(s.Body, indent);
         
