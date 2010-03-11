@@ -34,10 +34,11 @@ struct MemberModifiers {
 // helper routine for parsing call statements
 private static void RecordCallLhs(IdentifierExpr! e,
                                   List<IdentifierExpr!>! lhs,
-                                  List<VarDecl!>! newVars) {
+                                  List<AutoVarDecl!>! newVars) {
+  int index = lhs.Count;
   lhs.Add(e);
   if (parseVarScope.Find(e.Name) == null) {
-    VarDecl d = new VarDecl(e.tok, e.Name, new InferredTypeProxy(), null);
+    AutoVarDecl d = new AutoVarDecl(e.tok, e.Name, new InferredTypeProxy(), index);
     newVars.Add(d);
     parseVarScope.Push(e.Name, e.Name);
   }
@@ -284,9 +285,14 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 		List<Expression!> reads = new List<Expression!>();
 		List<Expression!> decreases = new List<Expression!>();
 		Expression! bb;  Expression body = null;
+		bool isFunctionMethod = false;
 		
 		Expect(30);
-		if (mmod.IsGhost) { SemErr(token, "functions cannot be declared 'ghost'"); }
+		if (t.kind == 16) {
+			Get();
+			isFunctionMethod = true; 
+		}
+		if (mmod.IsGhost) { SemErr(token, "functions cannot be declared 'ghost' (they are ghost by default)"); }
 		
 		while (t.kind == 5) {
 			Attribute(ref attrs);
@@ -296,7 +302,7 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 			GenericParameters(typeArgs);
 		}
 		parseVarScope.PushMarker(); 
-		Formals(true, formals);
+		Formals(true, false, formals);
 		Expect(13);
 		Type(out returnType);
 		if (t.kind == 10) {
@@ -312,7 +318,7 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 			body = bb; 
 		} else Error(95);
 		parseVarScope.PopMarker();
-		f = new Function(id, id.val, mmod.IsClass, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+		f = new Function(id, id.val, mmod.IsClass, !isFunctionMethod, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
 		
 	}
 
@@ -339,10 +345,10 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 			GenericParameters(typeArgs);
 		}
 		parseVarScope.PushMarker(); 
-		Formals(true, ins);
+		Formals(true, true, ins);
 		if (t.kind == 17) {
 			Get();
-			Formals(false, outs);
+			Formals(false, true, outs);
 		}
 		if (t.kind == 10) {
 			Get();
@@ -389,11 +395,11 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 		Expect(23);
 		if (StartOf(5)) {
 			TypeIdentOptional(out id, out name, out ty);
-			formals.Add(new Formal(id, name, ty, true));  parseVarScope.Push(name, name); 
+			formals.Add(new Formal(id, name, ty, true, false));  parseVarScope.Push(name, name); 
 			while (t.kind == 12) {
 				Get();
 				TypeIdentOptional(out id, out name, out ty);
-				formals.Add(new Formal(id, name, ty, true));  parseVarScope.Push(name, name); 
+				formals.Add(new Formal(id, name, ty, true, false));  parseVarScope.Push(name, name); 
 			}
 		}
 		Expect(24);
@@ -403,6 +409,15 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 		Ident(out id);
 		Expect(13);
 		Type(out ty);
+	}
+
+	static void GIdentType(bool allowGhost, out Token! id, out Type! ty, out bool isGhost) {
+		isGhost = false; 
+		if (t.kind == 7) {
+			Get();
+			if (allowGhost) { isGhost = true; } else { SemErr(token, "formal cannot be declared 'ghost' in this context"); } 
+		}
+		IdentType(out id, out ty);
 	}
 
 	static void Type(out Type! ty) {
@@ -477,16 +492,16 @@ public static int Parse (List<TopLevelDecl!>! classes) {
 		} else Error(97);
 	}
 
-	static void Formals(bool incoming, List<Formal!>! formals) {
-		Token! id;  Type! ty; 
+	static void Formals(bool incoming, bool allowGhosts, List<Formal!>! formals) {
+		Token! id;  Type! ty;  bool isGhost; 
 		Expect(23);
-		if (t.kind == 1) {
-			IdentType(out id, out ty);
-			formals.Add(new Formal(id, id.val, ty, incoming));  parseVarScope.Push(id.val, id.val); 
+		if (t.kind == 1 || t.kind == 7) {
+			GIdentType(allowGhosts, out id, out ty, out isGhost);
+			formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); 
 			while (t.kind == 12) {
 				Get();
-				IdentType(out id, out ty);
-				formals.Add(new Formal(id, id.val, ty, incoming));  parseVarScope.Push(id.val, id.val); 
+				GIdentType(allowGhosts, out id, out ty, out isGhost);
+				formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); 
 			}
 		}
 		Expect(24);
@@ -796,16 +811,17 @@ List<Expression!>! decreases) {
 	}
 
 	static void VarDeclStmts(List<Statement!>! ss) {
-		VarDecl! d; 
+		VarDecl! d;  bool isGhost = false; 
 		if (t.kind == 7) {
 			Get();
+			isGhost = true; 
 		}
 		Expect(11);
-		IdentTypeRhs(out d);
+		IdentTypeRhs(out d, isGhost);
 		ss.Add(d);  parseVarScope.Push(d.Name, d.Name); 
 		while (t.kind == 12) {
 			Get();
-			IdentTypeRhs(out d);
+			IdentTypeRhs(out d, isGhost);
 			ss.Add(d);  parseVarScope.Push(d.Name, d.Name); 
 		}
 		Expect(10);
@@ -872,7 +888,7 @@ List<Expression!>! decreases) {
 		Token! x, id;
 		Expression! e;
 		List<IdentifierExpr!> lhs = new List<IdentifierExpr!>();
-		List<VarDecl!> newVars = new List<VarDecl!>();
+		List<AutoVarDecl!> newVars = new List<AutoVarDecl!>();
 		
 		Expect(46);
 		x = token; 
@@ -1064,7 +1080,7 @@ List<Expression!>! decreases) {
 		}
 	}
 
-	static void IdentTypeRhs(out VarDecl! d) {
+	static void IdentTypeRhs(out VarDecl! d, bool isGhost) {
 		Token! id;  Type! ty;  Expression! e;
 		Expression rhs = null;  Type newType = null;
 		Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
@@ -1087,7 +1103,7 @@ List<Expression!>! decreases) {
 		} else if (optionalType == null) {
 		  optionalType = new InferredTypeProxy();
 		}
-		d = new VarDecl(id, id.val, optionalType, optionalRhs);
+		d = new VarDecl(id, id.val, optionalType, isGhost, optionalRhs);
 		
 	}
 

@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
         Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
-          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, null);
+          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
           ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
@@ -1207,7 +1207,7 @@ namespace Microsoft.Dafny {
         QuantifierExpr e = (QuantifierExpr)expr;
         Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
         foreach (BoundVar bv in e.BoundVars) {
-          VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, null);
+          VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost, null);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
           ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
@@ -1742,7 +1742,7 @@ namespace Microsoft.Dafny {
           Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
           for (int i = 0; i < s.Method.Ins.Count; i++) {
             Formal p = s.Method.Ins[i];
-            VarDecl local = new VarDecl(p.tok, p.Name, p.Type, null);
+            VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
             ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here

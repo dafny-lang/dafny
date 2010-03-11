@@ -128,6 +128,7 @@ namespace Microsoft.Dafny {
       string k = "function";
       if (f.IsUse) { k = "use " + k; }
       if (f.IsClass) { k = "class " + k; }
+      if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       PrintFormals(f.Formals);
       wr.Write(": ");
@@ -175,6 +176,7 @@ namespace Microsoft.Dafny {
       Indent(IndentAmount);
       string k = "method";
       if (method.IsClass) { k = "class " + k; }
+      if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
       PrintFormals(method.Ins);
       if (method.Outs.Count != 0) {
@@ -213,6 +215,9 @@ namespace Microsoft.Dafny {
     }
     
     void PrintFormal(Formal! f) {
+      if (f.IsGhost) {
+        wr.Write("ghost ");
+      }
       if (!f.Name.StartsWith("#")) {
         wr.Write("{0}: ", f.Name);
       }
@@ -303,6 +308,9 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is VarDecl) {
         VarDecl s = (VarDecl)stmt;
+        if (s.IsGhost) {
+          wr.Write("ghost ");
+        }
         wr.Write("var {0}", s.Name);
         if (s.OptionalType != null) {
           wr.Write(": ");

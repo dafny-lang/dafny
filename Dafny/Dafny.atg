@@ -36,10 +36,11 @@ struct MemberModifiers {
 // helper routine for parsing call statements
 private static void RecordCallLhs(IdentifierExpr! e,
                                   List<IdentifierExpr!>! lhs,
-                                  List<VarDecl!>! newVars) {
+                                  List<AutoVarDecl!>! newVars) {
+  int index = lhs.Count;
   lhs.Add(e);
   if (parseVarScope.Find(e.Name) == null) {
-    VarDecl d = new VarDecl(e.tok, e.Name, new InferredTypeProxy(), null);
+    AutoVarDecl d = new AutoVarDecl(e.tok, e.Name, new InferredTypeProxy(), index);
     newVars.Add(d);
     parseVarScope.Push(e.Name, e.Name);
   }
@@ -207,6 +208,14 @@ FieldDecl<MemberModifiers mmod, List<MemberDecl!\>! mm>
   ";"
   .
 
+GIdentType<bool allowGhost, out Token! id, out Type! ty, out bool isGhost>
+/* isGhost always returns as false if allowGhost is false */
+= (. isGhost = false; .)
+  [ "ghost"                    (. if (allowGhost) { isGhost = true; } else { SemErr(token, "formal cannot be declared 'ghost' in this context"); } .)
+  ]
+  IdentType<out id, out ty>
+  .
+
 IdentType<out Token! id, out Type! ty>
 = Ident<out id>
   ":"
@@ -276,9 +285,9 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   Ident<out id>
   [ GenericParameters<typeArgs> ]
   (. parseVarScope.PushMarker(); .)
-  Formals<true, ins>
+  Formals<true, true, ins>
   [ "returns"
-    Formals<false, outs>
+    Formals<false, true, outs>
   ]
 
   ( ";" { MethodSpec<req, mod, ens, dec> }
@@ -307,12 +316,12 @@ MethodSpec<List<MaybeFreeExpression!\>! req, List<Expression!\>! mod, List<Maybe
   )
   .
 
-Formals<bool incoming, List<Formal!\>! formals> 
-= (. Token! id;  Type! ty; .)
+Formals<bool incoming, bool allowGhosts, List<Formal!\>! formals> 
+= (. Token! id;  Type! ty;  bool isGhost; .)
   "("
   [
-    IdentType<out id, out ty>                       (. formals.Add(new Formal(id, id.val, ty, incoming));  parseVarScope.Push(id.val, id.val); .)
-    { "," IdentType<out id, out ty>                 (. formals.Add(new Formal(id, id.val, ty, incoming));  parseVarScope.Push(id.val, id.val); .)
+    GIdentType<allowGhosts, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); .)
+    { "," GIdentType<allowGhosts, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); .)
     }
   ]
   ")"
@@ -322,8 +331,8 @@ FormalsOptionalIds<List<Formal!\>! formals>
 = (. Token! id;  Type! ty;  string! name; .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty>        (. formals.Add(new Formal(id, name, ty, true));  parseVarScope.Push(name, name); .)
-    { "," TypeIdentOptional<out id, out name, out ty>  (. formals.Add(new Formal(id, name, ty, true));  parseVarScope.Push(name, name); .)
+    TypeIdentOptional<out id, out name, out ty>        (. formals.Add(new Formal(id, name, ty, true, false));  parseVarScope.Push(name, name); .)
+    { "," TypeIdentOptional<out id, out name, out ty>  (. formals.Add(new Formal(id, name, ty, true, false));  parseVarScope.Push(name, name); .)
     }
   ]
   ")"
@@ -390,15 +399,18 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
      List<Expression!> reads = new List<Expression!>();
      List<Expression!> decreases = new List<Expression!>();
      Expression! bb;  Expression body = null;
+     bool isFunctionMethod = false;
   .)
   "function"
-  (. if (mmod.IsGhost) { SemErr(token, "functions cannot be declared 'ghost'"); }
+  [ "method"                 (. isFunctionMethod = true; .)
+  ]
+  (. if (mmod.IsGhost) { SemErr(token, "functions cannot be declared 'ghost' (they are ghost by default)"); }
   .)
   { Attribute<ref attrs> }
   Ident<out id> 
   [ GenericParameters<typeArgs> ]
   (. parseVarScope.PushMarker(); .)
-  Formals<true, formals>
+  Formals<true, false, formals>
   ":"
   Type<out returnType>
   ( ";"
@@ -407,7 +419,7 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
     FunctionBody<out bb>                (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, mmod.IsClass, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+     f = new Function(id, id.val, mmod.IsClass, !isFunctionMethod, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
   .)
   .
 
@@ -580,16 +592,17 @@ LhsExpr<out Expression! e>
   .
 
 VarDeclStmts<List<Statement!\>! ss>
-= (. VarDecl! d; .)
-  [ "ghost" ]
+= (. VarDecl! d;  bool isGhost = false; .)
+  [ "ghost"                            (. isGhost = true; .)
+  ]
   "var"
-  IdentTypeRhs<out d>                  (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
-  { "," IdentTypeRhs<out d>            (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
+  IdentTypeRhs<out d, isGhost>         (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
+  { "," IdentTypeRhs<out d, isGhost>   (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
   }
   ";"
   .
 
-IdentTypeRhs<out VarDecl! d>
+IdentTypeRhs<out VarDecl! d, bool isGhost>
 = (. Token! id;  Type! ty;  Expression! e;
      Expression rhs = null;  Type newType = null;
      Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
@@ -608,7 +621,7 @@ IdentTypeRhs<out VarDecl! d>
      } else if (optionalType == null) {
        optionalType = new InferredTypeProxy();
      }
-     d = new VarDecl(id, id.val, optionalType, optionalRhs);
+     d = new VarDecl(id, id.val, optionalType, isGhost, optionalRhs);
   .)
   .
 
@@ -664,7 +677,7 @@ CallStmt<out Statement! s>
 = (. Token! x, id;
      Expression! e;
      List<IdentifierExpr!> lhs = new List<IdentifierExpr!>();
-     List<VarDecl!> newVars = new List<VarDecl!>();
+     List<AutoVarDecl!> newVars = new List<AutoVarDecl!>();
   .)
   "call"                       (. x = token; .)
   CallStmtSubExpr<out e>

@@ -44,10 +44,10 @@ class Array {
     requires 0 <= n;
     modifies this;
     ensures |contents| == n;
-  function Length(): int
+  function method Length(): int
     reads this;
   { |contents| }
-  function Get(i: int): int
+  function method Get(i: int): int
     requires 0 <= i && i < |contents|;
     reads this;
   { contents[i] }

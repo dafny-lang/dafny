@@ -415,6 +415,7 @@ namespace Microsoft.Dafny
     string! UniqueName { get; }
     Type! Type { get; }
     bool IsMutable { get; }
+    bool IsGhost { get; }
   }
   
   public abstract class NonglobalVariable : IVariable {
@@ -440,11 +441,14 @@ namespace Microsoft.Dafny
       }
     } }
     public abstract bool IsMutable { get; }
+    readonly bool isGhost;
+    public bool IsGhost { get { return isGhost; } }
     
-    public NonglobalVariable(Token! tok, string! name, Type! type) {
+    public NonglobalVariable(Token! tok, string! name, Type! type, bool isGhost) {
       this.tok = tok;
       this.name = name;
       this.type = type;
+      this.isGhost = isGhost;
     }
     
     internal static int varIdCount;  // this varIdCount is used for both NonglobalVariable's and VarDecl's.
@@ -454,9 +458,9 @@ namespace Microsoft.Dafny
     public readonly bool InParam;  // true to in-parameter, false for out-parameter
     public override bool IsMutable { get { return !InParam; } }
     
-    public Formal(Token! tok, string! name, Type! type, bool inParam) {
+    public Formal(Token! tok, string! name, Type! type, bool inParam, bool isGhost) {
       InParam = inParam;
-      base(tok, name, type);
+      base(tok, name, type, isGhost);
     }
   }
   
@@ -464,12 +468,13 @@ namespace Microsoft.Dafny
     public override bool IsMutable { get { return false; } }
     
     public BoundVar(Token! tok, string! name, Type! type) {
-      base(tok, name, type);
+      base(tok, name, type, false);
     }
   }
   
   public class Function : MemberDecl, TypeParameter.ParentType {
     public readonly bool IsClass;
+    public readonly bool IsGhost;  // functions are "ghost" by default; a non-ghost function is called a "function method"
     public readonly bool IsUse;
     public readonly List<TypeParameter!>! TypeArgs;
     public readonly List<Formal!>! Formals;
@@ -479,9 +484,10 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
-    public Function(Token! tok, string! name, bool isClass, bool isUse, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
+    public Function(Token! tok, string! name, bool isClass, bool isGhost, bool isUse, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
                     List<Expression!>! req, List<Expression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
       this.IsClass = isClass;
+      this.IsGhost = isGhost;
       this.IsUse = isUse;
       this.TypeArgs = typeArgs;
       this.Formals = formals;
@@ -698,29 +704,47 @@ namespace Microsoft.Dafny
       }
     } }
     public bool IsMutable { get { return true; } }
+    protected bool isGhost;
+    public bool IsGhost { get { return isGhost; } }
 
     public readonly DeterminedAssignmentRhs Rhs;
     invariant OptionalType != null || Rhs != null;
     
-    public VarDecl(Token! tok, string! name, Type type, DeterminedAssignmentRhs rhs)
+    public VarDecl(Token! tok, string! name, Type type, bool isGhost, DeterminedAssignmentRhs rhs)
       requires type != null || rhs != null;
     {
       this.name = name;
       this.OptionalType = type;
+      this.isGhost = isGhost;
       this.Rhs = rhs;
       base(tok);
     }
   }
   
+  public class AutoVarDecl : VarDecl {
+    public readonly int Index;
+    public AutoVarDecl(Token! tok, string! name, Type! type, int index)
+    {
+      Index = index;
+      base(tok, name, type, false, null);
+    }
+    /// <summary>
+    /// This method retrospectively makes the VarDecl a ghost.  It is to be used only during resolution.
+    /// </summary>
+    public void MakeGhost() {
+      isGhost = true;
+    }
+  }
+  
   public class CallStmt : Statement {
-    public readonly List<VarDecl!>! NewVars;
+    public readonly List<AutoVarDecl!>! NewVars;
     public readonly List<IdentifierExpr!>! Lhs;
     public readonly Expression! Receiver;
     public readonly string! MethodName;
     public readonly List<Expression!>! Args;
     public Method Method;  // filled in by resolution
     
-    public CallStmt(Token! tok, List<VarDecl!>! newVars, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
+    public CallStmt(Token! tok, List<AutoVarDecl!>! newVars, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
       this.NewVars = newVars;
       this.Lhs = lhs;
       this.Receiver = receiver;

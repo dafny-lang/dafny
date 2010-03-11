@@ -5,7 +5,7 @@ class C<U> {
     y := x;
   }
 
-  function F<X>(x: X, u: U): bool
+  function method F<X>(x: X, u: U): bool
   {
     x == x && u == u
   }
