@@ -78,24 +78,29 @@ namespace Microsoft.Dafny {
       }
 
       // resolve each class
+      Graph<DatatypeDecl!> datatypeDependencies = new Graph<DatatypeDecl!>();
       foreach (TopLevelDecl d in prog.Classes) {
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         if (d is ClassDecl) {
           ResolveClassMemberTypes((ClassDecl)d);
         } else {
-          ResolveCtorTypes((DatatypeDecl)d);
+          ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
         }
         allTypeParameters.PopMarker();
       }
+      
       foreach (TopLevelDecl d in prog.Classes) {
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
         if (d is ClassDecl) {
           ResolveClassMemberBodies((ClassDecl)d);
         } else {
-          assert d is DatatypeDecl;
-          // nothing else to do (but there will be something to do here if constructors can have preconditions)
+          DatatypeDecl dtd = (DatatypeDecl)d;
+          if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
+            // do the following check once per SCC, so call it on each SCC representative
+            SccStratosphereCheck(dtd, datatypeDependencies);
+          }
         }
         allTypeParameters.PopMarker();
       }
@@ -178,7 +183,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveCtorTypes(DatatypeDecl! dt)
+    void ResolveCtorTypes(DatatypeDecl! dt, Graph<DatatypeDecl!>! dependencies)
     {
       foreach (DatatypeCtor ctor in dt.Ctors) {
         ctor.EnclosingDatatype = dt;
@@ -187,7 +192,83 @@ namespace Microsoft.Dafny {
         ResolveTypeParameters(ctor.TypeArgs, true, ctor);
         ResolveCtorSignature(ctor);
         allTypeParameters.PopMarker();
+        
+        foreach (Formal p in ctor.Formals) {
+          DatatypeDecl dependee = p.Type.AsDatatype;
+          if (dependee != null) {
+            dependencies.AddEdge(dt, dependee);
+          }
+        }
       }
+    }
+
+    /// <summary>
+    /// Check that the SCC of 'startingPoint' can be carved up into stratospheres in such a way that each
+    /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
+    /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
+    /// deemed to be rather small, this seems okay.
+    /// </summary>    
+    void SccStratosphereCheck(DatatypeDecl! startingPoint, Graph<DatatypeDecl!>! dependencies)
+    {
+      List<DatatypeDecl!> scc = dependencies.GetSCC(startingPoint);
+      List<DatatypeDecl!>! cleared = new List<DatatypeDecl!>();  // this is really a set
+      while (true) {
+        int clearedThisRound = 0;
+        foreach (DatatypeDecl dt in scc) {
+          if (cleared.Contains(dt)) {
+            // previously cleared
+          } else if (StratosphereCheck(dt, dependencies, cleared)) {
+            clearedThisRound++;
+            cleared.Add(dt);
+            // (it would be nice if the List API allowed us to remove 'dt' from 'scc' here; then we wouldn't have to check 'cleared.Contains(dt)' above and below)
+          }
+        }
+        if (cleared.Count == scc.Count) {
+          // all is good
+          return;
+        } else if (clearedThisRound != 0) {
+          // some progress was made, so let's keep going
+        } else {
+          // whatever is in scc-cleared now failed to pass the test
+          foreach (DatatypeDecl dt in scc) {
+            if (!cleared.Contains(dt)) {
+              Error(dt, "because of cyclic dependencies among constructor argument types, no instances of datatype '{0}' can be constructed", dt.Name);
+            }
+          }
+          return;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Check that the datatype has some constructor all whose argument types go to a lower stratum, which means
+    /// go to a different SCC or to a type in 'goodOnes'.
+    /// Returns 'true' if that is the case.
+    /// </summary>
+    bool StratosphereCheck(DatatypeDecl! dt, Graph<DatatypeDecl!>! dependencies, List<DatatypeDecl!>! goodOnes) {
+      // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
+      DatatypeDecl stratumRepresentative = dependencies.GetSCCRepresentative(dt);
+      foreach (DatatypeCtor ctor in dt.Ctors) {
+        foreach (Formal p in ctor.Formals) {
+          DatatypeDecl dependee = p.Type.AsDatatype;
+          if (dependee == null) {
+            // the type is not a datatype, which means it's in the lowest stratum (below all datatypes)
+          } else if (dependencies.GetSCCRepresentative(dependee) != stratumRepresentative) {
+            // the argument type goes to a different stratum, which must be a "lower" one, so this argument is fine
+          } else if (goodOnes.Contains(dependee)) {
+            // the argument type is in the same SCC, but has already passed the test, so it is to be considered as
+            // being in a lower stratum
+          } else {
+            // the argument type is in the same stratum as 'dt', so this constructor is not what we're looking for
+            goto NEXT_OUTER_ITERATION;
+          }
+        }
+        // this constructor satisfies the requirements, so the datatype is allowed
+        return true;
+        NEXT_OUTER_ITERATION: {}
+      }
+      // no constructor satisfied the requirements, so this is an illegal datatype declaration
+      return false;
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {

@@ -1,0 +1,159 @@
+using System.Collections.Generic;
+
+namespace Microsoft.Dafny {
+
+  public class Graph<Node>
+  {
+    enum VisitedStatus { Unvisited, OnStack, Visited }
+    class Vertex {
+      public readonly Node N;
+      public readonly List<Vertex!>! Successors = new List<Vertex!>();
+      public Vertex SccRepresentative;  // null if not computed or if the vertex represents itself
+      public List<Vertex!> SccMembers;  // non-null only for the representative of the SCC
+      // the following fields are used during the computation of SCCs:
+      public VisitedStatus Visited;
+      public int DfNumber;
+      public int LowLink;
+      
+      public Vertex(Node n) {
+        N = n;
+      }
+      public void AddSuccessor(Vertex! v) {
+        Successors.Add(v);        
+      }
+    }
+    Dictionary<Node, Vertex!>! vertices = new Dictionary<Node, Vertex!>();
+    bool sccComputed = false;
+    
+    public Graph()
+    {
+    }
+    
+    /// <summary>
+    /// Idempotently adds a vertex 'n' to the graph.
+    /// </summary>
+    public void AddVertex(Node n) {
+      GetVertex(n);
+    }
+
+    /// <summary>
+    /// Idempotently adds a vertex 'n' to the graph and then returns the Vertex for it.
+    /// </summary>    
+    Vertex! GetVertex(Node n) {
+      Vertex v;
+      if (vertices.TryGetValue(n, out v)) {
+        assert v != null;  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)
+      } else {
+        v = new Vertex(n);
+        vertices.Add(n, v);
+      }
+      return v;
+    }
+
+    /// <summary>
+    /// Idempotently adds verices 'from' and 'to' the graph, and then
+    /// adds an edge from 'from' to 'to'.
+    /// </summary>
+    public void AddEdge(Node from, Node to) {
+      Vertex v0 = GetVertex(from);
+      Vertex v1 = GetVertex(to);
+      v0.AddSuccessor(v1);
+      sccComputed = false;  // the addition of an edge may invalidate any previous computation of the graph's SCCs
+    }
+    
+    /// <summary>
+    /// Idempotently adds 'n' as a vertex and then returns a Node that is the representative element of the
+    /// strongly connected component containing 'n'.
+    /// </summary>
+    public Node GetSCCRepresentative(Node n) {
+      Vertex v = GetVertex(n);
+      ComputeSCCs();
+      return v.SccRepresentative == null ? n : v.SccRepresentative.N;
+    }
+    
+    /// <summary>
+    /// Idempotently adds 'n' as a vertex and then returns the set of Node's in the strongly connected component
+    /// that contains 'n'.
+    /// </summary>
+    public List<Node>! GetSCC(Node n) {
+      Vertex v = GetVertex(n);
+      ComputeSCCs();
+      Vertex repr = v.SccRepresentative;
+      if (repr == null) {
+        // this is a node that has been added since the last time the SCCs were computed
+        repr = v;
+        v.SccRepresentative = v;
+        v.SccMembers = new List<Vertex!>();
+        v.SccMembers.Add(v);
+      }
+      List<Node> nn = new List<Node>();
+      foreach (Vertex w in (!)repr.SccMembers) {
+        nn.Add(w.N);
+      }
+      return nn;
+    }
+    
+    /// <summary>
+    /// This method sets the SccRepresentative fields of the graph's vertices so that two
+    /// vertices have the same representative iff they are in the same strongly connected
+    /// component.
+    /// As a side effect, this method may change the Visited, DfNumber, and LowLink fields
+    /// of the vertices.
+    /// </summary>
+    void ComputeSCCs() {
+      if (sccComputed) { return; }  // check if already computed
+      
+      // reset all SCC information
+      foreach (Vertex v in vertices.Values) {
+        v.Visited = VisitedStatus.Unvisited;
+        v.SccMembers = null;
+      }
+      Stack<Vertex!> stack = new Stack<Vertex!>();
+      int cnt = 0;
+      foreach (Vertex v in vertices.Values) {
+        if (v.Visited == VisitedStatus.Unvisited) {
+          SearchC(v, stack, ref cnt);
+        }
+      }
+      assert cnt == vertices.Count;  // sanity check that everything has been visited
+
+      sccComputed = true;
+    }
+    
+    /// <summary>
+    /// This is the 'SearchC' procedure from the Aho, Hopcroft, and Ullman book 'The Design and Analysis of Computer Algorithms'.
+    /// </summary>
+    void SearchC(Vertex! v, Stack<Vertex!>! stack, ref int cnt)
+      requires v.Visited == VisitedStatus.Unvisited;
+      ensures v.Visited != VisitedStatus.Unvisited;
+    {
+      v.DfNumber = cnt;
+      cnt++;
+      v.LowLink = v.DfNumber;
+      stack.Push(v);
+      v.Visited = VisitedStatus.OnStack;
+      
+      foreach (Vertex w in v.Successors) {
+        if (w.Visited == VisitedStatus.Unvisited) {
+          SearchC(w, stack, ref cnt);
+          v.LowLink = min{v.LowLink, w.LowLink};
+        } else if (w.Visited == VisitedStatus.OnStack) {
+          assert w.DfNumber < v.DfNumber || v.LowLink <= w.DfNumber;  // the book also has the guard 'w.DfNumber < v.DfNumber', but that seems unnecessary to me, so this assert is checking my understanding
+          v.LowLink = min{v.LowLink, w.DfNumber};
+        }
+      }
+      
+      if (v.LowLink == v.DfNumber) {
+        // The SCC containing 'v' has now been computed.
+        v.SccMembers = new List<Vertex!>();
+        while (true) {
+          Vertex x = stack.Pop();
+          x.Visited = VisitedStatus.Visited;
+          x.SccRepresentative = v;
+          v.SccMembers.Add(x);
+          if (x == v) { break; }
+        }
+      }
+    }
+  }
+}

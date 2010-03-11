@@ -1,6 +1,6 @@
 
 -------------------- Simple.dfy --------------------
-// synthetic program
+// Simple.dfy
 
 class MyClass<T, U> {
   var x: int;
@@ -57,8 +57,6 @@ datatype WildData {
   More(List<int>);
 }
 
-datatype Nothing { }
-
 class C {
   var w: WildData;
   var list: List<bool>;
@@ -78,7 +76,9 @@ TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, g
 TypeTests.dfy(11,4): Error: incorrect type of method in-parameter 0 (expected int, got bool)
 TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 0 (expected int, got C)
 TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 1 (expected C, got int)
-7 resolution/type errors detected in synthetic program
+TypeTests.dfy(20,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Nothing' can be constructed
+TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
+9 resolution/type errors detected in TypeTests.dfy
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,7): Error: RHS expression must be well defined

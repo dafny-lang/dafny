@@ -70,8 +70,17 @@ namespace Microsoft.Dafny
     }
     public bool IsDatatype {
       get {
+        return AsDatatype != null;
+      }
+    }
+    public DatatypeDecl AsDatatype {
+      get {
         UserDefinedType udt = this as UserDefinedType;
-        return udt != null && udt.ResolvedClass is DatatypeDecl;
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as DatatypeDecl;
+        }
       }
     }
     public bool IsTypeParameter {

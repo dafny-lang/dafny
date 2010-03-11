@@ -50,9 +50,6 @@ datatype WildData {
   More(List<int>);
 }
 
-datatype Nothing {
-}
-
 class C {
   var w: WildData;
   var list: List<bool>;

@@ -205,7 +205,8 @@ namespace Microsoft.Boogie
     {
       using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
         Dafny.Program dafnyProgram;
-        string err = Dafny.Main.ParseCheck(fileNames, "synthetic program", out dafnyProgram);
+        string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
+        string err = Dafny.Main.ParseCheck(fileNames, programName, out dafnyProgram);
         if (err != null) {
           ErrorWriteLine(err);
         } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
