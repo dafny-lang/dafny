@@ -39,7 +39,7 @@ class Node<T> {
 
   method Prepend(d: T) returns (r: Node<T>)
     requires Valid();
-    ensures r.Valid() && fresh(r.footprint - old(footprint));
+    ensures r != null && r.Valid() && fresh(r.footprint - old(footprint));
     ensures r.list == [d] + list;
   {
     r := new Node<T>;

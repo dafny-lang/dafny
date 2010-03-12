@@ -26,7 +26,7 @@ class Node {
 
   method Add(d: int, L: List<int>) returns (r: Node)
     requires Repr(L);
-    ensures r.Repr(#List.Cons(d, L));
+    ensures r != null && r.Repr(#List.Cons(d, L));
   {
     r := new Node;
     r.data := d;

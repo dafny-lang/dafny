@@ -54,6 +54,7 @@ class Array {
   method Set(i: int, x: int);
     requires 0 <= i && i < |contents|;
     modifies this;
+    ensures |contents| == |old(contents)|;
     ensures contents[..i] == old(contents[..i]);
     ensures contents[i] == x;
     ensures contents[i+1..] == old(contents[i+1..]);

@@ -42,7 +42,7 @@ class Main {
     ensures (forall n :: n in S && n.marked ==>
                 n in stackNodes ||
                 (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
-    ensures (forall n: Node :: old(n.marked) ==> n.marked);
+    ensures (forall n: Node :: n in S && old(n.marked) ==> n.marked);
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
@@ -58,7 +58,7 @@ class Main {
                 (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
         invariant (forall j :: 0 <= j && j < i ==>
                     root.children[j] == null || root.children[j].marked);
-        invariant (forall n: Node :: old(n.marked) ==> n.marked);
+        invariant (forall n: Node :: n in S && old(n.marked) ==> n.marked);
         invariant (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));

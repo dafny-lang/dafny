@@ -59,6 +59,7 @@ class Queue<T> {
     requires 0 < |contents|;
     modifies footprint;
     ensures Valid() && fresh(footprint - old(footprint));
+    ensures |contents| == |old(contents)|;
     ensures (exists i :: 0 <= i && i <= |contents| &&
               contents == old(contents)[i..] + old(contents)[..i]);
   {

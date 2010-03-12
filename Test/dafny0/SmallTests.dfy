@@ -151,3 +151,65 @@ class Modifies {
     }
   }
 }
+
+// ----------------- wellformed specifications ----------------------
+
+class SoWellformed {
+  var xyz: int;
+  var next: SoWellformed;
+
+  function F(x: int): int
+  { 5 / x }  // error: possible division by zero
+
+  function G(x: int): int
+    requires 0 < x;
+  { 5 / x }
+
+  function H(x: int): int
+    decreases 5/x;  // error: possible division by zero
+  { 12 }
+
+  function I(x: int): int
+    requires 0 < x;
+    decreases 5/x;
+  { 12 }
+
+  method M(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+    requires a.xyz == 7;  // error: not always defined
+    ensures c ==> d.xyz == -7;  // error: not always defined
+    decreases 5 / b;  // error: not always defined
+  {
+    c := false;
+  }
+
+  method N(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+    decreases 5 / b;
+    requires a.next != null;  // error: not always defined
+    requires a.next.xyz == 7;  // this is well-defined, given that the previous line is
+    requires b < -2;
+    ensures 0 <= b ==> d.xyz == -7 && !c;
+  {
+    c := true;
+  }
+
+  method O(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
+    modifies a.next;  // this may not be well-defined, but that's okay for modifies clauses
+  {
+    c := true;
+  }
+
+  method P(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed);
+    requires next != null;
+    modifies this;
+    ensures next.xyz < 100;  // error: may not be well-defined (if body sets next to null)
+
+  method Q(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed);
+    requires next != null;
+    modifies s;
+    ensures next.xyz < 100;  // error: may not be well-defined (if this in s and body sets next to null)
+
+  method R(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed);
+    requires next != null && this !in s;
+    modifies s;
+    ensures next.xyz < 100;  // fine
+}

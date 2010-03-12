@@ -116,8 +116,33 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
+SmallTests.dfy(162,7): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(169,16): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(178,16): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(179,21): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+SmallTests.dfy(180,17): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(187,16): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(204,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(209,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 10 verified, 8 errors
+Dafny program verifier finished with 30 verified, 16 errors
 
 -------------------- Queue.dfy --------------------
 

@@ -34,6 +34,7 @@ class Glossary {
     ensures r != null && fresh(r);
     ensures |r.contents| == |old(q.contents)|;
     ensures (forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
+                r.Get(i) != null &&
                 r.Get(i).AtMost(r.Get(j)));
     //perm is a permutation
     ensures |perm| == |r.contents|; // ==|pperm|
@@ -289,7 +290,8 @@ class Map<Key,Value> {
     requires Valid();
     modifies this;
     ensures Valid();
-    ensures (forall i :: 0 <= i && i < |keys| && old(keys)[i] == key ==>
+    ensures (forall i :: 0 <= i && i < |old(keys)| && old(keys)[i] == key ==>
+              |keys| == |old(keys)| &&
               keys[i] == key && values[i] == val &&
               (forall j :: 0 <= j && j < |values| && i != j ==> keys[j] == old(keys)[j] && values[j] == old(values)[j]));
     ensures key !in old(keys) ==> keys == old(keys) + [key] && values == old(values) + [val];
@@ -315,7 +317,7 @@ class Map<Key,Value> {
     // other values don't change:
     ensures key !in old(keys) ==> keys == old(keys) && values == old(values);
     ensures key in old(keys) ==>
-            key !in keys &&
+            |keys| == |old(keys)| - 1 && key !in keys &&
             (exists h ::
               0 <= h && h <= |keys| &&
               keys[..h] == old(keys)[..h] &&

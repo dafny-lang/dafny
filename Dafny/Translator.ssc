@@ -11,7 +11,6 @@ using Bpl = Microsoft.Boogie;
 using System.Text;
 
 // TODO:  totality checks for statements
-// TODO:  totality checks for pre/post conditions
 
 namespace Microsoft.Dafny {
   public class Translator {
@@ -31,8 +30,6 @@ namespace Microsoft.Dafny {
     // translation state
     readonly Dictionary<TopLevelDecl!,Bpl.Constant!>! classes = new Dictionary<TopLevelDecl!,Bpl.Constant!>();
     readonly Dictionary<Field!,Bpl.Constant!>! fields = new Dictionary<Field!,Bpl.Constant!>();
-    readonly Dictionary<Function!,Bpl.Function!>! functions = new Dictionary<Function!,Bpl.Function!>();
-    readonly Dictionary<Method!,Bpl.Procedure!>! methods = new Dictionary<Method!,Bpl.Procedure!>();
 
     // Machinery for providing information to the Counterexample Visualizer
     readonly Dictionary<string!,int>! cevFilenames = new Dictionary<string!,int>();
@@ -272,25 +269,6 @@ namespace Microsoft.Dafny {
           AddClassMembers((ClassDecl)d);
         }
       }
-      foreach (TopLevelDecl d in program.Classes) {
-        if (d is ClassDecl) {
-          ClassDecl c = (ClassDecl)d;
-          foreach (MemberDecl member in c.Members) {
-            if (member is Method) {
-              Method m = (Method)member;
-              if (m.Body != null) {
-                AddMethodImpl(m);
-              }
-            } else if (member is Function) {
-              Function f = (Function)member;
-              AddFrameAxiom(f);
-              AddWellformednessCheck(f);
-            }
-          }
-        } else {
-          assert d is DatatypeDecl;
-        }
-      }
       return sink;
     }
     
@@ -395,12 +373,21 @@ namespace Microsoft.Dafny {
               AddUseAxioms(f);
             }
           }
+          AddFrameAxiom(f);
+          AddWellformednessCheck(f);
           
         } else if (member is Method) {
           Method m = (Method)member;
-          Bpl.Procedure proc = GetMethod(m);
-          sink.TopLevelDeclarations.Add(proc);
-          
+          // wellformedness check for method specification
+          Bpl.Procedure proc = AddMethod(m, true);
+          AddMethodImpl(m, proc, true);
+          // the method itself
+          proc = AddMethod(m, false);
+          if (m.Body != null) {
+            // ...and its implementation
+            AddMethodImpl(m, proc, false);
+          }
+
         } else {
           assert false;  // unexpected member
         }
@@ -667,20 +654,93 @@ namespace Microsoft.Dafny {
       return _nwie;
     }
 
-    void AddMethodImpl(Method! m)
-      requires sink != null && predef != null && m.Body != null;
+    void AddMethodImpl(Method! m, Bpl.Procedure! proc, bool wellformednessProc)
+      requires sink != null && predef != null;
+      requires wellformednessProc || m.Body != null;
       requires currentMethod == null && loopHeapVarCount == 0 && _phvie == null && _nwie == null;
       ensures currentMethod == null && loopHeapVarCount == 0 && _phvie == null && _nwie == null;
     {
-      Bpl.Procedure proc = GetMethod(m);
       currentMethod = m;
 
-      Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
-      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
+      Bpl.VariableSeq inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
+      Bpl.VariableSeq outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
+      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+      Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
+      GenerateImplPrelude(m, inParams, outParams, builder, localVariables);
+      Bpl.StmtList stmts;
+      if (!wellformednessProc) {
+        // translate the body of the method
+        assert m.Body != null;  // follows from method precondition and the if guard
+        stmts = TrStmt2StmtList(builder, m.Body, localVariables, etran);
+      } else {
+        // check well-formedness of the preconditions, and then assume each one of them
+        foreach (MaybeFreeExpression p in m.Req) {
+          CheckWellformed(p.E, null, Position.Positive, localVariables, builder, etran);
+          builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        }
+        // Note: the modifies clauses are not checked for well-formedness (is that sound?), because it used to
+        // be that the syntax was not rich enough for programmers to specify modifies clauses and always being
+        // absolutely well-defined.
+        // check well-formedness of the decreases clauses
+        foreach (Expression p in m.Decreases) {
+          CheckWellformed(p, null, Position.Positive, localVariables, builder, etran);
+        }
+
+        // play havoc with the heap according to the modifies clause
+        builder.Add(new Bpl.HavocCmd(m.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
+        Bpl.IdentifierExprSeq outH = new Bpl.IdentifierExprSeq();
+        // assume (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] } $_Frame[o] || $Heap[o,f] == old($Heap)[o,f]);
+        Bpl.TypeVariable alpha = new Bpl.TypeVariable(m.tok, "alpha");
+        Bpl.BoundVariable oVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$o", predef.RefType));
+        Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(m.tok, oVar);
+        Bpl.BoundVariable fVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$f", predef.FieldName(m.tok, alpha)));
+        Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(m.tok, fVar);
+      
+        Bpl.Expr heapOF = Bpl.Expr.SelectTok(m.tok, etran.HeapExpr, o, f);
+        Bpl.Expr oldHeapOF = Bpl.Expr.SelectTok(m.tok, etran.Old.HeapExpr, o, f);
+        Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.Old.TheFrame(m.tok), o);
+        Bpl.Expr body = Bpl.Expr.Or(inEnclosingFrame, Bpl.Expr.Eq(heapOF, oldHeapOF));
+        Bpl.Trigger tr = new Bpl.Trigger(m.tok, true, new Bpl.ExprSeq(heapOF));
+        Bpl.Expr qq = new Bpl.ForallExpr(m.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, body);
+        builder.Add(new Bpl.AssumeCmd(m.tok, qq));
+
+        // also play havoc with the out parameters
+        foreach (Bpl.Variable! f in outParams) {
+          outH.Add(new Bpl.IdentifierExpr(f.tok, f));
+        }
+        builder.Add(new Bpl.HavocCmd(m.tok, outH));
+
+        // check wellformedness of postconditions
+        foreach (MaybeFreeExpression p in m.Ens) {
+          CheckWellformed(p.E, null, Position.Positive, localVariables, builder, etran);
+          builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        }
+
+        stmts = builder.Collect(m.tok);
+      }
+
+      Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
+        typeParams, inParams, outParams,
+        localVariables, stmts);
+      sink.TopLevelDeclarations.Add(impl);
+      
+      currentMethod = null;
+      loopHeapVarCount = 0;
+      otherTmpVarCount = 0;
+      _phvie = null;
+      _nwie = null;
+    }
+
+    void GenerateImplPrelude(Method! m, Bpl.VariableSeq! inParams, Bpl.VariableSeq! outParams,
+                             Bpl.StmtListBuilder! builder, Bpl.VariableSeq! localVariables)
+      requires predef != null;
+    {
       // Add CEV prelude
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(1))));
-      foreach (Bpl.Variable p in proc.InParams) {
+      foreach (Bpl.Variable p in inParams) {
         assert p != null;
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
           new Bpl.ExprSeq(
@@ -690,7 +750,7 @@ namespace Microsoft.Dafny {
             new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
           new Bpl.IdentifierExprSeq()));
       }
-      foreach (Bpl.Variable p in proc.OutParams) {
+      foreach (Bpl.Variable p in outParams) {
         assert p != null;
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
           new Bpl.ExprSeq(
@@ -702,39 +762,22 @@ namespace Microsoft.Dafny {
       }
 
       // set up the information used to verify the method's modifies clause
-      {
-        ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
-        // Declare a local variable $_Frame: [ref]bool
-        Bpl.IdentifierExpr theFrame = etran.TheFrame(m.tok);  // this is a throw-away expression, used only to extract the name and type of the $_Frame variable
-        assert theFrame.Type != null;  // follows from the postcondition of TheFrame
-        Bpl.LocalVariable frame = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, theFrame.Name, theFrame.Type));
-        localVariables.Add(frame);
-        // $_Frame := (lambda $o: ref :: $o != null && $Heap[$o,alloc] ==> $o in ModifiesClause);
-        Bpl.BoundVariable oVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$o", predef.RefType));
-        Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(m.tok, oVar);
-        Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(m.tok, o));
-        Bpl.Expr consequent = InRWClause(m.tok, o, m.Mod, etran, null, null);
-        Bpl.Expr lambda = new Bpl.LambdaExpr(m.tok, new Bpl.TypeVariableSeq(), new Bpl.VariableSeq(oVar), null, Bpl.Expr.Imp(ante, consequent));
-      
-        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
-      }
-
-      Bpl.StmtList stmts = TrStmt2StmtList(builder, m.Body, localVariables, new ExpressionTranslator(this, predef, m.tok));
-      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
-      Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
-        typeParams,
-        Bpl.Formal.StripWhereClauses(proc.InParams),
-        Bpl.Formal.StripWhereClauses(proc.OutParams),
-        localVariables, stmts);
-      sink.TopLevelDeclarations.Add(impl);
-      
-      currentMethod = null;
-      loopHeapVarCount = 0;
-      otherTmpVarCount = 0;
-      _phvie = null;
-      _nwie = null;
-    }
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+      // Declare a local variable $_Frame: [ref]bool
+      Bpl.IdentifierExpr theFrame = etran.TheFrame(m.tok);  // this is a throw-away expression, used only to extract the name and type of the $_Frame variable
+      assert theFrame.Type != null;  // follows from the postcondition of TheFrame
+      Bpl.LocalVariable frame = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, theFrame.Name, theFrame.Type));
+      localVariables.Add(frame);
+      // $_Frame := (lambda $o: ref :: $o != null && $Heap[$o,alloc] ==> $o in ModifiesClause);
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(m.tok, oVar);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(m.tok, o));
+      Bpl.Expr consequent = InRWClause(m.tok, o, m.Mod, etran, null, null);
+      Bpl.Expr lambda = new Bpl.LambdaExpr(m.tok, new Bpl.TypeVariableSeq(), new Bpl.VariableSeq(oVar), null, Bpl.Expr.Imp(ante, consequent));
     
+      builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
+    }
+        
     /// <summary>
     /// Generates:
     ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
@@ -909,6 +952,8 @@ namespace Microsoft.Dafny {
 
       Bpl.VariableSeq locals = new Bpl.VariableSeq();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      // todo: include CEV information of parameters and the heap
+      
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (Expression p in f.Req) {
         // Note, in this well-formedness check, function is passed in as null.  This will cause there to be
@@ -1188,8 +1233,12 @@ namespace Microsoft.Dafny {
         foreach (Expression arg in dtv.Arguments) {
           CheckWellformed(arg, func, Position.Neither, locals, builder, etran);
         }
-      } else if (expr is OldExpr || expr is FreshExpr) {
-        assert false;  // unexpected expression in function body
+      } else if (expr is OldExpr) {
+        OldExpr e = (OldExpr)expr;
+        CheckWellformed(e.E, func, pos, locals, builder, etran.Old);
+      } else if (expr is FreshExpr) {
+        FreshExpr e = (FreshExpr)expr;
+        CheckWellformed(e.E, func, pos, locals, builder, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, func, e.Op == UnaryExpr.Opcode.Not ? Negate(pos) : Position.Neither, locals, builder, etran);
@@ -1360,74 +1409,72 @@ namespace Microsoft.Dafny {
     {
       return new Bpl.IdentifierExpr(fse.tok, GetField(fse.Field));
     }
-    
+
+    /// <summary>
+    /// This method is expected to be called just once for each function in the program.
+    /// </summary>    
     void AddFunction(Function! f)
       requires predef != null && sink != null;
     {
-      Bpl.Function func;
-      if (functions.TryGetValue(f, out func)) {
-        assert func != null;
-      } else {
-        Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
-        Bpl.VariableSeq args = new Bpl.VariableSeq();
-        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$heap", predef.HeapType), true));
-        if (!f.IsClass) {
-          args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
-        }
-        foreach (Formal p in f.Formals) {
-          args.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)), true));
-        }
-        Bpl.Formal res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
-        
-        functions.Add(f, func);
-        sink.TopLevelDeclarations.Add(func);
-        
-        if (f.IsUse) {
-          Bpl.Function altF = new Bpl.Function(f.tok, f.FullName + "#alt", args, res);
-          sink.TopLevelDeclarations.Add(altF);
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+      Bpl.VariableSeq args = new Bpl.VariableSeq();
+      args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$heap", predef.HeapType), true));
+      if (!f.IsClass) {
+        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
+      }
+      foreach (Formal p in f.Formals) {
+        args.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)), true));
+      }
+      Bpl.Formal res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
+      Bpl.Function func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
+      sink.TopLevelDeclarations.Add(func);
+      
+      if (f.IsUse) {
+        Bpl.Function altF = new Bpl.Function(f.tok, f.FullName + "#alt", args, res);
+        sink.TopLevelDeclarations.Add(altF);
 
-          Bpl.Formal boolRes = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-          Bpl.Function useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
-          sink.TopLevelDeclarations.Add(useF);
-        }
+        Bpl.Formal boolRes = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+        Bpl.Function useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
+        sink.TopLevelDeclarations.Add(useF);
       }
     }
     
-    Bpl.Procedure! GetMethod(Method! m)
-      requires predef != null;
+    /// <summary>
+    /// This method is expected to be called just twice for each procedure in the program (once with
+    /// wellformednessProc set to true, once with wellformednessProc set to false).
+    /// </summary>    
+    Bpl.Procedure! AddMethod(Method! m, bool wellformednessProc)
+      requires predef != null && sink != null;
     {
-      Bpl.Procedure proc;
-      if (methods.TryGetValue(m, out proc)) {
-        assert proc != null;
-      } else {
-        ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
-        
-        Bpl.VariableSeq inParams = new Bpl.VariableSeq();
-        Bpl.VariableSeq outParams = new Bpl.VariableSeq();
-        if (!m.IsClass) {
-          Bpl.Expr wh = Bpl.Expr.And(
-            Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
-            etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
-          Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
-          inParams.Add(thVar);
-        }
-        foreach (Formal p in m.Ins) {
-          Bpl.Type varType = TrType(p.Type);
-          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
-          inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
-        }
-        foreach (Formal p in m.Outs) {
-          Bpl.Type varType = TrType(p.Type);
-          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
-          outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
-        }
-        
-        Bpl.RequiresSeq req = new Bpl.RequiresSeq();
-        Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
-        Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
-        mod.Add(etran.HeapExpr);
-        mod.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int));
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+      
+      Bpl.VariableSeq inParams = new Bpl.VariableSeq();
+      Bpl.VariableSeq outParams = new Bpl.VariableSeq();
+      if (!m.IsClass) {
+        Bpl.Expr wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
+          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
+        Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
+        inParams.Add(thVar);
+      }
+      foreach (Formal p in m.Ins) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+      }
+      foreach (Formal p in m.Outs) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
+      }
+      
+      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
+      Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
+      mod.Add(etran.HeapExpr);
+      mod.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int));
+      
+      if (!wellformednessProc) {
         string comment = "user-defined preconditions";
         foreach (MaybeFreeExpression p in m.Req) {
           Bpl.RequiresSeq pieces = new Bpl.RequiresSeq();
@@ -1462,33 +1509,33 @@ namespace Microsoft.Dafny {
           }
           comment = null;
         }
-        
+      
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m, etran.Old, etran)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
-
-        // CEV information
-        // free requires #cev_pc == 0;
-        req.Add(Requires(m.tok, true, Bpl.Expr.Eq(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(0)), null, "CEV information"));
-        // free requires #cev_init(0);
-        req.Add(Requires(m.tok, true, FunctionCall(m.tok, BuiltinFunction.CevInit, null, Bpl.Expr.Literal(0)), null, null));
-        // free requires #cev_var_intro(0, cev_implicit, #loc.$Heap, $Heap, 0);
-        req.Add(Requires(m.tok, true, FunctionCall(m.tok, BuiltinFunction.CevVarIntro, null,
-          Bpl.Expr.Literal(0),
-          new Bpl.IdentifierExpr(m.tok, "cev_implicit", predef.CevVariableKind),
-          CevVariable(m.tok, predef.HeapVarName),
-          etran.HeapExpr,
-          Bpl.Expr.Literal(0)), null, null));
-        // free requires #cev_save_position(0) == #tok.Tok;
-        req.Add(Requires(m.tok, true, Bpl.Expr.Eq(FunctionCall(m.tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Literal(0)), CevLocation(m.tok)), null, null));
-        // free ensures old(#cev_pc) < #cev_pc;
-        ens.Add(Ensures(m.tok, true, Bpl.Expr.Lt(new Bpl.OldExpr(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), null, "CEV information"));
-
-        Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
-        proc = new Bpl.Procedure(m.tok, m.FullName, typeParams, inParams, outParams, req, mod, ens);
-        
-        methods.Add(m, proc);
       }
+
+      // CEV information
+      // free requires #cev_pc == 0;
+      req.Add(Requires(m.tok, true, Bpl.Expr.Eq(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(0)), null, "CEV information"));
+      // free requires #cev_init(0);
+      req.Add(Requires(m.tok, true, FunctionCall(m.tok, BuiltinFunction.CevInit, null, Bpl.Expr.Literal(0)), null, null));
+      // free requires #cev_var_intro(0, cev_implicit, #loc.$Heap, $Heap, 0);
+      req.Add(Requires(m.tok, true, FunctionCall(m.tok, BuiltinFunction.CevVarIntro, null,
+        Bpl.Expr.Literal(0),
+        new Bpl.IdentifierExpr(m.tok, "cev_implicit", predef.CevVariableKind),
+        CevVariable(m.tok, predef.HeapVarName),
+        etran.HeapExpr,
+        Bpl.Expr.Literal(0)), null, null));
+      // free requires #cev_save_position(0) == #tok.Tok;
+      req.Add(Requires(m.tok, true, Bpl.Expr.Eq(FunctionCall(m.tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Literal(0)), CevLocation(m.tok)), null, null));
+      // free ensures old(#cev_pc) < #cev_pc;
+      ens.Add(Ensures(m.tok, true, Bpl.Expr.Lt(new Bpl.OldExpr(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), null, "CEV information"));
+
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
+      string name = wellformednessProc ? "CheckWellformed$$" + m.FullName : m.FullName;
+      Bpl.Procedure proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
+      sink.TopLevelDeclarations.Add(proc);
       return proc;
     }
     
