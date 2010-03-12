@@ -1045,7 +1045,12 @@ List<Expression!>! decreases) {
 			if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } 
 		} else Error(109);
 		Expect(6);
-		s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign); 
+		if (bodyAssign != null) {
+		 s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign);
+		} else {
+		  s = dummyStmt;  // some error occurred in parsing the bodyAssign
+		}
+		
 		parseVarScope.PopMarker(); 
 	}
 

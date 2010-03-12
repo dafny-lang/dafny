@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is AssumeStmt) {
         wr.Write("assume ");
-        PrintExpression(((AssertStmt)stmt).Expr);
+        PrintExpression(((AssumeStmt)stmt).Expr);
         wr.Write(";");
         
       } else if (stmt is UseStmt) {
@@ -399,11 +399,9 @@ namespace Microsoft.Dafny {
           PrintStatement(t, ind);
           wr.WriteLine();
         }
-        if (s.BodyAssign != null) {
-          Indent(ind);
-          PrintStatement(s.BodyAssign, ind);
-          wr.WriteLine();
-        }
+        Indent(ind);
+        PrintStatement(s.BodyAssign, ind);
+        wr.WriteLine();
         Indent(indent);
         wr.Write("}");
         

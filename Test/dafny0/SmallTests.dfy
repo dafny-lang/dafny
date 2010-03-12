@@ -67,3 +67,87 @@ class Node {
     12
   }
 }
+
+// ------------------ modifies clause tests ------------------------
+
+class Modifies {
+  var x: int;
+  var next: Modifies;
+
+  method A(p: Modifies)
+    modifies this, p;
+  {
+    x := x + 1;
+    while (p != null && p.x < 75)
+      decreases 75 - p.x;
+    {
+      p.x := p.x + 1;
+    }
+  }
+
+  method B(p: Modifies)
+    modifies this;
+  {
+    call A(this);
+    if (p == this) {
+      call p.A(p);
+    }
+    call A(p);  // error: may violate modifies clause
+  }
+
+  method C(b: bool)
+    modifies this;
+    ensures !b ==> x == old(x) && next == old(next);
+  {
+  }
+
+  method D(p: Modifies, y: int)
+    requires p != null;
+  {
+    if (y == 3) {
+      call p.C(true);  // error: may violate modifies clause
+    } else {
+      call p.C(false);  // error: may violation modifies clause (the check is done without regard
+                        // for the postcondition, which also makes sense, since there may, in
+                        // principle, be other fields of the object that are not constrained by the
+                        // postcondition)
+    }
+  }
+
+  method E()
+    modifies this;
+  {
+    call A(null);  // allowed
+  }
+
+  method F(s: set<Modifies>)
+    modifies s;
+  {
+    foreach (m in s | 2 <= m.x) {
+      m.x := m.x + 1;
+    }
+    if (this in s) {
+      x := 2 * x;
+    }
+  }
+
+  method G(s: set<Modifies>)
+    modifies this;
+  {
+    var m := 3;  // this is a different m
+
+    foreach (m in s | m == this) {
+      m.x := m.x + 1;
+    }
+    if (s <= {this}) {
+      foreach (m in s) {
+        m.x := m.x + 1;
+      }
+      call F(s);
+    }
+    foreach (m in s) {
+      assert m.x < m.x + 10;  // nothing wrong with asserting something
+      m.x := m.x + 1;  // error: may violate modifies clause
+    }
+  }
+}

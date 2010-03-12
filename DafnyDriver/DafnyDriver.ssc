@@ -490,6 +490,11 @@ namespace Microsoft.Boogie
         program.Emit(new TokenTextWriter(Console.Out));
       }
 
+      if (CommandLineOptions.Clo.ExpandLambdas) {
+        LambdaHelper.ExpandLambdas(program);
+        //PrintBplFile ("-", program, true);
+      }
+
       // ---------- Verify ------------------------------------------------------------
 
       if (!CommandLineOptions.Clo.Verify) { return PipelineOutcome.Done; }

@@ -98,8 +98,26 @@ Execution trace:
     (0,0): anon3
     (0,0): anon11_Then
     (0,0): anon6
+SmallTests.dfy(95,5): Error: call may violate caller's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+    (0,0): anon3
+SmallTests.dfy(108,7): Error: call may violate caller's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+SmallTests.dfy(110,7): Error: call may violate caller's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+SmallTests.dfy(150,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+    (0,0): anon3
 
-Dafny program verifier finished with 6 verified, 4 errors
+Dafny program verifier finished with 10 verified, 8 errors
 
 -------------------- Queue.dfy --------------------
 

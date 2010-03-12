@@ -10,8 +10,6 @@
 // pperm, had to write invariants over p and perm rather than pperm and we couldn't use 
 // "x in p".
 
-//would be nice if we could mark pperm as a ghost variable
-
 class Queue<T> {
   var contents: seq<T>;
   method Init();
@@ -43,7 +41,7 @@ class Comparable {
 class Benchmark3 {
 
 
-  method Sort(q: Queue<int>) returns (r: Queue<int>, perm:seq<int>)
+  method Sort(q: Queue<int>) returns (r: Queue<int>, ghost perm:seq<int>)
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);
@@ -59,7 +57,7 @@ class Benchmark3 {
   {
     r := new Queue<int>;
     call r.Init();
-    var p:= [];
+    ghost var p:= [];
     
     var n := 0;
 	while (n < |q.contents|)
@@ -72,7 +70,7 @@ class Benchmark3 {
 		n := n + 1;
    }
    perm:= [];
-   var pperm := p + perm; 
+   ghost var pperm := p + perm; 
    
     while (|q.contents| != 0)
       invariant |r.contents| == |old(q.contents)| - |q.contents|;

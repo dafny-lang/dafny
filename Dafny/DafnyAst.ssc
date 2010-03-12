@@ -800,9 +800,9 @@ namespace Microsoft.Dafny
     public readonly Expression! Collection;
     public readonly Expression! Range;
     public readonly List<PredicateStmt!>! BodyPrefix;
-    public readonly AssignStmt BodyAssign;
+    public readonly AssignStmt! BodyAssign;
     
-    public ForeachStmt(Token! tok, BoundVar! boundVar, Expression! collection, Expression! range, List<PredicateStmt!>! bodyPrefix, AssignStmt bodyAssign) {
+    public ForeachStmt(Token! tok, BoundVar! boundVar, Expression! collection, Expression! range, List<PredicateStmt!>! bodyPrefix, AssignStmt! bodyAssign) {
       this.BoundVar = boundVar;
       this.Collection = collection;
       this.Range = range;

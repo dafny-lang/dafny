@@ -676,8 +676,9 @@ namespace Microsoft.Dafny {
       currentMethod = m;
 
       Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
-
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+
+      // Add CEV prelude
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(1))));
       foreach (Bpl.Variable p in proc.InParams) {
         assert p != null;
@@ -698,6 +699,24 @@ namespace Microsoft.Dafny {
             CevVariable(p.tok, p.Name),
             new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
           new Bpl.IdentifierExprSeq()));
+      }
+
+      // set up the information used to verify the method's modifies clause
+      {
+        ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+        // Declare a local variable $_Frame: [ref]bool
+        Bpl.IdentifierExpr theFrame = etran.TheFrame(m.tok);  // this is a throw-away expression, used only to extract the name and type of the $_Frame variable
+        assert theFrame.Type != null;  // follows from the postcondition of TheFrame
+        Bpl.LocalVariable frame = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, theFrame.Name, theFrame.Type));
+        localVariables.Add(frame);
+        // $_Frame := (lambda $o: ref :: $o != null && $Heap[$o,alloc] ==> $o in ModifiesClause);
+        Bpl.BoundVariable oVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$o", predef.RefType));
+        Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(m.tok, oVar);
+        Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(m.tok, o));
+        Bpl.Expr consequent = InRWClause(m.tok, o, m.Mod, etran, null, null);
+        Bpl.Expr lambda = new Bpl.LambdaExpr(m.tok, new Bpl.TypeVariableSeq(), new Bpl.VariableSeq(oVar), null, Bpl.Expr.Imp(ante, consequent));
+      
+        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
       }
 
       Bpl.StmtList stmts = TrStmt2StmtList(builder, m.Body, localVariables, new ExpressionTranslator(this, predef, m.tok));
@@ -1502,9 +1521,10 @@ namespace Microsoft.Dafny {
     {
       List<BoilerplateTriple!> boilerplate = new List<BoilerplateTriple!>();
       
-      boilerplate.Add(new BoilerplateTriple(tok, false, FrameCondition(tok, method.Mod, etranPre, etran), "frame condition does not hold", "frame condition"));
+      // the frame condition, which is free since it is checked with every heap update and call
+      boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, method.Mod, etranPre, etran), null, "frame condition"));
 
-      // free specifications
+      // HeapSucc(S1, S2)
       Bpl.Expr heapSucc = FunctionCall(tok, BuiltinFunction.HeapSucc, null, etranPre.HeapExpr, etran.HeapExpr);
       boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
       
@@ -1701,21 +1721,38 @@ namespace Microsoft.Dafny {
           new Bpl.IdentifierExprSeq()));
         
       } else if (stmt is CallStmt) {
-        AddComment(builder, stmt, "call statement");
         CallStmt s = (CallStmt)stmt;
         foreach (VarDecl local in s.NewVars) {
           TrStmt(local, builder, locals, etran);
         }
+        AddComment(builder, stmt, "call statement");
         Bpl.ExprSeq ins = new Bpl.ExprSeq();
         assert s.Method != null;  // follows from the fact that stmt has been successfully resolved
         if (!s.Method.IsClass) {
           ins.Add(etran.TrExpr(s.Receiver));
         }
-        for (int i = 0; i < s.Args.Count; i++) {
-          Expression e = s.Args[i];
-          Type t = s.Method.Ins[i].Type;
-          ins.Add(etran.CondApplyBox(stmt.Tok, etran.TrExpr(e), (!)e.Type, t));
+
+        // Ideally, the modifies and decreases checks would be done after the precondition check,
+        // but Boogie doesn't give us a hook for that.  So, we set up our own local variables here to
+        // store the actual parameters.
+        // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
+        Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
+        for (int i = 0; i < s.Method.Ins.Count; i++) {
+          Formal p = s.Method.Ins[i];
+          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
+          local.type = local.OptionalType;  // resolve local here
+          IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
+          ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
+          substMap.Add(p, ie);
+          locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
+          
+          Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+          Expression actual = s.Args[i];
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.CondApplyBox(stmt.Tok, etran.TrExpr(actual), (!)actual.Type, s.Method.Ins[i].Type));
+          builder.Add(cmd);
+          ins.Add(lhs);
         }
+        // Also create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
         Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
         List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
         for (int i = 0; i < s.Lhs.Count; i++) {
@@ -1734,27 +1771,26 @@ namespace Microsoft.Dafny {
           }
         }
 
+        // Check modifies clause
+        {          
+          // assert (forall o: ref :: o != null && $Heap[o,alloc] && o in CalleeModifiesClause ==> $_Frame[o]);
+          Bpl.BoundVariable oVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$o", predef.RefType));
+          Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(stmt.Tok, oVar);
+          Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(stmt.Tok, o));
+          Bpl.Expr calleeModifies = InRWClause(stmt.Tok, o, s.Method.Mod, etran, s.Receiver, substMap);
+          Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o);
+          Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(Bpl.Expr.And(ante, calleeModifies), inEnclosingFrame));
+          builder.Add(Assert(stmt.Tok, qq, "call may violate caller's modifies clause"));
+        }
+
+        // Check termination
         if (currentMethod.Decreases.Count == 0 || exists{Expression e in currentMethod.Decreases; e is WildcardExpr}) {
           // omit termination checking for calls in this context
         } else {
-          // Check termination.  Ideally, this would be checked after the precondition check.        
-          // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
-          Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
-          for (int i = 0; i < s.Method.Ins.Count; i++) {
-            Formal p = s.Method.Ins[i];
-            VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
-            local.type = local.OptionalType;  // resolve local here
-            IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
-            ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
-            substMap.Add(p, ie);
-            locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
-            Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.TrExpr(s.Args[i]));
-            builder.Add(cmd);
-          }
           CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
         }
 
+        // Make the call
         Bpl.CallCmd call = new Bpl.CallCmd(stmt.Tok, s.Method.FullName, ins, outs);
         builder.Add(call);
         for (int i = 0; i < s.Lhs.Count; i++) {
@@ -1923,18 +1959,19 @@ namespace Microsoft.Dafny {
       } else if (stmt is ForeachStmt) {
         AddComment(builder, stmt, "foreach statement");
         ForeachStmt s = (ForeachStmt)stmt;
-        // assert/assume (forall o: ref ::  o in S ==> Expr);
+        // assert/assume (forall o: ref ::  o in S && Range(o) ==> Expr);
+        // assert (forall o: ref :: o != null && o in S && Range(o)  ==> $_Frame[o]);  // this checks the enclosing modifies clause
         // var oldHeap := $Heap;
         // havoc $Heap;
         // assume $HeapSucc(oldHeap, $Heap);
-        // assume (forall o: ref, f: Field ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o in S));
-        // assume (forall o: ref ::  o != null && o in S ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
+        // assume (forall o: ref, f: Field ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o in S && Range(o)));
+        // assume (forall o: ref ::  o != null && o in S && Range(o) ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
         // Note, $Heap[o,alloc] is intentionally omitted from the antecedent of the quantifier in the previous line.  That
         // allocatedness property should hold automatically, because the set/seq quantified is a program expression, which
         // will have been constructed from allocated objects.
         // For sets, "o in S" means just that.  For sequences, "o in S" is:
         //   (exists i :: { Seq#Index(S,i) }  0 <= i && i < Seq#Length(S) && Seq#Index(S,i) == o)
-        
+
         Bpl.BoundVariable oVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.BoundVar.UniqueName, TrType(s.BoundVar.Type)));
         Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(stmt.Tok, oVar);
 
@@ -1951,6 +1988,7 @@ namespace Microsoft.Dafny {
           // TODO: in the next line, the == should be replaced by something that understands extensionality, for sets and sequences
           oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, o)));
         }
+        oInS = Bpl.Expr.And(oInS, etran.TrExpr(s.Range));
 
         foreach (PredicateStmt ps in s.BodyPrefix) {
           int pieces = 0;
@@ -1975,6 +2013,14 @@ namespace Microsoft.Dafny {
           }
         }
         
+        // Here comes:  assert (forall o: ref ::  o != null && o in S ==> $_Frame[o]);
+        Bpl.Expr body = Bpl.Expr.Imp(
+          Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS),
+          Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o));
+        Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
+        builder.Add(Assert(s.BodyAssign.Tok, qq, "foreach assignment may update an object not in the enclosing method's modifies clause"));
+
+        // Set up prevHeap
         Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(stmt.Tok, locals);
         builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, prevHeap, etran.HeapExpr));
         builder.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
@@ -1986,12 +2032,12 @@ namespace Microsoft.Dafny {
         Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(stmt.Tok, fVar);
         Bpl.Expr heapOF = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, f);
         Bpl.Expr oldHeapOF = Bpl.Expr.SelectTok(stmt.Tok, prevHeap, o, f);
-        Bpl.Expr body = Bpl.Expr.Or(
+        body = Bpl.Expr.Or(
           Bpl.Expr.Eq(heapOF, oldHeapOF),
           Bpl.Expr.And(
-            Bpl.Expr.Eq(f, GetField((FieldSelectExpr)((!)s.BodyAssign).Lhs)),
+            Bpl.Expr.Eq(f, GetField((FieldSelectExpr)s.BodyAssign.Lhs)),
             oInS));
-        Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), body);
+        qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), body);
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
 
         // Here comes:  assume (forall o: ref ::  o != null && o in S ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
@@ -2240,6 +2286,9 @@ namespace Microsoft.Dafny {
         } else {
           FieldSelectExpr fse = (FieldSelectExpr)lhs;
           assert fse.Field != null;
+          // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj];
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(fse.Obj)), "assignment may update an object not in the enclosing method's modifies clause"));
+          
           Bpl.IdentifierExpr h = (Bpl.IdentifierExpr!)etran.HeapExpr;  // TODO: is this cast always justified?
           bRhs = etran.CondApplyBox(tok, bRhs, (!)((ExprRhs)rhs).Expr.Type, fse.Field.Type);
           Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, h, etran.TrExpr(fse.Obj), new Bpl.IdentifierExpr(tok, GetField(fse.Field)), bRhs);
@@ -2319,6 +2368,13 @@ namespace Microsoft.Dafny {
         get {
           return new ExpressionTranslator(translator, predef, HeapExpr, true);
         }
+      }
+      
+      public Bpl.IdentifierExpr! TheFrame(Token! tok)
+        ensures result.Type != null;
+      {
+        Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(predef.RefType), Bpl.Type.Bool);
+        return new Bpl.IdentifierExpr(tok, "$_Frame", ty);
       }
 
       public Bpl.Expr! TrExpr(Expression! expr)

@@ -753,7 +753,12 @@ ForeachStmt<out Statement! s>
     ( AssignStmt<out s>                        (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
     | HavocStmt<out s>                         (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
     )
-  "}"                                          (. s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign); .)
+  "}"                                          (. if (bodyAssign != null) {
+                                                    s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign);
+                                                  } else {
+                                                    s = dummyStmt;  // some error occurred in parsing the bodyAssign
+                                                  }
+                                               .)
   (. parseVarScope.PopMarker(); .)
   .
 

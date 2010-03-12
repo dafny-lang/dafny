@@ -1016,17 +1016,18 @@ namespace Microsoft.Dafny {
       
       } else if (stmt is ForeachStmt) {
         ForeachStmt s = (ForeachStmt)stmt;
-        scope.PushMarker();
-        bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
-        assert b;  // since we just pushed a marker, we expect the Push to succeed
-        ResolveType(s.BoundVar.Type);
-        int prevErrorCount = ErrorCount;
-        
+
         ResolveExpression(s.Collection, true, true);
         assert s.Collection.Type != null;  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Collection.Type, new CollectionTypeProxy(s.BoundVar.Type))) {
           Error(s.Collection, "The type is expected to be a collection of {0} (instead got {1})", s.BoundVar.Type, s.Collection.Type);
         }
+        
+        scope.PushMarker();
+        bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
+        assert b;  // since we just pushed a marker, we expect the Push to succeed
+        ResolveType(s.BoundVar.Type);
+        int prevErrorCount = ErrorCount;
         
         ResolveExpression(s.Range, true, true);
         assert s.Range.Type != null;  // follows from postcondition of ResolveExpression
@@ -1038,19 +1039,19 @@ namespace Microsoft.Dafny {
         foreach (PredicateStmt ss in s.BodyPrefix) {
           ResolveStatement(ss, specContextOnly);
         }
-        if (s.BodyAssign != null) {
-          bool specOnly = specContextOnly ||
-                          (successfullyResolvedCollectionAndRange && (UsesSpecFeatures(s.Collection) || UsesSpecFeatures(s.Range)));
-          ResolveStatement(s.BodyAssign, specOnly);
-          // check for correct usage of BoundVar in LHS and RHS of this assignment
-          FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
-          IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
-          if (obj != null && obj.Var == s.BoundVar) {
-            // exemplary!
-          } else {
-            Error(s, "assignment inside foreach must assign to a field of the bound variable of the foreach statement");
-          }
+
+        bool specOnly = specContextOnly ||
+                        (successfullyResolvedCollectionAndRange && (UsesSpecFeatures(s.Collection) || UsesSpecFeatures(s.Range)));
+        ResolveStatement(s.BodyAssign, specOnly);
+        // check for correct usage of BoundVar in LHS and RHS of this assignment
+        FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
+        IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
+        if (obj != null && obj.Var == s.BoundVar) {
+          // exemplary!
+        } else {
+          Error(s, "assignment inside foreach must assign to a field of the bound variable of the foreach statement");
         }
+
         scope.PopMarker();
       
       } else {
