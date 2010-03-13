@@ -10,8 +10,6 @@ using Microsoft.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 
-// TODO:  totality checks for statements
-
 namespace Microsoft.Dafny {
   public class Translator {
     [NotDelayed]
@@ -691,7 +689,6 @@ namespace Microsoft.Dafny {
 
         // play havoc with the heap according to the modifies clause
         builder.Add(new Bpl.HavocCmd(m.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
-        Bpl.IdentifierExprSeq outH = new Bpl.IdentifierExprSeq();
         // assume (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] } $_Frame[o] || $Heap[o,f] == old($Heap)[o,f]);
         Bpl.TypeVariable alpha = new Bpl.TypeVariable(m.tok, "alpha");
         Bpl.BoundVariable oVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$o", predef.RefType));
@@ -708,10 +705,13 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.AssumeCmd(m.tok, qq));
 
         // also play havoc with the out parameters
-        foreach (Bpl.Variable! f in outParams) {
-          outH.Add(new Bpl.IdentifierExpr(f.tok, f));
+        if (outParams.Length != 0) {  // don't create an empty havoc statement
+          Bpl.IdentifierExprSeq outH = new Bpl.IdentifierExprSeq();
+          foreach (Bpl.Variable! f in outParams) {
+            outH.Add(new Bpl.IdentifierExpr(f.tok, f));
+          }
+          builder.Add(new Bpl.HavocCmd(m.tok, outH));
         }
-        builder.Add(new Bpl.HavocCmd(m.tok, outH));
 
         // check wellformedness of postconditions
         foreach (MaybeFreeExpression p in m.Ens) {
@@ -1662,6 +1662,16 @@ namespace Microsoft.Dafny {
       return cmd;
     }
 
+    Bpl.AssertCmd! AssertNS(Bpl.IToken! tok, Bpl.Expr! condition, string! errorMessage)
+    {
+      List<object!> args = new List<object!>();
+      args.Add(Bpl.Expr.Literal(0));
+      Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "subsumption", args, null);
+      Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition, kv);
+      cmd.ErrorData = "Error: " + errorMessage;
+      return cmd;
+    }
+
     Bpl.Ensures! Ensures(Token! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
     {
       Bpl.Ensures ens = new Bpl.Ensures(tok, free, condition, comment);
@@ -1699,10 +1709,10 @@ namespace Microsoft.Dafny {
       if (stmt is AssertStmt) {
         AddComment(builder, stmt, "assert statement");
         AssertStmt s = (AssertStmt)stmt;
+        builder.Add(AssertNS(s.Expr.tok, IsTotal(s.Expr, etran), "assert condition must be well defined"));  // totality check
         int pieces = 0;
         foreach (Expression p in SplitExpr(s.Expr, true)) {
-          builder.Add(Assert(stmt.Tok, IsTotal(p, etran), "assert condition must be well defined"));  // totality check
-          builder.Add(Assert(stmt.Tok, etran.TrExpr(p), "assertion violation"));
+          builder.Add(Assert(p.tok, etran.TrExpr(p), "assertion violation"));
           pieces++;
         }
         if (2 <= pieces) {
@@ -1711,12 +1721,13 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssumeStmt) {
         AddComment(builder, stmt, "assume statement");
         AssumeStmt s = (AssumeStmt)stmt;
-        builder.Add(Assert(stmt.Tok, IsTotal(s.Expr, etran), "assume condition must be well defined"));  // totality check
+        builder.Add(AssertNS(stmt.Tok, IsTotal(s.Expr, etran), "assume condition must be well defined"));  // totality check
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
       } else if (stmt is UseStmt) {
         AddComment(builder, stmt, "use statement");
         UseStmt s = (UseStmt)stmt;
-        builder.Add(Assert(stmt.Tok, IsTotal(s.Expr, etran), "use expression must be well defined"));  // totality check
+        // Skip the totality check.  This makes the 'use' statement easier to use and it has no executable analog anyhow
+        // builder.Add(Assert(stmt.Tok, IsTotal(s.Expr, etran), "use expression must be well defined"));  // totality check
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, (s.EvalInOld ? etran.Old : etran).TrUseExpr(s.FunctionCallExpr)));
       } else if (stmt is LabelStmt) {
         AddComment(builder, stmt, "label statement");  // TODO: ouch, comments probably mess up what the label labels in the Boogie program
@@ -1795,6 +1806,7 @@ namespace Microsoft.Dafny {
           
           Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
           Expression actual = s.Args[i];
+          builder.Add(Assert(actual.tok, IsTotal(actual, etran), "argument must be well defined"));  // totality check
           Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.CondApplyBox(stmt.Tok, etran.TrExpr(actual), (!)actual.Type, s.Method.Ins[i].Type));
           builder.Add(cmd);
           ins.Add(lhs);
@@ -1865,7 +1877,13 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.CallCmd(s.Tok, "CevEvent",
           new Bpl.ExprSeq(CevLocation(s.Tok), new Bpl.IdentifierExpr(s.Tok, "conditional_moment", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
-        Bpl.Expr guard = s.Guard == null ? null : etran.TrExpr(s.Guard);
+        Bpl.Expr guard;
+        if (s.Guard == null) {
+          guard = null;
+        } else {
+          builder.Add(Assert(s.Guard.tok, IsTotal(s.Guard, etran), "if guard must be well defined"));  // totality check
+          guard = etran.TrExpr(s.Guard);
+        }
         Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
         b.Add(new Bpl.CallCmd(s.Thn.Tok, "CevEvent",
           new Bpl.ExprSeq(CevLocation(s.Thn.Tok), new Bpl.IdentifierExpr(s.Thn.Tok, "took_then_branch", predef.CevEventType)),
@@ -1907,6 +1925,13 @@ namespace Microsoft.Dafny {
         ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
         builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
 
+        // the variable w is used to coordinate the definedness checking of the loop invariant
+        Bpl.LocalVariable wVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$w" + loopId, Bpl.Type.Bool));
+        Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(stmt.Tok, wVar);
+        locals.Add(wVar);
+        // havoc w;
+        builder.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq(w)));
+
         // CEV information
         Bpl.LocalVariable preLoopCevPCVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopCevPC" + loopId, Bpl.Type.Int));
         locals.Add(preLoopCevPCVar);
@@ -1916,20 +1941,30 @@ namespace Microsoft.Dafny {
           new Bpl.ExprSeq(CevLocation(stmt.Tok)),
           new Bpl.IdentifierExprSeq(preLoopCevPC)));  // TODO: does this screw up labeled breaks for this loop?
         
-        Bpl.Expr guard = s.Guard == null ? null : etran.TrExpr(s.Guard);
         List<Bpl.PredicateCmd!> invariants = new List<Bpl.PredicateCmd!>();
+        Bpl.StmtListBuilder invDefinednessBuilder = new Bpl.StmtListBuilder();
         foreach (MaybeFreeExpression loopInv in s.Invariants) {
           int pieces = 0;
-          if (!loopInv.IsFree) {
+          if (loopInv.IsFree) {
+            // still check the free invariant to be well defined
+            invDefinednessBuilder.Add(AssertNS(loopInv.E.tok, IsTotal(loopInv.E, etran), "free loop invariant must be well defined"));  // totality check
+          } else {
+            invDefinednessBuilder.Add(AssertNS(loopInv.E.tok, IsTotal(loopInv.E, etran), "loop invariant must be well defined"));  // totality check
+            invDefinednessBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
             foreach (Expression se in SplitExpr(loopInv.E, true)) {
-              invariants.Add(Assert(se.tok, etran.TrExpr(se), "loop invariant violation"));
+              invariants.Add(Assert(se.tok, Bpl.Expr.Imp(w, etran.TrExpr(se)), "loop invariant violation"));
               pieces++;
             }
           }
           if (pieces != 1) {
-            invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
+            invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
           }
         }
+        // check definedness of decreases clause
+        foreach (Expression e in s.Decreases) {
+          invDefinednessBuilder.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at top of each loop iteration"));  // totality check
+        }
+        // include boilerplate invariants
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(stmt.Tok, currentMethod, etranPreLoop, etran)) {
           if (tri.IsFree) {
             invariants.Add(new Bpl.AssumeCmd(stmt.Tok, tri.Expr));
@@ -1956,9 +1991,25 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
+        // as the first thing inside the loop, generate:  if (!w) { assert IsTotal(inv); assume false; }
+        invDefinednessBuilder.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.False));
+        loopBodyBuilder.Add(new Bpl.IfCmd(stmt.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(stmt.Tok), null, null));
+        // generate:  assert IsTotal(guard); if (!guard) { break; }
+        Bpl.Expr guard;
+        if (s.Guard == null) {
+          guard = null;
+        } else {
+          loopBodyBuilder.Add(Assert(s.Guard.tok, IsTotal(s.Guard, etran), "loop guard must be well defined"));  // totality check
+          Bpl.StmtListBuilder guardBreak = new Bpl.StmtListBuilder();
+          guardBreak.Add(new Bpl.BreakCmd(s.Guard.tok, null));
+          loopBodyBuilder.Add(new Bpl.IfCmd(s.Guard.tok, Bpl.Expr.Not(etran.TrExpr(s.Guard)), guardBreak.Collect(s.Guard.tok), null, null));
+          guard = Bpl.Expr.True;
+        }
+        // CEV information
         loopBodyBuilder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_entered", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
+        // termination checking
         if (exists{Expression e in s.Decreases; e is WildcardExpr}) {
           // omit termination checking for this loop
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
@@ -1971,7 +2022,6 @@ namespace Microsoft.Dafny {
             Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
             oldBfs.Add(bf);
             // record value of each decreases expression at beginning of the loop iteration
-            loopBodyBuilder.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at top of each loop iteration"));  // totality check
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(e.tok, bf, etran.TrExpr(e));
             loopBodyBuilder.Add(cmd);
             
@@ -1982,18 +2032,13 @@ namespace Microsoft.Dafny {
           // check definedness of decreases expressions
           List<Token!> toks = new List<Token!>();
           List<Type!> types = new List<Type!>();
-          List<Bpl.Expr!> decrsTotal = new List<Bpl.Expr!>();
           List<Bpl.Expr!> decrs = new List<Bpl.Expr!>();
           foreach (Expression e in s.Decreases) {
-            // The following totality check implies that the loop invariant stating the same property will hold;
-            // thus, an alternative (perhaps preferable) design would be:  add the totality check also just before
-            // the loop, and change the loop invariant to be free.
             toks.Add(e.tok);
             types.Add((!)e.Type);
-            decrsTotal.Add(IsTotal(e, etran));
             decrs.Add(etran.TrExpr(e));
           }
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrsTotal, decrs, oldBfs, loopBodyBuilder, etran, " at end of loop iteration");
+          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, loopBodyBuilder, etran, " at end of loop iteration");
           loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, "decreases expression might not decrease"));
         }
         Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
@@ -2006,12 +2051,13 @@ namespace Microsoft.Dafny {
       } else if (stmt is ForeachStmt) {
         AddComment(builder, stmt, "foreach statement");
         ForeachStmt s = (ForeachStmt)stmt;
-        // assert/assume (forall o: ref ::  o in S && Range(o) ==> Expr);
+        // assert/assume (forall o: ref ::  o != null && o in S && Range(o) ==> Expr);
+        // assert (forall o: ref :: o != null && o in S && Range(o)  ==> IsTotal(RHS));
         // assert (forall o: ref :: o != null && o in S && Range(o)  ==> $_Frame[o]);  // this checks the enclosing modifies clause
         // var oldHeap := $Heap;
         // havoc $Heap;
         // assume $HeapSucc(oldHeap, $Heap);
-        // assume (forall o: ref, f: Field ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o in S && Range(o)));
+        // assume (forall o: ref, f: Field ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o != null && o in S && Range(o)));
         // assume (forall o: ref ::  o != null && o in S && Range(o) ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
         // Note, $Heap[o,alloc] is intentionally omitted from the antecedent of the quantifier in the previous line.  That
         // allocatedness property should hold automatically, because the set/seq quantified is a program expression, which
@@ -2022,6 +2068,8 @@ namespace Microsoft.Dafny {
         Bpl.BoundVariable oVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.BoundVar.UniqueName, TrType(s.BoundVar.Type)));
         Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(stmt.Tok, oVar);
 
+        // colection
+        builder.Add(Assert(s.Collection.tok, IsTotal(s.Collection, etran), "collection expression must be well defined"));
         Bpl.Expr oInS;
         if (s.Collection.Type is SetType) {
           oInS = etran.TrInSet(stmt.Tok, o, s.Collection, ((SetType)s.Collection.Type).Arg);
@@ -2035,17 +2083,32 @@ namespace Microsoft.Dafny {
           // TODO: in the next line, the == should be replaced by something that understands extensionality, for sets and sequences
           oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, o)));
         }
+        oInS = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS);
+        
+        // range
+        Bpl.Expr qr = new Bpl.ForallExpr(s.Range.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, IsTotal(s.Range, etran)));
+        builder.Add(AssertNS(s.Range.tok, qr, "range expression must be well defined"));
         oInS = Bpl.Expr.And(oInS, etran.TrExpr(s.Range));
 
+        // sequence of asserts and assumes and uses
         foreach (PredicateStmt ps in s.BodyPrefix) {
           int pieces = 0;
           if (ps is AssertStmt) {
+            Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, IsTotal(ps.Expr, etran)));
+            builder.Add(AssertNS(ps.Expr.tok, q, "assert condition must be well defined"));  // totality check
             foreach (Expression se in SplitExpr(ps.Expr, true)) {
               Bpl.Expr e = etran.TrExpr(se);
-              Bpl.Expr q = new Bpl.ForallExpr(se.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
+              q = new Bpl.ForallExpr(se.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
               builder.Add(Assert(se.tok, q, "assertion violation"));
               pieces++;
             }
+          } else if (ps is AssumeStmt) {
+            Bpl.Expr eIsTotal = IsTotal(ps.Expr, etran);
+            Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, eIsTotal));
+            builder.Add(AssertNS(ps.Expr.tok, q, "assume condition must be well defined"));  // totality check
+          } else {
+            assert ps is UseStmt;
+            // no totality check (see UseStmt case above)
           }
           if (pieces != 1) {
             Bpl.Expr e;
@@ -2059,11 +2122,18 @@ namespace Microsoft.Dafny {
             builder.Add(new Bpl.AssumeCmd(ps.Expr.tok, q));
           }
         }
-        
-        // Here comes:  assert (forall o: ref ::  o != null && o in S ==> $_Frame[o]);
-        Bpl.Expr body = Bpl.Expr.Imp(
-          Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS),
-          Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o));
+
+        // Check RHS of assignment to be well defined
+        ExprRhs rhsExpr = s.BodyAssign.Rhs as ExprRhs;
+        if (rhsExpr != null) {
+          // assert (forall o: ref :: o != null && o in S && Range(o) ==> IsTotal(RHS));
+          Bpl.Expr bbb = Bpl.Expr.Imp(oInS, IsTotal(rhsExpr.Expr, etran));
+          Bpl.Expr qqq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), bbb);
+          builder.Add(AssertNS(rhsExpr.Expr.tok, qqq, "RHS of assignment must be well defined"));  // totality check
+        }
+              
+        // Here comes:  assert (forall o: ref :: o != null && o in S && Range(o) ==> $_Frame[o]);
+        Bpl.Expr body = Bpl.Expr.Imp(oInS, Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o));
         Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
         builder.Add(Assert(s.BodyAssign.Tok, qq, "foreach assignment may update an object not in the enclosing method's modifies clause"));
 
@@ -2073,7 +2143,7 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, FunctionCall(stmt.Tok, BuiltinFunction.HeapSucc, null, prevHeap, etran.HeapExpr)));
 
-        // Here comes:  assume (forall<alpha> o: ref, f: Field alpha ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o in S));
+        // Here comes:  assume (forall<alpha> o: ref, f: Field alpha ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o != null && o in S && Range(o)));
         Bpl.TypeVariable alpha = new Bpl.TypeVariable(stmt.Tok, "alpha");
         Bpl.BoundVariable fVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$f", predef.FieldName(stmt.Tok, alpha)));
         Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(stmt.Tok, fVar);
@@ -2087,14 +2157,14 @@ namespace Microsoft.Dafny {
         qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), body);
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
 
-        // Here comes:  assume (forall o: ref ::  o != null && o in S ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
-        Bpl.Expr heapOField = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
-        ExpressionTranslator oldEtran = new ExpressionTranslator(this, predef, prevHeap);
-        body = Bpl.Expr.Imp(
-          Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS),
-          Bpl.Expr.Eq(heapOField, oldEtran.TrExpr(((ExprRhs)s.BodyAssign.Rhs).Expr)));
-        qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
-        builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
+        // Here comes:  assume (forall o: ref ::  o != null && o in S && Range(o) ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
+        if (rhsExpr != null) {
+          Bpl.Expr heapOField = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
+          ExpressionTranslator oldEtran = new ExpressionTranslator(this, predef, prevHeap);
+          body = Bpl.Expr.Imp(oInS, Bpl.Expr.Eq(heapOField, oldEtran.TrExpr(rhsExpr.Expr)));
+          qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
+          builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
+        }
         
         // CEV information
         builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
@@ -2117,7 +2187,6 @@ namespace Microsoft.Dafny {
       int N = min{contextDecreases.Count, calleeDecreases.Count};
       List<Token!> toks = new List<Token!>();
       List<Type!> types = new List<Type!>();
-      List<Bpl.Expr!> calleeTotal = new List<Bpl.Expr!>();
       List<Bpl.Expr!> callee = new List<Bpl.Expr!>();
       List<Bpl.Expr!> caller = new List<Bpl.Expr!>();
       for (int i = 0; i < N; i++) {
@@ -2128,11 +2197,10 @@ namespace Microsoft.Dafny {
         }
         toks.Add(tok);
         types.Add(e0.Type);
-        calleeTotal.Add(IsTotal(e0, etran));
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
       }
-      Bpl.Expr decrExpr = DecreasesCheck(toks, types, calleeTotal, callee, caller, builder, etran, "");
+      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, builder, etran, "");
       builder.Add(Assert(tok, decrExpr, "failure to decrease termination measure"));
     }
     
@@ -2140,7 +2208,7 @@ namespace Microsoft.Dafny {
     /// Returns the expression that says whether or not the decreases function has gone down.  ee0 represents the new
     /// values and ee1 represents old values.
     /// </summary>
-    Bpl.Expr! DecreasesCheck(List<Token!>! toks, List<Type!>! types, List<Bpl.Expr!>! total0, List<Bpl.Expr!>! ee0, List<Bpl.Expr!>! ee1,
+    Bpl.Expr! DecreasesCheck(List<Token!>! toks, List<Type!>! types, List<Bpl.Expr!>! ee0, List<Bpl.Expr!>! ee1,
                              Bpl.StmtListBuilder! builder, ExpressionTranslator! etran, string! suffixMsg)
       requires predef != null;
       requires types.Count == ee0.Count && ee0.Count == ee1.Count;
@@ -2156,10 +2224,6 @@ namespace Microsoft.Dafny {
         Eq.Add(eq);
         Less.Add(less);
       }
-      // check: total(ee0)
-      // more precisely, for component k of the lexicographic decreases function, check:
-      //   ee0[0] < ee1[0] || ee0[1] < ee1[1] || ... || ee0[k-1] < ee1[k-1] || total0[k]
-      // Also:
       // check: 0 <= ee1
       // more precisely, for component k of the lexicographic decreases function, check:
       //   ee0[0] < ee1[0] || ee0[1] < ee1[1] || ... || ee0[k-1] < ee1[k-1] || ee0[k] == ee1[k] || 0 <= ee1[k]
@@ -2169,16 +2233,13 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < k; i++) {
           prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
         }
-        string component = N == 1 ? "" : " (component " + k + ")";
-        Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(prefixIsLess, total0[k]), "decreases expression" + component + " must be well-defined" + suffixMsg);
-        builder.Add(cmd);
-        
         if (types[k] is IntType) {
           Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), ee1[k]);
           for (int i = 0; i < k; i++) {
             bounded = Bpl.Expr.Or(bounded, Less[i]);
           }
-          cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by 0" + suffixMsg);
+          string component = N == 1 ? "" : " (component " + k + ")";
+          Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by 0" + suffixMsg);
           builder.Add(cmd);
         }
       }

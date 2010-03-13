@@ -115,7 +115,7 @@ class Main {
                   (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
       invariant (forall n :: n in S && n !in stackNodes && n != t ==>
                 n.childrenVisited == old(n.childrenVisited));
-      invariant (forall n: Node :: n.children == old(n.children));
+      invariant (forall n: Node :: n in S ==> n.children == old(n.children));
       invariant (forall n :: n in S && !n.marked ==> n in unmarkedNodes);
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited;
     {
@@ -205,7 +205,7 @@ class Main {
                   (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
       invariant (forall n :: n in S && n !in stackNodes && n != t ==>
                 n.childrenVisited == old(n.childrenVisited));
-      invariant (forall n :: n in stackNodes || n.children == old(n.children));
+      invariant (forall n :: n in S ==> n in stackNodes || n.children == old(n.children));
       invariant (forall n :: n in stackNodes ==>
                   |n.children| == old(|n.children|) &&
                   (forall j :: 0 <= j && j < |n.children| ==>

@@ -17,7 +17,7 @@ class Benchmark2 {
     var high := a.Length();
 
     while (low < high)
-      invariant 0 <= low && high <= a.Length();
+      invariant 0 <= low && low <= high && high <= a.Length();
       invariant (forall i :: 0 <= i && i < low ==> a.Get(i) < key);
       invariant (forall i :: high <= i && i < a.Length() ==> key < a.Get(i));
       decreases high - low;

@@ -98,6 +98,12 @@ Execution trace:
     (0,0): anon3
     (0,0): anon11_Then
     (0,0): anon6
+SmallTests.dfy(82,20): Error: decreases expression must be well defined at top of each loop iteration
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(81,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    (0,0): anon8_Then
 SmallTests.dfy(95,5): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
@@ -141,103 +147,214 @@ Execution trace:
 SmallTests.dfy(209,18): Error: target object may be null
 Execution trace:
     (0,0): anon0
+SmallTests.dfy(231,9): Error: LHS expression must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(232,12): Error: LHS expression must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(233,7): Error: RHS expression must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(238,18): Error: assert condition must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(239,5): Error: assume condition must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(244,16): Error: if guard must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(251,19): Error: loop guard must be well defined
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(251,5): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    SmallTests.dfy(251,5): anon9_Else
+    (0,0): anon3
+SmallTests.dfy(260,23): Error: decreases expression must be well defined at top of each loop iteration
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(259,5): anon13_LoopHead
+    (0,0): anon13_LoopBody
+    (0,0): anon14_Then
+SmallTests.dfy(266,17): Error: decreases expression must be well defined at top of each loop iteration
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(259,5): anon13_LoopHead
+    (0,0): anon13_LoopBody
+    SmallTests.dfy(259,5): anon14_Else
+    (0,0): anon3
+    (0,0): anon15_Then
+    (0,0): anon6
+    SmallTests.dfy(265,5): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    (0,0): anon17_Then
+SmallTests.dfy(276,22): Error: loop invariant must be well defined
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(275,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    (0,0): anon8_Then
+SmallTests.dfy(276,22): Error BP5004: This loop invariant might not hold on entry.
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(277,17): Error: decreases expression must be well defined at top of each loop iteration
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(275,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    (0,0): anon8_Then
+SmallTests.dfy(286,24): Error: loop guard must be well defined
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(286,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    SmallTests.dfy(286,5): anon8_Else
+    (0,0): anon3
+SmallTests.dfy(305,24): Error: loop guard must be well defined
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(299,5): anon13_LoopHead
+    (0,0): anon13_LoopBody
+    SmallTests.dfy(299,5): anon14_Else
+    (0,0): anon3
+    (0,0): anon15_Then
+    (0,0): anon6
+    SmallTests.dfy(305,5): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    SmallTests.dfy(305,5): anon17_Else
+    (0,0): anon9
+SmallTests.dfy(326,44): Error: loop invariant must be well defined
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(316,5): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    SmallTests.dfy(316,5): anon17_Else
+    (0,0): anon3
+    (0,0): anon18_Then
+    (0,0): anon6
+    SmallTests.dfy(324,5): anon19_LoopHead
+    (0,0): anon19_LoopBody
+    (0,0): anon20_Then
+SmallTests.dfy(347,21): Error: collection expression must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(349,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(351,33): Error: range expression must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(357,18): Error: RHS of assignment must be well defined
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(366,23): Error: loop invariant must be well defined
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(364,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    (0,0): anon8_Then
+SmallTests.dfy(366,23): Error BP5004: This loop invariant might not hold on entry.
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 30 verified, 16 errors
+Dafny program verifier finished with 43 verified, 38 errors
 
 -------------------- Queue.dfy --------------------
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 22 verified, 0 errors
 
 -------------------- ListCopy.dfy --------------------
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 4 verified, 0 errors
 
 -------------------- BinaryTree.dfy --------------------
 
-Dafny program verifier finished with 13 verified, 0 errors
+Dafny program verifier finished with 24 verified, 0 errors
 
 -------------------- ListReverse.dfy --------------------
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 2 verified, 0 errors
 
 -------------------- ListContents.dfy --------------------
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 9 verified, 0 errors
 
 -------------------- SchorrWaite.dfy --------------------
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 
 -------------------- Termination.dfy --------------------
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 
 -------------------- Use.dfy --------------------
-Use.dfy(15,5): Error: assertion violation
+Use.dfy(15,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(26,5): Error: assertion violation
+Use.dfy(26,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(35,5): Error: assertion violation
+Use.dfy(35,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(56,5): Error: assertion violation
+Use.dfy(56,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(88,5): Error: assertion violation
+Use.dfy(88,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(130,5): Error: assertion violation
+Use.dfy(130,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(152,5): Error: assertion violation
+Use.dfy(144,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(170,5): Error: assertion violation
+Use.dfy(144,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(215,5): Error: assertion violation
+Use.dfy(215,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 20 verified, 9 errors
+Dafny program verifier finished with 38 verified, 9 errors
 
 -------------------- DTypes.dfy --------------------
-DTypes.dfy(15,5): Error: assertion violation
+DTypes.dfy(15,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-DTypes.dfy(28,5): Error: assertion violation
+DTypes.dfy(28,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
-DTypes.dfy(54,5): Error: assertion violation
+DTypes.dfy(54,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 5 verified, 3 errors
+Dafny program verifier finished with 13 verified, 3 errors
 
 -------------------- TypeParameters.dfy --------------------
-TypeParameters.dfy(41,5): Error: assertion violation
+TypeParameters.dfy(41,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
-TypeParameters.dfy(63,5): Error: assertion violation
+TypeParameters.dfy(63,27): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 10 verified, 2 errors
+Dafny program verifier finished with 20 verified, 2 errors
 
 -------------------- Datatypes.dfy --------------------
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 
 -------------------- UnboundedStack.dfy --------------------
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 
 -------------------- SumOfCubes.dfy --------------------
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 
 -------------------- TerminationDemos.dfy --------------------
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors

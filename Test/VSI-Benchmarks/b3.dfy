@@ -61,10 +61,10 @@ class Benchmark3 {
     
     var n := 0;
 	while (n < |q.contents|)
-		invariant n <=|q.contents| ;
-		invariant (forall i: int :: 0 <= i && i < n ==> p[i] == i);
+		invariant n <= |q.contents|;
 		invariant n == |p|;
-		decreases |q.contents| -n;
+		invariant (forall i: int :: 0 <= i && i < n ==> p[i] == i);
+		decreases |q.contents| - n;
    {
 		p := p + [n];
 		n := n + 1;
