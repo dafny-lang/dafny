@@ -12,9 +12,11 @@ namespace Microsoft.Dafny
 {
   public class Program {
     public readonly string! Name;
+    public readonly List<ModuleDecl!>! Modules;
     public readonly List<TopLevelDecl!>! Classes;
-    public Program(string! name, [Captured] List<TopLevelDecl!>! classes) {
+    public Program(string! name, [Captured] List<ModuleDecl!>! modules, [Captured] List<TopLevelDecl!>! classes) {
       Name = name;
+      Modules = modules;
       Classes = classes;
     }
   }
@@ -305,6 +307,11 @@ namespace Microsoft.Dafny
       this.Name = name;
       this.Attributes = attributes;
     }
+    
+    [Pure]
+    public override string! ToString() {
+      return Name;
+    }
   }
   
   public class TypeParameter : Declaration {
@@ -332,30 +339,40 @@ namespace Microsoft.Dafny
     }
   }
   
+  public class ModuleDecl : Declaration {
+    public readonly List<string!>! Imports;
+    public ModuleDecl(Token! tok, string! name, [Captured] List<string!>! imports, Attributes attributes) {
+      Imports = imports;
+      base(tok, name, attributes);
+    }
+  }
+    
   public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
+    public readonly ModuleDecl Module;
     public readonly List<TypeParameter!>! TypeArgs;
     
-    public TopLevelDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, Attributes attributes) {
+    public TopLevelDecl(Token! tok, string! name, ModuleDecl module, List<TypeParameter!>! typeArgs, Attributes attributes) {
+      Module = module;
       TypeArgs = typeArgs;
       base(tok, name, attributes);
     }
   }
-  
+
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl!>! Members;
 
-    public ClassDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
+    public ClassDecl(Token! tok, string! name, ModuleDecl module, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
       Members = members;
-      base(tok, name, typeArgs, attributes);
+      base(tok, name, module, typeArgs, attributes);
     }
   }
   
   public class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor!>! Ctors;
     
-    public DatatypeDecl(Token! tok, string! name, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
+    public DatatypeDecl(Token! tok, string! name, ModuleDecl module, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
       Ctors = ctors;
-      base(tok, name, typeArgs, attributes);
+      base(tok, name, module, typeArgs, attributes);
     }
   }
   
@@ -473,7 +490,7 @@ namespace Microsoft.Dafny
   }
   
   public class Function : MemberDecl, TypeParameter.ParentType {
-    public readonly bool IsClass;
+    public readonly bool IsStatic;
     public readonly bool IsGhost;  // functions are "ghost" by default; a non-ghost function is called a "function method"
     public readonly bool IsUse;
     public readonly List<TypeParameter!>! TypeArgs;
@@ -484,9 +501,9 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
-    public Function(Token! tok, string! name, bool isClass, bool isGhost, bool isUse, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
+    public Function(Token! tok, string! name, bool isStatic, bool isGhost, bool isUse, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
                     List<Expression!>! req, List<Expression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
-      this.IsClass = isClass;
+      this.IsStatic = isStatic;
       this.IsGhost = isGhost;
       this.IsUse = isUse;
       this.TypeArgs = typeArgs;
@@ -501,7 +518,7 @@ namespace Microsoft.Dafny
   }
   
   public class Method : MemberDecl, TypeParameter.ParentType {
-    public readonly bool IsClass;
+    public readonly bool IsStatic;
     public readonly bool IsGhost;
     public readonly List<TypeParameter!>! TypeArgs;
     public readonly List<Formal!>! Ins;
@@ -513,14 +530,14 @@ namespace Microsoft.Dafny
     public readonly Statement Body;
     
     public Method(Token! tok, string! name,
-                  bool isClass, bool isGhost,
+                  bool isStatic, bool isGhost,
                   [Captured] List<TypeParameter!>! typeArgs,
                   [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
                   [Captured] List<MaybeFreeExpression!>! req, [Captured] List<Expression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
                   [Captured] List<Expression!>! decreases,
                   [Captured] Statement body,
                   Attributes attributes) {
-      this.IsClass = isClass;
+      this.IsStatic = isStatic;
       this.IsGhost = isGhost;
       this.TypeArgs = typeArgs;
       this.Ins = ins;

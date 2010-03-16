@@ -18,6 +18,7 @@ COMPILER Dafny
 
 /*--------------------------------------------------------------------------*/
 
+static List<ModuleDecl!>! theModules = new List<ModuleDecl!>();
 static List<TopLevelDecl!>! theClasses = new List<TopLevelDecl!>();    
 
 
@@ -29,7 +30,7 @@ static int anonymousIds = 0;
 
 struct MemberModifiers {
   public bool IsGhost;
-  public bool IsClass;
+  public bool IsStatic;
   public bool IsUse;
 }
 
@@ -57,20 +58,20 @@ private static Expression! ConvertToLocal(Expression! e)
 }
 
 ///<summary>
-/// Parses top level declarations from "filename" and appends them to "classes".
+/// Parses top level declarations from "filename" and appends them to "modules" and "classes".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string! filename, List<TopLevelDecl!>! classes) /* throws System.IO.IOException */ {
+public static int Parse (string! filename, List<ModuleDecl!>! modules, List<TopLevelDecl!>! classes) /* throws System.IO.IOException */ {
   if (filename == "stdin.dfy") {
     BoogiePL.Buffer.Fill(System.Console.In);
     Scanner.Init(filename);
-    return Parse(classes);
+    return Parse(modules, classes);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       BoogiePL.Buffer.Fill(reader);
       Scanner.Init(filename);
-      return Parse(classes);
+      return Parse(modules, classes);
     }
   }
 }
@@ -80,10 +81,13 @@ public static int Parse (string! filename, List<TopLevelDecl!>! classes) /* thro
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (List<TopLevelDecl!>! classes) {
+public static int Parse (List<ModuleDecl!>! modules, List<TopLevelDecl!>! classes) {
+  List<ModuleDecl!> oldModules = theModules;
   List<TopLevelDecl!> oldClasses = theClasses;
+  theModules = modules;
   theClasses = classes;
   Parse();
+  theModules = oldModules;
   theClasses = oldClasses;
   return Errors.count;
 }
@@ -122,14 +126,27 @@ IGNORE cr + lf + tab
 PRODUCTIONS
 
 Dafny
-= (. ClassDecl! c; DatatypeDecl! dt; .)
-  { ClassDecl<out c>           (. theClasses.Add(c); .)
-  | DatatypeDecl<out dt>       (. theClasses.Add(dt); .)
+= (. ClassDecl! c; DatatypeDecl! dt;
+     ModuleDecl m;  Attributes attrs;  Token! id;  List<string!> theImports;
+  .)
+  { "module"                           (. attrs = null;  theImports = new List<string!>(); .)
+    { Attribute<ref attrs> }
+    Ident<out id>
+    [ "imports" Idents<theImports> ]   (. m = new ModuleDecl(id, id.val, theImports, attrs);
+                                          theModules.Add(m);
+                                       .)
+    "{"
+      { ClassDecl<m, out c>            (. theClasses.Add(c); .)
+      | DatatypeDecl<m, out dt>        (. theClasses.Add(dt); .)
+      }
+    "}"
+  | ClassDecl<null, out c>             (. theClasses.Add(c); .)
+  | DatatypeDecl<null, out dt>         (. theClasses.Add(dt); .)
   }
   EOF
   .
 
-ClassDecl<out ClassDecl! c>
+ClassDecl<ModuleDecl module, out ClassDecl! c>
 = (. Token! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
@@ -142,7 +159,7 @@ ClassDecl<out ClassDecl! c>
   "{"
   { ClassMemberDecl<members>
   }
-  "}"                                      (. c = new ClassDecl(id, id.val, typeArgs, members, attrs); .)
+  "}"                                      (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs); .)
   .
 
 ClassMemberDecl<List<MemberDecl!\>! mm>
@@ -151,7 +168,7 @@ ClassMemberDecl<List<MemberDecl!\>! mm>
      MemberModifiers mmod = new MemberModifiers();
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
-  | "class"                                (. mmod.IsClass = true; .)
+  | "static"                               (. mmod.IsStatic = true; .)
   | "use"                                  (. mmod.IsUse = true; .)
   }
   ( FieldDecl<mmod, mm>
@@ -160,7 +177,7 @@ ClassMemberDecl<List<MemberDecl!\>! mm>
   )
   .
 
-DatatypeDecl<out DatatypeDecl! dt>
+DatatypeDecl<ModuleDecl module, out DatatypeDecl! dt>
 = (. Token! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
@@ -173,7 +190,7 @@ DatatypeDecl<out DatatypeDecl! dt>
   "{"
   { DatatypeMemberDecl<ctors>
   }
-  "}"                                      (. dt = new DatatypeDecl(id, id.val, typeArgs, ctors, attrs); .)
+  "}"                                      (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs); .)
   .
 
 DatatypeMemberDecl<List<DatatypeCtor!\>! ctors>
@@ -199,7 +216,7 @@ FieldDecl<MemberModifiers mmod, List<MemberDecl!\>! mm>
   .)
   "var"
   (. if (mmod.IsUse) { SemErr(token, "fields cannot be declared 'use'"); }
-     if (mmod.IsClass) { SemErr(token, "fields cannot be declared 'class'"); }
+     if (mmod.IsStatic) { SemErr(token, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
   IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
@@ -295,7 +312,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   )
   
   (. parseVarScope.PopMarker();
-     m = new Method(id, id.val, mmod.IsClass, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
+     m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
   .)
   .
 
@@ -419,7 +436,7 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
     FunctionBody<out bb>                (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, mmod.IsClass, !isFunctionMethod, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+     f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
   .)
   .
 
@@ -1114,6 +1131,13 @@ AttributeOrTrigger<ref Attributes attrs, ref Triggers trigs>
   .
 
 /*------------------------------------------------------------------------*/
+
+Idents<List<string!\>! ids>
+= (. Token! id; .)
+  Ident<out id>                            (. ids.Add(id.val); .)
+  { "," Ident<out id>                      (. ids.Add(id.val); .)
+  }
+  .
 
 Ident<out Token! x>
 =

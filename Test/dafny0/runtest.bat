@@ -17,7 +17,8 @@ for %%f in (BQueue.bpl) do (
   %BPLEXE% %* %%f
 )
 
-for %%f in (TypeTests.dfy SmallTests.dfy Queue.dfy ListCopy.dfy
+for %%f in (TypeTests.dfy SmallTests.dfy Definedness.dfy
+            Modules0.dfy Queue.dfy ListCopy.dfy
             BinaryTree.dfy ListReverse.dfy ListContents.dfy
             SchorrWaite.dfy Termination.dfy Use.dfy DTypes.dfy
             TypeParameters.dfy Datatypes.dfy UnboundedStack.dfy

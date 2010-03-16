@@ -10,8 +10,10 @@ namespace Microsoft.Dafny {
       public readonly List<Vertex!>! Successors = new List<Vertex!>();
       public Vertex SccRepresentative;  // null if not computed or if the vertex represents itself
       public List<Vertex!> SccMembers;  // non-null only for the representative of the SCC
-      // the following fields are used during the computation of SCCs:
+      public Dictionary<Vertex,object> downwardClosure;  // irrefexive, transitive closure;  null if not computed
+      // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
+      // the following fields are used during the computation of SCCs:
       public int DfNumber;
       public int LowLink;
       
@@ -154,6 +156,83 @@ namespace Microsoft.Dafny {
           if (x == v) { break; }
         }
       }
+    }
+    
+    /// <summary>
+    /// Returns null if the graph has no cycles.  If the graph does contain some cycle, returns the list of
+    /// vertices on one such cycle.
+    /// </summary>
+    public List<Node> TryFindCycle() {
+      // reset all visited information
+      foreach (Vertex v in vertices.Values) {
+        v.Visited = VisitedStatus.Unvisited;
+      }
+      
+      foreach (Vertex v in vertices.Values) {
+        assert v.Visited != VisitedStatus.OnStack;
+        if (v.Visited == VisitedStatus.Unvisited) {
+          List<Vertex!> cycle = CycleSearch(v);
+          if (cycle != null) {
+            List<Node> nodes = new List<Node>();
+            foreach (Vertex v in cycle) {
+              nodes.Add(v.N);
+            }
+            return nodes;  // a cycle is found
+          }
+        }
+      }
+      return null;  // there are no cycles
+    }
+    
+    /// <summary>
+    /// A return of null means there are no cycles involving any vertex in the subtree rooted at v.
+    /// A non-null return means a cycle has been found.  Then:
+    /// If v.Visited == Visited, then the entire cycle is described in the returned list.
+    /// If v.Visited == OnStack, then the cycle consists of the vertices strictly deeper than
+    /// w on the stack followed by the vertices (in reverse order) in the returned list, where
+    /// w is the first vertex in the list returned.
+    /// </summary>
+    List<Vertex!> CycleSearch(Vertex! v)
+      requires v.Visited == VisitedStatus.Unvisited;
+      ensures v.Visited != VisitedStatus.Unvisited;
+      ensures result == null ==> v.Visited == VisitedStatus.Visited;
+      ensures result != null ==> result.Count != 0;
+    {
+      v.Visited = VisitedStatus.OnStack;
+      foreach (Vertex succ in v.Successors) {
+        // todo:  I would use a 'switch' statement, but there seems to be a bug in the Spec# compiler's type checking.
+        if (succ.Visited == VisitedStatus.Visited) {
+          // there is no cycle in the subtree rooted at succ, hence this path does not give rise to any cycles
+        } else if (succ.Visited == VisitedStatus.OnStack) {
+          // we found a cycle!
+          List<Vertex!> cycle = new List<Vertex!>();
+          cycle.Add(succ);
+          if (v == succ) {
+            // entire cycle has been found
+            v.Visited = VisitedStatus.Visited;
+          }
+          return cycle;
+        } else {
+          assert succ.Visited == VisitedStatus.Unvisited;
+          List<Vertex!> cycle = CycleSearch(succ);
+          if (cycle != null) {
+            if (succ.Visited == VisitedStatus.Visited) {
+              // the entire cycle has been collected
+              v.Visited = VisitedStatus.Visited;
+              return cycle;
+            } else {
+              cycle.Add(succ);
+              if (v == cycle[0]) {
+                // the entire cycle has been collected and we are the first to find out
+                v.Visited = VisitedStatus.Visited;
+              }
+              return cycle;
+            }
+          }
+        }
+      }
+      v.Visited = VisitedStatus.Visited;  // there are no cycles from here on
+      return null;
     }
   }
 }

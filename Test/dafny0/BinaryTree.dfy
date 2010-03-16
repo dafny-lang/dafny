@@ -48,7 +48,7 @@ class IntSet {
     footprint := root.footprint + {this};
   }
 
-  class method InsertHelper(x: int, n: Node) returns (m: Node)
+  static method InsertHelper(x: int, n: Node) returns (m: Node)
     requires n == null || n.Valid();
     modifies n.footprint;
     ensures m != null && m.Valid();

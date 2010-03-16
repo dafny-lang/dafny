@@ -12,23 +12,23 @@ class MyClass<T, U> {
     ensures t == t;
     ensures old(null) != this;
   {
-    x := 12;
-    while (x < 100)
-      invariant x <= 100;
-    {
-      x := x + 17;
-      if (x % 20 == 3) {
-        x := this.x + 1;
-      } else {
-        this.x := x + 0;
+      x := 12;
+      while (x < 100)
+        invariant x <= 100;
+      {
+        x := x + 17;
+        if (x % 20 == 3) {
+          x := this.x + 1;
+        } else {
+          this.x := x + 0;
+        }
+        call t, u, v := M(true, lotsaObjects)
+        var to: MyClass<T,U>;
+        call to, u, v := M(true, lotsaObjects)
+        call to, u, v := to.M(true, lotsaObjects)
+        assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
       }
-      call t, u, v := M(true, lotsaObjects)
-      var to: MyClass<T,U>;
-      call to, u, v := M(true, lotsaObjects)
-      call to, u, v := to.M(true, lotsaObjects)
-      assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
     }
-  }
 
   function F(x: int, y: int, h: WildData, k: WildData): WildData
   {
@@ -122,144 +122,154 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(162,7): Error: possible division by zero
+
+Dafny program verifier finished with 22 verified, 9 errors
+
+-------------------- Definedness.dfy --------------------
+Definedness.dfy(8,7): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(169,16): Error: possible division by zero
+Definedness.dfy(15,16): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(178,16): Error: target object may be null
+Definedness.dfy(24,16): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(179,21): Error: target object may be null
+Definedness.dfy(25,21): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(180,17): Error: possible division by zero
+Definedness.dfy(26,17): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(187,16): Error: target object may be null
+Definedness.dfy(33,16): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(204,18): Error: target object may be null
+Definedness.dfy(50,18): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(209,18): Error: target object may be null
+Definedness.dfy(55,18): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(231,9): Error: LHS expression must be well defined
+Definedness.dfy(77,9): Error: LHS expression must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(232,12): Error: LHS expression must be well defined
+Definedness.dfy(78,12): Error: LHS expression must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(233,7): Error: RHS expression must be well defined
+Definedness.dfy(79,7): Error: RHS expression must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(238,18): Error: assert condition must be well defined
+Definedness.dfy(84,18): Error: assert condition must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(239,5): Error: assume condition must be well defined
+Definedness.dfy(85,5): Error: assume condition must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(244,16): Error: if guard must be well defined
+Definedness.dfy(90,16): Error: if guard must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(251,19): Error: loop guard must be well defined
+Definedness.dfy(97,19): Error: loop guard must be well defined
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(251,5): anon8_LoopHead
+    Definedness.dfy(97,5): anon8_LoopHead
     (0,0): anon8_LoopBody
-    SmallTests.dfy(251,5): anon9_Else
+    Definedness.dfy(97,5): anon9_Else
     (0,0): anon3
-SmallTests.dfy(260,23): Error: decreases expression must be well defined at top of each loop iteration
+Definedness.dfy(106,23): Error: decreases expression must be well defined at top of each loop iteration
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(259,5): anon13_LoopHead
+    Definedness.dfy(105,5): anon13_LoopHead
     (0,0): anon13_LoopBody
     (0,0): anon14_Then
-SmallTests.dfy(266,17): Error: decreases expression must be well defined at top of each loop iteration
+Definedness.dfy(112,17): Error: decreases expression must be well defined at top of each loop iteration
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(259,5): anon13_LoopHead
+    Definedness.dfy(105,5): anon13_LoopHead
     (0,0): anon13_LoopBody
-    SmallTests.dfy(259,5): anon14_Else
+    Definedness.dfy(105,5): anon14_Else
     (0,0): anon3
     (0,0): anon15_Then
     (0,0): anon6
-    SmallTests.dfy(265,5): anon16_LoopHead
+    Definedness.dfy(111,5): anon16_LoopHead
     (0,0): anon16_LoopBody
     (0,0): anon17_Then
-SmallTests.dfy(276,22): Error: loop invariant must be well defined
+Definedness.dfy(122,22): Error: loop invariant must be well defined
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(275,5): anon7_LoopHead
+    Definedness.dfy(121,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-SmallTests.dfy(276,22): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(122,22): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(277,17): Error: decreases expression must be well defined at top of each loop iteration
+Definedness.dfy(123,17): Error: decreases expression must be well defined at top of each loop iteration
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(275,5): anon7_LoopHead
+    Definedness.dfy(121,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-SmallTests.dfy(286,24): Error: loop guard must be well defined
+Definedness.dfy(132,24): Error: loop guard must be well defined
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(286,5): anon7_LoopHead
+    Definedness.dfy(132,5): anon7_LoopHead
     (0,0): anon7_LoopBody
-    SmallTests.dfy(286,5): anon8_Else
+    Definedness.dfy(132,5): anon8_Else
     (0,0): anon3
-SmallTests.dfy(305,24): Error: loop guard must be well defined
+Definedness.dfy(151,24): Error: loop guard must be well defined
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(299,5): anon13_LoopHead
+    Definedness.dfy(145,5): anon13_LoopHead
     (0,0): anon13_LoopBody
-    SmallTests.dfy(299,5): anon14_Else
+    Definedness.dfy(145,5): anon14_Else
     (0,0): anon3
     (0,0): anon15_Then
     (0,0): anon6
-    SmallTests.dfy(305,5): anon16_LoopHead
+    Definedness.dfy(151,5): anon16_LoopHead
     (0,0): anon16_LoopBody
-    SmallTests.dfy(305,5): anon17_Else
+    Definedness.dfy(151,5): anon17_Else
     (0,0): anon9
-SmallTests.dfy(326,44): Error: loop invariant must be well defined
+Definedness.dfy(172,44): Error: loop invariant must be well defined
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(316,5): anon16_LoopHead
+    Definedness.dfy(162,5): anon16_LoopHead
     (0,0): anon16_LoopBody
-    SmallTests.dfy(316,5): anon17_Else
+    Definedness.dfy(162,5): anon17_Else
     (0,0): anon3
     (0,0): anon18_Then
     (0,0): anon6
-    SmallTests.dfy(324,5): anon19_LoopHead
+    Definedness.dfy(170,5): anon19_LoopHead
     (0,0): anon19_LoopBody
     (0,0): anon20_Then
-SmallTests.dfy(347,21): Error: collection expression must be well defined
+Definedness.dfy(193,21): Error: collection expression must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(349,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
+Definedness.dfy(195,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(351,33): Error: range expression must be well defined
+Definedness.dfy(197,33): Error: range expression must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(357,18): Error: RHS of assignment must be well defined
+Definedness.dfy(203,18): Error: RHS of assignment must be well defined
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(366,23): Error: loop invariant must be well defined
+Definedness.dfy(212,23): Error: loop invariant must be well defined
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(364,5): anon7_LoopHead
+    Definedness.dfy(210,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-SmallTests.dfy(366,23): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(212,23): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 43 verified, 38 errors
+Dafny program verifier finished with 21 verified, 29 errors
+
+-------------------- Modules0.dfy --------------------
+Modules0.dfy(13,7): Error: module T named among imports does not exist
+Modules0.dfy(24,7): Error: import graph contains a cycle: H -> I -> J -> G
+Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
+3 resolution/type errors detected in Modules0.dfy
 
 -------------------- Queue.dfy --------------------
 

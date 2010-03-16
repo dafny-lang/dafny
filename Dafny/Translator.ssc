@@ -425,7 +425,7 @@ namespace Microsoft.Dafny {
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
       Bpl.BoundVariable bvThis;
       Bpl.Expr bvThisIdExpr;
-      if (f.IsClass) {
+      if (f.IsStatic) {
         bvThis = null;
         bvThisIdExpr = null;
       } else {
@@ -460,8 +460,8 @@ namespace Microsoft.Dafny {
       }
       
       Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
-      if (!f.IsClass) {
-        assert bvThisIdExpr != null;  // set to non-null value above when !f.IsClass
+      if (!f.IsStatic) {
+        assert bvThisIdExpr != null;  // set to non-null value above when !f.IsStatic
         ante = Bpl.Expr.And(Bpl.Expr.Neq(bvThisIdExpr, predef.Null), ante);
       }
       foreach (Expression req in f.Req) {
@@ -495,7 +495,7 @@ namespace Microsoft.Dafny {
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
       Bpl.BoundVariable bvThis;
       Bpl.Expr bvThisIdExpr;
-      if (f.IsClass) {
+      if (f.IsStatic) {
         bvThis = null;
         bvThisIdExpr = null;
       } else {
@@ -841,7 +841,7 @@ namespace Microsoft.Dafny {
       bvars.Add(h0Var);  bvars.Add(h1Var);
       f0args.Add(h0);
       f1args.Add(h1);
-      if (!f.IsClass) {
+      if (!f.IsStatic) {
         Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
         Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
         bvars.Add(thVar);
@@ -932,7 +932,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
       Bpl.VariableSeq inParams = new Bpl.VariableSeq();
-      if (!f.IsClass) {
+      if (!f.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
           etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, (!)f.EnclosingClass)));
@@ -1025,7 +1025,7 @@ namespace Microsoft.Dafny {
         assert e.Function != null;  // follows from the fact that expr has been successfully resolved
         // check well-formedness of receiver
         Bpl.Expr r = IsTotal(e.Receiver, etran);
-        if (!e.Function.IsClass && !(e.Receiver is ThisExpr)) {
+        if (!e.Function.IsStatic && !(e.Receiver is ThisExpr)) {
           r = BplAnd(r, Bpl.Expr.Neq(etran.TrExpr(e.Receiver), predef.Null));
         }
         // check well-formedness of the other parameters
@@ -1180,7 +1180,7 @@ namespace Microsoft.Dafny {
         assert e.Function != null;  // follows from the fact that expr has been successfully resolved
         // check well-formedness of receiver
         CheckWellformed(e.Receiver, func, Position.Neither, locals, builder, etran);
-        if (!e.Function.IsClass && !(e.Receiver is ThisExpr)) {
+        if (!e.Function.IsStatic && !(e.Receiver is ThisExpr)) {
           CheckNonNull(expr.tok, e.Receiver, builder, etran);
         }
         // check well-formedness of the other parameters
@@ -1218,15 +1218,17 @@ namespace Microsoft.Dafny {
           builder.Add(Assert(expr.tok, q, "insufficient reads clause to invoke function"));
   
           // finally, check that the decreases measure goes down
-          List<Expression!> contextDecreases = func.Decreases;
-          if (contextDecreases.Count == 0) {
-            contextDecreases = func.Reads;  // use its reads clause instead
+          if (((!)e.Function.EnclosingClass).Module == ((!)func.EnclosingClass).Module) {
+            List<Expression!> contextDecreases = func.Decreases;
+            if (contextDecreases.Count == 0) {
+              contextDecreases = func.Reads;  // use its reads clause instead
+            }
+            List<Expression!> calleeDecreases = e.Function.Decreases;
+            if (calleeDecreases.Count == 0) {
+              calleeDecreases = e.Function.Reads;  // use its reads clause instead
+            }
+            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
           }
-          List<Expression!> calleeDecreases = e.Function.Decreases;
-          if (calleeDecreases.Count == 0) {
-            calleeDecreases = e.Function.Reads;  // use its reads clause instead
-          }
-          CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
         }
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
@@ -1419,7 +1421,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.VariableSeq args = new Bpl.VariableSeq();
       args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$heap", predef.HeapType), true));
-      if (!f.IsClass) {
+      if (!f.IsStatic) {
         args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
       }
       foreach (Formal p in f.Formals) {
@@ -1450,7 +1452,7 @@ namespace Microsoft.Dafny {
       
       Bpl.VariableSeq inParams = new Bpl.VariableSeq();
       Bpl.VariableSeq outParams = new Bpl.VariableSeq();
-      if (!m.IsClass) {
+      if (!m.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
           etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
@@ -1786,7 +1788,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "call statement");
         Bpl.ExprSeq ins = new Bpl.ExprSeq();
         assert s.Method != null;  // follows from the fact that stmt has been successfully resolved
-        if (!s.Method.IsClass) {
+        if (!s.Method.IsStatic) {
           ins.Add(etran.TrExpr(s.Receiver));
         }
 
@@ -1843,9 +1845,9 @@ namespace Microsoft.Dafny {
         }
 
         // Check termination
-        if (currentMethod.Decreases.Count == 0 || exists{Expression e in currentMethod.Decreases; e is WildcardExpr}) {
+        if (exists{Expression e in currentMethod.Decreases; e is WildcardExpr}) {
           // omit termination checking for calls in this context
-        } else {
+        } else if (((!)currentMethod.EnclosingClass).Module == ((!)s.Method.EnclosingClass).Module) {
           CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
         }
 
@@ -2575,7 +2577,7 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(expr.tok, nm, translator.TrType((!)e.Type));
           Bpl.ExprSeq args = new Bpl.ExprSeq();
           args.Add(HeapExpr);
-          if (!e.Function.IsClass) {
+          if (!e.Function.IsStatic) {
             args.Add(TrExpr(e.Receiver));
           }
           for (int i = 0; i < e.Args.Count; i++) {
@@ -2795,7 +2797,7 @@ namespace Microsoft.Dafny {
         Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(e.tok, ((!)e.Function).FullName + "#use", translator.TrType((!)e.Type));
         Bpl.ExprSeq args = new Bpl.ExprSeq();
         args.Add(HeapExpr);
-        if (!e.Function.IsClass) {
+        if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
         }
         foreach (Expression ee in e.Args) {

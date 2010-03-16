@@ -36,8 +36,44 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string!,TopLevelDecl!>! classes = new Dictionary<string!,TopLevelDecl!>();
     readonly Dictionary<ClassDecl!,Dictionary<string!,MemberDecl!>!>! classMembers = new Dictionary<ClassDecl!,Dictionary<string!,MemberDecl!>!>();
     readonly Dictionary<DatatypeDecl!,Dictionary<string!,DatatypeCtor!>!>! datatypeCtors = new Dictionary<DatatypeDecl!,Dictionary<string!,DatatypeCtor!>!>();
+    readonly Graph<ModuleDecl!>! importGraph = new Graph<ModuleDecl!>();
 
     public void ResolveProgram(Program! prog) {
+      // register modules
+      Dictionary<string,ModuleDecl!> modules = new Dictionary<string,ModuleDecl!>();
+      foreach (ModuleDecl m in prog.Modules) {
+        if (modules.ContainsKey(m.Name)) {
+          Error(m, "Duplicate module name: {0}", m.Name);
+        } else {
+          modules.Add(m.Name, m);
+        }
+      }
+      // resolve imports
+      foreach (ModuleDecl m in prog.Modules) {
+        foreach (string imp in m.Imports) {
+          ModuleDecl other;
+          if (modules.TryGetValue(imp, out other)) {
+            assert other != null;  // follows from postcondition of TryGetValue
+            importGraph.AddEdge(m, other);
+          } else {
+            Error(m, "module {0} named among imports does not exist", imp);
+          }
+        }
+      }
+      // check for cycles in the import graph
+      List<ModuleDecl!> cycle = importGraph.TryFindCycle();
+      if (cycle != null) {
+        string cy = "";
+        string sep = "";
+        foreach (ModuleDecl m in cycle) {
+          cy = m.Name + sep + cy;
+          sep = " -> ";
+        }
+        Error(cycle[0], "import graph contains a cycle: {0}", cy);
+      }
+
+      // Done with modules; now, do classes and datatypes
+      
       foreach (TopLevelDecl d in prog.Classes) {
         // register the class/datatype name
         if (classes.ContainsKey(d.Name)) {
@@ -76,7 +112,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-
+      
       // resolve each class
       Graph<DatatypeDecl!> datatypeDependencies = new Graph<DatatypeDecl!>();
       foreach (TopLevelDecl d in prog.Classes) {
@@ -324,7 +360,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ResolveFunction(Function! f) {
       scope.PushMarker();
-      if (f.IsClass) {
+      if (f.IsStatic) {
         scope.AllowInstance = false;
       }
       foreach (Formal p in f.Formals) {
@@ -394,7 +430,7 @@ namespace Microsoft.Dafny {
     void ResolveMethod(Method! m) {
       // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
       scope.PushMarker();
-      if (m.IsClass) {
+      if (m.IsStatic) {
         scope.AllowInstance = false;
       }
       foreach (Formal p in m.Ins) {
@@ -916,11 +952,11 @@ namespace Microsoft.Dafny {
           Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, method.Outs.Count);
         } else {
           assert ctype != null;  // follows from postcondition of ResolveMember above
-          if (!scope.AllowInstance && !method.IsClass && s.Receiver is ThisExpr) {
+          if (!scope.AllowInstance && !method.IsStatic && s.Receiver is ThisExpr) {
             // The call really needs an instance, but that instance is given as 'this', which is not
             // available in this context.  For more details, see comment in the resolution of a
             // FunctionCallExpr.
-            Error(s.Receiver, "'this' is not allowed in a 'class' context");
+            Error(s.Receiver, "'this' is not allowed in a 'static' context");
           }
           // build the type substitution map
           Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
@@ -1363,7 +1399,7 @@ namespace Microsoft.Dafny {
             Error(expr, "wrong number of function arguments (got {0}, expected {1})", e.Args.Count, function.Formals.Count);
           } else {
             assert ctype != null;  // follows from postcondition of ResolveMember
-            if (!scope.AllowInstance && !function.IsClass && e.Receiver is ThisExpr) {
+            if (!scope.AllowInstance && !function.IsStatic && e.Receiver is ThisExpr) {
               // The call really needs an instance, but that instance is given as 'this', which is not
               // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
               // have been caught in the recursive call to resolve e.Receiver, but not the specific case
@@ -1371,7 +1407,7 @@ namespace Microsoft.Dafny {
               // in the event that a class function calls another class function (and note that we need the
               // type of the receiver in order to find the method, so we could not have made this check
               // earlier).
-              Error(e.Receiver, "'this' is not allowed in a 'class' context");
+              Error(e.Receiver, "'this' is not allowed in a 'static' context");
             }
             // build the type substitution map
             Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();

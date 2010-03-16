@@ -1,12 +1,12 @@
 class SumOfCubes {
-  class use function SumEmUp(n: int, m: int): int
+  static use function SumEmUp(n: int, m: int): int
     requires 0 <= n && n <= m;
     decreases m - n;
   {
     if m == n then 0 else n*n*n + SumEmUp(n+1, m)
   }
 
-  class method Socu(n: int, m: int) returns (r: int)
+  static method Socu(n: int, m: int) returns (r: int)
     requires 0 <= n && n <= m;
     ensures r == SumEmUp(n, m);
   {
@@ -16,7 +16,7 @@ class SumOfCubes {
     call Lemma0(n, m);
   }
 
-  class method SocuFromZero(k: int) returns (r: int)
+  static method SocuFromZero(k: int) returns (r: int)
     requires 0 <= k;
     ensures r == SumEmUp(0, k);
   {
@@ -25,7 +25,7 @@ class SumOfCubes {
     call Lemma1(k);
   }
 
-  ghost class method Lemma0(n: int, m: int)
+  ghost static method Lemma0(n: int, m: int)
     requires 0 <= n && n <= m;
     ensures SumEmUp(n, m) == SumEmUp(0, m) - SumEmUp(0, n);
   {
@@ -42,14 +42,14 @@ class SumOfCubes {
     call Lemma3(0, k);
   }
 
-  class use function GSum(k: int): int
+  static use function GSum(k: int): int
     requires 0 <= k;
     decreases k;
   {
     if k == 0 then 0 else GSum(k-1) + k-1
   }
 
-  ghost class method Gauss(k: int) returns (r: int)
+  ghost static method Gauss(k: int) returns (r: int)
     requires 0 <= k;
     ensures r == GSum(k);
   {
@@ -57,7 +57,7 @@ class SumOfCubes {
     call Lemma2(k);
   }
 
-  ghost class method Lemma1(k: int)
+  ghost static method Lemma1(k: int)
     requires 0 <= k;
     ensures SumEmUp(0, k) == GSum(k) * GSum(k);
   {
@@ -73,7 +73,7 @@ class SumOfCubes {
     call Lemma3(0, k);
   }
 
-  ghost class method Lemma2(k: int)
+  ghost static method Lemma2(k: int)
     requires 0 <= k;
     ensures 2 * GSum(k) == k * (k - 1);
   {
@@ -87,14 +87,14 @@ class SumOfCubes {
     }
   }
 
-  class use function SumEmDown(n: int, m: int): int
+  static use function SumEmDown(n: int, m: int): int
     requires 0 <= n && n <= m;
     decreases m;
   {
     if m == n then 0 else SumEmDown(n, m-1) + (m-1)*(m-1)*(m-1)
   }
 
-  ghost class method Lemma3(n: int, m: int)
+  ghost static method Lemma3(n: int, m: int)
     requires 0 <= n && n <= m;
     ensures SumEmUp(n, m) == SumEmDown(n, m);
   {

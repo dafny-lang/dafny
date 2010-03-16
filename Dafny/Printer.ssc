@@ -23,41 +23,69 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
+      ModuleDecl currentModule = null;
+      int indent = 0;
       foreach (TopLevelDecl d in prog.Classes) {
+        if (d.Module != currentModule) {
+          if (currentModule != null) {
+            wr.WriteLine("}");
+          }
+          if (d.Module == null) {
+            indent = 0;
+          } else {
+            wr.Write("module ");
+            PrintAttributes(d.Module.Attributes);
+            wr.Write("{0}", d.Module.Name);
+            if (d.Module.Imports.Count != 0) {
+              string sep = "imports ";
+              foreach (string imp in d.Module.Imports) {
+                wr.Write("{0}{1}", sep, imp);
+                sep = ", ";
+              }
+            }
+            wr.WriteLine("{");
+            indent = IndentAmount;
+          }
+        }
         wr.WriteLine();
         if (d is ClassDecl) {
-          PrintClass((ClassDecl)d);
+          PrintClass((ClassDecl)d, indent);
         } else {
-          PrintDatatype((DatatypeDecl)d);
+          PrintDatatype((DatatypeDecl)d, indent);
         }
+      }
+      if (currentModule != null) {
+        wr.WriteLine("}");
       }
     }
     
-    public void PrintClass(ClassDecl! c) {
+    public void PrintClass(ClassDecl! c, int indent) {
+      Indent(indent);
       PrintClassMethodHelper("class", c.Attributes, c.Name, c.TypeArgs);
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
         int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
         wr.WriteLine(" {");
+        int ind = indent + IndentAmount;
         foreach (MemberDecl m in c.Members) {
           if (m is Method) {
             if (state != 0) { wr.WriteLine(); }
-            PrintMethod((Method)m);
+            PrintMethod((Method)m, ind);
             state = 2;
           } else if (m is Field) {
             if (state == 2) { wr.WriteLine(); }
-            PrintField((Field)m);
+            PrintField((Field)m, ind);
             state = 1;
           } else if (m is Function) {
             if (state != 0) { wr.WriteLine(); }
-            PrintFunction((Function)m);
+            PrintFunction((Function)m, ind);
             state = 2;
           } else {
             assert false;  // unexpected member
           }
         }
-        wr.WriteLine("}");
+        Indent(indent);  wr.WriteLine("}");
       }
     }
     
@@ -78,16 +106,18 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintDatatype(DatatypeDecl! dt) {
+    public void PrintDatatype(DatatypeDecl! dt, int indent) {
+      Indent(indent);
       PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
       if (dt.Ctors.Count == 0) {
         wr.WriteLine(" { }");
       } else {
         wr.WriteLine(" {");
+        int ind = indent + IndentAmount;
         foreach (DatatypeCtor ctor in dt.Ctors) {
-          PrintCtor(ctor);
+          PrintCtor(ctor, ind);
         }
-        wr.WriteLine("}");
+        Indent(indent);  wr.WriteLine("}");
       }
     }
     
@@ -111,8 +141,8 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintField(Field! field) {
-      Indent(IndentAmount);
+    public void PrintField(Field! field, int indent) {
+      Indent(indent);
       if (field.IsGhost) {
         wr.Write("ghost ");
       }
@@ -123,11 +153,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine(";");
     }
     
-    public void PrintFunction(Function! f) {
-      Indent(IndentAmount);
+    public void PrintFunction(Function! f, int indent) {
+      Indent(indent);
       string k = "function";
       if (f.IsUse) { k = "use " + k; }
-      if (f.IsClass) { k = "class " + k; }
+      if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       PrintFormals(f.Formals);
@@ -138,20 +168,21 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine();
       }
-      PrintSpec("requires", f.Req, 2 * IndentAmount);
-      PrintSpecLine("reads", f.Reads, 2 * IndentAmount);
-      PrintSpecLine("decreases", f.Decreases, 2 * IndentAmount);
+      int ind = indent + IndentAmount;
+      PrintSpec("requires", f.Req, ind);
+      PrintSpecLine("reads", f.Reads, ind);
+      PrintSpecLine("decreases", f.Decreases, ind);
       if (f.Body != null) {
-        Indent(IndentAmount);
+        Indent(indent);
         wr.WriteLine("{");
-        PrintExtendedExpr(f.Body, IndentAmount + IndentAmount);
-        Indent(IndentAmount);
+        PrintExtendedExpr(f.Body, ind);
+        Indent(indent);
         wr.WriteLine("}");
       }
     }
     
-    public void PrintCtor(DatatypeCtor! ctor) {
-      Indent(IndentAmount);
+    public void PrintCtor(DatatypeCtor! ctor, int indent) {
+      Indent(indent);
       PrintClassMethodHelper("", ctor.Attributes, ctor.Name, ctor.TypeArgs);
       if (ctor.Formals.Count != 0) {
         PrintFormals(ctor.Formals);
@@ -172,10 +203,10 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintMethod(Method! method) {
-      Indent(IndentAmount);
+    public void PrintMethod(Method! method, int indent) {
+      Indent(indent);
       string k = "method";
-      if (method.IsClass) { k = "class " + k; }
+      if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
       PrintFormals(method.Ins);
@@ -190,15 +221,16 @@ namespace Microsoft.Dafny {
         PrintFormals(method.Outs);
       }
       wr.WriteLine(method.Body == null ? ";" : ":");
-      
-      PrintSpec("requires", method.Req, 2 * IndentAmount);
-      PrintSpecLine("modifies", method.Mod, 2 * IndentAmount);
-      PrintSpec("ensures", method.Ens, 2 * IndentAmount);
-      PrintSpecLine("decreases", method.Decreases, 2 * IndentAmount);
+
+      int ind = indent + IndentAmount;      
+      PrintSpec("requires", method.Req, ind);
+      PrintSpecLine("modifies", method.Mod, ind);
+      PrintSpec("ensures", method.Ens, ind);
+      PrintSpecLine("decreases", method.Decreases, ind);
       
       if (method.Body != null) {
-        Indent(IndentAmount);
-        PrintStatement(method.Body, IndentAmount);
+        Indent(indent);
+        PrintStatement(method.Body, ind);
         wr.WriteLine();
       }
     }
