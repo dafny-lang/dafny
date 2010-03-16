@@ -55,6 +55,7 @@ class IntSet {
     ensures n == null ==> fresh(m.footprint) && m.contents == {x};
     ensures n != null ==> m == n && n.contents == old(n.contents) + {x};
     ensures n != null ==> fresh(n.footprint - old(n.footprint));
+    decreases if n == null then {} else n.footprint;
   {
     if (n == null) {
       m := new Node;
@@ -145,6 +146,7 @@ class Node {
   method Find(x: int) returns (present: bool)
     requires Valid();
     ensures present <==> x in contents;
+    decreases footprint;
   {
     if (x == data) {
       present := true;
@@ -164,6 +166,7 @@ class Node {
     ensures node != null ==> node.Valid();
     ensures node == null ==> old(contents) <= {x};
     ensures node != null ==> node.footprint <= footprint && node.contents == old(contents) - {x};
+    decreases footprint;
   {
     node := this;
     if (left != null && x < data) {
@@ -201,6 +204,7 @@ class Node {
     ensures node == null ==> old(contents) == {min};
     ensures node != null ==> node.footprint <= footprint && node.contents == old(contents) - {min};
     ensures min in old(contents) && (forall x :: x in old(contents) ==> min <= x);
+    decreases footprint;
   {
     if (left == null) {
       min := data;

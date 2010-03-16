@@ -6,7 +6,7 @@ class MyClass<T, U> {
   var x: int;
 
   method M(s: bool, lotsaObjects: set<object>)
-      returns (t: object, u: set<int>, v: seq<MyClass<bool,U>>):
+      returns (t: object, u: set<int>, v: seq<MyClass<bool,U>>)
     requires s;
     modifies this, lotsaObjects;
     ensures t == t;
@@ -266,10 +266,24 @@ Execution trace:
 Dafny program verifier finished with 21 verified, 29 errors
 
 -------------------- Modules0.dfy --------------------
+Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
 Modules0.dfy(13,7): Error: module T named among imports does not exist
 Modules0.dfy(24,7): Error: import graph contains a cycle: H -> I -> J -> G
-Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
-3 resolution/type errors detected in Modules0.dfy
+Modules0.dfy(51,6): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
+Modules0.dfy(62,6): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
+Modules0.dfy(72,6): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
+Modules0.dfy(91,4): Error: inter-module calls must follow the module import relation (so module $default must transitively import YY)
+7 resolution/type errors detected in Modules0.dfy
+
+-------------------- Modules1.dfy --------------------
+Modules1.dfy(55,3): Error: decreases expression must be bounded below by 0
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(61,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 16 verified, 2 errors
 
 -------------------- Queue.dfy --------------------
 
@@ -300,31 +314,31 @@ Dafny program verifier finished with 10 verified, 0 errors
 Dafny program verifier finished with 13 verified, 0 errors
 
 -------------------- Use.dfy --------------------
-Use.dfy(15,18): Error: assertion violation
+Use.dfy(14,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(26,18): Error: assertion violation
+Use.dfy(24,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(35,18): Error: assertion violation
+Use.dfy(33,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(56,12): Error: assertion violation
+Use.dfy(52,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(88,17): Error: assertion violation
+Use.dfy(82,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(130,23): Error: assertion violation
+Use.dfy(124,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(144,5): Error: assertion violation
+Use.dfy(136,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(144,5): Error: assertion violation
+Use.dfy(136,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(215,19): Error: assertion violation
+Use.dfy(207,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

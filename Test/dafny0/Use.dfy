@@ -2,7 +2,6 @@ class T {
   var x: int;
 
   use function F(y: int): int
-    decreases 0;
   {
     2*y
   }
@@ -16,7 +15,6 @@ class T {
   }
 
   use function FF(y: int): int
-    decreases 1;
   {
     F(y)
   }
@@ -36,12 +34,10 @@ class T {
   }
 
   use function G(y: int): bool
-    decreases 0;
   {
     0 <= y
   }
   use function GG(y: int): bool
-    decreases 1;
   {
     G(y)
   }
@@ -58,13 +54,11 @@ class T {
 
   use function H(): int
     reads this;
-    decreases 0;
   {
     x
   }
   use function HH(): int
     reads this;
-    decreases 1;
   {
     H()
   }
@@ -133,13 +127,11 @@ class T {
 
   use function K(): bool
     reads this;
-    decreases 0;
   {
     x <= 100
   }
   use function KK(): bool
     reads this;
-    decreases 1;
   {
     K()
   }

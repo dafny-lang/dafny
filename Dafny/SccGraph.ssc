@@ -10,12 +10,13 @@ namespace Microsoft.Dafny {
       public readonly List<Vertex!>! Successors = new List<Vertex!>();
       public Vertex SccRepresentative;  // null if not computed or if the vertex represents itself
       public List<Vertex!> SccMembers;  // non-null only for the representative of the SCC
-      public Dictionary<Vertex,object> downwardClosure;  // irrefexive, transitive closure;  null if not computed
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
       // the following fields are used during the computation of SCCs:
       public int DfNumber;
       public int LowLink;
+      // the following field is used during a Reaches computation
+      public int Gen;  // generation <= Gen means this vertex has been visited in the current generation
       
       public Vertex(Node n) {
         N = n;
@@ -26,6 +27,7 @@ namespace Microsoft.Dafny {
     }
     Dictionary<Node, Vertex!>! vertices = new Dictionary<Node, Vertex!>();
     bool sccComputed = false;
+    int generation = 0;
     
     public Graph()
     {
@@ -42,14 +44,25 @@ namespace Microsoft.Dafny {
     /// Idempotently adds a vertex 'n' to the graph and then returns the Vertex for it.
     /// </summary>    
     Vertex! GetVertex(Node n) {
-      Vertex v;
-      if (vertices.TryGetValue(n, out v)) {
-        assert v != null;  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)
-      } else {
+      Vertex v = FindVertex(n);
+      if (v == null) {
         v = new Vertex(n);
         vertices.Add(n, v);
       }
       return v;
+    }
+    
+    /// <summary>
+    /// Returns the vertex for 'n' if 'n' is in the graph.  Otherwise, returns null.
+    /// </summary>
+    Vertex FindVertex(Node n) {
+      Vertex v;
+      if (vertices.TryGetValue(n, out v)) {
+        assert v != null;  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)
+        return v;
+      } else {
+        return null;
+      }
     }
 
     /// <summary>
@@ -233,6 +246,33 @@ namespace Microsoft.Dafny {
       }
       v.Visited = VisitedStatus.Visited;  // there are no cycles from here on
       return null;
+    }
+    
+    /// <summary>
+    /// Returns whether or not 'source' reaches 'sink' in the graph.
+    /// 'source' and 'sink' need not be in the graph; if neither is, the return value
+    /// is source==sink.
+    /// </summary>
+    public bool Reaches(Node source, Node sink) {
+      Vertex a = FindVertex(source);
+      Vertex b = FindVertex(sink);
+      if (a == null || b == null) {
+        return source.Equals(sink);
+      }
+      generation++;
+      return ReachSearch(a, b);
+    }
+    
+    bool ReachSearch(Vertex! source, Vertex! sink) {
+      if (source == sink) {
+        return true;
+      } else if (source.Gen == generation) {
+        // already visited
+        return false;
+      } else {
+        source.Gen = generation;
+        return exists{Vertex succ in source.Successors; ReachSearch(succ, sink)};
+      }
     }
   }
 }

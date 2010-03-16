@@ -260,11 +260,13 @@ namespace Microsoft.Dafny {
         // already been printed, so just return an empty program here (which is non-null)
         return new Bpl.Program();
       }
-      foreach (TopLevelDecl d in program.Classes) {
-        if (d is DatatypeDecl) {
-          AddDatatype((DatatypeDecl)d);
-        } else {
-          AddClassMembers((ClassDecl)d);
+      foreach (ModuleDecl m in program.Modules) {
+        foreach (TopLevelDecl d in m.TopLevelDecls) {
+          if (d is DatatypeDecl) {
+            AddDatatype((DatatypeDecl)d);
+          } else {
+            AddClassMembers((ClassDecl)d);
+          }
         }
       }
       return sink;
@@ -1139,7 +1141,7 @@ namespace Microsoft.Dafny {
     void CheckWellformed(Expression! expr, Function func, Position pos, Bpl.VariableSeq! locals, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran)
       requires predef != null;
     {
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr) {
         // always allowed
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -1218,16 +1220,19 @@ namespace Microsoft.Dafny {
           builder.Add(Assert(expr.tok, q, "insufficient reads clause to invoke function"));
   
           // finally, check that the decreases measure goes down
-          if (((!)e.Function.EnclosingClass).Module == ((!)func.EnclosingClass).Module) {
-            List<Expression!> contextDecreases = func.Decreases;
-            if (contextDecreases.Count == 0) {
-              contextDecreases = func.Reads;  // use its reads clause instead
+          ModuleDecl module = ((!)e.Function.EnclosingClass).Module;
+          if (module == ((!)func.EnclosingClass).Module) {
+            if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(func)) {
+              List<Expression!> contextDecreases = func.Decreases;
+              if (contextDecreases.Count == 0) {
+                contextDecreases = func.Reads;  // use its reads clause instead
+              }
+              List<Expression!> calleeDecreases = e.Function.Decreases;
+              if (calleeDecreases.Count == 0) {
+                calleeDecreases = e.Function.Reads;  // use its reads clause instead
+              }
+              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
             }
-            List<Expression!> calleeDecreases = e.Function.Decreases;
-            if (calleeDecreases.Count == 0) {
-              calleeDecreases = e.Function.Reads;  // use its reads clause instead
-            }
-            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
           }
         }
       } else if (expr is DatatypeValue) {
@@ -1847,8 +1852,13 @@ namespace Microsoft.Dafny {
         // Check termination
         if (exists{Expression e in currentMethod.Decreases; e is WildcardExpr}) {
           // omit termination checking for calls in this context
-        } else if (((!)currentMethod.EnclosingClass).Module == ((!)s.Method.EnclosingClass).Module) {
-          CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
+        } else {
+          ModuleDecl module = ((!)s.Method.EnclosingClass).Module;
+          if (module == ((!)currentMethod.EnclosingClass).Module) {
+            if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
+              CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
+            }
+          }
         }
 
         // Make the call

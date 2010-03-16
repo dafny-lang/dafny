@@ -2,7 +2,7 @@ class Node {
   var next: Node;
 
   function IsList(r: set<Node>): bool
-    reads r; 
+    reads r;
   {
     this in r &&
     (next != null  ==>  next.IsList(r - {this}))

@@ -23,39 +23,50 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
-      ModuleDecl currentModule = null;
-      int indent = 0;
-      foreach (TopLevelDecl d in prog.Classes) {
-        if (d.Module != currentModule) {
-          if (currentModule != null) {
+      foreach (ModuleDecl module in prog.Modules) {
+        wr.WriteLine();
+        if (module.IsDefaultModule) {
+          PrintTopLevelDecls(module.TopLevelDecls, 0);
+        } else {
+          wr.Write("module ");
+          PrintAttributes(module.Attributes);
+          wr.Write("{0} ", module.Name);
+          if (module.Imports.Count != 0) {
+            string sep = "imports ";
+            foreach (string imp in module.Imports) {
+              wr.Write("{0}{1}", sep, imp);
+              sep = ", ";
+            }
+          }
+          if (module.TopLevelDecls.Count == 0) {
+            wr.WriteLine(" { }");
+          } else {
+            wr.WriteLine(" {");
+            PrintTopLevelDecls(module.TopLevelDecls, IndentAmount);
             wr.WriteLine("}");
           }
-          if (d.Module == null) {
-            indent = 0;
-          } else {
-            wr.Write("module ");
-            PrintAttributes(d.Module.Attributes);
-            wr.Write("{0}", d.Module.Name);
-            if (d.Module.Imports.Count != 0) {
-              string sep = "imports ";
-              foreach (string imp in d.Module.Imports) {
-                wr.Write("{0}{1}", sep, imp);
-                sep = ", ";
-              }
-            }
-            wr.WriteLine("{");
-            indent = IndentAmount;
-          }
-        }
-        wr.WriteLine();
-        if (d is ClassDecl) {
-          PrintClass((ClassDecl)d, indent);
-        } else {
-          PrintDatatype((DatatypeDecl)d, indent);
         }
       }
-      if (currentModule != null) {
-        wr.WriteLine("}");
+    }
+    
+    public void PrintTopLevelDecls(List<TopLevelDecl!>! classes, int indent) {
+      int i = 0;
+      foreach (TopLevelDecl d in classes) {
+        if (d is DatatypeDecl) {
+          if (i++ != 0) { wr.WriteLine(); }
+          PrintDatatype((DatatypeDecl)d, indent);
+        } else {
+          ClassDecl cl = (ClassDecl)d;
+          if (!cl.IsDefaultClass) {
+            if (i++ != 0) { wr.WriteLine(); }
+            PrintClass(cl, indent);
+          } else if (cl.Members.Count == 0) {
+            // print nothing
+          } else {
+            if (i++ != 0) { wr.WriteLine(); }
+            PrintClass_Members(cl, indent);
+          }
+        }
       }
     }
     
@@ -65,27 +76,33 @@ namespace Microsoft.Dafny {
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
-        int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
         wr.WriteLine(" {");
-        int ind = indent + IndentAmount;
-        foreach (MemberDecl m in c.Members) {
-          if (m is Method) {
-            if (state != 0) { wr.WriteLine(); }
-            PrintMethod((Method)m, ind);
-            state = 2;
-          } else if (m is Field) {
-            if (state == 2) { wr.WriteLine(); }
-            PrintField((Field)m, ind);
-            state = 1;
-          } else if (m is Function) {
-            if (state != 0) { wr.WriteLine(); }
-            PrintFunction((Function)m, ind);
-            state = 2;
-          } else {
-            assert false;  // unexpected member
-          }
+        PrintClass_Members(c, indent + IndentAmount);
+        Indent(indent);
+        wr.WriteLine("}");
+      }
+    }
+    
+    public void PrintClass_Members(ClassDecl! c, int indent)
+      requires c.Members.Count != 0;
+    {
+      int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
+      foreach (MemberDecl m in c.Members) {
+        if (m is Method) {
+          if (state != 0) { wr.WriteLine(); }
+          PrintMethod((Method)m, indent);
+          state = 2;
+        } else if (m is Field) {
+          if (state == 2) { wr.WriteLine(); }
+          PrintField((Field)m, indent);
+          state = 1;
+        } else if (m is Function) {
+          if (state != 0) { wr.WriteLine(); }
+          PrintFunction((Function)m, indent);
+          state = 2;
+        } else {
+          assert false;  // unexpected member
         }
-        Indent(indent);  wr.WriteLine("}");
       }
     }
     
@@ -163,11 +180,8 @@ namespace Microsoft.Dafny {
       PrintFormals(f.Formals);
       wr.Write(": ");
       PrintType(f.ResultType);
-      if (f.Body == null) {
-        wr.WriteLine(";");
-      } else {
-        wr.WriteLine();
-      }
+      wr.WriteLine(f.Body == null ? ";" : "");
+
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
       PrintSpecLine("reads", f.Reads, ind);
@@ -220,7 +234,7 @@ namespace Microsoft.Dafny {
         }
         PrintFormals(method.Outs);
       }
-      wr.WriteLine(method.Body == null ? ";" : ":");
+      wr.WriteLine(method.Body == null ? ";" : "");
 
       int ind = indent + IndentAmount;      
       PrintSpec("requires", method.Req, ind);
@@ -230,7 +244,7 @@ namespace Microsoft.Dafny {
       
       if (method.Body != null) {
         Indent(indent);
-        PrintStatement(method.Body, ind);
+        PrintStatement(method.Body, indent);
         wr.WriteLine();
       }
     }
@@ -309,7 +323,7 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is UseStmt) {
         wr.Write("use ");
-        PrintExpression(((AssertStmt)stmt).Expr);
+        PrintExpression(((UseStmt)stmt).Expr);
         wr.Write(";");
         
       } else if (stmt is LabelStmt) {

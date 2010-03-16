@@ -20,7 +20,6 @@ namespace Microsoft.Dafny {
       program = null;
       Dafny.Errors.count = 0;
       List<ModuleDecl!> modules = new List<ModuleDecl!>();
-      List<TopLevelDecl!> classes = new List<TopLevelDecl!>();
       foreach (string! dafnyFileName in fileNames){
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFileName);
@@ -33,7 +32,7 @@ namespace Microsoft.Dafny {
         int errorCount;
         try 
         {
-          errorCount = Dafny.Parser.Parse(dafnyFileName, modules, classes);
+          errorCount = Dafny.Parser.Parse(dafnyFileName, modules);
           if (errorCount != 0) 
           {
             return string.Format("{0} parse errors detected in {1}", Dafny.Errors.count, dafnyFileName);
@@ -45,7 +44,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      program = new Program(programName, modules, classes);
+      program = new Program(programName, modules);
 
       if (Bpl.CommandLineOptions.Clo.DafnyPrintFile != null) {
         string filename = Bpl.CommandLineOptions.Clo.DafnyPrintFile;

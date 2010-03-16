@@ -48,17 +48,20 @@ namespace Microsoft.Dafny {
           modules.Add(m.Name, m);
         }
       }
-      // resolve imports
+      // resolve imports and register top-level declarations
       foreach (ModuleDecl m in prog.Modules) {
         foreach (string imp in m.Imports) {
           ModuleDecl other;
-          if (modules.TryGetValue(imp, out other)) {
+          if (!modules.TryGetValue(imp, out other)) {
+            Error(m, "module {0} named among imports does not exist", imp);
+          } else if (other == m) {
+            Error(m, "module must not import itself: {0}", imp);
+          } else {
             assert other != null;  // follows from postcondition of TryGetValue
             importGraph.AddEdge(m, other);
-          } else {
-            Error(m, "module {0} named among imports does not exist", imp);
           }
         }
+        RegisterTopLevelDecls(m.TopLevelDecls);
       }
       // check for cycles in the import graph
       List<ModuleDecl!> cycle = importGraph.TryFindCycle();
@@ -71,10 +74,18 @@ namespace Microsoft.Dafny {
         }
         Error(cycle[0], "import graph contains a cycle: {0}", cy);
       }
-
-      // Done with modules; now, do classes and datatypes
-      
-      foreach (TopLevelDecl d in prog.Classes) {
+      // resolve top-level declarations
+      Graph<DatatypeDecl!> datatypeDependencies = new Graph<DatatypeDecl!>();
+      foreach (ModuleDecl m in prog.Modules) {
+        ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
+      }
+      foreach (ModuleDecl m in prog.Modules) {
+        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+      }
+    }
+    
+    public void RegisterTopLevelDecls(List<TopLevelDecl!>! declarations) {
+      foreach (TopLevelDecl d in declarations) {
         // register the class/datatype name
         if (classes.ContainsKey(d.Name)) {
           Error(d, "Duplicate name of top-level declaration: {0}", d.Name);
@@ -112,10 +123,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
       
-      // resolve each class
-      Graph<DatatypeDecl!> datatypeDependencies = new Graph<DatatypeDecl!>();
-      foreach (TopLevelDecl d in prog.Classes) {
+    public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl!>! declarations, Graph<DatatypeDecl!>! datatypeDependencies) {
+      foreach (TopLevelDecl d in declarations) {
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         if (d is ClassDecl) {
@@ -125,8 +136,10 @@ namespace Microsoft.Dafny {
         }
         allTypeParameters.PopMarker();
       }
-      
-      foreach (TopLevelDecl d in prog.Classes) {
+    }
+    
+    public void ResolveTopLevelDecls_Meat(List<TopLevelDecl!>! declarations, Graph<DatatypeDecl!>! datatypeDependencies) {
+      foreach (TopLevelDecl d in declarations) {
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
         if (d is ClassDecl) {
@@ -143,6 +156,7 @@ namespace Microsoft.Dafny {
     }
     
     ClassDecl currentClass;
+    Function currentFunction;
     readonly Scope<TypeParameter>! allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>! scope = new Scope<IVariable>();
     readonly Scope<Statement>! labeledStatements = new Scope<Statement>();
@@ -358,8 +372,12 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveFunction(Function! f) {
+    void ResolveFunction(Function! f)
+      requires currentFunction == null;
+      ensures currentFunction == null;
+    {
       scope.PushMarker();
+      currentFunction = f;
       if (f.IsStatic) {
         scope.AllowInstance = false;
       }
@@ -399,6 +417,7 @@ namespace Microsoft.Dafny {
           Error(f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
         }
       }
+      currentFunction = null;
       scope.PopMarker();
     }
     
@@ -481,7 +500,7 @@ namespace Microsoft.Dafny {
       
       // Resolve body
       if (m.Body != null) {
-        ResolveStatement(m.Body, m.IsGhost);
+        ResolveStatement(m.Body, m.IsGhost, m);
       }
       
       scope.PopMarker();
@@ -758,7 +777,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void ResolveStatement(Statement! stmt, bool specContextOnly)
+    public void ResolveStatement(Statement! stmt, bool specContextOnly, Method! method)
       requires !(stmt is LabelStmt);  // these should be handled inside lists of statements
     {
       if (stmt is UseStmt) {
@@ -904,15 +923,15 @@ namespace Microsoft.Dafny {
         // resolve the method name
         UserDefinedType ctype;
         MemberDecl member = ResolveMember(s.Tok, s.Receiver.Type, s.MethodName, out ctype);
-        Method method = null;
+        Method callee = null;
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (!(member is Method)) {
           Error(s, "member {0} in class {1} does not refer to a method", s.MethodName, ((!)ctype).Name);
         } else {
-          method = (Method)member;
-          s.Method = method;
-          if (specContextOnly && !method.IsGhost) {
+          callee = (Method)member;
+          s.Method = callee;
+          if (specContextOnly && !callee.IsGhost) {
             Error(s, "only ghost methods can be called from this context");
           }
         }
@@ -920,10 +939,10 @@ namespace Microsoft.Dafny {
         // resolve any local variables declared here
         foreach (AutoVarDecl local in s.NewVars) {
           // first, fix up the local variables to be ghost variable if the corresponding formal out-parameter is a ghost
-          if (method != null && local.Index < method.Outs.Count && method.Outs[local.Index].IsGhost) {
+          if (callee != null && local.Index < callee.Outs.Count && callee.Outs[local.Index].IsGhost) {
             local.MakeGhost();
           }
-          ResolveStatement(local, specContextOnly);
+          ResolveStatement(local, specContextOnly, method);
         }
         
         // resolve left-hand side
@@ -939,20 +958,20 @@ namespace Microsoft.Dafny {
         // resolve arguments
         int j = 0;
         foreach (Expression e in s.Args) {
-          bool allowGhost = method == null || method.Ins.Count <= j || method.Ins[j].IsGhost;
+          bool allowGhost = callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
           ResolveExpression(e, true, allowGhost);
           j++;
         }
         
-        if (method == null) {
+        if (callee == null) {
           // error has been reported above
-        } else if (method.Ins.Count != s.Args.Count) {
-          Error(s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, method.Ins.Count);
-        } else if (method.Outs.Count != s.Lhs.Count) {
-          Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, method.Outs.Count);
+        } else if (callee.Ins.Count != s.Args.Count) {
+          Error(s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
+        } else if (callee.Outs.Count != s.Lhs.Count) {
+          Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
         } else {
           assert ctype != null;  // follows from postcondition of ResolveMember above
-          if (!scope.AllowInstance && !method.IsStatic && s.Receiver is ThisExpr) {
+          if (!scope.AllowInstance && !callee.IsStatic && s.Receiver is ThisExpr) {
             // The call really needs an instance, but that instance is given as 'this', which is not
             // available in this context.  For more details, see comment in the resolution of a
             // FunctionCallExpr.
@@ -963,23 +982,39 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < ctype.TypeArgs.Count; i++) {
             subst.Add(((!)ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
           }
-          foreach (TypeParameter p in method.TypeArgs) {
+          foreach (TypeParameter p in callee.TypeArgs) {
             subst.Add(p, new ParamTypeProxy(p));
           }
           // type check the arguments
-          for (int i = 0; i < method.Ins.Count; i++) {
-            Type st = SubstType(method.Ins[i].Type, subst);
+          for (int i = 0; i < callee.Ins.Count; i++) {
+            Type st = SubstType(callee.Ins[i].Type, subst);
             if (!UnifyTypes((!)s.Args[i].Type, st)) {
               Error(s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
             }
           }
-          for (int i = 0; i < method.Outs.Count; i++) {
-            Type st = SubstType(method.Outs[i].Type, subst);
+          for (int i = 0; i < callee.Outs.Count; i++) {
+            Type st = SubstType(callee.Outs[i].Type, subst);
             IdentifierExpr lhs = s.Lhs[i];
             if (!UnifyTypes((!)lhs.Type, st)) {
               Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
-            } else if (!specContextOnly && !((!)lhs.Var).IsGhost && method.Outs[i].IsGhost) {
+            } else if (!specContextOnly && !((!)lhs.Var).IsGhost && callee.Outs[i].IsGhost) {
               Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+            }
+          }
+          
+          // Resolution termination check
+          if (method.EnclosingClass != null && callee.EnclosingClass != null) {
+            ModuleDecl callerModule = method.EnclosingClass.Module;
+            ModuleDecl calleeModule = callee.EnclosingClass.Module;
+            if (callerModule == calleeModule) {
+              // intra-module call; this is allowed; add edge in module's call graph
+              callerModule.CallGraph.AddEdge(method, callee);
+            } else if (calleeModule.IsDefaultModule) {
+              // all is fine: everything implicitly imports the default module
+            } else if (importGraph.Reaches(callerModule, calleeModule)) {
+              // all is fine: the callee is downstream of the caller
+            } else {
+              Error(s, "inter-module calls must follow the module import relation (so module {0} must transitively import {1})", callerModule.Name, calleeModule.Name);
             }
           }
         }
@@ -995,7 +1030,7 @@ namespace Microsoft.Dafny {
             assert b;  // since we just pushed a marker, we expect the Push to succeed
             labelsToPop++;
           } else {
-            ResolveStatement(ss, specContextOnly);
+            ResolveStatement(ss, specContextOnly, method);
             for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
           }
         }
@@ -1017,9 +1052,9 @@ namespace Microsoft.Dafny {
             branchesAreSpecOnly = UsesSpecFeatures(s.Guard);
           }
         }
-        ResolveStatement(s.Thn, branchesAreSpecOnly);
+        ResolveStatement(s.Thn, branchesAreSpecOnly, method);
         if (s.Els != null) {
-          ResolveStatement(s.Els, branchesAreSpecOnly);
+          ResolveStatement(s.Els, branchesAreSpecOnly, method);
         }
       
       } else if (stmt is WhileStmt) {
@@ -1048,7 +1083,7 @@ namespace Microsoft.Dafny {
           ResolveExpression(e, true, true);
           // any type is fine
         }
-        ResolveStatement(s.Body, bodyIsSpecOnly);
+        ResolveStatement(s.Body, bodyIsSpecOnly, method);
       
       } else if (stmt is ForeachStmt) {
         ForeachStmt s = (ForeachStmt)stmt;
@@ -1073,12 +1108,12 @@ namespace Microsoft.Dafny {
         bool successfullyResolvedCollectionAndRange = ErrorCount == prevErrorCount;
         
         foreach (PredicateStmt ss in s.BodyPrefix) {
-          ResolveStatement(ss, specContextOnly);
+          ResolveStatement(ss, specContextOnly, method);
         }
 
         bool specOnly = specContextOnly ||
                         (successfullyResolvedCollectionAndRange && (UsesSpecFeatures(s.Collection) || UsesSpecFeatures(s.Range)));
-        ResolveStatement(s.BodyAssign, specOnly);
+        ResolveStatement(s.BodyAssign, specOnly, method);
         // check for correct usage of BoundVar in LHS and RHS of this assignment
         FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
         IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
@@ -1428,6 +1463,22 @@ namespace Microsoft.Dafny {
               }
             }
             expr.Type = SubstType(function.ResultType, subst);
+          }
+          
+          // Resolution termination check
+          if (currentFunction != null && currentFunction.EnclosingClass != null && function.EnclosingClass != null) {
+            ModuleDecl callerModule = currentFunction.EnclosingClass.Module;
+            ModuleDecl calleeModule = function.EnclosingClass.Module;
+            if (callerModule == calleeModule) {
+              // intra-module call; this is allowed; add edge in module's call graph
+              callerModule.CallGraph.AddEdge(currentFunction, function);
+            } else if (calleeModule.IsDefaultModule) {
+              // all is fine: everything implicitly imports the default module
+            } else if (importGraph.Reaches(callerModule, calleeModule)) {
+              // all is fine: the callee is downstream of the caller
+            } else {
+              Error(expr, "inter-module calls must follow the module import relation (so module {0} must transitively import {1})", callerModule.Name, calleeModule.Name);
+            }
           }
         }
         

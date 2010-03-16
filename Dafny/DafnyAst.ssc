@@ -13,11 +13,9 @@ namespace Microsoft.Dafny
   public class Program {
     public readonly string! Name;
     public readonly List<ModuleDecl!>! Modules;
-    public readonly List<TopLevelDecl!>! Classes;
-    public Program(string! name, [Captured] List<ModuleDecl!>! modules, [Captured] List<TopLevelDecl!>! classes) {
+    public Program(string! name, [Captured] List<ModuleDecl!>! modules) {
       Name = name;
       Modules = modules;
-      Classes = classes;
     }
   }
   
@@ -341,17 +339,31 @@ namespace Microsoft.Dafny
   
   public class ModuleDecl : Declaration {
     public readonly List<string!>! Imports;
+    public readonly List<TopLevelDecl!>! TopLevelDecls = new List<TopLevelDecl!>();  // filled in by the parser; readonly after that
+    public readonly Graph<MemberDecl!>! CallGraph = new Graph<MemberDecl!>();  // filled in during resolution
     public ModuleDecl(Token! tok, string! name, [Captured] List<string!>! imports, Attributes attributes) {
       Imports = imports;
       base(tok, name, attributes);
     }
+    public virtual bool IsDefaultModule {
+      get { return false; }
+    }
+  }
+  
+  public class DefaultModuleDecl : ModuleDecl {
+    public DefaultModuleDecl() {
+      base(Token.NoToken, "$default", new List<string!>(), null);
+    }
+    public override bool IsDefaultModule {
+      get { return true; }
+    }
   }
     
   public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
-    public readonly ModuleDecl Module;
+    public readonly ModuleDecl! Module;
     public readonly List<TypeParameter!>! TypeArgs;
     
-    public TopLevelDecl(Token! tok, string! name, ModuleDecl module, List<TypeParameter!>! typeArgs, Attributes attributes) {
+    public TopLevelDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, Attributes attributes) {
       Module = module;
       TypeArgs = typeArgs;
       base(tok, name, attributes);
@@ -361,16 +373,28 @@ namespace Microsoft.Dafny
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl!>! Members;
 
-    public ClassDecl(Token! tok, string! name, ModuleDecl module, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
+    public ClassDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
       Members = members;
       base(tok, name, module, typeArgs, attributes);
+    }
+    public virtual bool IsDefaultClass {
+      get { return false; }
+    }
+  }
+  
+  public class DefaultClassDecl : ClassDecl {
+    public DefaultClassDecl(DefaultModuleDecl! module, [Captured] List<MemberDecl!>! members) {
+      base(Token.NoToken, "$default", module, new List<TypeParameter!>(), members, null);
+    }
+    public override bool IsDefaultClass {
+      get { return true; }
     }
   }
   
   public class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor!>! Ctors;
     
-    public DatatypeDecl(Token! tok, string! name, ModuleDecl module, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
+    public DatatypeDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
       Ctors = ctors;
       base(tok, name, module, typeArgs, attributes);
     }

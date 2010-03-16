@@ -35,8 +35,11 @@ class Benchmark1 {
 
   method Mul(x: int, y: int) returns (r: int)
     ensures r == x*y;
+    decreases x < 0, x;
   {
-    if (x < 0) {
+    if (x == 0) {
+      r := 0;
+    } else if (x < 0) {
       call r := Mul(-x, y);
       r := -r;
     } else {

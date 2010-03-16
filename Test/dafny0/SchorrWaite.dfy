@@ -36,6 +36,7 @@ class Main {
     requires (forall n :: n in S && n.marked ==>
                 n in stackNodes ||
                 (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+    requires (forall n :: n in stackNodes ==> n != null && n.marked);
     modifies S;
     ensures root.marked;
     // nodes reachable from 'root' are marked:
@@ -46,6 +47,7 @@ class Main {
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
+    decreases S - stackNodes;
   {
     if (! root.marked) {
       root.marked := true;
@@ -66,6 +68,7 @@ class Main {
       {
         var c := root.children[i];
         if (c != null) {
+          var D := S - stackNodes;  assert root in D;
           call RecursiveMarkWorker(c, S, stackNodes + {root});
         }
         i := i + 1;
@@ -146,7 +149,6 @@ class Main {
   function Reachable(from: Node, to: Node, S: set<Node>): bool
     requires null !in S;
     reads S;
-    decreases 1;
   {
     (exists via: Path :: ReachableVia(from, via, to, S))
   }
@@ -154,7 +156,7 @@ class Main {
   function ReachableVia(from: Node, via: Path, to: Node, S: set<Node>): bool
     requires null !in S;
     reads S;
-    decreases 0, via;
+    decreases via;
   {
     match via
     case Empty => from == to

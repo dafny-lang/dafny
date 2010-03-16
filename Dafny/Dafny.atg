@@ -19,7 +19,6 @@ COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 
 static List<ModuleDecl!>! theModules = new List<ModuleDecl!>();
-static List<TopLevelDecl!>! theClasses = new List<TopLevelDecl!>();    
 
 
 static Expression! dummyExpr = new LiteralExpr(Token.NoToken);
@@ -58,37 +57,36 @@ private static Expression! ConvertToLocal(Expression! e)
 }
 
 ///<summary>
-/// Parses top level declarations from "filename" and appends them to "modules" and "classes".
+/// Parses top-level things (modules, classes, datatypes, class members) from "filename"
+/// and appends them in appropriate form to "modules".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string! filename, List<ModuleDecl!>! modules, List<TopLevelDecl!>! classes) /* throws System.IO.IOException */ {
+public static int Parse (string! filename, List<ModuleDecl!>! modules) /* throws System.IO.IOException */ {
   if (filename == "stdin.dfy") {
     BoogiePL.Buffer.Fill(System.Console.In);
     Scanner.Init(filename);
-    return Parse(modules, classes);
+    return Parse(modules);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       BoogiePL.Buffer.Fill(reader);
       Scanner.Init(filename);
-      return Parse(modules, classes);
+      return Parse(modules);
     }
   }
 }
 
 ///<summary>
-/// Parses top-level declarations and appends them to "classes" [sic].
+/// Parses top-level things (modules, classes, datatypes, class members)
+/// and appends them in appropriate form to "modules".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (List<ModuleDecl!>! modules, List<TopLevelDecl!>! classes) {
+public static int Parse (List<ModuleDecl!>! modules) {
   List<ModuleDecl!> oldModules = theModules;
-  List<TopLevelDecl!> oldClasses = theClasses;
   theModules = modules;
-  theClasses = classes;
   Parse();
   theModules = oldModules;
-  theClasses = oldClasses;
   return Errors.count;
 }
 
@@ -127,26 +125,32 @@ PRODUCTIONS
 
 Dafny
 = (. ClassDecl! c; DatatypeDecl! dt;
-     ModuleDecl m;  Attributes attrs;  Token! id;  List<string!> theImports;
+     Attributes attrs;  Token! id;  List<string!> theImports;
+
+     List<MemberDecl!> membersDefaultClass = new List<MemberDecl!>();
+     ModuleDecl module;
+     DefaultModuleDecl defaultModule = new DefaultModuleDecl();
   .)
-  { "module"                           (. attrs = null;  theImports = new List<string!>(); .)
+  { "module"                             (. attrs = null;  theImports = new List<string!>(); .)
     { Attribute<ref attrs> }
     Ident<out id>
-    [ "imports" Idents<theImports> ]   (. m = new ModuleDecl(id, id.val, theImports, attrs);
-                                          theModules.Add(m);
-                                       .)
+    [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, theImports, attrs); .)
     "{"
-      { ClassDecl<m, out c>            (. theClasses.Add(c); .)
-      | DatatypeDecl<m, out dt>        (. theClasses.Add(dt); .)
-      }
+      { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
+      | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
+      }                                  (. theModules.Add(module); .)
     "}"
-  | ClassDecl<null, out c>             (. theClasses.Add(c); .)
-  | DatatypeDecl<null, out dt>         (. theClasses.Add(dt); .)
+  | ClassDecl<defaultModule, out c>      (. defaultModule.TopLevelDecls.Add(c); .)
+  | DatatypeDecl<defaultModule, out dt>  (. defaultModule.TopLevelDecls.Add(dt); .)
+  | ClassMemberDecl<membersDefaultClass>
   }
+  (. defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
+     theModules.Add(defaultModule);
+  .)
   EOF
   .
 
-ClassDecl<ModuleDecl module, out ClassDecl! c>
+ClassDecl<ModuleDecl! module, out ClassDecl! c>
 = (. Token! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
@@ -177,7 +181,7 @@ ClassMemberDecl<List<MemberDecl!\>! mm>
   )
   .
 
-DatatypeDecl<ModuleDecl module, out DatatypeDecl! dt>
+DatatypeDecl<ModuleDecl! module, out DatatypeDecl! dt>
 = (. Token! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
