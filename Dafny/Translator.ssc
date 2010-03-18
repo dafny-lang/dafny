@@ -1850,14 +1850,10 @@ namespace Microsoft.Dafny {
         }
 
         // Check termination
-        if (exists{Expression e in currentMethod.Decreases; e is WildcardExpr}) {
-          // omit termination checking for calls in this context
-        } else {
-          ModuleDecl module = ((!)s.Method.EnclosingClass).Module;
-          if (module == ((!)currentMethod.EnclosingClass).Module) {
-            if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
-              CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
-            }
+        ModuleDecl module = ((!)s.Method.EnclosingClass).Module;
+        if (module == ((!)currentMethod.EnclosingClass).Module) {
+          if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
+            CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
           }
         }
 
@@ -2192,10 +2188,6 @@ namespace Microsoft.Dafny {
                               Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap,
                               ExpressionTranslator! etran, Bpl.StmtListBuilder! builder)
     {
-      if (exists{Expression e in contextDecreases; e is WildcardExpr}) {
-        // omit termination checking for calls in this context
-        return;
-      }
       int N = min{contextDecreases.Count, calleeDecreases.Count};
       List<Token!> toks = new List<Token!>();
       List<Type!> types = new List<Type!>();

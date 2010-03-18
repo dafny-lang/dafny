@@ -4,10 +4,10 @@
 // Copyright (c) 2008, Microsoft.
 
 class Node {
+  var children: seq<Node>;
   var marked: bool;
   var childrenVisited: int;
-  var children: seq<Node>;
-  var pathFromRoot: Path;  // used only as ghost variable
+  ghost var pathFromRoot: Path;
 }
 
 class Main {
@@ -21,7 +21,7 @@ class Main {
     ensures root.marked;
     // nodes reachable from 'root' are marked:
     ensures (forall n :: n in S && n.marked ==>
-                (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                (forall ch :: ch in n.children && ch != null ==> ch.marked));
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
@@ -35,14 +35,14 @@ class Main {
                 (forall ch :: ch in n.children ==> ch == null || ch in S));
     requires (forall n :: n in S && n.marked ==>
                 n in stackNodes ||
-                (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                (forall ch :: ch in n.children && ch != null ==> ch.marked));
     requires (forall n :: n in stackNodes ==> n != null && n.marked);
     modifies S;
     ensures root.marked;
     // nodes reachable from 'root' are marked:
     ensures (forall n :: n in S && n.marked ==>
                 n in stackNodes ||
-                (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                (forall ch :: ch in n.children && ch != null ==> ch.marked));
     ensures (forall n: Node :: n in S && old(n.marked) ==> n.marked);
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
@@ -57,7 +57,7 @@ class Main {
         invariant (forall n :: n in S && n.marked ==>
                 n == root ||
                 n in stackNodes ||
-                (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                (forall ch :: ch in n.children && ch != null ==> ch.marked));
         invariant (forall j :: 0 <= j && j < i ==>
                     root.children[j] == null || root.children[j].marked);
         invariant (forall n: Node :: n in S && old(n.marked) ==> n.marked);
@@ -88,7 +88,7 @@ class Main {
     ensures root.marked;
     // nodes reachable from 'root' are marked:
     ensures (forall n :: n in S && n.marked ==>
-                (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                (forall ch :: ch in n.children && ch != null ==> ch.marked));
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
@@ -96,7 +96,7 @@ class Main {
     var t := root;
     t.marked := true;
     var stackNodes := [];
-    var unmarkedNodes := S - {t};  // used as ghost variable
+    ghost var unmarkedNodes := S - {t};
     while (true)
       invariant root.marked && t in S && t !in stackNodes;
       // stackNodes has no duplicates:
@@ -115,7 +115,7 @@ class Main {
       invariant 0 < |stackNodes| ==>
         stackNodes[|stackNodes|-1].children[stackNodes[|stackNodes|-1].childrenVisited] == t;
       invariant (forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
-                  (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                  (forall ch :: ch in n.children && ch != null ==> ch.marked));
       invariant (forall n :: n in S && n !in stackNodes && n != t ==>
                 n.childrenVisited == old(n.childrenVisited));
       invariant (forall n: Node :: n in S ==> n.children == old(n.children));
@@ -168,27 +168,27 @@ class Main {
     // S is closed under 'children':
     requires (forall n :: n in S ==> n != null &&
                 (forall ch :: ch in n.children ==> ch == null || ch in S));
-    // the graph starts off with nothing marked and nothing being indicated as currently being visited
+    // the graph starts off with nothing marked and nothing being indicated as currently being visited:
     requires (forall n :: n in S ==> ! n.marked && n.childrenVisited == 0);
     modifies S;
     // nodes reachable from 'root' are marked:
     ensures root.marked;
     ensures (forall n :: n in S && n.marked ==>
-                (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
-    // every marked node was reachable from 'root' in the pre-state
+                (forall ch :: ch in n.children && ch != null ==> ch.marked));
+    // every marked node was reachable from 'root' in the pre-state:
     ensures (forall n :: n in S && n.marked ==> old(Reachable(root, n, S)));
-    // the graph has not changed
+    // the structure of the graph has not changed:
     ensures (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
   {
     var t := root;
     var p: Node := null;  // parent of t in original graph
-    var path := #Path.Empty;
+    ghost var path := #Path.Empty;
     t.marked := true;
     t.pathFromRoot := path;
-    var stackNodes := [];  // used as ghost variable
-    var unmarkedNodes := S - {t};  // used as ghost variable
+    ghost var stackNodes := [];
+    ghost var unmarkedNodes := S - {t};
     while (true)
       invariant root.marked && t != null && t in S && t !in stackNodes;
       invariant |stackNodes| == 0 <==> p == null;
@@ -204,7 +204,7 @@ class Main {
                     n.children[j] == null || n.children[j].marked));
       invariant (forall n :: n in stackNodes ==> n.childrenVisited < |n.children|);
       invariant (forall n :: n in S && n.marked && n !in stackNodes && n != t ==>
-                  (forall ch :: ch in n.children && ch != null ==> ch in S && ch.marked));
+                  (forall ch :: ch in n.children && ch != null ==> ch.marked));
       invariant (forall n :: n in S && n !in stackNodes && n != t ==>
                 n.childrenVisited == old(n.childrenVisited));
       invariant (forall n :: n in S ==> n in stackNodes || n.children == old(n.children));
@@ -212,7 +212,7 @@ class Main {
                   |n.children| == old(|n.children|) &&
                   (forall j :: 0 <= j && j < |n.children| ==>
                     j == n.childrenVisited || n.children[j] == old(n.children[j])));
-      // every marked node is reachable
+      // every marked node is reachable:
       invariant old(ReachableVia(root, path, t, S));
       invariant (forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==>
                   old(ReachableVia(root, pth, n, S)));

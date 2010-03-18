@@ -333,7 +333,7 @@ MethodSpec<List<MaybeFreeExpression!\>! req, List<Expression!\>! mod, List<Maybe
     ( "requires" Expression<out e> ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures" Expression<out e> ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     )
-  | "decreases" PossiblyWildExpressions<decreases> ";"
+  | "decreases" Expressions<decreases> ";"
   )
   .
 

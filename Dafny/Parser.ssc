@@ -588,7 +588,7 @@ List<Expression!>! decreases) {
 			} else Error(101);
 		} else if (t.kind == 25) {
 			Get();
-			PossiblyWildExpressions(decreases);
+			Expressions(decreases);
 			Expect(13);
 		} else Error(102);
 	}
@@ -627,13 +627,13 @@ List<Expression!>! decreases) {
 		} else Error(103);
 	}
 
-	static void PossiblyWildExpressions(List<Expression!>! args) {
+	static void Expressions(List<Expression!>! args) {
 		Expression! e; 
-		PossiblyWildExpression(out e);
+		Expression(out e);
 		args.Add(e); 
 		while (t.kind == 15) {
 			Get();
-			PossiblyWildExpression(out e);
+			Expression(out e);
 			args.Add(e); 
 		}
 	}
@@ -699,13 +699,13 @@ List<Expression!>! decreases) {
 		Expect(7);
 	}
 
-	static void Expressions(List<Expression!>! args) {
+	static void PossiblyWildExpressions(List<Expression!>! args) {
 		Expression! e; 
-		Expression(out e);
+		PossiblyWildExpression(out e);
 		args.Add(e); 
 		while (t.kind == 15) {
 			Get();
-			Expression(out e);
+			PossiblyWildExpression(out e);
 			args.Add(e); 
 		}
 	}
