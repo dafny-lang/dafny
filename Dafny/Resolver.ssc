@@ -50,6 +50,7 @@ namespace Microsoft.Dafny {
       }
       // resolve imports and register top-level declarations
       foreach (ModuleDecl m in prog.Modules) {
+        importGraph.AddVertex(m);
         foreach (string imp in m.Imports) {
           ModuleDecl other;
           if (!modules.TryGetValue(imp, out other)) {
@@ -73,6 +74,15 @@ namespace Microsoft.Dafny {
           sep = " -> ";
         }
         Error(cycle[0], "import graph contains a cycle: {0}", cy);
+      } else {
+        // fill in module heights
+        List<ModuleDecl!> mm = importGraph.TopologicallySortedComponents();
+        assert mm.Count == prog.Modules.Count;  // follows from the fact that there are no cycles
+        int h = 0;
+        foreach (ModuleDecl m in mm) {
+          m.Height = h;
+          h++;
+        }
       }
       // resolve top-level declarations
       Graph<DatatypeDecl!> datatypeDependencies = new Graph<DatatypeDecl!>();

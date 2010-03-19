@@ -12,23 +12,23 @@ class MyClass<T, U> {
     ensures t == t;
     ensures old(null) != this;
   {
-      x := 12;
-      while (x < 100)
-        invariant x <= 100;
-      {
-        x := x + 17;
-        if (x % 20 == 3) {
-          x := this.x + 1;
-        } else {
-          this.x := x + 0;
-        }
-        call t, u, v := M(true, lotsaObjects)
-        var to: MyClass<T,U>;
-        call to, u, v := M(true, lotsaObjects)
-        call to, u, v := to.M(true, lotsaObjects)
-        assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
+    x := 12;
+    while (x < 100)
+      invariant x <= 100;
+    {
+      x := x + 17;
+      if (x % 20 == 3) {
+        x := this.x + 1;
+      } else {
+        this.x := x + 0;
       }
+      call t, u, v := M(true, lotsaObjects)
+      var to: MyClass<T,U>;
+      call to, u, v := M(true, lotsaObjects)
+      call to, u, v := to.M(true, lotsaObjects)
+      assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
     }
+  }
 
   function F(x: int, y: int, h: WildData, k: WildData): WildData
   {
@@ -284,6 +284,13 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 16 verified, 2 errors
+
+-------------------- BadFunction.dfy --------------------
+BadFunction.dfy(6,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 2 verified, 1 error
 
 -------------------- Queue.dfy --------------------
 

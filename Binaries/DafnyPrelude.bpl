@@ -207,6 +207,13 @@ function DtRank(DatatypeType) returns (int);
 
 // ---------------------------------------------------------------
 
+// used to make sure function axioms are not used while their consistency is being checked
+const $ModuleContextHeight: int;
+const $FunctionContextHeight: int;
+const $InMethodContext: bool;
+
+// ---------------------------------------------------------------
+
 type Field alpha;
 type HeapType = <alpha>[ref,Field alpha]alpha;
 

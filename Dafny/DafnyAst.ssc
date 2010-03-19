@@ -341,6 +341,7 @@ namespace Microsoft.Dafny
     public readonly List<string!>! Imports;
     public readonly List<TopLevelDecl!>! TopLevelDecls = new List<TopLevelDecl!>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl!>! CallGraph = new Graph<MemberDecl!>();  // filled in during resolution
+    public int Height;  // height in the topological sorting of modules; filled in during resolution
     public ModuleDecl(Token! tok, string! name, [Captured] List<string!>! imports, Attributes attributes) {
       Imports = imports;
       base(tok, name, attributes);

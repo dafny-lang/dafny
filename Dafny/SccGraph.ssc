@@ -8,8 +8,9 @@ namespace Microsoft.Dafny {
     class Vertex {
       public readonly Node N;
       public readonly List<Vertex!>! Successors = new List<Vertex!>();
-      public Vertex SccRepresentative;  // null if not computed or if the vertex represents itself
+      public Vertex SccRepresentative;  // null if not computed
       public List<Vertex!> SccMembers;  // non-null only for the representative of the SCC
+      public int SccId;  // valid only for SCC representatives; indicates position of this representative vertex in the graph's topological sort
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
       // the following fields are used during the computation of SCCs:
@@ -27,6 +28,15 @@ namespace Microsoft.Dafny {
     }
     Dictionary<Node, Vertex!>! vertices = new Dictionary<Node, Vertex!>();
     bool sccComputed = false;
+    List<Vertex!> topologicallySortedRepresentatives;  // computed by the SCC computation
+    invariant sccComputed ==> topologicallySortedRepresentatives != null;
+    public int SccCount {
+      get {
+        ComputeSCCs();
+        assert topologicallySortedRepresentatives != null;  // follows from postcondition of ComputeSCCs and the object invariant
+        return topologicallySortedRepresentatives.Count;
+      }
+    }
     int generation = 0;
     
     public Graph()
@@ -48,6 +58,14 @@ namespace Microsoft.Dafny {
       if (v == null) {
         v = new Vertex(n);
         vertices.Add(n, v);
+        if (sccComputed) {
+          assert topologicallySortedRepresentatives != null;  // follows from object invariant
+          v.SccRepresentative = v;
+          v.SccMembers = new List<Vertex!>();
+          v.SccMembers.Add(v);
+          v.SccId = topologicallySortedRepresentatives.Count;
+          topologicallySortedRepresentatives.Add(v);
+        }
       }
       return v;
     }
@@ -81,11 +99,37 @@ namespace Microsoft.Dafny {
     /// strongly connected component containing 'n'.
     /// </summary>
     public Node GetSCCRepresentative(Node n) {
-      Vertex v = GetVertex(n);
-      ComputeSCCs();
-      return v.SccRepresentative == null ? n : v.SccRepresentative.N;
+      return GetSCCRepr(n).N;
     }
     
+    /// <summary>
+    /// Idempotently adds 'n' as a vertex.  Then, returns the number of SCCs before the SCC of 'n' in the
+    /// topologically sorting of SCCs.
+    /// </summary>
+    public int GetSCCRepresentativeId(Node n) {
+      return GetSCCRepr(n).SccId;
+    }
+    
+    Vertex! GetSCCRepr(Node n) {
+      Vertex v = GetVertex(n);
+      ComputeSCCs();
+      assert v.SccRepresentative != null;  // follows from what ComputeSCCs does
+      return v.SccRepresentative;
+    }
+    
+    /// <summary>
+    /// Returns a list of the topologically sorted SCCs, each represented in the list by its representative node.
+    /// </summary>
+    public List<Node>! TopologicallySortedComponents() {
+      ComputeSCCs();
+      assert topologicallySortedRepresentatives != null;  // follows from object invariant
+      List<Node> nn = new List<Node>();
+      foreach (Vertex v in topologicallySortedRepresentatives) {
+        nn.Add(v.N);
+      }
+      return nn;
+    }
+
     /// <summary>
     /// Idempotently adds 'n' as a vertex and then returns the set of Node's in the strongly connected component
     /// that contains 'n'.
@@ -94,15 +138,9 @@ namespace Microsoft.Dafny {
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
-      if (repr == null) {
-        // this is a node that has been added since the last time the SCCs were computed
-        repr = v;
-        v.SccRepresentative = v;
-        v.SccMembers = new List<Vertex!>();
-        v.SccMembers.Add(v);
-      }
+      assert repr != null && repr.SccMembers != null;  // follows from postcondition of ComputeSCCs
       List<Node> nn = new List<Node>();
-      foreach (Vertex w in (!)repr.SccMembers) {
+      foreach (Vertex w in repr.SccMembers) {
         nn.Add(w.N);
       }
       return nn;
@@ -115,10 +153,13 @@ namespace Microsoft.Dafny {
     /// As a side effect, this method may change the Visited, DfNumber, and LowLink fields
     /// of the vertices.
     /// </summary>
-    void ComputeSCCs() {
+    void ComputeSCCs()
+      ensures sccComputed;
+    {
       if (sccComputed) { return; }  // check if already computed
-      
+
       // reset all SCC information
+      topologicallySortedRepresentatives = new List<Vertex!>();
       foreach (Vertex v in vertices.Values) {
         v.Visited = VisitedStatus.Unvisited;
         v.SccMembers = null;
@@ -140,6 +181,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void SearchC(Vertex! v, Stack<Vertex!>! stack, ref int cnt)
       requires v.Visited == VisitedStatus.Unvisited;
+      requires topologicallySortedRepresentatives != null;
       ensures v.Visited != VisitedStatus.Unvisited;
     {
       v.DfNumber = cnt;
@@ -160,6 +202,8 @@ namespace Microsoft.Dafny {
       
       if (v.LowLink == v.DfNumber) {
         // The SCC containing 'v' has now been computed.
+        v.SccId = topologicallySortedRepresentatives.Count;
+        topologicallySortedRepresentatives.Add(v);
         v.SccMembers = new List<Vertex!>();
         while (true) {
           Vertex x = stack.Pop();

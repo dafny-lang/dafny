@@ -399,10 +399,14 @@ namespace Microsoft.Dafny {
       requires predef != null;
       requires specializationFormal == null <==> ctor == null;
       requires specializationFormal == null <==> specializationReplacementFormals == null;
+      requires f.EnclosingClass != null;
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       
-      // axiom (forall $Heap, formals :: this != null && $IsHeap($Heap) && Pre($Heap,args) ==> f(args) == body)
+      // axiom
+      //   mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh < FunctionContextHeight || InMethodContext))
+      //   ==>
+      //   (forall $Heap, formals :: this != null && $IsHeap($Heap) && Pre($Heap,args) ==> f(args) == body);
       //
       // The variables "formals" are the formals of function "f"; except, if a specialization is provided, then
       // "specializationFormal" (which is expected to be among the formals of "f") is excluded and replaced by
@@ -419,7 +423,6 @@ namespace Microsoft.Dafny {
       // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
       // sound after that, then it would also have been sound just before the allocation.
       //
-      // TODO: Add a CanAssumeFunctionDefs antecedent to this axiom (see Dafny lecture notes from Marktoberdorf 2008).
       Bpl.VariableSeq formals = new Bpl.VariableSeq();
       Bpl.ExprSeq args = new Bpl.ExprSeq();
       Bpl.BoundVariable bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
@@ -460,11 +463,21 @@ namespace Microsoft.Dafny {
           args.Add(etran.TrExpr(r));
         }
       }
+
+      // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh < FunctionContextHeight || InMethodContext))
+      ModuleDecl m = f.EnclosingClass.Module;
+      Bpl.Expr activate = Bpl.Expr.Or(
+        Bpl.Expr.Lt(Bpl.Expr.Literal(m.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.And(
+          Bpl.Expr.Eq(Bpl.Expr.Literal(m.Height), etran.ModuleContextHeight()),
+          Bpl.Expr.Or(
+            Bpl.Expr.Lt(Bpl.Expr.Literal(m.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
+            etran.InMethodContext())));
       
       Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
       if (!f.IsStatic) {
         assert bvThisIdExpr != null;  // set to non-null value above when !f.IsStatic
-        ante = Bpl.Expr.And(Bpl.Expr.Neq(bvThisIdExpr, predef.Null), ante);
+        ante = Bpl.Expr.And(ante, Bpl.Expr.Neq(bvThisIdExpr, predef.Null));
       }
       foreach (Expression req in f.Req) {
         ante = Bpl.Expr.And(ante, etran.TrExpr(req));
@@ -480,7 +493,7 @@ namespace Microsoft.Dafny {
         body = Substitute(body, null, substMap);
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.AltFunctions.TrExpr(body))));
-      return new Bpl.Axiom(f.tok, ax);
+      return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax));
     }
     
     void AddUseAxioms(Function! f)
@@ -930,6 +943,7 @@ namespace Microsoft.Dafny {
     
     void AddWellformednessCheck(Function! f)
       requires sink != null && predef != null;
+      requires f.EnclosingClass != null;
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
@@ -937,7 +951,7 @@ namespace Microsoft.Dafny {
       if (!f.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, (!)f.EnclosingClass)));
+          etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, f.EnclosingClass)));
         Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
         inParams.Add(thVar);
       }
@@ -948,8 +962,15 @@ namespace Microsoft.Dafny {
       }
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       // the procedure itself
+      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      // free requires mh < ModuleContextHeight || (mh == ModuleContextHeight && fh < FunctionContextHeight);
+      ModuleDecl m = f.EnclosingClass.Module;
+      Bpl.Expr context = Bpl.Expr.And(
+        Bpl.Expr.Eq(Bpl.Expr.Literal(m.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Eq(Bpl.Expr.Literal(m.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
+      req.Add(Requires(f.tok, true, context, null, null));
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
-        new Bpl.RequiresSeq(), new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
+        req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
       sink.TopLevelDeclarations.Add(proc);
 
       Bpl.VariableSeq locals = new Bpl.VariableSeq();
@@ -1452,6 +1473,7 @@ namespace Microsoft.Dafny {
     /// </summary>    
     Bpl.Procedure! AddMethod(Method! m, bool wellformednessProc)
       requires predef != null && sink != null;
+      requires m.EnclosingClass != null;
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
       
@@ -1460,7 +1482,7 @@ namespace Microsoft.Dafny {
       if (!m.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, (!)m.EnclosingClass)));
+          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, m.EnclosingClass)));
         Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
         inParams.Add(thVar);
       }
@@ -1478,6 +1500,11 @@ namespace Microsoft.Dafny {
       Bpl.RequiresSeq req = new Bpl.RequiresSeq();
       Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
       Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
+      // free requires mh == ModuleContextHeight && InMethodContext;
+      Bpl.Expr context = Bpl.Expr.And(
+        Bpl.Expr.Eq(Bpl.Expr.Literal(m.EnclosingClass.Module.Height), etran.ModuleContextHeight()),
+        etran.InMethodContext());
+      req.Add(Requires(m.tok, true, context, null, null));
       mod.Add(etran.HeapExpr);
       mod.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int));
       
@@ -2487,6 +2514,24 @@ namespace Microsoft.Dafny {
       {
         Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(predef.RefType), Bpl.Type.Bool);
         return new Bpl.IdentifierExpr(tok, "$_Frame", ty);
+      }
+      
+      public Bpl.IdentifierExpr! ModuleContextHeight()
+        ensures result.Type != null;
+      {
+        return new Bpl.IdentifierExpr(Token.NoToken, "$ModuleContextHeight", Bpl.Type.Int);
+      }
+
+      public Bpl.IdentifierExpr! FunctionContextHeight()
+        ensures result.Type != null;
+      {
+        return new Bpl.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Bpl.Type.Int);
+      }
+
+      public Bpl.IdentifierExpr! InMethodContext()
+        ensures result.Type != null;
+      {
+        return new Bpl.IdentifierExpr(Token.NoToken, "$InMethodContext", Bpl.Type.Bool);
       }
 
       public Bpl.Expr! TrExpr(Expression! expr)
