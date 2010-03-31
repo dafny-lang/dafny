@@ -174,6 +174,7 @@ axiom (forall b: BoxType :: { $Unbox(b): int } $Box($Unbox(b): int) == b);
 axiom (forall b: BoxType :: { $Unbox(b): ref } $Box($Unbox(b): ref) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Set BoxType } $Box($Unbox(b): Set BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Seq BoxType } $Box($Unbox(b): Seq BoxType) == b);
+axiom (forall b: BoxType :: { $Unbox(b): DatatypeType } $Box($Unbox(b): DatatypeType) == b);
 // note: an axiom like this for bool would not be sound
 
 // ---------------------------------------------------------------

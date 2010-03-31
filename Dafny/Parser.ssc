@@ -722,7 +722,7 @@ List<Expression!>! decreases) {
 
 	static void MatchExpression(out Expression! e) {
 		Token! x;
-		List<MatchCase!> cases = new List<MatchCase!>();
+		List<MatchCaseExpr!> cases = new List<MatchCaseExpr!>();
 		
 		Expect(36);
 		x = token; 
@@ -737,15 +737,15 @@ List<Expression!>! decreases) {
 		e = new MatchExpr(x, e, cases); 
 	}
 
-	static void CaseExpressions(List<MatchCase!>! cases) {
-		MatchCase! c; 
+	static void CaseExpressions(List<MatchCaseExpr!>! cases) {
+		MatchCaseExpr! c; 
 		while (t.kind == 37) {
 			CaseExpression(out c);
 			cases.Add(c); 
 		}
 	}
 
-	static void CaseExpression(out MatchCase! c) {
+	static void CaseExpression(out MatchCaseExpr! c) {
 		Token! x, id, arg;
 		List<BoundVar!> arguments = new List<BoundVar!>();
 		Expression! body;
@@ -768,7 +768,7 @@ List<Expression!>! decreases) {
 		}
 		Expect(38);
 		Expression(out body);
-		c = new MatchCase(x, id.val, arguments, body);
+		c = new MatchCaseExpr(x, id.val, arguments, body);
 		parseVarScope.PopMarker(); 
 	}
 
@@ -821,6 +821,10 @@ List<Expression!>! decreases) {
 		}
 		case 47: {
 			WhileStmt(out s);
+			break;
+		}
+		case 36: {
+			MatchStmt(out s);
 			break;
 		}
 		case 50: {
@@ -1043,6 +1047,18 @@ List<Expression!>! decreases) {
 		stmt = new WhileStmt(x, guard, invariants, decreases, body); 
 	}
 
+	static void MatchStmt(out Statement! s) {
+		Token x;  Expression! e;
+		List<MatchCaseStmt!> cases = new List<MatchCaseStmt!>(); 
+		Expect(36);
+		x = token; 
+		Expression(out e);
+		Expect(6);
+		CaseStatements(cases);
+		Expect(7);
+		s = new MatchStmt(x, e, cases); 
+	}
+
 	static void ForeachStmt(out Statement! s) {
 		Token! x, boundVar;
 		Type! ty;
@@ -1170,6 +1186,45 @@ List<Expression!>! decreases) {
 			e = ee; 
 		} else Error(115);
 		Expect(27);
+	}
+
+	static void CaseStatements(List<MatchCaseStmt!>! cases) {
+		MatchCaseStmt! c; 
+		while (t.kind == 37) {
+			CaseStatement(out c);
+			cases.Add(c); 
+		}
+	}
+
+	static void CaseStatement(out MatchCaseStmt! c) {
+		Token! x, id, arg;
+		List<BoundVar!> arguments = new List<BoundVar!>();
+		List<Statement!> body = new List<Statement!>();
+		
+		Expect(37);
+		x = token;  parseVarScope.PushMarker(); 
+		Ident(out id);
+		if (t.kind == 26) {
+			Get();
+			Ident(out arg);
+			arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
+			parseVarScope.Push(arg.val, arg.val); 
+			while (t.kind == 15) {
+				Get();
+				Ident(out arg);
+				arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
+				parseVarScope.Push(arg.val, arg.val); 
+			}
+			Expect(27);
+		}
+		Expect(38);
+		parseVarScope.PushMarker(); 
+		while (StartOf(8)) {
+			Stmt(body);
+		}
+		parseVarScope.PopMarker(); 
+		c = new MatchCaseStmt(x, id.val, arguments, body); 
+		parseVarScope.PopMarker(); 
 	}
 
 	static void CallStmtSubExpr(out Expression! e) {
@@ -1892,10 +1947,10 @@ List<Expression!>! decreases) {
 	{x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 	{x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 	{x,T,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,T,T,T, T,T,T,x, T,T,x,x, T,T,x,x, x,x,x,x, x,x},
-	{x,T,x,x, x,x,T,x, x,T,x,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, T,T,x,T, x,T,T,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x},
+	{x,T,x,x, x,x,T,x, x,T,x,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, T,x,x,T, T,T,x,x, T,T,x,T, x,T,T,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x},
 	{x,T,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,T,T,T, T,T,T,x, T,T,x,x, T,T,x,x, x,x,x,x, x,x},
 	{x,T,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,T,T,T, T,T,T,x, T,T,x,x, T,T,x,x, x,x,x,x, x,x},
-	{x,T,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, T,T,x,T, x,T,T,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x},
+	{x,T,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, T,x,x,T, T,T,x,x, T,T,x,T, x,T,T,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x},
 	{x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,x,x,x, x,x},
 	{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 	{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},

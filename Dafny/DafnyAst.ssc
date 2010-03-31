@@ -854,6 +854,32 @@ namespace Microsoft.Dafny
     }
   }
   
+  class MatchStmt : Statement {
+    public readonly Expression! Source;
+    public readonly List<MatchCaseStmt!>! Cases;
+    
+    public MatchStmt(Token! tok, Expression! source, [Captured] List<MatchCaseStmt!>! cases) {
+      this.Source = source;
+      this.Cases = cases;
+      base(tok);
+    }
+  }
+  
+  public class MatchCaseStmt {
+    public readonly Token! tok;
+    public readonly string! Id;
+    public DatatypeCtor Ctor;  // filled in by resolution
+    public readonly List<BoundVar!>! Arguments;
+    public readonly List<Statement!>! Body;
+    
+    public MatchCaseStmt(Token! tok, string! id, [Captured] List<BoundVar!>! arguments, [Captured] List<Statement!>! body) {
+      this.tok = tok;
+      this.Id = id;
+      this.Arguments = arguments;
+      this.Body = body;
+    }
+  }
+  
   // ------------------------------------------------------------------------------------------------------
   
   public abstract class Expression {
@@ -1217,23 +1243,23 @@ namespace Microsoft.Dafny
   
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
     public readonly Expression! Source;
-    public readonly List<MatchCase!>! Cases;
+    public readonly List<MatchCaseExpr!>! Cases;
     
-    public MatchExpr(Token! tok, Expression! source, [Captured] List<MatchCase!>! cases) {
+    public MatchExpr(Token! tok, Expression! source, [Captured] List<MatchCaseExpr!>! cases) {
       this.Source = source;
       this.Cases = cases;
       base(tok);
     }
   }
   
-  public class MatchCase {
+  public class MatchCaseExpr {
     public readonly Token! tok;
     public readonly string! Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public readonly List<BoundVar!>! Arguments;
     public readonly Expression! Body;
     
-    public MatchCase(Token! tok, string! id, [Captured] List<BoundVar!>! arguments, Expression! body) {
+    public MatchCaseExpr(Token! tok, string! id, [Captured] List<BoundVar!>! arguments, Expression! body) {
       this.tok = tok;
       this.Id = id;
       this.Arguments = arguments;

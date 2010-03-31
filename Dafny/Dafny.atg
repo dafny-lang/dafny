@@ -486,7 +486,7 @@ FunctionBody<out Expression! e>
   
 MatchExpression<out Expression! e>
 = (. Token! x;
-     List<MatchCase!> cases = new List<MatchCase!>();
+     List<MatchCaseExpr!> cases = new List<MatchCaseExpr!>();
   .)
   "match"                     (. x = token; .)
   Expression<out e>
@@ -497,13 +497,13 @@ MatchExpression<out Expression! e>
   (. e = new MatchExpr(x, e, cases); .)
   .
 
-CaseExpressions<List<MatchCase!\>! cases>
-= (. MatchCase! c; .)
+CaseExpressions<List<MatchCaseExpr!\>! cases>
+= (. MatchCaseExpr! c; .)
   { CaseExpression<out c>     (. cases.Add(c); .)
   }
   .
 
-CaseExpression<out MatchCase! c>
+CaseExpression<out MatchCaseExpr! c>
 = (. Token! x, id, arg;
      List<BoundVar!> arguments = new List<BoundVar!>();
      Expression! body;
@@ -518,7 +518,7 @@ CaseExpression<out MatchCase! c>
     }
   ")" ]
   "=>"
-  Expression<out body>        (. c = new MatchCase(x, id.val, arguments, body);
+  Expression<out body>        (. c = new MatchCaseExpr(x, id.val, arguments, body);
                                  parseVarScope.PopMarker(); .)
   .
 
@@ -562,6 +562,7 @@ OneStmt<out Statement! s>
   | CallStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
+  | MatchStmt<out s>
   | ForeachStmt<out s>
   | "label"                            (. x = token; .)
     Ident<out id> ":"                  (. s = new LabelStmt(x, id.val); .)
@@ -692,6 +693,43 @@ Guard<out Expression e>   /* null represents demonic-choice */
   | Expression<out ee>       (. e = ee; .)
   )
   ")"
+  .
+
+MatchStmt<out Statement! s>
+= (. Token x;  Expression! e;
+     List<MatchCaseStmt!> cases = new List<MatchCaseStmt!>(); .)
+  "match"                     (. x = token; .)
+  Expression<out e>
+  "{" CaseStatements<cases> "}"
+  (. s = new MatchStmt(x, e, cases); .)
+  .
+
+CaseStatements<List<MatchCaseStmt!\>! cases>
+= (. MatchCaseStmt! c; .)
+  { CaseStatement<out c>     (. cases.Add(c); .)
+  }
+  .
+
+CaseStatement<out MatchCaseStmt! c>
+= (. Token! x, id, arg;
+     List<BoundVar!> arguments = new List<BoundVar!>();
+     List<Statement!> body = new List<Statement!>();
+  .)
+  "case"                      (. x = token;  parseVarScope.PushMarker(); .)
+  Ident<out id>
+  [ "("
+    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
+                                 parseVarScope.Push(arg.val, arg.val); .)
+    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
+                                 parseVarScope.Push(arg.val, arg.val); .)
+    }
+  ")" ]
+  "=>"
+    (. parseVarScope.PushMarker(); .)
+    { Stmt<body> }
+    (. parseVarScope.PopMarker(); .)
+  (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
+  (. parseVarScope.PopMarker(); .)
   .
 
 CallStmt<out Statement! s>

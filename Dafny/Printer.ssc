@@ -451,6 +451,31 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
         
+      } else if (stmt is MatchStmt) {
+        MatchStmt s = (MatchStmt)stmt;
+        wr.Write("match ");
+        PrintExpression(s.Source);
+        wr.WriteLine(" {");
+        int caseInd = indent + IndentAmount;
+        foreach (MatchCaseStmt mc in s.Cases) {
+          Indent(caseInd);
+          wr.Write("case {0}", mc.Id);
+          if (mc.Arguments.Count != 0) {
+            string sep = "(";
+            foreach (BoundVar bv in mc.Arguments) {
+              wr.Write("{0}{1}", sep, bv.Name);
+              sep = ", ";
+            }
+            wr.Write(")");
+          }
+          wr.WriteLine(" =>");
+          foreach (Statement bs in mc.Body) {
+            PrintStatement(bs, caseInd + IndentAmount);
+          }
+        }
+        Indent(indent);
+        wr.WriteLine("}");
+        
       } else {
         assert false;  // unexpected statement
       }
@@ -501,10 +526,10 @@ namespace Microsoft.Dafny {
         MatchExpr me = (MatchExpr)expr;
         wr.Write("match ");
         PrintExpression(me.Source);
-        bool needsCurlies = exists{MatchCase mc in me.Cases; mc.Body is MatchExpr};
+        bool needsCurlies = exists{MatchCaseExpr mc in me.Cases; mc.Body is MatchExpr};
         wr.WriteLine(needsCurlies ? " {" : "");
         int caseInd = indent + (needsCurlies ? IndentAmount : 0);
-        foreach (MatchCase mc in me.Cases) {
+        foreach (MatchCaseExpr mc in me.Cases) {
           Indent(caseInd);
           wr.Write("case {0}", mc.Id);
           if (mc.Arguments.Count != 0) {

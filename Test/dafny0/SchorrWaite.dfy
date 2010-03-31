@@ -11,7 +11,7 @@ class Node {
 }
 
 class Main {
-  method RecursiveMark(root: Node, S: set<Node>)
+  method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S;
     // S is closed under 'children':
     requires (forall n :: n in S ==> n != null &&
@@ -29,7 +29,7 @@ class Main {
     call RecursiveMarkWorker(root, S, {});
   }
 
-  method RecursiveMarkWorker(root: Node, S: set<Node>, stackNodes: set<Node>)
+  method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set<Node>)
     requires root != null && root in S;
     requires (forall n :: n in S ==> n != null &&
                 (forall ch :: ch in n.children ==> ch == null || ch in S));
@@ -68,7 +68,7 @@ class Main {
       {
         var c := root.children[i];
         if (c != null) {
-          var D := S - stackNodes;  assert root in D;
+          ghost var D := S - stackNodes;  assert root in D;
           call RecursiveMarkWorker(c, S, stackNodes + {root});
         }
         i := i + 1;
@@ -78,7 +78,7 @@ class Main {
 
   // ---------------------------------------------------------------------------------
 
-  method IterativeMark(root: Node, S: set<Node>)
+  method IterativeMark(root: Node, ghost S: set<Node>)
     requires root in S;
     // S is closed under 'children':
     requires (forall n :: n in S ==> n != null &&
@@ -163,7 +163,7 @@ class Main {
     case Extend(prefix, n) => n in S && to in n.children && ReachableVia(from, prefix, n, S)
   }
 
-  method SchorrWaite(root: Node, S: set<Node>)
+  method SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S;
     // S is closed under 'children':
     requires (forall n :: n in S ==> n != null &&

@@ -1135,6 +1135,89 @@ namespace Microsoft.Dafny {
 
         scope.PopMarker();
       
+      } else if (stmt is MatchStmt) {
+        MatchStmt s = (MatchStmt)stmt;
+        bool bodyIsSpecOnly = specContextOnly;
+        int prevErrorCount = ErrorCount;
+        ResolveExpression(s.Source, true, true);
+        assert s.Source.Type != null;  // follows from postcondition of ResolveExpression
+        bool successfullyResolved = ErrorCount == prevErrorCount;
+        if (!specContextOnly && successfullyResolved) {
+          bodyIsSpecOnly = UsesSpecFeatures(s.Source);
+        }
+        UserDefinedType sourceType = null;
+        DatatypeDecl dtd = null;
+        Dictionary<TypeParameter!,Type!> subst = new Dictionary<TypeParameter!,Type!>();
+        if (s.Source.Type.IsDatatype) {
+          sourceType = (UserDefinedType)s.Source.Type;
+          dtd = (DatatypeDecl!)sourceType.ResolvedClass;
+        }
+        Dictionary<string!,DatatypeCtor!> ctors;
+        if (dtd == null) {
+          Error(s.Source, "the type of the match source expression must be a datatype");
+          ctors = null;
+        } else {
+          assert sourceType != null;  // dtd and sourceType are set together above
+          ctors = datatypeCtors[dtd];
+          assert ctors != null;  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+          
+          // build the type-parameter substitution map for this use of the datatype
+          for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+            subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
+          }
+        }
+        
+        Dictionary<string!,object> memberNamesUsed = new Dictionary<string!,object>();  // this is really a set
+        foreach (MatchCaseStmt mc in s.Cases) {
+          DatatypeCtor ctor = null;
+          if (ctors != null) {
+            assert dtd != null;
+            if (!ctors.TryGetValue(mc.Id, out ctor)) {
+              Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
+            } else {
+              assert ctor != null;  // follows from postcondition of TryGetValue
+              mc.Ctor = ctor;
+              if (ctor.Formals.Count != mc.Arguments.Count) {
+                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Arguments.Count, ctor.Formals.Count);
+              }
+              if (memberNamesUsed.ContainsKey(mc.Id)) {
+                Error(mc.tok, "member {0} appears in more than one case", mc.Id);
+              } else {
+                memberNamesUsed.Add(mc.Id, null);  // add mc.Id to the set of names used
+              }
+            }
+          }
+          scope.PushMarker();
+          if (ctor != null) {
+            // add the constructor's own type parameters to the substitution map
+            foreach (TypeParameter p in ctor.TypeArgs) {
+              subst.Add(p, new ParamTypeProxy(p));
+            }
+          }
+          int i = 0;
+          foreach (BoundVar v in mc.Arguments) {
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate parameter name: {0}", v.Name);
+            }
+            ResolveType(v.Type);
+            if (ctor != null && i < ctor.Formals.Count) {
+              Type st = SubstType(ctor.Formals[i].Type, subst);
+              if (!UnifyTypes(v.Type, st)) {
+                Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
+              }
+            }
+            i++;
+          }
+          foreach (Statement ss in mc.Body) {
+            ResolveStatement(ss, bodyIsSpecOnly, method);
+          }
+          scope.PopMarker();
+        }
+        if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
+          Error(stmt, "match expression does not cover all constructors");
+        }
+        
+        
       } else {
         assert false;
       }
@@ -1725,7 +1808,7 @@ namespace Microsoft.Dafny {
         
         Dictionary<string!,object> memberNamesUsed = new Dictionary<string!,object>();  // this is really a set
         expr.Type = new InferredTypeProxy();
-        foreach (MatchCase mc in me.Cases) {
+        foreach (MatchCaseExpr mc in me.Cases) {
           DatatypeCtor ctor = null;
           if (ctors != null) {
             assert dtd != null;
@@ -1957,7 +2040,7 @@ namespace Microsoft.Dafny {
         if (UsesSpecFeatures(me.Source)) {
           return true;
         }
-        return exists{MatchCase mc in me.Cases; UsesSpecFeatures(mc.Body)};
+        return exists{MatchCaseExpr mc in me.Cases; UsesSpecFeatures(mc.Body)};
       } else {
         assert false;  // unexpected expression
       }
