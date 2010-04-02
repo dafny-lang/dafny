@@ -721,28 +721,17 @@ List<Expression!>! decreases) {
 	}
 
 	static void MatchExpression(out Expression! e) {
-		Token! x;
+		Token! x;  MatchCaseExpr! c;
 		List<MatchCaseExpr!> cases = new List<MatchCaseExpr!>();
 		
 		Expect(36);
 		x = token; 
 		Expression(out e);
-		if (t.kind == 6) {
-			Get();
-			CaseExpressions(cases);
-			Expect(7);
-		} else if (t.kind == 7 || t.kind == 37) {
-			CaseExpressions(cases);
-		} else Error(108);
-		e = new MatchExpr(x, e, cases); 
-	}
-
-	static void CaseExpressions(List<MatchCaseExpr!>! cases) {
-		MatchCaseExpr! c; 
 		while (t.kind == 37) {
 			CaseExpression(out c);
 			cases.Add(c); 
 		}
+		e = new MatchExpr(x, e, cases); 
 	}
 
 	static void CaseExpression(out MatchCaseExpr! c) {
@@ -783,7 +772,7 @@ List<Expression!>! decreases) {
 			ss.Add(s); 
 		} else if (t.kind == 9 || t.kind == 14) {
 			VarDeclStmts(ss);
-		} else Error(109);
+		} else Error(108);
 	}
 
 	static void OneStmt(out Statement! s) {
@@ -857,7 +846,7 @@ List<Expression!>! decreases) {
 			s = new ReturnStmt(x); 
 			break;
 		}
-		default: Error(110); break;
+		default: Error(109); break;
 		}
 	}
 
@@ -1009,7 +998,7 @@ List<Expression!>! decreases) {
 			} else if (t.kind == 6) {
 				BlockStmt(out s);
 				els = s; 
-			} else Error(111);
+			} else Error(110);
 		}
 		ifStmt = new IfStmt(x, guard, thn, els); 
 	}
@@ -1048,13 +1037,16 @@ List<Expression!>! decreases) {
 	}
 
 	static void MatchStmt(out Statement! s) {
-		Token x;  Expression! e;
+		Token x;  Expression! e;  MatchCaseStmt! c;
 		List<MatchCaseStmt!> cases = new List<MatchCaseStmt!>(); 
 		Expect(36);
 		x = token; 
 		Expression(out e);
 		Expect(6);
-		CaseStatements(cases);
+		while (t.kind == 37) {
+			CaseStatement(out c);
+			cases.Add(c); 
+		}
 		Expect(7);
 		s = new MatchStmt(x, e, cases); 
 	}
@@ -1106,7 +1098,7 @@ List<Expression!>! decreases) {
 		} else if (t.kind == 44) {
 			HavocStmt(out s);
 			if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } 
-		} else Error(112);
+		} else Error(111);
 		Expect(7);
 		if (bodyAssign != null) {
 		 s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign);
@@ -1132,7 +1124,7 @@ List<Expression!>! decreases) {
 		} else if (StartOf(7)) {
 			Expression(out ee);
 			e = ee; 
-		} else Error(113);
+		} else Error(112);
 		if (e == null && ty == null) { e = dummyExpr; } 
 	}
 
@@ -1142,7 +1134,7 @@ List<Expression!>! decreases) {
 			IdentOrFuncExpression(out e);
 		} else if (t.kind == 26 || t.kind == 88 || t.kind == 89) {
 			ObjectExpression(out e);
-		} else Error(114);
+		} else Error(113);
 		while (t.kind == 83 || t.kind == 85) {
 			SelectOrCallSuffix(ref e);
 		}
@@ -1184,16 +1176,8 @@ List<Expression!>! decreases) {
 		} else if (StartOf(7)) {
 			Expression(out ee);
 			e = ee; 
-		} else Error(115);
+		} else Error(114);
 		Expect(27);
-	}
-
-	static void CaseStatements(List<MatchCaseStmt!>! cases) {
-		MatchCaseStmt! c; 
-		while (t.kind == 37) {
-			CaseStatement(out c);
-			cases.Add(c); 
-		}
 	}
 
 	static void CaseStatement(out MatchCaseStmt! c) {
@@ -1234,7 +1218,7 @@ List<Expression!>! decreases) {
 		} else if (t.kind == 26 || t.kind == 88 || t.kind == 89) {
 			ObjectExpression(out e);
 			SelectOrCallSuffix(ref e);
-		} else Error(116);
+		} else Error(115);
 		while (t.kind == 83 || t.kind == 85) {
 			SelectOrCallSuffix(ref e);
 		}
@@ -1267,7 +1251,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 57) {
 			Get();
-		} else Error(117);
+		} else Error(116);
 	}
 
 	static void LogicalExpression(out Expression! e0) {
@@ -1305,7 +1289,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 59) {
 			Get();
-		} else Error(118);
+		} else Error(117);
 	}
 
 	static void RelationalExpression(out Expression! e0) {
@@ -1323,7 +1307,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 61) {
 			Get();
-		} else Error(119);
+		} else Error(118);
 	}
 
 	static void OrOp() {
@@ -1331,7 +1315,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 63) {
 			Get();
-		} else Error(120);
+		} else Error(119);
 	}
 
 	static void Term(out Expression! e0) {
@@ -1407,7 +1391,7 @@ List<Expression!>! decreases) {
 			x = token;  op = BinaryExpr.Opcode.Ge; 
 			break;
 		}
-		default: Error(121); break;
+		default: Error(120); break;
 		}
 	}
 
@@ -1429,7 +1413,7 @@ List<Expression!>! decreases) {
 		} else if (t.kind == 74) {
 			Get();
 			x = token;  op = BinaryExpr.Opcode.Sub; 
-		} else Error(122);
+		} else Error(121);
 	}
 
 	static void UnaryExpression(out Expression! e) {
@@ -1448,7 +1432,7 @@ List<Expression!>! decreases) {
 			SelectExpression(out e);
 		} else if (StartOf(15)) {
 			ConstAtomExpression(out e);
-		} else Error(123);
+		} else Error(122);
 	}
 
 	static void MulOp(out Token! x, out BinaryExpr.Opcode op) {
@@ -1462,7 +1446,7 @@ List<Expression!>! decreases) {
 		} else if (t.kind == 76) {
 			Get();
 			x = token;  op = BinaryExpr.Opcode.Mod; 
-		} else Error(124);
+		} else Error(123);
 	}
 
 	static void NegOp() {
@@ -1470,7 +1454,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 78) {
 			Get();
-		} else Error(125);
+		} else Error(124);
 	}
 
 	static void ConstAtomExpression(out Expression! e) {
@@ -1552,7 +1536,7 @@ List<Expression!>! decreases) {
 			Expect(86);
 			break;
 		}
-		default: Error(126); break;
+		default: Error(125); break;
 		}
 	}
 
@@ -1607,9 +1591,9 @@ List<Expression!>! decreases) {
 				QuantifierGuts(out e);
 			} else if (StartOf(7)) {
 				Expression(out e);
-			} else Error(127);
+			} else Error(126);
 			Expect(27);
-		} else Error(128);
+		} else Error(127);
 	}
 
 	static void SelectOrCallSuffix(ref Expression! e) {
@@ -1654,7 +1638,7 @@ List<Expression!>! decreases) {
 				Get();
 				Expression(out ee);
 				anyDots = true;  e1 = ee; 
-			} else Error(129);
+			} else Error(128);
 			assert !anyDots ==> e0 != null;
 			if (anyDots) {
 			  assert e0 != null || e1 != null;
@@ -1668,7 +1652,7 @@ List<Expression!>! decreases) {
 			}
 			
 			Expect(86);
-		} else Error(130);
+		} else Error(129);
 	}
 
 	static void QuantifierGuts(out Expression! q) {
@@ -1687,7 +1671,7 @@ List<Expression!>! decreases) {
 		} else if (t.kind == 92 || t.kind == 93) {
 			Exists();
 			x = token; 
-		} else Error(131);
+		} else Error(130);
 		parseVarScope.PushMarker(); 
 		IdentTypeOptional(out bv);
 		bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); 
@@ -1715,7 +1699,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 91) {
 			Get();
-		} else Error(132);
+		} else Error(131);
 	}
 
 	static void Exists() {
@@ -1723,7 +1707,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 93) {
 			Get();
-		} else Error(133);
+		} else Error(132);
 	}
 
 	static void AttributeOrTrigger(ref Attributes attrs, ref Triggers trigs) {
@@ -1736,7 +1720,7 @@ List<Expression!>! decreases) {
 			es = new List<Expression!>(); 
 			Expressions(es);
 			trigs = new Triggers(es, trigs); 
-		} else Error(134);
+		} else Error(133);
 		Expect(7);
 	}
 
@@ -1745,7 +1729,7 @@ List<Expression!>! decreases) {
 			Get();
 		} else if (t.kind == 95) {
 			Get();
-		} else Error(135);
+		} else Error(134);
 	}
 
 	static void AttributeBody(ref Attributes attrs) {
@@ -1776,7 +1760,7 @@ List<Expression!>! decreases) {
 		} else if (StartOf(7)) {
 			Expression(out e);
 			arg = new Attributes.Argument(e); 
-		} else Error(136);
+		} else Error(135);
 	}
 
 
@@ -1903,35 +1887,34 @@ List<Expression!>! decreases) {
 			case 105: s = "invalid FunctionSpec"; break;
 			case 106: s = "invalid FunctionBody"; break;
 			case 107: s = "invalid PossiblyWildExpression"; break;
-			case 108: s = "invalid MatchExpression"; break;
-			case 109: s = "invalid Stmt"; break;
-			case 110: s = "invalid OneStmt"; break;
-			case 111: s = "invalid IfStmt"; break;
-			case 112: s = "invalid ForeachStmt"; break;
-			case 113: s = "invalid AssignRhs"; break;
-			case 114: s = "invalid SelectExpression"; break;
-			case 115: s = "invalid Guard"; break;
-			case 116: s = "invalid CallStmtSubExpr"; break;
-			case 117: s = "invalid EquivOp"; break;
-			case 118: s = "invalid ImpliesOp"; break;
-			case 119: s = "invalid AndOp"; break;
-			case 120: s = "invalid OrOp"; break;
-			case 121: s = "invalid RelOp"; break;
-			case 122: s = "invalid AddOp"; break;
-			case 123: s = "invalid UnaryExpression"; break;
-			case 124: s = "invalid MulOp"; break;
-			case 125: s = "invalid NegOp"; break;
-			case 126: s = "invalid ConstAtomExpression"; break;
+			case 108: s = "invalid Stmt"; break;
+			case 109: s = "invalid OneStmt"; break;
+			case 110: s = "invalid IfStmt"; break;
+			case 111: s = "invalid ForeachStmt"; break;
+			case 112: s = "invalid AssignRhs"; break;
+			case 113: s = "invalid SelectExpression"; break;
+			case 114: s = "invalid Guard"; break;
+			case 115: s = "invalid CallStmtSubExpr"; break;
+			case 116: s = "invalid EquivOp"; break;
+			case 117: s = "invalid ImpliesOp"; break;
+			case 118: s = "invalid AndOp"; break;
+			case 119: s = "invalid OrOp"; break;
+			case 120: s = "invalid RelOp"; break;
+			case 121: s = "invalid AddOp"; break;
+			case 122: s = "invalid UnaryExpression"; break;
+			case 123: s = "invalid MulOp"; break;
+			case 124: s = "invalid NegOp"; break;
+			case 125: s = "invalid ConstAtomExpression"; break;
+			case 126: s = "invalid ObjectExpression"; break;
 			case 127: s = "invalid ObjectExpression"; break;
-			case 128: s = "invalid ObjectExpression"; break;
+			case 128: s = "invalid SelectOrCallSuffix"; break;
 			case 129: s = "invalid SelectOrCallSuffix"; break;
-			case 130: s = "invalid SelectOrCallSuffix"; break;
-			case 131: s = "invalid QuantifierGuts"; break;
-			case 132: s = "invalid Forall"; break;
-			case 133: s = "invalid Exists"; break;
-			case 134: s = "invalid AttributeOrTrigger"; break;
-			case 135: s = "invalid QSep"; break;
-			case 136: s = "invalid AttributeArg"; break;
+			case 130: s = "invalid QuantifierGuts"; break;
+			case 131: s = "invalid Forall"; break;
+			case 132: s = "invalid Exists"; break;
+			case 133: s = "invalid AttributeOrTrigger"; break;
+			case 134: s = "invalid QSep"; break;
+			case 135: s = "invalid AttributeArg"; break;
 
 			default: s = "error " + n; break;
 		}

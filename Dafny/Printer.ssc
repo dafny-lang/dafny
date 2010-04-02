@@ -303,6 +303,13 @@ namespace Microsoft.Dafny {
       wr.Write(ty.ToString());
     }
 
+    public void PrintType(string! prefix, Type! ty) {
+      string s = ty.ToString();
+      if (s != "?") {
+        wr.Write("{0}{1}", prefix, s);
+      }
+    }
+
     // ----------------------------- PrintStatement -----------------------------
     
     /// <summary>
@@ -359,8 +366,7 @@ namespace Microsoft.Dafny {
         }
         wr.Write("var {0}", s.Name);
         if (s.OptionalType != null) {
-          wr.Write(": ");
-          PrintType(s.OptionalType);
+          PrintType(": ", s.OptionalType);
         }
         if (s.Rhs != null) {
           wr.Write(" := ");
@@ -386,7 +392,7 @@ namespace Microsoft.Dafny {
         }
         wr.Write("{0}(", s.MethodName);
         PrintExpressionList(s.Args);
-        wr.Write(")");
+        wr.Write(");");
         
       } else if (stmt is BlockStmt) {
         wr.WriteLine("{");
@@ -526,11 +532,8 @@ namespace Microsoft.Dafny {
         MatchExpr me = (MatchExpr)expr;
         wr.Write("match ");
         PrintExpression(me.Source);
-        bool needsCurlies = exists{MatchCaseExpr mc in me.Cases; mc.Body is MatchExpr};
-        wr.WriteLine(needsCurlies ? " {" : "");
-        int caseInd = indent + (needsCurlies ? IndentAmount : 0);
         foreach (MatchCaseExpr mc in me.Cases) {
-          Indent(caseInd);
+          Indent(indent);
           wr.Write("case {0}", mc.Id);
           if (mc.Arguments.Count != 0) {
             string sep = "(";
@@ -541,11 +544,7 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           wr.WriteLine(" =>");
-          PrintExtendedExpr(mc.Body, caseInd + IndentAmount);
-        }
-        if (needsCurlies) {
-          Indent(indent);
-          wr.WriteLine("}");
+          PrintExtendedExpr(mc.Body, indent + IndentAmount);
         }
       } else {
         PrintExpression(expr, indent);
@@ -781,9 +780,9 @@ namespace Microsoft.Dafny {
         wr.Write(e is ForallExpr ? "(forall " : "(exists ");
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
-          wr.Write("{0}{1}: ", sep, bv.Name);
+          wr.Write("{0}{1}", sep, bv.Name);
           sep = ", ";
-          PrintType(bv.Type);
+          PrintType(": ", bv.Type);
         }
         wr.Write(" :: ");
         PrintAttributes(e.Attributes);

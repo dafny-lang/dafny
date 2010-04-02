@@ -485,22 +485,14 @@ FunctionBody<out Expression! e>
   .
   
 MatchExpression<out Expression! e>
-= (. Token! x;
+= (. Token! x;  MatchCaseExpr! c;
      List<MatchCaseExpr!> cases = new List<MatchCaseExpr!>();
   .)
   "match"                     (. x = token; .)
   Expression<out e>
-  ( "{" CaseExpressions<cases> "}"  /* curly braces are optional; in the future, when match expressions can be nested, this will be handy */
-  /* Note, because the curly braces are optional, Coco generates a "CaseExpressions deletable" warning, but that's okay. */
-  | CaseExpressions<cases>
-  )
-  (. e = new MatchExpr(x, e, cases); .)
-  .
-
-CaseExpressions<List<MatchCaseExpr!\>! cases>
-= (. MatchCaseExpr! c; .)
   { CaseExpression<out c>     (. cases.Add(c); .)
   }
+  (. e = new MatchExpr(x, e, cases); .)
   .
 
 CaseExpression<out MatchCaseExpr! c>
@@ -696,18 +688,15 @@ Guard<out Expression e>   /* null represents demonic-choice */
   .
 
 MatchStmt<out Statement! s>
-= (. Token x;  Expression! e;
+= (. Token x;  Expression! e;  MatchCaseStmt! c;
      List<MatchCaseStmt!> cases = new List<MatchCaseStmt!>(); .)
   "match"                     (. x = token; .)
   Expression<out e>
-  "{" CaseStatements<cases> "}"
-  (. s = new MatchStmt(x, e, cases); .)
-  .
-
-CaseStatements<List<MatchCaseStmt!\>! cases>
-= (. MatchCaseStmt! c; .)
+  "{"
   { CaseStatement<out c>     (. cases.Add(c); .)
   }
+  "}"
+  (. s = new MatchStmt(x, e, cases); .)
   .
 
 CaseStatement<out MatchCaseStmt! c>
