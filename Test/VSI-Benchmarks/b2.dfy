@@ -1,6 +1,4 @@
 
-// Note:  There is a bug in the well-formedness of functions.  In particular,
-// it doesn't look at the requires clause (in the proper way).  Fixed!
 // Note:Implemented arrays as Dafny does not provide them
 
 class Benchmark2 {
@@ -40,10 +38,21 @@ class Benchmark2 {
 
 class Array {
   var contents: seq<int>;
-  method Init(n: int);
+  method Init(n: int)
     requires 0 <= n;
     modifies this;
     ensures |contents| == n;
+  {
+    var i := 0;
+    contents := [];
+    while (i < n)
+      invariant i <= n && i == |contents|;
+      decreases n - i;
+    {
+      contents := contents + [0];
+      i := i + 1;
+    }
+  }
   function method Length(): int
     reads this;
   { |contents| }
@@ -51,11 +60,47 @@ class Array {
     requires 0 <= i && i < |contents|;
     reads this;
   { contents[i] }
-  method Set(i: int, x: int);
+  method Set(i: int, x: int)
     requires 0 <= i && i < |contents|;
     modifies this;
     ensures |contents| == |old(contents)|;
     ensures contents[..i] == old(contents[..i]);
     ensures contents[i] == x;
     ensures contents[i+1..] == old(contents[i+1..]);
+  {
+    contents := contents[i := x];
+  }
 }
+
+/******
+method Main() {
+  var a := new Array;
+  call a.Init(5);
+  call a.Set(0, -4);
+  call a.Set(1, -2);
+  call a.Set(2, -2);
+  call a.Set(3, 0);
+  call a.Set(4, 25);
+  call TestSearch(a, 4);
+  call TestSearch(a, -8);
+  call TestSearch(a, -2);
+  call TestSearch(a, 0);
+  call TestSearch(a, 23);
+  call TestSearch(a, 25);
+  call TestSearch(a, 27);
+}
+
+method TestSearch(a: Array, key: int)
+  requires a != null;
+  requires (forall i, j ::
+              0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
+{
+  assert (forall i, j ::
+              0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
+  var b := new Benchmark2;
+  assert (forall i, j ::
+              0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
+  call r := b.BinarySearch(a, key);
+  print "Looking for key=", key, ", result=", r, "\n";
+}
+******/

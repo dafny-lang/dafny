@@ -4,9 +4,9 @@ class Queue<T> {
   var head: Node<T>;
   var tail: Node<T>;
 
-  var contents: seq<T>;
-  var footprint: set<object>;
-  var spine: set<Node<T>>;
+  ghost var contents: seq<T>;
+  ghost var footprint: set<object>;
+  ghost var spine: set<Node<T>>;
 
   function Valid(): bool
     reads this, footprint;
@@ -124,8 +124,8 @@ class Node<T> {
   var data: T;
   var next: Node<T>;
 
-  var tailContents: seq<T>;
-  var footprint: set<object>;
+  ghost var tailContents: seq<T>;
+  ghost var footprint: set<object>;
 
   function Valid(): bool
     reads this, footprint;

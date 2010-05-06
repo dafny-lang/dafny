@@ -46,7 +46,7 @@ static ghost method Lemma(l: List, v: int, val: int)
     case Nil =>
     case Cons(e, tail) =>
       call Theorem(e, v, val);
-	    call Lemma(tail, v, val);
+      call Lemma(tail, v, val);
   }
 }
 

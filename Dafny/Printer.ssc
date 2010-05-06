@@ -143,18 +143,22 @@ namespace Microsoft.Dafny {
         PrintAttributes(a.Prev);
         
         wr.Write("{ :{0}", a.Name);
-        string prefix = " ";
-        foreach (Attributes.Argument arg in a.Args) {
-          wr.Write(prefix);
-          prefix = ", ";
-          if (arg.S != null) {
-            wr.Write("\"{0}\"", arg.S);
-          } else {
-            assert arg.E != null;
-            PrintExpression(arg.E);
-          }
-        }
+        PrintAttributeArgs(a.Args);
         wr.Write(" } ");
+      }
+    }
+    
+    public void PrintAttributeArgs(List<Attributes.Argument!>! args) {
+      string prefix = " ";
+      foreach (Attributes.Argument arg in args) {
+        wr.Write(prefix);
+        prefix = ", ";
+        if (arg.S != null) {
+          wr.Write("\"{0}\"", arg.S);
+        } else {
+          assert arg.E != null;
+          PrintExpression(arg.E);
+        }
       }
     }
     
@@ -331,6 +335,12 @@ namespace Microsoft.Dafny {
       } else if (stmt is UseStmt) {
         wr.Write("use ");
         PrintExpression(((UseStmt)stmt).Expr);
+        wr.Write(";");
+        
+      } else if (stmt is PrintStmt) {
+        PrintStmt s = (PrintStmt)stmt;
+        wr.Write("print");
+        PrintAttributeArgs(s.Args);
         wr.Write(";");
         
       } else if (stmt is LabelStmt) {

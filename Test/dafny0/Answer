@@ -272,7 +272,7 @@ Modules0.dfy(24,7): Error: import graph contains a cycle: H -> I -> J -> G
 Modules0.dfy(51,6): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
 Modules0.dfy(62,6): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
 Modules0.dfy(72,6): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
-Modules0.dfy(91,4): Error: inter-module calls must follow the module import relation (so module $default must transitively import YY)
+Modules0.dfy(91,4): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
 7 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------

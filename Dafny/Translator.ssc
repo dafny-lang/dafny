@@ -1797,6 +1797,15 @@ namespace Microsoft.Dafny {
         // Skip the totality check.  This makes the 'use' statement easier to use and it has no executable analog anyhow
         // builder.Add(Assert(stmt.Tok, IsTotal(s.Expr, etran), "use expression must be well defined"));  // totality check
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, (s.EvalInOld ? etran.Old : etran).TrUseExpr(s.FunctionCallExpr)));
+      } else if (stmt is PrintStmt) {
+        AddComment(builder, stmt, "print statement");
+        PrintStmt s = (PrintStmt)stmt;
+        foreach (Attributes.Argument arg in s.Args) {
+          if (arg.E != null) {
+            builder.Add(AssertNS(stmt.Tok, IsTotal(arg.E, etran), "print expression must be well defined"));  // totality check
+          }
+        }
+        
       } else if (stmt is LabelStmt) {
         AddComment(builder, stmt, "label statement");  // TODO: ouch, comments probably mess up what the label labels in the Boogie program
         builder.AddLabelCmd(((LabelStmt)stmt).Label);

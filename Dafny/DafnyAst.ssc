@@ -353,7 +353,7 @@ namespace Microsoft.Dafny
   
   public class DefaultModuleDecl : ModuleDecl {
     public DefaultModuleDecl() {
-      base(Token.NoToken, "$default", new List<string!>(), null);
+      base(Token.NoToken, "_default", new List<string!>(), null);
     }
     public override bool IsDefaultModule {
       get { return true; }
@@ -385,7 +385,7 @@ namespace Microsoft.Dafny
   
   public class DefaultClassDecl : ClassDecl {
     public DefaultClassDecl(DefaultModuleDecl! module, [Captured] List<MemberDecl!>! members) {
-      base(Token.NoToken, "$default", module, new List<TypeParameter!>(), members, null);
+      base(Token.NoToken, "_default", module, new List<TypeParameter!>(), members, null);
     }
     public override bool IsDefaultClass {
       get { return true; }
@@ -394,6 +394,7 @@ namespace Microsoft.Dafny
   
   public class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor!>! Ctors;
+    public DatatypeCtor DefaultCtor;  // set during resolution
     
     public DatatypeDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
       Ctors = ctors;
@@ -483,8 +484,11 @@ namespace Microsoft.Dafny
       }
     } }
     public abstract bool IsMutable { get; }
-    readonly bool isGhost;
-    public bool IsGhost { get { return isGhost; } }
+    bool isGhost;  // readonly, except for BoundVar's of match expressions/statements during resolution
+    public bool IsGhost {
+      get { return isGhost; }
+      set { isGhost = value; }
+    }
     
     public NonglobalVariable(Token! tok, string! name, Type! type, bool isGhost) {
       this.tok = tok;
@@ -552,7 +556,7 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Mod;
     public readonly List<MaybeFreeExpression!>! Ens;
     public readonly List<Expression!>! Decreases;
-    public readonly Statement Body;
+    public readonly BlockStmt Body;
     
     public Method(Token! tok, string! name,
                   bool isStatic, bool isGhost,
@@ -560,7 +564,7 @@ namespace Microsoft.Dafny
                   [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
                   [Captured] List<MaybeFreeExpression!>! req, [Captured] List<Expression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
                   [Captured] List<Expression!>! decreases,
-                  [Captured] Statement body,
+                  [Captured] BlockStmt body,
                   Attributes attributes) {
       this.IsStatic = isStatic;
       this.IsGhost = isGhost;
@@ -580,6 +584,7 @@ namespace Microsoft.Dafny
   
   public abstract class Statement {
     public readonly Token! Tok;
+    public bool IsGhost;  // filled in by resolution
     public Statement(Token! tok) {
       this.Tok = tok;
     }
@@ -650,6 +655,15 @@ namespace Microsoft.Dafny
       get {
         return Expr is OldExpr;
       }
+    }
+  }
+  
+  public class PrintStmt : Statement {
+    public readonly List<Attributes.Argument!>! Args;
+    public PrintStmt(Token! tok, List<Attributes.Argument!>! args)
+    {
+      base(tok);
+      Args = args;
     }
   }
   
@@ -746,8 +760,7 @@ namespace Microsoft.Dafny
       }
     } }
     public bool IsMutable { get { return true; } }
-    protected bool isGhost;
-    public bool IsGhost { get { return isGhost; } }
+    bool IVariable.IsGhost { get { return base.IsGhost; } }
 
     public readonly DeterminedAssignmentRhs Rhs;
     invariant OptionalType != null || Rhs != null;
@@ -757,7 +770,7 @@ namespace Microsoft.Dafny
     {
       this.name = name;
       this.OptionalType = type;
-      this.isGhost = isGhost;
+      this.IsGhost = isGhost;
       this.Rhs = rhs;
       base(tok);
     }
@@ -774,7 +787,7 @@ namespace Microsoft.Dafny
     /// This method retrospectively makes the VarDecl a ghost.  It is to be used only during resolution.
     /// </summary>
     public void MakeGhost() {
-      isGhost = true;
+      base.IsGhost = true;
     }
   }
   
@@ -968,6 +981,7 @@ namespace Microsoft.Dafny
     public readonly string! MemberName;
     public readonly List<Expression!>! Arguments;
     public DatatypeCtor Ctor;  // filled in by resolution
+    public List<Type!>! InferredTypeArgs = new List<Type!>();  // filled in by resolution
     
     public DatatypeValue(Token! tok, string! datatypeName, string! memberName, [Captured] List<Expression!>! arguments) {
       this.DatatypeName = datatypeName;

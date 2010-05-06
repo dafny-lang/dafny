@@ -252,8 +252,10 @@ IdentTypeOptional<out BoundVar! var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out Token! id, out string! identName, out Type! ty>
-= (. string name = null; .)
+TypeIdentOptional<out Token! id, out string! identName, out Type! ty, out bool isGhost>
+= (. string name = null;  isGhost = false; .)
+  [ "ghost"                            (. isGhost = true; .)
+  ]
   TypeAndToken<out id, out ty>
   [ ":"
     (. /* try to convert ty to an identifier */
@@ -297,7 +299,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      List<Expression!> mod = new List<Expression!>();
      List<MaybeFreeExpression!> ens = new List<MaybeFreeExpression!>();
      List<Expression!> dec = new List<Expression!>();
-     Statement! bb;  Statement body = null;
+     Statement! bb;  BlockStmt body = null;
   .)
   "method"
   (. if (mmod.IsUse) { SemErr(token, "methods cannot be declared 'use'"); }
@@ -312,7 +314,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   ]
 
   ( ";" { MethodSpec<req, mod, ens, dec> }
-  | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb>    (. body = bb; .)
+  | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb>    (. body = (BlockStmt)bb; .)
   )
   
   (. parseVarScope.PopMarker();
@@ -349,11 +351,11 @@ Formals<bool incoming, bool allowGhosts, List<Formal!\>! formals>
   .
 
 FormalsOptionalIds<List<Formal!\>! formals> 
-= (. Token! id;  Type! ty;  string! name; .)
+= (. Token! id;  Type! ty;  string! name;  bool isGhost; .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty>        (. formals.Add(new Formal(id, name, ty, true, false));  parseVarScope.Push(name, name); .)
-    { "," TypeIdentOptional<out id, out name, out ty>  (. formals.Add(new Formal(id, name, ty, true, false));  parseVarScope.Push(name, name); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost));  parseVarScope.Push(name, name); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost>  (. formals.Add(new Formal(id, name, ty, true, isGhost));  parseVarScope.Push(name, name); .)
     }
   ]
   ")"
@@ -549,6 +551,7 @@ OneStmt<out Statement! s>
   ( AssertStmt<out s>
   | AssumeStmt<out s>
   | UseStmt<out s>
+  | PrintStmt<out s>
   | AssignStmt<out s>
   | HavocStmt<out s>
   | CallStmt<out s>
@@ -826,6 +829,17 @@ UseStmt<out Statement! s>
 = (. Token! x;  Expression! e; .)
   "use"                                        (. x = token; .)
   Expression<out e> ";"                        (. s = new UseStmt(x, e); .)
+  .
+
+PrintStmt<out Statement! s>
+= (. Token! x;  Attributes.Argument! arg;
+     List<Attributes.Argument!> args = new List<Attributes.Argument!>();
+  .)
+  "print"                                      (. x = token; .)
+  AttributeArg<out arg>                        (. args.Add(arg); .)
+  { "," AttributeArg<out arg>                  (. args.Add(arg); .)
+  }
+  ";"                                          (. s = new PrintStmt(x, args); .)
   .
 
 /*------------------------------------------------------------------------*/

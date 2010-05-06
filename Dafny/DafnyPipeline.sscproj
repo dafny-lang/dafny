@@ -131,6 +131,10 @@
                  SubType="Code"
                  RelPath="SccGraph.ssc"
                  />
+        <File BuildAction="Compile"
+                 SubType="Code"
+                 RelPath="Compiler.ssc"
+                 />
       </Include>
     </Files>
   </XEN>

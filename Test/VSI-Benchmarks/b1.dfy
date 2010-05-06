@@ -47,4 +47,29 @@ class Benchmark1 {
       call r := Add(r, y);
     }
   }
+
+  method Main() {
+    call TestAdd(3, 180);
+    call TestAdd(3, -180);
+    call TestAdd(0, 1);
+
+    call TestMul(3, 180);
+    call TestMul(3, -180);
+    call TestMul(180, 3);
+    call TestMul(-180, 3);
+    call TestMul(0, 1);
+    call TestMul(1, 0);
+  }
+
+  method TestAdd(x: int, y: int) {
+    print x, " + ", y, " = ";
+    call z := Add(x, y);
+    print z, "\n";
+  }
+
+  method TestMul(x: int, y: int) {
+    print x, " * ", y, " = ";
+    call z := Mul(x, y);
+    print z, "\n";
+  }
 }

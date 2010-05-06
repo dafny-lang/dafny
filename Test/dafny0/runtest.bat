@@ -26,5 +26,5 @@ for %%f in (TypeTests.dfy SmallTests.dfy Definedness.dfy
             Tree.dfy) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% %* %%f
+  %DAFNY_EXE% /compile:0 %* %%f
 )

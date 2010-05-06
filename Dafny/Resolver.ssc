@@ -303,7 +303,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Check that the datatype has some constructor all whose argument types go to a lower stratum, which means
     /// go to a different SCC or to a type in 'goodOnes'.
-    /// Returns 'true' if that is the case.
+    /// Returns 'true' and sets dt.DefaultCtor if that is the case.
     /// </summary>
     bool StratosphereCheck(DatatypeDecl! dt, Graph<DatatypeDecl!>! dependencies, List<DatatypeDecl!>! goodOnes) {
       // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
@@ -324,6 +324,7 @@ namespace Microsoft.Dafny {
           }
         }
         // this constructor satisfies the requirements, so the datatype is allowed
+        dt.DefaultCtor = ctor;
         return true;
         NEXT_OUTER_ITERATION: {}
       }
@@ -334,10 +335,14 @@ namespace Microsoft.Dafny {
     void ResolveAttributes(Attributes attrs, bool twoState) {
       // order does not matter for resolution, so resolve them in reverse order
       for (; attrs != null; attrs = attrs.Prev) {
-        foreach (Attributes.Argument aa in attrs.Args) {
-          if (aa.E != null) {
-            ResolveExpression(aa.E, twoState, true);
-          }
+        ResolveAttributeArgs(attrs.Args, twoState, true);
+      }
+    }
+        
+    void ResolveAttributeArgs(List<Attributes.Argument!>! args, bool twoState, bool specContext) {
+      foreach (Attributes.Argument aa in args) {
+        if (aa.E != null) {
+          ResolveExpression(aa.E, twoState, specContext);
         }
       }
     }
@@ -792,6 +797,7 @@ namespace Microsoft.Dafny {
     {
       if (stmt is UseStmt) {
         UseStmt s = (UseStmt)stmt;
+        s.IsGhost = true;
         ResolveExpression(s.Expr, true, true);
         assert s.Expr.Type != null;  // follows from postcondition of ResolveExpression
         Expression expr = s.Expr;
@@ -808,12 +814,17 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
+        s.IsGhost = true;
         ResolveExpression(s.Expr, true, true);
         assert s.Expr.Type != null;  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
           Error(s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
         }
-        
+      
+      } else if (stmt is PrintStmt) {
+        PrintStmt s = (PrintStmt)stmt;
+        ResolveAttributeArgs(s.Args, false, false);
+          
       } else if (stmt is BreakStmt) {
         BreakStmt s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -852,15 +863,17 @@ namespace Microsoft.Dafny {
             Error(stmt, "Assignment to field must have an expression RHS; try using a temporary local variable");
           } else {
             FieldSelectExpr fse = (FieldSelectExpr)s.Lhs;
-            lvalueIsGhost = ((!)fse.Field).IsGhost;
-            if (!lvalueIsGhost) {
-              if (specContextOnly) {
-                Error(stmt, "Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
-              } else {
-                // It is now that we wish we would have resolved s.Lhs to not allow ghosts.  Too late, so we do
-                // the next best thing.
-                if (lhsResolvedSuccessfully && UsesSpecFeatures(fse.Obj)) {
-                  Error(stmt, "Assignment to non-ghost field is not allowed to use specification-only expressions in the receiver");
+            if (fse.Field != null) {  // otherwise, an error was reported above
+              lvalueIsGhost = fse.Field.IsGhost;
+              if (!lvalueIsGhost) {
+                if (specContextOnly) {
+                  Error(stmt, "Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+                } else {
+                  // It is now that we wish we would have resolved s.Lhs to not allow ghosts.  Too late, so we do
+                  // the next best thing.
+                  if (lhsResolvedSuccessfully && UsesSpecFeatures(fse.Obj)) {
+                    Error(stmt, "Assignment to non-ghost field is not allowed to use specification-only expressions in the receiver");
+                  }
                 }
               }
             }
@@ -869,6 +882,7 @@ namespace Microsoft.Dafny {
           Error(stmt, "LHS of assignment must denote a mutable variable or field");
         }
         
+        s.IsGhost = lvalueIsGhost;
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, true, lvalueIsGhost);
@@ -941,6 +955,7 @@ namespace Microsoft.Dafny {
         } else {
           callee = (Method)member;
           s.Method = callee;
+          s.IsGhost = callee.IsGhost;
           if (specContextOnly && !callee.IsGhost) {
             Error(s, "only ghost methods can be called from this context");
           }
@@ -1062,6 +1077,7 @@ namespace Microsoft.Dafny {
             branchesAreSpecOnly = UsesSpecFeatures(s.Guard);
           }
         }
+        s.IsGhost = branchesAreSpecOnly;
         ResolveStatement(s.Thn, branchesAreSpecOnly, method);
         if (s.Els != null) {
           ResolveStatement(s.Els, branchesAreSpecOnly, method);
@@ -1093,6 +1109,7 @@ namespace Microsoft.Dafny {
           ResolveExpression(e, true, true);
           // any type is fine
         }
+        s.IsGhost = bodyIsSpecOnly;
         ResolveStatement(s.Body, bodyIsSpecOnly, method);
       
       } else if (stmt is ForeachStmt) {
@@ -1123,6 +1140,7 @@ namespace Microsoft.Dafny {
 
         bool specOnly = specContextOnly ||
                         (successfullyResolvedCollectionAndRange && (UsesSpecFeatures(s.Collection) || UsesSpecFeatures(s.Range)));
+        s.IsGhost = specOnly;
         ResolveStatement(s.BodyAssign, specOnly, method);
         // check for correct usage of BoundVar in LHS and RHS of this assignment
         FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
@@ -1166,6 +1184,7 @@ namespace Microsoft.Dafny {
             subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
           }
         }
+        s.IsGhost = bodyIsSpecOnly;
         
         Dictionary<string!,object> memberNamesUsed = new Dictionary<string!,object>();  // this is really a set
         foreach (MatchCaseStmt mc in s.Cases) {
@@ -1201,10 +1220,12 @@ namespace Microsoft.Dafny {
             }
             ResolveType(v.Type);
             if (ctor != null && i < ctor.Formals.Count) {
-              Type st = SubstType(ctor.Formals[i].Type, subst);
+              Formal formal = ctor.Formals[i];
+              Type st = SubstType(formal.Type, subst);
               if (!UnifyTypes(v.Type, st)) {
                 Error(stmt, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               }
+              v.IsGhost = formal.IsGhost;
             }
             i++;
           }
@@ -1378,6 +1399,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < dt.TypeArgs.Count; i++) {
             Type t = new InferredTypeProxy();
             gt.Add(t);
+            dtv.InferredTypeArgs.Add(t);
             subst.Add(dt.TypeArgs[i], t);
           }
           expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
@@ -1394,15 +1416,18 @@ namespace Microsoft.Dafny {
             }
             // add the constructor's own type parameters to the substitution map
             foreach (TypeParameter p in ctor.TypeArgs) {
-              subst.Add(p, new ParamTypeProxy(p));
+              Type t = new ParamTypeProxy(p);
+              dtv.InferredTypeArgs.Add(t);
+              subst.Add(p, t);
             }
           }
           int j = 0;
           foreach (Expression arg in dtv.Arguments) {
-            ResolveExpression(arg, twoState, specContext);
+            Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
+            ResolveExpression(arg, twoState, specContext || (formal != null && formal.IsGhost));
             assert arg.Type != null;  // follows from postcondition of ResolveExpression
-            if (ctor != null && j < ctor.Formals.Count) {
-              Type st = SubstType(ctor.Formals[j].Type, subst);
+            if (formal != null) {
+              Type st = SubstType(formal.Type, subst);
               if (!UnifyTypes(arg.Type, st)) {
                 Error(arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
               }
@@ -1841,10 +1866,12 @@ namespace Microsoft.Dafny {
             }
             ResolveType(v.Type);
             if (ctor != null && i < ctor.Formals.Count) {
-              Type st = SubstType(ctor.Formals[i].Type, subst);
+              Formal formal = ctor.Formals[i];
+              Type st = SubstType(formal.Type, subst);
               if (!UnifyTypes(v.Type, st)) {
                 Error(expr, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
               }
+              v.IsGhost = formal.IsGhost;
             }
             i++;
           }

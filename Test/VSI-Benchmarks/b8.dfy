@@ -155,7 +155,7 @@ class Word
 }
   
 class ReaderStream {
-  var footprint:set<object>;
+  ghost var footprint:set<object>;
   var isOpen:bool;
   
   function Valid():bool
@@ -188,7 +188,7 @@ class ReaderStream {
 }
 
 class WriterStream {
-  var footprint:set<object>;
+  ghost var footprint:set<object>;
   var stream:seq<int>; 
   var isOpen:bool;
   

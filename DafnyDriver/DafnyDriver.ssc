@@ -229,8 +229,24 @@ namespace Microsoft.Boogie
           int errorCount, verified, inconclusives, timeOuts, outOfMemories;
           PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, null/*new ErrorReporter()*/, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
           switch (oc) {
-            case PipelineOutcome.Done:
             case PipelineOutcome.VerificationCompleted:
+              if (CommandLineOptions.Clo.Compile) {
+                string targetFilename = "out.cs";
+                using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
+                  Dafny.Compiler compiler = new Dafny.Compiler(target);
+                  compiler.Compile(dafnyProgram);
+                  WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
+                  if (compiler.ErrorCount == 0) {
+                    Console.WriteLine("Compiled program written to {0}", targetFilename);
+                  } else {
+                    Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
+                  }
+                }
+              } else {
+                WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
+              }
+              break;
+            case PipelineOutcome.Done:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
               break;
             default:
