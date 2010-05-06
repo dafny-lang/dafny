@@ -827,6 +827,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
     }
         
+#if OLD_FRAME_AXIOM
     /// <summary>
     /// Generates:
     ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
@@ -863,7 +864,7 @@ namespace Microsoft.Dafny {
       
       Bpl.Expr wellFormed = Bpl.Expr.And(
         FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
-        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr));
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
       
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$o", predef.RefType));
@@ -927,6 +928,99 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Imp(Bpl.Expr.And(q0, q1), eq)));
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
     }
+#else
+    /// <summary>
+    /// Generates:
+    ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
+    ///        { HeapSucc(h0,h1), F(h1,formals) }
+    ///        heaps are well-formed and formals are allocated AND
+    ///        HeapSucc(h0,h1)
+    ///        AND
+    ///        (forall(alpha) o: ref, f: Field alpha ::
+    ///            o != null AND h0[o,alloc] AND h1[o,alloc] AND
+    ///            o in reads clause of formals in h0
+    ///            IMPLIES h0[o,f] == h1[o,f])
+    ///        IMPLIES
+    ///        F(h0,formals) == F(h1,formals)
+    ///      );
+    ///
+    /// If the function is a "use" function, then "F "in the last line is replaced by "F#alt".
+    /// </summary>
+    void AddFrameAxiom(Function! f)
+      requires sink != null && predef != null;
+    {
+      Bpl.BoundVariable h0Var = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h0", predef.HeapType));
+      Bpl.BoundVariable h1Var = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h1", predef.HeapType));
+      Bpl.Expr h0 = new Bpl.IdentifierExpr(f.tok, h0Var);
+      Bpl.Expr h1 = new Bpl.IdentifierExpr(f.tok, h1Var);
+      ExpressionTranslator etran0 = new ExpressionTranslator(this, predef, h0);
+      ExpressionTranslator etran1 = new ExpressionTranslator(this, predef, h1);
+      
+      Bpl.Expr wellFormed = Bpl.Expr.And(
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
+        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
+      
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$o", predef.RefType));
+      Bpl.Expr o = new Bpl.IdentifierExpr(f.tok, oVar);
+      Bpl.BoundVariable fieldVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$f", predef.FieldName(f.tok, alpha)));
+      Bpl.Expr field = new Bpl.IdentifierExpr(f.tok, fieldVar);
+      Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+      Bpl.Expr oNotNullAlloced = Bpl.Expr.And(oNotNull, Bpl.Expr.And(etran0.IsAlloced(f.tok, o), etran1.IsAlloced(f.tok, o)));
+      Bpl.Expr unchanged = Bpl.Expr.Eq(Bpl.Expr.SelectTok(f.tok, h0, o, field), Bpl.Expr.SelectTok(f.tok, h1, o, field));
+      
+      Bpl.Expr heapSucc = FunctionCall(f.tok, BuiltinFunction.HeapSucc, null, h0, h1);
+      Bpl.Expr r0 = InRWClause(f.tok, o, f.Reads, etran0, null, null);
+      Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
+        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
+      
+      // bvars:  h0, h1, formals
+      // f0args:  h0, formals
+      // f1args:  h1, formals
+      Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+      Bpl.ExprSeq f0args = new Bpl.ExprSeq();
+      Bpl.ExprSeq f1args = new Bpl.ExprSeq();
+      bvars.Add(h0Var);  bvars.Add(h1Var);
+      f0args.Add(h0);
+      f1args.Add(h1);
+      if (!f.IsStatic) {
+        Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+        Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
+        bvars.Add(thVar);
+        f0args.Add(th);
+        f1args.Add(th);
+
+        Type thisType = Resolver.GetThisType(f.tok, (!)f.EnclosingClass);
+        Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
+          Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
+        wellFormed = Bpl.Expr.And(wellFormed, wh);
+      }
+
+      foreach (Formal p in f.Formals) {
+        Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
+        bvars.Add(bv);
+        Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
+        f0args.Add(formal);
+        f1args.Add(formal);
+        Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0);
+        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
+        wh = GetWhereClause(p.tok, formal, p.Type, etran1);
+        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
+      }
+      
+      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.IsUse ? f.FullName + "#alt" : f.FullName, TrType(f.ResultType)));
+      Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
+      Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
+      Bpl.Expr eq = Bpl.Expr.Eq(F0, F1);
+      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(heapSucc, F1));
+      
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
+        Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, heapSucc),
+        Bpl.Expr.Imp(q0, eq)));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
+    }
+#endif
     
     Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran,
                          Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap)

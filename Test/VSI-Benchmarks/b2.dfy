@@ -63,16 +63,12 @@ class Array {
   method Set(i: int, x: int)
     requires 0 <= i && i < |contents|;
     modifies this;
-    ensures |contents| == |old(contents)|;
-    ensures contents[..i] == old(contents[..i]);
-    ensures contents[i] == x;
-    ensures contents[i+1..] == old(contents[i+1..]);
+    ensures contents == old(contents)[i := x];
   {
     contents := contents[i := x];
   }
 }
 
-/******
 method Main() {
   var a := new Array;
   call a.Init(5);
@@ -103,4 +99,3 @@ method TestSearch(a: Array, key: int)
   call r := b.BinarySearch(a, key);
   print "Looking for key=", key, ", result=", r, "\n";
 }
-******/

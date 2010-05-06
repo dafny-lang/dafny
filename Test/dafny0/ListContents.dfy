@@ -5,7 +5,7 @@ class Node<T> {
   var data: T;
   var next: Node<T>;
 
-  function Valid(): bool
+  use function Valid(): bool
     reads this, footprint;
   {
     this in this.footprint && null !in this.footprint &&

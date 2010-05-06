@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
           } else {
             ClassDecl cl = (ClassDecl)d;
             Indent(indent);
-            wr.Write("public class {0}", cl.IsDefaultClass ? "_DefaultClass" : cl.Name);
+            wr.Write("public class {0}", cl.Name);
             if (cl.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
             }

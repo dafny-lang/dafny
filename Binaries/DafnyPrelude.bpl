@@ -227,6 +227,10 @@ const unique alloc: Field bool;
 function DeclType<T>(Field T) returns (ClassName);
 
 function $HeapSucc(HeapType, HeapType) returns (bool);
+axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { h[r,f:=x] }
+  $HeapSucc(h, h[r,f:=x]));
+axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }
+  $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { k[o,alloc] } h[o,alloc] ==> k[o,alloc]));
 
