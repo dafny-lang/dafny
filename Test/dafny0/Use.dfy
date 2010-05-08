@@ -1,10 +1,12 @@
 class T {
   var x: int;
 
-  use function F(y: int): int
+  function F(y: int): int
+    decreases false;
   {
-    2*y
+    2*y + (if 1 < 0 then FEntry(y) else 0)
   }
+  function FEntry(y: int): int decreases true; { F(y) }
 
   method M(s: set<T>) {
     use F(4);
@@ -14,9 +16,9 @@ class T {
     assert F(72) == 14;  // error (just plain wrong)
   }
 
-  use function FF(y: int): int
+  function FF(y: int): int
   {
-    F(y)
+    FEntry(y)
   }
 
   method MM() {
@@ -33,11 +35,11 @@ class T {
     assert FF(9) == 18;  // error (definition of F not engaged; the use of FF does not help)
   }
 
-  use function G(y: int): bool
+  function G(y: int): bool decreases false;
   {
-    0 <= y
+    0 <= y || (1 < 0 && GG(y))
   }
-  use function GG(y: int): bool
+  unlimited function GG(y: int): bool decreases true;
   {
     G(y)
   }
@@ -52,13 +54,13 @@ class T {
     assert !GG(-7);  // error (the negation disables the expansion of GG in the assert)
   }
 
-  use function H(): int
-    reads this;
+  function H(): int
+    reads this; decreases false;
   {
-    x
+    x + (if 1 < 0 then HH() else 0)
   }
-  use function HH(): int
-    reads this;
+  unlimited function HH(): int
+    reads this; decreases true;
   {
     H()
   }
@@ -125,13 +127,13 @@ class T {
                                            // case nothing is known about how H() changed
   }
 
-  use function K(): bool
-    reads this;
+  function K(): bool
+    reads this; decreases false;
   {
-    x <= 100
+    x <= 100 || (1 < 0 && KK())
   }
-  use function KK(): bool
-    reads this;
+  unlimited function KK(): bool
+    reads this; decreases true;
   {
     K()
   }
@@ -148,7 +150,7 @@ class T {
     requires KK();
     modifies this;
   {
-    use K();  // KK in the precondition and KK's definition give K#alt, which this use expands
+    use K();  // KK in the precondition and KK's definition give K#limited, which this use expands
     x := x - 1;
     assert KK();  // the assert expands KK to K, definition of K expands K
   }
@@ -174,7 +176,7 @@ class T {
 }
 
 class Recursive {
-  use function Gauss(n: int): int
+  function Gauss(n: int): int
     requires 0 <= n;
     decreases n;
   {
@@ -195,7 +197,7 @@ class Recursive {
     }
   }
 
-  use function Fib(n: int): int
+  function Fib(n: int): int
     requires 0 <= n;
     decreases n;
   {

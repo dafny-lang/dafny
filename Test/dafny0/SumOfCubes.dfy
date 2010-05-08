@@ -1,5 +1,5 @@
 class SumOfCubes {
-  static use function SumEmUp(n: int, m: int): int
+  static function SumEmUp(n: int, m: int): int
     requires 0 <= n && n <= m;
     decreases m - n;
   {
@@ -42,7 +42,7 @@ class SumOfCubes {
     call Lemma3(0, k);
   }
 
-  static use function GSum(k: int): int
+  static function GSum(k: int): int
     requires 0 <= k;
     decreases k;
   {
@@ -87,7 +87,7 @@ class SumOfCubes {
     }
   }
 
-  static use function SumEmDown(n: int, m: int): int
+  static function SumEmDown(n: int, m: int): int
     requires 0 <= n && n <= m;
     decreases m;
   {

@@ -147,6 +147,20 @@ namespace Microsoft.Dafny {
     }
     
     /// <summary>
+    /// Idempotently adds 'n' as a vertex and then returns the size of the set of Node's in the strongly connected component
+    /// that contains 'n'.
+    /// </summary>
+    public int GetSCCSize(Node n)
+      ensures 1 <= result;
+    {
+      Vertex v = GetVertex(n);
+      ComputeSCCs();
+      Vertex repr = v.SccRepresentative;
+      assert repr != null && repr.SccMembers != null;  // follows from postcondition of ComputeSCCs
+      return repr.SccMembers.Count;
+    }
+    
+    /// <summary>
     /// This method sets the SccRepresentative fields of the graph's vertices so that two
     /// vertices have the same representative iff they are in the same strongly connected
     /// component.

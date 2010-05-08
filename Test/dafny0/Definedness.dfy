@@ -176,7 +176,7 @@ class StatementTwoShoes {
     }
   }
 
-  use function G(w: int): int { 5 }
+  function G(w: int): int { 5 }
   function method H(x: int): int;
 
   method V(s: set<StatementTwoShoes>, a: int, b: int)

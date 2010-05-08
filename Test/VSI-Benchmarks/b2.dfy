@@ -53,10 +53,10 @@ class Array {
       i := i + 1;
     }
   }
-  function method Length(): int
+   function method Length(): int
     reads this;
   { |contents| }
-  function method Get(i: int): int
+   function method Get(i: int): int
     requires 0 <= i && i < |contents|;
     reads this;
   { contents[i] }
@@ -88,14 +88,9 @@ method Main() {
 
 method TestSearch(a: Array, key: int)
   requires a != null;
-  requires (forall i, j ::
-              0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
+  requires (forall i, j :: 0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
 {
-  assert (forall i, j ::
-              0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
   var b := new Benchmark2;
-  assert (forall i, j ::
-              0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
   call r := b.BinarySearch(a, key);
   print "Looking for key=", key, ", result=", r, "\n";
 }

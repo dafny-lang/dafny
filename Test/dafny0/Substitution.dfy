@@ -67,7 +67,7 @@ static function Substitute(e: Expression, v: int, val: int): Expression
   case Nary(op, args) => #Expression.Nary(op, SubstSeq(e, args, v, val))
 }
 
-use static function SubstSeq(/*ghost*/ parent: Expression,
+static function SubstSeq(/*ghost*/ parent: Expression,
                          q: seq<Expression>, v: int, val: int): seq<Expression>
   requires (exists op,args :: parent == #Expression.Nary(op, args) && q <= args);
   decreases parent, false, q;

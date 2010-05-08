@@ -64,10 +64,12 @@ class IntSet {
       m := n;
     } else {
       if (x < n.data) {
+        assert n.right == null || n.right.Valid();
         call t := InsertHelper(x, n.left);
         n.left := t;
         n.footprint := n.footprint + n.left.footprint;
       } else {
+        assert n.left == null || n.left.Valid();
         call t := InsertHelper(x, n.right);
         n.right := t;
         n.footprint := n.footprint + n.right.footprint;

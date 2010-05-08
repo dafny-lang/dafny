@@ -521,7 +521,8 @@ namespace Microsoft.Dafny
   public class Function : MemberDecl, TypeParameter.ParentType {
     public readonly bool IsStatic;
     public readonly bool IsGhost;  // functions are "ghost" by default; a non-ghost function is called a "function method"
-    public readonly bool IsUse;
+    public readonly bool IsUnlimited;
+    public bool IsRecursive;  // filled in during resolution
     public readonly List<TypeParameter!>! TypeArgs;
     public readonly List<Formal!>! Formals;
     public readonly Type! ResultType;
@@ -530,11 +531,11 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
-    public Function(Token! tok, string! name, bool isStatic, bool isGhost, bool isUse, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
+    public Function(Token! tok, string! name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
                     List<Expression!>! req, List<Expression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
       this.IsStatic = isStatic;
       this.IsGhost = isGhost;
-      this.IsUse = isUse;
+      this.IsUnlimited = isUnlimited;
       this.TypeArgs = typeArgs;
       this.Formals = formals;
       this.ResultType = resultType;
@@ -1095,21 +1096,6 @@ namespace Microsoft.Dafny
       Owner.AssignSame(this, receiver);
       this.Receiver = receiver;
       this.Args = args;
-    }
-  }
-  
-  /// <summary>
-  /// UseExpr's are used only temporarily during translation.
-  /// </summary>
-  public class UseExpr : FunctionCallExpr {
-    [NotDelayed] [Captured]
-    public UseExpr(FunctionCallExpr! fce)
-      requires fce.Function != null && fce.Function.IsUse;
-    {
-      base(fce.tok, fce.Name, fce.Receiver, new List<Expression!>(fce.Args));
-      this.Function = fce.Function;
-      assume Type.Bool.IsPeerConsistent;  // This would follow from BoolType being an Immutable type, or from Type.Bool being [Frozen]
-      this.Type = Type.Bool;
     }
   }
   

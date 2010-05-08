@@ -30,7 +30,7 @@ static int anonymousIds = 0;
 struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
-  public bool IsUse;
+  public bool IsUnlimited;
 }
 
 // helper routine for parsing call statements
@@ -173,7 +173,7 @@ ClassMemberDecl<List<MemberDecl!\>! mm>
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; .)
-  | "use"                                  (. mmod.IsUse = true; .)
+  | "unlimited"                            (. mmod.IsUnlimited = true; .)
   }
   ( FieldDecl<mmod, mm>
   | FunctionDecl<mmod, out f>              (. mm.Add(f); .)
@@ -219,7 +219,7 @@ FieldDecl<MemberModifiers mmod, List<MemberDecl!\>! mm>
      Token! id;  Type! ty;
   .)
   "var"
-  (. if (mmod.IsUse) { SemErr(token, "fields cannot be declared 'use'"); }
+  (. if (mmod.IsUnlimited) { SemErr(token, "fields cannot be declared 'unlimited'"); }
      if (mmod.IsStatic) { SemErr(token, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
@@ -302,7 +302,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      Statement! bb;  BlockStmt body = null;
   .)
   "method"
-  (. if (mmod.IsUse) { SemErr(token, "methods cannot be declared 'use'"); }
+  (. if (mmod.IsUnlimited) { SemErr(token, "methods cannot be declared 'unlimited'"); }
   .)
   { Attribute<ref attrs> }
   Ident<out id>
@@ -442,7 +442,7 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
     FunctionBody<out bb>                (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUse, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+     f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
   .)
   .
 

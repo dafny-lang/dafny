@@ -403,8 +403,8 @@ namespace Microsoft.Dafny {
               Bpl.Axiom ax = FunctionAxiom(f, f.Body, null, null, null);
               sink.TopLevelDeclarations.Add(ax);
             }
-            if (f.IsUse) {
-              AddUseAxioms(f);
+            if (f.IsRecursive && !f.IsUnlimited) {
+              AddLimitedAxioms(f);
             }
           }
           AddFrameAxiom(f);
@@ -450,7 +450,7 @@ namespace Microsoft.Dafny {
       // If a specialization is provided, occurrences of "specializationFormal" in "body" are also replaced by
       // that expression.
       //
-      // The translation of "body" uses the #alt form of all "use" functions.
+      // The translation of "body" uses the #limited form whenever the callee is in the same SCC of the call graph.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
@@ -526,16 +526,15 @@ namespace Microsoft.Dafny {
         substMap.Add(specializationFormal, r);
         body = Substitute(body, null, substMap);
       }
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.AltFunctions.TrExpr(body))));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(body))));
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax));
     }
     
-    void AddUseAxioms(Function! f)
-      requires f.IsUse;
+    void AddLimitedAxioms(Function! f)
+      requires f.IsRecursive && !f.IsUnlimited;
       requires sink != null && predef != null;
     {
-      // axiom (forall formals :: { f(args) } f(args) == f#alt(args))
-      // axiom (forall formals :: { f#use(args) } f#use(args) ==> f(args) == f#alt(args))
+      // axiom (forall formals :: { f(args) } f(args) == f#limited(args))
 
       Bpl.VariableSeq formals = new Bpl.VariableSeq();
       Bpl.ExprSeq args = new Bpl.ExprSeq();
@@ -561,19 +560,13 @@ namespace Microsoft.Dafny {
       
       Bpl.FunctionCall origFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
       Bpl.Expr origFuncAppl = new Bpl.NAryExpr(f.tok, origFuncID, args);
-      Bpl.FunctionCall altFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#alt", TrType(f.ResultType)));
-      Bpl.Expr altFuncAppl = new Bpl.NAryExpr(f.tok, altFuncID, args);
-      Bpl.FunctionCall useFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#use", Bpl.Type.Bool));
-      Bpl.Expr useFuncAppl = new Bpl.NAryExpr(f.tok, useFuncID, args);
+      Bpl.FunctionCall limitedFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#limited", TrType(f.ResultType)));
+      Bpl.Expr limitedFuncAppl = new Bpl.NAryExpr(f.tok, limitedFuncID, args);
       
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(origFuncAppl));
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(origFuncAppl, altFuncAppl));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
-      
-      tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(useFuncAppl));
-      ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(useFuncAppl, Bpl.Expr.Eq(origFuncAppl, altFuncAppl)));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(origFuncAppl, limitedFuncAppl));
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
     }
     
@@ -827,108 +820,6 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
     }
         
-#if OLD_FRAME_AXIOM
-    /// <summary>
-    /// Generates:
-    ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
-    ///        { F(h0,formals), F(h1,formals) }
-    ///        heaps are well-formed and formals are allocated
-    ///        AND
-    ///        (forall(alpha) o: ref, f: Field alpha ::
-    ///            o != null AND h0[o,alloc] AND h1[o,alloc] AND
-    ///            o in reads clause of formals in h0
-    ///            IMPLIES h0[o,f] == h1[o,f])
-    ///        AND
-    ///        (forall(alpha) o: ref, f: Field alpha ::
-    ///            o != null AND h1[o,alloc] AND h0[o,alloc] AND
-    ///            o in reads clause of formals in h1
-    ///            IMPLIES h0[o,f] == h1[o,f])
-    ///        IMPLIES
-    ///        F(h0,formals) == F(h1,formals)
-    ///      );
-    /// Note, the second h?[o,alloc] in the antecedent of each inner forall above is sound
-    /// because user expressions are not allowed to quantify over all allocated objects, and
-    /// in particular, they have no way to depend on the .alloc field of an object.
-    ///
-    /// If the function is a "use" function, then "F "in the last line is replaced by "F#alt".
-    /// </summary>
-    void AddFrameAxiom(Function! f)
-      requires sink != null && predef != null;
-    {
-      Bpl.BoundVariable h0Var = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h0", predef.HeapType));
-      Bpl.BoundVariable h1Var = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$h1", predef.HeapType));
-      Bpl.Expr h0 = new Bpl.IdentifierExpr(f.tok, h0Var);
-      Bpl.Expr h1 = new Bpl.IdentifierExpr(f.tok, h1Var);
-      ExpressionTranslator etran0 = new ExpressionTranslator(this, predef, h0);
-      ExpressionTranslator etran1 = new ExpressionTranslator(this, predef, h1);
-      
-      Bpl.Expr wellFormed = Bpl.Expr.And(
-        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
-        FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
-      
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$o", predef.RefType));
-      Bpl.Expr o = new Bpl.IdentifierExpr(f.tok, oVar);
-      Bpl.BoundVariable fieldVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$f", predef.FieldName(f.tok, alpha)));
-      Bpl.Expr field = new Bpl.IdentifierExpr(f.tok, fieldVar);
-      Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-      Bpl.Expr oNotNullAlloced = Bpl.Expr.And(oNotNull, Bpl.Expr.And(etran0.IsAlloced(f.tok, o), etran1.IsAlloced(f.tok, o)));
-      Bpl.Expr unchanged = Bpl.Expr.Eq(Bpl.Expr.SelectTok(f.tok, h0, o, field), Bpl.Expr.SelectTok(f.tok, h1, o, field));
-      
-      Bpl.Expr r0 = InRWClause(f.tok, o, f.Reads, etran0, null, null);
-      Bpl.Expr r1 = InRWClause(f.tok, o, f.Reads, etran1, null, null);
-      Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
-        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
-      Bpl.Expr q1 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
-        Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r1), unchanged));
-      
-      // bvars:  h0, h1, formals
-      // f0args:  h0, formals
-      // f1args:  h1, formals
-      Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-      Bpl.ExprSeq f0args = new Bpl.ExprSeq();
-      Bpl.ExprSeq f1args = new Bpl.ExprSeq();
-      bvars.Add(h0Var);  bvars.Add(h1Var);
-      f0args.Add(h0);
-      f1args.Add(h1);
-      if (!f.IsStatic) {
-        Bpl.BoundVariable thVar = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
-        Bpl.Expr th = new Bpl.IdentifierExpr(f.tok, thVar);
-        bvars.Add(thVar);
-        f0args.Add(th);
-        f1args.Add(th);
-
-        Type thisType = Resolver.GetThisType(f.tok, (!)f.EnclosingClass);
-        Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
-          Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
-        wellFormed = Bpl.Expr.And(wellFormed, wh);
-      }
-
-      foreach (Formal p in f.Formals) {
-        Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
-        bvars.Add(bv);
-        Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
-        f0args.Add(formal);
-        f1args.Add(formal);
-        Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0);
-        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
-        wh = GetWhereClause(p.tok, formal, p.Type, etran1);
-        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
-      }
-      
-      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.IsUse ? f.FullName + "#alt" : f.FullName, TrType(f.ResultType)));
-      Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
-      Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
-      Bpl.Expr eq = Bpl.Expr.Eq(F0, F1);
-      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(F0, F1));
-      
-      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
-        Bpl.Expr.Imp(wellFormed,
-        Bpl.Expr.Imp(Bpl.Expr.And(q0, q1), eq)));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
-    }
-#else
     /// <summary>
     /// Generates:
     ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
@@ -944,7 +835,7 @@ namespace Microsoft.Dafny {
     ///        F(h0,formals) == F(h1,formals)
     ///      );
     ///
-    /// If the function is a "use" function, then "F "in the last line is replaced by "F#alt".
+    /// If the function is a recursive, non-unlimited function, then the same axiom is also produced for "F#limited" instead of "F".
     /// </summary>
     void AddFrameAxiom(Function! f)
       requires sink != null && predef != null;
@@ -1008,19 +899,27 @@ namespace Microsoft.Dafny {
         if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
       }
       
-      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.IsUse ? f.FullName + "#alt" : f.FullName, TrType(f.ResultType)));
-      Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
-      Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
-      Bpl.Expr eq = Bpl.Expr.Eq(F0, F1);
-      Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(heapSucc, F1));
-      
-      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
-        Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, heapSucc),
-        Bpl.Expr.Imp(q0, eq)));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, "frame axiom for " + f.FullName));
+      string axiomComment = "frame axiom for " + f.FullName;
+      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
+      while (fn != null) {
+        Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
+        Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
+        Bpl.Expr eq = Bpl.Expr.Eq(F0, F1);
+        Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(heapSucc, F1));
+        
+        Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+        Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, bvars, null, tr,
+          Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, heapSucc),
+          Bpl.Expr.Imp(q0, eq)));
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, axiomComment));
+        if (axiomComment != null && f.IsRecursive && !f.IsUnlimited) {
+          fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#limited", TrType(f.ResultType)));
+          axiomComment = null;  // the comment goes only with the first frame axiom
+        } else {
+          break;  // no more frame axioms to produce
+        }
+      }
     }
-#endif
     
     Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran,
                          Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap)
@@ -1585,13 +1484,9 @@ namespace Microsoft.Dafny {
       Bpl.Function func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
       sink.TopLevelDeclarations.Add(func);
       
-      if (f.IsUse) {
-        Bpl.Function altF = new Bpl.Function(f.tok, f.FullName + "#alt", args, res);
-        sink.TopLevelDeclarations.Add(altF);
-
-        Bpl.Formal boolRes = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        Bpl.Function useF = new Bpl.Function(f.tok, f.FullName + "#use", args, boolRes);
-        sink.TopLevelDeclarations.Add(useF);
+      if (f.IsRecursive && !f.IsUnlimited) {
+        Bpl.Function limitedF = new Bpl.Function(f.tok, f.FullName + "#limited", args, res);
+        sink.TopLevelDeclarations.Add(limitedF);
       }
     }
     
@@ -2651,7 +2546,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Expr! HeapExpr;
       public readonly PredefinedDecls! predef;
       public readonly Translator! translator;
-      readonly bool applyAltFunctions;
+      readonly Function applyLimited_CurrentFunction;
       
       public ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Token! heapToken) {
         this.translator = translator;
@@ -2665,27 +2560,25 @@ namespace Microsoft.Dafny {
         this.HeapExpr = heap;
       }
       
-      ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Bpl.Expr! heap, bool applyAltFunctions) {
+      ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Bpl.Expr! heap, Function applyLimited_CurrentFunction) {
         this.translator = translator;
         this.predef = predef;
         this.HeapExpr = heap;
-        this.applyAltFunctions = applyAltFunctions;
+        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
       }
 
       ExpressionTranslator oldEtran;
       public ExpressionTranslator! Old {
         get {
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), applyAltFunctions);
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), applyLimited_CurrentFunction);
           }
           return oldEtran;
         }
       }
       
-      public ExpressionTranslator! AltFunctions {
-        get {
-          return new ExpressionTranslator(translator, predef, HeapExpr, true);
-        }
+      public ExpressionTranslator! LimitedFunctions(Function! applyLimited_CurrentFunction) {
+        return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction);
       }
       
       public Bpl.IdentifierExpr! TheFrame(Token! tok)
@@ -2795,10 +2688,13 @@ namespace Microsoft.Dafny {
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           string nm = ((!)e.Function).FullName;
-          if (e is UseExpr) {
-            nm += "#use";
-          } else if (this.applyAltFunctions && e.Function.IsUse) {
-            nm += "#alt";
+          if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive && !e.Function.IsUnlimited) {
+            ModuleDecl module = ((!)e.Function.EnclosingClass).Module;
+            if (module == ((!)applyLimited_CurrentFunction.EnclosingClass).Module) {
+              if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
+                nm += "#limited";
+              }
+            }
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(expr.tok, nm, translator.TrType((!)e.Type));
           Bpl.ExprSeq args = new Bpl.ExprSeq();
@@ -3019,17 +2915,26 @@ namespace Microsoft.Dafny {
           translator.FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
       }
 
-      public Bpl.Expr! TrUseExpr(FunctionCallExpr! e) {
-        Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(e.tok, ((!)e.Function).FullName + "#use", translator.TrType((!)e.Type));
+      public Bpl.Expr! TrUseExpr(FunctionCallExpr! e)
+        requires e.Function != null && e.Type != null;
+      {
+        Function fn = e.Function;
         Bpl.ExprSeq args = new Bpl.ExprSeq();
         args.Add(HeapExpr);
-        if (!e.Function.IsStatic) {
+        if (!fn.IsStatic) {
           args.Add(TrExpr(e.Receiver));
         }
         foreach (Expression ee in e.Args) {
           args.Add(TrExpr(ee));
         }
-        return new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+        Bpl.Expr f0 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, fn.FullName, translator.TrType(e.Type))), args);
+        Bpl.Expr f1;
+        if (fn.IsRecursive && !fn.IsUnlimited) {
+          f1 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, fn.FullName + "#limited", translator.TrType(e.Type))), args);
+        } else {
+          f1 = f0;
+        }
+        return Bpl.Expr.Eq(f0, f1);
       }
 
       public Bpl.Expr! CondApplyBox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {

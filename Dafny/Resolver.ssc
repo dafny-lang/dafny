@@ -92,6 +92,24 @@ namespace Microsoft.Dafny {
       foreach (ModuleDecl m in prog.Modules) {
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
       }
+      // compute IsRecursive bit for mutually recursive functions
+      foreach (ModuleDecl m in prog.Modules) {
+        foreach (TopLevelDecl decl in m.TopLevelDecls) {
+          ClassDecl cl = decl as ClassDecl;
+          if (cl != null) {
+            foreach (MemberDecl member in cl.Members) {
+              Function fn = member as Function;
+              if (fn != null && !fn.IsRecursive) {  // note, self-recursion has already been determined
+                int n = m.CallGraph.GetSCCSize(fn);
+                if (2 <= n) {
+                  // the function is mutually recursive (note, the SCC does not determine self recursion)
+                  fn.IsRecursive = true;
+                }
+              }
+            }
+          }
+        }
+      }
     }
     
     public void RegisterTopLevelDecls(List<TopLevelDecl!>! declarations) {
@@ -807,10 +825,6 @@ namespace Microsoft.Dafny {
           } else {
             break;
           }
-        }
-        FunctionCallExpr fce = expr as FunctionCallExpr;
-        if (fce == null || fce.Function == null || !fce.Function.IsUse) {
-          Error(s.Expr, "use statement must indicate a function declared as use");
         }
       } else if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
@@ -1590,6 +1604,9 @@ namespace Microsoft.Dafny {
             if (callerModule == calleeModule) {
               // intra-module call; this is allowed; add edge in module's call graph
               callerModule.CallGraph.AddEdge(currentFunction, function);
+              if (currentFunction == function) {
+                currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+              }
             } else if (calleeModule.IsDefaultModule) {
               // all is fine: everything implicitly imports the default module
             } else if (importGraph.Reaches(callerModule, calleeModule)) {
