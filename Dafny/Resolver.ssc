@@ -978,7 +978,7 @@ namespace Microsoft.Dafny {
         // resolve any local variables declared here
         foreach (AutoVarDecl local in s.NewVars) {
           // first, fix up the local variables to be ghost variable if the corresponding formal out-parameter is a ghost
-          if (callee != null && local.Index < callee.Outs.Count && callee.Outs[local.Index].IsGhost) {
+          if (s.IsGhost || callee != null && local.Index < callee.Outs.Count && callee.Outs[local.Index].IsGhost) {
             local.MakeGhost();
           }
           ResolveStatement(local, specContextOnly, method);
@@ -997,7 +997,7 @@ namespace Microsoft.Dafny {
         // resolve arguments
         int j = 0;
         foreach (Expression e in s.Args) {
-          bool allowGhost = callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
+          bool allowGhost = s.IsGhost || callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
           ResolveExpression(e, true, allowGhost);
           j++;
         }
@@ -1036,7 +1036,7 @@ namespace Microsoft.Dafny {
             IdentifierExpr lhs = s.Lhs[i];
             if (!UnifyTypes((!)lhs.Type, st)) {
               Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
-            } else if (!specContextOnly && !((!)lhs.Var).IsGhost && callee.Outs[i].IsGhost) {
+            } else if (!specContextOnly && !((!)lhs.Var).IsGhost && (s.IsGhost || callee.Outs[i].IsGhost)) {
               Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
             }
           }

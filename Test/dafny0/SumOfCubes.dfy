@@ -49,7 +49,7 @@ class SumOfCubes {
     if k == 0 then 0 else GSum(k-1) + k-1
   }
 
-  ghost static method Gauss(k: int) returns (r: int)
+  static method Gauss(k: int) returns (r: int)
     requires 0 <= k;
     ensures r == GSum(k);
   {

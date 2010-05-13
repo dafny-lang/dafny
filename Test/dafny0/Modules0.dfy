@@ -104,3 +104,19 @@ method ProcG(g: ClassG) {
   call g.T();  // allowed: intra-module call
   var t := g.TFunc();  // allowed: intra-module call
 }
+
+// ---------------------- some ghost stuff ------------------------
+
+class Ghosty {
+  method Caller() {
+    var x := 3;
+    ghost var y := 3;
+    call Callee(x, y);  // fine
+    call Callee(x, x);  // fine
+    call Callee(y, x);  // error: cannot pass in ghost to a physical formal
+    call Theorem(x);  // fine
+    call Theorem(y);  // fine, because it's a ghost method
+  }
+  method Callee(a: int, ghost b: int) { }
+  ghost method Theorem(a: int) { }
+}
