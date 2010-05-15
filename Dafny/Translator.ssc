@@ -740,7 +740,7 @@ namespace Microsoft.Dafny {
       
         Bpl.Expr heapOF = Bpl.Expr.SelectTok(m.tok, etran.HeapExpr, o, f);
         Bpl.Expr oldHeapOF = Bpl.Expr.SelectTok(m.tok, etran.Old.HeapExpr, o, f);
-        Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.Old.TheFrame(m.tok), o);
+        Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.Old.TheFrame(m.tok), o, f);
         Bpl.Expr body = Bpl.Expr.Or(inEnclosingFrame, Bpl.Expr.Eq(heapOF, oldHeapOF));
         Bpl.Trigger tr = new Bpl.Trigger(m.tok, true, new Bpl.ExprSeq(heapOF));
         Bpl.Expr qq = new Bpl.ForallExpr(m.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, body);
@@ -804,22 +804,51 @@ namespace Microsoft.Dafny {
       }
 
       // set up the information used to verify the method's modifies clause
-      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
-      // Declare a local variable $_Frame: [ref]bool
-      Bpl.IdentifierExpr theFrame = etran.TheFrame(m.tok);  // this is a throw-away expression, used only to extract the name and type of the $_Frame variable
-      assert theFrame.Type != null;  // follows from the postcondition of TheFrame
-      Bpl.LocalVariable frame = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, theFrame.Name, theFrame.Type));
-      localVariables.Add(frame);
-      // $_Frame := (lambda $o: ref :: $o != null && $Heap[$o,alloc] ==> $o in ModifiesClause);
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$o", predef.RefType));
-      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(m.tok, oVar);
-      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(m.tok, o));
-      Bpl.Expr consequent = InRWClause(m.tok, o, m.Mod, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(m.tok, new Bpl.TypeVariableSeq(), new Bpl.VariableSeq(oVar), null, Bpl.Expr.Imp(ante, consequent));
-    
-      builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
+      DefineFrame(m.tok, m.Mod, builder, localVariables);
     }
-        
+    
+    void DefineFrame(Token! tok, List<FrameExpression!>! frameClause, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! localVariables)
+      requires predef != null;
+    {
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, tok);
+      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+      Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the name and type of the $_Frame variable
+      assert theFrame.Type != null;  // follows from the postcondition of TheFrame
+      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, theFrame.Name, theFrame.Type));
+      localVariables.Add(frame);
+      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      Bpl.Expr consequent = InRWClause(tok, o, f, frameClause, etran, null, null);
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null,
+                                           Bpl.Expr.Imp(ante, consequent));
+    
+      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
+    }
+
+    void CheckFrameSubset(Token! tok, List<FrameExpression!>! calleeFrame,
+                          Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap,
+                          ExpressionTranslator! etran, Bpl.StmtListBuilder! builder, string! errorMessage)
+      requires predef != null;
+    {
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in calleeFrame ==> $_Frame[o,f]);
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
+      Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
+      Bpl.Expr q = new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar),
+                                      Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
+      builder.Add(Assert(tok, q, errorMessage));
+    }
+    
     /// <summary>
     /// Generates:
     ///   axiom (forall h0: HeapType, h1: HeapType, formals... ::
@@ -861,7 +890,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr unchanged = Bpl.Expr.Eq(Bpl.Expr.SelectTok(f.tok, h0, o, field), Bpl.Expr.SelectTok(f.tok, h1, o, field));
       
       Bpl.Expr heapSucc = FunctionCall(f.tok, BuiltinFunction.HeapSucc, null, h0, h1);
-      Bpl.Expr r0 = InRWClause(f.tok, o, f.Reads, etran0, null, null);
+      Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
       Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fieldVar),
         Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
       
@@ -921,7 +950,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, List<Expression!>! rw, ExpressionTranslator! etran,
+    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, Bpl.Expr! f, List<FrameExpression!>! rw, ExpressionTranslator! etran,
                          Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap)
       requires predef != null;
       // requires o to denote an expression of type RefType
@@ -929,8 +958,8 @@ namespace Microsoft.Dafny {
       requires receiverReplacement == null <==> substMap == null;
     {
       Bpl.Expr disjunction = null;
-      foreach (Expression rwComponent in rw) {
-        Expression e = rwComponent;
+      foreach (FrameExpression rwComponent in rw) {
+        Expression e = rwComponent.E;
         if (substMap != null) {
           assert receiverReplacement != null;
           e = Substitute(e, receiverReplacement, substMap);
@@ -955,6 +984,9 @@ namespace Microsoft.Dafny {
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
         }
         disjunct = Bpl.Expr.And(IsTotal(e, etran), disjunct);
+        if (rwComponent.Field != null) {
+          disjunct = Bpl.Expr.And(disjunct, Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.tok, GetField(rwComponent.Field))));
+        }
         if (disjunction == null) {
           disjunction = disjunct;
         } else {
@@ -1016,10 +1048,13 @@ namespace Microsoft.Dafny {
       // absolutely well-defined.
       // check well-formedness of the decreases clauses
       foreach (Expression p in f.Decreases) {
-        CheckWellformed(p, f, Position.Positive, locals, builder, etran);
+        // Note, in this well-formedness check, function is passed in as null.  This will cause there to be
+        // no reads checks or decreases checks.  This seems like a good idea, and I hope it is also sound.
+        CheckWellformed(p, null, Position.Positive, locals, builder, etran);
       }
       // check well-formedness of the body
       if (f.Body != null) {
+        DefineFrame(f.tok, f.Reads, builder, locals);
         CheckWellformed(f.Body, f, Position.Positive, locals, builder, etran);
       }
 
@@ -1201,7 +1236,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Obj, func, Position.Neither, locals, builder, etran);
         CheckNonNull(expr.tok, e.Obj, builder, etran);
         if (func != null) {
-          builder.Add(Assert(expr.tok, InRWClause(expr.tok, etran.TrExpr(e.Obj), func.Reads, etran, null, null), "insufficient reads clause to read field"));
+          builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field"));
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -1258,14 +1293,7 @@ namespace Microsoft.Dafny {
         }
         if (func != null) {
           // check that the callee reads only what the caller is already allowed to read
-          // emit: assert (forall o: ref :: o != null && o in callee.reads ==> o in caller.reads);
-          Bpl.BoundVariable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
-          Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
-          Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-          Bpl.Expr oInCallee = InRWClause(expr.tok, o, e.Function.Reads, etran, e.Receiver, substMap);
-          Bpl.Expr oInCaller = InRWClause(expr.tok, o, func.Reads, etran, null, null);
-          Bpl.Expr q = new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInCallee), oInCaller));
-          builder.Add(Assert(expr.tok, q, "insufficient reads clause to invoke function"));
+          CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function");
   
           // finally, check that the decreases measure goes down
           ModuleDecl module = ((!)e.Function.EnclosingClass).Module;
@@ -1273,11 +1301,11 @@ namespace Microsoft.Dafny {
             if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(func)) {
               List<Expression!> contextDecreases = func.Decreases;
               if (contextDecreases.Count == 0) {
-                contextDecreases = func.Reads;  // use its reads clause instead
+                contextDecreases = ProjectOutSpecificFields(func.Reads);  // use its reads clause instead
               }
               List<Expression!> calleeDecreases = e.Function.Decreases;
               if (calleeDecreases.Count == 0) {
-                calleeDecreases = e.Function.Reads;  // use its reads clause instead
+                calleeDecreases = ProjectOutSpecificFields(e.Function.Reads);  // use its reads clause instead
               }
               CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
             }
@@ -1378,6 +1406,14 @@ namespace Microsoft.Dafny {
       } else {
         assert false;  // unexpected expression
       }
+    }
+    
+    List<Expression!>! ProjectOutSpecificFields(List<FrameExpression!>! fexprs) {
+      List<Expression!> exprs = new List<Expression!>();
+      foreach (FrameExpression fe in fexprs) {
+        exprs.Add(fe.E);
+      }
+      return exprs;
     }
     
     Bpl.Constant! GetClass(TopLevelDecl! cl)
@@ -1642,14 +1678,14 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
     /// </summary>
-    Bpl.Expr! FrameCondition(Token! tok, List<Expression!>! modifiesClause, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
+    Bpl.Expr! FrameCondition(Token! tok, List<FrameExpression!>! modifiesClause, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
       requires predef != null;
     {
       // generate:
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
       //      o != null && old($Heap)[o,alloc] ==>
       //        $Heap[o,f] == PreHeap[o,f] ||
-      //        o in modifiesClause)
+      //        (o,f) in modifiesClause)
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
@@ -1661,7 +1697,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.Old.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
       
-      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, modifiesClause, etran.Old, null, null));
+      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, f, modifiesClause, etran.Old, null, null));
       
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
       return new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, Bpl.Expr.Imp(ante, consequent));
@@ -1897,16 +1933,7 @@ namespace Microsoft.Dafny {
         }
 
         // Check modifies clause
-        {          
-          // assert (forall o: ref :: o != null && $Heap[o,alloc] && o in CalleeModifiesClause ==> $_Frame[o]);
-          Bpl.BoundVariable oVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$o", predef.RefType));
-          Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(stmt.Tok, oVar);
-          Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(stmt.Tok, o));
-          Bpl.Expr calleeModifies = InRWClause(stmt.Tok, o, s.Method.Mod, etran, s.Receiver, substMap);
-          Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o);
-          Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(Bpl.Expr.And(ante, calleeModifies), inEnclosingFrame));
-          builder.Add(Assert(stmt.Tok, qq, "call may violate caller's modifies clause"));
-        }
+        CheckFrameSubset(stmt.Tok, s.Method.Mod, s.Receiver, substMap, etran, builder, "call may violate caller's modifies clause");
 
         // Check termination
         ModuleDecl module = ((!)s.Method.EnclosingClass).Module;
@@ -2120,11 +2147,11 @@ namespace Microsoft.Dafny {
         ForeachStmt s = (ForeachStmt)stmt;
         // assert/assume (forall o: ref ::  o != null && o in S && Range(o) ==> Expr);
         // assert (forall o: ref :: o != null && o in S && Range(o)  ==> IsTotal(RHS));
-        // assert (forall o: ref :: o != null && o in S && Range(o)  ==> $_Frame[o]);  // this checks the enclosing modifies clause
+        // assert (forall o: ref :: o != null && o in S && Range(o)  ==> $_Frame[o,F]);  // this checks the enclosing modifies clause
         // var oldHeap := $Heap;
         // havoc $Heap;
         // assume $HeapSucc(oldHeap, $Heap);
-        // assume (forall o: ref, f: Field ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o != null && o in S && Range(o)));
+        // assume (forall<alpha> o: ref, f: Field alpha ::  $Heap[o,f] = oldHeap[o,f] || (f = F && o != null && o in S && Range(o)));
         // assume (forall o: ref ::  o != null && o in S && Range(o) ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
         // Note, $Heap[o,alloc] is intentionally omitted from the antecedent of the quantifier in the previous line.  That
         // allocatedness property should hold automatically, because the set/seq quantified is a program expression, which
@@ -2199,8 +2226,8 @@ namespace Microsoft.Dafny {
           builder.Add(AssertNS(rhsExpr.Expr.tok, qqq, "RHS of assignment must be well defined"));  // totality check
         }
               
-        // Here comes:  assert (forall o: ref :: o != null && o in S && Range(o) ==> $_Frame[o]);
-        Bpl.Expr body = Bpl.Expr.Imp(oInS, Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o));
+        // Here comes:  assert (forall o: ref :: o != null && o in S && Range(o) ==> $_Frame[o,F]);
+        Bpl.Expr body = Bpl.Expr.Imp(oInS, Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o, GetField((FieldSelectExpr)s.BodyAssign.Lhs)));
         Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
         builder.Add(Assert(s.BodyAssign.Tok, qq, "foreach assignment may update an object not in the enclosing method's modifies clause"));
 
@@ -2500,7 +2527,7 @@ namespace Microsoft.Dafny {
           FieldSelectExpr fse = (FieldSelectExpr)lhs;
           assert fse.Field != null;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj];
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(fse.Obj)), "assignment may update an object not in the enclosing method's modifies clause"));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(fse.Obj), GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
           
           Bpl.IdentifierExpr h = (Bpl.IdentifierExpr!)etran.HeapExpr;  // TODO: is this cast always justified?
           bRhs = etran.CondApplyBox(tok, bRhs, (!)((ExprRhs)rhs).Expr.Type, fse.Field.Type);
@@ -2584,7 +2611,9 @@ namespace Microsoft.Dafny {
       public Bpl.IdentifierExpr! TheFrame(Token! tok)
         ensures result.Type != null;
       {
-        Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(), new Bpl.TypeSeq(predef.RefType), Bpl.Type.Bool);
+        Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "beta");
+        Bpl.Type fieldAlpha = predef.FieldName(tok, alpha);
+        Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.TypeSeq(predef.RefType, fieldAlpha), Bpl.Type.Bool);
         return new Bpl.IdentifierExpr(tok, "$_Frame", ty);
       }
       

@@ -527,12 +527,12 @@ namespace Microsoft.Dafny
     public readonly List<Formal!>! Formals;
     public readonly Type! ResultType;
     public readonly List<Expression!>! Req;
-    public readonly List<Expression!>! Reads;
+    public readonly List<FrameExpression!>! Reads;
     public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
     public Function(Token! tok, string! name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
-                    List<Expression!>! req, List<Expression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
+                    List<Expression!>! req, List<FrameExpression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
       this.IsStatic = isStatic;
       this.IsGhost = isGhost;
       this.IsUnlimited = isUnlimited;
@@ -554,7 +554,7 @@ namespace Microsoft.Dafny
     public readonly List<Formal!>! Ins;
     public readonly List<Formal!>! Outs;
     public readonly List<MaybeFreeExpression!>! Req;
-    public readonly List<Expression!>! Mod;
+    public readonly List<FrameExpression!>! Mod;
     public readonly List<MaybeFreeExpression!>! Ens;
     public readonly List<Expression!>! Decreases;
     public readonly BlockStmt Body;
@@ -563,7 +563,7 @@ namespace Microsoft.Dafny
                   bool isStatic, bool isGhost,
                   [Captured] List<TypeParameter!>! typeArgs,
                   [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
-                  [Captured] List<MaybeFreeExpression!>! req, [Captured] List<Expression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
+                  [Captured] List<MaybeFreeExpression!>! req, [Captured] List<FrameExpression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
                   [Captured] List<Expression!>! decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes) {
@@ -1273,6 +1273,20 @@ namespace Microsoft.Dafny
     public MaybeFreeExpression(Expression! e, bool isFree) {
       E = e;
       IsFree = isFree;
+    }
+  }
+  
+  public class FrameExpression {
+    public readonly Expression! E;  // may be a WildcardExpr
+    public readonly string FieldName;
+    public Field Field;  // filled in during resolution (but is null if FieldName is)
+    invariant E is WildcardExpr ==> FieldName == null && Field == null;
+
+    public FrameExpression(Expression! e, string fieldName)
+      requires e is WildcardExpr ==> fieldName == null;
+    {
+      E = e;
+      FieldName = fieldName;
     }
   }
 }

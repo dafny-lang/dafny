@@ -424,20 +424,8 @@ namespace Microsoft.Dafny {
           Error(r, "Precondition must be a boolean (got {0})", r.Type);
         }
       }
-      foreach (Expression r in f.Reads) {
-        ResolveExpression(r, false, true);
-        Type t = r.Type;
-        assert t != null;  // follows from postcondition of ResolveExpression
-        if (t is CollectionType) {
-          t = ((CollectionType)t).Arg;
-        }
-        if (t is ObjectType) {
-          // fine
-        } else if (UserDefinedType.DenotesClass(t) != null) {
-          // fine
-        } else {
-          Error(r, "a reads-clause expression must denote an object or a collection of objects (instead got {0})", r.Type);
-        }
+      foreach (FrameExpression fr in f.Reads) {
+        ResolveFrameExpression(fr, "reads");
       }
       foreach (Expression r in f.Decreases) {
         ResolveExpression(r, false, true);
@@ -452,6 +440,37 @@ namespace Microsoft.Dafny {
       }
       currentFunction = null;
       scope.PopMarker();
+    }
+    
+    void ResolveFrameExpression(FrameExpression! fe, string! kind) {
+      ResolveExpression(fe.E, false, true);
+      Type t = fe.E.Type;
+      assert t != null;  // follows from postcondition of ResolveExpression
+      if (t is CollectionType) {
+        t = ((CollectionType)t).Arg;
+      }
+      if (t is ObjectType) {
+        // fine, as long as there's no field name
+        if (fe.FieldName != null) {
+          Error(fe.E, "type '{0}' does not contain a field named '{1}'", t, fe.FieldName);
+        }
+      } else if (UserDefinedType.DenotesClass(t) != null) {
+        // fine type
+        if (fe.FieldName != null) {
+          UserDefinedType ctype;
+          MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out ctype);
+          if (member == null) {
+            // error has already been reported by ResolveMember
+          } else if (!(member is Field)) {
+            Error(fe.E, "member {0} in class {1} does not refer to a field", fe.FieldName, ((!)ctype).Name);
+          } else {
+            assert ctype != null && ctype.ResolvedClass != null;  // follows from postcondition of ResolveMember
+            fe.Field = (Field)member;
+          }
+        }
+      } else {
+        Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", kind, fe.E.Type);
+      }
     }
     
     /// <summary>
@@ -497,20 +516,8 @@ namespace Microsoft.Dafny {
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
       }
-      foreach (Expression e in m.Mod) {
-        ResolveExpression(e, false, true);
-        Type t = e.Type;
-        assert t != null;  // follows from postcondition of ResolveExpression
-        if (t is CollectionType) {
-          t = ((CollectionType)t).Arg;
-        }
-        if (t is ObjectType) {
-          // fine
-        } else if (UserDefinedType.DenotesClass(t) != null) {
-          // fine
-        } else {
-          Error(e, "a modifies-clause expression must denote an object or a collection of objects (instead got {0})", e.Type);
-        }
+      foreach (FrameExpression fe in m.Mod) {
+        ResolveFrameExpression(fe, "modifies");
       }
       foreach (Expression e in m.Decreases) {
         ResolveExpression(e, false, true);

@@ -22,6 +22,7 @@ static List<ModuleDecl!>! theModules = new List<ModuleDecl!>();
 
 
 static Expression! dummyExpr = new LiteralExpr(Token.NoToken);
+static FrameExpression! dummyFrameExpr = new FrameExpression(dummyExpr, null);
 static Statement! dummyStmt = new ReturnStmt(Token.NoToken);
 static Attributes.Argument! dummyAttrArg = new Attributes.Argument("dummyAttrArg");
 static Scope<string>! parseVarScope = new Scope<string>();
@@ -94,7 +95,7 @@ public static int Parse (List<ModuleDecl!>! modules) {
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
   digit = "0123456789".
-  special = "'_?`\\".
+  special = "'_?\\".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
 
   cr        = '\r'.
@@ -296,7 +297,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      List<Formal!> ins = new List<Formal!>();
      List<Formal!> outs = new List<Formal!>();
      List<MaybeFreeExpression!> req = new List<MaybeFreeExpression!>();
-     List<Expression!> mod = new List<Expression!>();
+     List<FrameExpression!> mod = new List<FrameExpression!>();
      List<MaybeFreeExpression!> ens = new List<MaybeFreeExpression!>();
      List<Expression!> dec = new List<Expression!>();
      Statement! bb;  BlockStmt body = null;
@@ -322,12 +323,12 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   .)
   .
 
-MethodSpec<List<MaybeFreeExpression!\>! req, List<Expression!\>! mod, List<MaybeFreeExpression!\>! ens,
+MethodSpec<List<MaybeFreeExpression!\>! req, List<FrameExpression!\>! mod, List<MaybeFreeExpression!\>! ens,
            List<Expression!\>! decreases>
-= (. Expression! e;  bool isFree = false;
+= (. Expression! e;  FrameExpression! fe;  bool isFree = false;
   .)
-  ( "modifies" [ Expression<out e>                           (. mod.Add(e); .)
-                 { "," Expression<out e>                     (. mod.Add(e); .)
+  ( "modifies" [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
                ] ";"
   | [ "free"                                                 (. isFree = true; .)
@@ -419,7 +420,7 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
      List<Formal!> formals = new List<Formal!>();
      Type! returnType;
      List<Expression!> reqs = new List<Expression!>();
-     List<Expression!> reads = new List<Expression!>();
+     List<FrameExpression!> reads = new List<FrameExpression!>();
      List<Expression!> decreases = new List<Expression!>();
      Expression! bb;  Expression body = null;
      bool isFunctionMethod = false;
@@ -446,35 +447,46 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
   .)
   .
 
-FunctionSpec<List<Expression!\>! reqs, List<Expression!\>! reads, List<Expression!\>! decreases>
-= (. Expression! e; .)
+FunctionSpec<List<Expression!\>! reqs, List<FrameExpression!\>! reads, List<Expression!\>! decreases>
+= (. Expression! e;  FrameExpression! fe; .)
   ( "requires" Expression<out e> ";"      (. reqs.Add(e); .)
-  | "reads" [ PossiblyWildExpressions<reads> ] ";"
+  | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
+              { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
+              }
+	        ] ";"
   | "decreases" Expressions<decreases> ";"
   )
   .
 
-PossiblyWildExpressions<List<Expression!\>! args>
-= (. Expression! e; .)
-  PossiblyWildExpression<out e>                        (. args.Add(e); .)
-  { "," PossiblyWildExpression<out e>                  (. args.Add(e); .)
-  }
-  .
-
 PossiblyWildExpression<out Expression! e>
 = (. e = dummyExpr; .)
-  /* A reads clause can list a wildcard, which allows the enclosing function to
-   * read anything.  In many cases, and in particular in all cases where
-   * the function is defined recursively, this makes it next to impossible to make
-   * any use of the function.  Nevertheless, as an experimental feature, the
-   * language allows it (and it is sound).
-   */
   /* A decreases clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
   ( "*"                        (. e = new WildcardExpr(token); .)
   | Expression<out e>
   )
+  .
+
+PossiblyWildFrameExpression<out FrameExpression! fe>
+= (. fe = dummyFrameExpr; .)
+  /* A reads clause can list a wildcard, which allows the enclosing function to
+   * read anything.  In many cases, and in particular in all cases where
+   * the function is defined recursively, this makes it next to impossible to make
+   * any use of the function.  Nevertheless, as an experimental feature, the
+   * language allows it (and it is sound).
+   */
+  ( "*"                        (. fe = new FrameExpression(new WildcardExpr(token), null); .)
+  | FrameExpression<out fe>
+  )
+  .
+
+FrameExpression<out FrameExpression! fe>
+= (. Expression! e;  Token! id;  string fieldName = null; .)
+  Expression<out e>
+  [ "`" Ident<out id>        (. fieldName = id.val; .)
+  ]
+  (. fe = new FrameExpression(e, fieldName); .)
   .
 
 FunctionBody<out Expression! e>
@@ -676,7 +688,11 @@ WhileStmt<out Statement! stmt>
      "invariant"
      Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
      ";"
-   | "decreases" PossiblyWildExpressions<decreases> ";"
+   | "decreases"
+     PossiblyWildExpression<out e>          (. decreases.Add(e); .)
+     { "," PossiblyWildExpression<out e>    (. decreases.Add(e); .)
+     }
+     ";"
   }
   BlockStmt<out body>        (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
   .

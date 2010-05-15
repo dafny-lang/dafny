@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
-      PrintSpecLine("reads", f.Reads, ind);
+      PrintFrameSpecLine("reads", f.Reads, ind);
       PrintSpecLine("decreases", f.Decreases, ind);
       if (f.Body != null) {
         Indent(indent);
@@ -242,7 +242,7 @@ namespace Microsoft.Dafny {
 
       int ind = indent + IndentAmount;      
       PrintSpec("requires", method.Req, ind);
-      PrintSpecLine("modifies", method.Mod, ind);
+      PrintFrameSpecLine("modifies", method.Mod, ind);
       PrintSpec("ensures", method.Ens, ind);
       PrintSpecLine("decreases", method.Decreases, ind);
       
@@ -288,6 +288,15 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("{0} ", kind);
         PrintExpressionList(ee);
+        wr.WriteLine(";");
+      }
+    }
+
+    void PrintFrameSpecLine(string! kind, List<FrameExpression!>! ee, int indent) {
+      if (ee.Count != 0) {
+        Indent(indent);
+        wr.Write("{0} ", kind);
+        PrintFrameExpressionList(ee);
         wr.WriteLine(";");
       }
     }
@@ -849,6 +858,18 @@ namespace Microsoft.Dafny {
         wr.Write(sep);
         sep = ", ";
         PrintExpression(e);
+      }
+    }
+    
+    void PrintFrameExpressionList(List<FrameExpression!>! fexprs) {
+      string sep = "";
+      foreach (FrameExpression fe in fexprs) {
+        wr.Write(sep);
+        sep = ", ";
+        PrintExpression(fe.E);
+        if (fe.FieldName != null) {
+          wr.Write("`{0}", fe.FieldName);
+        }
       }
     }
   }
