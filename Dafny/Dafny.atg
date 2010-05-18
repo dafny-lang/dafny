@@ -1076,7 +1076,11 @@ SelectOrCallSuffix<ref Expression! e>
           Expression<out ee>                   (. e1 = ee; .)
         ]
       | ".." Expression<out ee>                (. anyDots = true;  e1 = ee; .)
-      )                                        (. assert !anyDots ==> e0 != null;
+      )                                        (. if (!anyDots && e0 == null) {
+                                                    /* a parsing error occurred */
+                                                    e0 = dummyExpr;
+                                                  }
+                                                  assert !anyDots ==> e0 != null;
                                                   if (anyDots) {
                                                     assert e0 != null || e1 != null;
                                                     e = new SeqSelectExpr(x, false, e, e0, e1);

@@ -1698,6 +1698,10 @@ List<Expression!>! decreases) {
 				Expression(out ee);
 				anyDots = true;  e1 = ee; 
 			} else Error(133);
+			if (!anyDots && e0 == null) {
+			 /* a parsing error occurred */
+			 e0 = dummyExpr;
+			}
 			assert !anyDots ==> e0 != null;
 			if (anyDots) {
 			  assert e0 != null || e1 != null;
