@@ -69,7 +69,7 @@ static function Substitute(e: Expression, v: int, val: int): Expression
 
 static function SubstSeq(/*ghost*/ parent: Expression,
                          q: seq<Expression>, v: int, val: int): seq<Expression>
-  requires (exists op,args :: parent == #Expression.Nary(op, args) && q <= args);
+  requires (forall a :: a in q ==> a < parent);
   decreases parent, false, q;
 {
   if q == [] then [] else
@@ -107,7 +107,7 @@ static ghost method TheoremSeq(e: Expression, v: int, val: int)
 
 static ghost method LemmaSeq(ghost parent: Expression, ghost q: seq<Expression>,
                                     v: int, val: int)
-  requires (exists op,args :: parent == #Expression.Nary(op, args) && q <= args);
+  requires (forall a :: a in q ==> a < parent);
   ensures |SubstSeq(parent, q, v, val)| == |q|;
   ensures (forall k :: 0 <= k && k < |q| ==>
             SubstSeq(parent, q, v, val)[k] == Substitute(q[k], v, val));

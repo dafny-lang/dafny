@@ -3021,6 +3021,15 @@ namespace Microsoft.Dafny {
                        BoxIfNecessary(expr.tok, e0, (!)e.E0.Type));
               return Bpl.Expr.Not(arg);
 
+            case BinaryExpr.ResolvedOpcode.RankLt:
+              return Bpl.Expr.Lt(
+                translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e0),
+                translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e1));
+            case BinaryExpr.ResolvedOpcode.RankGt:
+              return Bpl.Expr.Gt(
+                translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e0),
+                translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e1));
+              
             default:
               assert false;  // unexpected binary expression
           }

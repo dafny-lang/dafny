@@ -33,7 +33,6 @@ class SumOfCubes {
     while (k < m) 
       invariant n <= k && k <= m;
       invariant SumEmDown(0, n) + SumEmDown(n, k) == SumEmDown(0, k);
-      decreases m - k;
     {
       k := k + 1;
     }
@@ -65,7 +64,6 @@ class SumOfCubes {
     while (i < k)
       invariant i <= k;
       invariant SumEmDown(0, i) == GSum(i) * GSum(i);
-      decreases k - i;
     {
       call Lemma2(i);
       i := i + 1;
@@ -81,7 +79,6 @@ class SumOfCubes {
     while (i < k)
       invariant i <= k;
       invariant 2 * GSum(i) == i * (i - 1);
-      decreases k - i;
     {
       i := i + 1;
     }
@@ -102,7 +99,6 @@ class SumOfCubes {
     while (k < m)
       invariant n <= k && k <= m;
       invariant SumEmUp(n, m) == SumEmDown(n, k) + SumEmUp(k, m);
-      decreases m - k;
     {
       k := k + 1;
     }

@@ -701,6 +701,13 @@ namespace Microsoft.Dafny {
         }
       
       // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
+      } else if (proxy is DatatypeProxy) {
+        if (t.IsDatatype) {
+          // all is fine, proxy can be redirected to t
+        } else {
+          return false;
+        }
+      
       } else if (proxy is ObjectTypeProxy) {
         if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
           // all is fine, proxy can be redirected to t
@@ -765,7 +772,15 @@ namespace Microsoft.Dafny {
       modifies a.T, b.T;
       ensures result ==> a.T != null || b.T != null;
     {
-      if (a is ObjectTypeProxy) {
+      if (a is DatatypeProxy) {
+        if (b is DatatypeProxy) {
+          // all is fine
+          a.T = b;
+          return true;
+        } else {
+          return false;
+        }
+      } else if (a is ObjectTypeProxy) {
         if (b is ObjectTypeProxy) {
           // all is fine
           a.T = b;
@@ -1778,19 +1793,29 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add:
             {
-              bool err = false;
-              if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
-                Error(expr, "arguments to {0} must be int or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-                err = true;
-              }
-              if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
-                Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-                err = true;
-              }
-              if (e.Op != BinaryExpr.Opcode.Add) {
+              if (e.Op == BinaryExpr.Opcode.Lt && e.E0.Type.IsDatatype) {
+                if (!UnifyTypes(e.E1.Type, new DatatypeProxy())) {
+                  Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
+                }
+                if (!specContext) {
+                  Error(expr, "rank comparisons are allowed only in specification and ghost contexts");
+                }
                 expr.Type = Type.Bool;
-              } else if (!err) {
-                expr.Type = e.E0.Type;
+              } else {
+                bool err = false;
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
+                  Error(expr, "arguments to {0} must be int or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                  err = true;
+                }
+                if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
+                  Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+                  err = true;
+                }
+                if (e.Op != BinaryExpr.Opcode.Add) {
+                  expr.Type = Type.Bool;
+                } else if (!err) {
+                  expr.Type = e.E0.Type;
+                }
               }
             }
             break;
@@ -1800,19 +1825,29 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge:
             {
-              bool err = false;
-              if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
-                Error(expr, "arguments to {0} must be int or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
-                err = true;
-              }
-              if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
-                Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
-                err = true;
-              }
-              if (e.Op == BinaryExpr.Opcode.Gt || e.Op == BinaryExpr.Opcode.Ge) {
+              if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.IsDatatype) {
+                if (!UnifyTypes(e.E1.Type, new DatatypeProxy())) {
+                  Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
+                }
+                if (!specContext) {
+                  Error(expr, "rank comparisons are allowed only in specification and ghost contexts");
+                }
                 expr.Type = Type.Bool;
-              } else if (!err) {
-                expr.Type = e.E0.Type;
+              } else {
+                bool err = false;
+                if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
+                  Error(expr, "arguments to {0} must be int or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                  err = true;
+                }
+                if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
+                  Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+                  err = true;
+                }
+                if (e.Op == BinaryExpr.Opcode.Gt || e.Op == BinaryExpr.Opcode.Ge) {
+                  expr.Type = Type.Bool;
+                } else if (!err) {
+                  expr.Type = e.E0.Type;
+                }
               }
             }
             break;
@@ -2061,7 +2096,9 @@ namespace Microsoft.Dafny {
           }
         case BinaryExpr.Opcode.Disjoint:  return BinaryExpr.ResolvedOpcode.Disjoint;
         case BinaryExpr.Opcode.Lt:
-          if (operandType is SetType) {
+          if (operandType.IsDatatype) {
+            return BinaryExpr.ResolvedOpcode.RankLt;
+          } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.ProperPrefix;
@@ -2097,7 +2134,9 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Mul;
           }
         case BinaryExpr.Opcode.Gt:
-          if (operandType is SetType) {
+          if (operandType.IsDatatype) {
+            return BinaryExpr.ResolvedOpcode.RankGt;
+          } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSuperset;
           } else {
             return BinaryExpr.ResolvedOpcode.Gt;
@@ -2178,6 +2217,9 @@ namespace Microsoft.Dafny {
         return UsesSpecFeatures(e.E);
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
+        if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.RankLt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.RankGt) {
+          return true;
+        }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
       } else if (expr is QuantifierExpr) {
         return true;

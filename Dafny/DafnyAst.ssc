@@ -288,17 +288,24 @@ namespace Microsoft.Dafny
   }
   
   /// <summary>
+  /// This proxy stands for any datatype.
+  /// </summary>  
+  public class DatatypeProxy : RestrictedTypeProxy {
+    public override int OrderID { get { return 0; } }
+  }
+  
+  /// <summary>
   /// This proxy stands for object or any class/array type.
   /// </summary>  
   public class ObjectTypeProxy : RestrictedTypeProxy {
-    public override int OrderID { get { return 0; } }
+    public override int OrderID { get { return 1; } }
   }
   
   /// <summary>
   /// This proxy stands for object or any class/array type or a set/sequence of object or a class/array type.
   /// </summary>
   public class ObjectsTypeProxy : RestrictedTypeProxy {
-    public override int OrderID { get { return 1; } }
+    public override int OrderID { get { return 2; } }
   }
   
   /// <summary>
@@ -310,7 +317,7 @@ namespace Microsoft.Dafny
     public CollectionTypeProxy(Type! arg) {
       Arg = arg;
     }
-    public override int OrderID { get { return 2; } }
+    public override int OrderID { get { return 3; } }
   }
 
   /// <summary>
@@ -325,7 +332,7 @@ namespace Microsoft.Dafny
     public OperationTypeProxy(bool allowSeq) {
       AllowSeq = allowSeq;
     }
-    public override int OrderID { get { return 3; } }
+    public override int OrderID { get { return 4; } }
   }
   
   /// <summary>
@@ -337,7 +344,7 @@ namespace Microsoft.Dafny
     public IndexableTypeProxy(Type! arg) {
       Arg = arg;
     }
-    public override int OrderID { get { return 4; } }
+    public override int OrderID { get { return 5; } }
   }
 
   // ------------------------------------------------------------------------------------------------------
@@ -1203,7 +1210,9 @@ namespace Microsoft.Dafny
       SetEq, SetNeq, ProperSubset, Subset, Superset, ProperSuperset, Disjoint, InSet, NotInSet,
       Union, Intersection, SetDifference,
       // sequences
-      SeqEq, SeqNeq, ProperPrefix, Prefix, Concat, InSeq, NotInSeq
+      SeqEq, SeqNeq, ProperPrefix, Prefix, Concat, InSeq, NotInSeq,
+      // datatypes
+      RankLt, RankGt
     }
     public ResolvedOpcode ResolvedOp;  // filled in by resolution
                                  
