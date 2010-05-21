@@ -78,7 +78,8 @@ TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 0 (expected i
 TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 1 (expected C, got int)
 TypeTests.dfy(20,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Nothing' can be constructed
 TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-9 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(55,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+10 resolution/type errors detected in TypeTests.dfy
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,7): Error: RHS expression must be well defined
@@ -123,7 +124,7 @@ Execution trace:
     (0,0): anon4_Else
     (0,0): anon3
 
-Dafny program verifier finished with 22 verified, 9 errors
+Dafny program verifier finished with 24 verified, 9 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -264,6 +265,50 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 21 verified, 29 errors
+
+-------------------- Array.dfy --------------------
+Array.dfy(10,12): Error: assignment may update an array not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Array.dfy(17,9): Error: RHS expression must be well defined
+Execution trace:
+    (0,0): anon0
+Array.dfy(24,10): Error: LHS expression must be well defined
+Execution trace:
+    (0,0): anon0
+Array.dfy(48,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Array.dfy(56,12): Error: assignment may update an array not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Array.dfy(63,12): Error: assignment may update an array not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Array.dfy(95,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Array.dfy(107,6): Error: insufficient reads clause to read array element
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon5_Then
+Array.dfy(115,6): Error: insufficient reads clause to read array element
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon5_Then
+Array.dfy(131,10): Error: assignment may update an array not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+Array.dfy(138,10): Error: assignment may update an array not in the enclosing method's modifies clause
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 22 verified, 11 errors
 
 -------------------- Modules0.dfy --------------------
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T

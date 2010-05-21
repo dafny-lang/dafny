@@ -104,7 +104,6 @@ class Glossary {
         invariant q !in wr.footprint;
         invariant qcon == q.contents;
         invariant (forall k :: k in q.contents ==> k in glossary.keys);
-        decreases |definition| -i;
       {
         var w := definition[i];
         call present, d := glossary.Find(w);
@@ -342,7 +341,6 @@ class Map<Key,Value> {
     while (j < |keys|)
       invariant j <= |keys|;
       invariant key !in keys[..j];
-      decreases |keys| -j;
     {
       if (keys[j] == key) {
         idx := j;

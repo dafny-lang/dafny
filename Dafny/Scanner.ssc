@@ -31,20 +31,20 @@ public class Scanner {
   [Microsoft.Contracts.Verify(false)]
 	static Scanner() {
 		start[0] = 55;
-		start[33] = 33;
+		start[33] = 35;
 		start[34] = 3;
-		start[35] = 46;
-		start[37] = 44;
-		start[38] = 27;
+		start[35] = 48;
+		start[37] = 46;
+		start[38] = 29;
 		start[39] = 1;
 		start[40] = 12;
 		start[41] = 13;
 		start[42] = 14;
-		start[43] = 41;
+		start[43] = 43;
 		start[44] = 8;
-		start[45] = 42;
-		start[46] = 47;
-		start[47] = 43;
+		start[45] = 44;
+		start[46] = 49;
+		start[47] = 45;
 		start[48] = 2;
 		start[49] = 2;
 		start[50] = 2;
@@ -87,9 +87,9 @@ public class Scanner {
 		start[88] = 1;
 		start[89] = 1;
 		start[90] = 1;
-		start[91] = 48;
+		start[91] = 19;
 		start[92] = 1;
-		start[93] = 49;
+		start[93] = 20;
 		start[95] = 1;
 		start[96] = 15;
 		start[97] = 1;
@@ -119,21 +119,21 @@ public class Scanner {
 		start[121] = 1;
 		start[122] = 1;
 		start[123] = 5;
-		start[124] = 19;
+		start[124] = 21;
 		start[125] = 6;
-		start[172] = 45;
+		start[172] = 47;
 		start[8226] = 54;
-		start[8658] = 26;
-		start[8660] = 23;
+		start[8658] = 28;
+		start[8660] = 25;
 		start[8704] = 51;
 		start[8707] = 52;
-		start[8743] = 29;
-		start[8744] = 31;
-		start[8800] = 38;
-		start[8804] = 39;
-		start[8805] = 40;
+		start[8743] = 31;
+		start[8744] = 33;
+		start[8800] = 40;
+		start[8804] = 41;
+		start[8805] = 42;
 	}
-	const int noSym = 99;
+	const int noSym = 100;
 	static short[] start = new short[16385];
 
 
@@ -295,35 +295,36 @@ public class Scanner {
 			case "set": t.kind = 30; break;
 			case "seq": t.kind = 31; break;
 			case "object": t.kind = 32; break;
-			case "function": t.kind = 33; break;
-			case "reads": t.kind = 34; break;
-			case "match": t.kind = 37; break;
-			case "case": t.kind = 38; break;
-			case "label": t.kind = 40; break;
-			case "break": t.kind = 41; break;
-			case "return": t.kind = 42; break;
-			case "new": t.kind = 44; break;
-			case "havoc": t.kind = 45; break;
-			case "if": t.kind = 46; break;
-			case "else": t.kind = 47; break;
-			case "while": t.kind = 48; break;
-			case "invariant": t.kind = 49; break;
-			case "call": t.kind = 50; break;
-			case "foreach": t.kind = 51; break;
-			case "in": t.kind = 52; break;
-			case "assert": t.kind = 54; break;
-			case "assume": t.kind = 55; break;
-			case "use": t.kind = 56; break;
-			case "print": t.kind = 57; break;
-			case "then": t.kind = 58; break;
-			case "false": t.kind = 82; break;
-			case "true": t.kind = 83; break;
-			case "null": t.kind = 84; break;
-			case "fresh": t.kind = 87; break;
-			case "this": t.kind = 91; break;
-			case "old": t.kind = 92; break;
-			case "forall": t.kind = 93; break;
-			case "exists": t.kind = 95; break;
+			case "array": t.kind = 33; break;
+			case "function": t.kind = 34; break;
+			case "reads": t.kind = 35; break;
+			case "match": t.kind = 38; break;
+			case "case": t.kind = 39; break;
+			case "label": t.kind = 41; break;
+			case "break": t.kind = 42; break;
+			case "return": t.kind = 43; break;
+			case "new": t.kind = 45; break;
+			case "havoc": t.kind = 48; break;
+			case "if": t.kind = 49; break;
+			case "else": t.kind = 50; break;
+			case "while": t.kind = 51; break;
+			case "invariant": t.kind = 52; break;
+			case "call": t.kind = 53; break;
+			case "foreach": t.kind = 54; break;
+			case "in": t.kind = 55; break;
+			case "assert": t.kind = 57; break;
+			case "assume": t.kind = 58; break;
+			case "use": t.kind = 59; break;
+			case "print": t.kind = 60; break;
+			case "then": t.kind = 61; break;
+			case "false": t.kind = 85; break;
+			case "true": t.kind = 86; break;
+			case "null": t.kind = 87; break;
+			case "fresh": t.kind = 90; break;
+			case "this": t.kind = 92; break;
+			case "old": t.kind = 93; break;
+			case "forall": t.kind = 94; break;
+			case "exists": t.kind = 96; break;
 			default: break;
 
     }
@@ -365,109 +366,109 @@ public class Scanner {
 				else if (ch == ':') {buf.Append(ch); NextCh(); goto case 53;}
 				else {t.kind = 16; goto done;}
 			case 10:
-				if (ch == '=') {buf.Append(ch); NextCh(); goto case 20;}
+				if (ch == '=') {buf.Append(ch); NextCh(); goto case 22;}
 				else {t.kind = 17; goto done;}
 			case 11:
-				if (ch == '=') {buf.Append(ch); NextCh(); goto case 32;}
+				if (ch == '=') {buf.Append(ch); NextCh(); goto case 34;}
 				else {t.kind = 18; goto done;}
 			case 12:
 				{t.kind = 26; goto done;}
 			case 13:
 				{t.kind = 27; goto done;}
 			case 14:
-				{t.kind = 35; goto done;}
-			case 15:
 				{t.kind = 36; goto done;}
+			case 15:
+				{t.kind = 37; goto done;}
 			case 16:
 				if (ch == '>') {buf.Append(ch); NextCh(); goto case 17;}
-				else if (ch == '=') {buf.Append(ch); NextCh(); goto case 24;}
+				else if (ch == '=') {buf.Append(ch); NextCh(); goto case 26;}
 				else {t.kind = noSym; goto done;}
 			case 17:
-				{t.kind = 39; goto done;}
+				{t.kind = 40; goto done;}
 			case 18:
-				{t.kind = 43; goto done;}
+				{t.kind = 44; goto done;}
 			case 19:
-				if (ch == '|') {buf.Append(ch); NextCh(); goto case 30;}
-				else {t.kind = 53; goto done;}
+				{t.kind = 46; goto done;}
 			case 20:
-				if (ch == '=') {buf.Append(ch); NextCh(); goto case 21;}
-				else {t.kind = 68; goto done;}
+				{t.kind = 47; goto done;}
 			case 21:
-				if (ch == '>') {buf.Append(ch); NextCh(); goto case 22;}
-				else {t.kind = noSym; goto done;}
+				if (ch == '|') {buf.Append(ch); NextCh(); goto case 32;}
+				else {t.kind = 56; goto done;}
 			case 22:
-				{t.kind = 59; goto done;}
+				if (ch == '=') {buf.Append(ch); NextCh(); goto case 23;}
+				else {t.kind = 71; goto done;}
 			case 23:
-				{t.kind = 60; goto done;}
+				if (ch == '>') {buf.Append(ch); NextCh(); goto case 24;}
+				else {t.kind = noSym; goto done;}
 			case 24:
-				if (ch == '>') {buf.Append(ch); NextCh(); goto case 25;}
-				else {t.kind = 67; goto done;}
-			case 25:
-				{t.kind = 61; goto done;}
-			case 26:
 				{t.kind = 62; goto done;}
-			case 27:
-				if (ch == '&') {buf.Append(ch); NextCh(); goto case 28;}
-				else {t.kind = noSym; goto done;}
-			case 28:
+			case 25:
 				{t.kind = 63; goto done;}
-			case 29:
+			case 26:
+				if (ch == '>') {buf.Append(ch); NextCh(); goto case 27;}
+				else {t.kind = 70; goto done;}
+			case 27:
 				{t.kind = 64; goto done;}
-			case 30:
+			case 28:
 				{t.kind = 65; goto done;}
-			case 31:
-				{t.kind = 66; goto done;}
-			case 32:
-				{t.kind = 69; goto done;}
-			case 33:
-				if (ch == '=') {buf.Append(ch); NextCh(); goto case 34;}
-				else if (ch == '!') {buf.Append(ch); NextCh(); goto case 35;}
-				else if (ch == 'i') {buf.Append(ch); NextCh(); goto case 36;}
-				else {t.kind = 80; goto done;}
-			case 34:
-				{t.kind = 70; goto done;}
-			case 35:
-				{t.kind = 71; goto done;}
-			case 36:
-				if (ch == 'n') {buf.Append(ch); NextCh(); goto case 37;}
+			case 29:
+				if (ch == '&') {buf.Append(ch); NextCh(); goto case 30;}
 				else {t.kind = noSym; goto done;}
-			case 37:
+			case 30:
+				{t.kind = 66; goto done;}
+			case 31:
+				{t.kind = 67; goto done;}
+			case 32:
+				{t.kind = 68; goto done;}
+			case 33:
+				{t.kind = 69; goto done;}
+			case 34:
 				{t.kind = 72; goto done;}
-			case 38:
+			case 35:
+				if (ch == '=') {buf.Append(ch); NextCh(); goto case 36;}
+				else if (ch == '!') {buf.Append(ch); NextCh(); goto case 37;}
+				else if (ch == 'i') {buf.Append(ch); NextCh(); goto case 38;}
+				else {t.kind = 83; goto done;}
+			case 36:
 				{t.kind = 73; goto done;}
-			case 39:
+			case 37:
 				{t.kind = 74; goto done;}
-			case 40:
+			case 38:
+				if (ch == 'n') {buf.Append(ch); NextCh(); goto case 39;}
+				else {t.kind = noSym; goto done;}
+			case 39:
 				{t.kind = 75; goto done;}
-			case 41:
+			case 40:
 				{t.kind = 76; goto done;}
-			case 42:
+			case 41:
 				{t.kind = 77; goto done;}
-			case 43:
+			case 42:
 				{t.kind = 78; goto done;}
-			case 44:
+			case 43:
 				{t.kind = 79; goto done;}
+			case 44:
+				{t.kind = 80; goto done;}
 			case 45:
 				{t.kind = 81; goto done;}
 			case 46:
-				{t.kind = 85; goto done;}
+				{t.kind = 82; goto done;}
 			case 47:
-				if (ch == '.') {buf.Append(ch); NextCh(); goto case 50;}
-				else {t.kind = 86; goto done;}
+				{t.kind = 84; goto done;}
 			case 48:
 				{t.kind = 88; goto done;}
 			case 49:
-				{t.kind = 89; goto done;}
+				if (ch == '.') {buf.Append(ch); NextCh(); goto case 50;}
+				else {t.kind = 89; goto done;}
 			case 50:
-				{t.kind = 90; goto done;}
+				{t.kind = 91; goto done;}
 			case 51:
-				{t.kind = 94; goto done;}
+				{t.kind = 95; goto done;}
 			case 52:
-				{t.kind = 96; goto done;}
-			case 53:
 				{t.kind = 97; goto done;}
-			case 54:
+			case 53:
 				{t.kind = 98; goto done;}
+			case 54:
+				{t.kind = 99; goto done;}
 			case 55: {t.kind = 0; goto done;}
     }
     done:

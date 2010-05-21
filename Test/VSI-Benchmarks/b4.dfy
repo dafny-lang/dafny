@@ -95,7 +95,6 @@ class Map<Key,Value> {
     while (j < |keys|)
       invariant j <= |keys|;
       invariant key !in keys[..j];
-      decreases |keys| -j;
     {
       if (keys[j] == key) {
         idx := j;

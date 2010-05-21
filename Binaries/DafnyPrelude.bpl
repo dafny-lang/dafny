@@ -2,7 +2,11 @@
 // Created 9 February 2008 by Rustan Leino.
 // Converted to Boogie 2 on 28 June 2008.
 // Edited sequence axioms 20 October 2009 by Alex Summers.
-// Copyright (c) 2008, Microsoft.
+// Copyright (c) 2008-2010, Microsoft.
+
+// ---------------------------------------------------------------
+// -- References -------------------------------------------------
+// ---------------------------------------------------------------
 
 type ref;
 const null: ref;
@@ -23,6 +27,11 @@ axiom (forall<T> r: T, o: T :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> 
 function Set#UnionOne<T>(Set T, T) returns (Set T);
 axiom (forall<T> a: Set T, x: T, o: T :: { Set#UnionOne(a,x)[o] }
   Set#UnionOne(a,x)[o] <==> o == x || a[o]);
+axiom (forall<T> a: Set T, x: T :: { Set#UnionOne(a, x) }
+  Set#UnionOne(a, x)[x]);
+axiom (forall<T> a: Set T, x: T, y: T :: { Set#UnionOne(a, x), a[y] }
+  a[y] ==> Set#UnionOne(a, x)[y]);
+
 
 function Set#Union<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Union(a,b)[o] }
@@ -178,6 +187,8 @@ axiom (forall b: BoxType :: { $Unbox(b): DatatypeType } $Box($Unbox(b): Datatype
 // note: an axiom like this for bool would not be sound
 
 // ---------------------------------------------------------------
+// -- Encoding of type names -------------------------------------
+// ---------------------------------------------------------------
 
 type ClassName;
 const unique class.int: ClassName;
@@ -185,6 +196,7 @@ const unique class.bool: ClassName;
 const unique class.object: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
+const unique class.array: ClassName;
 
 function dtype(ref) returns (ClassName);
 function TypeParams(ref, int) returns (ClassName);
@@ -198,6 +210,8 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
   TypeTupleCdr(TypeTuple(a,b)) == b);
 
 // ---------------------------------------------------------------
+// -- Datatypes --------------------------------------------------
+// ---------------------------------------------------------------
 
 type DatatypeType;
 
@@ -207,6 +221,8 @@ function DatatypeCtorId(DatatypeType) returns (DtCtorId);
 function DtRank(DatatypeType) returns (int);
 
 // ---------------------------------------------------------------
+// -- Axiom contexts ---------------------------------------------
+// ---------------------------------------------------------------
 
 // used to make sure function axioms are not used while their consistency is being checked
 const $ModuleContextHeight: int;
@@ -214,17 +230,49 @@ const $FunctionContextHeight: int;
 const $InMethodContext: bool;
 
 // ---------------------------------------------------------------
+// -- Fields -----------------------------------------------------
+// ---------------------------------------------------------------
 
 type Field alpha;
+
+type FieldCategory;
+const unique $NamedField: FieldCategory;
+const unique $IndexedField: FieldCategory;
+function FCat<T>(Field T): FieldCategory;
+
+const unique alloc: Field bool;
+axiom FCat(alloc) == $NamedField;
+
+function IndexField(int): Field BoxType;
+axiom (forall i: int :: { IndexField(i) } FCat(IndexField(i)) == $IndexedField);
+function IndexField_Inverse<T>(Field T): int;
+axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
+
+function DeclType<T>(Field T) returns (ClassName);
+
+// ---------------------------------------------------------------
+// -- Arrays -----------------------------------------------------
+// ---------------------------------------------------------------
+
+function Array#Length(ref): int;
+axiom (forall r: ref :: 0 <= Array#Length(r));
+
+procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
+  modifies $Heap;
+  ensures $HeapSucc(old($Heap), $Heap);
+  ensures (forall i: int :: { $Heap[arr, IndexField(i)] } low <= i && i < high ==> $Heap[arr, IndexField(i)] == rhs);
+  ensures (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] } $Heap[o,f] == old($Heap)[o,f] ||
+            (o == arr && FCat(f) == $IndexedField && low <= IndexField_Inverse(f) && IndexField_Inverse(f) < high));
+
+// ---------------------------------------------------------------
+// -- The heap ---------------------------------------------------
+// ---------------------------------------------------------------
+
 type HeapType = <alpha>[ref,Field alpha]alpha;
 
 function $IsGoodHeap(HeapType) returns (bool);
 var $Heap: HeapType where $IsGoodHeap($Heap) && #cev_var_update(#cev_pc, cev_implicit, #loc.$Heap, $Heap);
 const unique #loc.$Heap: $token;
-
-const unique alloc: Field bool;
-
-function DeclType<T>(Field T) returns (ClassName);
 
 function $HeapSucc(HeapType, HeapType) returns (bool);
 axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { h[r,f:=x] }
@@ -234,6 +282,8 @@ axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { k[o,alloc] } h[o,alloc] ==> k[o,alloc]));
 
+// ---------------------------------------------------------------
+// -- Arithmetic -------------------------------------------------
 // ---------------------------------------------------------------
 
 // the connection between % and /
@@ -247,6 +297,8 @@ axiom (forall x:int, y:int :: {x % y}  y < 0  ==>  y < x % y  &&  x % y <= 0);
 // is sometime useful
 axiom (forall a: int, b: int, d: int :: { a % d, b % d } 2 <= d && a % d == b % d && a < b  ==>  a + d <= b);
 
+// ---------------------------------------------------------------
+// -- CEV (counterexample visualizer) ----------------------------
 // ---------------------------------------------------------------
 
 type $token;

@@ -1,27 +1,23 @@
 
-// Note:Implemented arrays as Dafny does not provide them
-
 class Benchmark2 {
-  method BinarySearch(a: Array, key: int) returns (result: int)
+  method BinarySearch(a: array<int>, key: int) returns (result: int)
     requires a != null;
-    requires (forall i, j ::
-                0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
-    ensures -1 <= result && result < a.Length();
-    ensures 0 <= result ==> a.Get(result) == key;
-    ensures result == -1 ==>
-              (forall i :: 0 <= i && i < a.Length() ==> a.Get(i) != key);
+    requires (forall i, j :: 0 <= i && i < j && j < |a| ==> a[i] <= a[j]);
+    ensures -1 <= result && result < |a|;
+    ensures 0 <= result ==> a[result] == key;
+    ensures result == -1 ==> (forall i :: 0 <= i && i < |a| ==> a[i] != key);
   {
     var low := 0;
-    var high := a.Length();
+    var high := |a|;
 
     while (low < high)
-      invariant 0 <= low && low <= high && high <= a.Length();
-      invariant (forall i :: 0 <= i && i < low ==> a.Get(i) < key);
-      invariant (forall i :: high <= i && i < a.Length() ==> key < a.Get(i));
+      invariant 0 <= low && low <= high && high <= |a|;
+      invariant (forall i :: 0 <= i && i < low ==> a[i] < key);
+      invariant (forall i :: high <= i && i < |a| ==> key < a[i]);
       decreases high - low;
     {
       var mid := low + (high - low) / 2;
-      var midVal := a.Get(mid);
+      var midVal := a[mid];
 
       if (midVal < key) {
         low := mid + 1;
@@ -36,47 +32,13 @@ class Benchmark2 {
   }
 }
 
-class Array {
-  var contents: seq<int>;
-  method Init(n: int)
-    requires 0 <= n;
-    modifies this;
-    ensures |contents| == n;
-  {
-    var i := 0;
-    contents := [];
-    while (i < n)
-      invariant i <= n && i == |contents|;
-      decreases n - i;
-    {
-      contents := contents + [0];
-      i := i + 1;
-    }
-  }
-   function method Length(): int
-    reads this;
-  { |contents| }
-   function method Get(i: int): int
-    requires 0 <= i && i < |contents|;
-    reads this;
-  { contents[i] }
-  method Set(i: int, x: int)
-    requires 0 <= i && i < |contents|;
-    modifies this;
-    ensures contents == old(contents)[i := x];
-  {
-    contents := contents[i := x];
-  }
-}
-
 method Main() {
-  var a := new Array;
-  call a.Init(5);
-  call a.Set(0, -4);
-  call a.Set(1, -2);
-  call a.Set(2, -2);
-  call a.Set(3, 0);
-  call a.Set(4, 25);
+  var a := new int[5];
+  a[0] := -4;
+  a[1] := -2;
+  a[2] := -2;
+  a[3] := 0;
+  a[4] := 25;
   call TestSearch(a, 4);
   call TestSearch(a, -8);
   call TestSearch(a, -2);
@@ -86,9 +48,9 @@ method Main() {
   call TestSearch(a, 27);
 }
 
-method TestSearch(a: Array, key: int)
+method TestSearch(a: array<int>, key: int)
   requires a != null;
-  requires (forall i, j :: 0 <= i && i < j && j < a.Length() ==> a.Get(i) <= a.Get(j));
+  requires (forall i, j :: 0 <= i && i < j && j < |a| ==> a[i] <= a[j]);
 {
   var b := new Benchmark2;
   call r := b.BinarySearch(a, key);

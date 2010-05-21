@@ -45,3 +45,13 @@ datatype ReverseOrder_TheCounterpart<T> {
   More(ReverseOrder_MutuallyRecursiveDataType<T>);
 }
 
+// ---------------------
+
+class ArrayTests {
+  ghost method G(a: array<int>)
+    requires a != null && 10 <= |a|;
+    modifies a;
+  {
+    a[7] := 13;  // error: array elements are not ghost locations
+  }
+}

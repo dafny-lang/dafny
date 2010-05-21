@@ -510,8 +510,14 @@ namespace Microsoft.Dafny {
       if (rhs is ExprRhs) {
         PrintExpression(((ExprRhs)rhs).Expr);
       } else if (rhs is TypeRhs) {
+        TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
-        PrintType(((TypeRhs)rhs).Type);
+        PrintType(t.EType);
+        if (t.ArraySize != null) {
+          wr.Write("[");
+          PrintExpression(t.ArraySize);
+          wr.Write("]");
+        }
       } else {
         assert false;  // unexpected RHS
       }

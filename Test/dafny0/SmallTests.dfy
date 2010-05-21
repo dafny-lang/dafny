@@ -150,4 +150,14 @@ class Modifies {
       m.x := m.x + 1;  // error: may violate modifies clause
     }
   }
+
+  method SetConstruction() {
+    var s := {1};
+    assert s != {};
+    if (*) {
+      assert s != {0,1};
+    } else {
+      assert s != {1,0};
+    }
+  }
 }

@@ -577,7 +577,7 @@ namespace Microsoft.Dafny {
           } else {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
-        } else {
+        } else if (t.ResolvedClass == null) {  // this test is becausee 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d;
           if (!classes.TryGetValue(t.Name, out d)) {
             Error(t.tok, "Undeclared top-level type or type parameter: {0}", t.Name);
@@ -725,7 +725,7 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
-        
+      
       } else if (proxy is OperationTypeProxy) {
         OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
         if (t is IntType || t is SetType || (opProxy.AllowSeq && t is SeqType)) {
@@ -733,7 +733,22 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
-        
+
+      } else if (proxy is IndexableTypeProxy) {
+        IndexableTypeProxy iProxy = (IndexableTypeProxy)proxy;
+        if (t is SeqType) {
+          if (!UnifyTypes(iProxy.Arg, ((SeqType)t).Arg)) {
+            return false;
+          }
+        } else if (t.IsArrayType) {
+          Type elType = UserDefinedType.ArrayElementType(t);
+          if (!UnifyTypes(iProxy.Arg, elType)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+                
       } else {
         assert false;  // unexpected proxy type
       }
@@ -759,6 +774,11 @@ namespace Microsoft.Dafny {
           // unify a and b by redirecting b to a, since a gives the stronger requirement
           b.T = a;
           return true;
+        } else if (b is IndexableTypeProxy) {
+          // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
+          a.T = UserDefinedType.ArrayType(Token.NoToken, ((IndexableTypeProxy)b).Arg);
+          b.T = a.T;
+          return true;
         } else {
           return false;
         }
@@ -770,8 +790,8 @@ namespace Microsoft.Dafny {
           return true;
         } else if (b is CollectionTypeProxy) {
           // fine provided b's collection-element-type can be unified with object or a class type
-          a.T = new ObjectTypeProxy();
-          return UnifyTypes(a.T, ((CollectionTypeProxy)b).Arg);
+          a.T = b;
+          return UnifyTypes(((CollectionTypeProxy)b).Arg, new ObjectTypeProxy());
         } else if (b is OperationTypeProxy) {
           // fine; restrict a to sets of object/class, and restrict b to set/seq of object/class
           if (((OperationTypeProxy)b).AllowSeq) {
@@ -782,6 +802,14 @@ namespace Microsoft.Dafny {
             b.T = a.T;
           }
           return true;
+        } else if (b is IndexableTypeProxy) {
+          IndexableTypeProxy pb = (IndexableTypeProxy)b;
+          // the intersection of ObjectsTypeProxy and IndexableTypeProxy is
+          // EITHER a sequence of ObjectTypeProxy OR an array of anything
+          // TODO: here, only the first of the two cases is supported
+          b.T = new SeqType(pb.Arg);
+          a.T = b.T;
+          return UnifyTypes(pb.Arg, new ObjectTypeProxy());
         } else {
           assert false;  // unexpected restricted-proxy type
         }
@@ -799,18 +827,42 @@ namespace Microsoft.Dafny {
             b.T = a.T;
           }
           return true;
+        } else if (b is IndexableTypeProxy) {
+          CollectionTypeProxy pa = (CollectionTypeProxy)a;
+          IndexableTypeProxy pb = (IndexableTypeProxy)b;
+          // strengthen a and b to a sequence type
+          a.T = new SeqType(pa.Arg);
+          b.T = new SeqType(pb.Arg);
+          return UnifyTypes(pa.Arg, pb.Arg);
         } else {
           assert false;  // unexpected restricted-proxy type
         }
         
       } else if (a is OperationTypeProxy) {
-        assert b is OperationTypeProxy;  // else we we have unexpected restricted-proxy type
-        if (((OperationTypeProxy)a).AllowSeq ==> ((OperationTypeProxy)b).AllowSeq) {
-          b.T = a;
+        OperationTypeProxy pa = (OperationTypeProxy)a;
+        if (b is OperationTypeProxy) {
+          if (pa.AllowSeq ==> ((OperationTypeProxy)b).AllowSeq) {
+            b.T = a;
+          } else {
+            a.T = b;  // b has the stronger requirement
+          }
+          return true;
         } else {
-          a.T = b;  // b has the stronger requirement
+          IndexableTypeProxy pb = (IndexableTypeProxy)b;  // cast justification:  lse we have unexpected restricted-proxy type
+          if (pa.AllowSeq) {
+            // strengthen a and b to a sequence type
+            b.T = new SeqType(pb.Arg);
+            a.T = b.T;
+            return true;
+          } else {
+            return false;
+          }
         }
-        return true;
+        
+      } else if (a is IndexableTypeProxy) {
+        assert b is IndexableTypeProxy;  // else we have unexpected restricted-proxy type
+        a.T = b;
+        return UnifyTypes(((IndexableTypeProxy)a).Arg, ((IndexableTypeProxy)b).Arg);
         
       } else {
         assert false;  // unexpected restricted-proxy type
@@ -863,11 +915,15 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         int prevErrorCount = ErrorCount;
-        ResolveExpression(s.Lhs, true, true);  // allow ghosts for now, but see FieldSelectExpr LHS case below
+        if (s.Lhs is SeqSelectExpr) {
+          ResolveSeqSelectExpr((SeqSelectExpr)s.Lhs, true, false, true);
+        } else {
+          ResolveExpression(s.Lhs, true, true);  // allow ghosts for now, but see FieldSelectExpr LHS case below
+        }
         bool lhsResolvedSuccessfully = ErrorCount == prevErrorCount;
         assert s.Lhs.Type != null;  // follows from postcondition of ResolveExpression
         // check that LHS denotes a mutable variable or a field
-        bool lvalueIsGhost = true;
+        bool lvalueIsGhost = false;
         if (s.Lhs is IdentifierExpr) {
           IVariable var = ((IdentifierExpr)s.Lhs).Var;
           if (var == null) {
@@ -899,6 +955,23 @@ namespace Microsoft.Dafny {
               }
             }
           }
+        } else if (s.Lhs is SeqSelectExpr) {
+          SeqSelectExpr lhs = (SeqSelectExpr)s.Lhs;
+          // LHS is fine, provided the "sequence" is really an array
+          if (lhsResolvedSuccessfully) {
+            assert lhs.Seq.Type != null;
+            Type elementType = new InferredTypeProxy();
+            if (!UnifyTypes(lhs.Seq.Type, UserDefinedType.ArrayType(Token.NoToken, elementType))) {
+              Error(lhs.Seq, "LHS of array assignment must denote an array element (found {0})", lhs.Seq.Type);
+            }
+            if (specContextOnly) {
+              Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+            }
+          }
+          if (!(s.Rhs is ExprRhs)) {
+            Error(stmt, "Assignment to array element must have an expression RHS; try using a temporary local variable");
+          }
+
         } else {
           Error(stmt, "LHS of assignment must denote a mutable variable or field");
         }
@@ -908,16 +981,19 @@ namespace Microsoft.Dafny {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, true, lvalueIsGhost);
           assert rr.Expr.Type != null;  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(s.Lhs.Type, rr.Expr.Type)) {
+          Type lhsType = s.Lhs.Type;
+          if (s.Lhs is SeqSelectExpr && !((SeqSelectExpr)s.Lhs).SelectOne) {
+            assert lhsType.IsArrayType;
+            lhsType = UserDefinedType.ArrayElementType(lhsType);
+          }
+          if (!UnifyTypes(lhsType, rr.Expr.Type)) {
             Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, s.Lhs.Type);
           }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
-          ResolveType(rr.Type);
-          if (!rr.Type.IsRefType) {
-            Error(stmt, "new can be applied only to reference types (got {0})", rr.Type);
-          } else if (!UnifyTypes(s.Lhs.Type, rr.Type)) {
-            Error(stmt, "type {0} is not assignable to LHS (of type {1})", rr.Type, s.Lhs.Type);
+          Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost);
+          if (!UnifyTypes(s.Lhs.Type, t)) {
+            Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, s.Lhs.Type);
           }
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
@@ -940,11 +1016,7 @@ namespace Microsoft.Dafny {
             rhsType = rr.Expr.Type;
           } else if (s.Rhs is TypeRhs) {
             TypeRhs rr = (TypeRhs)s.Rhs;
-            ResolveType(rr.Type);
-            if (!rr.Type.IsRefType) {
-              Error(stmt, "new can be applied only to reference types (got {0})", rr.Type);
-            }
-            rhsType = rr.Type;
+            rhsType = ResolveTypeRhs(rr, stmt, s.IsGhost);
           } else {
             assert false;  // unexpected RHS
           }
@@ -1264,6 +1336,24 @@ namespace Microsoft.Dafny {
         assert false;
       }
     }
+    
+    Type! ResolveTypeRhs(TypeRhs! rr, Statement! stmt, bool specContext) {
+      ResolveType(rr.EType);
+      if (rr.ArraySize == null) {
+        if (!rr.EType.IsRefType) {
+          Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
+        }
+      } else {
+        ResolveExpression(rr.ArraySize, true, specContext);
+        if (rr.ArraySize.Type is IntType) {
+          // all is good
+          return UserDefinedType.ArrayType(stmt.Tok, rr.EType);
+        } else {
+          Error(stmt, "new must use an integer expression for the array size (got {0})", rr.ArraySize.Type);
+        }
+      }
+      return rr.EType;
+    }
 
     MemberDecl ResolveMember(Token! tok, Type! receiverType, string! memberName, out UserDefinedType ctype)
       ensures result != null ==> ctype != null && ctype.ResolvedClass != null;
@@ -1499,35 +1589,7 @@ namespace Microsoft.Dafny {
       
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        bool seqErr = false;
-        ResolveExpression(e.Seq, twoState, specContext);
-        assert e.Seq.Type != null;  // follows from postcondition of ResolveExpression
-        Type elementType = new InferredTypeProxy();
-        if (!UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
-          Error(expr, "sequence selection requires a sequence (got {0})", e.Seq.Type);
-          seqErr = true;
-        }
-        if (e.E0 != null) {
-          ResolveExpression(e.E0, twoState, specContext);
-          assert e.E0.Type != null;  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.E0.Type, Type.Int)) {
-            Error(e.E0, "sequence selection requires integer indices (got {0})", e.E0.Type);
-          }
-        }
-        if (e.E1 != null) {
-          ResolveExpression(e.E1, twoState, specContext);
-          assert e.E1.Type != null;  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(e.E1.Type, Type.Int)) {
-            Error(e.E1, "sequence selection requires integer indices (got {0})", e.E1.Type);
-          }
-        }
-        if (!seqErr) {
-          if (e.SelectOne) {
-            expr.Type = elementType;
-          } else {
-            expr.Type = e.Seq.Type;
-          }
-        }
+        ResolveSeqSelectExpr(e, twoState, specContext, false);
         
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
@@ -1665,8 +1727,8 @@ namespace Microsoft.Dafny {
             expr.Type = Type.Bool;
             break;
           case UnaryExpr.Opcode.SeqLength:
-            if (!UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
-              Error(expr, "sequence-length operator expects a sequence argument (instead got {0})", e.E.Type);
+            if (!UnifyTypes(e.E.Type, new IndexableTypeProxy(new InferredTypeProxy()))) {
+              Error(expr, "length operator expects a sequence or array argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Int;
             break;
@@ -1930,6 +1992,44 @@ namespace Microsoft.Dafny {
         expr.Type = GetThisType(expr.tok, currentClass);
       } else {
         ResolveExpression(expr, twoState, specContext);
+      }
+    }
+    
+    void ResolveSeqSelectExpr(SeqSelectExpr! e, bool twoState, bool specContext, bool allowNonUnitArraySelection) {
+      bool seqErr = false;
+      ResolveExpression(e.Seq, twoState, specContext);
+      assert e.Seq.Type != null;  // follows from postcondition of ResolveExpression
+      Type elementType = new InferredTypeProxy();
+      Type expectedType;
+      if (e.SelectOne || allowNonUnitArraySelection) {
+        expectedType = new IndexableTypeProxy(elementType);
+      } else {
+        expectedType = new SeqType(elementType);
+      }
+      if (!UnifyTypes(e.Seq.Type, expectedType)) {
+        Error(e, "sequence/array selection requires a sequence or array (got {0})", e.Seq.Type);
+        seqErr = true;
+      }
+      if (e.E0 != null) {
+        ResolveExpression(e.E0, twoState, specContext);
+        assert e.E0.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E0.Type, Type.Int)) {
+          Error(e.E0, "sequence/array selection requires integer indices (got {0})", e.E0.Type);
+        }
+      }
+      if (e.E1 != null) {
+        ResolveExpression(e.E1, twoState, specContext);
+        assert e.E1.Type != null;  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E1.Type, Type.Int)) {
+          Error(e.E1, "sequence/array selection requires integer indices (got {0})", e.E1.Type);
+        }
+      }
+      if (!seqErr) {
+        if (e.SelectOne) {
+          e.Type = elementType;
+        } else {
+          e.Type = e.Seq.Type;
+        }
       }
     }
     

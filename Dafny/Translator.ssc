@@ -104,6 +104,7 @@ namespace Microsoft.Dafny {
       public readonly string! HeapVarName;
       public readonly Bpl.Constant! CevHeapName;
       public readonly Bpl.Type! ClassNameType;
+      public readonly Bpl.Type! FieldCategoryType;
       public readonly Bpl.Type! DatatypeType;
       public readonly Bpl.Type! DtCtorId;
       public readonly Bpl.Expr! Null;
@@ -114,7 +115,8 @@ namespace Microsoft.Dafny {
 
       public PredefinedDecls(Bpl.TypeCtorDecl! refType, Bpl.TypeCtorDecl! boxType, Bpl.TypeCtorDecl! cevTokenType, Bpl.TypeCtorDecl! cevVariableKind, Bpl.TypeCtorDecl! cevEventType,
                              Bpl.TypeSynonymDecl! setTypeCtor, Bpl.TypeCtorDecl! seqTypeCtor, Bpl.TypeCtorDecl! fieldNameType,
-                             Bpl.GlobalVariable! heap, Bpl.TypeCtorDecl! classNameType, Bpl.TypeCtorDecl! datatypeType, Bpl.TypeCtorDecl! dtCtorId,
+                             Bpl.GlobalVariable! heap, Bpl.TypeCtorDecl! classNameType, Bpl.TypeCtorDecl! fieldCategoryType,
+                             Bpl.TypeCtorDecl! datatypeType, Bpl.TypeCtorDecl! dtCtorId,
                              Bpl.Constant! allocField, Bpl.Constant! cevHeapNameConst) {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new Bpl.TypeSeq());
         this.RefType = refT;
@@ -129,6 +131,7 @@ namespace Microsoft.Dafny {
         this.HeapVarName = heap.Name;
         this.CevHeapName = cevHeapNameConst;
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
+        this.FieldCategoryType = new Bpl.CtorType(Token.NoToken, fieldCategoryType, new Bpl.TypeSeq());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new Bpl.TypeSeq());
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new Bpl.TypeSeq());
         this.allocField = allocField;
@@ -150,6 +153,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
+      Bpl.TypeCtorDecl fieldCategoryType = null;
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl dtCtorId = null;
       Bpl.TypeCtorDecl boxType = null;
@@ -165,6 +169,8 @@ namespace Microsoft.Dafny {
             fieldNameType = dt;
           } else if (dt.Name == "ClassName") {
             classNameType = dt;
+          } else if (dt.Name == "FieldCategory") {
+            fieldCategoryType = dt;
           } else if (dt.Name == "DatatypeType") {
             datatypeType = dt;
           } else if (dt.Name == "DtCtorId") {
@@ -207,6 +213,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+      } else if (fieldCategoryType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type FieldCategory");
       } else if (datatypeType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (dtCtorId == null) {
@@ -229,7 +237,7 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant #loc.$Heap");
       } else {
         return new PredefinedDecls(refType, boxType, cevTokenType, cevVariableKind, cevEventType,
-                                   setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
+                                   setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, fieldCategoryType, datatypeType, dtCtorId,
                                    allocField, cevHeapNameConst);
       }
       return null;
@@ -623,7 +631,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr oDotFsubI = FunctionCall(f.tok, BuiltinFunction.SeqIndex, predef.BoxType, oDotF, i);
           Bpl.Expr unbox = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, oDotFsubI);
           
-          Bpl.Expr range = InSeqRange(f.tok, i, oDotF, null, false);
+          Bpl.Expr range = InSeqRange(f.tok, i, oDotF, true, null, false);
           
           Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotFsubI));
           
@@ -652,16 +660,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr! InSeqRange(Token! tok, Bpl.Expr! index, Bpl.Expr! seq, Bpl.Expr lowerBound, bool includeUpperBound) {
+    Bpl.Expr! InSeqRange(Token! tok, Bpl.Expr! index, Bpl.Expr! seq, bool isSequence, Bpl.Expr lowerBound, bool includeUpperBound) {
       if (lowerBound == null) {
         lowerBound = Bpl.Expr.Literal(0);
       }
       Bpl.Expr lower = Bpl.Expr.Le(lowerBound, index);
+      Bpl.Expr length = FunctionCall(tok, isSequence ? BuiltinFunction.SeqLength : BuiltinFunction.ArrayLength, null, seq);
       Bpl.Expr upper;
       if (includeUpperBound) {
-        upper = Bpl.Expr.Le(index, FunctionCall(tok, BuiltinFunction.SeqLength, null, seq));
+        upper = Bpl.Expr.Le(index, length);
       } else {
-        upper = Bpl.Expr.Lt(index, FunctionCall(tok, BuiltinFunction.SeqLength, null, seq));
+        upper = Bpl.Expr.Lt(index, length);
       }
       return Bpl.Expr.And(lower, upper);
     }
@@ -975,7 +984,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
-          Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), null, false);
+          Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), true, null, false);
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, etran.TrExpr(e), i);
           // TODO: the equality in the next line should be changed to one that understands extensionality
           disjunct = new Bpl.ExistsExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(iBounds, Bpl.Expr.Eq(XsubI, boxO)));
@@ -1083,17 +1092,18 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
+        bool isSequence = e.Seq.Type is SeqType;
         Bpl.Expr total = IsTotal(e.Seq, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr e0 = null;
         if (e.E0 != null) {
           e0 = etran.TrExpr(e.E0);
           total = BplAnd(total, IsTotal(e.E0, etran));
-          total = BplAnd(total, InSeqRange(expr.tok, e0, seq, null, !e.SelectOne));
+          total = BplAnd(total, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne));
         }
         if (e.E1 != null) {
           total = BplAnd(total, IsTotal(e.E1, etran));
-          total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true));
+          total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true));
         }
         return total;
       } else if (expr is SeqUpdateExpr) {
@@ -1102,7 +1112,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr index = etran.TrExpr(e.Index);
         total = BplAnd(total, IsTotal(e.Index, etran));
-        total = BplAnd(total, InSeqRange(expr.tok, index, seq, null, false));
+        total = BplAnd(total, InSeqRange(expr.tok, index, seq, true, null, false));
         total = BplAnd(total, IsTotal(e.Value, etran));
         return total;
       } else if (expr is FunctionCallExpr) {
@@ -1137,7 +1147,11 @@ namespace Microsoft.Dafny {
         return IsTotal(e.E, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
-        return IsTotal(e.E, etran);
+        Bpl.Expr t = IsTotal(e.E, etran);
+        if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
+          return Bpl.Expr.And(t, Bpl.Expr.Neq(etran.TrExpr(e.E), predef.Null));
+        }
+        return t;
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         Bpl.Expr t0 = IsTotal(e.E0, etran);
@@ -1240,17 +1254,23 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
+        bool isSequence = e.Seq.Type is SeqType;
         CheckWellformed(e.Seq, func, Position.Neither, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr e0 = null;
         if (e.E0 != null) {
           e0 = etran.TrExpr(e.E0);
           CheckWellformed(e.E0, func, Position.Neither, locals, builder, etran);
-          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, e0, seq, null, !e.SelectOne), "index out of range"));
+          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne), "index out of range"));
         }
         if (e.E1 != null) {
           CheckWellformed(e.E1, func, Position.Neither, locals, builder, etran);
-          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, e0, true), "end-of-range beyond length of sequence"));
+          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true), "end-of-range beyond length of " + (isSequence ? "sequence" : "array")));
+        }
+        if (func != null && ((!)e.Seq.Type).IsArrayType) {
+          assert e.E0 != null;
+          Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, etran.TrExpr(e.E0));
+          builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element"));
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
@@ -1258,7 +1278,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr index = etran.TrExpr(e.Index);
         CheckWellformed(e.Index, func, Position.Neither, locals, builder, etran);
-        builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, null, false), "index out of range"));
+        builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range"));
         CheckWellformed(e.Value, func, Position.Neither, locals, builder, etran);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
@@ -1325,6 +1345,9 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, func, e.Op == UnaryExpr.Opcode.Not ? Negate(pos) : Position.Neither, locals, builder, etran);
+        if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
+          CheckNonNull(expr.tok, e.E, builder, etran);
+        }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         CheckWellformed(e.E0, func, e.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ? Negate(pos) : pos, locals, builder, etran);
@@ -1423,8 +1446,6 @@ namespace Microsoft.Dafny {
       if (classes.TryGetValue(cl, out cc)) {
         assert cc != null;
       } else {
-        // TODO: make the following a function when the class has type parameters, so that different instantiations
-        // of a class can be distinguished
         cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.Name, predef.ClassNameType), true);
         classes.Add(cl, cc);
       }
@@ -1485,11 +1506,14 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         assert fc != null;
       } else {
+        // const unique f: Field ty;
         Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullName, ty), true);
         fields.Add(f, fc);
-        // axiom DeclType(f) == C;
-        Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.DeclType, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, GetClass((!)f.EnclosingClass))));
+        // axiom FCat(f) == $NamedField && DeclType(f) == C;
+        Bpl.Expr fcat = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FCat, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, "$NamedField", predef.FieldCategoryType));
+        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.DeclType, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, GetClass((!)f.EnclosingClass)));
+        Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.And(fcat, declType));
         sink.TopLevelDeclarations.Add(ax);
       }
       return fc;
@@ -1849,6 +1873,8 @@ namespace Microsoft.Dafny {
           builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdate",
             new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, v.Name), v),
             new Bpl.IdentifierExprSeq()));
+        } else if (s.Lhs is SeqSelectExpr) {
+          // TODO: CEV
         } else {
           builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
             new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
@@ -2013,6 +2039,30 @@ namespace Microsoft.Dafny {
         int loopId = loopHeapVarCount;
         loopHeapVarCount++;
         
+        // use simple heuristics to create a default decreases clause, if none is given
+        List<Expression!> theDecreases = s.Decreases;
+        if (theDecreases.Count == 0) {
+          Expression guess = null;
+          BinaryExpr bin = s.Guard as BinaryExpr;
+          if (bin != null) {
+            switch (bin.ResolvedOp) {
+              case BinaryExpr.ResolvedOpcode.Lt:
+              case BinaryExpr.ResolvedOpcode.Le:
+                guess = IntSub(s.Tok, bin.E1, bin.E0);
+                break;
+              case BinaryExpr.ResolvedOpcode.Ge:
+              case BinaryExpr.ResolvedOpcode.Gt:
+                guess = IntSub(s.Tok, bin.E0, bin.E1);
+                break;
+              default:
+                break;
+            }
+          }
+          if (guess != null) {
+            theDecreases.Add(guess);
+          }
+        }
+        
         Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
         locals.Add(preLoopHeapVar);
         Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(stmt.Tok, preLoopHeapVar);
@@ -2055,7 +2105,7 @@ namespace Microsoft.Dafny {
           }
         }
         // check definedness of decreases clause
-        foreach (Expression e in s.Decreases) {
+        foreach (Expression e in theDecreases) {
           invDefinednessBuilder.Add(Assert(e.tok, IsTotal(e, etran), "decreases expression must be well defined at top of each loop iteration"));  // totality check
         }
         // include boilerplate invariants
@@ -2104,13 +2154,13 @@ namespace Microsoft.Dafny {
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_entered", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
         // termination checking
-        if (exists{Expression e in s.Decreases; e is WildcardExpr}) {
+        if (exists{Expression e in theDecreases; e is WildcardExpr}) {
           // omit termination checking for this loop
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
         } else {
           List<Bpl.Expr!> oldBfs = new List<Bpl.Expr!>();
           int c = 0;
-          foreach (Expression e in s.Decreases) {
+          foreach (Expression e in theDecreases) {
             Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, "$decr" + loopId + "$" + c, TrType((!)e.Type)));
             locals.Add(bfVar);
             Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
@@ -2127,7 +2177,7 @@ namespace Microsoft.Dafny {
           List<Token!> toks = new List<Token!>();
           List<Type!> types = new List<Type!>();
           List<Bpl.Expr!> decrs = new List<Bpl.Expr!>();
-          foreach (Expression e in s.Decreases) {
+          foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
             types.Add((!)e.Type);
             decrs.Add(etran.TrExpr(e));
@@ -2171,7 +2221,7 @@ namespace Microsoft.Dafny {
           Bpl.BoundVariable iVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$i", Bpl.Type.Int));
           Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(stmt.Tok, iVar);
           Bpl.Expr S = etran.TrExpr(s.Collection);
-          Bpl.Expr range = InSeqRange(stmt.Tok, i, S, null, false);
+          Bpl.Expr range = InSeqRange(stmt.Tok, i, S, true, null, false);
           Bpl.Expr Si = FunctionCall(stmt.Tok, BuiltinFunction.SeqIndex, predef.BoxType, S, i);
           Bpl.Trigger tr = new Bpl.Trigger(stmt.Tok, true, new Bpl.ExprSeq(Si));
           // TODO: in the next line, the == should be replaced by something that understands extensionality, for sets and sequences
@@ -2310,6 +2360,15 @@ namespace Microsoft.Dafny {
       } else {
         assert false;  // unexpected statement
       }
+    }
+    
+    static Expression! IntSub(Token! tok, Expression! e0, Expression! e1)
+      requires e0.Type is IntType && e1.Type is IntType;
+    {
+      BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+      s.Type = Type.Int;
+      return s;
     }
     
     void CheckCallTermination(Token! tok, List<Expression!>! contextDecreases, List<Expression!>! calleeDecreases,
@@ -2489,7 +2548,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr xSubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, x, i);
           Bpl.Expr unbox = FunctionCall(tok, BuiltinFunction.Unbox, predef.RefType, xSubI);
 
-          Bpl.Expr range = InSeqRange(tok, i, x, null, false);
+          Bpl.Expr range = InSeqRange(tok, i, x, true, null, false);
 
           Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubI));
 
@@ -2523,7 +2582,7 @@ namespace Microsoft.Dafny {
           Bpl.IdentifierExpr bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
           Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
           builder.Add(cmd);
-        } else {
+        } else if (lhs is FieldSelectExpr) {
           FieldSelectExpr fse = (FieldSelectExpr)lhs;
           assert fse.Field != null;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj];
@@ -2535,6 +2594,38 @@ namespace Microsoft.Dafny {
           builder.Add(cmd);
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(tok, etran));
+        } else {
+          SeqSelectExpr sel = (SeqSelectExpr)lhs;
+          assert sel.Seq.Type != null && sel.Seq.Type.IsArrayType;
+          bRhs = etran.BoxIfNecessary(tok, bRhs, UserDefinedType.ArrayElementType(sel.Seq.Type));
+          if (sel.SelectOne) {
+            assert sel.E0 != null;
+            Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0));
+            // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index];
+            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(sel.Seq), fieldName), "assignment may update an array not in the enclosing method's modifies clause"));
+            
+            Bpl.IdentifierExpr h = (Bpl.IdentifierExpr!)etran.HeapExpr;  // TODO: is this cast always justified?
+            Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, h, etran.TrExpr(sel.Seq), fieldName, bRhs);
+            builder.Add(cmd);
+            // assume $IsGoodHeap($Heap);
+            builder.Add(AssumeGoodHeap(tok, etran));
+          } else {
+            Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
+            Bpl.Expr high = sel.E1 == null ? FunctionCall(tok, BuiltinFunction.ArrayLength, null, etran.TrExpr(sel.Seq)) : etran.TrExpr(sel.E1);
+            // check frame:
+            // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
+            Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
+            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(tok, iVar);
+            Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Le(low, ie), Bpl.Expr.Lt(ie, high));
+            Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, ie);
+            Bpl.Expr cons = Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(sel.Seq), fieldName);
+            Bpl.Expr q = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(ante, cons));
+            builder.Add(Assert(tok, q, "assignment may update an array not in the enclosing method's modifies clause"));
+            // do the update:  call UpdateArrayRange(arr, low, high, rhs);
+            builder.Add(new Bpl.CallCmd(tok, "UpdateArrayRange",
+              new Bpl.ExprSeq(etran.TrExpr(sel.Seq), low, high, bRhs),
+              new Bpl.IdentifierExprSeq()));
+          }
         }
         
       } else if (rhs is HavocRhs) {
@@ -2544,13 +2635,35 @@ namespace Microsoft.Dafny {
 
       } else {
         assert rhs is TypeRhs;  // otherwise, an unexpected AssignmentRhs
+        TypeRhs tRhs = (TypeRhs)rhs;
         assert lhs is IdentifierExpr;  // for this kind of RHS, the LHS is restricted to be a simple variable
+        
+        if (tRhs.ArraySize != null) {
+          CheckWellformed(tRhs.ArraySize, null, Position.Positive, locals, builder, etran);
+          builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(tRhs.ArraySize)), "array size might be negative"));
+        }
         
         Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
         builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(nw)));
         // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
         Bpl.Expr nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-        builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, etran.GoodRef_Class(tok, nw, (UserDefinedType)((TypeRhs)rhs).Type, true))));
+        Bpl.Expr rightType;
+        if (tRhs.ArraySize != null) {
+          // array allocation
+          List<Type!> typeArgs = new List<Type!>();
+          typeArgs.Add(tRhs.EType);
+          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class.array", predef.ClassNameType), typeArgs, true);
+        } else if (tRhs.EType is ObjectType) {
+          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class.object", predef.ClassNameType), new List<Type!>(), true);
+        } else {
+          rightType = etran.GoodRef_Class(tok, nw, (UserDefinedType)tRhs.EType, true);
+        }
+        builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
+        if (tRhs.ArraySize != null) {
+          // assume Array#Length($nw) == arraySize;
+          Bpl.Expr arrayLength = FunctionCall(tok, BuiltinFunction.ArrayLength, null, nw);
+          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(tRhs.ArraySize))));
+        }
         // $Heap[$nw, alloc] := true;
         Bpl.Expr alloc = predef.Alloc(tok);
         Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, nw, alloc, Bpl.Expr.True);
@@ -2685,13 +2798,26 @@ namespace Microsoft.Dafny {
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
           Bpl.Expr seq = TrExpr(e.Seq);
-          Type elmtType = ((SeqType!)e.Seq.Type).Arg;
+          Type elmtType;
+          assert e.Seq.Type != null;  // the expression has been successfully resolved
+          if (e.Seq.Type.IsArrayType) {
+            assert e.SelectOne;  // resolution enforces that a non-unit array selections is allowed only as an assignment LHS
+            elmtType = UserDefinedType.ArrayElementType(e.Seq.Type);
+          } else {
+            elmtType = ((SeqType)e.Seq.Type).Arg;
+          }
           Bpl.Type elType = translator.TrType(elmtType);
           Bpl.Expr e0 = e.E0 == null ? null : TrExpr(e.E0);
           Bpl.Expr e1 = e.E1 == null ? null : TrExpr(e.E1);
           if (e.SelectOne) {
             assert e1 == null;
-            Bpl.Expr x = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
+            Bpl.Expr x;
+            if (e.Seq.Type.IsArrayType) {
+              Bpl.Expr fieldName = translator.FunctionCall(expr.tok, BuiltinFunction.IndexField, null, e0);
+              x = Bpl.Expr.SelectTok(expr.tok, HeapExpr, TrExpr(e.Seq), fieldName);
+            } else {
+              x = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
+            }
             if (!ModeledAsBoxType(elmtType)) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, elType, x);
             }
@@ -2773,7 +2899,7 @@ namespace Microsoft.Dafny {
             // TODO: trigger?
             Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
             Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
-            Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), null, false);
+            Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
             Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, XsubI, oldHeap));
             Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI), predef.Null);
@@ -2793,7 +2919,11 @@ namespace Microsoft.Dafny {
             case UnaryExpr.Opcode.Not:
               return Bpl.Expr.Not(arg);
             case UnaryExpr.Opcode.SeqLength:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
+              if (e.E.Type is SeqType) {
+                return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
+              } else {
+                return translator.FunctionCall(expr.tok, BuiltinFunction.ArrayLength, null, arg);
+              }
             default:
               assert false;  // unexpected unary expression
           }
@@ -3087,6 +3217,10 @@ namespace Microsoft.Dafny {
       public Bpl.Expr! GoodRef_Class(Token! tok, Bpl.Expr! e, UserDefinedType! type, bool isNew)
         requires type.ResolvedClass is ClassDecl;
       {
+        return GoodRef_Ref(tok, e, new Bpl.IdentifierExpr(tok, translator.GetClass(type.ResolvedClass)), type.TypeArgs, isNew);
+      }
+      
+      public Bpl.Expr! GoodRef_Ref(Token! tok, Bpl.Expr! e, Bpl.Expr! type, List<Type!>! typeArgs, bool isNew) {
         // Heap[e, alloc]
         Bpl.Expr r = IsAlloced(tok, e);
         if (isNew) {
@@ -3095,12 +3229,12 @@ namespace Microsoft.Dafny {
         
         // dtype(e) == C
         Bpl.Expr dtypeFunc = translator.FunctionCall(tok, BuiltinFunction.DynamicType, null, e);
-        Bpl.Expr dtype = Bpl.Expr.Eq(dtypeFunc, new Bpl.IdentifierExpr(tok, translator.GetClass(type.ResolvedClass)));
+        Bpl.Expr dtype = Bpl.Expr.Eq(dtypeFunc, type);
         r = Bpl.Expr.And(r, dtype);
         
         // dtypeParams(e, #) == T
         int n = 0;
-        foreach (Type arg in type.TypeArgs) {
+        foreach (Type arg in typeArgs) {
           Bpl.Expr tpFunc = translator.FunctionCall(tok, BuiltinFunction.TypeParams, null, e, Bpl.Expr.Literal(n));
           Bpl.Expr ta = translator.GetTypeExpr(tok, arg);
           if (ta != null) {
@@ -3180,6 +3314,9 @@ namespace Microsoft.Dafny {
       SeqEqual,
       SeqSameUntil,
       
+      ArrayLength,
+      IndexField,
+      
       IfThenElse,
       
       Box,
@@ -3192,6 +3329,7 @@ namespace Microsoft.Dafny {
       TypeParams,   // type parameters to allocated type
       TypeTuple,
       DeclType,
+      FCat,  // field category (indexed or named)
       
       DatatypeCtorId,
       DtRank,
@@ -3291,6 +3429,15 @@ namespace Microsoft.Dafny {
           assert typeInstantiation == null;
           return FunctionCall(tok, "Seq#SameUntil", Bpl.Type.Bool, args);
           
+        case BuiltinFunction.ArrayLength:
+          assert args.Length == 1;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "Array#Length", Bpl.Type.Int, args);
+        case BuiltinFunction.IndexField:
+          assert args.Length == 1;
+          assert typeInstantiation == null;
+          return FunctionCall(tok, "IndexField", predef.FieldName(tok, predef.BoxType), args);
+
         case BuiltinFunction.IfThenElse:
           assert args.Length == 3;
           assert typeInstantiation != null;
@@ -3330,6 +3477,10 @@ namespace Microsoft.Dafny {
           assert args.Length == 1;
           assert typeInstantiation != null;
           return FunctionCall(tok, "DeclType", predef.ClassNameType, args);
+        case BuiltinFunction.FCat:
+          assert args.Length == 1;
+          assert typeInstantiation != null;
+          return FunctionCall(tok, "FCat", predef.FieldCategoryType, args);
           
         case BuiltinFunction.DatatypeCtorId:
           assert args.Length == 1;

@@ -39,7 +39,7 @@
         "assert" "assume" "break" "call" "then" "else" "havoc" "if" "label" "return" "while" "print"
         "old" "forall" "exists" "new" "foreach" "in" "this" "fresh" "use"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
-   `(,(dafny-regexp-opt '("bool" "int" "object" "set" "seq")) . font-lock-type-face)
+   `(,(dafny-regexp-opt '("array" "bool" "int" "object" "set" "seq")) . font-lock-type-face)
    )
   "Minimal highlighting for Dafny mode")
 

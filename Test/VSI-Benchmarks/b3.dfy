@@ -64,7 +64,6 @@ class Benchmark3 {
 		invariant n <= |q.contents|;
 		invariant n == |p|;
 		invariant (forall i: int :: 0 <= i && i < n ==> p[i] == i);
-		decreases |q.contents| - n;
    {
 		p := p + [n];
 		n := n + 1;
@@ -121,7 +120,6 @@ class Benchmark3 {
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; //i.e. rotated
       invariant 0 <= k && k < |old(q.contents)| && old(q.contents)[k] == m;
       invariant (forall i ::0<= i && i < j ==> m <= old(q.contents)[i]); //m is min so far   
-      decreases n-j;
     {
 		call x:= q.Dequeue();
 		call q.Enqueue(x);
@@ -134,7 +132,6 @@ class Benchmark3 {
     while (j < k)
       invariant j <= k;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
-      decreases k-j;
     {     
       call x := q.Dequeue();
       call q.Enqueue(x);

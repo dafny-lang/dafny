@@ -397,6 +397,12 @@ ReferenceType<out Token! tok, out Type! ty>
      List<Type!>! gt;
   .)
   ( "object"                        (. tok = token;  ty = new ObjectType(); .)
+  | "array"                         (. tok = token;  gt = new List<Type!>(); .)
+    GenericInstantiation<gt>        (. if (gt.Count != 1) {
+                                         SemErr("array type expects exactly one type argument");
+                                       }
+                                       ty = UserDefinedType.ArrayType(tok, gt[0]);
+                                    .)
   | Ident<out tok>                  (. gt = new List<Type!>(); .)
     [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
   )
@@ -590,22 +596,26 @@ AssignStmt<out Statement! s>
   .)
   LhsExpr<out lhs>
   ":="                                 (. x = token; .)
-  AssignRhs<out rhs, out ty>           (. if (rhs != null) {
+  AssignRhs<out rhs, out ty>           (. if (ty == null) {
+                                            assert rhs != null;
                                             s = new AssignStmt(x, lhs, rhs);
-                                          } else {
-                                            assert ty != null;
+                                          } else if (rhs == null) {
                                             s = new AssignStmt(x, lhs, ty);
+                                          } else {
+                                            s = new AssignStmt(x, lhs, ty, rhs);
                                           }
                                        .)
   ";"
   .
 
 AssignRhs<out Expression e, out Type ty>
-/* ensures e == null <==> ty == null; */
+/* ensures e != null || ty != null; */
 = (. Token! x;  Expression! ee;  Type! tt;
      e = null;  ty = null;
   .)
-  ( "new" ReferenceType<out x, out tt> (. ty = tt; .)
+  ( "new" TypeAndToken<out x, out tt>  (. ty = tt; .)
+    [ "[" Expression<out ee> "]"       (. e = ee; .)
+    ]
   | Expression<out ee>                 (. e = ee; .)
   )                                    (. if (e == null && ty == null) { e = dummyExpr; } .)
   .
@@ -642,11 +652,14 @@ IdentTypeRhs<out VarDecl! d, bool isGhost>
   [ ":="
     AssignRhs<out rhs, out newType>
   ]
-  (. if (rhs != null) {
-       assert newType == null;
+  (. if (newType == null && rhs != null) {
        optionalRhs = new ExprRhs(rhs);
      } else if (newType != null) {
-       optionalRhs = new TypeRhs(newType);
+       if (rhs == null) {
+         optionalRhs = new TypeRhs(newType);
+       } else {
+         optionalRhs = new TypeRhs(newType, rhs);
+       }
      } else if (optionalType == null) {
        optionalType = new InferredTypeProxy();
      }

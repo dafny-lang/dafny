@@ -68,6 +68,12 @@ namespace Microsoft.Dafny
         }
       }
     }
+    public bool IsArrayType {
+      get {
+        UserDefinedType udt = UserDefinedType.DenotesClass(this);
+        return udt != null && ((ClassDecl!)udt.ResolvedClass).Name == "array";  // the cast to non-null is guaranteed by postcondition of DenotesClass
+      }
+    }
     public bool IsDatatype {
       get {
         return AsDatatype != null;
@@ -140,7 +146,7 @@ namespace Microsoft.Dafny
       return "seq<" + Arg + ">";
     }
   }
-
+  
   public class UserDefinedType : Type {
     public readonly Token! tok;
     public readonly string! Name;
@@ -148,6 +154,22 @@ namespace Microsoft.Dafny
     
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
+
+    public static UserDefinedType! ArrayType(Token! tok, Type! arg) {
+      List<Type!> typeArgs = new List<Type!>();
+      typeArgs.Add(arg);
+      UserDefinedType udt = new UserDefinedType(tok, "array", typeArgs);
+      udt.ResolvedClass = arrayTypeDecl;
+      return udt;
+    }
+    static TopLevelDecl! arrayTypeDecl;
+    static UserDefinedType() {
+      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
+      typeArgs.Add(new TypeParameter(Token.NoToken, "arg"));
+      ModuleDecl systemModule = new ModuleDecl(Token.NoToken, "_System", new List<string!>(), null);
+      arrayTypeDecl = new ClassDecl(Token.NoToken, "array", systemModule, typeArgs, new List<MemberDecl!>(), null);
+    }
+
     
     public UserDefinedType(Token! tok, string! name, [Captured] List<Type!>! typeArgs) {
       this.tok = tok;
@@ -199,6 +221,19 @@ namespace Microsoft.Dafny
       } else {
         return null;
       }
+    }
+    
+    /// <summary>
+    /// If type denotes a resolved class type, then return that class type.
+    /// Otherwise, return null.
+    /// </summary>
+    public static Type! ArrayElementType(Type! type)
+      requires type.IsArrayType;
+    {
+      UserDefinedType udt = DenotesClass(type);
+      assert udt != null;
+      assert udt.TypeArgs.Count == 1;  // holds true of all array types
+      return udt.TypeArgs[0];
     }
     
     [Pure] public override string! ToString() {
@@ -253,23 +288,23 @@ namespace Microsoft.Dafny
   }
   
   /// <summary>
-  /// This proxy stands for object or any class type.
+  /// This proxy stands for object or any class/array type.
   /// </summary>  
   public class ObjectTypeProxy : RestrictedTypeProxy {
     public override int OrderID { get { return 0; } }
   }
   
   /// <summary>
-  /// This proxy stands for object or any class type or a set or sequence of object or a class type.
+  /// This proxy stands for object or any class/array type or a set/sequence of object or a class/array type.
   /// </summary>
   public class ObjectsTypeProxy : RestrictedTypeProxy {
     public override int OrderID { get { return 1; } }
   }
   
   /// <summary>
-  /// This proxy stands for either:
+  /// This proxy stands for:
   ///     set(Arg) or seq(Arg)
-  /// </summary>  
+  /// </summary>
   public class CollectionTypeProxy : RestrictedTypeProxy {
     public readonly Type! Arg;
     public CollectionTypeProxy(Type! arg) {
@@ -293,6 +328,18 @@ namespace Microsoft.Dafny
     public override int OrderID { get { return 3; } }
   }
   
+  /// <summary>
+  /// This proxy stands for:
+  ///     seq(Arg) or array(Arg)
+  /// </summary>
+  public class IndexableTypeProxy : RestrictedTypeProxy {
+    public readonly Type! Arg;
+    public IndexableTypeProxy(Type! arg) {
+      Arg = arg;
+    }
+    public override int OrderID { get { return 4; } }
+  }
+
   // ------------------------------------------------------------------------------------------------------
   
   public abstract class Declaration {
@@ -708,9 +755,14 @@ namespace Microsoft.Dafny
   }
   
   public class TypeRhs : DeterminedAssignmentRhs {
-    public readonly Type! Type;
+    public readonly Type! EType;
+    public readonly Expression ArraySize;
     public TypeRhs(Type! type) {
-      Type = type;
+      EType = type;
+    }
+    public TypeRhs(Type! type, Expression! arraySize) {
+      EType = type;
+      ArraySize = arraySize;
     }
   }
   
@@ -728,6 +780,11 @@ namespace Microsoft.Dafny
     public AssignStmt(Token! tok, Expression! lhs, Type! type) {  // alloc statement
       this.Lhs = lhs;
       this.Rhs = new TypeRhs(type);
+      base(tok);
+    }
+    public AssignStmt(Token! tok, Expression! lhs, Type! type, Expression! arraySize) {  // array alloc statement
+      this.Lhs = lhs;
+      this.Rhs = new TypeRhs(type, arraySize);
       base(tok);
     }
     public AssignStmt(Token! tok, Expression! lhs) {  // havoc

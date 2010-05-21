@@ -230,7 +230,7 @@ namespace Microsoft.Boogie
           PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, null/*new ErrorReporter()*/, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
-              if (CommandLineOptions.Clo.Compile) {
+              if (CommandLineOptions.Clo.Compile && errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0) {
                 string targetFilename = "out.cs";
                 using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
                   Dafny.Compiler compiler = new Dafny.Compiler(target);

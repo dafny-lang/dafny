@@ -142,7 +142,6 @@ class Client {
     call wr.Create();
     while (0 < |q.contents|)
       invariant wr.Valid() && fresh(wr.footprint) && fresh(q) && q !in wr.footprint;
-      decreases |q.contents|;
     {
       call ch := q.Dequeue();  
       call wr.PutChar(ch);    
