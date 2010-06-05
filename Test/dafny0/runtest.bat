@@ -23,7 +23,7 @@ for %%f in (TypeTests.dfy SmallTests.dfy Definedness.dfy Array.dfy
             SchorrWaite.dfy Termination.dfy Use.dfy DTypes.dfy
             TypeParameters.dfy Datatypes.dfy UnboundedStack.dfy
             SumOfCubes.dfy TerminationDemos.dfy Substitution.dfy
-            Tree.dfy) do (
+            Tree.dfy Celebrity.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 %* %%f

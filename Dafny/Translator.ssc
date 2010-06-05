@@ -1303,7 +1303,8 @@ namespace Microsoft.Dafny {
           substMap.Add(p, ie);
           locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
           Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.TrExpr(e.Args[i]));
+          Expression ee = e.Args[i];
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.CondApplyBox(p.tok, etran.TrExpr(ee), (!)ee.Type, p.Type));
           builder.Add(cmd);
         }
         // check that the preconditions for the call hold

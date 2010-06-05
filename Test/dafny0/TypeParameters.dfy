@@ -96,3 +96,19 @@ class CClient {
     assert z == c.x;
   }
 }
+
+// -------------------------
+
+static function IsCelebrity<Person>(c: Person, people: set<Person>): bool;
+  requires c == c || c in people;
+
+method FindCelebrity3(people: set<int>, ghost c: int)
+  requires IsCelebrity(c, people);
+{
+  ghost var b: bool;
+  b := IsCelebrity(c, people);
+  b := F(c, people);
+}
+
+static function F(c: int, people: set<int>): bool;
+  requires IsCelebrity(c, people);

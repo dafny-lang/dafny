@@ -83,6 +83,7 @@ class Composite {
     ensures (forall c :: c in S ==> c.Valid(S));
     ensures (forall c :: c in S ==> c.val == old(c.val));
     ensures (forall c :: c in S && c != this ==> c.parent == old(c.parent));
+    ensures parent == null;
     ensures (forall c :: c in S ==> c.left == old(c.left) || (old(c.left) == this && c.left == null));
     ensures (forall c :: c in S ==> c.right == old(c.right) || (old(c.right) == this && c.right == null));
     ensures Acyclic({this});
@@ -158,3 +159,19 @@ method Main()
   call c2.Update(496, S);
   call c0.Update(0, S);
 }
+
+method Harness() {
+  var a := new Composite;  call a.Init(5);
+  var b := new Composite;  call b.Init(7);
+  call a.Add({a}, b, {b});
+  assert a.sum == 12;
+
+  call b.Update(17, {a,b});
+  assert a.sum == 22;
+
+  var c := new Composite;  call c.Init(10);
+  call b.Add({a,b}, c, {c});
+  call b.Dislodge({a,b,c});
+  assert b.sum == 27;
+}
+
