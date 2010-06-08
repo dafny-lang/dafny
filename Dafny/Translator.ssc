@@ -1435,7 +1435,12 @@ namespace Microsoft.Dafny {
     List<Expression!>! ProjectOutSpecificFields(List<FrameExpression!>! fexprs) {
       List<Expression!> exprs = new List<Expression!>();
       foreach (FrameExpression fe in fexprs) {
-        exprs.Add(fe.E);
+        if (fe.E is WildcardExpr) {
+          // drop wildcards altogether
+        } else {
+          // keep only fe.E, drop any fe.Field designation
+          exprs.Add(fe.E);
+        }
       }
       return exprs;
     }
