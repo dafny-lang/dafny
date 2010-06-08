@@ -72,8 +72,7 @@ method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: 
 method FindCelebrity3(n: int, people: set<int>, ghost c: int) returns (r: int)
   requires 0 < n;
   requires (forall p :: p in people <==> 0 <= p && p < n);
-  // requires IsCelebrity(c, people);  // see next line:
-  requires c in people && (forall p :: p in people && p != c ==> Knows(p, c) && !Knows(c, p));  // hack to work around bug in Dafny-to-Boogie translator
+  requires IsCelebrity(c, people);
   ensures r == c;
 {
   r := 0;

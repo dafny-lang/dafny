@@ -3071,6 +3071,10 @@ namespace Microsoft.Dafny {
           Bpl.Expr els = TrExpr(e.Els);
           return translator.FunctionCall(expr.tok, BuiltinFunction.IfThenElse, translator.TrType((!)expr.Type), g, thn, els);
            
+        } else if (expr is BoxingCastExpr) {
+          BoxingCastExpr e = (BoxingCastExpr)expr;
+          return CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
+          
         } else {
           assert false;  // unexpected expression
         }
@@ -3607,7 +3611,11 @@ namespace Microsoft.Dafny {
           Dictionary<IVariable,Expression!> substMap = new Dictionary<IVariable,Expression!>();
           assert fexp.Args.Count == fexp.Function.Formals.Count;
           for (int i = 0; i < fexp.Function.Formals.Count; i++) {
-            substMap.Add(fexp.Function.Formals[i], fexp.Args[i]);
+            Formal p = fexp.Function.Formals[i];
+            Expression arg = fexp.Args[i];
+            arg = new BoxingCastExpr(arg, (!)arg.Type, p.Type);
+            arg.Type = p.Type;  // resolve here
+            substMap.Add(p, arg);
           }
           Expression body = Substitute(fexp.Function.Body, fexp.Receiver, substMap);
           foreach (Expression se in SplitExpr(body, false)) {
