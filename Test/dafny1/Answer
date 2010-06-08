@@ -1,0 +1,56 @@
+
+-------------------- BQueue.bpl --------------------
+
+Boogie program verifier finished with 8 verified, 0 errors
+
+-------------------- Queue.dfy --------------------
+
+Dafny program verifier finished with 22 verified, 0 errors
+
+-------------------- BinaryTree.dfy --------------------
+
+Dafny program verifier finished with 24 verified, 0 errors
+
+-------------------- UnboundedStack.dfy --------------------
+
+Dafny program verifier finished with 12 verified, 0 errors
+
+-------------------- ListCopy.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+
+-------------------- ListReverse.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+-------------------- ListContents.dfy --------------------
+
+Dafny program verifier finished with 9 verified, 0 errors
+
+-------------------- SchorrWaite.dfy --------------------
+
+Dafny program verifier finished with 10 verified, 0 errors
+
+-------------------- SumOfCubes.dfy --------------------
+
+Dafny program verifier finished with 17 verified, 0 errors
+
+-------------------- TerminationDemos.dfy --------------------
+
+Dafny program verifier finished with 10 verified, 0 errors
+
+-------------------- Substitution.dfy --------------------
+
+Dafny program verifier finished with 12 verified, 0 errors
+
+-------------------- TreeDatatype.dfy --------------------
+
+Dafny program verifier finished with 6 verified, 0 errors
+
+-------------------- Celebrity.dfy --------------------
+
+Dafny program verifier finished with 11 verified, 0 errors
+
+-------------------- UltraFilter.dfy --------------------
+
+Dafny program verifier finished with 19 verified, 0 errors

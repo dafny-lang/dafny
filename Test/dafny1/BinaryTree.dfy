@@ -1,33 +1,33 @@
 class IntSet {
-  ghost var contents: set<int>;
-  ghost var footprint: set<object>;
+  ghost var Contents: set<int>;
+  ghost var Repr: set<object>;
 
   var root: Node;
 
   function Valid(): bool
-    reads this, footprint;
+    reads this, Repr;
   {
-    this in footprint &&
-    (root == null ==> contents == {}) &&
+    this in Repr &&
+    (root == null ==> Contents == {}) &&
     (root != null ==>
-       root in footprint && root.footprint <= footprint && this !in root.footprint &&
+       root in Repr && root.Repr <= Repr && this !in root.Repr &&
        root.Valid() &&
-       contents == root.contents)
+       Contents == root.Contents)
   }
 
   method Init()
     modifies this;
-    ensures Valid() && fresh(footprint - {this});
-    ensures contents == {};
+    ensures Valid() && fresh(Repr - {this});
+    ensures Contents == {};
   {
     root := null;
-    footprint := {this};
-    contents := {};
+    Repr := {this};
+    Contents := {};
   }
 
   method Find(x: int) returns (present: bool)
     requires Valid();
-    ensures present <==> x in contents;
+    ensures present <==> x in Contents;
   {
     if (root == null) {
       present := false;
@@ -38,24 +38,24 @@ class IntSet {
 
   method Insert(x: int)
     requires Valid();
-    modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint));
-    ensures contents == old(contents) + {x};
+    modifies Repr;
+    ensures Valid() && fresh(Repr - old(Repr));
+    ensures Contents == old(Contents) + {x};
   { 
     call t := InsertHelper(x, root);
     root := t;
-    contents := root.contents;
-    footprint := root.footprint + {this};
+    Contents := root.Contents;
+    Repr := root.Repr + {this};
   }
 
   static method InsertHelper(x: int, n: Node) returns (m: Node)
     requires n == null || n.Valid();
-    modifies n.footprint;
+    modifies n.Repr;
     ensures m != null && m.Valid();
-    ensures n == null ==> fresh(m.footprint) && m.contents == {x};
-    ensures n != null ==> m == n && n.contents == old(n.contents) + {x};
-    ensures n != null ==> fresh(n.footprint - old(n.footprint));
-    decreases if n == null then {} else n.footprint;
+    ensures n == null ==> fresh(m.Repr) && m.Contents == {x};
+    ensures n != null ==> m == n && n.Contents == old(n.Contents) + {x};
+    ensures n != null ==> fresh(n.Repr - old(n.Repr));
+    decreases if n == null then {} else n.Repr;
   {
     if (n == null) {
       m := new Node;
@@ -67,88 +67,88 @@ class IntSet {
         assert n.right == null || n.right.Valid();
         call t := InsertHelper(x, n.left);
         n.left := t;
-        n.footprint := n.footprint + n.left.footprint;
+        n.Repr := n.Repr + n.left.Repr;
       } else {
         assert n.left == null || n.left.Valid();
         call t := InsertHelper(x, n.right);
         n.right := t;
-        n.footprint := n.footprint + n.right.footprint;
+        n.Repr := n.Repr + n.right.Repr;
       }
-      n.contents := n.contents + {x};
+      n.Contents := n.Contents + {x};
       m := n;
     }
   }
 
   method Remove(x: int)
     requires Valid();
-    modifies footprint;
-    ensures Valid() && fresh(footprint - old(footprint));
-    ensures contents == old(contents) - {x};
+    modifies Repr;
+    ensures Valid() && fresh(Repr - old(Repr));
+    ensures Contents == old(Contents) - {x};
   {
     if (root != null) {
       call newRoot := root.Remove(x);
       root := newRoot;
       if (root == null) {
-        contents := {};
-        footprint := {this};
+        Contents := {};
+        Repr := {this};
       } else {
-        contents := root.contents;
-        footprint := root.footprint + {this};
+        Contents := root.Contents;
+        Repr := root.Repr + {this};
       }
     }
   }
 }
 
 class Node {
-  ghost var contents: set<int>;
-  ghost var footprint: set<object>;
+  ghost var Contents: set<int>;
+  ghost var Repr: set<object>;
 
   var data: int;
   var left: Node;
   var right: Node;
 
   function Valid(): bool
-    reads this, footprint;
+    reads this, Repr;
   {
-    this in footprint &&
-    null !in footprint &&
+    this in Repr &&
+    null !in Repr &&
     (left != null ==>
-      left in footprint &&
-      left.footprint <= footprint && this !in left.footprint &&
+      left in Repr &&
+      left.Repr <= Repr && this !in left.Repr &&
       left.Valid() &&
-      (forall y :: y in left.contents ==> y < data)) &&
+      (forall y :: y in left.Contents ==> y < data)) &&
     (right != null ==>
-      right in footprint &&
-      right.footprint <= footprint && this !in right.footprint &&
+      right in Repr &&
+      right.Repr <= Repr && this !in right.Repr &&
       right.Valid() &&
-      (forall y :: y in right.contents ==> data < y)) &&
+      (forall y :: y in right.Contents ==> data < y)) &&
     (left == null && right == null ==>
-      contents == {data}) &&
+      Contents == {data}) &&
     (left != null && right == null ==>
-      contents == left.contents + {data}) &&
+      Contents == left.Contents + {data}) &&
     (left == null && right != null ==>
-      contents == {data} + right.contents) &&
+      Contents == {data} + right.Contents) &&
     (left != null && right != null ==>
-      left.footprint !! right.footprint &&
-      contents == left.contents + {data} + right.contents)
+      left.Repr !! right.Repr &&
+      Contents == left.Contents + {data} + right.Contents)
   }
 
   method Init(x: int)
     modifies this;
-    ensures Valid() && fresh(footprint - {this});
-    ensures contents == {x};
+    ensures Valid() && fresh(Repr - {this});
+    ensures Contents == {x};
   {
     data := x;
     left := null;
     right := null;
-    contents := {x};
-    footprint := {this};
+    Contents := {x};
+    Repr := {this};
   }
 
   method Find(x: int) returns (present: bool)
     requires Valid();
-    ensures present <==> x in contents;
-    decreases footprint;
+    ensures present <==> x in Contents;
+    decreases Repr;
   {
     if (x == data) {
       present := true;
@@ -163,24 +163,24 @@ class Node {
 
   method Remove(x: int) returns (node: Node)
     requires Valid();
-    modifies footprint;
-    ensures fresh(footprint - old(footprint));
+    modifies Repr;
+    ensures fresh(Repr - old(Repr));
     ensures node != null ==> node.Valid();
-    ensures node == null ==> old(contents) <= {x};
-    ensures node != null ==> node.footprint <= footprint && node.contents == old(contents) - {x};
-    decreases footprint;
+    ensures node == null ==> old(Contents) <= {x};
+    ensures node != null ==> node.Repr <= Repr && node.Contents == old(Contents) - {x};
+    decreases Repr;
   {
     node := this;
     if (left != null && x < data) {
       call t := left.Remove(x);
       left := t;
-      contents := contents - {x};
-      if (left != null) { footprint := footprint + left.footprint; }
+      Contents := Contents - {x};
+      if (left != null) { Repr := Repr + left.Repr; }
     } else if (right != null && data < x) {
       call t := right.Remove(x);
       right := t;
-      contents := contents - {x};
-      if (right != null) { footprint := footprint + right.footprint; }
+      Contents := Contents - {x};
+      if (right != null) { Repr := Repr + right.Repr; }
     } else if (x == data) {
       if (left == null && right == null) {
         node := null;
@@ -192,21 +192,21 @@ class Node {
         // rotate
         call min, r := right.RemoveMin();
         data := min;  right := r;
-        contents := contents - {x};
-        if (right != null) { footprint := footprint + right.footprint; }
+        Contents := Contents - {x};
+        if (right != null) { Repr := Repr + right.Repr; }
       }
     }
   }
 
   method RemoveMin() returns (min: int, node: Node)
     requires Valid();
-    modifies footprint;
-    ensures fresh(footprint - old(footprint));
+    modifies Repr;
+    ensures fresh(Repr - old(Repr));
     ensures node != null ==> node.Valid();
-    ensures node == null ==> old(contents) == {min};
-    ensures node != null ==> node.footprint <= footprint && node.contents == old(contents) - {min};
-    ensures min in old(contents) && (forall x :: x in old(contents) ==> min <= x);
-    decreases footprint;
+    ensures node == null ==> old(Contents) == {min};
+    ensures node != null ==> node.Repr <= Repr && node.Contents == old(Contents) - {min};
+    ensures min in old(Contents) && (forall x :: x in old(Contents) ==> min <= x);
+    decreases Repr;
   {
     if (left == null) {
       min := data;
@@ -215,8 +215,8 @@ class Node {
       call min, t := left.RemoveMin();
       left := t;
       node := this;
-      contents := contents - {min};
-      if (left != null) { footprint := footprint + left.footprint; }
+      Contents := Contents - {min};
+      if (left != null) { Repr := Repr + left.Repr; }
     }
   }
 }
@@ -235,10 +235,10 @@ class Main {
 
   method Client1(s: IntSet, x: int)
     requires s != null && s.Valid();
-    modifies s.footprint;
+    modifies s.Repr;
   {
     call s.Insert(x);
     call s.Insert(24);
-    assert old(s.contents) - {x,24} == s.contents - {x,24};
+    assert old(s.Contents) - {x,24} == s.Contents - {x,24};
   }
 }
