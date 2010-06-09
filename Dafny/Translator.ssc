@@ -3075,6 +3075,10 @@ namespace Microsoft.Dafny {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
           
+        } else if (expr is UnboxingCastExpr) {
+          UnboxingCastExpr e = (UnboxingCastExpr)expr;
+          return CondApplyUnbox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
+          
         } else {
           assert false;  // unexpected expression
         }
@@ -3551,9 +3555,18 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<Expression!>! SplitExpr(Expression! expr, bool expandFunctions)
-      requires expr.Type is BoolType;
+      requires expr.Type is BoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type is BoolType);
     {
-      if (expr is BinaryExpr) {
+      if (expr is BoxingCastExpr) {
+        BoxingCastExpr bce = (BoxingCastExpr)expr;
+        foreach (Expression e in SplitExpr(bce.E, expandFunctions)) {
+          assert bce != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+          Expression r = new BoxingCastExpr(e, bce.FromType, bce.ToType);
+          r.Type = bce.ToType;  // resolve here
+          yield return r;
+        }
+        
+      } else if (expr is BinaryExpr) {
         BinaryExpr bin = (BinaryExpr)expr;
         if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
           foreach (Expression e in SplitExpr(bin.E0, expandFunctions)) {
@@ -3620,7 +3633,9 @@ namespace Microsoft.Dafny {
           Expression body = Substitute(fexp.Function.Body, fexp.Receiver, substMap);
           foreach (Expression se in SplitExpr(body, false)) {
             assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
-            yield return se;
+            Expression piece = new UnboxingCastExpr(se, fexp.Function.ResultType, (!)expr.Type);
+            piece.Type = expr.Type;  // resolve here
+            yield return piece;
           }
           assert fexp != null && fexp.Function != null;  // already checked above, but the compiler seems to have forgotten that
           yield break;

@@ -1346,6 +1346,19 @@ namespace Microsoft.Dafny
     }
   }
   
+  public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used only as a temporary placeholding during translation
+    public readonly Expression! E;
+    public readonly Type! FromType;
+    public readonly Type! ToType;
+    
+    public UnboxingCastExpr(Expression! e, Type! fromType, Type! toType) {
+      base(e.tok);
+      E = e;
+      FromType = fromType;
+      ToType = toType;
+    }
+  }
+  
   public class MaybeFreeExpression {
     public readonly Expression! E;
     public readonly bool IsFree;

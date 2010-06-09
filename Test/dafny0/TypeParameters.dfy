@@ -103,7 +103,7 @@ static function IsCelebrity<Person>(c: Person, people: set<Person>): bool;
   requires c == c || c in people;
 
 method FindCelebrity3(people: set<int>, ghost c: int)
-  requires IsCelebrity(c, people);
+  requires IsCelebrity(c, people);  // once upon a time, this caused the translator to produce bad Boogie
 {
   ghost var b: bool;
   b := IsCelebrity(c, people);
@@ -112,3 +112,23 @@ method FindCelebrity3(people: set<int>, ghost c: int)
 
 static function F(c: int, people: set<int>): bool;
   requires IsCelebrity(c, people);
+
+function RogerThat<G>(g: G): G
+{
+  g
+}
+
+function Cool(b: bool): bool
+{
+  b
+}
+
+method IsRogerCool(n: int)
+  requires RogerThat(true);  // once upon a time, this caused the translator to produce bad Boogie
+{
+  if (*) {
+    assert Cool(2 < 3 && n < n && n < n+1);  // the error message here will peek into the argument of Cool
+  } else if (*) {
+    assert RogerThat(2 < 3 && n < n && n < n+1);  // same here; cool, huh?
+  }
+}

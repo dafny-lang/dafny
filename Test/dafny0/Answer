@@ -389,8 +389,17 @@ Execution trace:
 TypeParameters.dfy(63,27): Error: assertion violation
 Execution trace:
     (0,0): anon0
+TypeParameters.dfy(130,28): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+TypeParameters.dfy(132,33): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Then
 
-Dafny program verifier finished with 24 verified, 2 errors
+Dafny program verifier finished with 27 verified, 4 errors
 
 -------------------- Datatypes.dfy --------------------
 
