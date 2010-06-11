@@ -101,26 +101,26 @@ Execution trace:
     SmallTests.dfy(81,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-SmallTests.dfy(95,5): Error: call may violate caller's modifies clause
+SmallTests.dfy(116,5): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(108,7): Error: call may violate caller's modifies clause
+SmallTests.dfy(129,7): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(110,7): Error: call may violate caller's modifies clause
+SmallTests.dfy(131,7): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-SmallTests.dfy(150,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
+SmallTests.dfy(171,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
 
-Dafny program verifier finished with 24 verified, 9 errors
+Dafny program verifier finished with 28 verified, 9 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -226,7 +226,7 @@ Execution trace:
     (0,0): anon16_LoopBody
     Definedness.dfy(151,5): anon17_Else
     (0,0): anon9
-Definedness.dfy(172,44): Error: loop invariant must be well defined
+Definedness.dfy(170,44): Error: loop invariant must be well defined
 Execution trace:
     (0,0): anon0
     Definedness.dfy(162,5): anon16_LoopHead
@@ -235,28 +235,28 @@ Execution trace:
     (0,0): anon3
     (0,0): anon18_Then
     (0,0): anon6
-    Definedness.dfy(170,5): anon19_LoopHead
+    Definedness.dfy(169,5): anon19_LoopHead
     (0,0): anon19_LoopBody
     (0,0): anon20_Then
-Definedness.dfy(193,21): Error: collection expression must be well defined
+Definedness.dfy(191,21): Error: collection expression must be well defined
 Execution trace:
     (0,0): anon0
-Definedness.dfy(195,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
+Definedness.dfy(193,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
-Definedness.dfy(197,33): Error: range expression must be well defined
+Definedness.dfy(195,33): Error: range expression must be well defined
 Execution trace:
     (0,0): anon0
-Definedness.dfy(203,18): Error: RHS of assignment must be well defined
+Definedness.dfy(201,18): Error: RHS of assignment must be well defined
 Execution trace:
     (0,0): anon0
-Definedness.dfy(212,23): Error: loop invariant must be well defined
+Definedness.dfy(210,23): Error: loop invariant must be well defined
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(210,5): anon7_LoopHead
+    Definedness.dfy(208,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(212,23): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(210,23): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
 
@@ -335,8 +335,44 @@ Execution trace:
 Dafny program verifier finished with 2 verified, 1 error
 
 -------------------- Termination.dfy --------------------
+Termination.dfy(102,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(102,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    Termination.dfy(102,3): anon8_Else
+    (0,0): anon3
+    Termination.dfy(102,12): anon9_Else
+    (0,0): anon5
+Termination.dfy(110,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(110,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    Termination.dfy(110,3): anon8_Else
+    (0,0): anon3
+    Termination.dfy(110,16): anon9_Else
+    (0,0): anon5
+Termination.dfy(119,3): Error: decreases expression might not decrease
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(119,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    Termination.dfy(119,3): anon8_Else
+    (0,0): anon3
+    Termination.dfy(119,16): anon9_Else
+    (0,0): anon5
+Termination.dfy(120,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(119,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    Termination.dfy(119,3): anon8_Else
+    (0,0): anon3
+    Termination.dfy(119,16): anon9_Else
+    (0,0): anon5
 
-Dafny program verifier finished with 13 verified, 0 errors
+Dafny program verifier finished with 22 verified, 4 errors
 
 -------------------- Use.dfy --------------------
 Use.dfy(16,18): Error: assertion violation
@@ -363,7 +399,7 @@ Execution trace:
 Use.dfy(138,5): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Use.dfy(209,19): Error: assertion violation
+Use.dfy(208,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

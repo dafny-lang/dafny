@@ -14,7 +14,6 @@ class Benchmark2 {
       invariant 0 <= low && low <= high && high <= |a|;
       invariant (forall i :: 0 <= i && i < low ==> a[i] < key);
       invariant (forall i :: high <= i && i < |a| ==> key < a[i]);
-      decreases high - low;
     {
       var mid := low + (high - low) / 2;
       var midVal := a[mid];

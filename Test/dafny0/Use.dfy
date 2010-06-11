@@ -191,7 +191,6 @@ class Recursive {
     while (k < n)
       invariant k <= n;
       invariant Gauss(k) == (k+1)*k / 2;
-      decreases n - k;
     {
       k := k + 1;
     }

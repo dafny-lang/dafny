@@ -78,14 +78,13 @@ class Glossary {
     var wr := new WriterStream;
     call wr.Create();
     
-    while (0<|q.contents|)
+    while (0 < |q.contents|)
       invariant wr.Valid() && fresh(wr.footprint);
       invariant glossary.Valid();
       invariant glossary !in wr.footprint && null !in glossary.keys;
       invariant (forall d :: d in glossary.values ==> null !in d);
       invariant q !in wr.footprint;
       invariant (forall k :: k in q.contents ==> k in glossary.keys);
-      decreases |q.contents|;
     {
       call term := q.Dequeue();
       call present,definition := glossary.Find(term);

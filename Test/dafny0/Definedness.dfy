@@ -161,14 +161,12 @@ class StatementTwoShoes {
     var i := 0;
     while (i < 100)
       invariant i <= 100;
-      decreases 100 - i;
       invariant F(123 - i) == this;
     {
       i := i + 1;
     }
     i := 0;
     while (i < 100)
-      decreases 100 - i;
       invariant F(if i==77 then -3 else i) == this;  // error: expression may not be well defined
     {
       i := i + 1;
@@ -210,7 +208,6 @@ class StatementTwoShoes {
     while (i < 100)
       // The following line produces two complaints, thanks to the w-encoding of the loop's invariant definedness checking
       invariant 5 / x != 5 / x;  // error: not well-defined, and error: loop invariant does not hold initially
-      decreases 100 - i;
     {
       i := i + 1;
     }

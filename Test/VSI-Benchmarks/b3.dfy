@@ -88,8 +88,6 @@ class Benchmark3 {
       // the current array is that permutation of the input array
       invariant (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
       invariant (forall i: int :: 0 <= i && i < |p| ==> q.contents[i] == old(q.contents)[p[i]]);
-   
-    decreases |q.contents|;
     {  
       call m,k := RemoveMin(q);
       perm := perm + [p[k]]; //adds  index of min to perm

@@ -5,7 +5,7 @@ class Termination {
     var i := 0;
     while (i < N)
       invariant i <= N;
-      decreases N - i;
+      // this will be heuristically inferred:  decreases N - i;
     {
       i := i + 1;
     }
@@ -94,4 +94,60 @@ class Termination {
 datatype List<T> {
   Nil;
   Cons(T, List<T>);
+}
+
+method FailureToProveTermination0(N: int)
+{
+  var n := N;
+  while (n < 100) {  // error: may not terminate
+    n := n - 1;
+  }
+}
+
+method FailureToProveTermination1(x: int, y: int, N: int)
+{
+  var n := N;
+  while (x < y && n < 100)  // error: cannot prove termination from the heuristically chosen termination metric
+  {
+    n := n + 1;
+  }
+}
+
+method FailureToProveTermination2(x: int, y: int, N: int)
+{
+  var n := N;
+  while (x < y && n < 100)  // error: cannot prove termination from the given (bad) termination metric
+    decreases n - x;
+  {
+    n := n + 1;
+  }
+}
+
+method FailureToProveTermination3(x: int, y: int, N: int)
+{
+  var n := N;
+  while (x < y && n < 100)
+    decreases 100 - n;
+  {
+    n := n + 1;
+  }
+}
+
+method FailureToProveTermination4(x: int, y: int, N: int)
+{
+  var n := N;
+  while (n < 100 && x < y)
+    decreases 100 - n;
+  {
+    n := n + 1;
+  }
+}
+
+method FailureToProveTermination5(b: bool, N: int)
+{
+  var n := N;
+  while (b && n < 100)  // here, the heuristics are good enough to prove termination
+  {
+    n := n + 1;
+  }
 }

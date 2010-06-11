@@ -96,7 +96,6 @@ static ghost method TheoremSeq(e: Expression, v: int, val: int)
       while (j < N)
         invariant j <= N;
         invariant (forall k :: 0 <= k && k < j ==> seArgs2[k] == seArgs[k]);
-        decreases N - j;
       {
         call TheoremSeq(args[j], v, val);
         j := j + 1;

@@ -2047,25 +2047,58 @@ namespace Microsoft.Dafny {
         
         // use simple heuristics to create a default decreases clause, if none is given
         List<Expression!> theDecreases = s.Decreases;
-        if (theDecreases.Count == 0) {
-          Expression guess = null;
-          BinaryExpr bin = s.Guard as BinaryExpr;
-          if (bin != null) {
-            switch (bin.ResolvedOp) {
-              case BinaryExpr.ResolvedOpcode.Lt:
-              case BinaryExpr.ResolvedOpcode.Le:
-                guess = IntSub(s.Tok, bin.E1, bin.E0);
-                break;
-              case BinaryExpr.ResolvedOpcode.Ge:
-              case BinaryExpr.ResolvedOpcode.Gt:
-                guess = IntSub(s.Tok, bin.E0, bin.E1);
-                break;
-              default:
-                break;
+        bool inferredDecreases = false;
+        if (theDecreases.Count == 0 && s.Guard != null) {
+          Expression prefix = null;
+          foreach (Expression guardConjunct in Conjuncts(s.Guard)) {
+            Expression guess = null;
+            BinaryExpr bin = guardConjunct as BinaryExpr;
+            if (bin != null) {
+              switch (bin.ResolvedOp) {
+                case BinaryExpr.ResolvedOpcode.Lt:
+                case BinaryExpr.ResolvedOpcode.Le:
+                  // for A < B and A <= B, use the decreases B - A
+                  guess = CreateIntSub(s.Tok, bin.E1, bin.E0);
+                  break;
+                case BinaryExpr.ResolvedOpcode.Ge:
+                case BinaryExpr.ResolvedOpcode.Gt:
+                  // for A >= B and A > B, use the decreases A - B
+                  guess = CreateIntSub(s.Tok, bin.E0, bin.E1);
+                  break;
+                case BinaryExpr.ResolvedOpcode.NeqCommon:
+                  if (bin.E0.Type is IntType) {
+                    // for A != B where A and B are integers, use the absolute difference between A and B (that is: if 0 <= A-B then A-B else B-A)
+                    Expression AminusB = CreateIntSub(s.Tok, bin.E0, bin.E1);
+                    Expression BminusA = CreateIntSub(s.Tok, bin.E1, bin.E0);
+                    Expression zero = CreateIntLiteral(s.Tok, 0);
+                    BinaryExpr test = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Le, zero, AminusB);
+                    test.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
+                    test.Type = Type.Bool;  // resolve here
+                    guess = CreateIntITE(s.Tok, test, AminusB, BminusA);
+                  }
+                  break;
+                default:
+                  break;
+              }
             }
-          }
-          if (guess != null) {
-            theDecreases.Add(guess);
+            if (guess != null) {
+              if (prefix != null) {
+                // Make the following guess:  if prefix then guess else -1
+                Expression negativeOne = CreateIntLiteral(s.Tok, -1);
+                guess = CreateIntITE(s.Tok, prefix, guess, negativeOne);
+              }
+              theDecreases.Add(guess);
+              inferredDecreases = true;
+              break;  // ignore any further conjuncts
+            }
+            if (prefix == null) {
+              prefix = guardConjunct;
+            } else {
+              BinaryExpr and = new BinaryExpr(s.Tok, BinaryExpr.Opcode.And, prefix, guardConjunct);
+              and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
+              and.Type = Type.Bool;  // resolve here
+              prefix = and;
+            }
           }
         }
         
@@ -2189,7 +2222,7 @@ namespace Microsoft.Dafny {
             decrs.Add(etran.TrExpr(e));
           }
           Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, loopBodyBuilder, etran, " at end of loop iteration");
-          loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, "decreases expression might not decrease"));
+          loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, inferredDecreases ? "cannot prove termination; try supplying a decreases clause for the loop" : "decreases expression might not decrease"));
         }
         Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
 
@@ -2368,13 +2401,51 @@ namespace Microsoft.Dafny {
       }
     }
     
-    static Expression! IntSub(Token! tok, Expression! e0, Expression! e1)
+    static Expression! CreateIntLiteral(Token! tok, int n)
+    {
+      if (0 <= n) {
+        Expression lit = new LiteralExpr(tok, n);
+        lit.Type = Type.Int;  // resolve here
+        return lit;
+      } else {
+        return CreateIntSub(tok, CreateIntLiteral(tok, 0), CreateIntLiteral(tok, -n));
+      }
+    }
+    
+    static Expression! CreateIntSub(Token! tok, Expression! e0, Expression! e1)
       requires e0.Type is IntType && e1.Type is IntType;
     {
       BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-      s.Type = Type.Int;
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
+      s.Type = Type.Int;  // resolve here
       return s;
+    }
+    
+    static Expression! CreateIntITE(Token! tok, Expression! test, Expression! e0, Expression! e1)
+      requires test.Type is BoolType && e0.Type is IntType && e1.Type is IntType;
+    {
+      ITEExpr ite = new ITEExpr(tok, test, e0, e1);
+      ite.Type = Type.Int;  // resolve here
+      return ite;
+    }
+    
+    public IEnumerable<Expression!>! Conjuncts(Expression! expr)
+      requires expr.Type is BoolType;
+    {
+      if (expr is BinaryExpr) {
+        BinaryExpr bin = (BinaryExpr)expr;
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          assert bin != null;  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
+      }
+      yield return expr;
     }
     
     void CheckCallTermination(Token! tok, List<Expression!>! contextDecreases, List<Expression!>! calleeDecreases,

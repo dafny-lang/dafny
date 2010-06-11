@@ -55,7 +55,6 @@ class SparseArray<T> {
       // TODO: why doesn't this work instead of the next line?  invariant (forall x :: x in s ==> x == zero);
       invariant (forall i :: 0 <= i && i < |s| ==> s[i] == zero);
       invariant |id| == k && (forall i :: 0 <= i && i < k ==> id[i] == i);
-      decreases N - k;
     {
       s := s + [zero];
       id := id + [k];
@@ -110,7 +109,6 @@ class SparseArray<T> {
     var i := 0;
     while (i < n)
       invariant i <= n && |arr| == i;
-      decreases n - i;
     {
       var g: G;
       arr := arr + [g];

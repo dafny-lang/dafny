@@ -64,7 +64,6 @@ class Main {
         invariant (forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
-        decreases |root.children| - i;
       {
         var c := root.children[i];
         if (c != null) {

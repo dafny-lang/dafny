@@ -85,6 +85,27 @@ class Modifies {
     }
   }
 
+  method Aprime(p: Modifies)
+    modifies this, p;
+  {
+    x := x + 1;
+    while (p != null && p.x < 75)
+      decreases if p != null then 75 - p.x else 0;  // given explicitly (but see Adoubleprime below)
+    {
+      p.x := p.x + 1;
+    }
+  }
+
+  method Adoubleprime(p: Modifies)
+    modifies this, p;
+  {
+    x := x + 1;
+    while (p != null && p.x < 75)  // here, the decreases clause is heuristically inferred (to be the
+    {                              // same as the one in Aprime above)
+      p.x := p.x + 1;
+    }
+  }
+
   method B(p: Modifies)
     modifies this;
   {
