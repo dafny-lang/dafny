@@ -1,107 +1,153 @@
 // Note: We are using the built-in equality to compare keys.
-// Note: Our specifications are rather tied to the implementation.  In
-// particular, we use indices into .keys and .values.  Nicer would
-// be if Dafny had a built-in map type that could be used in specifications.
-// Or, perhaps inductive data types could be used in specifications,
-// if Dafny had those.
+// Note: The abstract specifications would do well with a map from keys
+// to values.  However, Dafny does not support maps.  Instead, such a
+// map is modeled by two sequences, one for the keys and one for the values.
+// The indices in these sequences correspond, so the dictionary maps
+// Keys[i] to Values[i].
+// The implementation uses a linked list, which isn't the most efficient
+// representation of a dictionary.  However, for the benchmark, it shows
+// that the specification can use mathematical sequences while the
+// implementation uses a linked list.
 
 class Map<Key,Value> {
-  var keys: seq<Key>;
-  var values: seq<Value>;
+  ghost var Keys: seq<Key>;
+  ghost var Values: seq<Value>;
+  ghost var Repr: set<object>;
+
+  var head: Node<Key,Value>;
+  ghost var nodes: seq<Node<Key,Value>>;
 
   function Valid(): bool
-    reads this;
+    reads this, Repr;
   {
-    |keys| == |values| &&
-    (forall i, j :: 0 <= i && i < j && j < |keys| ==> keys[i] != keys[j])
+    this in Repr &&
+    |Keys| == |Values| && |nodes| == |Keys| + 1 &&
+    head == nodes[0] &&
+    (forall i :: 0 <= i && i < |Keys| ==>
+        nodes[i] != null &&
+        nodes[i] in Repr &&
+        nodes[i].key == Keys[i] && nodes[i].key !in Keys[i+1..] &&
+        nodes[i].val == Values[i] &&
+        nodes[i].next == nodes[i+1]) &&
+    nodes[|nodes|-1] == null
   }
 
   method Init()
     modifies this;
-    ensures Valid() && |keys| == 0;
+    ensures Valid() && fresh(Repr - {this});
+    ensures |Keys| == 0;
   {
-    keys := [];
-    values := [];
+    Keys := [];
+    Values := [];
+    Repr := {this};
+    head := null;
+    nodes := [null];
   }
 
   method Find(key: Key) returns (present: bool, val: Value)
     requires Valid();
-    ensures !present ==> key !in keys;
-    ensures present ==> (exists i :: 0 <= i && i < |keys| &&
-                                     keys[i] == key && values[i] == val);
+    ensures !present ==> key !in Keys;
+    ensures present ==> (exists i :: 0 <= i && i < |Keys| && Keys[i] == key && Values[i] == val);
   {
-    call j := FindIndex(key);
-    if (j == -1) {
+    call p, n, prev := FindIndex(key);
+    if (p == null) {
       present := false;
     } else {
+      val := p.val;
       present := true;
-      val := values[j];
     }
   }
 
   method Add(key: Key, val: Value)
     requires Valid();
-    modifies this;
-    ensures Valid();
-    ensures (forall i :: 0 <= i && i < |old(keys)| && old(keys)[i] == key ==>
-              |keys| == |old(keys)| &&
-              keys[i] == key && values[i] == val &&
-              (forall j :: 0 <= j && j < |values| && i != j ==> keys[j] == old(keys)[j] && values[j] == old(values)[j]));
-    ensures key !in old(keys) ==> keys == old(keys) + [key] && values == old(values) + [val];
+    modifies Repr;
+    ensures Valid() && fresh(Repr - old(Repr));
+    ensures (forall i :: 0 <= i && i < |old(Keys)| && old(Keys)[i] == key ==>
+                |Keys| == |old(Keys)| &&
+                Keys[i] == key && Values[i] == val &&
+                (forall j :: 0 <= j && j < |Values| && i != j ==>
+                    Keys[j] == old(Keys)[j] && Values[j] == old(Values)[j]));
+    ensures key !in old(Keys) ==> Keys == [key] + old(Keys) && Values == [val] + old(Values);
   {
-    call j := FindIndex(key);
-    if (j == -1) {
-      keys := keys + [key];
-      values := values + [val];
+    call p, n, prev := FindIndex(key);
+    if (p == null) {
+      var h := new Node<Key,Value>;
+      h.key := key;  h.val := val;  h.next := head;
+      head := h;
+      Keys := [key] + Keys;  Values := [val] + Values;
+      nodes := [h] + nodes;
+      Repr := Repr + {h};
     } else {
-      values := values[j := val];
+      p.val := val;
+      Values := Values[n := val];
     }
   }
 
   method Remove(key: Key)
     requires Valid();
-    modifies this;
-    ensures Valid();
+    modifies Repr;
+    ensures Valid() && fresh(Repr - old(Repr));
     // no key is introduced:
-    ensures (forall k :: k in keys ==> k in old(keys));
+    ensures (forall k :: k in Keys ==> k in old(Keys));
     // at most one key is removed:
-    ensures (forall k :: k in old(keys) ==> k in keys || k == key);
-    // the given key is not there:
+    ensures (forall k :: k in old(Keys) ==> k in Keys || k == key);
     // other values don't change:
-    ensures key !in old(keys) ==> keys == old(keys) && values == old(values);
-    ensures key in old(keys) ==>
-            |keys| == |old(keys)| - 1 && key !in keys &&
+    ensures key !in old(Keys) ==> Keys == old(Keys) && Values == old(Values);
+    ensures key in old(Keys) ==>
+            |Keys| == |old(Keys)| - 1 && key !in Keys &&
             (exists h ::
-              0 <= h && h <= |keys| &&
-              keys[..h] == old(keys)[..h] &&
-              values[..h] == old(values)[..h] &&
-              keys[h..] == old(keys)[h+1..] &&
-              values[h..] == old(values)[h+1..]);
+              0 <= h && h < |old(Keys)| &&
+              Keys[..h] == old(Keys)[..h] &&
+              Values[..h] == old(Values)[..h] &&
+              Keys[h..] == old(Keys)[h+1..] &&
+              Values[h..] == old(Values)[h+1..]);
   {
-    call j := FindIndex(key);
-    if (0 <= j) {
-      keys := keys[..j] + keys[j+1..];
-      values := values[..j] + values[j+1..];
+    call p, n, prev := FindIndex(key);
+    if (p != null) {
+      Keys := Keys[..n] + Keys[n+1..];
+      assert Keys[..n] == old(Keys)[..n] && Keys[n..] == old(Keys)[n+1..];
+      Values := Values[..n] + Values[n+1..];
+      assert Values[..n] == old(Values)[..n] && Values[n..] == old(Values)[n+1..];
+      nodes := nodes[..n] + nodes[n+1..];
+      if (prev == null) {
+        head := head.next;
+      } else {
+        prev.next := p.next;
+      }
     }
   }
 
-  method FindIndex(key: Key) returns (idx: int)
+  /*private*/ method FindIndex(key: Key) returns (p: Node<Key,Value>, ghost n: int, prev: Node<Key,Value>)
     requires Valid();
-    ensures -1 <= idx && idx < |keys|;
-    ensures idx == -1 ==> key !in keys;
-    ensures 0 <= idx ==> keys[idx] == key;
+    ensures p == null ==> key !in Keys;
+    ensures p != null ==>
+              0 <= n && n < |Keys| && Keys[n] == key &&
+              key !in Keys[..n] && key !in Keys[n+1..] &&
+              p == nodes[n] &&
+              ((n == 0 && prev == null) || (0 < n && prev == nodes[n-1]));
   {
-    var j := 0;
-    while (j < |keys|)
-      invariant j <= |keys|;
-      invariant key !in keys[..j];
+    n := 0;
+    prev := null;
+    p := head;
+    while (p != null)
+      invariant n <= |Keys| && p == nodes[n];
+      invariant key !in Keys[..n];
+      invariant (n == 0 && prev == null) || (0 < n && prev == nodes[n-1]);
+      decreases |Keys| - n;
     {
-      if (keys[j] == key) {
-        idx := j;
+      if (p.key == key) {
         return;
+      } else {
+        n := n + 1;
+        prev := p;
+        p := p.next;
       }
-      j := j + 1;
     }
-    idx := -1;
   }
+}
+
+class Node<Key,Value> {
+  var key: Key;
+  var val: Value;
+  var next: Node<Key,Value>;
 }

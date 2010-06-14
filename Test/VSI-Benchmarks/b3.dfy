@@ -40,8 +40,7 @@ class Comparable {
 
 class Benchmark3 {
 
-
-  method Sort(q: Queue<int>) returns (r: Queue<int>, ghost perm:seq<int>)
+  method Sort(q: Queue<int>) returns (r: Queue<int>, ghost perm: seq<int>)
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);
@@ -49,27 +48,27 @@ class Benchmark3 {
     ensures (forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
                 r.Get(i) <= r.Get(j));
     //perm is a permutation
-   ensures |perm| == |r.contents|; // ==|pperm|
-   ensures (forall i: int :: 0 <= i && i < |perm|==> 0 <= perm[i] && perm[i] < |perm| );
-   ensures (forall i, j: int :: 0 <= i && i < j && j < |perm| ==> perm[i] != perm[j]); 
-   // the final Queue is a permutation of the input Queue
-  ensures (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
+    ensures |perm| == |r.contents|; // ==|pperm|
+    ensures (forall i :: 0 <= i && i < |perm|==> 0 <= perm[i] && perm[i] < |perm| );
+    ensures (forall i, j :: 0 <= i && i < j && j < |perm| ==> perm[i] != perm[j]); 
+    // the final Queue is a permutation of the input Queue
+    ensures (forall i :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
   {
     r := new Queue<int>;
     call r.Init();
-    ghost var p:= [];
+    ghost var p := [];
     
     var n := 0;
-	while (n < |q.contents|)
-		invariant n <= |q.contents|;
-		invariant n == |p|;
-		invariant (forall i: int :: 0 <= i && i < n ==> p[i] == i);
-   {
-		p := p + [n];
-		n := n + 1;
-   }
-   perm:= [];
-   ghost var pperm := p + perm; 
+    while (n < |q.contents|)
+      invariant n <= |q.contents|;
+      invariant n == |p|;
+      invariant (forall i :: 0 <= i && i < n ==> p[i] == i);
+    {
+      p := p + [n];
+      n := n + 1;
+    }
+    perm := [];
+    ghost var pperm := p + perm;
    
     while (|q.contents| != 0)
       invariant |r.contents| == |old(q.contents)| - |q.contents|;
@@ -81,26 +80,26 @@ class Benchmark3 {
                     ==> r.contents[i] <= q.contents[j]);
                     
       // pperm is a permutation
-      invariant   pperm == p + perm && |p| == |q.contents| && |perm| == |r.contents|;
-      invariant (forall i: int :: 0 <= i && i < |perm| ==> 0 <= perm[i] && perm[i] < |pperm|);
-      invariant (forall i: int :: 0 <= i && i < |p| ==> 0 <= p[i] && p[i] < |pperm|);
-       invariant (forall i, j: int :: 0 <= i && i < j && j < |pperm| ==> pperm[i] != pperm[j]);
+      invariant pperm == p + perm && |p| == |q.contents| && |perm| == |r.contents|;
+      invariant (forall i :: 0 <= i && i < |perm| ==> 0 <= perm[i] && perm[i] < |pperm|);
+      invariant (forall i :: 0 <= i && i < |p| ==> 0 <= p[i] && p[i] < |pperm|);
+      invariant (forall i, j :: 0 <= i && i < j && j < |pperm| ==> pperm[i] != pperm[j]);
       // the current array is that permutation of the input array
-      invariant (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
-      invariant (forall i: int :: 0 <= i && i < |p| ==> q.contents[i] == old(q.contents)[p[i]]);
+      invariant (forall i :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
+      invariant (forall i :: 0 <= i && i < |p| ==> q.contents[i] == old(q.contents)[p[i]]);
     {  
       call m,k := RemoveMin(q);
-      perm := perm + [p[k]]; //adds  index of min to perm
-      p := p[k+1..]+ p[..k]; //remove index of min from p  
+      perm := perm + [p[k]]; //adds index of min to perm
+      p := p[k+1..] + p[..k]; //remove index of min from p  
       call r.Enqueue(m);
-      pperm:=  pperm[k+1..|p|+1] + pperm[..k] + pperm[|p|+1..] +[pperm[k]];
+      pperm := pperm[k+1..|p|+1] + pperm[..k] + pperm[|p|+1..] + [pperm[k]];
     }
-    assert (forall i:int :: 0<=i && i < |perm| ==> perm[i] == pperm[i]); //lemma needed to trigger axiom
-   }
+    assert (forall i :: 0 <= i && i < |perm| ==> perm[i] == pperm[i]); //lemma needed to trigger axiom
+  }
   
   
 
-  method RemoveMin(q: Queue<int>) returns (m: int, k:int) //m is the min, k is m's index in q
+  method RemoveMin(q: Queue<int>) returns (m: int, k: int) //m is the min, k is m's index in q
     requires q != null && |q.contents| != 0;
     modifies q;
     ensures |old(q.contents)| == |q.contents| + 1;
@@ -113,29 +112,28 @@ class Benchmark3 {
     m := q.Head(); 
     var j := 0;
    
-    while (j <n)
+    while (j < n)
       invariant j <= n;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; //i.e. rotated
       invariant 0 <= k && k < |old(q.contents)| && old(q.contents)[k] == m;
-      invariant (forall i ::0<= i && i < j ==> m <= old(q.contents)[i]); //m is min so far   
+      invariant (forall i :: 0<= i && i < j ==> m <= old(q.contents)[i]); //m is min so far
     {
-		call x:= q.Dequeue();
-		call q.Enqueue(x);
-		if ( x < m) {k := j; m := x;}
-		j:= j+1;
-		
+      call x:= q.Dequeue();
+      call q.Enqueue(x);
+      if (x < m) { k := j; m := x; }
+      j := j+1;
     }
     
-      j := 0;
+    j := 0;
     while (j < k)
       invariant j <= k;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
-    {     
+    {
       call x := q.Dequeue();
       call q.Enqueue(x);
-      j:= j +1;
+      j := j+1;
     }
-    
-     call m:= q.Dequeue();
-   }
+
+    call m:= q.Dequeue();
+  }
 }
