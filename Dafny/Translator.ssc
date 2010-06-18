@@ -980,14 +980,14 @@ namespace Microsoft.Dafny {
           // old(e)[Box(o)]
           disjunct = etran.TrInSet(tok, o, e, ((SetType)e.Type).Arg);
         } else if (e.Type is SeqType) {
-          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) ==> Seq#Index(old(e),i) == Box(o))
+          // (exists i: int :: 0 <= i && i < Seq#Length(old(e)) && Seq#Index(old(e),i) == Box(o))
           Bpl.Expr boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
           Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), true, null, false);
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, etran.TrExpr(e), i);
           // TODO: the equality in the next line should be changed to one that understands extensionality
-          disjunct = new Bpl.ExistsExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(iBounds, Bpl.Expr.Eq(XsubI, boxO)));
+          disjunct = new Bpl.ExistsExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.And(iBounds, Bpl.Expr.Eq(XsubI, boxO)));
         } else {
           // o == old(e)
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
@@ -1322,11 +1322,13 @@ namespace Microsoft.Dafny {
             if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(func)) {
               List<Expression!> contextDecreases = func.Decreases;
               if (contextDecreases.Count == 0) {
-                contextDecreases = ProjectOutSpecificFields(func.Reads);  // use its reads clause instead
+                contextDecreases = new List<Expression!>();
+                contextDecreases.Add(FrameToObjectSet(func.Reads));  // use its reads clause instead
               }
               List<Expression!> calleeDecreases = e.Function.Decreases;
               if (calleeDecreases.Count == 0) {
-                calleeDecreases = ProjectOutSpecificFields(e.Function.Reads);  // use its reads clause instead
+                calleeDecreases = new List<Expression!>();
+                calleeDecreases.Add(FrameToObjectSet(e.Function.Reads));  // use its reads clause instead
               }
               CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
             }
@@ -1432,17 +1434,47 @@ namespace Microsoft.Dafny {
       }
     }
     
-    List<Expression!>! ProjectOutSpecificFields(List<FrameExpression!>! fexprs) {
-      List<Expression!> exprs = new List<Expression!>();
+    Expression! FrameToObjectSet(List<FrameExpression!>! fexprs) {
+      List<Expression!> sets = new List<Expression!>();
+      List<Expression!> singletons = null;
       foreach (FrameExpression fe in fexprs) {
         if (fe.E is WildcardExpr) {
           // drop wildcards altogether
         } else {
-          // keep only fe.E, drop any fe.Field designation
-          exprs.Add(fe.E);
+          Expression e = fe.E;  // keep only fe.E, drop any fe.Field designation
+          assert e.Type != null;  // should have been resolved already
+          if (e.Type.IsRefType) {
+            // e represents a singleton set
+            if (singletons == null) {
+              singletons = new List<Expression!>();
+            }
+            singletons.Add(e);
+          } else {
+            // e is already a set
+            assert e.Type is SetType;
+            sets.Add(e);
+          }
         }
       }
-      return exprs;
+      if (singletons != null) {
+        Expression display = new SetDisplayExpr(singletons[0].tok, singletons);
+        display.Type = new SetType(new ObjectType());  // resolve here
+        sets.Add(display);
+      }
+      if (sets.Count == 0) {
+        Expression emptyset = new SetDisplayExpr(Token.NoToken, new List<Expression!>());
+        emptyset.Type = new SetType(new ObjectType());  // resolve here
+        return emptyset;
+      } else {
+        Expression s = sets[0];
+        for (int i = 1; i < sets.Count; i++) {
+          BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
+          union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
+          union.Type = new SetType(new ObjectType());  // resolve here
+          s = union;
+        }
+        return s;
+      }
     }
     
     Bpl.Constant! GetClass(TopLevelDecl! cl)
@@ -3158,7 +3190,7 @@ namespace Microsoft.Dafny {
       public Bpl.Expr! ProperSubset(Token! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
         return Bpl.Expr.And(
           translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
-          Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.SetEqual, null, e0, e1)));
+          Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
       }
       public Bpl.Expr! ProperPrefix(Token! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
         Bpl.Expr len0 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
@@ -3715,7 +3747,7 @@ namespace Microsoft.Dafny {
       
       yield return expr;
     }
-
+    
     static Expression! Substitute(Expression! expr, Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap) {
       Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
       

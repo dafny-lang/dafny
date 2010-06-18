@@ -32,10 +32,13 @@ axiom (forall<T> a: Set T, x: T :: { Set#UnionOne(a, x) }
 axiom (forall<T> a: Set T, x: T, y: T :: { Set#UnionOne(a, x), a[y] }
   a[y] ==> Set#UnionOne(a, x)[y]);
 
-
 function Set#Union<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Union(a,b)[o] }
   Set#Union(a,b)[o] <==> a[o] || b[o]);
+axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), a[y] }
+  a[y] ==> Set#Union(a, b)[y]);
+axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), b[y] }
+  b[y] ==> Set#Union(a, b)[y]);
 
 function Set#Intersection<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
@@ -44,6 +47,8 @@ axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
 function Set#Difference<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Difference(a,b)[o] }
   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
+axiom (forall<T> a, b: Set T, y: T :: { Set#Difference(a, b), b[y] }
+  b[y] ==> !Set#Difference(a, b)[y] );
 
 function Set#Subset<T>(Set T, Set T) returns (bool);
 axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }

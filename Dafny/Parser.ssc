@@ -152,7 +152,18 @@ public static int Parse (List<ModuleDecl!>! modules) {
 		Attributes attrs;  Token! id;  List<string!> theImports;
 		  List<MemberDecl!> membersDefaultClass = new List<MemberDecl!>();
 		ModuleDecl module;
-		DefaultModuleDecl defaultModule = new DefaultModuleDecl();
+		
+		// to support multiple files, create a default module only if theModules doesn't already contain one
+		DefaultModuleDecl defaultModule = null;
+		foreach (ModuleDecl mdecl in theModules) {
+		  defaultModule = mdecl as DefaultModuleDecl;
+		  if (defaultModule != null) { break; }
+		}
+		bool defaultModuleCreatedHere = false;
+		if (defaultModule == null) {
+		  defaultModuleCreatedHere = true;
+		  defaultModule = new DefaultModuleDecl();
+		}
 		
 		while (StartOf(1)) {
 			if (t.kind == 4) {
@@ -189,8 +200,19 @@ public static int Parse (List<ModuleDecl!>! modules) {
 				ClassMemberDecl(membersDefaultClass);
 			}
 		}
-		defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
-		theModules.Add(defaultModule);
+		if (defaultModuleCreatedHere) {
+		 defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
+		 theModules.Add(defaultModule);
+		} else {
+		  // find the default class in the default module, then append membersDefaultClass to its member list
+		  foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
+		    DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
+		    if (defaultClass != null) {
+		      defaultClass.Members.AddRange(membersDefaultClass);
+		      break;
+		    }
+		  }
+		}
 		
 		Expect(0);
 	}
