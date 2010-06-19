@@ -151,3 +151,22 @@ method FailureToProveTermination5(b: bool, N: int)
     n := n + 1;
   }
 }
+
+class Node {
+  var next: Node;
+  var footprint: set<Node>;
+
+  function Valid(): bool
+    reads this, footprint;
+    // In a previous (and weaker) axiomatization of sets, there had been two problems
+    // with trying to prove the termination of this function.  First, the default
+    // decreases clause (derived from the reads clause) had been done incorrectly for
+    // a list of expressions.  Second, the set axiomatization had not been strong enough.
+  {
+    this in footprint && !(null in footprint) &&
+    (next != null  ==>  next in footprint &&
+                        next.footprint < footprint &&
+                        this !in next.footprint &&
+                        next.Valid())
+  }
+}

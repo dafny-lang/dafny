@@ -128,50 +128,55 @@ class T {
   }
 
   function K(): bool
-    reads this; decreases false;
+    reads this; decreases 0;
   {
-    x <= 100 || (1 < 0 && KK())
+    x <= 100 || (1 < 0 && KKK())
   }
-  unlimited function KK(): bool
-    reads this; decreases true;
+  function KK(): bool
+    reads this; decreases 1;
   {
     K()
   }
+  unlimited function KKK(): bool
+    reads this; decreases 2;
+  {
+    KK()
+  }
 
   method R0()
-    requires KK();
+    requires KKK();  // this expands to both KKK() and KK(); the def. of KK() expands to K#limited
     modifies this;
   {
     x := x - 1;
-    assert KK();  // error (does not know exact definition of K from the initial state)
+    assert KKK();  // error (does not know exact definition of K from the initial state)
   }
 
   method R1()
-    requires KK();
+    requires KKK();  // this expands to both KKK() and KK(); the def. of KK() expands to K#limited
     modifies this;
   {
-    use K();  // KK in the precondition and KK's definition give K#limited, which this use expands
+    use K();  // this equates K#limited and K, so the exact value of K() in the pre-state is now known
     x := x - 1;
-    assert KK();  // the assert expands KK to K, definition of K expands K
+    assert KKK();  // error: the assert expands KKK to KK, definition of KK expands K#limited (but not to K)
   }
 
   method R2()
-    requires KK();
+    requires KKK();  // this expands to both KKK() and KK(); the def. of KK() expands to K#limited (but not K)
     modifies this;
   {
     x := x - 1;
-    use K();
-    assert KK();  // error (does not know exact definition of K in the pre-state)
+    use K();  // this equates K#limited and K in the present state
+    assert KKK();  // error: the connection with the pre-state K is not known
   }
 
   method R3()
-    requires KK();
+    requires KKK();  // this expands to both KKK() and KK(); the def. of KK() expands to K#limited (but not K)
     modifies this;
   {
-    use K();
+    use K();  // this equates K#limited and K, so the pre-state K() is known
     x := x - 1;
-    use K();
-    assert KK();  // thar it is
+    use K();  // this equates K#limited and K in the present state
+    assert KKK();  // thar it is:  this expands to both KKK and KK, and the def. of KK expands to K#limited
   }
 }
 
