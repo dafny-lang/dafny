@@ -105,9 +105,7 @@ class Map<Key,Value> {
     call p, n, prev := FindIndex(key);
     if (p != null) {
       Keys := Keys[..n] + Keys[n+1..];
-      assert Keys[..n] == old(Keys)[..n] && Keys[n..] == old(Keys)[n+1..];
       Values := Values[..n] + Values[n+1..];
-      assert Values[..n] == old(Values)[..n] && Values[n..] == old(Values)[n+1..];
       nodes := nodes[..n] + nodes[n+1..];
       if (prev == null) {
         head := head.next;

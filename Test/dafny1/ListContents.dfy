@@ -78,10 +78,8 @@ class Node<T> {
       decreases if current != null then |current.list| else -1;
     {
       var nx := current.next;
-      assert nx != null ==> (forall i :: 0 <= i && i < |nx.list| ==> current.list[1+i] == nx.list[i]); // lemma
 
       // ..., reverse, current, nx, ...
-      assert current.data == current.list[0]; // lemma
       current.next := reverse;
       current.footprint := {current} + reverse.footprint;
       current.list := [current.data] + reverse.list;

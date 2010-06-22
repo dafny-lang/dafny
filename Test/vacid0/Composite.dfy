@@ -91,7 +91,6 @@ class Composite {
     var p := parent;
     parent := null;
     if (p != null) {
-      assert (p.left == this) != (p.right == this);
       if (p.left == this) {
         p.left := null;
       } else {

@@ -87,7 +87,7 @@ class SparseArray<T> {
   {
     if (0 <= b[i] && b[i] < n && c[b[i]] == i) {
     } else {
-      assert n <= e[i];
+      assert n <= e[i];  // lemma
       b := b[i := n];
       c := c[n := i];
       ghost var t := d[n];

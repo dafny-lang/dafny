@@ -67,7 +67,6 @@ class Main {
       {
         var c := root.children[i];
         if (c != null) {
-          ghost var D := S - stackNodes;  assert root in D;
           call RecursiveMarkWorker(c, S, stackNodes + {root});
         }
         i := i + 1;
