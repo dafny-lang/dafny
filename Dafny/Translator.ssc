@@ -9,6 +9,7 @@ using System.Numerics;
 using Microsoft.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Text;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class Translator {
@@ -31,9 +32,9 @@ namespace Microsoft.Dafny {
 
     // Machinery for providing information to the Counterexample Visualizer
     readonly Dictionary<string!,int>! cevFilenames = new Dictionary<string!,int>();
-    readonly Dictionary<Token!,Bpl.Constant!>! cevLocations = new Dictionary<Token!,Bpl.Constant!>();
+    readonly Dictionary<IToken!,Bpl.Constant!>! cevLocations = new Dictionary<IToken!,Bpl.Constant!>();
     readonly Dictionary<string!,Bpl.Constant!>! cevVariables = new Dictionary<string!,Bpl.Constant!>();
-    Bpl.Expr! CevLocation(Token! tok)
+    Bpl.Expr! CevLocation(IToken! tok)
       requires predef != null && sink != null;
     {
       Bpl.Constant c;
@@ -89,15 +90,15 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type! CevVariableKind;
       public readonly Bpl.Type! CevEventType;
       private readonly Bpl.TypeSynonymDecl! setTypeCtor;
-      public Bpl.Type! SetType(Token! tok, Bpl.Type! ty) {
+      public Bpl.Type! SetType(IToken! tok, Bpl.Type! ty) {
         return new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new Bpl.TypeSeq(ty));
       }
       private readonly Bpl.TypeCtorDecl! seqTypeCtor;
-      public Bpl.Type! SeqType(Token! tok, Bpl.Type! ty) {
+      public Bpl.Type! SeqType(IToken! tok, Bpl.Type! ty) {
         return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new Bpl.TypeSeq(ty));
       }
       readonly Bpl.TypeCtorDecl! fieldName;
-      public Bpl.Type! FieldName(Token! tok, Bpl.Type! ty) {
+      public Bpl.Type! FieldName(IToken! tok, Bpl.Type! ty) {
         return new Bpl.CtorType(tok, fieldName, new Bpl.TypeSeq(ty));
       }
       public readonly Bpl.Type! HeapType;
@@ -109,7 +110,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type! DtCtorId;
       public readonly Bpl.Expr! Null;
       private readonly Bpl.Constant! allocField;
-      public Bpl.IdentifierExpr! Alloc(Token! tok) {
+      public Bpl.IdentifierExpr! Alloc(IToken! tok) {
         return new Bpl.IdentifierExpr(tok, allocField);
       }
 
@@ -247,11 +248,20 @@ namespace Microsoft.Dafny {
       //using (System.IO.Stream stream = (!) System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
       string! codebase = (!) System.IO.Path.GetDirectoryName((!)System.Reflection.Assembly.GetExecutingAssembly().Location);
       string! preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+      
+      Bpl.Program prelude;
+      int errorCount = Bpl.Parser.Parse(preludePath, out prelude);
+      if (prelude == null || errorCount > 0) {
+        return null;
+      } else {
+        return prelude;
+      }
+/*      
       List<string!> defines = new List<string!>();
       using (System.IO.Stream stream = new System.IO.FileStream(preludePath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
       {
         BoogiePL.Buffer.Fill(new System.IO.StreamReader(stream), defines);
-        BoogiePL.Scanner.Init("<DafnyPrelude.bpl>");
+        //BoogiePL.Scanner.Init("<DafnyPrelude.bpl>");
         Bpl.Program prelude;
         int errorCount = BoogiePL.Parser.Parse(out prelude);
         if (prelude == null || errorCount > 0) {
@@ -260,6 +270,7 @@ namespace Microsoft.Dafny {
           return prelude;
         }
       }
+*/      
     }
     
     public Bpl.Program! Translate(Program! program) {
@@ -660,7 +671,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr! InSeqRange(Token! tok, Bpl.Expr! index, Bpl.Expr! seq, bool isSequence, Bpl.Expr lowerBound, bool includeUpperBound) {
+    Bpl.Expr! InSeqRange(IToken! tok, Bpl.Expr! index, Bpl.Expr! seq, bool isSequence, Bpl.Expr lowerBound, bool includeUpperBound) {
       if (lowerBound == null) {
         lowerBound = Bpl.Expr.Literal(0);
       }
@@ -679,7 +690,7 @@ namespace Microsoft.Dafny {
     int loopHeapVarCount = 0;
     int otherTmpVarCount = 0;
     Bpl.IdentifierExpr _phvie = null;
-    Bpl.IdentifierExpr! GetPrevHeapVar_IdExpr(Token! tok, Bpl.VariableSeq! locals)  // local variable that's shared between statements that need it
+    Bpl.IdentifierExpr! GetPrevHeapVar_IdExpr(IToken! tok, Bpl.VariableSeq! locals)  // local variable that's shared between statements that need it
       requires predef != null;
     {
       if (_phvie == null) {
@@ -691,7 +702,7 @@ namespace Microsoft.Dafny {
       return _phvie;
     }
     Bpl.IdentifierExpr _nwie = null;
-    Bpl.IdentifierExpr! GetNewVar_IdExpr(Token! tok, Bpl.VariableSeq! locals)  // local variable that's shared between statements that need it
+    Bpl.IdentifierExpr! GetNewVar_IdExpr(IToken! tok, Bpl.VariableSeq! locals)  // local variable that's shared between statements that need it
       requires predef != null;
     {
       if (_nwie == null) {
@@ -795,7 +806,7 @@ namespace Microsoft.Dafny {
         assert p != null;
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
           new Bpl.ExprSeq(
-            CevLocation((Dafny.Token)p.tok),
+            CevLocation(p.tok),
             new Bpl.IdentifierExpr(p.tok, "cev_parameter", predef.CevVariableKind),
             CevVariable(p.tok, p.Name),
             new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
@@ -805,7 +816,7 @@ namespace Microsoft.Dafny {
         assert p != null;
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
           new Bpl.ExprSeq(
-            CevLocation((Dafny.Token)p.tok),
+            CevLocation(p.tok),
             new Bpl.IdentifierExpr(p.tok, "cev_local", predef.CevVariableKind),  // treat out-parameters as locals
             CevVariable(p.tok, p.Name),
             new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
@@ -816,7 +827,7 @@ namespace Microsoft.Dafny {
       DefineFrame(m.tok, m.Mod, builder, localVariables);
     }
     
-    void DefineFrame(Token! tok, List<FrameExpression!>! frameClause, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! localVariables)
+    void DefineFrame(IToken! tok, List<FrameExpression!>! frameClause, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! localVariables)
       requires predef != null;
     {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, tok);
@@ -839,7 +850,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
     }
 
-    void CheckFrameSubset(Token! tok, List<FrameExpression!>! calleeFrame,
+    void CheckFrameSubset(IToken! tok, List<FrameExpression!>! calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap,
                           ExpressionTranslator! etran, Bpl.StmtListBuilder! builder, string! errorMessage)
       requires predef != null;
@@ -959,7 +970,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    Bpl.Expr! InRWClause(Token! tok, Bpl.Expr! o, Bpl.Expr! f, List<FrameExpression!>! rw, ExpressionTranslator! etran,
+    Bpl.Expr! InRWClause(IToken! tok, Bpl.Expr! o, Bpl.Expr! f, List<FrameExpression!>! rw, ExpressionTranslator! etran,
                          Expression receiverReplacement, Dictionary<IVariable,Expression!> substMap)
       requires predef != null;
       // requires o to denote an expression of type RefType
@@ -1225,7 +1236,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckNonNull(Token! tok, Expression! e, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran)
+    void CheckNonNull(IToken! tok, Expression! e, Bpl.StmtListBuilder! builder, ExpressionTranslator! etran)
       requires predef != null;
     {
       if (e is ThisExpr) {
@@ -1490,7 +1501,7 @@ namespace Microsoft.Dafny {
       return cc;
     }
     
-    Bpl.Expr GetTypeExpr(Token! tok, Type! type)
+    Bpl.Expr GetTypeExpr(IToken! tok, Type! type)
       requires predef != null;
     {
       while (true) {
@@ -1706,13 +1717,13 @@ namespace Microsoft.Dafny {
     }
     
     class BoilerplateTriple {  // a triple that is now a quintuple
-      public readonly Token! tok;
+      public readonly IToken! tok;
       public readonly bool IsFree;
       public readonly Bpl.Expr! Expr;
       public readonly string ErrorMessage;
       invariant IsFree || ErrorMessage != null;
       public readonly string Comment;
-      public BoilerplateTriple(Token! tok, bool isFree, Bpl.Expr! expr, string errorMessage, string comment)
+      public BoilerplateTriple(IToken! tok, bool isFree, Bpl.Expr! expr, string errorMessage, string comment)
         requires isFree || errorMessage != null;
       {
         this.tok = tok;
@@ -1730,7 +1741,7 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
     /// </summary>
-    List<BoilerplateTriple!>! GetTwoStateBoilerplate(Token! tok, Method! method, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
+    List<BoilerplateTriple!>! GetTwoStateBoilerplate(IToken! tok, Method! method, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
     {
       List<BoilerplateTriple!> boilerplate = new List<BoilerplateTriple!>();
       
@@ -1751,7 +1762,7 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
     /// </summary>
-    Bpl.Expr! FrameCondition(Token! tok, List<FrameExpression!>! modifiesClause, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
+    Bpl.Expr! FrameCondition(IToken! tok, List<FrameExpression!>! modifiesClause, ExpressionTranslator! etranPre, ExpressionTranslator! etran)
       requires predef != null;
     {
       // generate:
@@ -1838,7 +1849,7 @@ namespace Microsoft.Dafny {
       return cmd;
     }
 
-    Bpl.Ensures! Ensures(Token! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
+    Bpl.Ensures! Ensures(IToken! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
     {
       Bpl.Ensures ens = new Bpl.Ensures(tok, free, condition, comment);
       if (errorMessage != null) {
@@ -1847,7 +1858,7 @@ namespace Microsoft.Dafny {
       return ens;
     }
 
-    Bpl.Requires! Requires(Token! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
+    Bpl.Requires! Requires(IToken! tok, bool free, Bpl.Expr! condition, string errorMessage, string comment)
     {
       Bpl.Requires req = new Bpl.Requires(tok, free, condition, comment);
       if (errorMessage != null) {
@@ -2266,7 +2277,7 @@ namespace Microsoft.Dafny {
           // time for the actual loop body
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
           // check definedness of decreases expressions
-          List<Token!> toks = new List<Token!>();
+          List<IToken!> toks = new List<IToken!>();
           List<Type!> types = new List<Type!>();
           List<Bpl.Expr!> decrs = new List<Bpl.Expr!>();
           foreach (Expression e in theDecreases) {
@@ -2457,7 +2468,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    static Expression! CreateIntLiteral(Token! tok, int n)
+    static Expression! CreateIntLiteral(IToken! tok, int n)
     {
       if (0 <= n) {
         Expression lit = new LiteralExpr(tok, n);
@@ -2468,7 +2479,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    static Expression! CreateIntSub(Token! tok, Expression! e0, Expression! e1)
+    static Expression! CreateIntSub(IToken! tok, Expression! e0, Expression! e1)
       requires e0.Type is IntType && e1.Type is IntType;
     {
       BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, e0, e1);
@@ -2477,7 +2488,7 @@ namespace Microsoft.Dafny {
       return s;
     }
     
-    static Expression! CreateIntITE(Token! tok, Expression! test, Expression! e0, Expression! e1)
+    static Expression! CreateIntITE(IToken! tok, Expression! test, Expression! e0, Expression! e1)
       requires test.Type is BoolType && e0.Type is IntType && e1.Type is IntType;
     {
       ITEExpr ite = new ITEExpr(tok, test, e0, e1);
@@ -2504,12 +2515,12 @@ namespace Microsoft.Dafny {
       yield return expr;
     }
     
-    void CheckCallTermination(Token! tok, List<Expression!>! contextDecreases, List<Expression!>! calleeDecreases,
+    void CheckCallTermination(IToken! tok, List<Expression!>! contextDecreases, List<Expression!>! calleeDecreases,
                               Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap,
                               ExpressionTranslator! etran, Bpl.StmtListBuilder! builder)
     {
       int N = min{contextDecreases.Count, calleeDecreases.Count};
-      List<Token!> toks = new List<Token!>();
+      List<IToken!> toks = new List<IToken!>();
       List<Type!> types = new List<Type!>();
       List<Bpl.Expr!> callee = new List<Bpl.Expr!>();
       List<Bpl.Expr!> caller = new List<Bpl.Expr!>();
@@ -2532,7 +2543,7 @@ namespace Microsoft.Dafny {
     /// Returns the expression that says whether or not the decreases function has gone down.  ee0 represents the new
     /// values and ee1 represents old values.
     /// </summary>
-    Bpl.Expr! DecreasesCheck(List<Token!>! toks, List<Type!>! types, List<Bpl.Expr!>! ee0, List<Bpl.Expr!>! ee1,
+    Bpl.Expr! DecreasesCheck(List<IToken!>! toks, List<Type!>! types, List<Bpl.Expr!>! ee0, List<Bpl.Expr!>! ee1,
                              Bpl.StmtListBuilder! builder, ExpressionTranslator! etran, string! suffixMsg)
       requires predef != null;
       requires types.Count == ee0.Count && ee0.Count == ee1.Count;
@@ -2605,7 +2616,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void ComputeLessEq(Token! tok, Type! ty, Bpl.Expr! e0, Bpl.Expr! e1, out Bpl.Expr! less, out Bpl.Expr! eq, ExpressionTranslator! etran)
+    void ComputeLessEq(IToken! tok, Type! ty, Bpl.Expr! e0, Bpl.Expr! e1, out Bpl.Expr! less, out Bpl.Expr! eq, ExpressionTranslator! etran)
       requires predef != null;
     {
       if (ty is BoolType) {
@@ -2641,7 +2652,7 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.filename, stmt.Tok.line, stmt.Tok.col)));
     }
     
-    Bpl.Expr GetWhereClause(Token! tok, Bpl.Expr! x, Type! type, ExpressionTranslator! etran)
+    Bpl.Expr GetWhereClause(IToken! tok, Bpl.Expr! x, Type! type, ExpressionTranslator! etran)
       requires predef != null;
     {
       if (type is TypeProxy) {
@@ -2703,7 +2714,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void TrAssignment(Token! tok, Expression! lhs, AssignmentRhs! rhs, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! locals,
+    void TrAssignment(IToken! tok, Expression! lhs, AssignmentRhs! rhs, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! locals,
                       ExpressionTranslator! etran)
       requires predef != null;
     {
@@ -2809,7 +2820,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    Bpl.AssumeCmd! AssumeGoodHeap(Token! tok, ExpressionTranslator! etran) {
+    Bpl.AssumeCmd! AssumeGoodHeap(IToken! tok, ExpressionTranslator! etran) {
       return new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
     }
     
@@ -2821,7 +2832,7 @@ namespace Microsoft.Dafny {
       public readonly Translator! translator;
       readonly Function applyLimited_CurrentFunction;
       
-      public ExpressionTranslator(Translator! translator, PredefinedDecls! predef, Token! heapToken) {
+      public ExpressionTranslator(Translator! translator, PredefinedDecls! predef, IToken! heapToken) {
         this.translator = translator;
         this.predef = predef;
         HeapExpr = new Bpl.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType);
@@ -2854,7 +2865,7 @@ namespace Microsoft.Dafny {
         return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction);
       }
       
-      public Bpl.IdentifierExpr! TheFrame(Token! tok)
+      public Bpl.IdentifierExpr! TheFrame(IToken! tok)
         ensures result.Type != null;
       {
         Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "beta");
@@ -3211,12 +3222,12 @@ namespace Microsoft.Dafny {
         }
       }
       
-      public Bpl.Expr! ProperSubset(Token! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
+      public Bpl.Expr! ProperSubset(IToken! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
         return Bpl.Expr.And(
           translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
           Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
       }
-      public Bpl.Expr! ProperPrefix(Token! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
+      public Bpl.Expr! ProperPrefix(IToken! tok, Bpl.Expr! e0, Bpl.Expr! e1) {
         Bpl.Expr len0 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
         Bpl.Expr len1 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
         return Bpl.Expr.And(
@@ -3246,7 +3257,7 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.Eq(f0, f1);
       }
 
-      public Bpl.Expr! CondApplyBox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
+      public Bpl.Expr! CondApplyBox(IToken! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
         if (!ModeledAsBoxType(fromType) && ModeledAsBoxType(toType)) {
           return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
         } else {
@@ -3254,7 +3265,7 @@ namespace Microsoft.Dafny {
         }
       }
       
-      public Bpl.Expr! BoxIfNecessary(Token! tok, Bpl.Expr! e, Type! fromType) {
+      public Bpl.Expr! BoxIfNecessary(IToken! tok, Bpl.Expr! e, Type! fromType) {
         if (!ModeledAsBoxType(fromType)) {
           return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
         } else {
@@ -3262,7 +3273,7 @@ namespace Microsoft.Dafny {
         }
       }
       
-      public Bpl.Expr! CondApplyUnbox(Token! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
+      public Bpl.Expr! CondApplyUnbox(IToken! tok, Bpl.Expr! e, Type! fromType, Type! toType) {
         if (ModeledAsBoxType(fromType) && !ModeledAsBoxType(toType)) {
           return translator.FunctionCall(tok, BuiltinFunction.Unbox, translator.TrType(toType), e);
         } else {
@@ -3285,7 +3296,7 @@ namespace Microsoft.Dafny {
         return t.IsTypeParameter;
       }
 
-      public Bpl.IdentifierExpr! TrVar(Token! tok, IVariable! var) {
+      public Bpl.IdentifierExpr! TrVar(IToken! tok, IVariable! var) {
         return new Bpl.IdentifierExpr(tok, var.UniqueName, translator.TrType(var.Type));
       }
       
@@ -3293,7 +3304,7 @@ namespace Microsoft.Dafny {
       /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
       /// </summary>
-      public Bpl.Expr! TrInSet(Token! tok, Bpl.Expr! elmt, Expression! s, Type! elmtType) {
+      public Bpl.Expr! TrInSet(IToken! tok, Bpl.Expr! elmt, Expression! s, Type! elmtType) {
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
@@ -3345,15 +3356,15 @@ namespace Microsoft.Dafny {
       
       // --------------- help routines ---------------
 
-      public Bpl.Expr! IsAlloced(Token! tok, Bpl.Expr! e) {
+      public Bpl.Expr! IsAlloced(IToken! tok, Bpl.Expr! e) {
         return IsAlloced(tok, e, HeapExpr);
       }
           
-      Bpl.Expr! IsAlloced(Token! tok, Bpl.Expr! e, Bpl.Expr! heap) {
+      Bpl.Expr! IsAlloced(IToken! tok, Bpl.Expr! e, Bpl.Expr! heap) {
         return Bpl.Expr.SelectTok(tok, heap, e, predef.Alloc(tok));
       }
       
-      public Bpl.Expr! GoodRef(Token! tok, Bpl.Expr! e, Type! type) {
+      public Bpl.Expr! GoodRef(IToken! tok, Bpl.Expr! e, Type! type) {
         Bpl.Expr goodRef;
         if (type is UserDefinedType && ((UserDefinedType)type).ResolvedClass != null) {
           // Heap[e, alloc] && dtype(e) == T
@@ -3364,13 +3375,13 @@ namespace Microsoft.Dafny {
         }
       }
       
-      public Bpl.Expr! GoodRef_Class(Token! tok, Bpl.Expr! e, UserDefinedType! type, bool isNew)
+      public Bpl.Expr! GoodRef_Class(IToken! tok, Bpl.Expr! e, UserDefinedType! type, bool isNew)
         requires type.ResolvedClass is ClassDecl;
       {
         return GoodRef_Ref(tok, e, new Bpl.IdentifierExpr(tok, translator.GetClass(type.ResolvedClass)), type.TypeArgs, isNew);
       }
       
-      public Bpl.Expr! GoodRef_Ref(Token! tok, Bpl.Expr! e, Bpl.Expr! type, List<Type!>! typeArgs, bool isNew) {
+      public Bpl.Expr! GoodRef_Ref(IToken! tok, Bpl.Expr! e, Bpl.Expr! type, List<Type!>! typeArgs, bool isNew) {
         // Heap[e, alloc]
         Bpl.Expr r = IsAlloced(tok, e);
         if (isNew) {
@@ -3396,7 +3407,7 @@ namespace Microsoft.Dafny {
         return r;
       }
       
-      public Bpl.Expr TypeAlloced(Token! tok, Bpl.Expr! e, Type! type) {
+      public Bpl.Expr TypeAlloced(IToken! tok, Bpl.Expr! e, Type! type) {
         while (true) {
           TypeProxy proxy = type as TypeProxy;
           if (proxy == null) {
@@ -3493,7 +3504,7 @@ namespace Microsoft.Dafny {
     }
     
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.
-    Bpl.NAryExpr! FunctionCall(Token! tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[]! args)
+    Bpl.NAryExpr! FunctionCall(IToken! tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[]! args)
       requires predef != null;
     {
       switch (f) {
@@ -3667,12 +3678,12 @@ namespace Microsoft.Dafny {
       }
     }
     
-    Bpl.NAryExpr! FunctionCall(Token! tok, string! function, Bpl.Type! returnType, params Bpl.Expr[]! args)
+    Bpl.NAryExpr! FunctionCall(IToken! tok, string! function, Bpl.Type! returnType, params Bpl.Expr[]! args)
     {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), new Bpl.ExprSeq(args));
     }
 
-    Bpl.NAryExpr! FunctionCall(Token! tok, string! function, Bpl.Type! returnType, List<Bpl.Expr!>! args)
+    Bpl.NAryExpr! FunctionCall(IToken! tok, string! function, Bpl.Type! returnType, List<Bpl.Expr!>! args)
     {
       Bpl.ExprSeq aa = new Bpl.ExprSeq();
       foreach (Bpl.Expr arg in args) {

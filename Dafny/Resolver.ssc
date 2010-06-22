@@ -7,11 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Contracts;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class Resolver {
     public int ErrorCount = 0;
-    void Error(Token! tok, string! msg, params object[] args) {
+    void Error(IToken! tok, string! msg, params object[] args) {
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
       Console.WriteLine("{0}({1},{2}): Error: {3}",
@@ -1370,7 +1371,7 @@ namespace Microsoft.Dafny {
       return rr.EType;
     }
 
-    MemberDecl ResolveMember(Token! tok, Type! receiverType, string! memberName, out UserDefinedType ctype)
+    MemberDecl ResolveMember(IToken! tok, Type! receiverType, string! memberName, out UserDefinedType ctype)
       ensures result != null ==> ctype != null && ctype.ResolvedClass != null;
     {
       ctype = UserDefinedType.DenotesClass(receiverType);
@@ -1455,7 +1456,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static UserDefinedType! GetThisType(Token! tok, ClassDecl! cl) {
+    public static UserDefinedType! GetThisType(IToken! tok, ClassDecl! cl) {
       List<Type!> args = new List<Type!>();
       foreach (TypeParameter tp in cl.TypeArgs) {
         args.Add(new UserDefinedType(tok, tp.Name, tp));

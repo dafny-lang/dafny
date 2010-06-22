@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Contracts;
 using System.Numerics;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
 {
@@ -148,14 +149,14 @@ namespace Microsoft.Dafny
   }
   
   public class UserDefinedType : Type {
-    public readonly Token! tok;
+    public readonly IToken! tok;
     public readonly string! Name;
     [Rep] public readonly List<Type!>! TypeArgs;
     
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public static UserDefinedType! ArrayType(Token! tok, Type! arg) {
+    public static UserDefinedType! ArrayType(IToken! tok, Type! arg) {
       List<Type!> typeArgs = new List<Type!>();
       typeArgs.Add(arg);
       UserDefinedType udt = new UserDefinedType(tok, "array", typeArgs);
@@ -171,7 +172,7 @@ namespace Microsoft.Dafny
     }
 
     
-    public UserDefinedType(Token! tok, string! name, [Captured] List<Type!>! typeArgs) {
+    public UserDefinedType(IToken! tok, string! name, [Captured] List<Type!>! typeArgs) {
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -180,7 +181,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// This constructor constructs a resolved class type
     /// </summary>
-    public UserDefinedType(Token! tok, string! name, TopLevelDecl! cd, [Captured] List<Type!>! typeArgs) {
+    public UserDefinedType(IToken! tok, string! name, TopLevelDecl! cd, [Captured] List<Type!>! typeArgs) {
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -190,7 +191,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// This constructor constructs a resolved type parameter
     /// </summary>
-    public UserDefinedType(Token! tok, string! name, TypeParameter! tp) {
+    public UserDefinedType(IToken! tok, string! name, TypeParameter! tp) {
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = new List<Type!>();
@@ -350,11 +351,11 @@ namespace Microsoft.Dafny
   // ------------------------------------------------------------------------------------------------------
   
   public abstract class Declaration {
-    public Token! tok;
+    public IToken! tok;
     public readonly string! Name;
     public readonly Attributes Attributes;
     
-    public Declaration(Token! tok, string! name, Attributes attributes) {
+    public Declaration(IToken! tok, string! name, Attributes attributes) {
       this.tok = tok;
       this.Name = name;
       this.Attributes = attributes;
@@ -386,7 +387,7 @@ namespace Microsoft.Dafny
         parent = value;
       }
     }
-    public TypeParameter(Token! tok, string! name) {
+    public TypeParameter(IToken! tok, string! name) {
       base(tok, name, null);
     }
   }
@@ -396,7 +397,7 @@ namespace Microsoft.Dafny
     public readonly List<TopLevelDecl!>! TopLevelDecls = new List<TopLevelDecl!>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl!>! CallGraph = new Graph<MemberDecl!>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
-    public ModuleDecl(Token! tok, string! name, [Captured] List<string!>! imports, Attributes attributes) {
+    public ModuleDecl(IToken! tok, string! name, [Captured] List<string!>! imports, Attributes attributes) {
       Imports = imports;
       base(tok, name, attributes);
     }
@@ -418,7 +419,7 @@ namespace Microsoft.Dafny
     public readonly ModuleDecl! Module;
     public readonly List<TypeParameter!>! TypeArgs;
     
-    public TopLevelDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, Attributes attributes) {
+    public TopLevelDecl(IToken! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, Attributes attributes) {
       Module = module;
       TypeArgs = typeArgs;
       base(tok, name, attributes);
@@ -428,7 +429,7 @@ namespace Microsoft.Dafny
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl!>! Members;
 
-    public ClassDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
+    public ClassDecl(IToken! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes) {
       Members = members;
       base(tok, name, module, typeArgs, attributes);
     }
@@ -450,7 +451,7 @@ namespace Microsoft.Dafny
     public readonly List<DatatypeCtor!>! Ctors;
     public DatatypeCtor DefaultCtor;  // set during resolution
     
-    public DatatypeDecl(Token! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
+    public DatatypeDecl(IToken! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<DatatypeCtor!>! ctors, Attributes attributes) {
       Ctors = ctors;
       base(tok, name, module, typeArgs, attributes);
     }
@@ -462,7 +463,7 @@ namespace Microsoft.Dafny
     // Todo: One could imagine having a precondition on datatype constructors
     public DatatypeDecl EnclosingDatatype;  // filled in during resolution
     
-    public DatatypeCtor(Token! tok, string! name, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals,
+    public DatatypeCtor(IToken! tok, string! name, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals,
                         Attributes attributes) {
       this.TypeArgs = typeArgs;
       this.Formals = formals;
@@ -481,7 +482,7 @@ namespace Microsoft.Dafny
   public abstract class MemberDecl : Declaration {
     public ClassDecl EnclosingClass;  // filled in during resolution
     
-    public MemberDecl(Token! tok, string! name, Attributes attributes) {
+    public MemberDecl(IToken! tok, string! name, Attributes attributes) {
       base(tok, name, attributes);
     }
     /// <summary>
@@ -500,7 +501,7 @@ namespace Microsoft.Dafny
     public readonly bool IsGhost;
     public readonly Type! Type;
     
-    public Field(Token! tok, string! name, bool isGhost, Type! type, Attributes attributes) {
+    public Field(IToken! tok, string! name, bool isGhost, Type! type, Attributes attributes) {
       IsGhost = isGhost;
       Type = type;
       base(tok, name, attributes);
@@ -516,7 +517,7 @@ namespace Microsoft.Dafny
   }
   
   public abstract class NonglobalVariable : IVariable {
-    public readonly Token! tok;
+    public readonly IToken! tok;
     readonly string! name;
     public string! Name { get { return name; } }
     readonly int varId = varIdCount++;
@@ -544,7 +545,7 @@ namespace Microsoft.Dafny
       set { isGhost = value; }
     }
     
-    public NonglobalVariable(Token! tok, string! name, Type! type, bool isGhost) {
+    public NonglobalVariable(IToken! tok, string! name, Type! type, bool isGhost) {
       this.tok = tok;
       this.name = name;
       this.type = type;
@@ -558,7 +559,7 @@ namespace Microsoft.Dafny
     public readonly bool InParam;  // true to in-parameter, false for out-parameter
     public override bool IsMutable { get { return !InParam; } }
     
-    public Formal(Token! tok, string! name, Type! type, bool inParam, bool isGhost) {
+    public Formal(IToken! tok, string! name, Type! type, bool inParam, bool isGhost) {
       InParam = inParam;
       base(tok, name, type, isGhost);
     }
@@ -567,7 +568,7 @@ namespace Microsoft.Dafny
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable { get { return false; } }
     
-    public BoundVar(Token! tok, string! name, Type! type) {
+    public BoundVar(IToken! tok, string! name, Type! type) {
       base(tok, name, type, false);
     }
   }
@@ -585,7 +586,7 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly Expression Body;  // an extended expression
     
-    public Function(Token! tok, string! name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
+    public Function(IToken! tok, string! name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter!>! typeArgs, [Captured] List<Formal!>! formals, Type! resultType,
                     List<Expression!>! req, List<FrameExpression!>! reads, List<Expression!>! decreases, Expression body, Attributes attributes) {
       this.IsStatic = isStatic;
       this.IsGhost = isGhost;
@@ -613,7 +614,7 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly BlockStmt Body;
     
-    public Method(Token! tok, string! name,
+    public Method(IToken! tok, string! name,
                   bool isStatic, bool isGhost,
                   [Captured] List<TypeParameter!>! typeArgs,
                   [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
@@ -638,9 +639,9 @@ namespace Microsoft.Dafny
   // ------------------------------------------------------------------------------------------------------
   
   public abstract class Statement {
-    public readonly Token! Tok;
+    public readonly IToken! Tok;
     public bool IsGhost;  // filled in by resolution
-    public Statement(Token! tok) {
+    public Statement(IToken! tok) {
       this.Tok = tok;
     }
   }
@@ -648,7 +649,7 @@ namespace Microsoft.Dafny
   public abstract class PredicateStmt : Statement {
     [Peer] public readonly Expression! Expr;
     [Captured]
-    public PredicateStmt(Token! tok, Expression! expr)
+    public PredicateStmt(IToken! tok, Expression! expr)
       ensures Owner.Same(this, expr);
     {
       base(tok);
@@ -659,7 +660,7 @@ namespace Microsoft.Dafny
   
   public class AssertStmt : PredicateStmt {
     [Captured]
-    public AssertStmt(Token! tok, Expression! expr)
+    public AssertStmt(IToken! tok, Expression! expr)
       ensures Owner.Same(this, expr);
     {
       base(tok, expr);
@@ -668,7 +669,7 @@ namespace Microsoft.Dafny
   
   public class AssumeStmt : PredicateStmt {
     [Captured]
-    public AssumeStmt(Token! tok, Expression! expr)
+    public AssumeStmt(IToken! tok, Expression! expr)
       ensures Owner.Same(this, expr);
     {
       base(tok, expr);
@@ -677,7 +678,7 @@ namespace Microsoft.Dafny
   
   public class UseStmt : PredicateStmt {
     [Captured]
-    public UseStmt(Token! tok, Expression! expr)
+    public UseStmt(IToken! tok, Expression! expr)
       ensures Owner.Same(this, expr);
     {
       base(tok, expr);
@@ -715,7 +716,7 @@ namespace Microsoft.Dafny
   
   public class PrintStmt : Statement {
     public readonly List<Attributes.Argument!>! Args;
-    public PrintStmt(Token! tok, List<Attributes.Argument!>! args)
+    public PrintStmt(IToken! tok, List<Attributes.Argument!>! args)
     {
       base(tok);
       Args = args;
@@ -724,7 +725,7 @@ namespace Microsoft.Dafny
   
   public class LabelStmt : Statement {
     public readonly string! Label;
-    public LabelStmt(Token! tok, string! label) {
+    public LabelStmt(IToken! tok, string! label) {
       this.Label = label;
       base(tok);
     }
@@ -734,14 +735,14 @@ namespace Microsoft.Dafny
     public readonly string TargetLabel;
     public Statement TargetStmt;  // filled in during resolution
     
-    public BreakStmt(Token! tok, string targetLabel) {
+    public BreakStmt(IToken! tok, string targetLabel) {
       this.TargetLabel = targetLabel;
       base(tok);
     }
   }
   
   public class ReturnStmt : Statement {
-    public ReturnStmt(Token! tok) {
+    public ReturnStmt(IToken! tok) {
       base(tok);
     }
   }
@@ -779,22 +780,22 @@ namespace Microsoft.Dafny
   public class AssignStmt : Statement {
     public readonly Expression! Lhs;
     public readonly AssignmentRhs! Rhs;
-    public AssignStmt(Token! tok, Expression! lhs, Expression! rhs) {  // ordinary assignment statement
+    public AssignStmt(IToken! tok, Expression! lhs, Expression! rhs) {  // ordinary assignment statement
       this.Lhs = lhs;
       this.Rhs = new ExprRhs(rhs);
       base(tok);
     }
-    public AssignStmt(Token! tok, Expression! lhs, Type! type) {  // alloc statement
+    public AssignStmt(IToken! tok, Expression! lhs, Type! type) {  // alloc statement
       this.Lhs = lhs;
       this.Rhs = new TypeRhs(type);
       base(tok);
     }
-    public AssignStmt(Token! tok, Expression! lhs, Type! type, Expression! arraySize) {  // array alloc statement
+    public AssignStmt(IToken! tok, Expression! lhs, Type! type, Expression! arraySize) {  // array alloc statement
       this.Lhs = lhs;
       this.Rhs = new TypeRhs(type, arraySize);
       base(tok);
     }
-    public AssignStmt(Token! tok, Expression! lhs) {  // havoc
+    public AssignStmt(IToken! tok, Expression! lhs) {  // havoc
       this.Lhs = lhs;
       this.Rhs = new HavocRhs();
       base(tok);
@@ -830,7 +831,7 @@ namespace Microsoft.Dafny
     public readonly DeterminedAssignmentRhs Rhs;
     invariant OptionalType != null || Rhs != null;
     
-    public VarDecl(Token! tok, string! name, Type type, bool isGhost, DeterminedAssignmentRhs rhs)
+    public VarDecl(IToken! tok, string! name, Type type, bool isGhost, DeterminedAssignmentRhs rhs)
       requires type != null || rhs != null;
     {
       this.name = name;
@@ -843,7 +844,7 @@ namespace Microsoft.Dafny
   
   public class AutoVarDecl : VarDecl {
     public readonly int Index;
-    public AutoVarDecl(Token! tok, string! name, Type! type, int index)
+    public AutoVarDecl(IToken! tok, string! name, Type! type, int index)
     {
       Index = index;
       base(tok, name, type, false, null);
@@ -864,7 +865,7 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Args;
     public Method Method;  // filled in by resolution
     
-    public CallStmt(Token! tok, List<AutoVarDecl!>! newVars, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
+    public CallStmt(IToken! tok, List<AutoVarDecl!>! newVars, List<IdentifierExpr!>! lhs, Expression! receiver, string! methodName, List<Expression!>! args) {
       this.NewVars = newVars;
       this.Lhs = lhs;
       this.Receiver = receiver;
@@ -876,7 +877,7 @@ namespace Microsoft.Dafny
   
   public class BlockStmt : Statement {
     public readonly List<Statement!>! Body;
-    public BlockStmt(Token! tok, [Captured] List<Statement!>! body) {
+    public BlockStmt(IToken! tok, [Captured] List<Statement!>! body) {
       this.Body = body;
       base(tok);
     }
@@ -888,7 +889,7 @@ namespace Microsoft.Dafny
     public readonly Statement Els;
     invariant Els == null || Els is BlockStmt || Els is IfStmt;
     
-    public IfStmt(Token! tok, Expression guard, Statement! thn, Statement els)
+    public IfStmt(IToken! tok, Expression guard, Statement! thn, Statement els)
       requires els == null || els is BlockStmt || els is IfStmt;
     {
       this.Guard = guard;
@@ -904,7 +905,7 @@ namespace Microsoft.Dafny
     public readonly List<Expression!>! Decreases;
     public readonly Statement! Body;
     
-    public WhileStmt(Token! tok, Expression guard,
+    public WhileStmt(IToken! tok, Expression guard,
                      List<MaybeFreeExpression!>! invariants, List<Expression!>! decreases,
                      Statement! body) {
       this.Guard = guard;
@@ -922,7 +923,7 @@ namespace Microsoft.Dafny
     public readonly List<PredicateStmt!>! BodyPrefix;
     public readonly AssignStmt! BodyAssign;
     
-    public ForeachStmt(Token! tok, BoundVar! boundVar, Expression! collection, Expression! range, List<PredicateStmt!>! bodyPrefix, AssignStmt! bodyAssign) {
+    public ForeachStmt(IToken! tok, BoundVar! boundVar, Expression! collection, Expression! range, List<PredicateStmt!>! bodyPrefix, AssignStmt! bodyAssign) {
       this.BoundVar = boundVar;
       this.Collection = collection;
       this.Range = range;
@@ -936,7 +937,7 @@ namespace Microsoft.Dafny
     public readonly Expression! Source;
     public readonly List<MatchCaseStmt!>! Cases;
     
-    public MatchStmt(Token! tok, Expression! source, [Captured] List<MatchCaseStmt!>! cases) {
+    public MatchStmt(IToken! tok, Expression! source, [Captured] List<MatchCaseStmt!>! cases) {
       this.Source = source;
       this.Cases = cases;
       base(tok);
@@ -944,13 +945,13 @@ namespace Microsoft.Dafny
   }
   
   public class MatchCaseStmt {
-    public readonly Token! tok;
+    public readonly IToken! tok;
     public readonly string! Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public readonly List<BoundVar!>! Arguments;
     public readonly List<Statement!>! Body;
     
-    public MatchCaseStmt(Token! tok, string! id, [Captured] List<BoundVar!>! arguments, [Captured] List<Statement!>! body) {
+    public MatchCaseStmt(IToken! tok, string! id, [Captured] List<BoundVar!>! arguments, [Captured] List<Statement!>! body) {
       this.tok = tok;
       this.Id = id;
       this.Arguments = arguments;
@@ -961,7 +962,7 @@ namespace Microsoft.Dafny
   // ------------------------------------------------------------------------------------------------------
   
   public abstract class Expression {
-    public readonly Token! tok;
+    public readonly IToken! tok;
     protected Type type;
     public Type Type {  // filled in during resolution
       [Verify(false)]  // TODO: how do we allow Type.get to modify type and still be [Pure]?
@@ -998,7 +999,7 @@ namespace Microsoft.Dafny
       }
     }
     
-    public Expression(Token! tok)
+    public Expression(IToken! tok)
       ensures type == null;  // we would have liked to have written Type==null, but that's not admissible or provable
     {
       this.tok = tok;
@@ -1017,25 +1018,25 @@ namespace Microsoft.Dafny
       }
     }
     
-    public LiteralExpr(Token! tok) {  // represents the Dafny literal "null"
+    public LiteralExpr(IToken! tok) {  // represents the Dafny literal "null"
       this.Value = null;
       base(tok);
     }
     
-    public LiteralExpr(Token! tok, BigInteger n)
+    public LiteralExpr(IToken! tok, BigInteger n)
       requires 0 <= n.Sign;
     {
       this.Value = n;
       base(tok);
     }
     
-    public LiteralExpr(Token! tok, int n)
+    public LiteralExpr(IToken! tok, int n)
       requires 0 <= n;
     {
       this(tok, new BigInteger(n));
     }
     
-    public LiteralExpr(Token! tok, bool b) {
+    public LiteralExpr(IToken! tok, bool b) {
       this.Value = b;
       base(tok);
     }
@@ -1048,7 +1049,7 @@ namespace Microsoft.Dafny
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<Type!>! InferredTypeArgs = new List<Type!>();  // filled in by resolution
     
-    public DatatypeValue(Token! tok, string! datatypeName, string! memberName, [Captured] List<Expression!>! arguments) {
+    public DatatypeValue(IToken! tok, string! datatypeName, string! memberName, [Captured] List<Expression!>! arguments) {
       this.DatatypeName = datatypeName;
       this.MemberName = memberName;
       this.Arguments = arguments;
@@ -1057,13 +1058,13 @@ namespace Microsoft.Dafny
   }
   
   public class ThisExpr : Expression {
-    public ThisExpr(Token! tok) {
+    public ThisExpr(IToken! tok) {
       base(tok);
     }
   }
   
   public class ImplicitThisExpr : ThisExpr {
-    public ImplicitThisExpr(Token! tok) {
+    public ImplicitThisExpr(IToken! tok) {
       base(tok);
     }
   }
@@ -1072,7 +1073,7 @@ namespace Microsoft.Dafny
     public readonly string! Name;
     public IVariable Var;  // filled in by resolution
 
-    public IdentifierExpr(Token! tok, string! name) {
+    public IdentifierExpr(IToken! tok, string! name) {
       Name = name;
       base(tok);
     }
@@ -1080,20 +1081,20 @@ namespace Microsoft.Dafny
 
   public abstract class DisplayExpression : Expression {
     public readonly List<Expression!>! Elements;
-    public DisplayExpression(Token! tok, List<Expression!>! elements) {
+    public DisplayExpression(IToken! tok, List<Expression!>! elements) {
       Elements = elements;
       base(tok);
     }
   }
     
   public class SetDisplayExpr : DisplayExpression {
-    public SetDisplayExpr(Token! tok, List<Expression!>! elements) {
+    public SetDisplayExpr(IToken! tok, List<Expression!>! elements) {
       base(tok, elements);
     }
   }
     
   public class SeqDisplayExpr : DisplayExpression {
-    public SeqDisplayExpr(Token! tok, List<Expression!>! elements) {
+    public SeqDisplayExpr(IToken! tok, List<Expression!>! elements) {
       base(tok, elements);
     }
   }
@@ -1103,7 +1104,7 @@ namespace Microsoft.Dafny
     public readonly string! FieldName;
     public Field Field;  // filled in by resolution
     
-    public FieldSelectExpr(Token! tok, Expression! obj, string! fieldName) {
+    public FieldSelectExpr(IToken! tok, Expression! obj, string! fieldName) {
       this.Obj = obj;
       this.FieldName = fieldName;
       base(tok);
@@ -1118,7 +1119,7 @@ namespace Microsoft.Dafny
     invariant SelectOne ==> E1 == null;
     invariant E0 != null || E1 != null;
     
-    public SeqSelectExpr(Token! tok, bool selectOne, Expression! seq, Expression e0, Expression e1)
+    public SeqSelectExpr(IToken! tok, bool selectOne, Expression! seq, Expression e0, Expression e1)
       requires selectOne ==> e1 == null;
       requires e0 != null || e1 != null;
     {
@@ -1135,7 +1136,7 @@ namespace Microsoft.Dafny
     public readonly Expression! Index;
     public readonly Expression! Value;
     
-    public SeqUpdateExpr(Token! tok, Expression! seq, Expression! index, Expression! val)
+    public SeqUpdateExpr(IToken! tok, Expression! seq, Expression! index, Expression! val)
     {
       Seq = seq;
       Index = index;
@@ -1151,7 +1152,7 @@ namespace Microsoft.Dafny
     public Function Function;  // filled in by resolution
     
     [Captured]
-    public FunctionCallExpr(Token! tok, string! fn, Expression! receiver, [Captured] List<Expression!>! args)
+    public FunctionCallExpr(IToken! tok, string! fn, Expression! receiver, [Captured] List<Expression!>! args)
       ensures type == null;
       ensures Owner.Same(this, receiver);
     {
@@ -1166,7 +1167,7 @@ namespace Microsoft.Dafny
   public class OldExpr : Expression {
     [Peer] public readonly Expression! E;
     [Captured]
-    public OldExpr(Token! tok, Expression! expr) {
+    public OldExpr(IToken! tok, Expression! expr) {
       base(tok);
       Owner.AssignSame(this, expr);
       E = expr;
@@ -1175,7 +1176,7 @@ namespace Microsoft.Dafny
 
   public class FreshExpr : Expression {
     public readonly Expression! E;
-    public FreshExpr(Token! tok, Expression! expr) {
+    public FreshExpr(IToken! tok, Expression! expr) {
       E = expr;
       base(tok);
     }
@@ -1186,7 +1187,7 @@ namespace Microsoft.Dafny
     public readonly Opcode Op;
     public readonly Expression! E;
     
-    public UnaryExpr(Token! tok, Opcode op, Expression! e) {
+    public UnaryExpr(IToken! tok, Opcode op, Expression! e) {
       this.Op = op;
       this.E = e;
       base(tok);
@@ -1243,7 +1244,7 @@ namespace Microsoft.Dafny
     public readonly Expression! E0;
     public readonly Expression! E1;
     
-    public BinaryExpr(Token! tok, Opcode op, Expression! e0, Expression! e1) {
+    public BinaryExpr(IToken! tok, Opcode op, Expression! e0, Expression! e1) {
       this.Op = op;
       this.E0 = e0;
       this.E1 = e1;
@@ -1257,7 +1258,7 @@ namespace Microsoft.Dafny
     public readonly Triggers Trigs;
     public readonly Attributes Attributes;
     
-    public QuantifierExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trigs, Attributes attrs) {
+    public QuantifierExpr(IToken! tok, List<BoundVar!>! bvars, Expression! body, Triggers trigs, Attributes attrs) {
       this.BoundVars = bvars;
       this.Body = body;
       this.Trigs = trigs;
@@ -1277,19 +1278,19 @@ namespace Microsoft.Dafny
   }
   
   public class ForallExpr : QuantifierExpr {
-    public ForallExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
+    public ForallExpr(IToken! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
       base(tok, bvars, body, trig, attrs);
     }
   }
   
   public class ExistsExpr : QuantifierExpr {
-    public ExistsExpr(Token! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
+    public ExistsExpr(IToken! tok, List<BoundVar!>! bvars, Expression! body, Triggers trig, Attributes attrs) {
       base(tok, bvars, body, trig, attrs);
     }
   }
   
   public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
-    public WildcardExpr(Token! tok) {
+    public WildcardExpr(IToken! tok) {
       base(tok);
     }
   }
@@ -1299,7 +1300,7 @@ namespace Microsoft.Dafny
     public readonly Expression! Thn;
     public readonly Expression! Els;
     
-    public ITEExpr(Token! tok, Expression! test, Expression! thn, Expression! els) {
+    public ITEExpr(IToken! tok, Expression! test, Expression! thn, Expression! els) {
       this.Test = test;
       this.Thn = thn;
       this.Els = els;
@@ -1311,7 +1312,7 @@ namespace Microsoft.Dafny
     public readonly Expression! Source;
     public readonly List<MatchCaseExpr!>! Cases;
     
-    public MatchExpr(Token! tok, Expression! source, [Captured] List<MatchCaseExpr!>! cases) {
+    public MatchExpr(IToken! tok, Expression! source, [Captured] List<MatchCaseExpr!>! cases) {
       this.Source = source;
       this.Cases = cases;
       base(tok);
@@ -1319,13 +1320,13 @@ namespace Microsoft.Dafny
   }
   
   public class MatchCaseExpr {
-    public readonly Token! tok;
+    public readonly IToken! tok;
     public readonly string! Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public readonly List<BoundVar!>! Arguments;
     public readonly Expression! Body;
     
-    public MatchCaseExpr(Token! tok, string! id, [Captured] List<BoundVar!>! arguments, Expression! body) {
+    public MatchCaseExpr(IToken! tok, string! id, [Captured] List<BoundVar!>! arguments, Expression! body) {
       this.tok = tok;
       this.Id = id;
       this.Arguments = arguments;

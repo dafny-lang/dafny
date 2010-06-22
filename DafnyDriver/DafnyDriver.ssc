@@ -350,7 +350,7 @@ namespace Microsoft.Boogie
     /// </summary>
     static Program ParseBoogieProgram(List<string!>! fileNames, bool suppressTraceOutput)
     {
-      BoogiePL.Errors.count = 0;
+      //BoogiePL.Errors.count = 0;
       Program program = null;
       bool okay = true;
       foreach (string bplFileName in fileNames) {
@@ -366,9 +366,9 @@ namespace Microsoft.Boogie
         Program programSnippet;
         int errorCount;
         try {
-          errorCount = BoogiePL.Parser.Parse(bplFileName, out programSnippet);
+          errorCount = Microsoft.Boogie.Parser.Parse(bplFileName, out programSnippet);
           if (programSnippet == null || errorCount != 0) {
-            Console.WriteLine("{0} parse errors detected in {1}", BoogiePL.Errors.count, bplFileName);
+            Console.WriteLine("{0} parse errors detected in {1}", errorCount, bplFileName);
             okay = false;
             continue;
           }

@@ -12,6 +12,8 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Boogie;
+using System.IO;
+using System.Text;
 
 
 COMPILER Dafny
@@ -64,15 +66,14 @@ private static Expression! ConvertToLocal(Expression! e)
 /// Note: first initialize the Scanner.
 ///</summary>
 public static int Parse (string! filename, List<ModuleDecl!>! modules) /* throws System.IO.IOException */ {
+  string s;
   if (filename == "stdin.dfy") {
-    BoogiePL.Buffer.Fill(System.Console.In);
-    Scanner.Init(filename);
-    return Parse(modules);
+    s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string!>());
+    return Parse(s, modules);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
-      BoogiePL.Buffer.Fill(reader);
-      Scanner.Init(filename);
-      return Parse(modules);
+      s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string!>());
+      return Parse(s, filename, modules);
     }
   }
 }
@@ -83,12 +84,17 @@ public static int Parse (string! filename, List<ModuleDecl!>! modules) /* throws
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (List<ModuleDecl!>! modules) {
+public static int Parse (string! s, string! filename, List<ModuleDecl!>! modules) {
   List<ModuleDecl!> oldModules = theModules;
   theModules = modules;
-  Parse();
+  byte[]! buffer = (!) UTF8Encoding.Default.GetBytes(s);
+  MemoryStream ms = new MemoryStream(buffer,false);
+  Errors errors = new Errors();
+  Scanner scanner = new Scanner(ms, errors, filename);
+  Parser parser = new Parser(scanner, errors);
+  parser.Parse();
   theModules = oldModules;
-  return Errors.count;
+  return parser.errors.count;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -126,7 +132,7 @@ PRODUCTIONS
 
 Dafny
 = (. ClassDecl! c; DatatypeDecl! dt;
-     Attributes attrs;  Token! id;  List<string!> theImports;
+     Attributes attrs;  IToken! id;  List<string!> theImports;
 
      List<MemberDecl!> membersDefaultClass = new List<MemberDecl!>();
      ModuleDecl module;
@@ -174,7 +180,7 @@ Dafny
   .
 
 ClassDecl<ModuleDecl! module, out ClassDecl! c>
-= (. Token! id;
+= (. IToken! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
      List<MemberDecl!> members = new List<MemberDecl!>();
@@ -189,7 +195,7 @@ ClassDecl<ModuleDecl! module, out ClassDecl! c>
   "}"                                      (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs); .)
   .
 
-ClassMemberDecl<List<MemberDecl!\>! mm>
+ClassMemberDecl<.List<MemberDecl!>! mm.>
 = (. Method! m;
      Function! f;
      MemberModifiers mmod = new MemberModifiers();
@@ -205,7 +211,7 @@ ClassMemberDecl<List<MemberDecl!\>! mm>
   .
 
 DatatypeDecl<ModuleDecl! module, out DatatypeDecl! dt>
-= (. Token! id;
+= (. IToken! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
      List<DatatypeCtor!> ctors = new List<DatatypeCtor!>();
@@ -220,9 +226,9 @@ DatatypeDecl<ModuleDecl! module, out DatatypeDecl! dt>
   "}"                                      (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs); .)
   .
 
-DatatypeMemberDecl<List<DatatypeCtor!\>! ctors>
+DatatypeMemberDecl<.List<DatatypeCtor!>! ctors.>
 = (. Attributes attrs = null;
-     Token! id;
+     IToken! id;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
      List<Formal!> formals = new List<Formal!>();
   .)
@@ -237,13 +243,13 @@ DatatypeMemberDecl<List<DatatypeCtor!\>! ctors>
   ";"
   .
 
-FieldDecl<MemberModifiers mmod, List<MemberDecl!\>! mm>
+FieldDecl<.MemberModifiers mmod, List<MemberDecl!>! mm.>
 = (. Attributes attrs = null;
-     Token! id;  Type! ty;
+     IToken! id;  Type! ty;
   .)
   "var"
-  (. if (mmod.IsUnlimited) { SemErr(token, "fields cannot be declared 'unlimited'"); }
-     if (mmod.IsStatic) { SemErr(token, "fields cannot be declared 'static'"); }
+  (. if (mmod.IsUnlimited) { SemErr(t, "fields cannot be declared 'unlimited'"); }
+     if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
   IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
@@ -252,22 +258,22 @@ FieldDecl<MemberModifiers mmod, List<MemberDecl!\>! mm>
   ";"
   .
 
-GIdentType<bool allowGhost, out Token! id, out Type! ty, out bool isGhost>
+GIdentType<bool allowGhost, out IToken! id, out Type! ty, out bool isGhost>
 /* isGhost always returns as false if allowGhost is false */
 = (. isGhost = false; .)
-  [ "ghost"                    (. if (allowGhost) { isGhost = true; } else { SemErr(token, "formal cannot be declared 'ghost' in this context"); } .)
+  [ "ghost"                    (. if (allowGhost) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   ]
   IdentType<out id, out ty>
   .
 
-IdentType<out Token! id, out Type! ty>
+IdentType<out IToken! id, out Type! ty>
 = Ident<out id>
   ":"
   Type<out ty>
   .
 
 IdentTypeOptional<out BoundVar! var>
-= (. Token! id;  Type! ty;  Type optType = null;
+= (. IToken! id;  Type! ty;  Type optType = null;
   .)
   Ident<out id>
   [ ":" Type<out ty>             (. optType = ty; .)
@@ -275,7 +281,7 @@ IdentTypeOptional<out BoundVar! var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out Token! id, out string! identName, out Type! ty, out bool isGhost>
+TypeIdentOptional<out IToken! id, out string! identName, out Type! ty, out bool isGhost>
 = (. string name = null;  isGhost = false; .)
   [ "ghost"                            (. isGhost = true; .)
   ]
@@ -301,8 +307,8 @@ TypeIdentOptional<out Token! id, out string! identName, out Type! ty, out bool i
 
 /*------------------------------------------------------------------------*/
 
-GenericParameters<List<TypeParameter!\>! typeArgs>
-= (. Token! id; .)
+GenericParameters<.List<TypeParameter!>! typeArgs.>
+= (. IToken! id; .)
   "<"
   Ident<out id>                       (. typeArgs.Add(new TypeParameter(id, id.val)); .)
   { "," Ident<out id>                 (. typeArgs.Add(new TypeParameter(id, id.val)); .)
@@ -313,7 +319,7 @@ GenericParameters<List<TypeParameter!\>! typeArgs>
 /*------------------------------------------------------------------------*/
 
 MethodDecl<MemberModifiers mmod, out Method! m>
-= (. Token! id;
+= (. IToken! id;
      Attributes attrs = null;
      List<TypeParameter!>! typeArgs = new List<TypeParameter!>();
      List<Formal!> ins = new List<Formal!>();
@@ -325,7 +331,7 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      Statement! bb;  BlockStmt body = null;
   .)
   "method"
-  (. if (mmod.IsUnlimited) { SemErr(token, "methods cannot be declared 'unlimited'"); }
+  (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
   .)
   { Attribute<ref attrs> }
   Ident<out id>
@@ -345,8 +351,8 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   .)
   .
 
-MethodSpec<List<MaybeFreeExpression!\>! req, List<FrameExpression!\>! mod, List<MaybeFreeExpression!\>! ens,
-           List<Expression!\>! decreases>
+MethodSpec<.List<MaybeFreeExpression!>! req, List<FrameExpression!>! mod, List<MaybeFreeExpression!>! ens,
+           List<Expression!>! decreases.>
 = (. Expression! e;  FrameExpression! fe;  bool isFree = false;
   .)
   ( "modifies" [ FrameExpression<out fe>                     (. mod.Add(fe); .)
@@ -362,8 +368,8 @@ MethodSpec<List<MaybeFreeExpression!\>! req, List<FrameExpression!\>! mod, List<
   )
   .
 
-Formals<bool incoming, bool allowGhosts, List<Formal!\>! formals> 
-= (. Token! id;  Type! ty;  bool isGhost; .)
+Formals<.bool incoming, bool allowGhosts, List<Formal!>! formals.> 
+= (. IToken! id;  Type! ty;  bool isGhost; .)
   "("
   [
     GIdentType<allowGhosts, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); .)
@@ -373,8 +379,8 @@ Formals<bool incoming, bool allowGhosts, List<Formal!\>! formals>
   ")"
   .
 
-FormalsOptionalIds<List<Formal!\>! formals> 
-= (. Token! id;  Type! ty;  string! name;  bool isGhost; .)
+FormalsOptionalIds<.List<Formal!>! formals.> 
+= (. IToken! id;  Type! ty;  string! name;  bool isGhost; .)
   "("
   [
     TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost));  parseVarScope.Push(name, name); .)
@@ -387,24 +393,24 @@ FormalsOptionalIds<List<Formal!\>! formals>
 /*------------------------------------------------------------------------*/
 
 Type<out Type! ty>
-= (. Token! tok; .)
+= (. IToken! tok; .)
   TypeAndToken<out tok, out ty>
   .
 
-TypeAndToken<out Token! tok, out Type! ty>
+TypeAndToken<out IToken! tok, out Type! ty>
 = (. tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
      List<Type!>! gt;
   .)
-  ( "bool"                          (. tok = token; .)
-  | "int"                           (. tok = token;  ty = new IntType(); .)
-  | "set"                           (. tok = token;  gt = new List<Type!>(); .)
+  ( "bool"                          (. tok = t; .)
+  | "int"                           (. tok = t;  ty = new IntType(); .)
+  | "set"                           (. tok = t;  gt = new List<Type!>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("set type expects exactly one type argument");
                                        }
                                        ty = new SetType(gt[0]);
                                     .)
     
-  | "seq"                           (. tok = token;  gt = new List<Type!>(); .)
+  | "seq"                           (. tok = t;  gt = new List<Type!>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("seq type expects exactly one type argument");
                                        }
@@ -414,12 +420,12 @@ TypeAndToken<out Token! tok, out Type! ty>
   )
   .
 
-ReferenceType<out Token! tok, out Type! ty>
+ReferenceType<out IToken! tok, out Type! ty>
 = (. tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
      List<Type!>! gt;
   .)
-  ( "object"                        (. tok = token;  ty = new ObjectType(); .)
-  | "array"                         (. tok = token;  gt = new List<Type!>(); .)
+  ( "object"                        (. tok = t;  ty = new ObjectType(); .)
+  | "array"                         (. tok = t;  gt = new List<Type!>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("array type expects exactly one type argument");
                                        }
@@ -430,7 +436,7 @@ ReferenceType<out Token! tok, out Type! ty>
   )
   .
 
-GenericInstantiation<List<Type!\>! gt>
+GenericInstantiation<.List<Type!>! gt.>
 = (. Type! ty; .)
   "<"
     Type<out ty>                     (. gt.Add(ty); .)
@@ -443,7 +449,7 @@ GenericInstantiation<List<Type!\>! gt>
 
 FunctionDecl<MemberModifiers mmod, out Function! f>
 = (. Attributes attrs = null;
-     Token! id;
+     IToken! id;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
      List<Formal!> formals = new List<Formal!>();
      Type! returnType;
@@ -456,7 +462,7 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
   "function"
   [ "method"                 (. isFunctionMethod = true; .)
   ]
-  (. if (mmod.IsGhost) { SemErr(token, "functions cannot be declared 'ghost' (they are ghost by default)"); }
+  (. if (mmod.IsGhost) { SemErr(t, "functions cannot be declared 'ghost' (they are ghost by default)"); }
   .)
   { Attribute<ref attrs> }
   Ident<out id> 
@@ -475,7 +481,7 @@ FunctionDecl<MemberModifiers mmod, out Function! f>
   .)
   .
 
-FunctionSpec<List<Expression!\>! reqs, List<FrameExpression!\>! reads, List<Expression!\>! decreases>
+FunctionSpec<.List<Expression!>! reqs, List<FrameExpression!>! reads, List<Expression!>! decreases.>
 = (. Expression! e;  FrameExpression! fe; .)
   ( "requires" Expression<out e> ";"      (. reqs.Add(e); .)
   | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
@@ -491,7 +497,7 @@ PossiblyWildExpression<out Expression! e>
   /* A decreases clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
-  ( "*"                        (. e = new WildcardExpr(token); .)
+  ( "*"                        (. e = new WildcardExpr(t); .)
   | Expression<out e>
   )
   .
@@ -504,13 +510,13 @@ PossiblyWildFrameExpression<out FrameExpression! fe>
    * any use of the function.  Nevertheless, as an experimental feature, the
    * language allows it (and it is sound).
    */
-  ( "*"                        (. fe = new FrameExpression(new WildcardExpr(token), null); .)
+  ( "*"                        (. fe = new FrameExpression(new WildcardExpr(t), null); .)
   | FrameExpression<out fe>
   )
   .
 
 FrameExpression<out FrameExpression! fe>
-= (. Expression! e;  Token! id;  string fieldName = null; .)
+= (. Expression! e;  IToken! id;  string fieldName = null; .)
   Expression<out e>
   [ "`" Ident<out id>        (. fieldName = id.val; .)
   ]
@@ -527,10 +533,10 @@ FunctionBody<out Expression! e>
   .
   
 MatchExpression<out Expression! e>
-= (. Token! x;  MatchCaseExpr! c;
+= (. IToken! x;  MatchCaseExpr! c;
      List<MatchCaseExpr!> cases = new List<MatchCaseExpr!>();
   .)
-  "match"                     (. x = token; .)
+  "match"                     (. x = t; .)
   Expression<out e>
   { CaseExpression<out c>     (. cases.Add(c); .)
   }
@@ -538,11 +544,11 @@ MatchExpression<out Expression! e>
   .
 
 CaseExpression<out MatchCaseExpr! c>
-= (. Token! x, id, arg;
+= (. IToken! x, id, arg;
      List<BoundVar!> arguments = new List<BoundVar!>();
      Expression! body;
   .)
-  "case"                      (. x = token;  parseVarScope.PushMarker(); .)
+  "case"                      (. x = t;  parseVarScope.PushMarker(); .)
   Ident<out id>
   [ "("
     Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
@@ -559,19 +565,19 @@ CaseExpression<out MatchCaseExpr! c>
 /*------------------------------------------------------------------------*/
 
 BlockStmt<out Statement! block>
-= (. Token! x;
+= (. IToken! x;
      List<Statement!> body = new List<Statement!>();
      Statement! s;
   .)
   (. parseVarScope.PushMarker(); .)
-  "{"                                  (. x = token; .)
+  "{"                                  (. x = t; .)
   { Stmt<body>
   }
   "}"                                  (. block = new BlockStmt(x, body); .)
   (. parseVarScope.PopMarker(); .)
   .
 
-Stmt<List<Statement!\>! ss>
+Stmt<.List<Statement!>! ss.>
 = (. Statement! s; .)
   /* By first reading a sequence of block statements, we avoid problems in the generated parser, despite
      the ambiguity in the grammar.  See Note in ConstAtomExpression production.
@@ -584,7 +590,7 @@ Stmt<List<Statement!\>! ss>
   .
 
 OneStmt<out Statement! s>
-= (. Token! x;  Token! id;  string label = null;
+= (. IToken! x;  IToken! id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
   .)
   /* This list does not contain BlockStmt, see comment above in Stmt production. */
@@ -599,25 +605,25 @@ OneStmt<out Statement! s>
   | WhileStmt<out s>
   | MatchStmt<out s>
   | ForeachStmt<out s>
-  | "label"                            (. x = token; .)
+  | "label"                            (. x = t; .)
     Ident<out id> ":"                  (. s = new LabelStmt(x, id.val); .)
-  | "break"                            (. x = token; .)
+  | "break"                            (. x = t; .)
     [ Ident<out id>                    (. label = id.val; .)
     ] ";"                              (. s = new BreakStmt(x, label); .)
-  | "return"                           (. x = token; .)
+  | "return"                           (. x = t; .)
     ";"                                (. s = new ReturnStmt(x); .)
   )
   .
 
 AssignStmt<out Statement! s>
-= (. Token! x;
+= (. IToken! x;
      Expression! lhs;
      Expression rhs;
      Type ty;
      s = dummyStmt;
   .)
   LhsExpr<out lhs>
-  ":="                                 (. x = token; .)
+  ":="                                 (. x = t; .)
   AssignRhs<out rhs, out ty>           (. if (ty == null) {
                                             assert rhs != null;
                                             s = new AssignStmt(x, lhs, rhs);
@@ -632,7 +638,7 @@ AssignStmt<out Statement! s>
 
 AssignRhs<out Expression e, out Type ty>
 /* ensures e != null || ty != null; */
-= (. Token! x;  Expression! ee;  Type! tt;
+= (. IToken! x;  Expression! ee;  Type! tt;
      e = null;  ty = null;
   .)
   ( "new" TypeAndToken<out x, out tt>  (. ty = tt; .)
@@ -643,8 +649,8 @@ AssignRhs<out Expression e, out Type ty>
   .
 
 HavocStmt<out Statement! s>
-= (. Token! x;  Expression! lhs; .)
-  "havoc"                              (. x = token; .)
+= (. IToken! x;  Expression! lhs; .)
+  "havoc"                              (. x = t; .)
   LhsExpr<out lhs> ";"                 (. s = new AssignStmt(x, lhs); .)
   .
 
@@ -652,7 +658,7 @@ LhsExpr<out Expression! e>
 = SelectExpression<out e>
   .
 
-VarDeclStmts<List<Statement!\>! ss>
+VarDeclStmts<.List<Statement!>! ss.>
 = (. VarDecl! d;  bool isGhost = false; .)
   [ "ghost"                            (. isGhost = true; .)
   ]
@@ -664,7 +670,7 @@ VarDeclStmts<List<Statement!\>! ss>
   .
 
 IdentTypeRhs<out VarDecl! d, bool isGhost>
-= (. Token! id;  Type! ty;  Expression! e;
+= (. IToken! id;  Type! ty;  Expression! e;
      Expression rhs = null;  Type newType = null;
      Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
   .)
@@ -690,13 +696,13 @@ IdentTypeRhs<out VarDecl! d, bool isGhost>
   .
 
 IfStmt<out Statement! ifStmt>
-= (. Token! x;
+= (. IToken! x;
      Expression guard;
      Statement! thn;
      Statement! s;
      Statement els = null;
   .)
-  "if"                       (. x = token; .)
+  "if"                       (. x = t; .)
   Guard<out guard>
   BlockStmt<out thn>
   [ "else"
@@ -708,14 +714,14 @@ IfStmt<out Statement! ifStmt>
   .
 
 WhileStmt<out Statement! stmt>
-= (. Token! x;
+= (. IToken! x;
      Expression guard;
      bool isFree;  Expression! e;
      List<MaybeFreeExpression!> invariants = new List<MaybeFreeExpression!>();
      List<Expression!> decreases = new List<Expression!>();
      Statement! body;
   .)
-  "while"                    (. x = token; .)
+  "while"                    (. x = t; .)
   Guard<out guard>           (. assume guard == null || Owner.None(guard); .)
   {                          (. isFree = false; .)
      [ "free"                (. isFree = true; .)
@@ -744,7 +750,7 @@ Guard<out Expression e>   /* null represents demonic-choice */
 MatchStmt<out Statement! s>
 = (. Token x;  Expression! e;  MatchCaseStmt! c;
      List<MatchCaseStmt!> cases = new List<MatchCaseStmt!>(); .)
-  "match"                     (. x = token; .)
+  "match"                     (. x = t; .)
   Expression<out e>
   "{"
   { CaseStatement<out c>     (. cases.Add(c); .)
@@ -754,11 +760,11 @@ MatchStmt<out Statement! s>
   .
 
 CaseStatement<out MatchCaseStmt! c>
-= (. Token! x, id, arg;
+= (. IToken! x, id, arg;
      List<BoundVar!> arguments = new List<BoundVar!>();
      List<Statement!> body = new List<Statement!>();
   .)
-  "case"                      (. x = token;  parseVarScope.PushMarker(); .)
+  "case"                      (. x = t;  parseVarScope.PushMarker(); .)
   Ident<out id>
   [ "("
     Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
@@ -776,12 +782,12 @@ CaseStatement<out MatchCaseStmt! c>
   .
 
 CallStmt<out Statement! s>
-= (. Token! x, id;
+= (. IToken! x, id;
      Expression! e;
      List<IdentifierExpr!> lhs = new List<IdentifierExpr!>();
      List<AutoVarDecl!> newVars = new List<AutoVarDecl!>();
   .)
-  "call"                       (. x = token; .)
+  "call"                       (. x = t; .)
   CallStmtSubExpr<out e>
   
   [ ","                        /* call a,b,c,... := ... */
@@ -829,7 +835,7 @@ CallStmt<out Statement! s>
 /*------------------------------------------------------------------------*/
 
 ForeachStmt<out Statement! s>
-= (. Token! x, boundVar;
+= (. IToken! x, boundVar;
      Type! ty;
      Expression! collection;
      Expression! range;
@@ -837,7 +843,7 @@ ForeachStmt<out Statement! s>
      AssignStmt bodyAssign = null;
   .)
   (. parseVarScope.PushMarker(); .)
-  "foreach"                                    (. x = token;
+  "foreach"                                    (. x = t;
                                                   range = new LiteralExpr(x, true);
                                                   ty = new InferredTypeProxy();
                                                .)
@@ -865,28 +871,28 @@ ForeachStmt<out Statement! s>
   .
 
 AssertStmt<out Statement! s>
-= (. Token! x;  Expression! e; .)
-  "assert"                                     (. x = token; .)
+= (. IToken! x;  Expression! e; .)
+  "assert"                                     (. x = t; .)
   Expression<out e> ";"                        (. s = new AssertStmt(x, e); .)
   .
 
 AssumeStmt<out Statement! s>
-= (. Token! x;  Expression! e; .)
-  "assume"                                     (. x = token; .)
+= (. IToken! x;  Expression! e; .)
+  "assume"                                     (. x = t; .)
   Expression<out e> ";"                        (. s = new AssumeStmt(x, e); .)
   .
 
 UseStmt<out Statement! s>
-= (. Token! x;  Expression! e; .)
-  "use"                                        (. x = token; .)
+= (. IToken! x;  Expression! e; .)
+  "use"                                        (. x = t; .)
   Expression<out e> ";"                        (. s = new UseStmt(x, e); .)
   .
 
 PrintStmt<out Statement! s>
-= (. Token! x;  Attributes.Argument! arg;
+= (. IToken! x;  Attributes.Argument! arg;
      List<Attributes.Argument!> args = new List<Attributes.Argument!>();
   .)
-  "print"                                      (. x = token; .)
+  "print"                                      (. x = t; .)
   AttributeArg<out arg>                        (. args.Add(arg); .)
   { "," AttributeArg<out arg>                  (. args.Add(arg); .)
   }
@@ -895,10 +901,10 @@ PrintStmt<out Statement! s>
 
 /*------------------------------------------------------------------------*/
 Expression<out Expression! e>
-= (. Token! x;  Expression! e0;  Expression! e1 = dummyExpr;
+= (. IToken! x;  Expression! e0;  Expression! e1 = dummyExpr;
      e = dummyExpr;
   .)
-  ( "if"                               (. x = token; .)
+  ( "if"                               (. x = t; .)
     Expression<out e>
     "then" Expression<out e0>
     "else" Expression<out e1>          (. e = new ITEExpr(x, e, e0, e1); .)
@@ -908,9 +914,9 @@ Expression<out Expression! e>
 
 /*------------------------------------------------------------------------*/
 EquivExpression<out Expression! e0>
-= (. Token! x;  Expression! e1; .)
+= (. IToken! x;  Expression! e1; .)
   ImpliesExpression<out e0>
-  { EquivOp                                    (. x = token; .)
+  { EquivOp                                    (. x = t; .)
     ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
@@ -919,9 +925,9 @@ EquivOp = "<==>" | '\u21d4'.
 
 /*------------------------------------------------------------------------*/
 ImpliesExpression<out Expression! e0>
-= (. Token! x;  Expression! e1; .)
+= (. IToken! x;  Expression! e1; .)
   LogicalExpression<out e0>
-  [ ImpliesOp                                  (. x = token; .)
+  [ ImpliesOp                                  (. x = t; .)
     ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
   ]
   .
@@ -930,16 +936,16 @@ ImpliesOp = "==>" | '\u21d2'.
 
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression! e0>
-= (. Token! x;  Expression! e1; .)
+= (. IToken! x;  Expression! e1; .)
   RelationalExpression<out e0>
-  [ AndOp                                      (. x = token; .)
+  [ AndOp                                      (. x = t; .)
     RelationalExpression<out e1>               (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
-    { AndOp                                    (. x = token; .)
+    { AndOp                                    (. x = t; .)
       RelationalExpression<out e1>             (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
     }
-  | OrOp                                       (. x = token; .)
+  | OrOp                                       (. x = t; .)
     RelationalExpression<out e1>               (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
-    { OrOp                                     (. x = token; .)
+    { OrOp                                     (. x = t; .)
       RelationalExpression<out e1>             (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
     }
   ]
@@ -950,69 +956,69 @@ OrOp = "||" | '\u2228'.
 
 /*------------------------------------------------------------------------*/
 RelationalExpression<out Expression! e0>
-= (. Token! x;  Expression! e1;  BinaryExpr.Opcode op; .)
+= (. IToken! x;  Expression! e1;  BinaryExpr.Opcode op; .)
   Term<out e0>
   [ RelOp<out x, out op>
     Term<out e1>                               (. e0 = new BinaryExpr(x, op, e0, e1); .)
   ]
   .
 
-RelOp<out Token! x, out BinaryExpr.Opcode op>
+RelOp<out IToken! x, out BinaryExpr.Opcode op>
 =                  (. x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; .)
-  ( "=="           (. x = token;  op = BinaryExpr.Opcode.Eq; .)
-  | "<"            (. x = token;  op = BinaryExpr.Opcode.Lt; .)
-  | ">"            (. x = token;  op = BinaryExpr.Opcode.Gt; .)
-  | "<="           (. x = token;  op = BinaryExpr.Opcode.Le; .)
-  | ">="           (. x = token;  op = BinaryExpr.Opcode.Ge; .)
-  | "!="           (. x = token;  op = BinaryExpr.Opcode.Neq; .)
-  | "!!"           (. x = token;  op = BinaryExpr.Opcode.Disjoint; .)
-  | "in"           (. x = token;  op = BinaryExpr.Opcode.In; .)
-  | "!in"          (. x = token;  op = BinaryExpr.Opcode.NotIn; .)
-  | '\u2260'       (. x = token;  op = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = token;  op = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = token;  op = BinaryExpr.Opcode.Ge; .)
+  ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
+  | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
+  | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
+  | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
+  | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
+  | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+  | "!!"           (. x = t;  op = BinaryExpr.Opcode.Disjoint; .)
+  | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
+  | "!in"          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
+  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
+  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   )
   .
 
 /*------------------------------------------------------------------------*/
 Term<out Expression! e0>
-= (. Token! x;  Expression! e1;  BinaryExpr.Opcode op; .)
+= (. IToken! x;  Expression! e1;  BinaryExpr.Opcode op; .)
   Factor<out e0>
   { AddOp<out x, out op>
     Factor<out e1>                             (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
 
-AddOp<out Token! x, out BinaryExpr.Opcode op>
+AddOp<out IToken! x, out BinaryExpr.Opcode op>
 =                  (. x = Token.NoToken;  op=BinaryExpr.Opcode.Add/*(dummy)*/; .)
-  ( "+"            (. x = token;  op = BinaryExpr.Opcode.Add; .)
-  | "-"            (. x = token;  op = BinaryExpr.Opcode.Sub; .)
+  ( "+"            (. x = t;  op = BinaryExpr.Opcode.Add; .)
+  | "-"            (. x = t;  op = BinaryExpr.Opcode.Sub; .)
   )
   .
 
 /*------------------------------------------------------------------------*/
 Factor<out Expression! e0>
-= (. Token! x;  Expression! e1;  BinaryExpr.Opcode op; .)
+= (. IToken! x;  Expression! e1;  BinaryExpr.Opcode op; .)
   UnaryExpression<out e0>
   { MulOp<out x, out op>
     UnaryExpression<out e1>                    (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
 
-MulOp<out Token! x, out BinaryExpr.Opcode op>
+MulOp<out IToken! x, out BinaryExpr.Opcode op>
 =                  (. x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; .)
-  ( "*"            (. x = token;  op = BinaryExpr.Opcode.Mul; .)
-  | "/"            (. x = token;  op = BinaryExpr.Opcode.Div; .)
-  | "%"            (. x = token;  op = BinaryExpr.Opcode.Mod; .)
+  ( "*"            (. x = t;  op = BinaryExpr.Opcode.Mul; .)
+  | "/"            (. x = t;  op = BinaryExpr.Opcode.Div; .)
+  | "%"            (. x = t;  op = BinaryExpr.Opcode.Mod; .)
   )
   .
 
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression! e>
-= (. Token! x;  e = dummyExpr; .)
-  ( "-"                                        (. x = token; .)
+= (. IToken! x;  e = dummyExpr; .)
+  ( "-"                                        (. x = t; .)
     UnaryExpression<out e>                     (. e = new BinaryExpr(x, BinaryExpr.Opcode.Sub, new LiteralExpr(x, 0), e); .)
-  | NegOp                                      (. x = token; .)
+  | NegOp                                      (. x = t; .)
     UnaryExpression<out e>                     (. e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); .)
   | SelectExpression<out e>
   | ConstAtomExpression<out e>
@@ -1022,29 +1028,29 @@ UnaryExpression<out Expression! e>
 NegOp = "!" | '\u00ac'.
 
 ConstAtomExpression<out Expression! e>            
-= (. Token! x, dtName, id;  BigInteger n;  List<Expression!>! elements;
+= (. IToken! x, dtName, id;  BigInteger n;  List<Expression!>! elements;
      e = dummyExpr;  
   .)
-  ( "false"                                    (. e = new LiteralExpr(token, false); .)
-  | "true"                                     (. e = new LiteralExpr(token, true); .)
-  | "null"                                     (. e = new LiteralExpr(token); .)
-  | Nat<out n>                                 (. e = new LiteralExpr(token, n); .)
-  | "#"                                        (. x = token; .)
+  ( "false"                                    (. e = new LiteralExpr(t, false); .)
+  | "true"                                     (. e = new LiteralExpr(t, true); .)
+  | "null"                                     (. e = new LiteralExpr(t); .)
+  | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
+  | "#"                                        (. x = t; .)
     Ident<out dtName>
     "."
     Ident<out id>                              (. elements = new List<Expression!>(); .)
     [ "("
       [ Expressions<elements> ]
-    ")" ]                                      (. e = new DatatypeValue(token, dtName.val, id.val, elements); .)
-  | "fresh"                                    (. x = token; .)
+    ")" ]                                      (. e = new DatatypeValue(t, dtName.val, id.val, elements); .)
+  | "fresh"                                    (. x = t; .)
     "(" Expression<out e> ")"                  (. e = new FreshExpr(x, e); .)
-  | "|"                                        (. x = token; .)
+  | "|"                                        (. x = t; .)
       Expression<out e>                        (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
     "|"
-  | "{"                                        (. x = token;  elements = new List<Expression!>(); .)
+  | "{"                                        (. x = t;  elements = new List<Expression!>(); .)
       [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements); .)
     "}"
-  | "["                                        (. x = token;  elements = new List<Expression!>(); .)
+  | "["                                        (. x = t;  elements = new List<Expression!>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
     "]"
   )
@@ -1067,7 +1073,7 @@ CallStmtSubExpr<out Expression! e>
   .
 
 SelectExpression<out Expression! e>
-= (. Token! id;  e = dummyExpr; .)
+= (. IToken! id;  e = dummyExpr; .)
   ( IdentOrFuncExpression<out e>
   | ObjectExpression<out e>
   )
@@ -1075,7 +1081,7 @@ SelectExpression<out Expression! e>
   .
 
 IdentOrFuncExpression<out Expression! e>
-= (. Token! id;  e = dummyExpr;  List<Expression!>! args; .)
+= (. IToken! id;  e = dummyExpr;  List<Expression!>! args; .)
   Ident<out id>
   [ "("                                      (. args = new List<Expression!>(); .)
       [ Expressions<args> ]
@@ -1091,7 +1097,7 @@ IdentOrFuncExpression<out Expression! e>
   .
 
 SelectOrCallSuffix<ref Expression! e>
-= (. Token! id, x;  List<Expression!>! args;
+= (. IToken! id, x;  List<Expression!>! args;
      Expression e0 = null;  Expression e1 = null;  Expression! ee;  bool anyDots = false;
      bool func = false;
   .)
@@ -1102,7 +1108,7 @@ SelectOrCallSuffix<ref Expression! e>
       ")"                                      (. e = new FunctionCallExpr(id, id.val, e, args); .)
     ]                                          (. if (!func) { e = new FieldSelectExpr(id, e, id.val); } .)
     
-  | "["                                        (. x = token; .)
+  | "["                                        (. x = t; .)
       ( Expression<out ee>                     (. e0 = ee; .)
         [ ".."                                 (. anyDots = true; .)
           [ Expression<out ee>                 (. e1 = ee; .)
@@ -1136,9 +1142,9 @@ SelectOrCallSuffix<ref Expression! e>
    parsed here.  The expression returned is never an lvalue.
 */
 ObjectExpression<out Expression! e>
-= (. Token! x;  e = dummyExpr; .)
-  ( "this"                                     (. e = new ThisExpr(token); .)
-  | "old"                                      (. x = token; .)
+= (. IToken! x;  e = dummyExpr; .)
+  ( "this"                                     (. e = new ThisExpr(t); .)
+  | "old"                                      (. x = t; .)
     "("
       Expression<out e>
     ")"                                        (. e = new OldExpr(x, e); .)
@@ -1152,17 +1158,17 @@ ObjectExpression<out Expression! e>
 /*------------------------------------------------------------------------*/
 
 QuantifierGuts<out Expression! q>
-= (. Token! x = Token.NoToken;
+= (. IToken! x = Token.NoToken;
      bool univ = false;
      BoundVar! bv;
      List<BoundVar!> bvars = new List<BoundVar!>();
-     Token! tok;  Expr! e;  ExprSeq! es;
+     IToken! tok;  Expr! e;  ExprSeq! es;
      Attributes attrs = null;
      Triggers trigs = null;
      Expression! body;
   .)
-  ( Forall                                     (. x = token;  univ = true; .)
-  | Exists                                     (. x = token; .)
+  ( Forall                                     (. x = t;  univ = true; .)
+  | Exists                                     (. x = t; .)
   )
   (. parseVarScope.PushMarker(); .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
@@ -1185,7 +1191,7 @@ Forall = "forall" | '\u2200'.
 Exists = "exists" | '\u2203'.
 QSep = "::" | '\u2022'.
 
-Expressions<List<Expression!\>! args>
+Expressions<.List<Expression!>! args.>
 = (. Expression! e; .)
   Expression<out e>                            (. args.Add(e); .)
   { "," Expression<out e>                      (. args.Add(e); .)
@@ -1205,7 +1211,7 @@ AttributeBody<ref Attributes attrs>
      List<Attributes.Argument!> aArgs = new List<Attributes.Argument!>();
      Attributes.Argument! aArg;
   .)
-  ":" ident                            (. aName = token.val; .)
+  ":" ident                            (. aName = t.val; .)
   [ AttributeArg<out aArg>             (. aArgs.Add(aArg); .)
     { "," AttributeArg<out aArg>       (. aArgs.Add(aArg); .)
     }
@@ -1214,7 +1220,7 @@ AttributeBody<ref Attributes attrs>
 
 AttributeArg<out Attributes.Argument! arg>
 = (. Expression! e;  arg = dummyAttrArg; .)
-  ( string                             (. arg = new Attributes.Argument(token.val.Substring(1, token.val.Length-2)); .)
+  ( string                             (. arg = new Attributes.Argument(t.val.Substring(1, t.val.Length-2)); .)
   | Expression<out e>                  (. arg = new Attributes.Argument(e); .)
   )
   .
@@ -1232,23 +1238,23 @@ AttributeOrTrigger<ref Attributes attrs, ref Triggers trigs>
 
 /*------------------------------------------------------------------------*/
 
-Idents<List<string!\>! ids>
-= (. Token! id; .)
+Idents<.List<string!>! ids.>
+= (. IToken! id; .)
   Ident<out id>                            (. ids.Add(id.val); .)
   { "," Ident<out id>                      (. ids.Add(id.val); .)
   }
   .
 
-Ident<out Token! x>
+Ident<out IToken! x>
 =
-  ident            (. x = token; .)
+  ident            (. x = t; .)
   .                                  
 
 Nat<out BigInteger n>
 =
   digits
   (. try {
-       n = BigInteger.Parse(token.val);
+       n = BigInteger.Parse(t.val);
      } catch (System.FormatException) {
        SemErr("incorrectly formatted number");
        n = BigInteger.Zero;

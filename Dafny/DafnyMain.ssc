@@ -18,7 +18,6 @@ namespace Microsoft.Dafny {
       modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
       program = null;
-      Dafny.Errors.count = 0;
       List<ModuleDecl!> modules = new List<ModuleDecl!>();
       foreach (string! dafnyFileName in fileNames){
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
@@ -35,7 +34,7 @@ namespace Microsoft.Dafny {
           errorCount = Dafny.Parser.Parse(dafnyFileName, modules);
           if (errorCount != 0) 
           {
-            return string.Format("{0} parse errors detected in {1}", Dafny.Errors.count, dafnyFileName);
+            return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
           }
         } 
         catch (IOException e) 
