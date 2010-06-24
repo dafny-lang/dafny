@@ -1057,6 +1057,13 @@ namespace Microsoft.Dafny {
             TrExpr(e.E0);
             wr.Write(")");
             break;
+          case BinaryExpr.ResolvedOpcode.NotInSet:
+            wr.Write("!");
+            TrParenExpr(e.E1);
+            wr.Write(".Contains(");
+            TrExpr(e.E0);
+            wr.Write(")");
+            break;
           case BinaryExpr.ResolvedOpcode.Union:
             callString = "Union";  break;
           case BinaryExpr.ResolvedOpcode.Intersection:
