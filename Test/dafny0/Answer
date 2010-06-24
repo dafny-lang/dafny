@@ -372,7 +372,7 @@ Execution trace:
     Termination.dfy(119,16): anon9_Else
     (0,0): anon5
 
-Dafny program verifier finished with 23 verified, 4 errors
+Dafny program verifier finished with 25 verified, 4 errors
 
 -------------------- Use.dfy --------------------
 Use.dfy(16,18): Error: assertion violation

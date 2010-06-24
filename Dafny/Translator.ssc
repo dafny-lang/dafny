@@ -2166,6 +2166,11 @@ namespace Microsoft.Dafny {
         ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
         builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
 
+        List<Bpl.Expr!> initDecr = null;
+        if (!exists{Expression e in theDecreases; e is WildcardExpr}) {
+          initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr" + loopId + "$init$");
+        }
+
         // the variable w is used to coordinate the definedness checking of the loop invariant
         Bpl.LocalVariable wVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$w" + loopId, Bpl.Type.Bool));
         Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(stmt.Tok, wVar);
@@ -2220,6 +2225,19 @@ namespace Microsoft.Dafny {
             invariants.Add(Assert(stmt.Tok, tri.Expr, tri.ErrorMessage));
           }
         }
+        // include a free invariant that says that all completed iterations so far have only decreased the termination metric
+        if (initDecr != null) {
+          List<IToken!> toks = new List<IToken!>();
+          List<Type!> types = new List<Type!>();
+          List<Bpl.Expr!> decrs = new List<Bpl.Expr!>();
+          foreach (Expression e in theDecreases) {
+            toks.Add(e.tok);
+            types.Add((!)e.Type);
+            decrs.Add(etran.TrExpr(e));
+          }
+          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, etran, null, null, true);
+          invariants.Add(new Bpl.AssumeCmd(stmt.Tok, decrCheck));
+        }
         
         // CEV information
         invariants.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Eq(FunctionCall(stmt.Tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), CevLocation(stmt.Tok))));
@@ -2261,19 +2279,7 @@ namespace Microsoft.Dafny {
           // omit termination checking for this loop
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
         } else {
-          List<Bpl.Expr!> oldBfs = new List<Bpl.Expr!>();
-          int c = 0;
-          foreach (Expression e in theDecreases) {
-            Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, "$decr" + loopId + "$" + c, TrType((!)e.Type)));
-            locals.Add(bfVar);
-            Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
-            oldBfs.Add(bf);
-            // record value of each decreases expression at beginning of the loop iteration
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(e.tok, bf, etran.TrExpr(e));
-            loopBodyBuilder.Add(cmd);
-            
-            c++;
-          }
+          List<Bpl.Expr!> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr" + loopId + "$");
           // time for the actual loop body
           TrStmt(s.Body, loopBodyBuilder, locals, etran);
           // check definedness of decreases expressions
@@ -2285,7 +2291,7 @@ namespace Microsoft.Dafny {
             types.Add((!)e.Type);
             decrs.Add(etran.TrExpr(e));
           }
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, loopBodyBuilder, etran, " at end of loop iteration");
+          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false);
           loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, inferredDecreases ? "cannot prove termination; try supplying a decreases clause for the loop" : "decreases expression might not decrease"));
         }
         Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
@@ -2514,7 +2520,25 @@ namespace Microsoft.Dafny {
       }
       yield return expr;
     }
-    
+
+    List<Bpl.Expr!>! RecordDecreasesValue(List<Expression!>! decreases, Bpl.StmtListBuilder! builder, Bpl.VariableSeq! locals, ExpressionTranslator! etran, string! varPrefix)
+    {
+      List<Bpl.Expr!> oldBfs = new List<Bpl.Expr!>();
+      int c = 0;
+      foreach (Expression e in decreases) {
+        Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, varPrefix + c, TrType((!)e.Type)));
+        locals.Add(bfVar);
+        Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
+        oldBfs.Add(bf);
+        // record value of each decreases expression at beginning of the loop iteration
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(e.tok, bf, etran.TrExpr(e));
+        builder.Add(cmd);
+        
+        c++;
+      }
+      return oldBfs;
+    }
+        
     void CheckCallTermination(IToken! tok, List<Expression!>! contextDecreases, List<Expression!>! calleeDecreases,
                               Expression receiverReplacement, Dictionary<IVariable,Expression!>! substMap,
                               ExpressionTranslator! etran, Bpl.StmtListBuilder! builder)
@@ -2535,18 +2559,22 @@ namespace Microsoft.Dafny {
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
       }
-      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, builder, etran, "");
+      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", false);
       builder.Add(Assert(tok, decrExpr, "failure to decrease termination measure"));
     }
     
     /// <summary>
-    /// Returns the expression that says whether or not the decreases function has gone down.  ee0 represents the new
-    /// values and ee1 represents old values.
+    /// Returns the expression that says whether or not the decreases function has gone down (if !allowNoChange)
+    /// or has gone down or stayed the same (if allowNoChange).
+    /// ee0 represents the new values and ee1 represents old values.
+    /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
     /// </summary>
     Bpl.Expr! DecreasesCheck(List<IToken!>! toks, List<Type!>! types, List<Bpl.Expr!>! ee0, List<Bpl.Expr!>! ee1,
-                             Bpl.StmtListBuilder! builder, ExpressionTranslator! etran, string! suffixMsg)
+                             ExpressionTranslator! etran,
+                             Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange)
       requires predef != null;
       requires types.Count == ee0.Count && ee0.Count == ee1.Count;
+      requires builder != null <==> suffixMsg != null;
     {
       int N = types.Count;
       
@@ -2554,49 +2582,46 @@ namespace Microsoft.Dafny {
       List<Bpl.Expr!> Eq = new List<Bpl.Expr!>(N);
       List<Bpl.Expr!> Less = new List<Bpl.Expr!>(N);
       for (int i = 0; i < N; i++) {
-        Bpl.Expr! less, eq;
-        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out eq, etran);
+        Bpl.Expr! less, atmost, eq;
+        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out atmost, out eq, etran);
         Eq.Add(eq);
-        Less.Add(less);
+        Less.Add(allowNoChange ? atmost : less);
       }
-      // check: 0 <= ee1
-      // more precisely, for component k of the lexicographic decreases function, check:
-      //   ee0[0] < ee1[0] || ee0[1] < ee1[1] || ... || ee0[k-1] < ee1[k-1] || ee0[k] == ee1[k] || 0 <= ee1[k]
-      for (int k = 0; k < N; k++) {
-        // we only need to check lower bound for integers--sets, sequences, booleans, references, and datatypes all have natural lower bounds
-        Bpl.Expr prefixIsLess = Bpl.Expr.False;
-        for (int i = 0; i < k; i++) {
-          prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
-        }
-        if (types[k] is IntType) {
-          Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), ee1[k]);
+      if (builder != null) {
+        // check: 0 <= ee1
+        // more precisely, for component k of the lexicographic decreases function, check:
+        //   ee0[0] < ee1[0] || ee0[1] < ee1[1] || ... || ee0[k-1] < ee1[k-1] || ee0[k] == ee1[k] || 0 <= ee1[k]
+        for (int k = 0; k < N; k++) {
+          // we only need to check lower bound for integers--sets, sequences, booleans, references, and datatypes all have natural lower bounds
+          Bpl.Expr prefixIsLess = Bpl.Expr.False;
           for (int i = 0; i < k; i++) {
-            bounded = Bpl.Expr.Or(bounded, Less[i]);
+            prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
           }
-          string component = N == 1 ? "" : " (component " + k + ")";
-          Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by 0" + suffixMsg);
-          builder.Add(cmd);
+          if (types[k] is IntType) {
+            Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), ee1[k]);
+            for (int i = 0; i < k; i++) {
+              bounded = Bpl.Expr.Or(bounded, Less[i]);
+            }
+            string component = N == 1 ? "" : " (component " + k + ")";
+            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by 0" + suffixMsg);
+            builder.Add(cmd);
+          }
         }
       }
-      // check: ee0 < ee1
-      Bpl.Expr decrCheck = null;
-      for (int i = N; 0 <= --i; )
-        invariant i != N ==> decrCheck != null;
-      {
+      // check: ee0 < ee1 (or ee0 <= ee1, if allowNoChange)
+      Bpl.Expr decrCheck = allowNoChange ? Bpl.Expr.True : Bpl.Expr.False;
+      for (int i = N; 0 <= --i; ) {
         Bpl.Expr less = Less[i];
         Bpl.Expr eq = Eq[i];
-        if (decrCheck == null) {
-          decrCheck = less;
+        if (allowNoChange) {
+          // decrCheck = atmost && (eq ==> decrCheck)
+          decrCheck = Bpl.Expr.And(less, Bpl.Expr.Imp(eq, decrCheck));
         } else {
           // decrCheck = less || (eq && decrCheck)
           decrCheck = Bpl.Expr.Or(less, Bpl.Expr.And(eq, decrCheck));
         }
       }
-      if (decrCheck == null) {
-        return Bpl.Expr.False;
-      } else {
-        return decrCheck;
-      }
+      return decrCheck;
     }
 
     bool CompatibleDecreasesTypes(Type! t, Type! u) {
@@ -2616,28 +2641,33 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void ComputeLessEq(IToken! tok, Type! ty, Bpl.Expr! e0, Bpl.Expr! e1, out Bpl.Expr! less, out Bpl.Expr! eq, ExpressionTranslator! etran)
+    void ComputeLessEq(IToken! tok, Type! ty, Bpl.Expr! e0, Bpl.Expr! e1, out Bpl.Expr! less, out Bpl.Expr! atmost, out Bpl.Expr! eq, ExpressionTranslator! etran)
       requires predef != null;
     {
       if (ty is BoolType) {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
+        atmost = Bpl.Expr.Imp(e0, e1);
       } else if (ty is IntType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Lt(e0, e1);
+        atmost = Bpl.Expr.Le(e0, e1);
       } else if (ty is SetType) {
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, e0, e1);
         less = etran.ProperSubset(tok, e0, e1);
+        atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1);
       } else if (ty is SeqType) {
         Bpl.Expr b0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
         Bpl.Expr b1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
         eq = Bpl.Expr.Eq(b0, b1);
         less = Bpl.Expr.Lt(b0, b1);
+        atmost = Bpl.Expr.Le(b0, b1);
       } else if (ty.IsDatatype) {
         Bpl.Expr b0 = FunctionCall(tok, BuiltinFunction.DtRank, null, e0);
         Bpl.Expr b1 = FunctionCall(tok, BuiltinFunction.DtRank, null, e1);
         eq = Bpl.Expr.Eq(b0, b1);
         less = Bpl.Expr.Lt(b0, b1);
+        atmost = Bpl.Expr.Le(b0, b1);
         
       } else {
         // reference type
@@ -2645,6 +2675,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr b1 = Bpl.Expr.Neq(e1, predef.Null);
         eq = Bpl.Expr.Iff(b0, b1);
         less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
+        atmost = Bpl.Expr.Imp(b0, b1);
       }
     }
     

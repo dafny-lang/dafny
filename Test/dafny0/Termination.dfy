@@ -170,3 +170,25 @@ class Node {
                         next.Valid())
   }
 }
+
+method DecreasesYieldsAnInvariant(z: int) {
+  var x := 100;
+  var y := 1;
+  var z := z;  // make parameter into a local variable
+  while (x != y)
+    // inferred: decreases |x - y|;
+    invariant  (0 < x && 0 < y) || (x < 0 && y < 0);
+  {
+    if (z == 52) {
+      break;
+    } else if (x < y) {
+      y := y - 1;
+    } else {
+      x := x - 1;
+    }
+    x := -x;
+    y := -y;
+    z := z + 1;
+  }
+  assert x - y < 100;  // follows from the fact that no loop iteration increases what's in the 'decreases' clause
+}
