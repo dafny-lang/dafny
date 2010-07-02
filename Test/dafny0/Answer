@@ -448,6 +448,6 @@ Dafny program verifier finished with 10 verified, 0 errors
 
 Dafny program verifier finished with 5 verified, 0 errors
 
--------------------- Counter.dfy --------------------
+-------------------- Refinement.dfy --------------------
 
-Dafny program verifier finished with 22 verified, 0 errors
+Dafny program verifier finished with 39 verified, 0 errors
