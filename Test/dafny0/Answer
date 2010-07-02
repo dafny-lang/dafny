@@ -447,3 +447,7 @@ Dafny program verifier finished with 10 verified, 0 errors
 -------------------- SplitExpr.dfy --------------------
 
 Dafny program verifier finished with 5 verified, 0 errors
+
+-------------------- Counter.dfy --------------------
+
+Dafny program verifier finished with 19 verified, 0 errors
