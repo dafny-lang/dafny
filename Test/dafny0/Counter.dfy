@@ -15,8 +15,10 @@ class A {
     requires n > 0; 
   { n := n - 1;}  
   
-  method Test1() returns (i: int) 
-  { i := 0;}
+  method Test1(p: int) returns (i: int) 
+  {   
+    assume true;
+  }
 
   method Test2() returns (o: object)
   { o := this; }
@@ -38,6 +40,11 @@ class B refines A {
     modifies this;
     requires inc > dec; 
   { dec := dec + 1; }
+
+  refines Test1(p: int) returns (i: int) 
+  {
+    i := p;
+  }
 }
 
     

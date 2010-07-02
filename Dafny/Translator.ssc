@@ -1764,6 +1764,11 @@ namespace Microsoft.Dafny {
         etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, that, predef.RefType), Resolver.GetThisType(m.tok, m.EnclosingClass)));
       Bpl.Formal thatVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, that, predef.RefType, wh), true);
       proc.InParams.Add(thatVar);      
+      foreach (Formal p in m.Outs) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr w = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        proc.OutParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, w), false));
+      }
       sink.TopLevelDeclarations.Add(proc);
            
       // generate procedure implementation:      
@@ -1792,6 +1797,14 @@ namespace Microsoft.Dafny {
       //  assume I($Heap, $Heap)              
       builder.Add(new Bpl.AssumeCmd(m.tok, TrCouplingInvariant(m, heap, "this", heap, that)));     
       
+      // assign input formals of m
+      for (int i = 0; i < m.Ins.Count; i++) {        
+        Bpl.LocalVariable arg = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, m.Ins[i].UniqueName,  TrType(m.Ins[i].Type)));
+        localVariables.Add(arg);
+        assert inParams[i+1] != null;
+        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, arg), new Bpl.IdentifierExpr(m.tok, inParams[i+1])));
+      }
+            
       //  call inlined m;      
       currentMethod = m;
       TrStmt(m.Body, builder, localVariables, etran);
@@ -1804,7 +1817,7 @@ namespace Microsoft.Dafny {
       
       //  $Heap := old($Heap);      
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, heap, new Bpl.OldExpr(m.tok, heap)));
-      
+                                
       //  call inlined r;
       currentMethod = r;
       etran = new ExpressionTranslator(this, predef, heap, "this");

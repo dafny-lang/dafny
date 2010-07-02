@@ -2337,9 +2337,12 @@ namespace Microsoft.Dafny {
   class Scope<Thing> where Thing : class {
     [Rep] readonly List<string>! names = new List<string>();  // a null means a marker
     [Rep] readonly List<Thing?>! things = new List<Thing?>();
-    invariant names.Count == things.Count;
     int scopeSizeWhereInstancesWereDisallowed = -1;
+    
+    #region SpecSharp compiler annoyance
+    invariant names.Count == things.Count;    
     invariant -1 <= scopeSizeWhereInstancesWereDisallowed && scopeSizeWhereInstancesWereDisallowed <= names.Count;
+    #endregion
     
     public bool AllowInstance {
       get { return scopeSizeWhereInstancesWereDisallowed == -1; }
