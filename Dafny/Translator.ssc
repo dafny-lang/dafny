@@ -1797,12 +1797,13 @@ namespace Microsoft.Dafny {
       //  assume I($Heap, $Heap)              
       builder.Add(new Bpl.AssumeCmd(m.tok, TrCouplingInvariant(m, heap, "this", heap, that)));     
       
-      // assign input formals of m
+      // assign input formals of m (except "this")
       for (int i = 0; i < m.Ins.Count; i++) {        
         Bpl.LocalVariable arg = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, m.Ins[i].UniqueName,  TrType(m.Ins[i].Type)));
         localVariables.Add(arg);
-        assert inParams[i+1] != null;
-        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, arg), new Bpl.IdentifierExpr(m.tok, inParams[i+1])));
+        Bpl.Variable var = inParams[i+1];
+        assert var != null;
+        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, arg), new Bpl.IdentifierExpr(m.tok, var)));
       }
             
       //  call inlined m;      

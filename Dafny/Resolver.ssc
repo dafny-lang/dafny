@@ -173,7 +173,6 @@ namespace Microsoft.Dafny {
         }
         decl.Refined = (ClassDecl!) a;
         // TODO: copy over remaining members of a
-        // TODO: extend with type parameters for refinements               
       }        
     }  
       
@@ -469,6 +468,13 @@ namespace Microsoft.Dafny {
     }
         
     void ResolveTypeParameters(List<TypeParameter!>! tparams, bool emitErrors, TypeParameter.ParentType! parent) {
+      // push type arguments of the refined class
+      if (parent is ClassRefinementDecl) {
+        ClassDecl refined = ((ClassRefinementDecl)parent).Refined;
+        assert refined != null;
+        ResolveTypeParameters(refined.TypeArgs, false, refined);
+      }
+    
       // push non-duplicated type parameter names
       foreach (TypeParameter tp in tparams) {
         if (emitErrors) {
