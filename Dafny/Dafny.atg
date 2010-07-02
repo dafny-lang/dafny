@@ -183,16 +183,25 @@ ClassDecl<ModuleDecl! module, out ClassDecl! c>
 = (. IToken! id;
      Attributes attrs = null;
      List<TypeParameter!> typeArgs = new List<TypeParameter!>();
+     IToken! idRefined;
+     IToken optionalId = null;         
      List<MemberDecl!> members = new List<MemberDecl!>();
   .)
   "class"
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
+  [ "refines" Ident<out idRefined>               (. optionalId = idRefined; .)
+  ]
   "{"
   { ClassMemberDecl<members>
   }
-  "}"                                      (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs); .)
+  "}"                                      
+  (. if (optionalId == null)        
+       c = new ClassDecl(id, id.val, module, typeArgs, members, attrs); 
+     else 
+       c = new ClassRefinementDecl(id, id.val, module, typeArgs, members, attrs, optionalId);
+  .)
   .
 
 ClassMemberDecl<.List<MemberDecl!>! mm.>
@@ -204,9 +213,10 @@ ClassMemberDecl<.List<MemberDecl!>! mm.>
   | "static"                               (. mmod.IsStatic = true; .)
   | "unlimited"                            (. mmod.IsUnlimited = true; .)
   }
-  ( FieldDecl<mmod, mm>
+  ( FieldDecl<mmod, mm>  
   | FunctionDecl<mmod, out f>              (. mm.Add(f); .)
   | MethodDecl<mmod, out m>                (. mm.Add(m); .)
+  | CouplingInvDecl<mmod, mm> 
   )
   .
 
@@ -257,6 +267,31 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl!>! mm.>
   }
   ";"
   .
+
+CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl!>! mm.>
+= (. Attributes attrs = null;
+     List<IToken!> ids = new List<IToken!>();;
+     IToken! id;
+     Expression! e;
+     parseVarScope.PushMarker();
+  .)
+  "replaces"
+  (. if (mmod.IsUnlimited) { SemErr(t, "coupling invariants cannot be declared 'unlimited'"); }
+     if (mmod.IsStatic) { SemErr(t, "coupling invariants cannot be declared 'static'"); }
+     if (mmod.IsGhost) { SemErr(t, "coupling invariants cannot be declared 'ghost'"); }
+  .)
+  { Attribute<ref attrs> }  
+  Ident<out id>                                     (. ids.Add(id); parseVarScope.Push(id.val, id.val); .)
+  { "," Ident<out id>                               (. ids.Add(id); parseVarScope.Push(id.val, id.val); .)
+  }
+  "by"    
+  Expression<out e>
+  ";"
+  (. mm.Add(new CouplingInvariant(ids, e, attrs)); 
+     parseVarScope.PopMarker();
+  .)  
+  .
+
 
 GIdentType<bool allowGhost, out IToken! id, out Type! ty, out bool isGhost>
 /* isGhost always returns as false if allowGhost is false */
@@ -329,8 +364,11 @@ MethodDecl<MemberModifiers mmod, out Method! m>
      List<MaybeFreeExpression!> ens = new List<MaybeFreeExpression!>();
      List<Expression!> dec = new List<Expression!>();
      Statement! bb;  BlockStmt body = null;
+     bool isRefinement = false;
   .)
-  "method"
+  ( "method"
+  | "refines"                                               (. isRefinement = true; .)
+  )
   (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
   .)
   { Attribute<ref attrs> }
@@ -347,8 +385,11 @@ MethodDecl<MemberModifiers mmod, out Method! m>
   )
   
   (. parseVarScope.PopMarker();
-     m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
-  .)
+     if (isRefinement)
+       m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
+     else 
+       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs); 
+ .)
   .
 
 MethodSpec<.List<MaybeFreeExpression!>! req, List<FrameExpression!>! mod, List<MaybeFreeExpression!>! ens,

@@ -70,9 +70,13 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintClass(ClassDecl! c, int indent) {
+    public void PrintClass(ClassDecl! c, int indent) {      
       Indent(indent);
       PrintClassMethodHelper("class", c.Attributes, c.Name, c.TypeArgs);
+      if (c is ClassRefinementDecl) {
+        wr.Write(" refines ");
+        wr.Write(((ClassRefinementDecl)c).RefinedClass.val);
+      }
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -100,6 +104,10 @@ namespace Microsoft.Dafny {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent);
           state = 2;
+        } else if (m is CouplingInvariant) {
+          wr.WriteLine();
+          PrintCouplingInvariant((CouplingInvariant)m, indent);
+          state = 2;    
         } else {
           assert false;  // unexpected member
         }
@@ -174,6 +182,20 @@ namespace Microsoft.Dafny {
       wr.WriteLine(";");
     }
     
+    public void PrintCouplingInvariant(CouplingInvariant! inv, int indent) {
+      Indent(indent);
+      wr.Write("replaces");
+      string sep = " ";
+      foreach (string tok in inv.Tokens()) {
+        wr.Write(sep);
+        wr.Write(tok);
+        sep = ", ";
+      }
+      wr.Write(" by ");
+      PrintExpression(inv.Expr);
+      wr.WriteLine(";");      
+    }
+    
     public void PrintFunction(Function! f, int indent) {
       Indent(indent);
       string k = "function";
@@ -221,9 +243,9 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintMethod(Method! method, int indent) {
+    public void PrintMethod(Method! method, int indent) {      
       Indent(indent);
-      string k = "method";
+      string k = method is MethodRefinement ? "refines" : "method";
       if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);

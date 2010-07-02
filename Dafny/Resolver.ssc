@@ -85,6 +85,13 @@ namespace Microsoft.Dafny {
           h++;
         }
       }
+
+      // resolve top-level declarations of refinements
+      foreach (ModuleDecl m in prog.Modules) 
+        foreach (TopLevelDecl decl in m.TopLevelDecls) 
+          if (decl is ClassRefinementDecl) 
+            ResolveTopLevelRefinement((ClassRefinementDecl) decl);            
+      
       // resolve top-level declarations
       Graph<DatatypeDecl!> datatypeDependencies = new Graph<DatatypeDecl!>();
       foreach (ModuleDecl m in prog.Modules) {
@@ -154,6 +161,22 @@ namespace Microsoft.Dafny {
       }
     }
       
+    public void ResolveTopLevelRefinement(ClassRefinementDecl! decl) {
+      // TODO: check for loops in refinement
+      if (!classes.ContainsKey(decl.RefinedClass.val)) {
+        Error(decl.RefinedClass, "Refined class declaration is missing: {0}", decl.RefinedClass.val);
+      } else {
+        TopLevelDecl! a = classes[decl.RefinedClass.val];
+        if (!(a is ClassDecl)) {
+          Error(a, "Refined declaration is not a class declaration: {0}", a.Name);
+          return;
+        }
+        decl.Refined = (ClassDecl!) a;
+        // TODO: copy over remaining members of a
+        // TODO: extend with type parameters for refinements               
+      }        
+    }  
+      
     public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl!>! declarations, Graph<DatatypeDecl!>! datatypeDependencies) {
       foreach (TopLevelDecl d in declarations) {
         allTypeParameters.PushMarker();
@@ -216,9 +239,46 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-
+          
+        } else if (member is CouplingInvariant) {
+          CouplingInvariant inv = (CouplingInvariant)member;
+          if (currentClass is ClassRefinementDecl) {      
+            ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;                          
+            assert refined != null;
+            assert classMembers.ContainsKey(refined);
+            Dictionary<string!,MemberDecl!> members = classMembers[refined];
+            
+            // resolve abstracted fields in the refined class
+            List<Field!> fields = new List<Field!>();
+            foreach (IToken tok in inv.Toks) {
+              if (!members.ContainsKey(tok.val))
+                Error(tok, "Refined class does not declare a field: {0}", tok.val);              
+              else {
+                MemberDecl! field = members[tok.val];
+                if (!(field is Field)) 
+                  Error(tok, "Coupling invariant refers to a non-field member: {0}", tok.val);
+                else if (fields.Contains((Field!)field))
+                  Error(tok, "Duplicate reference to a field in the refined class: {0}", tok.val); 
+                else
+                  fields.Add((Field!)field);
+              }                  
+            }            
+            inv.Refined = fields;
+          } else {
+            Error(member, "Coupling invariants can only be declared in refinement classes");
+          }
         } else {
           assert false;  // unexpected member type
+        }
+        
+        if (currentClass is ClassRefinementDecl) {          
+          ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;  
+          assert refined != null;
+          assert classMembers.ContainsKey(refined);                        
+          
+          // there is a member with the same name in refined class if and only if the member is a refined method
+          if ((member is MethodRefinement) != (classMembers[refined].ContainsKey(member.Name)))
+            Error(member, "Refined class has a member with the same name as in the refinement class: {0}", member.Name);
         }
       }
       currentClass = null;
@@ -251,7 +311,40 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
-
+          
+          // check if signature of the refined method matches the refinement method
+          if (member is MethodRefinement) {
+            MethodRefinement mf = (MethodRefinement)member;
+            assert currentClass is ClassRefinementDecl;
+            assert ((ClassRefinementDecl)currentClass).Refined != null; // should have already been resolved
+            MemberDecl d = classMembers[((ClassRefinementDecl)currentClass).Refined][mf.Name];
+            if (d is Method) {
+              mf.Refined = (Method)d;
+              if (mf.Ins.Count != mf.Refined.Ins.Count)
+                Error(mf, "Different number of input variables");
+              if (mf.Outs.Count != mf.Refined.Outs.Count)
+                Error(mf, "Different number of output variables");               
+              if (mf.IsStatic || mf.Refined.IsStatic) 
+                Error(mf, "Refined methods cannot be static");
+            } else {
+              Error(member, "Refined class has a non-method member with the same name: {0}", member.Name);
+            }            
+          }
+        
+        } else if (member is CouplingInvariant) {        
+          CouplingInvariant inv = (CouplingInvariant)member;
+          assert inv.Refined != null;
+          inv.Formals = new List<Formal!>();
+          scope.PushMarker();
+          for (int i = 0; i < inv.Refined.Count; i++) {
+            Field! field = inv.Refined[i];            
+            Formal! formal = new Formal(inv.Toks[i], field.Name, field.Type, true, field.IsGhost);
+            inv.Formals.Add(formal);
+            scope.Push(inv.Toks[i].val, formal);
+          }
+          ResolveExpression(inv.Expr, false, true);
+          scope.PopMarker();
+                
         } else {
           assert false;  // unexpected member type
         }

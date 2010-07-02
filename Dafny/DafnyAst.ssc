@@ -4,6 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 using System;
+using System.Text;
 using System.Collections.Generic;
 using Microsoft.Contracts;
 using System.Numerics;
@@ -438,6 +439,15 @@ namespace Microsoft.Dafny
     }
   }
   
+  public class ClassRefinementDecl : ClassDecl {
+    public readonly IToken! RefinedClass;
+    public ClassDecl Refined; // filled in during resolution 
+    public ClassRefinementDecl(IToken! tok, string! name, ModuleDecl! module, List<TypeParameter!>! typeArgs, [Captured] List<MemberDecl!>! members, Attributes attributes, IToken! refinedClass) {
+      RefinedClass = refinedClass;
+      base(tok, name, module, typeArgs, members, attributes);
+    }
+  }
+  
   public class DefaultClassDecl : ClassDecl {
     public DefaultClassDecl(DefaultModuleDecl! module, [Captured] List<MemberDecl!>! members) {
       base(Token.NoToken, "_default", module, new List<TypeParameter!>(), members, null);
@@ -506,6 +516,32 @@ namespace Microsoft.Dafny
       Type = type;
       base(tok, name, attributes);
     }
+  }
+  
+  public class CouplingInvariant : MemberDecl {
+    public readonly Expression! Expr;    
+    public readonly List<IToken!>! Toks;
+    public List<Formal!> Formals; // filled in during resolution
+    public List<Field!> Refined; // filled in during resolution
+    
+    public CouplingInvariant(List<IToken!>! toks, Expression! expr, Attributes attributes) 
+      requires toks.Count > 0;
+    {
+      Expr = expr;      
+      Toks = toks;
+      StringBuilder sb = new StringBuilder();
+      foreach (IToken tok in toks) 
+        sb.Append("_").Append(tok.val);
+        
+      base(toks[0], "_coupling_invariant" + sb.ToString(), attributes);
+    }
+    
+    public string[] Tokens() {
+      string[] result = new string[Toks.Count];
+      for (int i = 0; i < Toks.Count; i++)
+        result[i] = Toks[i].val;
+      return result;
+    }      
   }
   
   public interface IVariable {
@@ -633,6 +669,20 @@ namespace Microsoft.Dafny
       this.Decreases = decreases;
       this.Body = body;
       base(tok, name, attributes);
+    }
+  }
+
+  public class MethodRefinement : Method {    
+    public Method Refined; // filled in during resolution
+    public MethodRefinement(IToken! tok, string! name,
+                  bool isStatic, bool isGhost,
+                  [Captured] List<TypeParameter!>! typeArgs,
+                  [Captured] List<Formal!>! ins, [Captured] List<Formal!>! outs,
+                  [Captured] List<MaybeFreeExpression!>! req, [Captured] List<FrameExpression!>! mod, [Captured] List<MaybeFreeExpression!>! ens,
+                  [Captured] List<Expression!>! decreases,
+                  [Captured] BlockStmt body,
+                  Attributes attributes) {
+      base(tok, name, isStatic, isGhost, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes);  
     }
   }
   
