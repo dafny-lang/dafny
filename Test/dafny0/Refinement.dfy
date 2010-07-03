@@ -18,7 +18,7 @@ class A {
   
   method Test1(p: int) returns (i: int) 
   {   
-    assume true;
+    i := p;
   }
 
   method Test2() returns (o: object)
@@ -51,7 +51,17 @@ class B refines A {
 // Carrol Morgan's calculator
 // 7/2/2010 Kuat
 
+class Util {
+  static function method seqsum(x:seq<int>) : int
+    decreases x;
+  {
+    if (x == []) then 0 else x[0] + seqsum(x[1..])
+  }
+}
+
+
 class ACalc {
+  var util: Util;
   var vals: seq<int>;
   
   method reset() 
@@ -69,21 +79,17 @@ class ACalc {
   method mean() returns (m: int)     
     requires |vals| > 0;
   {
-    m := seqsum(vals)/|vals|;
-  }
-
-  static function method seqsum(x:seq<int>) : int
-    decreases x;
-  {
-    if (x == []) then 0 else x[0] + seqsum(x[1..])
+    m := util.seqsum(vals)/|vals|;
   }
 }
 
 
+
 class CCalc refines ACalc {
+  var util2: Util;
   var sum: int;
   var num: int;
-  replaces vals by sum == seqsum2(vals) && num == |vals|;
+  replaces vals by sum == util2.seqsum(vals) && num == |vals|;
 
   refines reset() 
     modifies this;
@@ -103,12 +109,6 @@ class CCalc refines ACalc {
     requires num > 0;
   {
     m := sum/num;
-  }
-
-  static function method seqsum2(x:seq<int>) : int
-    decreases x;
-  {
-    if (x == []) then 0 else x[0] + seqsum2(x[1..])
   }
 }
 

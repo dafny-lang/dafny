@@ -1763,7 +1763,9 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, that, predef.RefType), predef.Null),
         etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, that, predef.RefType), Resolver.GetThisType(m.tok, m.EnclosingClass)));
       Bpl.Formal thatVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, that, predef.RefType, wh), true);
-      proc.InParams.Add(thatVar);      
+      proc.InParams.Add(thatVar);   
+      
+      // add outs of m to the outs of the refinement procedure   
       foreach (Formal p in m.Outs) {
         Bpl.Type varType = TrType(p.Type);
         Bpl.Expr w = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
@@ -1825,6 +1827,16 @@ namespace Microsoft.Dafny {
       TrStmt(r.Body, builder, localVariables, etran);
       currentMethod = null;
       
+      //  assert output variables of r and m are pairwise equal
+      assert outParams.Length % 2 == 0;
+      int k = outParams.Length / 2;
+      for (int i = 0; i < k; i++) {
+        Bpl.Variable rOut = outParams[i];
+        Bpl.Variable mOut = outParams[i+k];
+        assert rOut != null && mOut != null;
+        builder.Add(new Bpl.AssertCmd(m.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(m.tok, mOut), new Bpl.IdentifierExpr(m.tok, rOut))));
+      }
+            
       //  assert I($Heap1, $Heap)      
       builder.Add(new Bpl.AssertCmd(m.tok, TrCouplingInvariant(m, heap, "this", new Bpl.IdentifierExpr(m.tok, heap2), that)));
                                                 
