@@ -250,7 +250,7 @@ namespace Microsoft.Dafny {
       string! preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
       
       Bpl.Program prelude;
-      int errorCount = Bpl.Parser.Parse(preludePath, out prelude);
+      int errorCount = Bpl.Parser.Parse(preludePath, null, out prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
