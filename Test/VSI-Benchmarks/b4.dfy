@@ -1,3 +1,8 @@
+/*
+	This test fails with Z3 2.4 (on Win7 x64) and works
+	with Z3 2.9 (on Win7 x64). Other versions ... who knows.
+*/
+
 // Note: We are using the built-in equality to compare keys.
 // Note: The abstract specifications would do well with a map from keys
 // to values.  However, Dafny does not support maps.  Instead, such a
