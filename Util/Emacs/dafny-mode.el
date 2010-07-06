@@ -31,7 +31,7 @@
 
    `(,(dafny-regexp-opt '(
         "class" "datatype" "function" "frame" "ghost" "var" "method" "unlimited"
-        "module" "imports" "static"
+        "module" "imports" "static" "refines" "replaces" "by"
         "returns" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"
         )) . font-lock-builtin-face)

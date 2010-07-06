@@ -624,7 +624,9 @@ namespace Microsoft.Dafny {
         // any type is fine
       }
       
-      // Add out-parameters to the scope, but don't care about any duplication errors, since they have already been reported
+      // Add out-parameters to a new scope that will also include the outermost-level locals of the body
+      // Don't care about any duplication errors among the out-parameters, since they have already been reported
+      scope.PushMarker();
       foreach (Formal p in m.Outs) {
         scope.Push(p.Name, p);
       }
@@ -640,10 +642,11 @@ namespace Microsoft.Dafny {
       
       // Resolve body
       if (m.Body != null) {
-        ResolveStatement(m.Body, m.IsGhost, m);
+        ResolveBlockStatement(m.Body, m.IsGhost, m);
       }
       
-      scope.PopMarker();
+      scope.PopMarker();  // for the out-parameters and outermost-level locals
+      scope.PopMarker();  // for the in-parameters
     }
     
     /// <summary>
@@ -1254,20 +1257,7 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is BlockStmt) {
         scope.PushMarker();
-        int labelsToPop = 0;
-        foreach (Statement ss in ((BlockStmt)stmt).Body) {
-          if (ss is LabelStmt) {
-            LabelStmt ls = (LabelStmt)ss;
-            labeledStatements.PushMarker();
-            bool b = labeledStatements.Push(ls.Label, ls);
-            assert b;  // since we just pushed a marker, we expect the Push to succeed
-            labelsToPop++;
-          } else {
-            ResolveStatement(ss, specContextOnly, method);
-            for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
-          }
-        }
-        for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
+        ResolveBlockStatement((BlockStmt)stmt, specContextOnly, method);
         scope.PopMarker();
       
       } else if (stmt is IfStmt) {
@@ -1452,6 +1442,24 @@ namespace Microsoft.Dafny {
       }
     }
     
+    void ResolveBlockStatement(BlockStmt! blockStmt, bool specContextOnly, Method! method)
+    {
+      int labelsToPop = 0;
+      foreach (Statement ss in blockStmt.Body) {
+        if (ss is LabelStmt) {
+          LabelStmt ls = (LabelStmt)ss;
+          labeledStatements.PushMarker();
+          bool b = labeledStatements.Push(ls.Label, ls);
+          assert b;  // since we just pushed a marker, we expect the Push to succeed
+          labelsToPop++;
+        } else {
+          ResolveStatement(ss, specContextOnly, method);
+          for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
+        }
+      }
+      for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
+    }
+
     Type! ResolveTypeRhs(TypeRhs! rr, Statement! stmt, bool specContext) {
       ResolveType(rr.EType);
       if (rr.ArraySize == null) {

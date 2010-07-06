@@ -55,3 +55,20 @@ class ArrayTests {
     a[7] := 13;  // error: array elements are not ghost locations
   }
 }
+
+// ---------------------
+
+method DuplicateVarName(x: int) returns (y: int)
+{
+  var z: int;
+  var z: int;  // error: redeclaration of local
+  var x := x;  // redeclaration of in-parameter is fine
+  var x := x;  // error: but a redeclaration of that local is not fine
+  {
+    var x := x;  // an inner local variable of the same name is fine
+    var x := x;  // error: but a redeclaration thereof is not okay
+    var y := y;  // duplicating an out-parameter here is fine
+  }
+  var y := y;  // error: redeclaration of an out-parameter is not allowed (it is
+               // treated like an outermost-scoped local in this regard)
+}
