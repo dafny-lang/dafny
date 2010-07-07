@@ -1807,11 +1807,16 @@ namespace Microsoft.Dafny {
         assert var != null;
         builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, arg), new Bpl.IdentifierExpr(m.tok, var)));
       }
+
+      // set-up method-translator state
+      currentMethod = m;
+      loopHeapVarCount = 0;
+      otherTmpVarCount = 0;
+      _phvie = null;
+      _nwie = null;
             
       //  call inlined m;      
-      currentMethod = m;
       TrStmt(m.Body, builder, localVariables, etran);
-      currentMethod = null;
 
       //  $Heap1 := $Heap;
       Bpl.LocalVariable heap2 = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, heap.Name+"2", predef.HeapType));
@@ -1825,7 +1830,13 @@ namespace Microsoft.Dafny {
       currentMethod = r;
       etran = new ExpressionTranslator(this, predef, heap, "this");
       TrStmt(r.Body, builder, localVariables, etran);
+
+      // clean method-translator state
       currentMethod = null;
+      loopHeapVarCount = 0;
+      otherTmpVarCount = 0;
+      _phvie = null;
+      _nwie = null;
       
       //  assert output variables of r and m are pairwise equal
       assert outParams.Length % 2 == 0;

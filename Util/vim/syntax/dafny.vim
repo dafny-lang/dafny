@@ -11,7 +11,7 @@ syntax keyword dafnyConditional if then else match case
 syntax keyword dafnyRepeat foreach while
 syntax keyword dafnyStatement havoc assume assert return call new print break label
 syntax keyword dafnyKeyword var ghost returns null static this refines replaces by
-syntax keyword dafnyType int bool seq set
+syntax keyword dafnyType int bool seq set object
 syntax keyword dafnyLogic requires ensures modifies reads decreases invariant 
 syntax keyword dafnyOperator forall exists old fresh
 syntax keyword dafnyBoolean true false
