@@ -39,6 +39,10 @@ axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), a[y] }
   a[y] ==> Set#Union(a, b)[y]);
 axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), b[y] }
   b[y] ==> Set#Union(a, b)[y]);
+axiom (forall<T> a, b: Set T :: { Set#Union(a, b) }
+  Set#Disjoint(a, b) ==>
+    Set#Difference(Set#Union(a, b), a) == b &&
+    Set#Difference(Set#Union(a, b), b) == a);
 
 function Set#Intersection<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }

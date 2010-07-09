@@ -14,6 +14,7 @@ for %%f in (BQueue.bpl) do (
 for %%f in (Queue.dfy
             BinaryTree.dfy
             UnboundedStack.dfy
+            SeparationLogicList.dfy
             ListCopy.dfy ListReverse.dfy ListContents.dfy
             SchorrWaite.dfy
             SumOfCubes.dfy
