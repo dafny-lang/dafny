@@ -1738,6 +1738,7 @@ namespace Microsoft.Dafny {
     void AddMethodRefinement(MethodRefinement! m) 
       requires sink != null && predef != null;      
     {
+      // r is abstract, m is concrete 
       Method r = m.Refined;
       assert r != null;
       assert m.EnclosingClass != null;
@@ -1748,7 +1749,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, heap, that);      
       
       // TODO: this straight inlining does not handle recursive calls
-      // TODO: we assume frame allows anything to be changed -- we don't include post-conditions in the refinement procedure
+      // TODO: we assume frame allows anything to be changed -- we don't include post-conditions in the refinement procedure, or check refinement of frames      
             
       // generate procedure declaration with pre-condition wp(r, true)
       Bpl.Procedure! proc = AddMethod(r, false, true);
@@ -1792,7 +1793,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr lambda = new Bpl.LambdaExpr(m.tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, Bpl.Expr.True);    
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, frame), lambda));
       
-      //  assume I($Heap, $Heap)              
+      // assume I($Heap, $Heap)              
       builder.Add(new Bpl.AssumeCmd(m.tok, TrCouplingInvariant(m, heap, "this", heap, that)));     
       
       // assign input formals of m (except "this")
@@ -1840,12 +1841,14 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < k; i++) {
         Bpl.Variable rOut = outParams[i];
         Bpl.Variable mOut = outParams[i+k];
-        assert rOut != null && mOut != null;
-        builder.Add(new Bpl.AssertCmd(m.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(m.tok, mOut), new Bpl.IdentifierExpr(m.tok, rOut))));
+        assert rOut != null && mOut != null;        
+        builder.Add(Assert(m.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(m.tok, mOut), new Bpl.IdentifierExpr(m.tok, rOut)), 
+          "Refinement method may not produce the same value for output variable " + m.Outs[i].Name));
       }
             
       //  assert I($Heap1, $Heap)      
-      builder.Add(new Bpl.AssertCmd(m.tok, TrCouplingInvariant(m, heap, "this", new Bpl.IdentifierExpr(m.tok, heap2), that)));
+      builder.Add(Assert(m.tok, TrCouplingInvariant(m, heap, "this", new Bpl.IdentifierExpr(m.tok, heap2), that),
+        "Refinement method may not preserve the coupling invariant"));
                                                 
       Bpl.StmtList stmts = builder.Collect(m.tok);            
       Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
@@ -2866,7 +2869,7 @@ namespace Microsoft.Dafny {
     
     void AddComment(Bpl.StmtListBuilder! builder, Statement! stmt, string! comment) {
       builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.filename, stmt.Tok.line, stmt.Tok.col)));
-    }
+    }    
     
     Bpl.Expr GetWhereClause(IToken! tok, Bpl.Expr! x, Type! type, ExpressionTranslator! etran)
       requires predef != null;
