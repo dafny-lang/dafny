@@ -1747,12 +1747,8 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr heap = new Bpl.IdentifierExpr(m.tok, predef.HeapVarName, predef.HeapType);
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, heap, that);      
       
-      // for now, refinement is local -- if A.f is refined by B.g then f is shadowed by g in B.
-      // therefore, the abstract and concrete programs operate on different receivers thisA and thisB.
-      // there is still a possibility of A events polluting the heap that's used by B events, e.g. if another object is referenced by both thisA and thisB.
-
       // TODO: this straight inlining does not handle recursive calls
-      // TODO: we assume frame allows anything to be changed
+      // TODO: we assume frame allows anything to be changed -- we don't include post-conditions in the refinement procedure
             
       // generate procedure declaration with pre-condition wp(r, true)
       Bpl.Procedure! proc = AddMethod(r, false, true);

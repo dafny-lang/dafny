@@ -14,7 +14,7 @@ for %%f in (Simple.dfy) do (
 for %%f in (TypeTests.dfy SmallTests.dfy Definedness.dfy Array.dfy
             Modules0.dfy Modules1.dfy BadFunction.dfy
             Termination.dfy Use.dfy DTypes.dfy
-            TypeParameters.dfy Datatypes.dfy SplitExpr.dfy Refinement.dfy) do (
+            TypeParameters.dfy Datatypes.dfy SplitExpr.dfy Refinement.dfy RefinementErrors.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 %* %%f
