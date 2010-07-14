@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<DatatypeDecl!,Dictionary<string!,DatatypeCtor!>!>! datatypeCtors = new Dictionary<DatatypeDecl!,Dictionary<string!,DatatypeCtor!>!>();
     readonly Graph<ModuleDecl!>! importGraph = new Graph<ModuleDecl!>();
     
-    bool checkRefinements = true; 
+    bool checkRefinements = true; // used to indicate a cycle in refinements
       
     public void ResolveProgram(Program! prog) {
       // register modules
