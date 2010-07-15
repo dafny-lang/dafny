@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Vsix xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Version="1.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2010">
+
+  <Identifier Id="DafnyService.MicrosoftResearch.A38156F6-63DF-4E3C-8D23-07D3DE0D3388">
+    <Name>DafnyService</Name>
+    <Author>Microsoft Research</Author>
+    <Version>1.0</Version>
+    <Description>Information about my package</Description>
+    <Locale>1033</Locale>
+    <!--<InstalledByMSI>false</InstalledByMSI>-->
+    <SupportedProducts>
+      <VisualStudio Version="10.0">
+        <Edition>Pro</Edition>
+        <Edition>VST_All</Edition>
+      </VisualStudio>
+    </SupportedProducts>
+    <SupportedFrameworkRuntimeEdition MinVersion="2.0" MaxVersion="4.0" />
+  </Identifier>
+
+  <References/>
+
+  <Content>
+    <VsPackage>
+      DafnyService.pkgdef
+    </VsPackage>
+  </Content>
+</Vsix>
