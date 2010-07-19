@@ -14,7 +14,7 @@ namespace Demo
 
         IdentifierTerminal ident = new IdentifierTerminal("Identifier");
         this.MarkReservedWords(
-          "class", "ghost", "static", "var", "const", "method", "datatype",
+          "class", "ghost", "static", "var", "method", "datatype",
           "assert", "assume", "new", "this", "object", "refines", "replaces", "by",
           "unlimited", "module", "imports",
           "call", "if", "then", "else", "while", "invariant",
@@ -244,7 +244,6 @@ namespace Demo
                         | QualifiedName + ":=" + Rhs
 
                         | "var" + localVarStmt
-                        | "const" + localVarStmt
 
                         | "call" + identList + ":=" + FunctionExpression + Semi
                         | "call" + FunctionExpression + Semi
@@ -284,7 +283,6 @@ namespace Demo
           | "ghost"
           | "static"
           | "var"
-          | "const"
           | "method"
           | "datatype"
           | "assert"
