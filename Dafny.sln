@@ -1,24 +1,40 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{07C4E3D1-6B67-4060-8A92-940DB82041ED}") = "DafnyDriver", "DafnyDriver\DafnyDriver.sscproj", "{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}"
-EndProject
 Project("{07C4E3D1-6B67-4060-8A92-940DB82041ED}") = "Dafny", "Dafny\DafnyPipeline.sscproj", "{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver", "DafnyDriver\DafnyDriver.csproj", "{63400D1F-05B2-453E-9592-1EAB74B2C9CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|.NET = Debug|.NET
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
 		Release|.NET = Release|.NET
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Debug|.NET.ActiveCfg = Debug|.NET
-		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Debug|.NET.Build.0 = Debug|.NET
-		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Release|.NET.ActiveCfg = Release|.NET
-		{1F1E6F68-E9DF-4181-8CD3-E8C98637084D}.Release|.NET.Build.0 = Release|.NET
 		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|.NET.ActiveCfg = Debug|.NET
 		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|.NET.Build.0 = Debug|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|Any CPU.ActiveCfg = Debug|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|Mixed Platforms.ActiveCfg = Debug|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Debug|Mixed Platforms.Build.0 = Debug|.NET
 		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|.NET.ActiveCfg = Release|.NET
 		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|.NET.Build.0 = Release|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|Any CPU.ActiveCfg = Release|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|Mixed Platforms.ActiveCfg = Release|.NET
+		{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}.Release|Mixed Platforms.Build.0 = Release|.NET
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|.NET.ActiveCfg = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|.NET.ActiveCfg = Release|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
