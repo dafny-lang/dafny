@@ -1,124 +1,98 @@
-<?xml version="1.0" encoding="utf-8"?>
-<VisualStudioProject>
-  <XEN ProjectType="Local"
-     SchemaVersion="1.0"
-     Name="DafnyDriver"
-     ProjectGuid="1f1e6f68-e9df-4181-8cd3-e8c98637084d"
-    >
-    <Build>
-      <Settings ApplicationIcon=""
-         AssemblyName="Dafny"
-         OutputType="Exe"
-         RootNamespace="Dafny"
-         StartupObject=""
-         StandardLibraryLocation=""
-         TargetPlatform="v2"
-         TargetPlatformLocation=""
-        >
-        <Config Name="Debug"
-           AllowUnsafeBlocks="False"
-           BaseAddress="285212672"
-           CheckForOverflowUnderflow="False"
-           ConfigurationOverrideFile=""
-           DefineConstants="DEBUG;TRACE"
-           DocumentationFile=""
-           DebugSymbols="True"
-           FileAlignment="4096"
-           IncrementalBuild="True"
-           Optimize="False"
-           OutputPath="..\..\Binaries"
-           RegisterForComInterop="False"
-           RemoveIntegerChecks="false"
-           TreatWarningsAsErrors="False"
-           WarningLevel="4"
-           CheckContractAdmissibility="True"
-           CheckPurity="False"
-           />
-        <Config Name="Release"
-           AllowUnsafeBlocks="false"
-           BaseAddress="285212672"
-           CheckForOverflowUnderflow="false"
-           ConfigurationOverrideFile=""
-           DefineConstants="TRACE"
-           DocumentationFile=""
-           DebugSymbols="false"
-           FileAlignment="4096"
-           IncrementalBuild="false"
-           Optimize="true"
-           OutputPath="bin\release"
-           RegisterForComInterop="false"
-           RemoveIntegerChecks="false"
-           TreatWarningsAsErrors="false"
-           WarningLevel="4"
-           CheckContractAdmissibility="True"
-           CheckPurity="False"
-           />
-      </Settings>
-      <References>
-        <Reference Name="System"
-             AssemblyName="System"
-             Private="false"
-             />
-        <Reference Name="System.Data"
-             AssemblyName="System.Data"
-             Private="false"
-             />
-        <Reference Name="System.Xml"
-             AssemblyName="System.Xml"
-             Private="false"
-             />
-        <Reference Name="System.Compiler"
-             AssemblyName="System.Compiler"
-             Private="false"
-             HintPath="../../Binaries/System.Compiler.dll"
-             />
-        <Reference Name="Microsoft.SpecSharp"
-             AssemblyName="Microsoft.SpecSharp"
-             Private="false"
-             HintPath="../../Binaries/Microsoft.SpecSharp.dll"
-             />
-        <Reference Name="System.Compiler.Framework"
-             AssemblyName="System.Compiler.Framework"
-             Private="false"
-             HintPath="../../Binaries/System.Compiler.Framework.dll"
-             />
-        <Reference Name="AbsInt"
-             AssemblyName="AbsInt"
-             Private="false"
-             HintPath="../AbsInt/bin/Debug/AbsInt.dll"
-             />
-        <Reference Name="AIFramework"
-             AssemblyName="AIFramework"
-             Private="false"
-             HintPath="../AIFramework/bin/debug/AIFramework.dll"
-             />
-        <Reference Name="Core"
-             AssemblyName="Core"
-             Private="false"
-             HintPath="../Core/bin/Debug/Core.dll"
-             />
-        <Reference Name="VCGeneration"
-             AssemblyName="VCGeneration"
-             Private="false"
-             HintPath="../VCGeneration/bin/debug/VCGeneration.dll"
-             />
-        <Reference Name="Dafny"
-             Project="{DEAD83C6-1510-4AF9-8F7D-C837DDBB2632}"
-             Private="true"
-             />
-      </References>
-    </Build>
-    <Files>
-      <Include>
-        <File RelPath="DafnyDriver.ssc"
-                 SubType="Code"
-                 BuildAction="Compile"
-                 />
-        <File BuildAction="Compile"
-                 SubType="Code"
-                 RelPath="..\version.ssc"
-                 />
-      </Include>
-    </Files>
-  </XEN>
-</VisualStudioProject>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{63400D1F-05B2-453E-9592-1EAB74B2C9CC}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Dafny</RootNamespace>
+    <AssemblyName>Dafny</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <CodeContractsAssemblyMode>0</CodeContractsAssemblyMode>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\Binaries\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeContractsEnableRuntimeChecking>True</CodeContractsEnableRuntimeChecking>
+    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
+    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
+    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
+    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
+    <CodeContractsNonNullObligations>False</CodeContractsNonNullObligations>
+    <CodeContractsBoundsObligations>False</CodeContractsBoundsObligations>
+    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
+    <CodeContractsPointerObligations>False</CodeContractsPointerObligations>
+    <CodeContractsContainerAnalysis>False</CodeContractsContainerAnalysis>
+    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
+    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
+    <CodeContractsShowSquigglies>False</CodeContractsShowSquigglies>
+    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
+    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
+    <CodeContractsCustomRewriterAssembly>
+    </CodeContractsCustomRewriterAssembly>
+    <CodeContractsCustomRewriterClass>
+    </CodeContractsCustomRewriterClass>
+    <CodeContractsLibPaths>
+    </CodeContractsLibPaths>
+    <CodeContractsExtraRewriteOptions>
+    </CodeContractsExtraRewriteOptions>
+    <CodeContractsExtraAnalysisOptions>
+    </CodeContractsExtraAnalysisOptions>
+    <CodeContractsBaseLineFile>
+    </CodeContractsBaseLineFile>
+    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
+    <CodeContractsReferenceAssembly>%28none%29</CodeContractsReferenceAssembly>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AbsInt, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\AbsInt\bin\Debug\AbsInt.dll</HintPath>
+    </Reference>
+    <Reference Include="AIFramework, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL" />
+    <Reference Include="Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL" />
+    <Reference Include="DafnyPipeline, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Contracts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Binaries\Microsoft.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SpecSharp, Version=1.0.21125.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL" />
+    <Reference Include="System" />
+    <Reference Include="System.Compiler, Version=1.0.21125.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL" />
+    <Reference Include="System.Compiler.Runtime, Version=1.0.21125.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="VCGeneration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="cce.cs" />
+    <Compile Include="DafnyDriver.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

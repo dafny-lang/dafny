@@ -14,6 +14,7 @@ namespace Microsoft.Boogie
   using System.IO;
   using System.Collections;
   using System.Collections.Generic;
+  using System.Diagnostics.Contracts;
   using PureCollections;
   using Microsoft.Boogie;
   using Microsoft.Boogie.AbstractInterpretation;
@@ -34,9 +35,9 @@ namespace Microsoft.Boogie
     // ------------------------------------------------------------------------
     // Main
     
-    public static void Main (string[]! args) 
-    {
-      assert forall{int i in (0:args.Length); args[i] != null};
+    public static void Main (string[] args) 
+    {Contract.Requires(cce.NonNullElements(args));
+      //assert forall{int i in (0:args.Length); args[i] != null};
       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
       if (CommandLineOptions.Clo.Parse(args) != 1)
       {
@@ -61,8 +62,8 @@ namespace Microsoft.Boogie
       if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always) 
       {
         Console.WriteLine("---Command arguments");
-        foreach (string! arg in args) 
-        {
+        foreach (string arg in args) 
+        {Contract.Assert(arg != null);
           Console.WriteLine(arg);
         }
         Console.WriteLine("--------------------");
@@ -76,11 +77,11 @@ namespace Microsoft.Boogie
       // and then the types in it do not get unique representations.
       if (System.Type.GetType("Mono.Runtime") == null) {  // MONO
         Cci.AssemblyNode a = Microsoft.SpecSharp.Runtime.RuntimeAssembly;
-        assert a != null;
+        Contract.Assert( a != null);
       }
 
-      foreach (string! file in CommandLineOptions.Clo.Files) 
-      {
+      foreach (string file in CommandLineOptions.Clo.Files) 
+      {Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
         if (extension != ".dfy")
@@ -104,7 +105,7 @@ namespace Microsoft.Boogie
         }
     }
 
-    public static void ErrorWriteLine(string! s) {
+    public static void ErrorWriteLine(string s) {Contract.Requires(s != null);
       if (!s.Contains("Error: ") && !s.Contains("Error BP")) {
         Console.WriteLine(s);
         return;
@@ -131,20 +132,23 @@ namespace Microsoft.Boogie
       }
     }
 
-    public static void ErrorWriteLine(string! format, params object[] args) {
+    public static void ErrorWriteLine(string format, params object[] args) {
+      Contract.Requires(format != null);
       string s = string.Format(format, args);
       ErrorWriteLine(s);
     }
 
-    public static void AdvisoryWriteLine(string! format, params object[] args) {
+    public static void AdvisoryWriteLine(string format, params object[] args) {
+      Contract.Requires(format != null);
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Yellow;
       Console.WriteLine(format, args);
       Console.ForegroundColor = col;
     }
 
-    public static void SelectPlatform(CommandLineOptions! options)
+    public static void SelectPlatform(CommandLineOptions options)
     {
+      Contract.Requires(options != null);
       if (options.TargetPlatformLocation != null) {
         // Make sure static constructor runs before we start setting locations, etc.
         System.Compiler.SystemTypes.Clear();
@@ -165,9 +169,13 @@ namespace Microsoft.Boogie
       }
     }
   
-    static string! GetErrorLine(Cci.ErrorNode! node)
-        requires node.SourceContext.Document != null ==> node.SourceContext.Document.Name != null;
-    {
+    static string GetErrorLine(Cci.ErrorNode node)
+    {    Contract.Requires( node.SourceContext.Document == null || node.SourceContext.Document.Name != null);
+    
+    
+    Contract.Requires(node != null);
+    Contract.Ensures(Contract.Result<string>() != null);
+
       string message = node.GetMessage(System.Threading.Thread.CurrentThread.CurrentUICulture);
       string kind;
       if (message.Contains("(trace position)")) {
@@ -176,7 +184,7 @@ namespace Microsoft.Boogie
         kind = "Error";
       }
       if (node.SourceContext.Document != null) {
-        return string.Format("{0}({1},{2}): {3}: {4}", Path.GetFileName((!)node.SourceContext.Document.Name), node.SourceContext.StartLine, node.SourceContext.StartColumn, kind, message);
+        return string.Format("{0}({1},{2}): {3}: {4}", Path.GetFileName(cce.NonNull(node.SourceContext.Document.Name)), node.SourceContext.StartLine, node.SourceContext.StartColumn, kind, message);
       } else {
         return string.Format("{0}: {1}", kind, message);
       }
@@ -186,7 +194,13 @@ namespace Microsoft.Boogie
 
     class ErrorReporter
     {
-        public Cci.ErrorNodeList! errors = new Cci.ErrorNodeList();
+        public Cci.ErrorNodeList errors = new Cci.ErrorNodeList();
+      [ContractInvariantMethod]
+void ObjectInvariant() 
+{
+    Contract.Invariant(errors!=null);
+}
+
         public int errorsReported;
         
         public void ReportErrors()
@@ -201,8 +215,9 @@ namespace Microsoft.Boogie
         }
     }
 
-    static void ProcessFiles (List<string!>! fileNames)
+    static void ProcessFiles (List<string/*!*/>/*!*/ fileNames)
     {
+  Contract.Requires(cce.NonNullElements(fileNames));
       using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
         Dafny.Program dafnyProgram;
         string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
@@ -217,12 +232,12 @@ namespace Microsoft.Boogie
             PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false);
           }
 
-          string! bplFilename;
+          string bplFilename;
           if (CommandLineOptions.Clo.PrintFile != null) {
             bplFilename = CommandLineOptions.Clo.PrintFile;
           } else {
-            string baseName = (!)Path.GetFileName(fileNames[fileNames.Count-1]);
-            baseName = (!)Path.ChangeExtension(baseName, "bpl");
+            string baseName = cce.NonNull(Path.GetFileName(fileNames[fileNames.Count-1]));
+            baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
             bplFilename = Path.Combine(Path.GetTempPath(), baseName);
           }
 
@@ -258,8 +273,10 @@ namespace Microsoft.Boogie
     }
     
     
-    static void PrintBplFile (string! filename, Program! program, bool allowPrintDesugaring)
+    static void PrintBplFile (string filename, Program program, bool allowPrintDesugaring)
     {
+      Contract.Requires(filename != null);
+      Contract.Requires(program != null);
         bool oldPrintDesugaring = CommandLineOptions.Clo.PrintDesugarings;
         if (!allowPrintDesugaring) {
           CommandLineOptions.Clo.PrintDesugarings = false;
@@ -277,11 +294,12 @@ namespace Microsoft.Boogie
     }
     
     
-    static bool ProgramHasDebugInfo (Program! program)
+    static bool ProgramHasDebugInfo (Program program)
     {
+      Contract.Requires(program != null);
         // We inspect the last declaration because the first comes from the prelude and therefore always has source context.
         return program.TopLevelDeclarations.Count > 0 && 
-            ((!)program.TopLevelDeclarations[program.TopLevelDeclarations.Count - 1]).tok.IsValid;
+            cce.NonNull(program.TopLevelDeclarations[program.TopLevelDeclarations.Count - 1]).tok.IsValid;
     }
     
     
@@ -294,9 +312,8 @@ namespace Microsoft.Boogie
       Console.WriteLine(s);
     }
 
-    static void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories)
-      requires 0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories;
-    {
+    static void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories){
+      Contract.Requires( 0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories);
       Console.WriteLine();
       Console.Write("{0} finished with {1} verified, {2} error{3}", CommandLineOptions.Clo.ToolName, verified, errors, errors == 1 ? "" : "s");
       if (inconclusives != 0) {
@@ -314,8 +331,9 @@ namespace Microsoft.Boogie
 
     
 
-    static void ReportBplError(Absy! node, string! message, bool error)
+    static void ReportBplError(Absy node, string message, bool error)
     {
+      Contract.Requires(node!= null);Contract.Requires(message != null);
       IToken tok = node.tok;
       string s;
       if (tok == null) {
@@ -348,8 +366,9 @@ namespace Microsoft.Boogie
     /// Parse the given files into one Boogie program.  If an I/O or parse error occurs, an error will be printed
     /// and null will be returned.  On success, a non-null program is returned.
     /// </summary>
-    static Program ParseBoogieProgram(List<string!>! fileNames, bool suppressTraceOutput)
+    static Program ParseBoogieProgram(List<string/*!*/>/*!*/ fileNames, bool suppressTraceOutput)
     {
+      Contract.Requires(cce.NonNullElements(fileNames));
       //BoogiePL.Errors.count = 0;
       Program program = null;
       bool okay = true;
@@ -400,11 +419,14 @@ namespace Microsoft.Boogie
     /// The method prints errors for resolution and type checking errors, but still returns
     /// their error code.
     /// </summary>
-    static PipelineOutcome BoogiePipelineWithRerun (Program! program, string! bplFileName,
+    static PipelineOutcome BoogiePipelineWithRerun (Program/*!*/ program, string/*!*/ bplFileName,
         ErrorReporter errorReporter,
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
-      ensures 0 <= inconclusives && 0 <= timeOuts;
-    {
+    {Contract.Requires(program != null);
+    Contract.Requires(cce.NonNullElements(bplFileName));
+      Contract.Ensures( 0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
+    
+      
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
       PipelineOutcome oc = ResolveAndTypecheck(program, bplFileName);
       switch (oc) {
@@ -418,8 +440,8 @@ namespace Microsoft.Boogie
             Console.WriteLine();
             Console.WriteLine("*** Encountered internal translation error - re-running Boogie to get better debug information");
             Console.WriteLine();
-            
-            List<string!>! fileNames = new List<string!> ();
+
+            List<string/*!*/>/*!*/ fileNames = new List<string/*!*/>();
             fileNames.Add(bplFileName);
             Program reparsedProgram = ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
@@ -432,7 +454,7 @@ namespace Microsoft.Boogie
           return InferAndVerify(program, errorReporter, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
           
         default:
-          assert false;  // unexpected outcome
+          Contract.Assert(false);throw new cce.UnreachableException();  // unexpected outcome
       }
     }
 
@@ -447,8 +469,10 @@ namespace Microsoft.Boogie
     ///  - TypeCheckingError if a type checking error occurred
     ///  - ResolvedAndTypeChecked if both resolution and type checking succeeded
     /// </summary>
-    static PipelineOutcome ResolveAndTypecheck (Program! program, string! bplFileName)
+    static PipelineOutcome ResolveAndTypecheck (Program program, string bplFileName)
     {
+      Contract.Requires(program != null);
+      Contract.Requires(bplFileName != null);
       // ---------- Resolve ------------------------------------------------------------
 
       if (CommandLineOptions.Clo.NoResolve) { return PipelineOutcome.Done; }
@@ -486,11 +510,12 @@ namespace Microsoft.Boogie
     ///  - VerificationCompleted if inference and verification completed, in which the out
     ///    parameters contain meaningful values
     /// </summary>
-    static PipelineOutcome InferAndVerify (Program! program,
+    static PipelineOutcome InferAndVerify (Program program,
                                            ErrorReporter errorReporter,
                                            out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
-      ensures 0 <= inconclusives && 0 <= timeOuts;
-    {
+    {Contract.Requires(program != null);
+      Contract.Ensures( 0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
+    
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
   
       // ---------- Infer invariants --------------------------------------------------------
@@ -541,11 +566,11 @@ namespace Microsoft.Boogie
         return PipelineOutcome.FatalError;
       }
       
-      foreach ( Declaration! decl in program.TopLevelDeclarations )
-      {
+      foreach ( Declaration decl in program.TopLevelDeclarations )
+      {Contract.Assert(decl != null);
         Implementation impl = decl as Implementation;
-        if (impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine((!)impl.Name) && !impl.SkipVerification) {
-          List<Counterexample!>? errors;
+        if (impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine(cce.NonNull(impl.Name)) && !impl.SkipVerification) {
+          List<Counterexample>/*?*/ errors;
 
           DateTime start = new DateTime();  // to please compiler's definite assignment rules
           if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.XmlSink != null) {
@@ -577,7 +602,7 @@ namespace Microsoft.Boogie
             outcome = VCGen.Outcome.Inconclusive;
           }
 
-          string! timeIndication = "";
+          string timeIndication = "";
           DateTime end = DateTime.Now;
           TimeSpan elapsed = end - start;
           if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.XmlSink != null) {
@@ -589,7 +614,7 @@ namespace Microsoft.Boogie
 
           switch (outcome) {
             default:
-              assert false;  // unexpected outcome
+              Contract.Assert(false);throw new cce.UnreachableException();  // unexpected outcome
             case VCGen.Outcome.Correct:
               Inform(String.Format("{0}verified", timeIndication));
               verified++;
@@ -607,7 +632,7 @@ namespace Microsoft.Boogie
               Inform(String.Format("{0}inconclusive", timeIndication));
               break;
             case VCGen.Outcome.Errors:
-              assert errors != null;  // guaranteed by postcondition of VerifyImplementation
+              Contract.Assert( errors != null);  // guaranteed by postcondition of VerifyImplementation
               if (errorReporter != null)
               {
 //                assert translatedProgram != null;
@@ -629,7 +654,7 @@ namespace Microsoft.Boogie
                 {
                   if (error is CallCounterexample)
                   {
-                    CallCounterexample! err = (CallCounterexample) error;
+                    CallCounterexample err = (CallCounterexample) error;
                     ReportBplError(err.FailingCall, "Error BP5002: A precondition for this call might not hold.", true);
                     ReportBplError(err.FailingRequires, "Related location: This is the precondition that might not hold.", false);
                     if (CommandLineOptions.Clo.XmlSink != null) {
@@ -638,7 +663,7 @@ namespace Microsoft.Boogie
                   }
                   else if (error is ReturnCounterexample)
                   {
-                    ReturnCounterexample! err = (ReturnCounterexample) error;
+                    ReturnCounterexample err = (ReturnCounterexample) error;
                     ReportBplError(err.FailingReturn, "Error BP5003: A postcondition might not hold at this return statement.", true);
                     ReportBplError(err.FailingEnsures, "Related location: This is the postcondition that might not hold.", false);
                     if (CommandLineOptions.Clo.XmlSink != null) {
@@ -647,7 +672,7 @@ namespace Microsoft.Boogie
                   }
                   else // error is AssertCounterexample
                   {
-                    AssertCounterexample! err = (AssertCounterexample) error;
+                    AssertCounterexample err = (AssertCounterexample) error;
                     if (err.FailingAssert is LoopInitAssertCmd) {
                       ReportBplError(err.FailingAssert, "Error BP5004: This loop invariant might not hold on entry.", true);
                       if (CommandLineOptions.Clo.XmlSink != null) {
@@ -672,13 +697,14 @@ namespace Microsoft.Boogie
                     }
                   }
                   if (CommandLineOptions.Clo.EnhancedErrorMessages == 1) { 
-                    foreach (string! info in error.relatedInformation) {
+                    foreach (string info in error.relatedInformation) {Contract.Assert(info != null);
                       Console.WriteLine("       " + info);
                     } 
                   }
                   if (CommandLineOptions.Clo.ErrorTrace > 0) {
                     Console.WriteLine("Execution trace:");
-                    foreach (Block! b in error.Trace) {
+                    foreach (Block b in error.Trace) {
+                      Contract.Assert(b != null);
                       if (b.tok == null) {
                         Console.WriteLine("    <intermediate block>");
                       } else {
@@ -706,7 +732,7 @@ namespace Microsoft.Boogie
         }
       }
       vcgen.Close();
-      ((!)CommandLineOptions.Clo.TheProverFactory).Close();
+      cce.NonNull(CommandLineOptions.Clo.TheProverFactory).Close();
 
       #endregion
       
