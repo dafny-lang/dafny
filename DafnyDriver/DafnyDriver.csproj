@@ -13,6 +13,8 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <CodeContractsAssemblyMode>0</CodeContractsAssemblyMode>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\InterimKey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -91,6 +93,7 @@
   <ItemGroup>
     <Compile Include="cce.cs" />
     <Compile Include="DafnyDriver.cs" />
+    <Compile Include="..\version.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.sscproj">
