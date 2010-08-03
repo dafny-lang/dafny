@@ -6,18 +6,26 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using Microsoft.Contracts;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   class Printer {
-    TextWriter! wr;
-    public Printer(TextWriter! wr) {
+    TextWriter wr;
+    [ContractInvariantMethod]
+void ObjectInvariant() 
+{
+    Contract.Invariant(wr!=null);
+}
+
+    public Printer(TextWriter wr) {
+      Contract.Requires(wr != null);
       this.wr = wr;
     }
     
-    public void PrintProgram(Program! prog) {
+    public void PrintProgram(Program prog) {
+      Contract.Requires(prog != null);
       if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
@@ -49,9 +57,11 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintTopLevelDecls(List<TopLevelDecl!>! classes, int indent) {
+    public void PrintTopLevelDecls(List<TopLevelDecl> classes, int indent) {
+      Contract.Requires(classes!= null);
       int i = 0;
       foreach (TopLevelDecl d in classes) {
+        Contract.Assert(d != null);
         if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
           PrintDatatype((DatatypeDecl)d, indent);
@@ -70,7 +80,8 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintClass(ClassDecl! c, int indent) {      
+    public void PrintClass(ClassDecl c, int indent) {
+      Contract.Requires(c != null);
       Indent(indent);
       PrintClassMethodHelper("class", c.Attributes, c.Name, c.TypeArgs);
       if (c is ClassRefinementDecl) {
@@ -87,9 +98,11 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintClass_Members(ClassDecl! c, int indent)
-      requires c.Members.Count != 0;
+    public void PrintClass_Members(ClassDecl c, int indent)
     {
+      Contract.Requires(c != null);
+      Contract.Requires( c.Members.Count != 0);
+    
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in c.Members) {
         if (m is Method) {
@@ -107,14 +120,17 @@ namespace Microsoft.Dafny {
         } else if (m is CouplingInvariant) {
           wr.WriteLine();
           PrintCouplingInvariant((CouplingInvariant)m, indent);
-          state = 2;    
+          state = 2;
         } else {
-          assert false;  // unexpected member
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
     }
     
-    void PrintClassMethodHelper(string! kind, Attributes attrs, string! name, List<TypeParameter!>! typeArgs) {
+    void PrintClassMethodHelper(string kind, Attributes attrs, string name, List<TypeParameter> typeArgs) {
+      Contract.Requires(kind != null);
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
       if (kind.Length != 0) {
         wr.Write("{0} ", kind);
       }
@@ -124,6 +140,7 @@ namespace Microsoft.Dafny {
         wr.Write("<");
         string sep = "";
         foreach (TypeParameter tp in typeArgs) {
+          Contract.Assert(tp != null);
           wr.Write("{0}{1}", sep, tp.Name);
           sep = ", ";
         }
@@ -131,7 +148,8 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintDatatype(DatatypeDecl! dt, int indent) {
+    public void PrintDatatype(DatatypeDecl dt, int indent) {
+      Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
       if (dt.Ctors.Count == 0) {
@@ -156,21 +174,24 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintAttributeArgs(List<Attributes.Argument!>! args) {
+    public void PrintAttributeArgs(List<Attributes.Argument> args) {
+      Contract.Requires(args != null);
       string prefix = " ";
       foreach (Attributes.Argument arg in args) {
+        Contract.Assert(arg != null);
         wr.Write(prefix);
         prefix = ", ";
         if (arg.S != null) {
           wr.Write("\"{0}\"", arg.S);
         } else {
-          assert arg.E != null;
+          Contract.Assert( arg.E != null);
           PrintExpression(arg.E);
         }
       }
     }
     
-    public void PrintField(Field! field, int indent) {
+    public void PrintField(Field field, int indent) {
+      Contract.Requires(field != null);
       Indent(indent);
       if (field.IsGhost) {
         wr.Write("ghost ");
@@ -182,7 +203,8 @@ namespace Microsoft.Dafny {
       wr.WriteLine(";");
     }
     
-    public void PrintCouplingInvariant(CouplingInvariant! inv, int indent) {
+    public void PrintCouplingInvariant(CouplingInvariant inv, int indent) {
+      Contract.Requires(inv != null);
       Indent(indent);
       wr.Write("replaces");
       string sep = " ";
@@ -193,10 +215,11 @@ namespace Microsoft.Dafny {
       }
       wr.Write(" by ");
       PrintExpression(inv.Expr);
-      wr.WriteLine(";");      
+      wr.WriteLine(";");
     }
     
-    public void PrintFunction(Function! f, int indent) {
+    public void PrintFunction(Function f, int indent) {
+      Contract.Requires(f != null);
       Indent(indent);
       string k = "function";
       if (f.IsUnlimited) { k = "unlimited " + k; }
@@ -221,7 +244,8 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintCtor(DatatypeCtor! ctor, int indent) {
+    public void PrintCtor(DatatypeCtor ctor, int indent) {
+      Contract.Requires(ctor != null);
       Indent(indent);
       PrintClassMethodHelper("", ctor.Attributes, ctor.Name, ctor.TypeArgs);
       if (ctor.Formals.Count != 0) {
@@ -233,17 +257,18 @@ namespace Microsoft.Dafny {
     // ----------------------------- PrintMethod -----------------------------
 
     const int IndentAmount = 2;
-    const string! BunchaSpaces = "                                ";
+    const string BunchaSpaces = "                                ";
     void Indent(int amount)
-      requires 0 <= amount;
-    {
+    {  Contract.Requires( 0 <= amount);
+    
       while (0 < amount) {
         wr.Write(BunchaSpaces.Substring(0, amount));
         amount -= BunchaSpaces.Length;
       }
     }
     
-    public void PrintMethod(Method! method, int indent) {      
+    public void PrintMethod(Method method, int indent) {
+      Contract.Requires(method != null);
       Indent(indent);
       string k = method is MethodRefinement ? "refines" : "method";
       if (method.IsStatic) { k = "static " + k; }
@@ -262,7 +287,7 @@ namespace Microsoft.Dafny {
       }
       wr.WriteLine(method.Body == null ? ";" : "");
 
-      int ind = indent + IndentAmount;      
+      int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
       PrintFrameSpecLine("modifies", method.Mod, ind);
       PrintSpec("ensures", method.Ens, ind);
@@ -275,10 +300,12 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void PrintFormals(List<Formal!>! ff) {
+    void PrintFormals(List<Formal> ff) {
+      Contract.Requires(ff!=null);
       wr.Write("(");
       string sep = "";
       foreach (Formal f in ff) {
+        Contract.Assert(f != null);
         wr.Write(sep);
         sep = ", ";
         PrintFormal(f);
@@ -286,7 +313,8 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
     
-    void PrintFormal(Formal! f) {
+    void PrintFormal(Formal f) {
+      Contract.Requires(f != null);
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
@@ -296,8 +324,11 @@ namespace Microsoft.Dafny {
       PrintType(f.Type);
     }
     
-    void PrintSpec(string! kind, List<Expression!>! ee, int indent) {
+    void PrintSpec(string kind, List<Expression> ee, int indent) {
+      Contract.Requires(kind != null);
+      Contract.Requires(ee != null);
       foreach (Expression e in ee) {
+        Contract.Assert(e != null);
         Indent(indent);
         wr.Write("{0} ", kind);
         PrintExpression(e);
@@ -305,7 +336,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintSpecLine(string! kind, List<Expression!>! ee, int indent) {
+    void PrintSpecLine(string kind, List<Expression/*!*/>/*!*/ ee, int indent) {
+      Contract.Requires(ee != null);
+      Contract.Requires(kind!=null);
       if (ee.Count != 0) {
         Indent(indent);
         wr.Write("{0} ", kind);
@@ -314,7 +347,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintFrameSpecLine(string! kind, List<FrameExpression!>! ee, int indent) {
+    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/>/*!*/ ee, int indent) {
+      Contract.Requires(kind != null);
+      Contract.Requires(cce.NonNullElements(ee));
       if (ee.Count != 0) {
         Indent(indent);
         wr.Write("{0} ", kind);
@@ -323,8 +358,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintSpec(string! kind, List<MaybeFreeExpression!>! ee, int indent) {
+    void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent) {
+      Contract.Requires(kind != null);
+      Contract.Requires(ee != null);
       foreach (MaybeFreeExpression e in ee) {
+        Contract.Assert(e != null);
         Indent(indent);
         wr.Write("{0}{1} ", e.IsFree ? "free " : "", kind);
         PrintExpression(e.E);
@@ -334,11 +372,14 @@ namespace Microsoft.Dafny {
 
     // ----------------------------- PrintType -----------------------------
     
-    public void PrintType(Type! ty) {
+    public void PrintType(Type ty) {
+      Contract.Requires(ty != null);
       wr.Write(ty.ToString());
     }
 
-    public void PrintType(string! prefix, Type! ty) {
+    public void PrintType(string prefix, Type ty) {
+      Contract.Requires(prefix != null);
+      Contract.Requires(ty != null);
       string s = ty.ToString();
       if (s != "?") {
         wr.Write("{0}{1}", prefix, s);
@@ -352,7 +393,8 @@ namespace Microsoft.Dafny {
     /// If the statement requires several lines, subsequent lines are indented at "indent".
     /// No newline is printed after the statement.
     /// </summary>
-    public void PrintStatement(Statement! stmt, int indent) {
+    public void PrintStatement(Statement stmt, int indent) {
+      Contract.Requires(stmt != null);
       if (stmt is AssertStmt) {
         wr.Write("assert ");
         PrintExpression(((AssertStmt)stmt).Expr);
@@ -524,11 +566,12 @@ namespace Microsoft.Dafny {
         wr.WriteLine("}");
         
       } else {
-        assert false;  // unexpected statement
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
     
-    void PrintDeterminedRhs(DeterminedAssignmentRhs! rhs) {
+    void PrintDeterminedRhs(DeterminedAssignmentRhs rhs) {
+      Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
         PrintExpression(((ExprRhs)rhs).Expr);
       } else if (rhs is TypeRhs) {
@@ -541,7 +584,7 @@ namespace Microsoft.Dafny {
           wr.Write("]");
         }
       } else {
-        assert false;  // unexpected RHS
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
       }
     }
     
@@ -555,7 +598,8 @@ namespace Microsoft.Dafny {
     
     // ----------------------------- PrintExpression -----------------------------
 
-    public void PrintExtendedExpr(Expression! expr, int indent) {
+    public void PrintExtendedExpr(Expression expr, int indent) {
+      Contract.Requires(expr != null);
       Indent(indent);
       if (expr is ITEExpr) {
         while (true) {
@@ -599,23 +643,27 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void PrintExpression(Expression! expr) {
+    public void PrintExpression(Expression expr) {
+      Contract.Requires(expr != null);
       PrintExpr(expr, 0, false, -1);
     }
     
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    public void PrintExpression(Expression! expr, int indent) {
+    public void PrintExpression(Expression expr, int indent) {
+      Contract.Requires(expr != null);
       PrintExpr(expr, 0, false, indent);
     }
     
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    void PrintExpr(Expression! expr, int contextBindingStrength, bool fragileContext, int indent)
-      requires -1 <= indent;
+    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, int indent)
     {
+      Contract.Requires( -1 <= indent);
+    
+    Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
@@ -674,7 +722,7 @@ namespace Microsoft.Dafny {
         PrintExpr(e.Seq, 0x00, false, indent);  // BOGUS: fix me
         wr.Write("[");
         if (e.SelectOne) {
-          assert e.E0 != null;
+          Contract.Assert( e.E0 != null);
           PrintExpression(e.E0);
         } else {
           if (e.E0 != null) {
@@ -748,7 +796,7 @@ namespace Microsoft.Dafny {
             case UnaryExpr.Opcode.Not:
               op = "!";  opBindingStrength = 0x60;  break;
             default:
-              assert false;  // unexpected unary opcode
+              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
           }
           bool parensNeeded = opBindingStrength < contextBindingStrength ||
             (fragileContext && opBindingStrength == contextBindingStrength);
@@ -795,7 +843,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Iff:
             opBindingStrength = 0x08; break;
           default:
-            assert false;  // unexpected binary operator
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary operator
         }
         int opBS = opBindingStrength & 0xF8;
         int ctxtBS = contextBindingStrength & 0xF8;
@@ -864,9 +912,9 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
         
       } else if (expr is MatchExpr) {
-        assert false;  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr
+        Contract.Assert(false); throw new cce.UnreachableException();  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr
       } else {
-        assert false;  // unexpected expression
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
     
@@ -880,18 +928,22 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void PrintExpressionList(List<Expression!>! exprs) {
+    void PrintExpressionList(List<Expression> exprs) {
+      Contract.Requires(exprs != null);
       string sep = "";
       foreach (Expression e in exprs) {
+        Contract.Assert(e != null);
         wr.Write(sep);
         sep = ", ";
         PrintExpression(e);
       }
     }
-    
-    void PrintFrameExpressionList(List<FrameExpression!>! fexprs) {
+
+    void PrintFrameExpressionList(List<FrameExpression/*!*/>/*!*/ fexprs) {
+      Contract.Requires(fexprs != null);
       string sep = "";
       foreach (FrameExpression fe in fexprs) {
+        Contract.Assert(fe != null);
         wr.Write(sep);
         sep = ", ";
         PrintExpression(fe.E);

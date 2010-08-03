@@ -6,7 +6,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using Microsoft.Contracts;
+using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -14,12 +14,15 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(List<string!>! fileNames, string! programName, out Program program)
-      modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
+    public static string ParseCheck(List<string/*!*/>/*!*/ fileNames, string/*!*/ programName, out Program program)
+      //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
+      Contract.Requires(programName != null);
+      Contract.Requires(fileNames != null);
       program = null;
-      List<ModuleDecl!> modules = new List<ModuleDecl!>();
-      foreach (string! dafnyFileName in fileNames){
+      List<ModuleDecl> modules = new List<ModuleDecl>();
+      foreach (string dafnyFileName in fileNames){
+        Contract.Assert(dafnyFileName != null);
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFileName);
         }

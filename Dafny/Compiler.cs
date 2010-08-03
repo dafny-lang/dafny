@@ -7,20 +7,27 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.IO;
-using Microsoft.Contracts;
+using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 
 namespace Microsoft.Dafny {
   public class Compiler {
-    public Compiler(TextWriter! wr) {
+    public Compiler(TextWriter wr) {
+      Contract.Requires(wr != null);
       this.wr = wr;
     }
 
-    TextWriter! wr;
+    [ContractInvariantMethod]
+void ObjectInvariant() 
+{
+    Contract.Invariant(wr!=null);
+}
+
+    TextWriter wr;
     
     public int ErrorCount;
-    void Error(string! msg, params object[] args) {
+    void Error(string msg, params object[] args) {Contract.Requires(msg != null);
       string s = string.Format("Compilation error: " + msg, args);
       Console.WriteLine(s);
       wr.WriteLine("/* {0} */", s);
@@ -28,8 +35,8 @@ namespace Microsoft.Dafny {
     }
     
     void ReadRuntimeSystem() {
-      string! codebase = (!) System.IO.Path.GetDirectoryName((!)System.Reflection.Assembly.GetExecutingAssembly().Location);
-      string! path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
+      string codebase = cce.NonNull( System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
+      string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
       using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read)))
       {
         while (true) {
@@ -50,7 +57,7 @@ namespace Microsoft.Dafny {
       wr.Write(spaces.Substring(0, ind));
     }
 
-    public void Compile(Program! program) {
+    public void Compile(Program program) {Contract.Requires(program != null);
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine();
       ReadRuntimeSystem();
@@ -91,8 +98,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileDatatypeConstructors(DatatypeDecl! dt, int indent)
-    {
+    void CompileDatatypeConstructors(DatatypeDecl dt, int indent)
+    {Contract.Requires(dt != null);
       foreach (DatatypeCtor ctor in dt.Ctors) {
         // class Dt_Ctor<T,U> : Base_Dt<T> {
         //   Fields;
@@ -148,7 +155,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void CompileDatatypeStruct(DatatypeDecl! dt, int indent) {
+    void CompileDatatypeStruct(DatatypeDecl dt, int indent) {Contract.Requires(dt != null);
       // public struct Dt<T> {
       //   Base_Dt<T> d;
       //   public Base_Dt<T> D {
@@ -188,7 +195,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("public static Base_{0} Default {{", DtT);
       Indent(ind + IndentAmount);
       wr.Write("get { return ");
-      wr.Write("new {0}", DtCtorName((!)dt.DefaultCtor));
+      wr.Write("new {0}", DtCtorName(cce.NonNull(dt.DefaultCtor)));
       // todo: type parameters
       wr.Write("(");
       string sep = "";
@@ -214,8 +221,9 @@ namespace Microsoft.Dafny {
       wr.WriteLine("}");
     }
     
-    void WriteFormals(List<Formal!>! formals)
+    void WriteFormals(List<Formal/*!*/>/*!*/ formals)
     {
+      Contract.Requires(cce.NonNullElements(formals));
       int i = 0;
       string sep = "";
       foreach (Formal arg in formals) {
@@ -228,16 +236,19 @@ namespace Microsoft.Dafny {
       }
     }
     
-    string! FormalName(Formal! formal, int i) {
+    string FormalName(Formal formal, int i) {Contract.Requires(formal != null);Contract.Ensures(Contract.Result<string>() != null);
+
       return formal.Name.StartsWith("#") ? "a" + i : formal.Name;
     }
     
-    string! DtCtorName(DatatypeCtor! ctor) {
-      return ((!)ctor.EnclosingDatatype).Name + "_" + ctor.Name;
+    string DtCtorName(DatatypeCtor ctor) {Contract.Requires(ctor != null);Contract.Ensures(Contract.Result<string>() != null);
+
+      return cce.NonNull(ctor.EnclosingDatatype).Name + "_" + ctor.Name;
     }
         
-    void CompileClassMembers(ClassDecl! c, int indent)
+    void CompileClassMembers(ClassDecl c, int indent)
     {
+      Contract.Requires(c != null);
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
           Field f = (Field)member;
@@ -277,13 +288,13 @@ namespace Microsoft.Dafny {
               string source = "_source" + tmpVarCount;
               tmpVarCount++;
               Indent(indent);
-              wr.Write("{0} {1} = ", TypeName((!)me.Source.Type), source);
+              wr.Write("{0} {1} = ", TypeName(cce.NonNull(me.Source.Type)), source);
               TrExpr(me.Source);
               wr.WriteLine(";");
 
               int i = 0;
               foreach (MatchCaseExpr mc in me.Cases) {
-                MatchCasePrelude(source, (!)mc.Ctor, mc.Arguments, i, me.Cases.Count, indent + IndentAmount);
+                MatchCasePrelude(source, cce.NonNull(mc.Ctor), mc.Arguments, i, me.Cases.Count, indent + IndentAmount);
                 
                 Indent(indent + 2*IndentAmount);
                 wr.Write("return ");
@@ -336,7 +347,7 @@ namespace Microsoft.Dafny {
             if (m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0) {
               Indent(indent);
               wr.WriteLine("public static void Main(string[] args) {");
-              ClassDecl cl = (!)m.EnclosingClass;
+              ClassDecl cl = cce.NonNull(m.EnclosingClass);
               Indent(indent + IndentAmount);
               wr.Write("{0} b = new {0}", cl.Name);
               if (cl.TypeArgs.Count != 0) {
@@ -356,18 +367,21 @@ namespace Microsoft.Dafny {
           }
 
         } else {
-          assert false;  // unexpected member
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
     }
     
     // ----- Type ---------------------------------------------------------------------------------
     
-    readonly string! DafnySetClass = "Dafny.Set";
-    readonly string! DafnySeqClass = "Dafny.Sequence";
+    readonly string DafnySetClass = "Dafny.Set";
+    readonly string DafnySeqClass = "Dafny.Sequence";
     
-    string! TypeName(Type! type)
+    string TypeName(Type type)
     {
+      Contract.Requires(type != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
       while (true) {
         TypeProxy tp = type as TypeProxy;
         if (tp == null) {
@@ -393,7 +407,7 @@ namespace Microsoft.Dafny {
         UserDefinedType udt = (UserDefinedType)type;
         string s = udt.Name;
         if (udt.TypeArgs.Count != 0) {
-          if (exists{Type argType in udt.TypeArgs; argType is ObjectType}) {
+          if (Contract.Exists(udt.TypeArgs, argType =>argType is ObjectType)) {
             Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
           }
           s += "<" + TypeNames(udt.TypeArgs) + ">";
@@ -412,11 +426,14 @@ namespace Microsoft.Dafny {
         }
         return DafnySeqClass + "<" + TypeName(argType) + ">";
       } else {
-        assert false;  // unexpected type
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
-    string! TypeNames(List<Type!>! types) {
+    string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types) {
+      Contract.Requires(cce.NonNullElements(types));
+      Contract.Ensures(Contract.Result<string>() != null);
+
       string s = "";
       string sep = "";
       foreach (Type t in types) {
@@ -426,7 +443,10 @@ namespace Microsoft.Dafny {
       return s;
     }
     
-    string! TypeParameters(List<TypeParameter!>! targs) {
+    string/*!*/ TypeParameters(List<TypeParameter/*!*/>/*!*/ targs) {
+      Contract.Requires(cce.NonNullElements(targs));
+      Contract.Ensures(Contract.Result<string>() != null);
+
       string s = "";
       string sep = "";
       foreach (TypeParameter tp in targs) {
@@ -436,8 +456,11 @@ namespace Microsoft.Dafny {
       return s;
     }
     
-    string! DefaultValue(Type! type)
+    string DefaultValue(Type type)
     {
+      Contract.Requires(type != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
       while (true) {
         TypeProxy tp = type as TypeProxy;
         if (tp == null) {
@@ -471,14 +494,15 @@ namespace Microsoft.Dafny {
       } else if (type is SeqType) {
         return DafnySeqClass + "<" + TypeName(((SeqType)type).Arg) + ">.Empty";
       } else {
-        assert false;  // unexpected type
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
     
     // ----- Stmt ---------------------------------------------------------------------------------
     
-    void TrStmt(Statement! stmt, int indent)
+    void TrStmt(Statement stmt, int indent)
     {
+      Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
         return;
       }
@@ -491,7 +515,7 @@ namespace Microsoft.Dafny {
           if (arg.S != null) {
             wr.Write("\"{0}\"", arg.S);
           } else {
-            assert arg.E != null;
+            Contract.Assert( arg.E != null);
             TrExpr(arg.E);
           }
           wr.WriteLine(");");
@@ -526,7 +550,7 @@ namespace Microsoft.Dafny {
           string rhs = "_rhs" + tmpVarCount;
           string i = "_i" + tmpVarCount;
           tmpVarCount++;
-          Indent(indent);  wr.Write("{0} {1} = ", TypeName((!)sel.Seq.Type), arr);  TrExpr(sel.Seq);  wr.WriteLine(";");
+          Indent(indent);  wr.Write("{0} {1} = ", TypeName(cce.NonNull(sel.Seq.Type)), arr);  TrExpr(sel.Seq);  wr.WriteLine(";");
           Indent(indent);  wr.Write("int {0} = ", low);
           if (sel.E0 == null) {
             wr.Write("0");
@@ -541,7 +565,7 @@ namespace Microsoft.Dafny {
             TrExpr(sel.E1);
           }
           wr.WriteLine(";");
-          Indent(indent);  wr.Write("{0} {1} = ", TypeName((!)sel.Type), rhs);  TrAssignmentRhs(s.Rhs);  wr.WriteLine(";");
+          Indent(indent);  wr.Write("{0} {1} = ", TypeName(cce.NonNull(sel.Type)), rhs);  TrAssignmentRhs(s.Rhs);  wr.WriteLine(";");
           Indent(indent);
           wr.WriteLine("for (BigInteger {0} = {1}; {0} < {2}; {0}++) {{", i, low, high);
           Indent(indent + IndentAmount);
@@ -569,10 +593,10 @@ namespace Microsoft.Dafny {
           TrVarDecl(local, false, indent);
         }
 
-        assert s.Method != null;  // follows from the fact that stmt has been successfully resolved
+        Contract.Assert( s.Method != null);  // follows from the fact that stmt has been successfully resolved
         Indent(indent);
         if (s.Method.IsStatic) {
-          wr.Write(TypeName((!)s.Receiver.Type));
+          wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
         } else {
           TrParenExpr(s.Receiver);
         }
@@ -649,7 +673,7 @@ namespace Microsoft.Dafny {
         string pr = "_pair" + tmpVarCount;
         tmpVarCount++;
         string TType = TypeName(s.BoundVar.Type);
-        string RhsType = TypeName((!)s.BodyAssign.Lhs.Type);
+        string RhsType = TypeName(cce.NonNull(s.BodyAssign.Lhs.Type));
         
         Indent(indent);
         wr.WriteLine("List<Pair<{0},{1}>> {2} = new List<Pair<{0},{1}>>();", TType, RhsType, pu);
@@ -702,28 +726,27 @@ namespace Microsoft.Dafny {
         string source = "_source" + tmpVarCount;
         tmpVarCount++;
         Indent(indent);
-        wr.Write("{0} {1} = ", TypeName((!)s.Source.Type), source);
+        wr.Write("{0} {1} = ", TypeName(cce.NonNull(s.Source.Type)), source);
         TrExpr(s.Source);
         wr.WriteLine(";");
         
         int i = 0;
         foreach (MatchCaseStmt mc in s.Cases) {
-          MatchCasePrelude(source, (!)mc.Ctor, mc.Arguments, i, s.Cases.Count, indent);
+          MatchCasePrelude(source, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, indent);
           TrStmtList(mc.Body, indent);
           i++;
         }
         Indent(indent);  wr.WriteLine("}");
 
       } else {
-        assert false;  // unexpected statement
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
     
     int tmpVarCount = 0;
     
-    void TrAssignmentRhs(AssignmentRhs! rhs)
-      requires !(rhs is HavocRhs);
-    {
+    void TrAssignmentRhs(AssignmentRhs rhs){Contract.Requires(rhs != null);
+      Contract.Requires( !(rhs is HavocRhs));
       if (rhs is ExprRhs) {
         ExprRhs e = (ExprRhs)rhs;
         TrExpr(e.Expr);
@@ -748,13 +771,13 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void TrStmtList(List<Statement!>! stmts, int indent) {
-      List<string!> currentLabels = null;
+    void TrStmtList(List<Statement/*!*/>/*!*/ stmts, int indent) {Contract.Requires(cce.NonNullElements(stmts));
+      List<string/*!*/> currentLabels = null;
       foreach (Statement ss in stmts) {
         if (ss is LabelStmt) {
           LabelStmt s = (LabelStmt)ss;
           if (currentLabels == null) {
-            currentLabels = new List<string!>();
+            currentLabels = new List<string>();
           }
           currentLabels.Add(s.Label);
         } else {
@@ -766,7 +789,8 @@ namespace Microsoft.Dafny {
       SpillLabels(currentLabels, indent);
     }
 
-    void SpillLabels(List<string!> labels, int indent) {
+    void SpillLabels(List<string> labels, int indent) {
+      Contract.Requires(cce.NonNullElements(labels));
       if (labels != null) {
         foreach (string label in labels) {
           Indent(indent);
@@ -775,7 +799,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrVarDecl(VarDecl! s, bool alwaysInitialize, int indent) {
+    void TrVarDecl(VarDecl s, bool alwaysInitialize, int indent) {
+      Contract.Requires(s != null);
       Indent(indent);
       wr.Write("{0} {1}", TypeName(s.Type), s.Name);
       if (s.Rhs != null) {
@@ -788,7 +813,10 @@ namespace Microsoft.Dafny {
       wr.WriteLine(";");
     }
 
-    void MatchCasePrelude(string! source, DatatypeCtor! ctor, List<BoundVar!>! arguments, int caseIndex, int caseCount, int indent) {
+    void MatchCasePrelude(string source, DatatypeCtor ctor, List<BoundVar/*!*/>/*!*/ arguments, int caseIndex, int caseCount, int indent) {
+      Contract.Requires(source != null);
+      Contract.Requires(ctor != null);
+      Contract.Requires(cce.NonNullElements(arguments));
       // if (source.D is Dt_Ctor0) {
       //   FormalType f0 = ((Dt_Ctor0)source.D).a0;
       //   ...
@@ -817,18 +845,22 @@ namespace Microsoft.Dafny {
         
     // ----- Expression ---------------------------------------------------------------------------
 
-    void TrParenExpr(string! prefix, Expression! expr) {
+    void TrParenExpr(string prefix, Expression expr) {
+      Contract.Requires(prefix != null);
+      Contract.Requires(expr != null);
       wr.Write(prefix);
       TrParenExpr(expr);
     }
 
-    void TrParenExpr(Expression! expr) {
+    void TrParenExpr(Expression expr) {
+      Contract.Requires(expr != null);
       wr.Write("(");
       TrExpr(expr);
       wr.Write(")");
     }
     
-    void TrExprList(List<Expression!>! exprs) {
+    void TrExprList(List<Expression/*!*/>/*!*/ exprs) {
+      Contract.Requires(cce.NonNullElements(exprs));
       wr.Write("(");
       string sep = "";
       foreach (Expression e in exprs) {
@@ -839,8 +871,9 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
-    void TrExpr(Expression! expr)
+    void TrExpr(Expression expr)
     {
+      Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
@@ -855,7 +888,7 @@ namespace Microsoft.Dafny {
             wr.Write("BigInteger.Parse(\"{0}\")", i);
           }
         } else {
-          assert false;  // unexpected literal
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
         }
         
       } else if (expr is ThisExpr) {
@@ -863,17 +896,17 @@ namespace Microsoft.Dafny {
         
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
-        wr.Write(((!)e.Var).Name);
+        wr.Write(cce.NonNull(e.Var).Name);
       
       } else if (expr is SetDisplayExpr) {
         SetDisplayExpr e = (SetDisplayExpr)expr;
-        Type elType = ((SetType!)e.Type).Arg;
+        Type elType = cce.NonNull((SetType)e.Type).Arg;
         wr.Write("{0}<{1}>.FromElements", DafnySetClass, TypeName(elType));
         TrExprList(e.Elements);
         
       } else if (expr is SeqDisplayExpr) {
         SeqDisplayExpr e = (SeqDisplayExpr)expr;
-        Type elType = ((SeqType!)e.Type).Arg;
+        Type elType = cce.NonNull((SeqType)e.Type).Arg;
         wr.Write("{0}<{1}>.FromElements", DafnySeqClass, TypeName(elType));
         TrExprList(e.Elements);
       
@@ -885,15 +918,15 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         TrParenExpr(e.Seq);
-        assert e.Seq.Type != null;
+        Contract.Assert( e.Seq.Type != null);
         if (e.Seq.Type.IsArrayType) {
-          assert e.SelectOne;
-          assert e.E0 != null && e.E1 == null;
+          Contract.Assert( e.SelectOne);
+          Contract.Assert( e.E0 != null && e.E1 == null);
           wr.Write("[(int)");
           TrParenExpr(e.E0);
           wr.Write("]");
         } else if (e.SelectOne) {
-          assert e.E0 != null && e.E1 == null;
+          Contract.Assert( e.E0 != null && e.E1 == null);
           TrParenExpr(".Select", e.E0);
         } else {
           if (e.E1 != null) {
@@ -915,9 +948,9 @@ namespace Microsoft.Dafny {
       
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        Function f = (!)e.Function;
+        Function f = cce.NonNull(e.Function);
         if (f.IsStatic) {
-          wr.Write(TypeName((!)e.Receiver.Type));
+          wr.Write(TypeName(cce.NonNull(e.Receiver.Type)));
         } else {
           TrParenExpr(e.Receiver);
         }
@@ -935,7 +968,7 @@ namespace Microsoft.Dafny {
       
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
-        assert dtv.Ctor != null;  // since dtv has been successfully resolved
+        Contract.Assert( dtv.Ctor != null);  // since dtv has been successfully resolved
         wr.Write("new {0}(new {0}", dtv.DatatypeName, DtCtorName(dtv.Ctor));
         if (dtv.InferredTypeArgs.Count != 0) {
           wr.Write("<{0}>", TypeNames(dtv.InferredTypeArgs));
@@ -953,10 +986,10 @@ namespace Microsoft.Dafny {
         wr.Write("))");
           
       } else if (expr is OldExpr) {
-        assert false;  // 'old' is always a ghost (right?)
+        Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost (right?)
       
       } else if (expr is FreshExpr) {
-        assert false;  // 'fresh' is always a ghost
+        Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
       
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -966,7 +999,7 @@ namespace Microsoft.Dafny {
             TrParenExpr(e.E);
             break;
           case UnaryExpr.Opcode.SeqLength:
-            if (((!)e.E.Type).IsArrayType) {
+            if (cce.NonNull(e.E.Type).IsArrayType) {
               wr.Write("new BigInteger(");
               TrParenExpr(e.E);
               wr.Write(".Length)");
@@ -976,7 +1009,7 @@ namespace Microsoft.Dafny {
             }
             break;
           default:
-            assert false;  // unexpected unary expression
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
         }
       
       } else if (expr is BinaryExpr) {
@@ -996,7 +1029,7 @@ namespace Microsoft.Dafny {
             opString = "&&";  break;
             
           case BinaryExpr.ResolvedOpcode.EqCommon: {
-            Type t = (!)e.E0.Type;
+            Type t = cce.NonNull(e.E0.Type);
             if (t.IsDatatype || t.IsTypeParameter) {
               callString = "Equals";
             } else {
@@ -1005,7 +1038,7 @@ namespace Microsoft.Dafny {
             break;
           }
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            Type t = (!)e.E0.Type;
+            Type t = cce.NonNull(e.E0.Type);
             if (t.IsDatatype || t.IsTypeParameter) {
               preOpString = "!";
               callString = "Equals";
@@ -1092,7 +1125,7 @@ namespace Microsoft.Dafny {
             break;
 
           default:
-            assert false;  // unexpected binary expression
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
         }
         if (opString != null) {
           wr.Write(preOpString);
@@ -1108,7 +1141,7 @@ namespace Microsoft.Dafny {
         }
       
       } else if (expr is QuantifierExpr) {
-        assert false;  // a quantifier is always a ghost
+        Contract.Assert(false); throw new cce.UnreachableException();  // a quantifier is always a ghost
       
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
@@ -1121,7 +1154,7 @@ namespace Microsoft.Dafny {
         wr.Write(")");
          
       } else {
-        assert false;  // unexpected expression
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
   }
