@@ -81,16 +81,16 @@
     </Reference>
     <Reference Include="Microsoft.SpecSharp, Version=1.0.21125.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Binaries\Microsoft.SpecSharp.dll</HintPath>
+      <HintPath>..\..\Binaries\Microsoft.SpecSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Compiler, Version=1.0.21125.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Binaries\System.Compiler.dll</HintPath>
+      <HintPath>..\..\Binaries\System.Compiler.dll</HintPath>
     </Reference>
     <Reference Include="System.Compiler.Runtime, Version=1.0.21125.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Binaries\System.Compiler.Runtime.dll</HintPath>
+      <HintPath>..\..\Binaries\System.Compiler.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
