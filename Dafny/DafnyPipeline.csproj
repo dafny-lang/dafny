@@ -14,7 +14,7 @@
     <FileAlignment>512</FileAlignment>
     <CodeContractsAssemblyMode>0</CodeContractsAssemblyMode>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>InterimKey.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\InterimKey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -102,20 +102,17 @@
     <Compile Include="Resolver.cs" />
     <Compile Include="SccGraph.cs" />
     <Compile Include="Translator.cs" />
+    <Compile Include="..\version.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="cce.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Dafny.atg" />
-    <None Include="InterimKey.snk" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Parser.cs" />
     <Compile Include="Scanner.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Properties\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
