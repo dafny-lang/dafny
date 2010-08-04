@@ -253,40 +253,40 @@ void objectInvariant(){
 		for (int i = 97; i <= 122; ++i) start[i] = 1;
 		for (int i = 48; i <= 57; ++i) start[i] = 2;
 		for (int i = 34; i <= 34; ++i) start[i] = 3;
-		start[123] = 5; 
-		start[125] = 6; 
-		start[59] = 7; 
-		start[44] = 8; 
-		start[58] = 46; 
-		start[60] = 47; 
-		start[62] = 48; 
-		start[40] = 9; 
-		start[41] = 10; 
-		start[42] = 11; 
-		start[96] = 12; 
-		start[61] = 49; 
-		start[91] = 15; 
-		start[93] = 16; 
-		start[124] = 50; 
-		start[8660] = 19; 
-		start[8658] = 21; 
-		start[38] = 22; 
-		start[8743] = 24; 
-		start[8744] = 26; 
-		start[33] = 51; 
-		start[8800] = 32; 
-		start[8804] = 33; 
-		start[8805] = 34; 
-		start[43] = 35; 
-		start[45] = 36; 
-		start[47] = 37; 
-		start[37] = 38; 
-		start[172] = 39; 
-		start[35] = 40; 
-		start[46] = 52; 
-		start[8704] = 42; 
-		start[8707] = 43; 
-		start[8226] = 45; 
+		start[123] = 5;
+		start[125] = 6;
+		start[59] = 7;
+		start[44] = 8;
+		start[58] = 46;
+		start[60] = 47;
+		start[62] = 48;
+		start[40] = 9;
+		start[41] = 10;
+		start[42] = 11;
+		start[96] = 12;
+		start[61] = 49;
+		start[91] = 15;
+		start[93] = 16;
+		start[124] = 50;
+		start[8660] = 19;
+		start[8658] = 21;
+		start[38] = 22;
+		start[8743] = 24;
+		start[8744] = 26;
+		start[33] = 51;
+		start[8800] = 32;
+		start[8804] = 33;
+		start[8805] = 34;
+		start[43] = 35;
+		start[45] = 36;
+		start[47] = 37;
+		start[37] = 38;
+		start[172] = 39;
+		start[35] = 40;
+		start[46] = 52;
+		start[8704] = 42;
+		start[8707] = 43;
+		start[8226] = 45;
 		start[Buffer.EOF] = -1;
 
 	}
@@ -374,7 +374,7 @@ void objectInvariant(){
 				// eol handling uniform across Windows, Unix and Mac
 				if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
 				if (ch == EOL) {
-					line++; col = 0; 
+					line++; col = 0;
 				} else if (ch == '#' && col == 1) {
 				  int prLine = line;
 				  int prColumn = 0;
@@ -552,7 +552,7 @@ void objectInvariant(){
 		int recKind = noSym;
 		int recEnd = pos;
 		t = new Token();
-		t.pos = pos; t.col = col; t.line = line; 
+		t.pos = pos; t.col = col; t.line = line;
 		t.filename = this.Filename;
 		int state;
 		if (start.ContainsKey(ch)) { state = (int) cce.NonNull( start[ch]); }

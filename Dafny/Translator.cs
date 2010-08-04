@@ -2059,7 +2059,7 @@ void ObjectInvariant()
       private readonly Dictionary<string,Bpl.Expr> subst;
       public NominalSubstituter(Dictionary<string,Bpl.Expr> subst) :base(){
         Contract.Requires(cce.NonNullElements(subst));
-        this.subst = subst; 
+        this.subst = subst;
       }
       
       [ContractInvariantMethod]

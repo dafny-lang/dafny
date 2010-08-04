@@ -708,7 +708,7 @@ void ObjectInvariant()
                       if (b.tok == null) {
                         Console.WriteLine("    <intermediate block>");
                       } else {
-                        // for ErrorTrace == 1 restrict the output; 
+                        // for ErrorTrace == 1 restrict the output;
                         // do not print tokens with -17:-4 as their location because they have been 
                         // introduced in the translation and do not give any useful feedback to the user
                         if (!(CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4)) {

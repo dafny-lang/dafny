@@ -211,7 +211,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   }
   "}"                                      
   (. if (optionalId == null)        
-       c = new ClassDecl(id, id.val, module, typeArgs, members, attrs); 
+       c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
      else 
        c = new ClassRefinementDecl(id, id.val, module, typeArgs, members, attrs, optionalId);
   .)
@@ -306,7 +306,7 @@ CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   "by"    
   Expression<out e>
   ";"
-  (. mm.Add(new CouplingInvariant(ids, e, attrs)); 
+  (. mm.Add(new CouplingInvariant(ids, e, attrs));
      parseVarScope.PopMarker();
   .)  
   .
@@ -368,7 +368,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
 /*------------------------------------------------------------------------*/
 
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
-= (. Contract.Requires(cce.NonNullElements(typeArgs)); 
+= (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id; .)
   "<"
   Ident<out id>                       (. typeArgs.Add(new TypeParameter(id, id.val)); .)
@@ -415,7 +415,7 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
      if (isRefinement)
        m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
      else 
-       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs); 
+       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
  .)
   .
 
@@ -553,7 +553,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   .
 
 FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ decreases.>
-= (. Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases)); 
+= (. Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
   ( "requires" Expression<out e> ";"      (. reqs.Add(e); .)
   | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
@@ -1105,7 +1105,7 @@ NegOp = "!" | '\u00ac'.
 
 ConstAtomExpression<out Expression/*!*/ e>            
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x, dtName, id;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
-     e = dummyExpr;  
+     e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
