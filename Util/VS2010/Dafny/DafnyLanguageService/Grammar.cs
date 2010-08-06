@@ -13,7 +13,7 @@ namespace Demo
         NumberLiteral n = TerminalFactory.CreateCSharpNumber("number");
 
         IdentifierTerminal ident = new IdentifierTerminal("Identifier");
-        this.MarkReservedWords(
+        this.MarkReservedWords(  // NOTE: these keywords must also appear once more below
           "class", "ghost", "static", "var", "method", "datatype",
           "assert", "assume", "new", "this", "object", "refines", "replaces", "by",
           "unlimited", "module", "imports",
@@ -290,6 +290,12 @@ namespace Demo
           | "new"
           | "this"
           | "object"
+          | "refines"
+          | "replaces"
+          | "by"
+          | "unlimited"
+          | "module"
+          | "imports"
           | "call"
           | "if"
           | "then"
@@ -297,10 +303,12 @@ namespace Demo
           | "while"
           | "invariant"
           | "break"
+          | "label"
           | "return"
           | "foreach"
-          | "match"
-          | "case"
+          | "havoc"
+          | "print"
+          | "use"
           | "returns"
           | "requires"
           | "ensures"
