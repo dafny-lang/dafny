@@ -3946,8 +3946,9 @@ Contract.Requires(tok != null);
           args.Add(heap);
           args.Add(r);
           args.Add(f);
+          Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
           return new Bpl.NAryExpr(tok,
-            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", f.Type.AsCtor.Arguments[0])),
+            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
             args);
       }
 
