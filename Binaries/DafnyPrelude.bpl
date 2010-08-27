@@ -274,8 +274,8 @@ axiom (forall r: ref :: 0 <= Array#Length(r));
 procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
   modifies $Heap;
   ensures $HeapSucc(old($Heap), $Heap);
-  ensures (forall i: int :: { $Heap[arr, IndexField(i)] } low <= i && i < high ==> $Heap[arr, IndexField(i)] == rhs);
-  ensures (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] } $Heap[o,f] == old($Heap)[o,f] ||
+  ensures (forall i: int :: { read($Heap, arr, IndexField(i)) } low <= i && i < high ==> read($Heap, arr, IndexField(i)) == rhs);
+  ensures (forall<alpha> o: ref, f: Field alpha :: { read($Heap, o, f) } read($Heap, o, f) == read(old($Heap), o, f) ||
             (o == arr && FCat(f) == $IndexedField && low <= IndexField_Inverse(f) && IndexField_Inverse(f) < high));
 
 // ---------------------------------------------------------------
@@ -283,18 +283,20 @@ procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
 // ---------------------------------------------------------------
 
 type HeapType = <alpha>[ref,Field alpha]alpha;
+function {:inline true} read<alpha>(H:HeapType, r:ref, f:Field alpha): alpha { H[r, f] }
+function {:inline true} update<alpha>(H:HeapType, r:ref, f:Field alpha, v:alpha): HeapType { H[r,f := v] }
 
 function $IsGoodHeap(HeapType) returns (bool);
 var $Heap: HeapType where $IsGoodHeap($Heap) && #cev_var_update(#cev_pc, cev_implicit, #loc.$Heap, $Heap);
 const unique #loc.$Heap: $token;
 
 function $HeapSucc(HeapType, HeapType) returns (bool);
-axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { h[r,f:=x] }
-  $HeapSucc(h, h[r,f:=x]));
+axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
+  $HeapSucc(h, update(h, r, f, x)));
 axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
-  $HeapSucc(h,k) ==> (forall o: ref :: { k[o,alloc] } h[o,alloc] ==> k[o,alloc]));
+  $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
 
 // ---------------------------------------------------------------
 // -- Arithmetic -------------------------------------------------

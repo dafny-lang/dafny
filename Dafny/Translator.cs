@@ -718,7 +718,7 @@ void ObjectInvariant()
       Bpl.Expr o = new Bpl.IdentifierExpr(f.tok, oVar);
       
       // h[o,f]
-      Bpl.Expr oDotF = Bpl.Expr.SelectTok(f.tok, h, o, new Bpl.IdentifierExpr(f.tok, GetField(f)));
+      Bpl.Expr oDotF = ExpressionTranslator.ReadHeap(f.tok, h, o, new Bpl.IdentifierExpr(f.tok, GetField(f)));
       // $IsGoodHeap(h) && o != null && h[o,alloc]
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.And(
         FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, h),
@@ -889,9 +889,9 @@ void ObjectInvariant()
         Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(m.tok, oVar);
         Bpl.BoundVariable fVar = new Bpl.BoundVariable(m.tok, new Bpl.TypedIdent(m.tok, "$f", predef.FieldName(m.tok, alpha)));
         Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(m.tok, fVar);
-      
-        Bpl.Expr heapOF = Bpl.Expr.SelectTok(m.tok, etran.HeapExpr, o, f);
-        Bpl.Expr oldHeapOF = Bpl.Expr.SelectTok(m.tok, etran.Old.HeapExpr, o, f);
+
+        Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(m.tok, etran.HeapExpr, o, f);
+        Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(m.tok, etran.Old.HeapExpr, o, f);
         Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.Old.TheFrame(m.tok), o, f);
         Bpl.Expr body = Bpl.Expr.Or(inEnclosingFrame, Bpl.Expr.Eq(heapOF, oldHeapOF));
         Bpl.Trigger tr = new Bpl.Trigger(m.tok, true, new Bpl.ExprSeq(heapOF));
@@ -1071,7 +1071,7 @@ void ObjectInvariant()
       Bpl.Expr field = new Bpl.IdentifierExpr(f.tok, fieldVar);
       Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
       Bpl.Expr oNotNullAlloced = Bpl.Expr.And(oNotNull, Bpl.Expr.And(etran0.IsAlloced(f.tok, o), etran1.IsAlloced(f.tok, o)));
-      Bpl.Expr unchanged = Bpl.Expr.Eq(Bpl.Expr.SelectTok(f.tok, h0, o, field), Bpl.Expr.SelectTok(f.tok, h1, o, field));
+      Bpl.Expr unchanged = Bpl.Expr.Eq(ExpressionTranslator.ReadHeap(f.tok, h0, o, field), ExpressionTranslator.ReadHeap(f.tok, h1, o, field));
       
       Bpl.Expr heapSucc = FunctionCall(f.tok, BuiltinFunction.HeapSucc, null, h0, h1);
       Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
@@ -2106,7 +2106,7 @@ void ObjectInvariant()
           Bpl.Expr absVar = new Bpl.IdentifierExpr(d.tok, absThis, predef.RefType);
           for (int i = 0; i < inv.Refined.Count; i++) {     
             // TODO: boxing/unboxing?
-            Bpl.Expr result = Bpl.Expr.SelectTok(inv.Toks[i], absHeap, absVar, new Bpl.IdentifierExpr(inv.Toks[i], GetField(cce.NonNull(inv.Refined[i]))));
+            Bpl.Expr result = ExpressionTranslator.ReadHeap(inv.Toks[i], absHeap, absVar, new Bpl.IdentifierExpr(inv.Toks[i], GetField(cce.NonNull(inv.Refined[i]))));
             map.Add(inv.Formals[i].UniqueName, result);
           }
                               
@@ -2201,9 +2201,9 @@ void ObjectInvariant()
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
-      
-      Bpl.Expr heapOF = Bpl.Expr.SelectTok(tok, etran.HeapExpr, o, f);
-      Bpl.Expr preHeapOF = Bpl.Expr.SelectTok(tok, etranPre.HeapExpr, o, f);
+
+      Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, o, f);
+      Bpl.Expr preHeapOF = ExpressionTranslator.ReadHeap(tok, etranPre.HeapExpr, o, f);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.Old.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
       
@@ -2864,8 +2864,8 @@ void ObjectInvariant()
         Bpl.TypeVariable alpha = new Bpl.TypeVariable(stmt.Tok, "alpha");
         Bpl.BoundVariable fVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$f", predef.FieldName(stmt.Tok, alpha)));
         Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(stmt.Tok, fVar);
-        Bpl.Expr heapOF = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, f);
-        Bpl.Expr oldHeapOF = Bpl.Expr.SelectTok(stmt.Tok, prevHeap, o, f);
+        Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(stmt.Tok, etran.HeapExpr, o, f);
+        Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(stmt.Tok, prevHeap, o, f);
         body = Bpl.Expr.Or(
           Bpl.Expr.Eq(heapOF, oldHeapOF),
           Bpl.Expr.And(
@@ -2876,7 +2876,7 @@ void ObjectInvariant()
 
         // Here comes:  assume (forall o: ref ::  o != null && o in S && Range(o) ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
         if (rhsExpr != null) {
-          Bpl.Expr heapOField = Bpl.Expr.SelectTok(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
+            Bpl.Expr heapOField = ExpressionTranslator.ReadHeap(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
           ExpressionTranslator oldEtran = new ExpressionTranslator(this, predef, prevHeap);
           body = Bpl.Expr.Imp(oInS, Bpl.Expr.Eq(heapOField, oldEtran.TrExpr(rhsExpr.Expr)));
           qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
@@ -3286,7 +3286,7 @@ void ObjectInvariant()
           
           Bpl.IdentifierExpr h = cce.NonNull((Bpl.IdentifierExpr)etran.HeapExpr);  // TODO: is this cast always justified?
           bRhs = etran.CondApplyBox(tok, bRhs, cce.NonNull((ExprRhs)rhs).Expr.Type, fse.Field.Type);
-          Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, h, etran.TrExpr(fse.Obj), new Bpl.IdentifierExpr(tok, GetField(fse.Field)), bRhs);
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, etran.TrExpr(fse.Obj), new Bpl.IdentifierExpr(tok, GetField(fse.Field)), bRhs));
           builder.Add(cmd);
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(tok, etran));
@@ -3301,7 +3301,7 @@ void ObjectInvariant()
             builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(sel.Seq), fieldName), "assignment may update an array not in the enclosing method's modifies clause"));
             
             Bpl.IdentifierExpr h = cce.NonNull((Bpl.IdentifierExpr)etran.HeapExpr);  // TODO: is this cast always justified?
-            Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, h, etran.TrExpr(sel.Seq), fieldName, bRhs);
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, etran.TrExpr(sel.Seq), fieldName, bRhs));
             builder.Add(cmd);
             // assume $IsGoodHeap($Heap);
             builder.Add(AssumeGoodHeap(tok, etran));
@@ -3362,7 +3362,8 @@ void ObjectInvariant()
         }
         // $Heap[$nw, alloc] := true;
         Bpl.Expr alloc = predef.Alloc(tok);
-        Bpl.Cmd cmd = Bpl.Cmd.MapAssign(tok, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, nw, alloc, Bpl.Expr.True);
+        Bpl.IdentifierExpr heap = (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr;
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
         builder.Add(cmd);
         // x := $nw;
         Bpl.IdentifierExpr x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
@@ -3535,7 +3536,7 @@ void ObjectInvariant()
         
         } else if (expr is FieldSelectExpr) {
           FieldSelectExpr e = (FieldSelectExpr)expr;
-          Bpl.Expr result = Bpl.Expr.SelectTok(expr.tok, HeapExpr, TrExpr(e.Obj), new Bpl.IdentifierExpr(expr.tok, translator.GetField(cce.NonNull(e.Field))));
+          Bpl.Expr result = ReadHeap(expr.tok, HeapExpr, TrExpr(e.Obj), new Bpl.IdentifierExpr(expr.tok, translator.GetField(cce.NonNull(e.Field))));
           return CondApplyUnbox(expr.tok, result, e.Field.Type, cce.NonNull(expr.Type));
           
         } else if (expr is SeqSelectExpr) {
@@ -3557,7 +3558,7 @@ void ObjectInvariant()
             Bpl.Expr x;
             if (e.Seq.Type.IsArrayType) {
               Bpl.Expr fieldName = translator.FunctionCall(expr.tok, BuiltinFunction.IndexField, null, e0);
-              x = Bpl.Expr.SelectTok(expr.tok, HeapExpr, TrExpr(e.Seq), fieldName);
+              x = ReadHeap(expr.tok, HeapExpr, TrExpr(e.Seq), fieldName);
             } else {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
             }
@@ -3932,7 +3933,43 @@ Contract.Requires(tok != null);
 
         return new Bpl.IdentifierExpr(tok, var.UniqueName, translator.TrType(var.Type));
       }
-      
+
+      public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f)
+      {
+          Contract.Requires(tok != null);
+          Contract.Requires(heap != null);
+          Contract.Requires(r != null);
+          Contract.Requires(f != null);
+          Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+
+          Bpl.ExprSeq args = new Bpl.ExprSeq();
+          args.Add(heap);
+          args.Add(r);
+          args.Add(f);
+          return new Bpl.NAryExpr(tok,
+            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", f.Type.AsCtor.Arguments[0])),
+            args);
+      }
+
+      public static Bpl.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v)
+      {
+          Contract.Requires(tok != null);
+          Contract.Requires(heap != null);
+          Contract.Requires(r != null);
+          Contract.Requires(f != null);
+          Contract.Requires(v != null);
+          Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+
+          Bpl.ExprSeq args = new Bpl.ExprSeq();
+          args.Add(heap);
+          args.Add(r);
+          args.Add(f);
+          args.Add(v);
+          return new Bpl.NAryExpr(tok,
+            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "update", heap.Type)),
+            args);
+      }
+
       /// <summary>
       /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
@@ -4010,7 +4047,7 @@ Contract.Requires(tok != null);
         Contract.Requires(heap != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-        return Bpl.Expr.SelectTok(tok, heap, e, predef.Alloc(tok));
+        return ReadHeap(tok, heap, e, predef.Alloc(tok));
       }
       
       public Bpl.Expr GoodRef(IToken tok, Bpl.Expr e, Type type) {
