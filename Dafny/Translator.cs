@@ -330,9 +330,13 @@ void ObjectInvariant()
     }
     
     static Bpl.Program ReadPrelude() {
-      //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
-      string codebase = cce.NonNull( System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-      string preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+      string preludePath = Bpl.CommandLineOptions.Clo.DafnyPrelude;
+      if (preludePath == null)
+      {
+          //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
+          string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
+          preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+      }
       
       Bpl.Program prelude;
       int errorCount = Bpl.Parser.Parse(preludePath, null, out prelude);
