@@ -13,6 +13,8 @@ namespace Demo
         NumberLiteral n = TerminalFactory.CreateCSharpNumber("number");
 
         IdentifierTerminal ident = new IdentifierTerminal("Identifier");
+        StringLiteral stringLiteral = TerminalFactory.CreateCSharpString("String");
+
         this.MarkReservedWords(  // NOTE: these keywords must also appear once more below
           "class", "ghost", "static", "var", "method", "datatype",
           "assert", "assume", "new", "this", "object", "refines", "replaces", "by",
@@ -366,6 +368,7 @@ namespace Demo
           | "<==>"
           | "#"
           | n
+          | stringLiteral
           ;
 
         idType.Rule
