@@ -1,0 +1,25 @@
+
+-------------------- Problem1-SumMax.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+Compiled program written to out.cs
+
+-------------------- Problem2-Invert.dfy --------------------
+
+Dafny program verifier finished with 7 verified, 0 errors
+Compiled program written to out.cs
+
+-------------------- Problem3-FindZero.dfy --------------------
+
+Dafny program verifier finished with 7 verified, 0 errors
+Compiled program written to out.cs
+
+-------------------- Problem4-Queens.dfy --------------------
+
+Dafny program verifier finished with 15 verified, 0 errors
+Compiled program written to out.cs
+
+-------------------- Problem5-DoubleEndedQueue.dfy --------------------
+
+Dafny program verifier finished with 21 verified, 0 errors
+Compiled program written to out.cs
