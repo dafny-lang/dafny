@@ -499,7 +499,7 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("array type expects exactly one type argument");
                                        }
-                                       ty = UserDefinedType.ArrayType(tok, gt[0]);
+                                       ty = UserDefinedType.ArrayType(tok, 1, gt[0]);
                                     .)
   | Ident<out tok>                  (. gt = new List<Type/*!*/>(); .)
     [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
@@ -640,7 +640,6 @@ CaseExpression<out MatchCaseExpr/*!*/ c>
 BlockStmt<out Statement/*!*/ block>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null); IToken/*!*/ x;
      List<Statement/*!*/> body = new List<Statement/*!*/>();
-     Statement/*!*/ s;
   .)
   (. parseVarScope.PushMarker(); .)
   "{"                                  (. x = t; .)
@@ -703,7 +702,7 @@ AssignStmt<out Statement/*!*/ s>
                                           } else if (rhs == null) {
                                             s = new AssignStmt(x, lhs, ty);
                                           } else {
-                                            s = new AssignStmt(x, lhs, ty, rhs);
+                                            s = new AssignStmt(x, lhs, ty, new List<Expression>(new Expression[] { rhs }));
                                           }
                                        .)
   ";"
@@ -744,7 +743,7 @@ VarDeclStmts<.List<Statement/*!*/>/*!*/ ss.>
   .
 
 IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
-= (. Contract.Ensures(Contract.ValueAtReturn(out d) != null); IToken/*!*/ id;  Type/*!*/ ty;  Expression/*!*/ e;
+= (. Contract.Ensures(Contract.ValueAtReturn(out d) != null); IToken/*!*/ id;  Type/*!*/ ty;
      Expression rhs = null;  Type newType = null;
      Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
   .)
@@ -760,7 +759,7 @@ IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
        if (rhs == null) {
          optionalRhs = new TypeRhs(newType);
        } else {
-         optionalRhs = new TypeRhs(newType, rhs);
+         optionalRhs = new TypeRhs(newType, new List<Expression>(new Expression[] { rhs }));
        }
      } else if (optionalType == null) {
        optionalType = new InferredTypeProxy();
@@ -1149,7 +1148,7 @@ CallStmtSubExpr<out Expression/*!*/ e>
   .
 
 SelectExpression<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ id;  e = dummyExpr; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   ( IdentOrFuncExpression<out e>
   | ObjectExpression<out e>
   )
@@ -1238,7 +1237,6 @@ QuantifierGuts<out Expression/*!*/ q>
      bool univ = false;
      BoundVar/*!*/ bv;
      List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
-     IToken/*!*/ tok;  Expr/*!*/ e;  ExprSeq/*!*/ es;
      Attributes attrs = null;
      Triggers trigs = null;
      Expression/*!*/ body;

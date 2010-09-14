@@ -95,8 +95,13 @@ namespace Microsoft.Dafny {
     }
     public bool IsArrayType {
       get {
+        return AsArrayType != null;
+      }
+    }
+    public ArrayClassDecl/*?*/ AsArrayType {
+      get {
         UserDefinedType udt = UserDefinedType.DenotesClass(this);
-        return udt != null && cce.NonNull((ClassDecl)udt.ResolvedClass).Name == "array";  // the cast to non-null is guaranteed by postcondition of DenotesClass
+        return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
       }
     }
     public bool IsDatatype {
@@ -192,7 +197,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
       Contract.Invariant(cce.NonNullElements(Name));
       Contract.Invariant(cce.NonNullElements(TypeArgs));
-      Contract.Invariant(arrayTypeDecl != null);
+      Contract.Invariant(ArrayTypeDecls != null);
     }
 
     public readonly IToken tok;
@@ -203,25 +208,23 @@ namespace Microsoft.Dafny {
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public static UserDefinedType ArrayType(IToken tok, Type arg) {
+    public static UserDefinedType ArrayType(IToken tok, int dims, Type arg) {
       Contract.Requires(tok != null);
+      Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
       List<Type/*!*/> typeArgs = new List<Type/*!*/>();
       typeArgs.Add(arg);
-      UserDefinedType udt = new UserDefinedType(tok, "array", typeArgs);
-      udt.ResolvedClass = arrayTypeDecl;
+      UserDefinedType udt = new UserDefinedType(tok, "array" + dims, typeArgs);
+      if (!ArrayTypeDecls.ContainsKey(dims)) {
+        ArrayTypeDecls.Add(dims, new ArrayClassDecl(dims, _systemModule));
+      }
+      udt.ResolvedClass = ArrayTypeDecls[dims];
       return udt;
     }
-    static TopLevelDecl/*!*/ arrayTypeDecl;
-    static UserDefinedType() {
-      List<TypeParameter> typeArgs = new List<TypeParameter>();
-      typeArgs.Add(new TypeParameter(Token.NoToken, "arg"));
-      ModuleDecl systemModule = new ModuleDecl(Token.NoToken, "_System", new List<string>(), null);
-      arrayTypeDecl = new ClassDecl(Token.NoToken, "array", systemModule, typeArgs, new List<MemberDecl>(), null);
-    }
-
+    public static Dictionary<int, ClassDecl/*!*/> ArrayTypeDecls = new Dictionary<int,ClassDecl>();
+    static readonly ModuleDecl _systemModule = new ModuleDecl(Token.NoToken, "_System", new List<string>(), null);
 
     public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
       Contract.Requires(tok != null);
@@ -284,10 +287,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// If type denotes a resolved class type, then return that class type.
-    /// Otherwise, return null.
-    /// </summary>
     public static Type ArrayElementType(Type type) {
       Contract.Requires(type.IsArrayType);
 
@@ -642,6 +641,20 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ArrayClassDecl : ClassDecl {
+    public readonly int Dims;
+    public ArrayClassDecl(int dims, ModuleDecl module)
+    : base(Token.NoToken, "array" + dims, module,
+      new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
+      new List<MemberDecl>(), null)
+    {
+      Contract.Requires(1 <= dims);
+      Contract.Requires(module != null);
+
+      Dims = dims;
+    }
+  }
+  
   public class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor/*!*/>/*!*/ Ctors;
     [ContractInvariantMethod]
@@ -1253,18 +1266,19 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(EType != null);
+      Contract.Invariant(ArrayDimensions == null || 1 <= ArrayDimensions.Count);
     }
 
-    public readonly Expression ArraySize;
+    public readonly List<Expression> ArrayDimensions;
     public TypeRhs(Type type) {
       Contract.Requires(type != null);
       EType = type;
     }
-    public TypeRhs(Type type, Expression arraySize) {
+    public TypeRhs(Type type, List<Expression> arrayDimensions) {
       Contract.Requires(type != null);
-      Contract.Requires(arraySize != null);
+      Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
       EType = type;
-      ArraySize = arraySize;
+      ArrayDimensions = arrayDimensions;
     }
   }
 
@@ -1299,14 +1313,14 @@ namespace Microsoft.Dafny {
       this.Rhs = new TypeRhs(type);
 
     }
-    public AssignStmt(IToken tok, Expression lhs, Type type, Expression arraySize)
+    public AssignStmt(IToken tok, Expression lhs, Type type, List<Expression> arrayDimensions)
       : base(tok) {  // array alloc statement
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(type != null);
-      Contract.Requires(arraySize != null);
+      Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
       this.Lhs = lhs;
-      this.Rhs = new TypeRhs(type, arraySize);
+      this.Rhs = new TypeRhs(type, arrayDimensions);
     }
     public AssignStmt(IToken tok, Expression lhs)
       : base(tok) {  // havoc
@@ -1808,8 +1822,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(E0 != null || E1 != null);
     }
 
-
-
     public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -1821,7 +1833,27 @@ namespace Microsoft.Dafny {
       Seq = seq;
       E0 = e0;
       E1 = e1;
+    }
+  }
 
+  public class MultiSelectExpr : Expression {
+    public readonly Expression Array;
+    public readonly List<Expression> Indices;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Array != null);
+      Contract.Invariant(Indices != null && cce.NonNullElements(Indices));
+      Contract.Invariant(1 <= Indices.Count);
+    }
+
+    public MultiSelectExpr(IToken tok, Expression array, List<Expression> indices)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(array != null);
+      Contract.Requires(indices == null && cce.NonNullElements(indices) && 1 <= indices.Count);
+
+      Array = array;
+      Indices = indices;
     }
   }
 

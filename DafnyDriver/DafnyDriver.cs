@@ -664,7 +664,7 @@ void ObjectInvariant()
                   else if (error is ReturnCounterexample)
                   {
                     ReturnCounterexample err = (ReturnCounterexample) error;
-                    ReportBplError(err.FailingReturn, "Error BP5003: A postcondition might not hold at this return statement.", true);
+                    ReportBplError(err.FailingReturn, "Error BP5003: A postcondition might not hold on this return path.", true);
                     ReportBplError(err.FailingEnsures, "Related location: This is the postcondition that might not hold.", false);
                     if (CommandLineOptions.Clo.XmlSink != null) {
                       CommandLineOptions.Clo.XmlSink.WriteError("postcondition violation", err.FailingReturn.tok, err.FailingEnsures.tok, error.Trace);

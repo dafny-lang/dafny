@@ -578,9 +578,14 @@ void ObjectInvariant()
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
         PrintType(t.EType);
-        if (t.ArraySize != null) {
-          wr.Write("[");
-          PrintExpression(t.ArraySize);
+        if (t.ArrayDimensions != null) {
+          string s = "[";
+          foreach (Expression dim in t.ArrayDimensions) {
+            Contract.Requires(dim != null);
+            wr.Write(s);
+            PrintExpression(dim);
+            s = ", ";
+          }
           wr.Write("]");
         }
       } else {
@@ -735,7 +740,26 @@ void ObjectInvariant()
         }
         wr.Write("]");
         if (parensNeeded) { wr.Write(")"); }
-      
+
+      } else if (expr is MultiSelectExpr) {
+        MultiSelectExpr e = (MultiSelectExpr)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+
+        if (parensNeeded) { wr.Write("("); }
+        PrintExpr(e.Array, 0x00, false, indent);  // BOGUS: fix me
+        string prefix = "[";
+        foreach (Expression idx in e.Indices) {
+          Contract.Assert(idx != null);
+          wr.Write(prefix);
+          PrintExpression(idx);
+          prefix = ", ";
+        }
+        wr.Write("]");
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         // determine if parens are needed

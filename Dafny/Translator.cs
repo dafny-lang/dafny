@@ -36,20 +36,20 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string/*!*/,Bpl.Constant/*!*/>/*!*/ cevVariables = new Dictionary<string/*!*/,Bpl.Constant/*!*/>();
 
     [ContractInvariantMethod]
-void ObjectInvariant() 
-{
-    Contract.Invariant(cce.NonNullElements(classes));
+    void ObjectInvariant() 
+    {
+      Contract.Invariant(cce.NonNullElements(classes));
       Contract.Invariant(cce.NonNullElements(fields));
       Contract.Invariant(cce.NonNullElements(cevFilenames));
       Contract.Invariant(cce.NonNullElements(cevLocations));
       Contract.Invariant(cce.NonNullElements(cevVariables));
-}
+    }
 
 
     Bpl.Expr CevLocation(IToken tok)
-  {
+    {
       Contract.Requires(tok != null);
-    Contract.Requires( predef != null && sink != null);
+      Contract.Requires( predef != null && sink != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
     
@@ -121,7 +121,6 @@ void ObjectInvariant()
       public readonly string HeapVarName;
       public readonly Bpl.Constant CevHeapName;
       public readonly Bpl.Type ClassNameType;
-      public readonly Bpl.Type FieldCategoryType;
       public readonly Bpl.Type DatatypeType;
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Expr Null;
@@ -141,7 +140,6 @@ void ObjectInvariant()
         Contract.Invariant(HeapVarName != null);
         Contract.Invariant(CevEventType != null);
         Contract.Invariant(ClassNameType != null);
-        Contract.Invariant(FieldCategoryType != null);
         Contract.Invariant(DatatypeType != null);
         Contract.Invariant(DtCtorId != null);
         Contract.Invariant(Null != null);
@@ -182,7 +180,7 @@ void ObjectInvariant()
       public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl cevTokenType, 
                              Bpl.TypeCtorDecl cevVariableKind, Bpl.TypeCtorDecl cevEventType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
-                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl fieldCategoryType,
+                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField, Bpl.Constant cevHeapNameConst) {
         #region Non-null preconditions on parameters
@@ -196,7 +194,6 @@ void ObjectInvariant()
         Contract.Requires(fieldNameType != null);
         Contract.Requires(heap != null);
         Contract.Requires(classNameType != null);
-        Contract.Requires(fieldCategoryType != null);
         Contract.Requires(datatypeType != null);
         Contract.Requires(dtCtorId != null);
         Contract.Requires(allocField != null);
@@ -216,7 +213,6 @@ void ObjectInvariant()
         this.HeapVarName = heap.Name;
         this.CevHeapName = cevHeapNameConst;
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
-        this.FieldCategoryType = new Bpl.CtorType(Token.NoToken, fieldCategoryType, new Bpl.TypeSeq());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new Bpl.TypeSeq());
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new Bpl.TypeSeq());
         this.allocField = allocField;
@@ -239,7 +235,6 @@ void ObjectInvariant()
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
-      Bpl.TypeCtorDecl fieldCategoryType = null;
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl dtCtorId = null;
       Bpl.TypeCtorDecl boxType = null;
@@ -255,8 +250,6 @@ void ObjectInvariant()
             fieldNameType = dt;
           } else if (dt.Name == "ClassName") {
             classNameType = dt;
-          } else if (dt.Name == "FieldCategory") {
-            fieldCategoryType = dt;
           } else if (dt.Name == "DatatypeType") {
             datatypeType = dt;
           } else if (dt.Name == "DtCtorId") {
@@ -299,8 +292,6 @@ void ObjectInvariant()
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
-      } else if (fieldCategoryType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type FieldCategory");
       } else if (datatypeType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (dtCtorId == null) {
@@ -323,7 +314,7 @@ void ObjectInvariant()
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant #loc.$Heap");
       } else {
         return new PredefinedDecls(refType, boxType, cevTokenType, cevVariableKind, cevEventType,
-                                   setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, fieldCategoryType, datatypeType, dtCtorId,
+                                   setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
                                    allocField, cevHeapNameConst);
       }
       return null;
@@ -364,13 +355,19 @@ void ObjectInvariant()
     
     public Bpl.Program Translate(Program program) {
       Contract.Requires(program != null);
-    Contract.Ensures(Contract.Result<Bpl.Program>() != null);
+      Contract.Ensures(Contract.Result<Bpl.Program>() != null);
 
       if (sink == null || predef == null) {
         // something went wrong during construction, which reads the prelude; an error has
         // already been printed, so just return an empty program here (which is non-null)
         return new Bpl.Program();
       }
+
+      // add the array classes used in this program
+      foreach (ClassDecl arrayDecl in UserDefinedType.ArrayTypeDecls.Values) {
+        AddClassMembers(arrayDecl);
+      }
+      
       foreach (ModuleDecl m in program.Modules) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           if (d is DatatypeDecl) {
@@ -478,12 +475,9 @@ void ObjectInvariant()
     void CreateBoundVariables(List<Formal/*!*/>/*!*/ formals, out Bpl.VariableSeq/*!*/ bvs, out List<Bpl.Expr/*!*/>/*!*/ args)
     {
       Contract.Requires(formals != null);
-      
-      
       Contract.Ensures(  Contract.ValueAtReturn(out bvs).Length == Contract.ValueAtReturn(out args).Count);
       Contract.Ensures(Contract.ValueAtReturn(out bvs) != null);
       Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out args)));
-
 
       bvs = new Bpl.VariableSeq();
       args = new List<Bpl.Expr>();
@@ -498,7 +492,6 @@ void ObjectInvariant()
     void AddClassMembers(ClassDecl c)
     {
       Contract.Requires( sink != null && predef != null);
-    
       Contract.Requires(c != null);
       sink.TopLevelDeclarations.Add(GetClass(c));
       
@@ -800,7 +793,9 @@ void ObjectInvariant()
         lowerBound = Bpl.Expr.Literal(0);
       }
       Bpl.Expr lower = Bpl.Expr.Le(lowerBound, index);
-      Bpl.Expr length = FunctionCall(tok, isSequence ? BuiltinFunction.SeqLength : BuiltinFunction.ArrayLength, null, seq);
+      Bpl.Expr length = isSequence ?
+        FunctionCall(tok, BuiltinFunction.SeqLength, null, seq) :
+        FunctionCall(tok, BuiltinFunction.ArrayLength, null, seq, Bpl.Expr.Literal(0));
       Bpl.Expr upper;
       if (includeUpperBound) {
         upper = Bpl.Expr.Le(index, length);
@@ -1296,6 +1291,22 @@ void ObjectInvariant()
           total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true));
         }
         return total;
+      } else if (expr is MultiSelectExpr) {
+        MultiSelectExpr e = (MultiSelectExpr)expr;
+        Bpl.Expr total = IsTotal(e.Array, etran);
+        Bpl.Expr array = etran.TrExpr(e.Array);
+        int i = 0;
+        foreach (Expression idx in e.Indices) {
+          total = BplAnd(total, IsTotal(idx, etran));
+
+          Bpl.Expr index = etran.TrExpr(idx);
+          Bpl.Expr lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
+          Bpl.Expr length = FunctionCall(idx.tok, BuiltinFunction.ArrayLength, null, array, Bpl.Expr.Literal(i));
+          Bpl.Expr upper = Bpl.Expr.Lt(index, length);
+          total = BplAnd(total, Bpl.Expr.And(lower, upper));
+          i++;
+        }
+        return total;
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         Bpl.Expr total = IsTotal(e.Seq, etran);
@@ -1478,6 +1489,21 @@ void ObjectInvariant()
           Contract.Assert( e.E0 != null);
           Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, etran.TrExpr(e.E0));
           builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element"));
+        }
+      } else if (expr is MultiSelectExpr) {
+        MultiSelectExpr e = (MultiSelectExpr)expr;
+        CheckWellformed(e.Array, func, Position.Neither, locals, builder, etran);
+        Bpl.Expr array = etran.TrExpr(e.Array);
+        int i = 0;
+        foreach (Expression idx in e.Indices) {
+          CheckWellformed(idx, func, Position.Neither, locals, builder, etran);
+
+          Bpl.Expr index = etran.TrExpr(idx);
+          Bpl.Expr lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
+          Bpl.Expr length = FunctionCall(idx.tok, BuiltinFunction.ArrayLength, null, array, Bpl.Expr.Literal(i));
+          Bpl.Expr upper = Bpl.Expr.Lt(index, length);
+          builder.Add(Assert(idx.tok, Bpl.Expr.And(lower, upper), "index " + i + " out of range"));
+          i++;
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
@@ -1767,10 +1793,10 @@ void ObjectInvariant()
         Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullName, ty), true);
         fields.Add(f, fc);
-        // axiom FCat(f) == $NamedField && DeclType(f) == C;
-        Bpl.Expr fcat = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FCat, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, "$NamedField", predef.FieldCategoryType));
+        // axiom FDim(f) == 0 && DeclType(f) == C;
+        Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.DeclType, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))));
-        Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.And(fcat, declType));
+        Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.And(fdim, declType));
         sink.TopLevelDeclarations.Add(ax);
       }
       return fc;
@@ -2880,7 +2906,7 @@ void ObjectInvariant()
 
         // Here comes:  assume (forall o: ref ::  o != null && o in S && Range(o) ==> $Heap[o,F] =  RHS[$Heap := oldHeap]);
         if (rhsExpr != null) {
-            Bpl.Expr heapOField = ExpressionTranslator.ReadHeap(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
+          Bpl.Expr heapOField = ExpressionTranslator.ReadHeap(stmt.Tok, etran.HeapExpr, o, GetField((FieldSelectExpr)(s.BodyAssign).Lhs));
           ExpressionTranslator oldEtran = new ExpressionTranslator(this, predef, prevHeap);
           body = Bpl.Expr.Imp(oInS, Bpl.Expr.Eq(heapOField, oldEtran.TrExpr(rhsExpr.Expr)));
           qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
@@ -3311,7 +3337,7 @@ void ObjectInvariant()
             builder.Add(AssumeGoodHeap(tok, etran));
           } else {
             Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
-            Bpl.Expr high = sel.E1 == null ? FunctionCall(tok, BuiltinFunction.ArrayLength, null, etran.TrExpr(sel.Seq)) : etran.TrExpr(sel.E1);
+            Bpl.Expr high = sel.E1 == null ? FunctionCall(tok, BuiltinFunction.ArrayLength, null, etran.TrExpr(sel.Seq), Bpl.Expr.Literal(0)) : etran.TrExpr(sel.E1);
             // check frame:
             // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
             Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
@@ -3337,10 +3363,17 @@ void ObjectInvariant()
         Contract.Assert( rhs is TypeRhs);  // otherwise, an unexpected AssignmentRhs
         TypeRhs tRhs = (TypeRhs)rhs;
         Contract.Assert( lhs is IdentifierExpr);  // for this kind of RHS, the LHS is restricted to be a simple variable
-        
-        if (tRhs.ArraySize != null) {
-          CheckWellformed(tRhs.ArraySize, null, Position.Positive, locals, builder, etran);
-          builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(tRhs.ArraySize)), "array size might be negative"));
+
+        if (tRhs.ArrayDimensions != null) {
+          int i = 0;
+          foreach (Expression dim in tRhs.ArrayDimensions) {
+            CheckWellformed(dim, null, Position.Positive, locals, builder, etran);
+            if (tRhs.ArrayDimensions.Count == 1) {
+              builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
+                tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));
+            }
+            i++;
+          }
         }
         
         Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
@@ -3348,21 +3381,25 @@ void ObjectInvariant()
         // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
         Bpl.Expr nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
         Bpl.Expr rightType;
-        if (tRhs.ArraySize != null) {
+        if (tRhs.ArrayDimensions != null) {
           // array allocation
           List<Type> typeArgs = new List<Type>();
           typeArgs.Add(tRhs.EType);
-          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class.array", predef.ClassNameType), typeArgs, true);
+          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class.array" + tRhs.ArrayDimensions.Count, predef.ClassNameType), typeArgs, true);
         } else if (tRhs.EType is ObjectType) {
           rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class.object", predef.ClassNameType), new List<Type>(), true);
         } else {
           rightType = etran.GoodRef_Class(tok, nw, (UserDefinedType)tRhs.EType, true);
         }
         builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
-        if (tRhs.ArraySize != null) {
-          // assume Array#Length($nw) == arraySize;
-          Bpl.Expr arrayLength = FunctionCall(tok, BuiltinFunction.ArrayLength, null, nw);
-          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(tRhs.ArraySize))));
+        if (tRhs.ArrayDimensions != null) {
+          int i = 0;
+          foreach (Expression dim in tRhs.ArrayDimensions) {
+            // assume Array#Length($nw, i) == arraySize;
+            Bpl.Expr arrayLength = FunctionCall(tok, BuiltinFunction.ArrayLength, null, nw, Bpl.Expr.Literal(i));
+            builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
+            i++;
+          }
         }
         // $Heap[$nw, alloc] := true;
         Bpl.Expr alloc = predef.Alloc(tok);
@@ -3587,7 +3624,29 @@ void ObjectInvariant()
           Bpl.Expr index = TrExpr(e.Index);
           Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
           return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
-        
+
+        } else if (expr is MultiSelectExpr) {
+          MultiSelectExpr e = (MultiSelectExpr)expr;
+          Type elmtType = UserDefinedType.ArrayElementType(e.Array.Type);;
+          Bpl.Type elType = translator.TrType(elmtType);
+
+          Bpl.Expr fieldName = null;
+          foreach (Expression idx in e.Indices) {
+            Bpl.Expr index = TrExpr(idx);
+            if (fieldName == null) {
+              // the index in dimension 0:  IndexField(index0)
+              fieldName = translator.FunctionCall(expr.tok, BuiltinFunction.IndexField, null, index);
+            } else {
+              // the index in dimension n:  MultiIndexField(...field name for first n indices..., index_n)
+              fieldName = translator.FunctionCall(expr.tok, BuiltinFunction.MultiIndexField, null, fieldName, index);
+            }
+          }
+          Bpl.Expr x = ReadHeap(expr.tok, HeapExpr, TrExpr(e.Array), fieldName);
+          if (!ModeledAsBoxType(elmtType)) {
+            x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, elType, x);
+          }
+          return x;
+
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           string nm = cce.NonNull(e.Function).FullName;
@@ -3670,7 +3729,7 @@ void ObjectInvariant()
               if (e.E.Type is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
               } else {
-                return translator.FunctionCall(expr.tok, BuiltinFunction.ArrayLength, null, arg);
+                return translator.FunctionCall(expr.tok, BuiltinFunction.ArrayLength, null, arg, Bpl.Expr.Literal(0));
               }
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -3938,41 +3997,39 @@ Contract.Requires(tok != null);
         return new Bpl.IdentifierExpr(tok, var.UniqueName, translator.TrType(var.Type));
       }
 
-      public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f)
-      {
-          Contract.Requires(tok != null);
-          Contract.Requires(heap != null);
-          Contract.Requires(r != null);
-          Contract.Requires(f != null);
-          Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+      public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
+        Contract.Requires(tok != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(r != null);
+        Contract.Requires(f != null);
+        Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
-          Bpl.ExprSeq args = new Bpl.ExprSeq();
-          args.Add(heap);
-          args.Add(r);
-          args.Add(f);
-          Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
-          return new Bpl.NAryExpr(tok,
-            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
-            args);
+        Bpl.ExprSeq args = new Bpl.ExprSeq();
+        args.Add(heap);
+        args.Add(r);
+        args.Add(f);
+        Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
+        return new Bpl.NAryExpr(tok,
+          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
+          args);
       }
 
-      public static Bpl.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v)
-      {
-          Contract.Requires(tok != null);
-          Contract.Requires(heap != null);
-          Contract.Requires(r != null);
-          Contract.Requires(f != null);
-          Contract.Requires(v != null);
-          Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+      public static Bpl.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
+        Contract.Requires(tok != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(r != null);
+        Contract.Requires(f != null);
+        Contract.Requires(v != null);
+        Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
-          Bpl.ExprSeq args = new Bpl.ExprSeq();
-          args.Add(heap);
-          args.Add(r);
-          args.Add(f);
-          args.Add(v);
-          return new Bpl.NAryExpr(tok,
-            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "update", heap.Type)),
-            args);
+        Bpl.ExprSeq args = new Bpl.ExprSeq();
+        args.Add(heap);
+        args.Add(r);
+        args.Add(f);
+        args.Add(v);
+        return new Bpl.NAryExpr(tok,
+          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "update", heap.Type)),
+          args);
       }
 
       /// <summary>
@@ -4183,6 +4240,7 @@ Contract.Requires(tok != null);
       
       ArrayLength,
       IndexField,
+      MultiIndexField,
       
       IfThenElse,
       
@@ -4196,7 +4254,7 @@ Contract.Requires(tok != null);
       TypeParams,   // type parameters to allocated type
       TypeTuple,
       DeclType,
-      FCat,  // field category (indexed or named)
+      FDim,  // field dimension (0 - named, 1 or more - indexed)
       
       DatatypeCtorId,
       DtRank,
@@ -4211,155 +4269,159 @@ Contract.Requires(tok != null);
     
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.
     Bpl.NAryExpr FunctionCall(IToken tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[] args)
-     {
+    {
       Contract.Requires(tok != null);
       Contract.Requires(args != null);
-     Contract.Requires( predef != null);
-     Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+      Contract.Requires(predef != null);
+      Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       switch (f) {
         case BuiltinFunction.SetEmpty: {
-          Contract.Assert( args.Length == 0);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 0);
+          Contract.Assert(typeInstantiation != null);
           Bpl.Type resultType = predef.SetType(tok, typeInstantiation);
           return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
         }
         case BuiltinFunction.SetUnionOne:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Set#UnionOne", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetUnion:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Set#Union", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetIntersection:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Set#Intersection", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetDifference:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Set#Difference", predef.SetType(tok, typeInstantiation), args);
         case BuiltinFunction.SetEqual:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Equal", Bpl.Type.Bool, args);
         case BuiltinFunction.SetSubset:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Subset", Bpl.Type.Bool, args);
         case BuiltinFunction.SetDisjoint:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
 
         case BuiltinFunction.SeqLength:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
         case BuiltinFunction.SeqEmpty: {
-          Contract.Assert( args.Length == 0);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 0);
+          Contract.Assert(typeInstantiation != null);
           Bpl.Type resultType = predef.SeqType(tok, typeInstantiation);
           return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
         }
         case BuiltinFunction.SeqBuild:
-          Contract.Assert( args.Length == 4);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 4);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#Build", predef.SeqType(tok, typeInstantiation), args);
         case BuiltinFunction.SeqAppend:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#Append", predef.SeqType(tok, typeInstantiation), args);
         case BuiltinFunction.SeqIndex:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#Index", typeInstantiation, args);
         case BuiltinFunction.SeqUpdate:
-          Contract.Assert( args.Length == 3);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 3);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#Update", predef.SeqType(tok, typeInstantiation), args);
         case BuiltinFunction.SeqContains:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Contains", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqDrop:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#Drop", predef.SeqType(tok, typeInstantiation), args);
         case BuiltinFunction.SeqTake:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#Take", predef.SeqType(tok, typeInstantiation), args);
         case BuiltinFunction.SeqEqual:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Equal", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqSameUntil:
-          Contract.Assert( args.Length == 3);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 3);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#SameUntil", Bpl.Type.Bool, args);
           
         case BuiltinFunction.ArrayLength:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Array#Length", Bpl.Type.Int, args);
         case BuiltinFunction.IndexField:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "IndexField", predef.FieldName(tok, predef.BoxType), args);
+        case BuiltinFunction.MultiIndexField:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok, predef.BoxType), args);
 
         case BuiltinFunction.IfThenElse:
-          Contract.Assert( args.Length == 3);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 3);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "$ite", typeInstantiation, args);
 
         case BuiltinFunction.Box:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$Box", predef.BoxType, args);
         case BuiltinFunction.Unbox:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
           return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
 
         case BuiltinFunction.IsGoodHeap:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsGoodHeap", Bpl.Type.Bool, args);
         case BuiltinFunction.HeapSucc:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$HeapSucc", Bpl.Type.Bool, args);
 
         case BuiltinFunction.DynamicType:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "dtype", predef.ClassNameType, args);
         case BuiltinFunction.TypeParams:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "TypeParams", predef.ClassNameType, args);
         case BuiltinFunction.TypeTuple:
-          Contract.Assert( args.Length == 2);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "TypeTuple", predef.ClassNameType, args);
         case BuiltinFunction.DeclType:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation != null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "DeclType", predef.ClassNameType, args);
-        case BuiltinFunction.FCat:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation != null);
-          return FunctionCall(tok, "FCat", predef.FieldCategoryType, args);
+        case BuiltinFunction.FDim:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "FDim", Bpl.Type.Int, args);
           
         case BuiltinFunction.DatatypeCtorId:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "DatatypeCtorId", predef.DtCtorId, args);
         case BuiltinFunction.DtRank:
-          Contract.Assert( args.Length == 1);
-          Contract.Assert( typeInstantiation == null);
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "DtRank", Bpl.Type.Int, args);
           
         case BuiltinFunction.CevInit:

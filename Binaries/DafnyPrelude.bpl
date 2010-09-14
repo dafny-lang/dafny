@@ -210,7 +210,6 @@ const unique class.bool: ClassName;
 const unique class.object: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
-const unique class.array: ClassName;
 
 function dtype(ref) returns (ClassName);
 function TypeParams(ref, int) returns (ClassName);
@@ -249,18 +248,24 @@ const $InMethodContext: bool;
 
 type Field alpha;
 
-type FieldCategory;
-const unique $NamedField: FieldCategory;
-const unique $IndexedField: FieldCategory;
-function FCat<T>(Field T): FieldCategory;
+function FDim<T>(Field T): int;
 
 const unique alloc: Field bool;
-axiom FCat(alloc) == $NamedField;
+axiom FDim(alloc) == 0;
 
 function IndexField(int): Field BoxType;
-axiom (forall i: int :: { IndexField(i) } FCat(IndexField(i)) == $IndexedField);
+axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
 function IndexField_Inverse<T>(Field T): int;
 axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
+
+function MultiIndexField(Field BoxType, int): Field BoxType;
+axiom (forall f: Field BoxType, i: int :: { MultiIndexField(f,i) } FDim(MultiIndexField(f,i)) == FDim(f) + 1);
+function MultiIndexField_Inverse0<T>(Field T): Field T;
+function MultiIndexField_Inverse1<T>(Field T): int;
+axiom (forall f: Field BoxType, i: int :: { MultiIndexField(f,i) }
+  MultiIndexField_Inverse0(MultiIndexField(f,i)) == f &&
+  MultiIndexField_Inverse1(MultiIndexField(f,i)) == i);
+
 
 function DeclType<T>(Field T) returns (ClassName);
 
@@ -268,15 +273,15 @@ function DeclType<T>(Field T) returns (ClassName);
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------
 
-function Array#Length(ref): int;
-axiom (forall r: ref :: 0 <= Array#Length(r));
+function Array#Length(ref, int): int;
+axiom (forall r: ref, dim: int :: 0 <= Array#Length(r, dim));
 
 procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
   modifies $Heap;
   ensures $HeapSucc(old($Heap), $Heap);
   ensures (forall i: int :: { read($Heap, arr, IndexField(i)) } low <= i && i < high ==> read($Heap, arr, IndexField(i)) == rhs);
   ensures (forall<alpha> o: ref, f: Field alpha :: { read($Heap, o, f) } read($Heap, o, f) == read(old($Heap), o, f) ||
-            (o == arr && FCat(f) == $IndexedField && low <= IndexField_Inverse(f) && IndexField_Inverse(f) < high));
+            (o == arr && FDim(f) == 1 && low <= IndexField_Inverse(f) && IndexField_Inverse(f) < high));
 
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------

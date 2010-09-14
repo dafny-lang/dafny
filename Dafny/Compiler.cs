@@ -19,10 +19,10 @@ namespace Microsoft.Dafny {
     }
 
     [ContractInvariantMethod]
-void ObjectInvariant() 
-{
-    Contract.Invariant(wr!=null);
-}
+    void ObjectInvariant() 
+    {
+      Contract.Invariant(wr!=null);
+    }
 
     TextWriter wr;
     
@@ -236,12 +236,14 @@ void ObjectInvariant()
       }
     }
     
-    string FormalName(Formal formal, int i) {Contract.Requires(formal != null);Contract.Ensures(Contract.Result<string>() != null);
+    string FormalName(Formal formal, int i) {
+      Contract.Requires(formal != null);Contract.Ensures(Contract.Result<string>() != null);
 
       return formal.Name.StartsWith("#") ? "a" + i : formal.Name;
     }
     
-    string DtCtorName(DatatypeCtor ctor) {Contract.Requires(ctor != null);Contract.Ensures(Contract.Result<string>() != null);
+    string DtCtorName(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);Contract.Ensures(Contract.Result<string>() != null);
 
       return cce.NonNull(ctor.EnclosingDatatype).Name + "_" + ctor.Name;
     }
@@ -401,8 +403,14 @@ void ObjectInvariant()
       } else if (type is ObjectType) {
         return "object";
       } else if (type.IsArrayType) {
+        ArrayClassDecl at = type.AsArrayType;
+        Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(type);
-        return TypeName(elType) + "[]";
+        string name = TypeName(elType) + "[";
+        for (int i = 1; i < at.Dims; i++) {
+          name += ",";
+        }
+        return name + "]";
       } else if (type is UserDefinedType) {
         UserDefinedType udt = (UserDefinedType)type;
         string s = udt.Name;
@@ -753,18 +761,29 @@ void ObjectInvariant()
         
       } else {
         TypeRhs tp = (TypeRhs)rhs;
-        if (tp.ArraySize == null) {
+        if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType));
         } else {
           if (tp.EType is IntType || tp.EType.IsTypeParameter) {
             // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
             // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
+            Contract.Assume(tp.ArrayDimensions.Count == 1);  // TODO: multi-dimensional arrays
             wr.Write("Dafny.Helpers.InitNewArray<{0}>(", TypeName(tp.EType));
-            TrExpr(tp.ArraySize);
+            string prefix = "(";
+            foreach (Expression dim in tp.ArrayDimensions) {
+              wr.Write(prefix);
+              TrExpr(dim);
+              prefix = ", ";
+            }
             wr.Write(")");
           } else {
-            wr.Write("new {0}[(int)", TypeName(tp.EType));
-            TrExpr(tp.ArraySize);
+            wr.Write("new {0}", TypeName(tp.EType));
+            string prefix = "[";
+            foreach (Expression dim in tp.ArrayDimensions) {
+              wr.Write("{0}(int)", prefix);
+              TrExpr(dim);
+              prefix = ", ";
+            }
             wr.Write("]");
           }
         }
@@ -937,6 +956,17 @@ void ObjectInvariant()
           }
         }
       
+      } else if (expr is MultiSelectExpr) {
+        MultiSelectExpr e = (MultiSelectExpr)expr;
+        TrParenExpr(e.Array);
+        string prefix = "[";
+        foreach (Expression idx in e.Indices) {
+          wr.Write("{0}(int)", prefix);
+          TrParenExpr(idx);
+          prefix = ", ";
+        }
+        wr.Write("]");
+
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         TrParenExpr(e.Seq);

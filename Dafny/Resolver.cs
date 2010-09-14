@@ -983,7 +983,7 @@ void ObjectInvariant()
           return true;
         } else if (b is IndexableTypeProxy) {
           // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
-          a.T = UserDefinedType.ArrayType(Token.NoToken, ((IndexableTypeProxy)b).Arg);
+          a.T = UserDefinedType.ArrayType(Token.NoToken, 1, ((IndexableTypeProxy)b).Arg);
           b.T = a.T;
           return true;
         } else {
@@ -1167,12 +1167,20 @@ void ObjectInvariant()
           if (lhsResolvedSuccessfully) {
             Contract.Assert( lhs.Seq.Type != null);
             Type elementType = new InferredTypeProxy();
-            if (!UnifyTypes(lhs.Seq.Type, UserDefinedType.ArrayType(Token.NoToken, elementType))) {
+            if (!UnifyTypes(lhs.Seq.Type, UserDefinedType.ArrayType(Token.NoToken, 1, elementType))) {
               Error(lhs.Seq, "LHS of array assignment must denote an array element (found {0})", lhs.Seq.Type);
             }
             if (specContextOnly) {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
+          }
+          if (!(s.Rhs is ExprRhs)) {
+            Error(stmt, "Assignment to array element must have an expression RHS; try using a temporary local variable");
+          }
+
+        } else if (s.Lhs is MultiSelectExpr) {
+          if (specContextOnly) {
+            Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           }
           if (!(s.Rhs is ExprRhs)) {
             Error(stmt, "Assignment to array element must have an expression RHS; try using a temporary local variable");
@@ -1556,20 +1564,23 @@ void ObjectInvariant()
       Contract.Ensures(Contract.Result<Type>() != null);
 
       ResolveType(rr.EType);
-      if (rr.ArraySize == null) {
+      if (rr.ArrayDimensions == null) {
         if (!rr.EType.IsRefType) {
           Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
         }
+        return rr.EType;
       } else {
-        ResolveExpression(rr.ArraySize, true, specContext);
-        if (rr.ArraySize.Type is IntType) {
-          // all is good
-          return UserDefinedType.ArrayType(stmt.Tok, rr.EType);
-        } else {
-          Error(stmt, "new must use an integer expression for the array size (got {0})", rr.ArraySize.Type);
+        int i = 0;
+        foreach (Expression dim in rr.ArrayDimensions) {
+          Contract.Assert(dim != null);
+          ResolveExpression(dim, true, specContext);
+          if (!UnifyTypes(dim.Type, Type.Int)) {
+            Error(stmt, "new must use an integer expression for the array size (got {0} for index {1})", dim.Type, i);
+          }
+          i++;
         }
+        return UserDefinedType.ArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType);
       }
-      return rr.EType;
     }
 
     MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out UserDefinedType ctype)
@@ -1819,7 +1830,28 @@ void ObjectInvariant()
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         ResolveSeqSelectExpr(e, twoState, specContext, false);
-        
+
+      } else if (expr is MultiSelectExpr) {
+        MultiSelectExpr e = (MultiSelectExpr)expr;
+
+        ResolveExpression(e.Array, twoState, specContext);
+        Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
+        Type elementType = new InferredTypeProxy();
+        if (!UnifyTypes(e.Array.Type, UserDefinedType.ArrayType(Token.NoToken, 1, elementType))) {
+          Error(e.Array, "array selection requires an array (got {0})", e.Array.Type);
+        }
+        int i = 0;
+        foreach (Expression idx in e.Indices) {
+          Contract.Assert(idx != null);
+          ResolveExpression(idx, twoState, specContext);
+          Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(idx.Type, Type.Int)) {
+            Error(idx, "array selection requires integer indices (got {0} for index {1})", idx.Type, i);
+          }
+          i++;
+        }
+        e.Type = elementType;
+
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         bool seqErr = false;
