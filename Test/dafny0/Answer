@@ -267,7 +267,7 @@ Execution trace:
 Dafny program verifier finished with 21 verified, 29 errors
 
 -------------------- Array.dfy --------------------
-Array.dfy(10,12): Error: assignment may update an array not in the enclosing method's modifies clause
+Array.dfy(10,12): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -280,11 +280,11 @@ Execution trace:
 Array.dfy(48,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Array.dfy(56,12): Error: assignment may update an array not in the enclosing method's modifies clause
+Array.dfy(56,12): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Array.dfy(63,12): Error: assignment may update an array not in the enclosing method's modifies clause
+Array.dfy(63,12): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -301,14 +301,28 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon5_Then
-Array.dfy(131,10): Error: assignment may update an array not in the enclosing method's modifies clause
+Array.dfy(131,10): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(138,10): Error: assignment may update an array not in the enclosing method's modifies clause
+Array.dfy(138,10): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 22 verified, 11 errors
+
+-------------------- MultiDimArray.dfy --------------------
+MultiDimArray.dfy(53,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+MultiDimArray.dfy(80,25): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+
+Dafny program verifier finished with 8 verified, 2 errors
 
 -------------------- Modules0.dfy --------------------
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T

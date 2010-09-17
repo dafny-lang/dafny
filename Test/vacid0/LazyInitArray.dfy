@@ -11,11 +11,11 @@ class LazyInitArray<T> {
     reads this, a, b, c;
   {
     a != null && b != null && c != null &&
-    |a| == |Contents| + 1 &&  // TODO: remove the "+ 1" hack, which currently serves the purpose of distinguishing 'a' from 'b' and 'c'
-    |b| == |Contents| &&
-    |c| == |Contents| &&
+    a.Length == |Contents| + 1 &&  // TODO: remove the "+ 1" hack, which currently serves the purpose of distinguishing 'a' from 'b' and 'c'
+    b.Length == |Contents| &&
+    c.Length == |Contents| &&
     b != c &&
-    0 <= n && n <= |c| &&
+    0 <= n && n <= c.Length &&
     (forall i :: 0 <= i && i < |Contents| ==>
        Contents[i] == (if 0 <= b[i] && b[i] < n && c[b[i]] == i then a[i] else Zero)) &&
     (forall i :: 0 <= i && i < |Contents| ==>

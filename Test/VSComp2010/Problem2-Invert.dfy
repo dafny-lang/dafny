@@ -23,7 +23,7 @@
 // connect the two.
 
 method M(N: int, A: array<int>, B: array<int>)
-  requires 0 <= N && A != null && B != null && N == |A| && N == |B| && A != B;
+  requires 0 <= N && A != null && B != null && N == A.Length && N == B.Length && A != B;
   requires (forall k :: 0 <= k && k < N ==> 0 <= A[k] && A[k] < N);
   requires (forall j,k :: 0 <= j && j < k && k < N ==> A[j] != A[k]);  // A is injective
   requires (forall m :: 0 <= m && m < N && inImage(m) ==> (exists k :: 0 <= k && k < N && A[k] == m));  // A is surjective
@@ -72,7 +72,7 @@ method PrintArray(a: array<int>)
   requires a != null;
 {
   var i := 0;
-  while (i < |a|) {
+  while (i < a.Length) {
     print a[i], "\n";
     i := i + 1;
   }

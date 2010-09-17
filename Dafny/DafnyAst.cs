@@ -20,11 +20,62 @@ namespace Microsoft.Dafny {
 
     public readonly string Name;
     public readonly List<ModuleDecl/*!*/>/*!*/ Modules;
-    public Program(string name, [Captured] List<ModuleDecl/*!*/>/*!*/ modules) {
+    public readonly BuiltIns BuiltIns;
+    public Program(string name, [Captured] List<ModuleDecl/*!*/>/*!*/ modules, [Captured] BuiltIns builtIns) {
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(modules));
       Name = name;
       Modules = modules;
+      BuiltIns = builtIns;
+    }
+  }
+
+  public class BuiltIns
+  {
+    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", new List<string>(), null);
+    Dictionary<int, ClassDecl/*!*/> arrayTypeDecls = new Dictionary<int, ClassDecl>();
+
+    public BuiltIns() {
+      // create class 'object'
+      ClassDecl obj = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
+      SystemModule.TopLevelDecls.Add(obj);
+      // add one-dimensional arrays, since they may arise during type checking
+      UserDefinedType tmp = ArrayType(1, Type.Int, true);
+    }
+
+    public UserDefinedType ArrayType(int dims, Type arg) {
+      return ArrayType(dims, arg, false);
+    }
+    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
+      Contract.Requires(1 <= dims);
+      Contract.Requires(arg != null);
+      Contract.Ensures(Contract.Result<UserDefinedType>() != null);
+
+      List<Type/*!*/> typeArgs = new List<Type/*!*/>();
+      typeArgs.Add(arg);
+      UserDefinedType udt = new UserDefinedType(Token.NoToken, ArrayClassName(dims), typeArgs);
+      if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
+        ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
+        for (int d = 0; d < dims; d++) {
+          string name = dims == 1 ? "Length" : "Length" + d;
+          Field len = new Field(Token.NoToken, name, false, false, Type.Int, null);
+          len.EnclosingClass = arrayClass;  // resolve here
+          arrayClass.Members.Add(len);
+        }
+        arrayTypeDecls.Add(dims, arrayClass);
+        SystemModule.TopLevelDecls.Add(arrayClass);
+      }
+      udt.ResolvedClass = arrayTypeDecls[dims];
+      return udt;
+    }
+
+    public static string ArrayClassName(int dims) {
+      Contract.Requires(1 <= dims);
+      if (dims == 1) {
+        return "array";
+      } else {
+        return "array" + dims;
+      }
     }
   }
 
@@ -197,7 +248,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
       Contract.Invariant(cce.NonNullElements(Name));
       Contract.Invariant(cce.NonNullElements(TypeArgs));
-      Contract.Invariant(ArrayTypeDecls != null);
     }
 
     public readonly IToken tok;
@@ -207,24 +257,6 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
-
-    public static UserDefinedType ArrayType(IToken tok, int dims, Type arg) {
-      Contract.Requires(tok != null);
-      Contract.Requires(1 <= dims);
-      Contract.Requires(arg != null);
-      Contract.Ensures(Contract.Result<UserDefinedType>() != null);
-
-      List<Type/*!*/> typeArgs = new List<Type/*!*/>();
-      typeArgs.Add(arg);
-      UserDefinedType udt = new UserDefinedType(tok, "array" + dims, typeArgs);
-      if (!ArrayTypeDecls.ContainsKey(dims)) {
-        ArrayTypeDecls.Add(dims, new ArrayClassDecl(dims, _systemModule));
-      }
-      udt.ResolvedClass = ArrayTypeDecls[dims];
-      return udt;
-    }
-    public static Dictionary<int, ClassDecl/*!*/> ArrayTypeDecls = new Dictionary<int,ClassDecl>();
-    static readonly ModuleDecl _systemModule = new ModuleDecl(Token.NoToken, "_System", new List<string>(), null);
 
     public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
       Contract.Requires(tok != null);
@@ -587,7 +619,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Members));
     }
 
-
     public ClassDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module,
       List<TypeParameter/*!*/>/*!*/ typeArgs, [Captured] List<MemberDecl/*!*/>/*!*/ members, Attributes attributes)
       : base(tok, name, module, typeArgs, attributes) {
@@ -644,7 +675,7 @@ namespace Microsoft.Dafny {
   public class ArrayClassDecl : ClassDecl {
     public readonly int Dims;
     public ArrayClassDecl(int dims, ModuleDecl module)
-    : base(Token.NoToken, "array" + dims, module,
+    : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
       new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
       new List<MemberDecl>(), null)
     {
@@ -728,7 +759,6 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-
         return EnclosingClass.Name + "." + Name;
       }
     }
@@ -736,21 +766,28 @@ namespace Microsoft.Dafny {
 
   public class Field : MemberDecl {
     public readonly bool IsGhost;
+    public readonly bool IsMutable;
     public readonly Type Type;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Type != null);
     }
 
-
     public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
+      : this(tok, name, isGhost, true, type, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);
+    }
+
+    public Field(IToken tok, string name, bool isGhost, bool isMutable, Type type, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       IsGhost = isGhost;
+      IsMutable = isMutable;
       Type = type;
-
     }
   }
 
@@ -1292,7 +1329,6 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Lhs != null);
       Contract.Invariant(Rhs != null);
-
     }
 
     public AssignStmt(IToken tok, Expression lhs, Expression rhs)
@@ -1302,7 +1338,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       this.Lhs = lhs;
       this.Rhs = new ExprRhs(rhs);
-
     }
     public AssignStmt(IToken tok, Expression lhs, Type type)
       : base(tok) {  // alloc statement
@@ -1311,7 +1346,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       this.Lhs = lhs;
       this.Rhs = new TypeRhs(type);
-
     }
     public AssignStmt(IToken tok, Expression lhs, Type type, List<Expression> arrayDimensions)
       : base(tok) {  // array alloc statement

@@ -16,6 +16,7 @@ for %%f in (Queue.dfy
             UnboundedStack.dfy
             SeparationLogicList.dfy
             ListCopy.dfy ListReverse.dfy ListContents.dfy
+            MatrixFun.dfy
             SchorrWaite.dfy
             SumOfCubes.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy

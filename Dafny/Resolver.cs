@@ -43,21 +43,26 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);
       Error(e.tok, msg, args);
     }
-    
+
+    readonly BuiltIns builtIns;
     readonly Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes = new Dictionary<string/*!*/,TopLevelDecl/*!*/>();
     readonly Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/,Dictionary<string/*!*/,DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/,Dictionary<string/*!*/,DatatypeCtor/*!*/>/*!*/>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ importGraph = new Graph<ModuleDecl/*!*/>();
-    
-    [ContractInvariantMethod]
-void ObjectInvariant() 
-{
-    Contract.Invariant(cce.NonNullElements(classes));
-      Contract.Invariant(cce.NonNullElements(importGraph));
-      Contract.Invariant(cce.NonNullElements(classMembers) && Contract.ForAll(classMembers.Values, v=> cce.NonNullElements(v)));
-      Contract.Invariant(cce.NonNullElements(datatypeCtors)&&Contract.ForAll(datatypeCtors.Values, v=> cce.NonNullElements(v)));
 
-}
+    public Resolver(Program prog) {
+      Contract.Requires(prog != null);
+      builtIns = prog.BuiltIns;
+    }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(builtIns != null);
+      Contract.Invariant(cce.NonNullElements(classes));
+      Contract.Invariant(cce.NonNullElements(importGraph));
+      Contract.Invariant(cce.NonNullElements(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullElements(v)));
+      Contract.Invariant(cce.NonNullElements(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullElements(v)));
+    }
 
     bool checkRefinements = true; // used to indicate a cycle in refinements
       
@@ -73,6 +78,7 @@ void ObjectInvariant()
         }
       }
       // resolve imports and register top-level declarations
+      RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
       Graph<TopLevelDecl> refines = new Graph<TopLevelDecl>();
       foreach (ModuleDecl m in prog.Modules) {
         importGraph.AddVertex(m);
@@ -174,11 +180,11 @@ void ObjectInvariant()
 
         if (d is ClassDecl) {
           ClassDecl cl = (ClassDecl)d;
-          
+
           // register the names of the class members
-          Dictionary<string,MemberDecl> members = new Dictionary<string,MemberDecl>();
+          Dictionary<string, MemberDecl> members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
-        
+
           foreach (MemberDecl m in cl.Members) {
             if (members.ContainsKey(m.Name)) {
               Error(m, "Duplicate member name: {0}", m.Name);
@@ -186,6 +192,7 @@ void ObjectInvariant()
               members.Add(m.Name, m);
             }
           }
+
         } else {
           DatatypeDecl dt = (DatatypeDecl)d;
 
@@ -203,7 +210,7 @@ void ObjectInvariant()
         }
       }
     }
-      
+
     public void ResolveTopLevelRefinement(ClassRefinementDecl decl) {
       Contract.Requires(decl != null);
       if (!classes.ContainsKey(decl.RefinedClass.val)) {
@@ -326,7 +333,7 @@ void ObjectInvariant()
         if (currentClass is ClassRefinementDecl) {          
           ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;
           if (refined != null) {
-            Contract.Assert( classMembers.ContainsKey(refined));
+            Contract.Assert(classMembers.ContainsKey(refined));
           
             // there is a member with the same name in refined class if and only if the member is a refined method
             if ((member is MethodRefinement) != (classMembers[refined].ContainsKey(member.Name)))
@@ -983,7 +990,7 @@ void ObjectInvariant()
           return true;
         } else if (b is IndexableTypeProxy) {
           // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
-          a.T = UserDefinedType.ArrayType(Token.NoToken, 1, ((IndexableTypeProxy)b).Arg);
+          a.T = builtIns.ArrayType(1, ((IndexableTypeProxy)b).Arg);
           b.T = a.T;
           return true;
         } else {
@@ -1159,6 +1166,9 @@ void ObjectInvariant()
                   }
                 }
               }
+              if (!fse.Field.IsMutable) {
+                Error(stmt, "LHS of assignment does not denote a mutable field");
+              }
             }
           }
         } else if (s.Lhs is SeqSelectExpr) {
@@ -1167,7 +1177,7 @@ void ObjectInvariant()
           if (lhsResolvedSuccessfully) {
             Contract.Assert( lhs.Seq.Type != null);
             Type elementType = new InferredTypeProxy();
-            if (!UnifyTypes(lhs.Seq.Type, UserDefinedType.ArrayType(Token.NoToken, 1, elementType))) {
+            if (!UnifyTypes(lhs.Seq.Type, builtIns.ArrayType(1, elementType))) {
               Error(lhs.Seq, "LHS of array assignment must denote an array element (found {0})", lhs.Seq.Type);
             }
             if (specContextOnly) {
@@ -1194,10 +1204,10 @@ void ObjectInvariant()
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, true, lvalueIsGhost);
-          Contract.Assert( rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
           Type lhsType = s.Lhs.Type;
           if (s.Lhs is SeqSelectExpr && !((SeqSelectExpr)s.Lhs).SelectOne) {
-            Contract.Assert( lhsType.IsArrayType);
+            Contract.Assert(lhsType.IsArrayType);
             lhsType = UserDefinedType.ArrayElementType(lhsType);
           }
           if (!UnifyTypes(lhsType, rr.Expr.Type)) {
@@ -1579,7 +1589,7 @@ void ObjectInvariant()
           }
           i++;
         }
-        return UserDefinedType.ArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType);
+        return builtIns.ArrayType(rr.ArrayDimensions.Count, rr.EType);
       }
     }
 
@@ -1588,7 +1598,7 @@ void ObjectInvariant()
       Contract.Requires(tok != null);
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
-      Contract.Ensures(  Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out ctype) != null && ctype.ResolvedClass != null);
+      Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out ctype) != null && ctype.ResolvedClass != null);
     
       ctype = UserDefinedType.DenotesClass(receiverType);
       if (ctype == null) {
@@ -1837,7 +1847,7 @@ void ObjectInvariant()
         ResolveExpression(e.Array, twoState, specContext);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
-        if (!UnifyTypes(e.Array.Type, UserDefinedType.ArrayType(Token.NoToken, 1, elementType))) {
+        if (!UnifyTypes(e.Array.Type, builtIns.ArrayType(e.Indices.Count, elementType))) {
           Error(e.Array, "array selection requires an array (got {0})", e.Array.Type);
         }
         int i = 0;
@@ -1856,7 +1866,7 @@ void ObjectInvariant()
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         bool seqErr = false;
         ResolveExpression(e.Seq, twoState, specContext);
-        Contract.Assert( e.Seq.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
         if (!UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
           Error(expr, "sequence update requires a sequence (got {0})", e.Seq.Type);
@@ -1988,8 +1998,8 @@ void ObjectInvariant()
             expr.Type = Type.Bool;
             break;
           case UnaryExpr.Opcode.SeqLength:
-            if (!UnifyTypes(e.E.Type, new IndexableTypeProxy(new InferredTypeProxy()))) {
-              Error(expr, "length operator expects a sequence or array argument (instead got {0})", e.E.Type);
+            if (!UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
+              Error(expr, "length operator expects a sequence argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Int;
             break;

@@ -10,7 +10,6 @@
 //--------------------------------------------------------------------------*/
 
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Numerics;
 using Microsoft.Boogie;
 using System.IO;
@@ -21,7 +20,8 @@ COMPILER Dafny
 
 /*--------------------------------------------------------------------------*/
 
-static List<ModuleDecl/*!*/>/*!*/ theModules = new List<ModuleDecl/*!*/>();
+static List<ModuleDecl/*!*/> theModules;
+static BuiltIns theBuiltIns;
 
 
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
@@ -71,17 +71,17 @@ Contract.Ensures(Contract.Result<Expression>() != null);
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules) /* throws System.IO.IOException */ {
+public static int Parse (string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules, BuiltIns builtIns) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(cce.NonNullElements(modules));
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, modules);
+    return Parse(s, filename, modules, builtIns);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, modules);
+      return Parse(s, filename, modules, builtIns);
     }
   }
 }
@@ -92,12 +92,14 @@ public static int Parse (string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ module
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules) {
+public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules, BuiltIns builtIns) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(cce.NonNullElements(modules));
   List<ModuleDecl/*!*/> oldModules = theModules;
   theModules = modules;
+  BuiltIns oldBuiltIns = builtIns;
+  theBuiltIns = builtIns;
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Errors errors = new Errors();
@@ -105,6 +107,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
   Parser parser = new Parser(scanner, errors);
   parser.Parse();
   theModules = oldModules;
+  theBuiltIns = oldBuiltIns;
   return parser.errors.count;
 }
 
@@ -112,6 +115,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
   digit = "0123456789".
+  posDigit = "123456789".
   special = "'_?\\".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
 
@@ -123,13 +127,27 @@ CHARACTERS
   quote = '"'.
 
   nondigit = letter + special.
+  idchar = nondigit + digit.
   nonquote = letter + digit + space + glyph.
 
+  /* exclude the characters in 'array' */
+  nondigitMinusA = nondigit - 'a'.
+  idcharMinusA = idchar - 'a'.
+  idcharMinusR = idchar - 'r'.
+  idcharMinusY = idchar - 'y'.
+  idcharMinusPosDigit = idchar - posDigit.
 
 /*------------------------------------------------------------------------*/
 TOKENS
-  ident =  nondigit {nondigit | digit}.
+  ident =  nondigitMinusA {idchar}            /* if char 0 is not an 'a', then anything else is fine */
+        |  'a' [ idcharMinusR {idchar} ]      /* if char 0 is an 'a', then either there is no char 1 or char 1 is not an 'r' */
+        |  'a' 'r' [ idcharMinusR {idchar} ]  /* etc. */
+        |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
+        |  'a' 'r' 'r' 'a' [ idcharMinusY {idchar} ]
+        |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
+        |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}.
   digits = digit {digit}.
+  arrayToken = 'a' 'r' 'r' 'a' 'y' [posDigit {digit}].
   string = quote {nonquote} quote.
 
 COMMENTS FROM "/*" TO "*/" NESTED
@@ -495,11 +513,15 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
      List<Type/*!*/>/*!*/ gt;
   .)
   ( "object"                        (. tok = t;  ty = new ObjectType(); .)
-  | "array"                         (. tok = t;  gt = new List<Type/*!*/>(); .)
+  | arrayToken                      (. tok = t;  gt = new List<Type/*!*/>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("array type expects exactly one type argument");
                                        }
-                                       ty = UserDefinedType.ArrayType(tok, 1, gt[0]);
+                                       int dims = 1;
+                                       if (tok.val.Length != 5) {
+                                         dims = int.Parse(tok.val.Substring(5));
+                                       }
+                                       ty = theBuiltIns.ArrayType(dims, gt[0], true);
                                     .)
   | Ident<out tok>                  (. gt = new List<Type/*!*/>(); .)
     [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
@@ -690,7 +712,7 @@ OneStmt<out Statement/*!*/ s>
 AssignStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression/*!*/ lhs;
-     Expression rhs;
+     List<Expression> rhs;
      Type ty;
      s = dummyStmt;
   .)
@@ -698,26 +720,34 @@ AssignStmt<out Statement/*!*/ s>
   ":="                                 (. x = t; .)
   AssignRhs<out rhs, out ty>           (. if (ty == null) {
                                             Contract.Assert(rhs != null);
-                                            s = new AssignStmt(x, lhs, rhs);
+                                            Contract.Assert(rhs.Count == 1);
+                                            s = new AssignStmt(x, lhs, rhs[0]);
                                           } else if (rhs == null) {
                                             s = new AssignStmt(x, lhs, ty);
                                           } else {
-                                            s = new AssignStmt(x, lhs, ty, new List<Expression>(new Expression[] { rhs }));
+                                            s = new AssignStmt(x, lhs, ty, rhs);
                                           }
                                        .)
   ";"
   .
 
-AssignRhs<out Expression e, out Type ty>
-/* ensures e != null || ty != null; */
-= (. IToken/*!*/ x;  Expression/*!*/ ee;  Type/*!*/ tt;
-     e = null;  ty = null;
+AssignRhs<.out List<Expression> ee, out Type ty.>
+/* ensures ee != null || ty != null; */
+/* ensures ee != null ==> 1 <= ee.Count; */
+/* ensures ty == null ==> 1 == ee.Count; */
+= (. IToken/*!*/ x;  Expression/*!*/ e;
+     ee = null;  ty = null;
   .)
-  ( "new" TypeAndToken<out x, out tt>  (. ty = tt; .)
-    [ "[" Expression<out ee> "]"       (. e = ee; .)
+  ( "new" TypeAndToken<out x, out ty>
+    [ "[" Expression<out e>            (. ee = new List<Expression>(); ee.Add(e); .)
+      { "," Expression<out e>          (. ee.Add(e); .)
+      }
+      "]"                              (. // make sure an array class with this dimensionality exists
+                                          UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, Type.Int, true);
+                                       .)
     ]
-  | Expression<out ee>                 (. e = ee; .)
-  )                                    (. if (e == null && ty == null) { e = dummyExpr; } .)
+  | Expression<out e>                  (. ee = new List<Expression>(); ee.Add(e); .)
+  )                                    (. if (ee == null && ty == null) { ee = new List<Expression>(); ee.Add(dummyExpr); } .)
   .
 
 HavocStmt<out Statement/*!*/ s>
@@ -744,7 +774,7 @@ VarDeclStmts<.List<Statement/*!*/>/*!*/ ss.>
 
 IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
 = (. Contract.Ensures(Contract.ValueAtReturn(out d) != null); IToken/*!*/ id;  Type/*!*/ ty;
-     Expression rhs = null;  Type newType = null;
+     List<Expression> rhs = null;  Type newType = null;
      Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
   .)
   Ident<out id>
@@ -754,12 +784,13 @@ IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
     AssignRhs<out rhs, out newType>
   ]
   (. if (newType == null && rhs != null) {
-       optionalRhs = new ExprRhs(rhs);
+       Contract.Assert(rhs.Count == 1);
+       optionalRhs = new ExprRhs(rhs[0]);
      } else if (newType != null) {
        if (rhs == null) {
          optionalRhs = new TypeRhs(newType);
        } else {
-         optionalRhs = new TypeRhs(newType, new List<Expression>(new Expression[] { rhs }));
+         optionalRhs = new TypeRhs(newType, rhs);
        }
      } else if (optionalType == null) {
        optionalType = new InferredTypeProxy();
@@ -1174,6 +1205,7 @@ IdentOrFuncExpression<out Expression/*!*/ e>
 SelectOrCallSuffix<ref Expression/*!*/ e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null); IToken/*!*/ id, x;  List<Expression/*!*/>/*!*/ args;
      Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false;
+     List<Expression> multipleIndices = null;
      bool func = false;
   .)
   ( "."
@@ -1185,29 +1217,41 @@ SelectOrCallSuffix<ref Expression/*!*/ e>
     
   | "["                                        (. x = t; .)
       ( Expression<out ee>                     (. e0 = ee; .)
-        [ ".."                                 (. anyDots = true; .)
+        ( ".."                                 (. anyDots = true; .)
           [ Expression<out ee>                 (. e1 = ee; .)
           ]
         | ":="
           Expression<out ee>                   (. e1 = ee; .)
-        ]
-      | ".." Expression<out ee>                (. anyDots = true;  e1 = ee; .)
-      )                                        (. if (!anyDots && e0 == null) {
-                                                    /* a parsing error occurred */
-                                                    e0 = dummyExpr;
+        | { "," Expression<out ee>             (. if (multipleIndices == null) {
+                                                    multipleIndices = new List<Expression>();
+                                                    multipleIndices.Add(e0);
                                                   }
-                                                  Contract.Assert(anyDots || e0 != null);
-                                                  if (anyDots) {
-                                                    Contract.Assert(e0 != null || e1 != null);
-                                                    e = new SeqSelectExpr(x, false, e, e0, e1);
-                                                  } else if (e1 == null) {
-                                                    Contract.Assert(e0 != null);
-                                                    e = new SeqSelectExpr(x, true, e, e0, null);
-                                                  } else {
-                                                    Contract.Assert(e0 != null);
-                                                    e = new SeqUpdateExpr(x, e, e0, e1);
-                                                  }
+                                                  multipleIndices.Add(ee);
                                                .)
+          }
+        )
+      | ".." Expression<out ee>                (. anyDots = true;  e1 = ee; .)
+      )
+      (. if (multipleIndices != null) {
+           e = new MultiSelectExpr(x, e, multipleIndices);
+         } else {
+           if (!anyDots && e0 == null) {
+             /* a parsing error occurred */
+             e0 = dummyExpr;
+           }
+           Contract.Assert(anyDots || e0 != null);
+           if (anyDots) {
+             Contract.Assert(e0 != null || e1 != null);
+             e = new SeqSelectExpr(x, false, e, e0, e1);
+           } else if (e1 == null) {
+             Contract.Assert(e0 != null);
+             e = new SeqSelectExpr(x, true, e, e0, null);
+           } else {
+             Contract.Assert(e0 != null);
+             e = new SeqUpdateExpr(x, e, e0, e1);
+           }
+         }
+      .)
     "]"
   )
   .
@@ -1322,7 +1366,7 @@ Idents<.List<string/*!*/>/*!*/ ids.>
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t; .)
-  .                                  
+  .
 
 Nat<out BigInteger n>
 =

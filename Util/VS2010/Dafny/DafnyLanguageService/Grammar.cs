@@ -25,7 +25,7 @@ namespace Demo
           "int", "bool", "false", "true", "null",
           "function", "free",
           "in", "forall", "exists",
-          "seq", "set", "array",
+          "seq", "set", "array", "array2", "array3",
           "match", "case",
           "fresh", "old"
           );
@@ -330,6 +330,8 @@ namespace Demo
           | "seq"
           | "set"
           | "array"
+          | "array2"
+          | "array3"
           | "match"
           | "case"
           | "fresh"

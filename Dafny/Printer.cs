@@ -14,10 +14,10 @@ namespace Microsoft.Dafny {
   class Printer {
     TextWriter wr;
     [ContractInvariantMethod]
-void ObjectInvariant() 
-{
-    Contract.Invariant(wr!=null);
-}
+    void ObjectInvariant() 
+    {
+      Contract.Invariant(wr!=null);
+    }
 
     public Printer(TextWriter wr) {
       Contract.Requires(wr != null);

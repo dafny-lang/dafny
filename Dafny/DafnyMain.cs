@@ -21,6 +21,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(fileNames != null);
       program = null;
       List<ModuleDecl> modules = new List<ModuleDecl>();
+      BuiltIns builtIns = new BuiltIns();
       foreach (string dafnyFileName in fileNames){
         Contract.Assert(dafnyFileName != null);
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
@@ -34,7 +35,7 @@ namespace Microsoft.Dafny {
         int errorCount;
         try 
         {
-          errorCount = Dafny.Parser.Parse(dafnyFileName, modules);
+          errorCount = Dafny.Parser.Parse(dafnyFileName, modules, builtIns);
           if (errorCount != 0) 
           {
             return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
@@ -46,7 +47,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      program = new Program(programName, modules);
+      program = new Program(programName, modules, builtIns);
 
       if (Bpl.CommandLineOptions.Clo.DafnyPrintFile != null) {
         string filename = Bpl.CommandLineOptions.Clo.DafnyPrintFile;
@@ -63,7 +64,7 @@ namespace Microsoft.Dafny {
       
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
-      Dafny.Resolver r = new Dafny.Resolver();
+      Dafny.Resolver r = new Dafny.Resolver(program);
       r.ResolveProgram(program);
       if (r.ErrorCount != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", r.ErrorCount, programName);

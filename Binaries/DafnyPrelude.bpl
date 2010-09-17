@@ -207,7 +207,6 @@ axiom (forall b: BoxType :: { $Unbox(b): DatatypeType } $Box($Unbox(b): Datatype
 type ClassName;
 const unique class.int: ClassName;
 const unique class.bool: ClassName;
-const unique class.object: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
 
@@ -272,9 +271,6 @@ function DeclType<T>(Field T) returns (ClassName);
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------
-
-function Array#Length(ref, int): int;
-axiom (forall r: ref, dim: int :: 0 <= Array#Length(r, dim));
 
 procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
   modifies $Heap;

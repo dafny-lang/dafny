@@ -5,8 +5,8 @@ class A {
   }
 
   method N0() {
-    var a;
-    if (a != null && 5 < |a|) {
+    var a: array<int>;
+    if (a != null && 5 < a.Length) {
       a[5] := 12;  // error: violates modifies clause
     }
   }
@@ -14,7 +14,7 @@ class A {
   method N1(a: array<int>)
     modifies a;
   {
-    var b := |a|;  // error: a may be null
+    var b := a.Length;  // error: a may be null
   }
 
   method N2(a: array<int>)
@@ -25,9 +25,9 @@ class A {
   }
 
   method N3(a: array<int>)
-    requires a != null && 5 < |a|;
+    requires a != null && 5 < a.Length;
     modifies a;
-    ensures (forall i :: 0 <= i && i < |a| ==> a[i] == old(a[i]) || (i == 5 && a[i] == 12));
+    ensures (forall i :: 0 <= i && i < a.Length ==> a[i] == old(a[i]) || (i == 5 && a[i] == 12));
   {
     a[5] := 12;  // all is good
   }
@@ -52,21 +52,21 @@ class A {
   method P0()
     modifies this;
   {
-    if (x != null && 100 <= |x|) {
+    if (x != null && 100 <= x.Length) {
       x[5] := 12;  // error: violates modifies clause
     }
   }
   method P1()
     modifies this`x;
   {
-    if (x != null && 100 <= |x|) {
+    if (x != null && 100 <= x.Length) {
       x[5] := 12;  // error: violates modifies clause
     }
   }
   method P2()
     modifies x;
   {
-    if (x != null && 100 <= |x|) {
+    if (x != null && 100 <= x.Length) {
       x[5] := 12;  // fine
     }
   }
@@ -76,7 +76,7 @@ class A {
     y[5] := null;
     y[0..] := null;
     y[..83] := null;
-    y[0..|y|] := null;
+    y[0..y.Length] := null;
   }
 
   method R() {
@@ -91,7 +91,7 @@ class A {
     assert y[55] == 90;
     assert y[83] == 25;
     assert y[8] == 30;
-    assert y[90] + y[91] + y[0] + 20 == |y|;
+    assert y[90] + y[91] + y[0] + 20 == y.Length;
     assert y[93] == 24;  // error (it's 25)
   }
 }
@@ -103,7 +103,7 @@ class B { }
 class ArrayTests {
   function F0(a: array<int>): bool
   {
-    a != null && 10 <= |a| &&
+    a != null && 10 <= a.Length &&
     a[7] == 13  // error: reads on something outside reads clause
   }
 
@@ -111,28 +111,28 @@ class ArrayTests {
   function F1(): bool
     reads this;
   {
-    b != null && 10 <= |b| &&
+    b != null && 10 <= b.Length &&
     b[7] == 13  // error: reads on something outside reads clause
   }
 
   function F2(a: array<int>): bool
     reads this, b, a;
   {
-    a != null && 10 <= |a| &&
+    a != null && 10 <= a.Length &&
     a[7] == 13  // good
     &&
-    b != null && 10 <= |b| &&
+    b != null && 10 <= b.Length &&
     b[7] == 13  // good
   }
 
   method M0(a: array<int>)
-    requires a != null && 10 <= |a|;
+    requires a != null && 10 <= a.Length;
   {
     a[7] := 13;  // error: updates location not in modifies clause
   }
 
   method M1()
-    requires b != null && 10 <= |b|;
+    requires b != null && 10 <= b.Length;
     modifies this;
   {
     b[7] := 13;  // error: updates location not in modifies clause
@@ -146,8 +146,8 @@ class ArrayTests {
   }
 
   method M3(a: array<int>)
-    requires a != null && 10 <= |a|;
-    requires b != null && 10 <= |b|;
+    requires a != null && 10 <= a.Length;
+    requires b != null && 10 <= b.Length;
     modifies this, b, a;
   {
     a[7] := 13;  // good
