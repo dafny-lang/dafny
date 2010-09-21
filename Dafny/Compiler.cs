@@ -61,6 +61,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine();
       ReadRuntimeSystem();
+      CompileBuiltIns(program.BuiltIns);
 
       foreach (ModuleDecl m in program.Modules) {
         int indent = 0;
@@ -95,6 +96,82 @@ namespace Microsoft.Dafny {
         if (!m.IsDefaultModule) {
           wr.WriteLine("}} // end of namespace {0}", m.Name);
         }
+      }
+    }
+
+    void CompileBuiltIns(BuiltIns builtIns) {
+      wr.WriteLine("namespace Dafny {");
+      Indent(IndentAmount);
+      wr.WriteLine("public class Helpers {");
+      foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
+        if (decl is ArrayClassDecl) {
+          int dims = ((ArrayClassDecl)decl).Dims;
+          // public static T[,] InitNewArray2<T>(BigInteger size0, BigInteger size1) {
+          Indent(3 * IndentAmount);
+          wr.Write("public static T[");
+          RepeatWrite(wr, dims, "", ",");
+          wr.Write("] InitNewArray{0}<T>(", dims);
+          RepeatWrite(wr, dims, "BigInteger size{0}", ", ");
+          wr.WriteLine(") {");
+          // int s0 = (int)size0;
+          for (int i = 0; i < dims; i++) {
+            Indent(4 * IndentAmount);
+            wr.WriteLine("int s{0} = (int)size{0};", i);
+          }
+          // T[,] a = new T[s0, s1];
+          Indent(4 * IndentAmount);
+          wr.Write("T[");
+          RepeatWrite(wr, dims, "", ",");
+          wr.Write("] a = new T[");
+          RepeatWrite(wr, dims, "s{0}", ",");
+          wr.WriteLine("];");
+          // BigInteger[,] b = a as BigInteger[,];
+          Indent(4 * IndentAmount);
+          wr.Write("BigInteger[");
+          RepeatWrite(wr, dims, "", ",");
+          wr.Write("] b = a as BigInteger[");
+          RepeatWrite(wr, dims, "", ",");
+          wr.WriteLine("];");
+          // if (b != null) {
+          Indent(4 * IndentAmount);
+          wr.WriteLine("if (b != null) {");
+          // BigInteger z = new BigInteger(0);
+          Indent(5 * IndentAmount);
+          wr.WriteLine("BigInteger z = new BigInteger(0);");
+          // for (int i0 = 0; i0 < s0; i0++)
+          //   for (int i1 = 0; i1 < s1; i1++)
+          for (int i = 0; i < dims; i++) {
+            Indent((5+i) * IndentAmount);
+            wr.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
+          }
+          // b[i0,i1] = z;
+          Indent((5+dims) * IndentAmount);
+          wr.Write("b[");
+          RepeatWrite(wr, dims, "i{0}", ",");
+          wr.WriteLine("] = z;");
+          // }
+          Indent(4 * IndentAmount);
+          wr.WriteLine("}");
+          // return a;
+          Indent(4 * IndentAmount);
+          wr.WriteLine("return a;");
+          // }
+          Indent(3 * IndentAmount);
+          wr.WriteLine("}");  // end of method
+        }
+      }
+      Indent(IndentAmount);
+      wr.WriteLine("}");  // end of class Helpers
+      wr.WriteLine("}");  // end of namespace
+    }
+
+    static void RepeatWrite(TextWriter wr, int times, string template, string separator) {
+      Contract.Requires(1 <= times);
+      string s = "";
+      for (int i = 0; i < times; i++) {
+        wr.Write(s);
+        wr.Write(template, i);
+        s = separator;
       }
     }
 
@@ -767,8 +844,7 @@ namespace Microsoft.Dafny {
           if (tp.EType is IntType || tp.EType.IsTypeParameter) {
             // Because the default constructor for BigInteger does not generate a valid BigInteger, we have
             // to excplicitly initialize the elements of an integer array.  This is all done in a helper routine.
-            Contract.Assume(tp.ArrayDimensions.Count == 1);  // TODO: multi-dimensional arrays
-            wr.Write("Dafny.Helpers.InitNewArray<{0}>(", TypeName(tp.EType));
+            wr.Write("Dafny.Helpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType));
             string prefix = "(";
             foreach (Expression dim in tp.ArrayDimensions) {
               wr.Write(prefix);
@@ -931,8 +1007,20 @@ namespace Microsoft.Dafny {
       
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
-        TrParenExpr(e.Obj);
-        wr.Write(".{0}", e.FieldName);
+        SpecialField sf = e.Field as SpecialField;
+        if (sf != null) {
+          if (sf.Type is IntType) {
+            wr.Write("new BigInteger(");
+          }
+          TrParenExpr(e.Obj);
+          wr.Write(".{0}", sf.CompiledName);
+          if (sf.Type is IntType) {
+            wr.Write(")");
+          }
+        } else {
+          TrParenExpr(e.Obj);
+          wr.Write(".{0}", e.Field.Name);
+        }
         
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;

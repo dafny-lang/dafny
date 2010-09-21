@@ -58,7 +58,8 @@ namespace Microsoft.Dafny {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
         for (int d = 0; d < dims; d++) {
           string name = dims == 1 ? "Length" : "Length" + d;
-          Field len = new Field(Token.NoToken, name, false, false, Type.Int, null);
+          string compiledName = dims == 1 ? "Length" : "GetLength(" + d + ")";
+          Field len = new SpecialField(Token.NoToken, name, compiledName, false, false, Type.Int, null);
           len.EnclosingClass = arrayClass;  // resolve here
           arrayClass.Members.Add(len);
         }
@@ -788,6 +789,15 @@ namespace Microsoft.Dafny {
       IsGhost = isGhost;
       IsMutable = isMutable;
       Type = type;
+    }
+  }
+
+  public class SpecialField : Field
+  {
+    public readonly string CompiledName;
+    public SpecialField(IToken tok, string name, string compiledName, bool isGhost, bool isMutable, Type type, Attributes attributes)
+      : base(tok, name, isGhost, isMutable, type, attributes) {
+      CompiledName = compiledName;
     }
   }
 

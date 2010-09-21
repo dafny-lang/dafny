@@ -57,3 +57,44 @@ method Flip<T>(m: array2<T>)
     }
   }
 }
+
+method Main()
+{
+  var B := new bool[2,5];
+  B[0,0] := true;  B[0,1] := false;  B[0,2] := false;  B[0,3] := true;  B[0,4] := false;
+  B[1,0] := true;  B[1,1] := true;   B[1,2] := true;   B[1,3] := true;  B[1,4] := false;
+  print "Before:\n";
+  call PrintMatrix(B);
+  call MirrorImage(B);
+  print "Mirror image:\n";
+  call PrintMatrix(B);
+
+  var A := new int[3,3];
+  A[0,0] := 5;  A[0,1] := 7;  A[0,2] := 9;
+  A[1,0] := 6;  A[1,1] := 2;  A[1,2] := 3;
+  A[2,0] := 7;  A[2,1] := 1;  A[2,2] := 0;
+  print "Before:\n";
+  call PrintMatrix(A);
+  call Flip(A);
+  print "Flip:\n";
+  call PrintMatrix(A);
+}
+
+method PrintMatrix<T>(m: array2<T>)
+  requires m != null;
+{
+  var i := 0;
+  while (i < m.Length0) {
+    var j := 0;
+    while (j < m.Length1) {
+      print m[i,j];
+      j := j + 1;
+      if (j == m.Length1) {
+        print "\n";
+      } else {
+        print ", ";
+      }
+    }
+    i := i + 1;
+  }
+}
