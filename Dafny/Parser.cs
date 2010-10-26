@@ -2063,12 +2063,15 @@ public class Errors {
   public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
   public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
   
-	public virtual void SynErr (string filename, int line, int col, int n) {
-    string s = GetErrorString(n);
-		errorStream.WriteLine(errMsgFormat, filename, line, col, s);
+	public void SynErr(string filename, int line, int col, int n) {
+    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  }
+	public virtual void SynErr(string filename, int line, int col, string msg) {
+	  Contract.Requires(msg != null);
+		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
   }
-  public string GetErrorString(int n) {
+  string GetSyntaxErrorString(int n) {
 		string s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -2223,20 +2226,20 @@ public class Errors {
     return s;
 	}
 
-	public virtual void SemErr (string filename, int line, int col, string/*!*/ s) {
-	  Contract.Requires(s != null);
-		errorStream.WriteLine(errMsgFormat, filename, line, col, s);
-		count++;
-	}
-	
 	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {  // semantic errors
 		Contract.Requires(tok != null);
 		Contract.Requires(msg != null);
 		SemErr(tok.filename, tok.line, tok.col, msg);
 	}
+	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
+	  Contract.Requires(msg != null);
+		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
+		count++;
+	}
 
-	public virtual void Warning (int line, int col, string s) {
-		errorStream.WriteLine(warningMsgFormat, line, col, s);
+	public virtual void Warning(string filename, int line, int col, string msg) {
+		Contract.Requires(msg != null);
+		errorStream.WriteLine(warningMsgFormat, filename, line, col, msg);
 	}
 } // Errors
 
