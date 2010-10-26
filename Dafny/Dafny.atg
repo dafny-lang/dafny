@@ -96,13 +96,28 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(cce.NonNullElements(modules));
+  Errors errors = new Errors();
+  return Parse(s, filename, modules, builtIns, errors);
+}
+
+///<summary>
+/// Parses top-level things (modules, classes, datatypes, class members)
+/// and appends them in appropriate form to "modules".
+/// Returns the number of parsing errors encountered.
+/// Note: first initialize the Scanner with the given Errors sink.
+///</summary>
+public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules, BuiltIns builtIns,
+                         Errors/*!*/ errors) {
+  Contract.Requires(s != null);
+  Contract.Requires(filename != null);
+  Contract.Requires(cce.NonNullElements(modules));
+  Contract.Requires(errors != null);
   List<ModuleDecl/*!*/> oldModules = theModules;
   theModules = modules;
   BuiltIns oldBuiltIns = builtIns;
   theBuiltIns = builtIns;
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Errors errors = new Errors();
   Scanner scanner = new Scanner(ms, errors, filename);
   Parser parser = new Parser(scanner, errors);
   parser.Parse();
@@ -743,7 +758,7 @@ AssignRhs<.out List<Expression> ee, out Type ty.>
       { "," Expression<out e>          (. ee.Add(e); .)
       }
       "]"                              (. // make sure an array class with this dimensionality exists
-                                          UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, Type.Int, true);
+                                          UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
                                        .)
     ]
   | Expression<out e>                  (. ee = new List<Expression>(); ee.Add(e); .)

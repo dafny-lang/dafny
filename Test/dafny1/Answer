@@ -39,6 +39,10 @@ Dafny program verifier finished with 8 verified, 0 errors
 
 Dafny program verifier finished with 10 verified, 0 errors
 
+-------------------- Cubes.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
 -------------------- SumOfCubes.dfy --------------------
 
 Dafny program verifier finished with 17 verified, 0 errors
