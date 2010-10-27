@@ -45,11 +45,12 @@ method Gcd(x1: int, x2: int)
   }
 }
 
-method Determinant(X: Matrix, M: int) returns (z: int)
+method Determinant(X: array2<int>, M: int) returns (z: int)
   requires 1 <= M;
-  requires X != null && M == X.Size;
+  requires X != null && M == X.Length0 && M == X.Length1;
+  modifies X;
 {
-  var y := X.Get(1,1);
+  var y := X[1-1,1-1];
   var a := 1;
   while (a != M)
     invariant 1 <= a && a <= M;
@@ -62,24 +63,14 @@ method Determinant(X: Matrix, M: int) returns (z: int)
       while (c != a)
         invariant a <= c && c <= M;
       {
-        assume X.Get(a,a) != 0;
-        call X.Set(b, c, X.Get(b,c) - X.Get(b,a) / X.Get(a,a) * X.Get(a,c));
+        assume X[a-1,a-1] != 0;
+        X[b-1, c-1] := X[b-1,c-1] - X[b-1,a-1] / X[a-1,a-1] * X[a-1,c-1];
         c := c - 1;
       }
       b := b + 1;
     }
     a := a + 1;
-    y := y * X.Get(a,a);
+    y := y * X[a-1,a-1];
   }
   z := y;
-}
-
-class Matrix {
-  ghost var Size: int;
-  function method Get(i: int, j: int): int;
-    requires 1 <= i && i <= Size;
-    requires 1 <= j && j <= Size;
-  method Set(i: int, j: int, x: int);
-    requires 1 <= i && i <= Size;
-    requires 1 <= j && j <= Size;
 }
