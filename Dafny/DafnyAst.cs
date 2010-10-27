@@ -505,6 +505,8 @@ namespace Microsoft.Dafny {
     }
 
     public IToken/*!*/ tok;
+    public IToken BodyStartTok = Token.NoToken;
+    public IToken BodyEndTok = Token.NoToken;
     public readonly string/*!*/ Name;
     public readonly Attributes Attributes;
 

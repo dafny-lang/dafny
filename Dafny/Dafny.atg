@@ -197,11 +197,12 @@ Dafny
     { Attribute<ref attrs> }
     Ident<out id>
     [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, theImports, attrs); .)
-    "{"
+    "{"                                  (. module.BodyStartTok = t; .)
       { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
       | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
-      }                                  (. theModules.Add(module); .)
-    "}"
+      }
+    "}"                                  (. module.BodyEndTok = t;
+                                            theModules.Add(module); .)
   | ClassDecl<defaultModule, out c>      (. defaultModule.TopLevelDecls.Add(c); .)
   | DatatypeDecl<defaultModule, out dt>  (. defaultModule.TopLevelDecls.Add(dt); .)
   | ClassMemberDecl<membersDefaultClass>
@@ -232,6 +233,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
      IToken/*!*/ idRefined;
      IToken optionalId = null;
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
+     IToken bodyStart;
   .)
   "class"
   { Attribute<ref attrs> }
@@ -239,7 +241,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   [ GenericParameters<typeArgs> ]
   [ "refines" Ident<out idRefined>               (. optionalId = idRefined; .)
   ]
-  "{"
+  "{"                                            (. bodyStart = t; .)
   { ClassMemberDecl<members>
   }
   "}"                                      
@@ -247,6 +249,8 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
        c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
      else 
        c = new ClassRefinementDecl(id, id.val, module, typeArgs, members, attrs, optionalId);
+     c.BodyStartTok = bodyStart;
+     c.BodyEndTok = t;
   .)
   .
 
@@ -274,15 +278,19 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
+     IToken bodyStart;
   .)
   "datatype"
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  "{"
+  "{"                                      (. bodyStart = t; .)
   { DatatypeMemberDecl<ctors>
   }
-  "}"                                      (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs); .)
+  "}"                                      (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+                                              dt.BodyStartTok = bodyStart;
+                                              dt.BodyEndTok = t;
+                                           .)
   .
 
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
@@ -425,6 +433,8 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Statement/*!*/ bb;  BlockStmt body = null;
      bool isRefinement = false;
+     IToken bodyStart = Token.NoToken;
+     IToken bodyEnd = Token.NoToken;
   .)
   ( "method"
   | "refines"                                               (. isRefinement = true; .)
@@ -441,7 +451,7 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
   ]
 
   ( ";" { MethodSpec<req, mod, ens, dec> }
-  | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb>    (. body = (BlockStmt)bb; .)
+  | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
   )
   
   (. parseVarScope.PopMarker();
@@ -449,6 +459,8 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
        m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
      else 
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
+     m.BodyStartTok = bodyStart;
+     m.BodyEndTok = bodyEnd;
  .)
   .
 
@@ -566,6 +578,8 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Expression/*!*/ bb;  Expression body = null;
      bool isFunctionMethod = false;
+     IToken bodyStart = Token.NoToken;
+     IToken bodyEnd = Token.NoToken;
   .)
   "function"
   [ "method"                 (. isFunctionMethod = true; .)
@@ -582,10 +596,12 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   ( ";"
     { FunctionSpec<reqs, reads, decreases> }
   | { FunctionSpec<reqs, reads, decreases> }
-    FunctionBody<out bb>                (. body = bb; .)
+    FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
      f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+     f.BodyStartTok = bodyStart;
+     f.BodyEndTok = bodyEnd;
   .)
   .
 
@@ -633,13 +649,13 @@ FrameExpression<out FrameExpression/*!*/ fe>
   (. fe = new FrameExpression(e, fieldName); .)
   .
 
-FunctionBody<out Expression/*!*/ e>
+FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
-  "{"
+  "{"                         (. bodyStart = t; .)
   ( MatchExpression<out e>
   | Expression<out e>
   )
-  "}"
+  "}"                         (. bodyEnd = t; .)
   .
   
 MatchExpression<out Expression/*!*/ e>
@@ -674,26 +690,29 @@ CaseExpression<out MatchCaseExpr/*!*/ c>
 
 /*------------------------------------------------------------------------*/
 
-BlockStmt<out Statement/*!*/ block>
-= (. Contract.Ensures(Contract.ValueAtReturn(out block) != null); IToken/*!*/ x;
+BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
+= (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
   (. parseVarScope.PushMarker(); .)
-  "{"                                  (. x = t; .)
+  "{"                                  (. bodyStart = t; .)
   { Stmt<body>
   }
-  "}"                                  (. block = new BlockStmt(x, body); .)
+  "}"                                  (. bodyEnd = t;
+                                          block = new BlockStmt(bodyStart, body); .)
   (. parseVarScope.PopMarker(); .)
   .
 
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
-= (. Contract.Requires(cce.NonNullElements(ss)); Statement/*!*/ s; .)
+= (. Contract.Requires(cce.NonNullElements(ss)); Statement/*!*/ s;
+     IToken bodyStart, bodyEnd;
+  .)
   /* By first reading a sequence of block statements, we avoid problems in the generated parser, despite
      the ambiguity in the grammar.  See Note in ConstAtomExpression production.
   */
-  { BlockStmt<out s>                   (. ss.Add(s); .)
+  { BlockStmt<out s, out bodyStart, out bodyEnd>  (. ss.Add(s); .)
   }
-  ( OneStmt<out s>                     (. ss.Add(s); .)
+  ( OneStmt<out s>                                (. ss.Add(s); .)
   | VarDeclStmts<ss>
   )
   .
@@ -820,13 +839,14 @@ IfStmt<out Statement/*!*/ ifStmt>
      Statement/*!*/ thn;
      Statement/*!*/ s;
      Statement els = null;
+     IToken bodyStart, bodyEnd;
   .)
   "if"                       (. x = t; .)
   Guard<out guard>
-  BlockStmt<out thn>
+  BlockStmt<out thn, out bodyStart, out bodyEnd>
   [ "else"
-    ( IfStmt<out s>          (. els = s; .)
-    | BlockStmt<out s>       (. els = s; .)
+    ( IfStmt<out s>                                 (. els = s; .)
+    | BlockStmt<out s, out bodyStart, out bodyEnd>  (. els = s; .)
     )
   ]
   (. ifStmt = new IfStmt(x, guard, thn, els); .)
@@ -839,6 +859,7 @@ WhileStmt<out Statement/*!*/ stmt>
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Statement/*!*/ body;
+     IToken bodyStart, bodyEnd;
   .)
   "while"                    (. x = t; .)
   Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
@@ -854,7 +875,7 @@ WhileStmt<out Statement/*!*/ stmt>
      }
      ";"
   }
-  BlockStmt<out body>        (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
+  BlockStmt<out body, out bodyStart, out bodyEnd>  (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
   .
 
 Guard<out Expression e>   /* null represents demonic-choice */

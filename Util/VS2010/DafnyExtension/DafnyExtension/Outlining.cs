@@ -12,6 +12,7 @@ using Microsoft.VisualStudio.Text;
 
 namespace DafnyLanguage
 {
+#if THIS_IS_THE_PAST
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(IOutliningRegionTag))]
@@ -217,4 +218,5 @@ namespace DafnyLanguage
           NormalizedSnapshotSpanCollection.Difference(second, first));
     }
   }
+#endif
 }
