@@ -717,8 +717,11 @@ void ObjectInvariant()
                       }
                     }
                   }
-                  errorCount++;
+                  if (CommandLineOptions.Clo.ModelViewFile != null) {
+                    error.PrintModel();
                   }
+                  errorCount++;
+                }
               }
               Inform(String.Format("{0}error{1}", timeIndication, errors.Count == 1 ? "" : "s"));
               break;

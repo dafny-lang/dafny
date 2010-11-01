@@ -948,6 +948,19 @@ namespace Microsoft.Dafny {
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod, builder, localVariables);
     }
+
+    Bpl.Cmd CaptureState(IToken tok, string/*?*/ additionalInfo) {
+      Contract.Requires(tok != null);
+      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
+      string description = string.Format("{0}({1},{2}){3}{4}", tok.filename, tok.line, tok.col, additionalInfo == null ? "" : ": ", additionalInfo ?? "");
+      QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
+      return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
+    }
+    Bpl.Cmd CaptureState(IToken tok) {
+      Contract.Requires(tok != null);
+      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
+      return CaptureState(tok, null);
+    }
     
     void CEVPrelude(Method m, Bpl.VariableSeq inParams, Bpl.VariableSeq outParams, Bpl.StmtListBuilder builder) 
     {
@@ -959,7 +972,7 @@ namespace Microsoft.Dafny {
     
       builder.Add(Bpl.Cmd.SimpleAssign(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(1))));
       foreach (Bpl.Variable p in inParams) {
-        Contract.Assert( p != null);
+        Contract.Assert(p != null);
         builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
           new Bpl.ExprSeq(
             CevLocation(p.tok),
@@ -2576,6 +2589,7 @@ void ObjectInvariant()
             new Bpl.IdentifierExprSeq()));
         }
         builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStep", new Bpl.ExprSeq(CevLocation(stmt.Tok)), new Bpl.IdentifierExprSeq()));
+        builder.Add(CaptureState(stmt.Tok));
         
       } else if (stmt is BlockStmt) {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {
@@ -2800,6 +2814,7 @@ void ObjectInvariant()
         loopBodyBuilder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_entered", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
+        loopBodyBuilder.Add(CaptureState(stmt.Tok, "loop entered"));
         // termination checking
         if (Contract.Exists(theDecreases,e=> e is WildcardExpr)) {
           // omit termination checking for this loop
@@ -2826,6 +2841,7 @@ void ObjectInvariant()
         builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_exited", predef.CevEventType)),
           new Bpl.IdentifierExprSeq()));
+        builder.Add(CaptureState(stmt.Tok, "loop exit"));
 
       } else if (stmt is ForeachStmt) {
         AddComment(builder, stmt, "foreach statement");
@@ -2952,6 +2968,7 @@ void ObjectInvariant()
         builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
           new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
           new Bpl.IdentifierExprSeq()));
+        builder.Add(CaptureState(stmt.Tok));
         
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
@@ -3460,6 +3477,7 @@ void ObjectInvariant()
         // assume $IsGoodHeap($Heap);
         builder.Add(AssumeGoodHeap(tok, etran));
       }
+      builder.Add(CaptureState(tok));
     }
     
     Bpl.AssumeCmd AssumeGoodHeap(IToken tok, ExpressionTranslator etran) {

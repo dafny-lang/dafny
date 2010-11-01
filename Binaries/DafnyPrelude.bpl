@@ -4,6 +4,9 @@
 // Edited sequence axioms 20 October 2009 by Alex Summers.
 // Copyright (c) 2008-2010, Microsoft.
 
+const $$Language$Dafny: bool;  // To be recognizable to the ModelViewer as
+axiom $$Language$Dafny;        // coming from a Dafny program.
+
 // ---------------------------------------------------------------
 // -- References -------------------------------------------------
 // ---------------------------------------------------------------
