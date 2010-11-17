@@ -9,7 +9,7 @@
 // Oh, I also added some comments in this version of the program.
 //
 // The correctness of this program relies on some properties of Queens boards.  These
-// are stated and proved as lemmas, which can be declared in Dafny as ghost methods.
+// are stated and proved as lemmas, which here are given in assert statements.
 //
 // There are two annoyances in this program:
 //
@@ -57,37 +57,6 @@ static function IsConsistent(board: seq<int>, pos: int): bool
       board[q] != board[pos] &&
       board[q] - board[pos] != pos - q &&
       board[pos] - board[q] != pos - q)
-}
-
-// The following lemma says that 'IsConsistent' is monotonic in its first argument.
-// More precisely, if 'short' is a board with a queen consistently placed in column
-// 'pos', then that queen is also consistently placed in any extension 'long' of the
-// board 'short' (that is, the sequence of queen positions 'short' is a prefix of the
-// sequence of queen positions 'long').  In other words, consistency of a queen in
-// column 'pos' does not depend on columns to the right of 'pos'.
-ghost method Lemma0(short: seq<int>, long: seq<int>, pos: int)
-  requires short <= long;
-  ensures IsConsistent(short, pos) ==> IsConsistent(long, pos);
-{
-  if (IsConsistent(short, pos)) {
-    assert IsConsistent(long, pos);
-  }
-}
-
-// Lemma1 states Lemma0 for every column in the board 'short'.
-ghost method Lemma1(short: seq<int>, long: seq<int>)
-  requires short <= long;
-  ensures (forall k :: 0 <= k && k < |short| && IsConsistent(short, k) ==> IsConsistent(long, k));
-  ensures (forall B, p :: IsConsistent(B, p) <==> old(IsConsistent(B, p)));
-{
-  var j := 0;
-  while (j < |short|)
-    invariant j <= |short|;
-    invariant (forall k :: 0 <= k && k < j && IsConsistent(short, k) ==> IsConsistent(long, k));
-  {
-    call Lemma0(short, long, j);
-    j := j + 1;
-  }
 }
 
 method CheckConsistent(board: seq<int>, pos: int) returns (b: bool)
@@ -171,8 +140,12 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
         // The new queen is consistent.  Thus, 'candidateBoard' is consistent in column 'pos'.
         // The consistency of the queens in columns left of 'pos' follows from the
         // consistency of those queens in 'boardSoFar' and the fact that 'candidateBoard' is
-        // an extension of 'boardSoFar', as Lemma1 tells us:
-        call Lemma1(boardSoFar, candidateBoard);
+        // an extension of 'boardSoFar', as the following lemma tells us:
+        assert (forall k ::
+                  0 <= k && k < |boardSoFar| && IsConsistent(boardSoFar, k)
+                  ==>
+                  IsConsistent(candidateBoard, k));
+
         // Thus, we meet the precondition of 'SearchAux' on 'candidateBoard', so let's search
         // for a solution that extends 'candidateBoard'.
         call s, b := SearchAux(N, candidateBoard);
