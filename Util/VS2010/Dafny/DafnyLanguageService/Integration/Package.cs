@@ -32,7 +32,7 @@ namespace Demo
                             crinfo[0].grfcadvf = (uint)_OLECADVF.olecadvfModal |
                                                           (uint)_OLECADVF.olecadvfRedrawOff |
                                                           (uint)_OLECADVF.olecadvfWarningsOff;
-                            crinfo[0].uIdleTimeInterval = 1000;
+                            crinfo[0].uIdleTimeInterval = 300;
                             int hr = mgr.FRegisterComponent(this, crinfo, out componentID);
                         }
 
