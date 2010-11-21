@@ -16,7 +16,7 @@ Compiled program written to out.cs
 
 -------------------- Problem4-Queens.dfy --------------------
 
-Dafny program verifier finished with 15 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 Compiled program written to out.cs
 
 -------------------- Problem5-DoubleEndedQueue.dfy --------------------
