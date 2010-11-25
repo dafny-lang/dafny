@@ -1597,7 +1597,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  class MatchStmt : Statement {
+  public class MatchStmt : Statement {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Source != null);

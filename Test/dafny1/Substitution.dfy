@@ -10,7 +10,6 @@ datatype Expr {
 }
 
 static function Subst(e: Expr, v: int, val: int): Expr
-  decreases e;
 {
   match e
   case Const(c) => e
@@ -19,7 +18,6 @@ static function Subst(e: Expr, v: int, val: int): Expr
 }
 
 static function SubstList(l: List, v: int, val: int): List
-  decreases l;
 {
   match l
   case Nil => l
@@ -28,7 +26,6 @@ static function SubstList(l: List, v: int, val: int): List
 
 static ghost method Theorem(e: Expr, v: int, val: int)
   ensures Subst(Subst(e, v, val), v, val) == Subst(e, v, val);
-  decreases e;
 {
   match e {
     case Const(c) =>
@@ -40,7 +37,6 @@ static ghost method Theorem(e: Expr, v: int, val: int)
 
 static ghost method Lemma(l: List, v: int, val: int)
   ensures SubstList(SubstList(l, v, val), v, val) == SubstList(l, v, val);
-  decreases l;
 {
   match l {
     case Nil =>
@@ -110,7 +106,6 @@ static ghost method LemmaSeq(ghost parent: Expression, ghost q: seq<Expression>,
   ensures |SubstSeq(parent, q, v, val)| == |q|;
   ensures (forall k :: 0 <= k && k < |q| ==>
             SubstSeq(parent, q, v, val)[k] == Substitute(q[k], v, val));
-  decreases q;
 {
   if (q == []) {
   } else {

@@ -3,7 +3,6 @@ class Example {
   {
     var i := 0;
     while (i < n)
-      decreases n - i;
     {
       i := i + 1;
     }
@@ -14,7 +13,6 @@ class Example {
 
 class Fibonacci {
   function Fib(n: int): int
-    decreases n;
   {
     if n < 2 then n else Fib(n-2) + Fib(n-1)
   }
@@ -24,7 +22,6 @@ class Fibonacci {
 
 class Ackermann {
   function F(m: int, n: int): int
-    decreases m, n;
   {
     if m <= 0 then
       n + 1

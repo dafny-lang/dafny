@@ -166,7 +166,6 @@ class LinkedList<T> {
   }
 
   static function method ReverseSeq(s: seq<T>): seq<T>
-    decreases s;
   {
     if s == [] then [] else
     ReverseSeq(s[1..]) + [s[0]]

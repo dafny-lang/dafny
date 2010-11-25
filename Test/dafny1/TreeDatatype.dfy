@@ -10,14 +10,12 @@ datatype Tree {
 }
 
 static function Inc(t: Tree): Tree
-  decreases t;
 {
   match t
   case Node(n, children) => #Tree.Node(n+1, ForestInc(children))
 }
 
 static function ForestInc(forest: List<Tree>): List<Tree>
-  decreases forest;
 {
   match forest
   case Nil => forest
@@ -31,14 +29,12 @@ datatype GTree<T> {
 }
 
 static function GInc(t: GTree<int>): GTree<int>
-  decreases t;
 {
   match t
   case Node(n, children) => #GTree.Node(n+1, GForestInc(children))
 }
 
 static function GForestInc(forest: List<GTree<int>>): List<GTree<int>>
-  decreases forest;
 {
   match forest
   case Nil => forest
@@ -57,14 +53,12 @@ datatype OneTree {
 }
 
 static function XInc(t: OneTree): OneTree
-  decreases t;
 {
   match t
   case Node(n, children) => #OneTree.Node(n+1, XForestInc(children))
 }
 
 static function XForestInc(forest: TreeList): TreeList
-  decreases forest;
 {
   match forest
   case Nil => forest

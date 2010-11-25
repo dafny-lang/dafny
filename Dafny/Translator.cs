@@ -1571,17 +1571,10 @@ namespace Microsoft.Dafny {
           ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
           if (module == cce.NonNull(func.EnclosingClass).Module) {
             if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(func)) {
-              List<Expression> contextDecreases = func.Decreases;
-              if (contextDecreases.Count == 0) {
-                contextDecreases = new List<Expression>();
-                contextDecreases.Add(FrameToObjectSet(func.Reads));  // use its reads clause instead
-              }
-              List<Expression> calleeDecreases = e.Function.Decreases;
-              if (calleeDecreases.Count == 0) {
-                calleeDecreases = new List<Expression>();
-                calleeDecreases.Add(FrameToObjectSet(e.Function.Reads));  // use its reads clause instead
-              }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder);
+              bool contextDecrInferred, calleeDecrInferred;
+              List<Expression> contextDecreases = FunctionDecreasesWithDefault(func, out contextDecrInferred);
+              List<Expression> calleeDecreases = FunctionDecreasesWithDefault(e.Function, out calleeDecrInferred);
+              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder, contextDecrInferred);
             }
           }
         }
@@ -1684,7 +1677,45 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
-    
+
+    List<Expression> MethodDecreasesWithDefault(Method m, out bool inferredDecreases) {
+      Contract.Requires(m != null);
+
+      inferredDecreases = false;
+      List<Expression> decr = m.Decreases;
+      if (decr.Count == 0) {
+        decr = new List<Expression>();
+        foreach (Formal p in m.Ins) {
+          IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+          ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+          decr.Add(ie);  // use the method's first parameter instead
+        }
+        inferredDecreases = true;
+      }
+      return decr;
+    }
+
+    List<Expression> FunctionDecreasesWithDefault(Function f, out bool inferredDecreases) {
+      Contract.Requires(f != null);
+
+      inferredDecreases = false;
+      List<Expression> decr = f.Decreases;
+      if (decr.Count == 0) {
+        decr = new List<Expression>();
+        if (f.Reads.Count == 0) {
+          foreach (Formal p in f.Formals) {
+            IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+            ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+            decr.Add(ie);  // use the function's first parameter instead
+          }
+          inferredDecreases = true;
+        } else {
+          decr.Add(FrameToObjectSet(f.Reads));  // use its reads clause instead
+        }
+      }
+      return decr;
+    }
+
     Expression FrameToObjectSet(List<FrameExpression> fexprs) {
       Contract.Requires(fexprs != null);
       Contract.Ensures(Contract.Result<Expression>() != null);
@@ -2568,7 +2599,10 @@ void ObjectInvariant()
         ModuleDecl module = cce.NonNull(s.Method.EnclosingClass).Module;
         if (module == cce.NonNull(currentMethod.EnclosingClass).Module) {
           if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
-            CheckCallTermination(stmt.Tok, currentMethod.Decreases, s.Method.Decreases, s.Receiver, substMap, etran, builder);
+            bool contextDecrInferred, calleeDecrInferred;
+            List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
+            List<Expression> calleeDecreases = MethodDecreasesWithDefault(s.Method, out calleeDecrInferred);
+            CheckCallTermination(stmt.Tok, contextDecreases, calleeDecreases, s.Receiver, substMap, etran, builder, contextDecrInferred);
           }
         }
 
@@ -3108,7 +3142,7 @@ void ObjectInvariant()
         
     void CheckCallTermination(IToken/*!*/ tok, List<Expression/*!*/>/*!*/ contextDecreases, List<Expression/*!*/>/*!*/ calleeDecreases,
                               Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap,
-                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder){
+                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
       Contract.Requires(cce.NonNullElements(calleeDecreases));
@@ -3133,7 +3167,7 @@ void ObjectInvariant()
         caller.Add(etran.TrExpr(e1));
       }
       Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", false);
-      builder.Add(Assert(tok, decrExpr, "failure to decrease termination measure"));
+      builder.Add(Assert(tok, decrExpr, inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure"));
     }
     
     /// <summary>

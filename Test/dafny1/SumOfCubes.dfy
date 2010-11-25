@@ -43,7 +43,6 @@ class SumOfCubes {
 
   static function GSum(k: int): int
     requires 0 <= k;
-    decreases k;
   {
     if k == 0 then 0 else GSum(k-1) + k-1
   }
@@ -86,7 +85,6 @@ class SumOfCubes {
 
   static function SumEmDown(n: int, m: int): int
     requires 0 <= n && n <= m;
-    decreases m;
   {
     if m == n then 0 else SumEmDown(n, m-1) + (m-1)*(m-1)*(m-1)
   }
