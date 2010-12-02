@@ -19,7 +19,7 @@ public class Buffer {
 	//    a) whole stream in buffer
 	//    b) part of stream in buffer
 	// 2) non seekable stream (network, console)
-  
+
 	public const int EOF = 65535 + 1; // char.MaxValue + 1;
 	const int MIN_BUFFER_LENGTH = 1024; // 1KB
 	const int MAX_BUFFER_LENGTH = MIN_BUFFER_LENGTH * 64; // 64KB
@@ -31,15 +31,17 @@ public class Buffer {
 	Stream/*!*/ stream;      // input stream (seekable)
 	bool isUserStream;  // was the stream opened by the user?
 
-[ContractInvariantMethod]
-void ObjectInvariant(){
-  Contract.Invariant(buf != null);
-  Contract.Invariant(stream != null);}
-    [NotDelayed]
-	public Buffer (Stream/*!*/ s, bool isUserStream) :base() {
+	[ContractInvariantMethod]
+	void ObjectInvariant(){
+		Contract.Invariant(buf != null);
+		Contract.Invariant(stream != null);
+	}
+
+//  [NotDelayed]
+	public Buffer (Stream/*!*/ s, bool isUserStream) : base() {
 	  Contract.Requires(s != null);
 		stream = s; this.isUserStream = isUserStream;
-		
+
 		int fl, bl;
 		if (s.CanSeek) {
 			fl = (int) s.Length;
@@ -51,12 +53,12 @@ void ObjectInvariant(){
 
 		buf = new byte[(bl>0) ? bl : MIN_BUFFER_LENGTH];
 		fileLen = fl;  bufLen = bl;
-		
+
 		if (fileLen > 0) Pos = 0; // setup buffer to position 0 (start)
 		else bufPos = 0; // index 0 is already after the file, thus Pos = 0 is invalid
 		if (bufLen == fileLen && s.CanSeek) Close();
 	}
-	
+
 	protected Buffer(Buffer/*!*/ b) { // called in UTF8Buffer constructor
 	  Contract.Requires(b != null);
 		buf = b.buf;
@@ -73,14 +75,14 @@ void ObjectInvariant(){
 	}
 
 	~Buffer() { Close(); }
-	
+
 	protected void Close() {
 		if (!isUserStream && stream != null) {
 			stream.Close();
 			//stream = null;
 		}
 	}
-	
+
 	public virtual int Read () {
 		if (bufPos < bufLen) {
 			return buf[bufPos++];
@@ -100,7 +102,7 @@ void ObjectInvariant(){
 		Pos = curPos;
 		return ch;
 	}
-	
+
 	public string/*!*/ GetString (int beg, int end) {
 	  Contract.Ensures(Contract.Result<string>() != null);
 		int len = 0;
@@ -139,7 +141,7 @@ void ObjectInvariant(){
 			}
 		}
 	}
-	
+
 	// Read the next chunk of bytes from the stream, increases the buffer
 	// if needed and updates the fields fileLen and bufLen.
 	// Returns the number of bytes read.
@@ -213,19 +215,20 @@ public class Scanner {
 	const int noSym = 103;
 
 
-[ContractInvariantMethod]
-void objectInvariant(){
-  Contract.Invariant(buffer!=null);
-  Contract.Invariant(t != null);
-  Contract.Invariant(start != null);
-  Contract.Invariant(tokens != null);
-  Contract.Invariant(pt != null);
-  Contract.Invariant(tval != null);
-  Contract.Invariant(Filename != null);
-  Contract.Invariant(errorHandler != null);
-}
+	[ContractInvariantMethod]
+	void objectInvariant(){
+		Contract.Invariant(buffer!=null);
+		Contract.Invariant(t != null);
+		Contract.Invariant(start != null);
+		Contract.Invariant(tokens != null);
+		Contract.Invariant(pt != null);
+		Contract.Invariant(tval != null);
+		Contract.Invariant(Filename != null);
+		Contract.Invariant(errorHandler != null);
+	}
+
 	public Buffer/*!*/ buffer; // scanner buffer
-	
+
 	Token/*!*/ t;          // current token
 	int ch;           // current input character
 	int pos;          // byte position of current character
@@ -236,13 +239,13 @@ void objectInvariant(){
 
 	Token/*!*/ tokens;     // list of tokens already peeked (first token is a dummy)
 	Token/*!*/ pt;         // current peek token
-	
+
 	char[]/*!*/ tval = new char[128]; // text of current token
 	int tlen;         // length of current token
-	
+
 	private string/*!*/ Filename;
 	private Errors/*!*/ errorHandler;
-	
+
 	static Scanner() {
 		start = new Hashtable(128);
 		for (int i = 39; i <= 39; ++i) start[i] = 1;
@@ -291,9 +294,9 @@ void objectInvariant(){
 		start[Buffer.EOF] = -1;
 
 	}
-	
-	[NotDelayed]
-	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler) :base(){
+
+//	[NotDelayed]
+	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler) : base() {
 	  Contract.Requires(fileName != null);
 	  Contract.Requires(errorHandler != null);
 		this.errorHandler = errorHandler;
@@ -303,15 +306,14 @@ void objectInvariant(){
 			Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
 			buffer = new Buffer(stream, false);
 			Filename = fileName;
-			
 			Init();
 		} catch (IOException) {
 			throw new FatalError("Cannot open file " + fileName);
 		}
 	}
-	
-	[NotDelayed]
-	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName) :base(){
+
+//	[NotDelayed]
+	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName) : base() {
 	  Contract.Requires(s != null);
 	  Contract.Requires(errorHandler != null);
 	  Contract.Requires(fileName != null);
@@ -320,10 +322,9 @@ void objectInvariant(){
 		buffer = new Buffer(s, true);
 		this.errorHandler = errorHandler;
 		this.Filename = fileName;
-		
 		Init();
 	}
-	
+
 	void Init() {
 		pos = -1; line = 1; col = 0;
 		oldEols = 0;
@@ -344,11 +345,11 @@ void objectInvariant(){
 	Contract.Ensures(Contract.Result<string>() != null);
 	  int p = buffer.Pos;
 	  int ch = buffer.Read();
-      // replace isolated '\r' by '\n' in order to make
+	  // replace isolated '\r' by '\n' in order to make
 	  // eol handling uniform across Windows, Unix and Mac
 	  if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
 	  while (ch != EOL && ch != Buffer.EOF){
-	    ch = buffer.Read();
+		ch = buffer.Read();
 		// replace isolated '\r' by '\n' in order to make
 		// eol handling uniform across Windows, Unix and Mac
 		if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
@@ -359,7 +360,7 @@ void objectInvariant(){
 	}
 
 	void NextCh() {
-		if (oldEols > 0) { ch = EOL; oldEols--; } 
+		if (oldEols > 0) { ch = EOL; oldEols--; }
 		else {
 //			pos = buffer.Pos;
 //			ch = buffer.Read(); col++;
@@ -367,9 +368,9 @@ void objectInvariant(){
 //			// eol handling uniform across Windows, Unix and Mac
 //			if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
 //			if (ch == EOL) { line++; col = 0; }
-			
+
 			while (true) {
-			    pos = buffer.Pos;
+				pos = buffer.Pos;
 				ch = buffer.Read(); col++;
 				// replace isolated '\r' by '\n' in order to make
 				// eol handling uniform across Windows, Unix and Mac
@@ -419,7 +420,7 @@ void objectInvariant(){
 				return;
 			  }
 
-			
+
 		}
 
 	}
@@ -555,10 +556,13 @@ void objectInvariant(){
 		t.pos = pos; t.col = col; t.line = line;
 		t.filename = this.Filename;
 		int state;
-		if (start.ContainsKey(ch)) { state = (int) cce.NonNull( start[ch]); }
+		if (start.ContainsKey(ch)) {
+			Contract.Assert(start[ch] != null);
+			state = (int) start[ch];
+		}
 		else { state = 0; }
 		tlen = 0; AddCh();
-		
+
 		switch (state) {
 			case -1: { t.kind = eofSym; break; } // NextCh already done
 			case 0: {
@@ -765,14 +769,14 @@ void objectInvariant(){
 		t.val = new String(tval, 0, tlen);
 		return t;
 	}
-	
+
 	private void SetScannerBehindT() {
 		buffer.Pos = t.pos;
 		NextCh();
 		line = t.line; col = t.col;
 		for (int i = 0; i < tlen; i++) NextCh();
 	}
-	
+
 	// get the next token (possibly a token already seen during peeking)
 	public Token/*!*/ Scan () {
 	 Contract.Ensures(Contract.Result<Token>() != null);
@@ -793,7 +797,7 @@ void objectInvariant(){
 			}
 			pt = pt.next;
 		} while (pt.kind > maxT); // skip pragmas
-	
+
 		return pt;
 	}
 
