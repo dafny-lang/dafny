@@ -7,6 +7,10 @@ Boogie program verifier finished with 8 verified, 0 errors
 
 Dafny program verifier finished with 22 verified, 0 errors
 
+-------------------- PriorityQueue.dfy --------------------
+
+Dafny program verifier finished with 12 verified, 0 errors
+
 -------------------- BinaryTree.dfy --------------------
 
 Dafny program verifier finished with 24 verified, 0 errors
