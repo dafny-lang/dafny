@@ -484,8 +484,9 @@ namespace Microsoft.Boogie
         ErrorWriteLine("Fatal Error: ProverException: {0}", e);
         return PipelineOutcome.FatalError;
       }
-      
-      foreach ( Declaration decl in program.TopLevelDeclarations )
+
+      var decls = program.TopLevelDeclarations.ToArray();
+      foreach ( Declaration decl in decls )
       {Contract.Assert(decl != null);
         Implementation impl = decl as Implementation;
         if (impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine(cce.NonNull(impl.Name)) && !impl.SkipVerification)
