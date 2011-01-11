@@ -165,7 +165,7 @@ class LinkedList<T> {
     }
   }
 
-  static function method ReverseSeq(s: seq<T>): seq<T>
+  static function ReverseSeq(s: seq<T>): seq<T>
   {
     if s == [] then [] else
     ReverseSeq(s[1..]) + [s[0]]

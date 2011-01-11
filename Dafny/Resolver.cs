@@ -2220,7 +2220,7 @@ namespace Microsoft.Dafny {
               Contract.Assert( ctor != null);  // follows from postcondition of TryGetValue
               mc.Ctor = ctor;
               if (ctor.Formals.Count != mc.Arguments.Count) {
-                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Arguments.Count, ctor.Formals.Count);
+                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
               }
               if (memberNamesUsed.ContainsKey(mc.Id)) {
                 Error(mc.tok, "member {0} appears in more than one case", mc.Id);
