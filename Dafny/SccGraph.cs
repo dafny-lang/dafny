@@ -12,12 +12,11 @@ namespace Microsoft.Dafny {
       public readonly List<Vertex/*!*/>/*!*/ Successors = new List<Vertex/*!*/>();
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
-void ObjectInvariant() 
-{
-    Contract.Invariant(cce.NonNullElements(Successors));
-        if(SccMembers!=null)
-          Contract.Invariant(cce.NonNullElements(SccMembers));
-}
+      void ObjectInvariant() 
+      {
+        Contract.Invariant(cce.NonNullElements(Successors));
+        Contract.Invariant(SccMembers==null || cce.NonNullElements(SccMembers));
+      }
 
       public Vertex SccRepresentative;  // null if not computed
       
@@ -40,15 +39,14 @@ void ObjectInvariant()
     }
 
 
-[ContractInvariantMethod]
-void ObjectInvariant() 
-{
-    Contract.Invariant(vertices!=null);
-  Contract.Invariant(cce.NonNullElements(vertices.Values));
-  if(topologicallySortedRepresentatives!=null)
-    Contract.Invariant(cce.NonNullElements(topologicallySortedRepresentatives));
-  Contract.Invariant(!sccComputed || topologicallySortedRepresentatives != null);
-}
+    [ContractInvariantMethod]
+    void ObjectInvariant() 
+    {
+      Contract.Invariant(vertices!=null);
+      Contract.Invariant(cce.NonNullElements(vertices.Values));
+      Contract.Invariant(topologicallySortedRepresentatives==null || cce.NonNullElements(topologicallySortedRepresentatives));
+      Contract.Invariant(!sccComputed || topologicallySortedRepresentatives != null);
+    }
 
     Dictionary<Node, Vertex/*!*/>/*!*/ vertices = new Dictionary<Node, Vertex/*!*/>();
     bool sccComputed = false;

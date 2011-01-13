@@ -581,7 +581,7 @@ namespace Microsoft.Dafny {
         if (t.ArrayDimensions != null) {
           string s = "[";
           foreach (Expression dim in t.ArrayDimensions) {
-            Contract.Requires(dim != null);
+            Contract.Assume(dim != null);
             wr.Write(s);
             PrintExpression(dim);
             s = ", ";

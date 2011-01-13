@@ -110,7 +110,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="cce.cs" />
     <Compile Include="DafnyDriver.cs" />
     <Compile Include="..\version.cs" />
   </ItemGroup>
