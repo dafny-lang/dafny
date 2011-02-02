@@ -87,17 +87,17 @@ Execution trace:
     (0,0): anon0
 SmallTests.dfy(61,36): Error: possible division by zero
 Execution trace:
-    (0,0): anon10_Then
+    (0,0): anon12_Then
 SmallTests.dfy(62,51): Error: possible division by zero
 Execution trace:
-    (0,0): anon10_Else
+    (0,0): anon12_Else
     (0,0): anon3
-    (0,0): anon11_Else
+    (0,0): anon13_Else
 SmallTests.dfy(63,22): Error: target object may be null
 Execution trace:
-    (0,0): anon10_Then
+    (0,0): anon12_Then
     (0,0): anon3
-    (0,0): anon11_Then
+    (0,0): anon13_Then
     (0,0): anon6
 SmallTests.dfy(82,20): Error: decreases expression must be well defined at top of each loop iteration
 Execution trace:
@@ -129,7 +129,7 @@ Dafny program verifier finished with 28 verified, 9 errors
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
 Execution trace:
-    (0,0): anon0
+    (0,0): anon3_Else
 Definedness.dfy(15,16): Error: possible division by zero
 Execution trace:
     (0,0): anon0
@@ -263,8 +263,22 @@ Execution trace:
 Definedness.dfy(210,23): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
+Definedness.dfy(231,30): Error: possible violation of function postcondition
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+Definedness.dfy(238,22): Error: target object may be null
+Execution trace:
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Definedness.dfy(254,24): Error: possible violation of function postcondition
+Execution trace:
+    (0,0): anon7_Then
+    (0,0): anon2
+    (0,0): anon8_Else
 
-Dafny program verifier finished with 21 verified, 29 errors
+Dafny program verifier finished with 23 verified, 32 errors
 
 -------------------- Array.dfy --------------------
 Array.dfy(10,12): Error: assignment may update an array element not in the enclosing method's modifies clause
@@ -293,14 +307,14 @@ Execution trace:
     (0,0): anon0
 Array.dfy(107,6): Error: insufficient reads clause to read array element
 Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon5_Then
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+    (0,0): anon9_Then
 Array.dfy(115,6): Error: insufficient reads clause to read array element
 Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon5_Then
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+    (0,0): anon9_Then
 Array.dfy(131,10): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
@@ -348,7 +362,7 @@ Dafny program verifier finished with 16 verified, 2 errors
 -------------------- BadFunction.dfy --------------------
 BadFunction.dfy(6,3): Error: failure to decrease termination measure
 Execution trace:
-    (0,0): anon0
+    (0,0): anon3_Else
 
 Dafny program verifier finished with 2 verified, 1 error
 
@@ -437,7 +451,7 @@ DTypes.dfy(54,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 13 verified, 3 errors
+Dafny program verifier finished with 14 verified, 3 errors
 
 -------------------- TypeParameters.dfy --------------------
 TypeParameters.dfy(41,22): Error: assertion violation

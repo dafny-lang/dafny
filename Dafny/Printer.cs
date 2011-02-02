@@ -234,6 +234,7 @@ namespace Microsoft.Dafny {
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
       PrintFrameSpecLine("reads", f.Reads, ind);
+      PrintSpec("ensures", f.Ens, ind);
       PrintSpecLine("decreases", f.Decreases, ind);
       if (f.Body != null) {
         Indent(indent);
@@ -668,7 +669,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires( -1 <= indent);
     
-    Contract.Requires(expr != null);
+      Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
@@ -681,7 +682,7 @@ namespace Microsoft.Dafny {
       
       } else if (expr is ThisExpr) {
         wr.Write("this");
-        
+  
       } else if (expr is IdentifierExpr) {
         wr.Write(((IdentifierExpr)expr).Name);
       

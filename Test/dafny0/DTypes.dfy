@@ -74,3 +74,16 @@ class Node { }
 
 class CP<T,U> {
 }
+
+datatype Data {
+  Lemon;
+  Kiwi(int);
+}
+
+function G(d: Data): int
+  requires d != #Data.Lemon;
+{
+  match d
+  case Lemon => G(d)
+  case Kiwi(x) => 7
+}

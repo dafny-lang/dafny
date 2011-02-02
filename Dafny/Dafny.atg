@@ -574,6 +574,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
      Type/*!*/ returnType;
      List<Expression/*!*/> reqs = new List<Expression/*!*/>();
+     List<Expression/*!*/> ens = new List<Expression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Expression/*!*/ bb;  Expression body = null;
@@ -594,18 +595,18 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   ":"
   Type<out returnType>
   ( ";"
-    { FunctionSpec<reqs, reads, decreases> }
-  | { FunctionSpec<reqs, reads, decreases> }
+    { FunctionSpec<reqs, reads, ens, decreases> }
+  | { FunctionSpec<reqs, reads, ens, decreases> }
     FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   )
   (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+     f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, decreases, body, attrs);
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
   .)
   .
 
-FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ decreases.>
+FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
   ( "requires" Expression<out e> ";"      (. reqs.Add(e); .)
@@ -613,6 +614,7 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
               { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
               }
 	        ] ";"
+  | "ensures" Expression<out e> ";"      (. ens.Add(e); .)
   | "decreases" Expressions<decreases> ";"
   )
   .

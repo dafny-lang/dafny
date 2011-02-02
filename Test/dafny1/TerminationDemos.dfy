@@ -30,6 +30,19 @@ class Ackermann {
     else
       F(m - 1, F(m, n - 1))
   }
+/*
+  function G(m: int, n: int): int
+    requires 0 <= m && 0 <= n;
+    ensures 0 <= G(m, n);
+  {
+    if m == 0 then
+      n + 1
+    else if n == 0 then
+      G(m - 1, 1)
+    else
+      G(m - 1, G(m, n - 1))
+  }
+*/
 }
 
 // -----------------------------------

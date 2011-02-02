@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
           } else if (other == m) {
             Error(m, "module must not import itself: {0}", imp);
           } else {
-            Contract.Assert( other != null);  // follows from postcondition of TryGetValue
+            Contract.Assert(other != null);  // follows from postcondition of TryGetValue
             importGraph.AddEdge(m, other);
           }
         }
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
       } else {
         // fill in module heights
         List<ModuleDecl> mm = importGraph.TopologicallySortedComponents();
-        Contract.Assert( mm.Count == prog.Modules.Count);  // follows from the fact that there are no cycles
+        Contract.Assert(mm.Count == prog.Modules.Count);  // follows from the fact that there are no cycles
         int h = 0;
         foreach (ModuleDecl m in mm) {
           m.Height = h;
@@ -274,8 +274,8 @@ namespace Microsoft.Dafny {
     void ResolveClassMemberTypes(ClassDecl/*!*/ cl)
     {
       Contract.Requires(cl != null);
-      Contract.Requires( currentClass == null);
-      Contract.Ensures(  currentClass == null);
+      Contract.Requires(currentClass == null);
+      Contract.Ensures(currentClass == null);
     
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
@@ -302,7 +302,7 @@ namespace Microsoft.Dafny {
           if (currentClass is ClassRefinementDecl) {      
             ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;
             if (refined != null) {
-              Contract.Assert( classMembers.ContainsKey(refined));
+              Contract.Assert(classMembers.ContainsKey(refined));
               Dictionary<string,MemberDecl> members = classMembers[refined];
             
               // resolve abstracted fields in the refined class
@@ -592,8 +592,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ResolveFunction(Function f){
       Contract.Requires(f != null);
-      Contract.Requires( currentFunction == null);
-      Contract.Ensures(  currentFunction == null);
+      Contract.Requires(currentFunction == null);
+      Contract.Ensures(currentFunction == null);
       scope.PushMarker();
       currentFunction = f;
       if (f.IsStatic) {
@@ -604,7 +604,7 @@ namespace Microsoft.Dafny {
       }
       foreach (Expression r in f.Req) {
         ResolveExpression(r, false, true);
-        Contract.Assert( r.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(r.Type, Type.Bool)) {
           Error(r, "Precondition must be a boolean (got {0})", r.Type);
         }
@@ -612,13 +612,20 @@ namespace Microsoft.Dafny {
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpression(fr, "reads");
       }
+      foreach (Expression r in f.Ens) {
+        ResolveExpression(r, false, true);  // since this is a function, the postcondition is still a one-state predicate
+        Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(r.Type, Type.Bool)) {
+          Error(r, "Postcondition must be a boolean (got {0})", r.Type);
+        }
+      }
       foreach (Expression r in f.Decreases) {
         ResolveExpression(r, false, true);
         // any type is fine
       }
       if (f.Body != null) {
         ResolveExpression(f.Body, false, f.IsGhost);
-        Contract.Assert( f.Body.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(f.Body.Type, f.ResultType)) {
           Error(f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
         }
@@ -632,7 +639,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(kind != null);
       ResolveExpression(fe.E, false, true);
       Type t = fe.E.Type;
-      Contract.Assert( t != null);  // follows from postcondition of ResolveExpression
+      Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       if (t is CollectionType) {
         t = ((CollectionType)t).Arg;
       }
@@ -651,7 +658,7 @@ namespace Microsoft.Dafny {
           } else if (!(member is Field)) {
             Error(fe.E, "member {0} in class {1} does not refer to a field", fe.FieldName, cce.NonNull(ctype).Name);
           } else {
-            Contract.Assert( ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
+            Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
             fe.Field = (Field)member;
           }
         }
@@ -700,7 +707,7 @@ namespace Microsoft.Dafny {
       // Start resolving specification...
       foreach (MaybeFreeExpression e in m.Req) {
         ResolveExpression(e.E, false, true);
-        Contract.Assert( e.E.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E.Type, Type.Bool)) {
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
@@ -723,7 +730,7 @@ namespace Microsoft.Dafny {
       // ... continue resolving specification
       foreach (MaybeFreeExpression e in m.Ens) {
         ResolveExpression(e.E, true, true);
-        Contract.Assert( e.E.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E.Type, Type.Bool)) {
           Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
         }
@@ -845,7 +852,7 @@ namespace Microsoft.Dafny {
         UserDefinedType bb = (UserDefinedType)b;
         if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
-          Contract.Assert( aa.TypeArgs.Count == bb.TypeArgs.Count);
+          Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           bool successSoFar = true;
           for (int i = 0; i < aa.TypeArgs.Count; i++) {
             if (!UnifyTypes(aa.TypeArgs[i], bb.TypeArgs[i])) {
@@ -855,7 +862,7 @@ namespace Microsoft.Dafny {
           return successSoFar;
         } else if (aa.ResolvedParam != null && aa.ResolvedParam == bb.ResolvedParam) {
           // these are both resolved type parameters
-          Contract.Assert( aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0);
+          Contract.Assert(aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0);
           return true;
         } else {
           // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
@@ -1074,7 +1081,7 @@ namespace Microsoft.Dafny {
         }
         
       } else if (a is IndexableTypeProxy) {
-        Contract.Assert( b is IndexableTypeProxy);  // else we have unexpected restricted-proxy type
+        Contract.Assert(b is IndexableTypeProxy);  // else we have unexpected restricted-proxy type
         a.T = b;
         return UnifyTypes(((IndexableTypeProxy)a).Arg, ((IndexableTypeProxy)b).Arg);
         
@@ -1089,7 +1096,7 @@ namespace Microsoft.Dafny {
         UseStmt s = (UseStmt)stmt;
         s.IsGhost = true;
         ResolveExpression(s.Expr, true, true);
-        Contract.Assert( s.Expr.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         Expression expr = s.Expr;
         while (true) {
           if (expr is OldExpr) {
@@ -1102,7 +1109,7 @@ namespace Microsoft.Dafny {
         PredicateStmt s = (PredicateStmt)stmt;
         s.IsGhost = true;
         ResolveExpression(s.Expr, true, true);
-        Contract.Assert( s.Expr.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
           Error(s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
         }
@@ -1134,7 +1141,7 @@ namespace Microsoft.Dafny {
           ResolveExpression(s.Lhs, true, true);  // allow ghosts for now, but see FieldSelectExpr LHS case below
         }
         bool lhsResolvedSuccessfully = ErrorCount == prevErrorCount;
-        Contract.Assert( s.Lhs.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Lhs.Type != null);  // follows from postcondition of ResolveExpression
         // check that LHS denotes a mutable variable or a field
         bool lvalueIsGhost = false;
         if (s.Lhs is IdentifierExpr) {
@@ -1175,7 +1182,7 @@ namespace Microsoft.Dafny {
           SeqSelectExpr lhs = (SeqSelectExpr)s.Lhs;
           // LHS is fine, provided the "sequence" is really an array
           if (lhsResolvedSuccessfully) {
-            Contract.Assert( lhs.Seq.Type != null);
+            Contract.Assert(lhs.Seq.Type != null);
             Type elementType = new InferredTypeProxy();
             if (!UnifyTypes(lhs.Seq.Type, builtIns.ArrayType(1, elementType))) {
               Error(lhs.Seq, "LHS of array assignment must denote an array element (found {0})", lhs.Seq.Type);
@@ -1236,7 +1243,7 @@ namespace Microsoft.Dafny {
           if (s.Rhs is ExprRhs) {
             ExprRhs rr = (ExprRhs)s.Rhs;
             ResolveExpression(rr.Expr, true, s.IsGhost);
-            Contract.Assert( rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
+            Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
             rhsType = rr.Expr.Type;
           } else if (s.Rhs is TypeRhs) {
             TypeRhs rr = (TypeRhs)s.Rhs;
@@ -1260,7 +1267,7 @@ namespace Microsoft.Dafny {
 
         // resolve receiver
         ResolveReceiver(s.Receiver, true, false);
-        Contract.Assert( s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
         // resolve the method name
         UserDefinedType ctype;
         MemberDecl member = ResolveMember(s.Tok, s.Receiver.Type, s.MethodName, out ctype);
@@ -1312,7 +1319,7 @@ namespace Microsoft.Dafny {
         } else if (callee.Outs.Count != s.Lhs.Count) {
           Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
         } else {
-          Contract.Assert( ctype != null);  // follows from postcondition of ResolveMember above
+          Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember above
           if (!scope.AllowInstance && !callee.IsStatic && s.Receiver is ThisExpr) {
             // The call really needs an instance, but that instance is given as 'this', which is not
             // available in this context.  For more details, see comment in the resolution of a
@@ -1372,7 +1379,7 @@ namespace Microsoft.Dafny {
         if (s.Guard != null) {
           int prevErrorCount = ErrorCount;
           ResolveExpression(s.Guard, true, true);
-          Contract.Assert( s.Guard.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = ErrorCount == prevErrorCount;
           if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
             Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
@@ -1393,7 +1400,7 @@ namespace Microsoft.Dafny {
         if (s.Guard != null) {
           int prevErrorCount = ErrorCount;
           ResolveExpression(s.Guard, true, true);
-          Contract.Assert( s.Guard.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
           bool successfullyResolved = ErrorCount == prevErrorCount;
           if (!UnifyTypes(s.Guard.Type, Type.Bool)) {
             Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
@@ -1404,7 +1411,7 @@ namespace Microsoft.Dafny {
         }
         foreach (MaybeFreeExpression inv in s.Invariants) {
           ResolveExpression(inv.E, true, true);
-          Contract.Assert( inv.E.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(inv.E.Type, Type.Bool)) {
             Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
           }
@@ -1420,19 +1427,19 @@ namespace Microsoft.Dafny {
         ForeachStmt s = (ForeachStmt)stmt;
 
         ResolveExpression(s.Collection, true, true);
-        Contract.Assert( s.Collection.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Collection.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Collection.Type, new CollectionTypeProxy(s.BoundVar.Type))) {
           Error(s.Collection, "The type is expected to be a collection of {0} (instead got {1})", s.BoundVar.Type, s.Collection.Type);
         }
         
         scope.PushMarker();
         bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
-        Contract.Assert( b);  // since we just pushed a marker, we expect the Push to succeed
+        Contract.Assert(b);  // since we just pushed a marker, we expect the Push to succeed
         ResolveType(s.BoundVar.Type);
         int prevErrorCount = ErrorCount;
         
         ResolveExpression(s.Range, true, true);
-        Contract.Assert( s.Range.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Range.Type, Type.Bool)) {
           Error(s.Range, "range condition is expected to be of type {0}, but is {1}", Type.Bool, s.Range.Type);
         }
@@ -1462,7 +1469,7 @@ namespace Microsoft.Dafny {
         bool bodyIsSpecOnly = specContextOnly;
         int prevErrorCount = ErrorCount;
         ResolveExpression(s.Source, true, true);
-        Contract.Assert( s.Source.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
         bool successfullyResolved = ErrorCount == prevErrorCount;
         if (!specContextOnly && successfullyResolved) {
           bodyIsSpecOnly = UsesSpecFeatures(s.Source);
@@ -1479,9 +1486,9 @@ namespace Microsoft.Dafny {
           Error(s.Source, "the type of the match source expression must be a datatype");
           ctors = null;
         } else {
-          Contract.Assert( sourceType != null);  // dtd and sourceType are set together above
+          Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
           ctors = datatypeCtors[dtd];
-          Contract.Assert( ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+          Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
           
           // build the type-parameter substitution map for this use of the datatype
           for (int i = 0; i < dtd.TypeArgs.Count; i++) {
@@ -1494,11 +1501,11 @@ namespace Microsoft.Dafny {
         foreach (MatchCaseStmt mc in s.Cases) {
           DatatypeCtor ctor = null;
           if (ctors != null) {
-            Contract.Assert( dtd != null);
+            Contract.Assert(dtd != null);
             if (!ctors.TryGetValue(mc.Id, out ctor)) {
               Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
             } else {
-              Contract.Assert( ctor != null);  // follows from postcondition of TryGetValue
+              Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
               mc.Ctor = ctor;
               if (ctor.Formals.Count != mc.Arguments.Count) {
                 Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Arguments.Count, ctor.Formals.Count);
@@ -1558,7 +1565,7 @@ namespace Microsoft.Dafny {
           LabelStmt ls = (LabelStmt)ss;
           labeledStatements.PushMarker();
           bool b = labeledStatements.Push(ls.Label, ls);
-          Contract.Assert( b);  // since we just pushed a marker, we expect the Push to succeed
+          Contract.Assert(b);  // since we just pushed a marker, we expect the Push to succeed
           labelsToPop++;
         } else {
           ResolveStatement(ss, specContextOnly, method);
@@ -1604,8 +1611,8 @@ namespace Microsoft.Dafny {
       if (ctype == null) {
         Error(tok, "receiver (of type {0}) must be of a class type", receiverType);
       } else {
-        Contract.Assert( ctype.ResolvedClass is ClassDecl);  // follows from postcondition of DenotesClass
-        Contract.Assert( ctype.TypeArgs.Count == ctype.ResolvedClass.TypeArgs.Count);  // follows from the fact that ctype was resolved
+        Contract.Assert(ctype.ResolvedClass is ClassDecl);  // follows from postcondition of DenotesClass
+        Contract.Assert(ctype.TypeArgs.Count == ctype.ResolvedClass.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
         if (!classMembers[(ClassDecl)ctype.ResolvedClass].TryGetValue(memberName, out member)) {
           Error(tok, "member {0} does not exist in class {1}", memberName, ctype.Name);
@@ -1639,7 +1646,7 @@ namespace Microsoft.Dafny {
       } else if (type is UserDefinedType) {
         UserDefinedType t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
-          Contract.Assert( t.TypeArgs.Count == 0);
+          Contract.Assert(t.TypeArgs.Count == 0);
           Type s;
           if (subst.TryGetValue(t.ResolvedParam, out s)) {
             return cce.NonNull(s);
@@ -1702,9 +1709,9 @@ namespace Microsoft.Dafny {
     /// "twoState" implies that "old" and "fresh" expressions are allowed
     /// </summary>
     void ResolveExpression(Expression expr, bool twoState, bool specContext){
-     Contract.Requires(expr != null);
-      Contract.Requires( currentClass != null);
-      Contract.Ensures(  expr.Type != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(currentClass != null);
+      Contract.Ensures(expr.Type != null);
       if (expr.Type != null) {
         // expression has already been resovled
         return;
@@ -1770,7 +1777,7 @@ namespace Microsoft.Dafny {
           if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
             Error(expr.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
           } else {
-            Contract.Assert( ctor != null);  // follows from postcondition of TryGetValue
+            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
             dtv.Ctor = ctor;
             if (ctor.Formals.Count != dtv.Arguments.Count) {
               Error(expr.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", dtv.DatatypeName, dtv.Arguments.Count, ctor.Formals.Count);
@@ -1786,7 +1793,7 @@ namespace Microsoft.Dafny {
           foreach (Expression arg in dtv.Arguments) {
             Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
             ResolveExpression(arg, twoState, specContext || (formal != null && formal.IsGhost));
-            Contract.Assert( arg.Type != null);  // follows from postcondition of ResolveExpression
+            Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
             if (formal != null) {
               Type st = SubstType(formal.Type, subst);
               if (!UnifyTypes(arg.Type, st)) {
@@ -1802,7 +1809,7 @@ namespace Microsoft.Dafny {
         Type elementType = new InferredTypeProxy();
         foreach (Expression ee in e.Elements) {
           ResolveExpression(ee, twoState, specContext);
-          Contract.Assert( ee.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(ee.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(elementType, ee.Type)) {
             Error(ee, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", ee.Type, elementType);
           }
@@ -1816,7 +1823,7 @@ namespace Microsoft.Dafny {
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         ResolveExpression(e.Obj, twoState, specContext);
-        Contract.Assert( e.Obj.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType ctype;
         MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.FieldName, out ctype);
         if (member == null) {
@@ -1824,7 +1831,7 @@ namespace Microsoft.Dafny {
         } else if (!(member is Field)) {
           Error(expr, "member {0} in class {1} does not refer to a field", e.FieldName, cce.NonNull(ctype).Name);
         } else {
-          Contract.Assert( ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
+          Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           e.Field = (Field)member;
           // build the type substitution map
           Dictionary<TypeParameter,Type> subst = new Dictionary<TypeParameter,Type>();
@@ -1873,12 +1880,12 @@ namespace Microsoft.Dafny {
           seqErr = true;
         }
         ResolveExpression(e.Index, twoState, specContext);
-        Contract.Assert( e.Index.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Index.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.Index.Type, Type.Int)) {
           Error(e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
         }
         ResolveExpression(e.Value, twoState, specContext);
-        Contract.Assert( e.Value.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Value.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.Value.Type, elementType)) {
           Error(e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
         }
@@ -1889,7 +1896,7 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         ResolveReceiver(e.Receiver, twoState, specContext);
-        Contract.Assert( e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType ctype;
         MemberDecl member = ResolveMember(expr.tok, e.Receiver.Type, e.Name, out ctype);
         if (member == null) {
@@ -1905,7 +1912,7 @@ namespace Microsoft.Dafny {
           if (function.Formals.Count != e.Args.Count) {
             Error(expr, "wrong number of function arguments (got {0}, expected {1})", e.Args.Count, function.Formals.Count);
           } else {
-            Contract.Assert( ctype != null);  // follows from postcondition of ResolveMember
+            Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember
             if (!scope.AllowInstance && !function.IsStatic && e.Receiver is ThisExpr) {
               // The call really needs an instance, but that instance is given as 'this', which is not
               // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
@@ -1928,7 +1935,7 @@ namespace Microsoft.Dafny {
             for (int i = 0; i < function.Formals.Count; i++) {
               Expression farg = e.Args[i];
               ResolveExpression(farg, twoState, specContext);
-              Contract.Assert( farg.Type != null);  // follows from postcondition of ResolveExpression
+              Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
               Type s = SubstType(function.Formals[i].Type, subst);
               if (!UnifyTypes(farg.Type, s)) {
                 Error(expr, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
@@ -1973,7 +1980,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, twoState, specContext);
         // the type of e.E must be either an object or a collection of objects
         Type t = e.E.Type;
-        Contract.Assert( t != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
         if (t is CollectionType) {
           t = ((CollectionType)t).Arg;
         }
@@ -1989,7 +1996,7 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         ResolveExpression(e.E, twoState, specContext);
-        Contract.Assert( e.E.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         switch (e.Op) {
           case UnaryExpr.Opcode.Not:
             if (!UnifyTypes(e.E.Type, Type.Bool)) {
@@ -2010,9 +2017,9 @@ namespace Microsoft.Dafny {
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         ResolveExpression(e.E0, twoState, specContext);
-        Contract.Assert( e.E0.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E0.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.E1, twoState, specContext);
-        Contract.Assert( e.E1.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
         switch (e.Op) {
           case BinaryExpr.Opcode.Iff:
           case BinaryExpr.Opcode.Imp:
@@ -2145,7 +2152,7 @@ namespace Microsoft.Dafny {
           ResolveType(v.Type);
         }
         ResolveExpression(e.Body, twoState, specContext);
-        Contract.Assert( e.Body.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.Body.Type, Type.Bool)) {
           Error(expr, "body of quantifier must be of type bool (instead got {0})", e.Body.Type);
         }
@@ -2162,11 +2169,11 @@ namespace Microsoft.Dafny {
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         ResolveExpression(e.Test, twoState, specContext);
-        Contract.Assert( e.Test.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Test.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Thn, twoState, specContext);
-        Contract.Assert( e.Thn.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Thn.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Els, twoState, specContext);
-        Contract.Assert( e.Els.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Els.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.Test.Type, Type.Bool)) {
           Error(expr, "guard condition in if-then-else expression must be a boolean (instead got {0})", e.Test.Type);
         }
@@ -2178,9 +2185,9 @@ namespace Microsoft.Dafny {
       
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
-        Contract.Assert( !twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
+        Contract.Assert(!twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
         ResolveExpression(me.Source, twoState, specContext);
-        Contract.Assert( me.Source.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType sourceType = null;
         DatatypeDecl dtd = null;
         Dictionary<TypeParameter,Type> subst = new Dictionary<TypeParameter,Type>();
@@ -2193,9 +2200,9 @@ namespace Microsoft.Dafny {
           Error(me.Source, "the type of the match source expression must be a datatype");
           ctors = null;
         } else {
-          Contract.Assert( sourceType != null);  // dtd and sourceType are set together above
+          Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
           ctors = datatypeCtors[dtd];
-          Contract.Assert( ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
+          Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
           
           IdentifierExpr ie = me.Source as IdentifierExpr;
           if (ie == null || !(ie.Var is Formal)) {
@@ -2213,11 +2220,11 @@ namespace Microsoft.Dafny {
         foreach (MatchCaseExpr mc in me.Cases) {
           DatatypeCtor ctor = null;
           if (ctors != null) {
-            Contract.Assert( dtd != null);
+            Contract.Assert(dtd != null);
             if (!ctors.TryGetValue(mc.Id, out ctor)) {
               Error(mc.tok, "member {0} does not exist in datatype {1}", mc.Id, dtd.Name);
             } else {
-              Contract.Assert( ctor != null);  // follows from postcondition of TryGetValue
+              Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
               mc.Ctor = ctor;
               if (ctor.Formals.Count != mc.Arguments.Count) {
                 Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
@@ -2253,7 +2260,7 @@ namespace Microsoft.Dafny {
             i++;
           }
           ResolveExpression(mc.Body, twoState, specContext);
-          Contract.Assert( mc.Body.Type != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(expr.Type, mc.Body.Type)) {
             Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
           }
@@ -2292,7 +2299,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       bool seqErr = false;
       ResolveExpression(e.Seq, twoState, specContext);
-      Contract.Assert( e.Seq.Type != null);  // follows from postcondition of ResolveExpression
+      Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
       Type elementType = new InferredTypeProxy();
       Type expectedType;
       if (e.SelectOne || allowNonUnitArraySelection) {
@@ -2306,14 +2313,14 @@ namespace Microsoft.Dafny {
       }
       if (e.E0 != null) {
         ResolveExpression(e.E0, twoState, specContext);
-        Contract.Assert( e.E0.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E0.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E0.Type, Type.Int)) {
           Error(e.E0, "sequence/array selection requires integer indices (got {0})", e.E0.Type);
         }
       }
       if (e.E1 != null) {
         ResolveExpression(e.E1, twoState, specContext);
-        Contract.Assert( e.E1.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E1.Type, Type.Int)) {
           Error(e.E1, "sequence/array selection requires integer indices (got {0})", e.E1.Type);
         }
@@ -2567,7 +2574,7 @@ namespace Microsoft.Dafny {
           }
         } else if (names[n] == name) {
           Thing t = things[n];
-          Contract.Assert( t != null);
+          Contract.Assert(t != null);
           return t;
         }
       }

@@ -25,7 +25,7 @@ public class Parser {
 	const bool T = true;
 	const bool x = false;
 	const int minErrDist = 2;
-
+	
 	public Scanner/*!*/ scanner;
 	public Errors/*!*/  errors;
 
@@ -161,10 +161,10 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		if (errDist >= minErrDist) errors.SemErr(t, msg);
 		errDist = 0;
 	}
-
-	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
-	  Contract.Requires(tok != null);
-	  Contract.Requires(msg != null);
+	
+    public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
 	  errors.SemErr(tok, msg);
 	}
 
@@ -177,15 +177,15 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 			la = t;
 		}
 	}
-
+	
 	void Expect (int n) {
 		if (la.kind==n) Get(); else { SynErr(n); }
 	}
-
+	
 	bool StartOf (int s) {
 		return set[s, la.kind];
 	}
-
+	
 	void ExpectWeak (int n, int follow) {
 		if (la.kind == n) Get();
 		else {
@@ -209,7 +209,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		}
 	}
 
-
+	
 	void Dafny() {
 		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt;
 		Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
@@ -449,6 +449,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		List<Formal/*!*/> formals = new List<Formal/*!*/>();
 		Type/*!*/ returnType;
 		List<Expression/*!*/> reqs = new List<Expression/*!*/>();
+		List<Expression/*!*/> ens = new List<Expression/*!*/>();
 		List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
 		List<Expression/*!*/> decreases = new List<Expression/*!*/>();
 		Expression/*!*/ bb;  Expression body = null;
@@ -476,18 +477,18 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		Type(out returnType);
 		if (la.kind == 15) {
 			Get();
-			while (la.kind == 27 || la.kind == 29 || la.kind == 38) {
-				FunctionSpec(reqs, reads, decreases);
+			while (StartOf(3)) {
+				FunctionSpec(reqs, reads, ens, decreases);
 			}
-		} else if (StartOf(3)) {
-			while (la.kind == 27 || la.kind == 29 || la.kind == 38) {
-				FunctionSpec(reqs, reads, decreases);
+		} else if (StartOf(4)) {
+			while (StartOf(3)) {
+				FunctionSpec(reqs, reads, ens, decreases);
 			}
 			FunctionBody(out bb, out bodyStart, out bodyEnd);
 			body = bb; 
 		} else SynErr(105);
 		parseVarScope.PopMarker();
-		f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, decreases, body, attrs);
+		f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, decreases, body, attrs);
 		f.BodyStartTok = bodyStart;
 		f.BodyEndTok = bodyEnd;
 		
@@ -532,11 +533,11 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		}
 		if (la.kind == 15) {
 			Get();
-			while (StartOf(4)) {
+			while (StartOf(5)) {
 				MethodSpec(req, mod, ens, dec);
 			}
-		} else if (StartOf(5)) {
-			while (StartOf(4)) {
+		} else if (StartOf(6)) {
+			while (StartOf(5)) {
 				MethodSpec(req, mod, ens, dec);
 			}
 			BlockStmt(out bb, out bodyStart, out bodyEnd);
@@ -610,7 +611,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 	void FormalsOptionalIds(List<Formal/*!*/>/*!*/ formals) {
 		Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; 
 		Expect(30);
-		if (StartOf(6)) {
+		if (StartOf(7)) {
 			TypeIdentOptional(out id, out name, out ty, out isGhost);
 			formals.Add(new Formal(id, name, ty, true, isGhost));  parseVarScope.Push(name, name); 
 			while (la.kind == 17) {
@@ -642,7 +643,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 			Expect(53);
 			Expression(out e1);
 			e = new ITEExpr(x, e, e0, e1); 
-		} else if (StartOf(7)) {
+		} else if (StartOf(8)) {
 			EquivExpression(out e);
 		} else SynErr(108);
 	}
@@ -759,7 +760,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		
 		if (la.kind == 25) {
 			Get();
-			if (StartOf(8)) {
+			if (StartOf(9)) {
 				FrameExpression(out fe);
 				mod.Add(fe); 
 				while (la.kind == 17) {
@@ -799,7 +800,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		parseVarScope.PushMarker(); 
 		Expect(7);
 		bodyStart = t; 
-		while (StartOf(9)) {
+		while (StartOf(10)) {
 			Stmt(body);
 		}
 		Expect(8);
@@ -874,7 +875,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		} else SynErr(112);
 	}
 
-	void FunctionSpec(List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ decreases) {
+	void FunctionSpec(List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases) {
 		Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases));
 		Expression/*!*/ e;  FrameExpression/*!*/ fe; 
 		if (la.kind == 27) {
@@ -884,7 +885,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			reqs.Add(e); 
 		} else if (la.kind == 38) {
 			Get();
-			if (StartOf(10)) {
+			if (StartOf(11)) {
 				PossiblyWildFrameExpression(out fe);
 				reads.Add(fe); 
 				while (la.kind == 17) {
@@ -894,6 +895,11 @@ List<Expression/*!*/>/*!*/ decreases) {
 				}
 			}
 			Expect(15);
+		} else if (la.kind == 28) {
+			Get();
+			Expression(out e);
+			Expect(15);
+			ens.Add(e); 
 		} else if (la.kind == 29) {
 			Get();
 			Expressions(decreases);
@@ -907,7 +913,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		bodyStart = t; 
 		if (la.kind == 41) {
 			MatchExpression(out e);
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			Expression(out e);
 		} else SynErr(114);
 		Expect(8);
@@ -919,7 +925,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		if (la.kind == 39) {
 			Get();
 			fe = new FrameExpression(new WildcardExpr(t), null); 
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			FrameExpression(out fe);
 		} else SynErr(115);
 	}
@@ -930,7 +936,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		if (la.kind == 39) {
 			Get();
 			e = new WildcardExpr(t); 
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			Expression(out e);
 		} else SynErr(116);
 	}
@@ -984,7 +990,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			BlockStmt(out s, out bodyStart, out bodyEnd);
 			ss.Add(s); 
 		}
-		if (StartOf(11)) {
+		if (StartOf(12)) {
 			OneStmt(out s);
 			ss.Add(s); 
 		} else if (la.kind == 11 || la.kind == 16) {
@@ -1342,7 +1348,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 				if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } 
 			}
 		}
-		if (StartOf(12)) {
+		if (StartOf(13)) {
 			AssignStmt(out s);
 			if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } 
 		} else if (la.kind == 51) {
@@ -1384,7 +1390,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 				UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
 				
 			}
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			Expression(out e);
 			ee = new List<Expression>(); ee.Add(e); 
 		} else SynErr(121);
@@ -1440,7 +1446,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		if (la.kind == 39) {
 			Get();
 			e = null; 
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			Expression(out ee);
 			e = ee; 
 		} else SynErr(123);
@@ -1471,7 +1477,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		}
 		Expect(43);
 		parseVarScope.PushMarker(); 
-		while (StartOf(9)) {
+		while (StartOf(10)) {
 			Stmt(body);
 		}
 		parseVarScope.PopMarker(); 
@@ -1497,7 +1503,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		if (la.kind == 4) {
 			Get();
 			arg = new Attributes.Argument(t.val.Substring(1, t.val.Length-2)); 
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			Expression(out e);
 			arg = new Attributes.Argument(e); 
 		} else SynErr(125);
@@ -1536,7 +1542,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 	void LogicalExpression(out Expression/*!*/ e0) {
 		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
 		RelationalExpression(out e0);
-		if (StartOf(13)) {
+		if (StartOf(14)) {
 			if (la.kind == 69 || la.kind == 70) {
 				AndOp();
 				x = t; 
@@ -1574,7 +1580,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 	void RelationalExpression(out Expression/*!*/ e0) {
 		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; 
 		Term(out e0);
-		if (StartOf(14)) {
+		if (StartOf(15)) {
 			RelOp(out x, out op);
 			Term(out e1);
 			e0 = new BinaryExpr(x, op, e0, e1); 
@@ -1707,9 +1713,9 @@ List<Expression/*!*/>/*!*/ decreases) {
 			x = t; 
 			UnaryExpression(out e);
 			e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); 
-		} else if (StartOf(12)) {
+		} else if (StartOf(13)) {
 			SelectExpression(out e);
-		} else if (StartOf(15)) {
+		} else if (StartOf(16)) {
 			ConstAtomExpression(out e);
 		} else SynErr(132);
 	}
@@ -1770,7 +1776,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			elements = new List<Expression/*!*/>(); 
 			if (la.kind == 30) {
 				Get();
-				if (StartOf(8)) {
+				if (StartOf(9)) {
 					Expressions(elements);
 				}
 				Expect(31);
@@ -1798,7 +1804,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		case 7: {
 			Get();
 			x = t;  elements = new List<Expression/*!*/>(); 
-			if (StartOf(8)) {
+			if (StartOf(9)) {
 				Expressions(elements);
 			}
 			e = new SetDisplayExpr(x, elements); 
@@ -1808,7 +1814,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		case 49: {
 			Get();
 			x = t;  elements = new List<Expression/*!*/>(); 
-			if (StartOf(8)) {
+			if (StartOf(9)) {
 				Expressions(elements);
 			}
 			e = new SeqDisplayExpr(x, elements); 
@@ -1836,7 +1842,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		if (la.kind == 30) {
 			Get();
 			args = new List<Expression/*!*/>(); 
-			if (StartOf(8)) {
+			if (StartOf(9)) {
 				Expressions(args);
 			}
 			Expect(31);
@@ -1866,9 +1872,9 @@ List<Expression/*!*/>/*!*/ decreases) {
 			e = new OldExpr(x, e); 
 		} else if (la.kind == 30) {
 			Get();
-			if (StartOf(16)) {
+			if (StartOf(17)) {
 				QuantifierGuts(out e);
-			} else if (StartOf(8)) {
+			} else if (StartOf(9)) {
 				Expression(out e);
 			} else SynErr(136);
 			Expect(31);
@@ -1887,7 +1893,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			if (la.kind == 30) {
 				Get();
 				args = new List<Expression/*!*/>();  func = true; 
-				if (StartOf(8)) {
+				if (StartOf(9)) {
 					Expressions(args);
 				}
 				Expect(31);
@@ -1897,13 +1903,13 @@ List<Expression/*!*/>/*!*/ decreases) {
 		} else if (la.kind == 49) {
 			Get();
 			x = t; 
-			if (StartOf(8)) {
+			if (StartOf(9)) {
 				Expression(out ee);
 				e0 = ee; 
 				if (la.kind == 94) {
 					Get();
 					anyDots = true; 
-					if (StartOf(8)) {
+					if (StartOf(9)) {
 						Expression(out ee);
 						e1 = ee; 
 					}
@@ -2012,7 +2018,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		Expect(7);
 		if (la.kind == 20) {
 			AttributeBody(ref attrs);
-		} else if (StartOf(8)) {
+		} else if (StartOf(9)) {
 			es = new List<Expression/*!*/>(); 
 			Expressions(es);
 			trigs = new Triggers(es, trigs); 
@@ -2036,7 +2042,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		Expect(20);
 		Expect(1);
 		aName = t.val; 
-		if (StartOf(17)) {
+		if (StartOf(18)) {
 			AttributeArg(out aArg);
 			aArgs.Add(aArg); 
 			while (la.kind == 17) {
@@ -2052,18 +2058,19 @@ List<Expression/*!*/>/*!*/ decreases) {
 
 	public void Parse() {
 		la = new Token();
-		la.val = "";
+		la.val = "";		
 		Get();
 		Dafny();
 
-		Expect(0);
+    Expect(0);
 	}
-
+	
 	static readonly bool[,]/*!*/ set = {
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,T,x,x, x,T,T,T, T,T,T,x, T,x,T,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, T,x,T,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
-		{x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
+		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
+		{x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,T,x,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
@@ -2086,20 +2093,18 @@ List<Expression/*!*/>/*!*/ decreases) {
 public class Errors {
 	public int count = 0;                                    // number of errors detected
 	public System.IO.TextWriter/*!*/ errorStream = Console.Out;   // error messages go to this stream
-	public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
-	public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
-
+  public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
+  public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
+  
 	public void SynErr(string filename, int line, int col, int n) {
-		SynErr(filename, line, col, GetSyntaxErrorString(n));
-	}
-
-	public virtual void SynErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
+    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  }
+	public virtual void SynErr(string filename, int line, int col, string msg) {
+	  Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
-	}
-
-	string GetSyntaxErrorString(int n) {
+  }
+  string GetSyntaxErrorString(int n) {
 		string s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -2251,7 +2256,7 @@ public class Errors {
 
 			default: s = "error " + n; break;
 		}
-		return s;
+    return s;
 	}
 
 	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {  // semantic errors
@@ -2259,9 +2264,8 @@ public class Errors {
 		Contract.Requires(msg != null);
 		SemErr(tok.filename, tok.line, tok.col, msg);
 	}
-
 	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
+	  Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
 	}

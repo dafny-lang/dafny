@@ -213,3 +213,45 @@ class StatementTwoShoes {
     }
   }
 }
+
+// ----------------- function postconditions ----------------------
+
+class Mountain { var x: int; }
+
+function Postie0(c: Mountain): Mountain
+  requires c != null;
+  ensures Postie0(c) != null && Postie0(c).x <= Postie0(c).x;
+  ensures Postie0(c).x == Postie0(c).x;
+{
+  c
+}
+
+function Postie1(c: Mountain): Mountain
+  requires c != null;
+  ensures Postie1(c) != null && Postie1(c).x == 5;  // error: postcondition violation (but no well-formedness problem)
+{
+  c
+}
+
+function Postie2(c: Mountain): Mountain
+  requires c != null && c.x == 5;
+  ensures Postie2(c).x == 5;  // well-formedness error (null dereference)
+{
+  c
+}
+
+function Postie3(c: Mountain): Mountain  // all is cool
+  requires c != null && c.x == 5;
+  ensures Postie3(c) != null && Postie3(c).x < 10;
+  ensures Postie3(c).x == 5;
+{
+  c
+}
+
+function Postie4(c: Mountain): Mountain
+  requires c != null && c.x <= 5;
+  ensures Postie4(c) != null && Postie4(c).x < 10;
+  ensures Postie4(c).x == 5;  // error: postcondition might not hold
+{
+  c
+}

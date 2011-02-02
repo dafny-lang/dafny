@@ -1014,6 +1014,7 @@ namespace Microsoft.Dafny {
     public readonly Type/*!*/ ResultType;
     public readonly List<Expression/*!*/>/*!*/ Req;
     public readonly List<FrameExpression/*!*/>/*!*/ Reads;
+    public readonly List<Expression/*!*/>/*!*/ Ens;
     public readonly List<Expression/*!*/>/*!*/ Decreases;
     public readonly Expression Body;  // an extended expression
     [ContractInvariantMethod]
@@ -1023,13 +1024,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(ResultType != null);
       Contract.Invariant(cce.NonNullElements(Req));
       Contract.Invariant(cce.NonNullElements(Reads));
+      Contract.Invariant(cce.NonNullElements(Ens));
       Contract.Invariant(cce.NonNullElements(Decreases));
     }
 
 
     public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                     [Captured] List<Formal/*!*/>/*!*/ formals, Type/*!*/ resultType, List<Expression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ reads,
-                    List<Expression/*!*/>/*!*/ decreases, Expression body, Attributes attributes)
+                    List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases, Expression body, Attributes attributes)
       : base(tok, name, attributes) {
 
       Contract.Requires(tok != null);
@@ -1039,6 +1041,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resultType != null);
       Contract.Requires(cce.NonNullElements(req));
       Contract.Requires(cce.NonNullElements(reads));
+      Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(cce.NonNullElements(decreases));
       this.IsStatic = isStatic;
       this.IsGhost = isGhost;
@@ -1048,6 +1051,7 @@ namespace Microsoft.Dafny {
       this.ResultType = resultType;
       this.Req = req;
       this.Reads = reads;
+      this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
 
@@ -1783,7 +1787,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class IdentifierExpr : Expression {
+  public class IdentifierExpr : Expression
+  {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
