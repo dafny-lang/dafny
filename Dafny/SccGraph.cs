@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
     public int SccCount {
       get {
         ComputeSCCs();
-        Contract.Assert( topologicallySortedRepresentatives != null);  // follows from postcondition of ComputeSCCs and the object invariant
+        Contract.Assert(topologicallySortedRepresentatives != null);  // follows from postcondition of ComputeSCCs and the object invariant
         return topologicallySortedRepresentatives.Count;
       }
     }
@@ -83,7 +83,7 @@ namespace Microsoft.Dafny {
         v = new Vertex(n);
         vertices.Add(n, v);
         if (sccComputed) {
-          Contract.Assert( topologicallySortedRepresentatives != null);  // follows from object invariant
+          Contract.Assert(topologicallySortedRepresentatives != null);  // follows from object invariant
           v.SccRepresentative = v;
           v.SccMembers = new List<Vertex>();
           v.SccMembers.Add(v);
@@ -100,7 +100,7 @@ namespace Microsoft.Dafny {
     Vertex FindVertex(Node n) {
       Vertex v;
       if (vertices.TryGetValue(n, out v)) {
-        Contract.Assert( v != null);  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)
+        Contract.Assert(v != null);  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)
         return v;
       } else {
         return null;
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny {
 
       Vertex v = GetVertex(n);
       ComputeSCCs();
-      Contract.Assert( v.SccRepresentative != null);  // follows from what ComputeSCCs does
+      Contract.Assert(v.SccRepresentative != null);  // follows from what ComputeSCCs does
       return v.SccRepresentative;
     }
     
@@ -149,7 +149,7 @@ namespace Microsoft.Dafny {
     public List<Node> TopologicallySortedComponents() {
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
       ComputeSCCs();
-      Contract.Assert( topologicallySortedRepresentatives != null);  // follows from object invariant
+      Contract.Assert(topologicallySortedRepresentatives != null);  // follows from object invariant
       List<Node> nn = new List<Node>();
       foreach (Vertex v in topologicallySortedRepresentatives) {
         nn.Add(v.N);
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
-      Contract.Assert( repr != null && repr.SccMembers != null);  // follows from postcondition of ComputeSCCs
+      Contract.Assert(repr != null && repr.SccMembers != null);  // follows from postcondition of ComputeSCCs
       List<Node> nn = new List<Node>();
       foreach (Vertex w in repr.SccMembers) {
         nn.Add(w.N);
@@ -178,12 +178,12 @@ namespace Microsoft.Dafny {
     /// that contains 'n'.
     /// </summary>
     public int GetSCCSize(Node n){
-      Contract.Ensures(  1 <= Contract.Result<int>());
+      Contract.Ensures(1 <= Contract.Result<int>());
     
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
-      Contract.Assert( repr != null && repr.SccMembers != null);  // follows from postcondition of ComputeSCCs
+      Contract.Assert(repr != null && repr.SccMembers != null);  // follows from postcondition of ComputeSCCs
       return repr.SccMembers.Count;
     }
     
@@ -196,7 +196,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ComputeSCCs()
     {
-      Contract.Ensures(  sccComputed);
+      Contract.Ensures(sccComputed);
     
       if (sccComputed) { return; }  // check if already computed
 
@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
           SearchC(v, stack, ref cnt);
         }
       }
-      Contract.Assert( cnt == vertices.Count);  // sanity check that everything has been visited
+      Contract.Assert(cnt == vertices.Count);  // sanity check that everything has been visited
 
       sccComputed = true;
     }
@@ -224,9 +224,9 @@ namespace Microsoft.Dafny {
     void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt){
       Contract.Requires(v != null);
       Contract.Requires(cce.NonNullElements(stack));
-     Contract.Requires( v.Visited == VisitedStatus.Unvisited);
-     Contract.Requires( topologicallySortedRepresentatives != null);
-      Contract.Ensures(  v.Visited != VisitedStatus.Unvisited);
+     Contract.Requires(v.Visited == VisitedStatus.Unvisited);
+     Contract.Requires(topologicallySortedRepresentatives != null);
+      Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
     
       v.DfNumber = cnt;
       cnt++;
@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
           SearchC(w, stack, ref cnt);
           v.LowLink = Math.Min(v.LowLink, w.LowLink);
         } else if (w.Visited == VisitedStatus.OnStack) {
-          Contract.Assert( w.DfNumber < v.DfNumber || v.LowLink <= w.DfNumber);  // the book also has the guard 'w.DfNumber < v.DfNumber', but that seems unnecessary to me, so this assert is checking my understanding
+          Contract.Assert(w.DfNumber < v.DfNumber || v.LowLink <= w.DfNumber);  // the book also has the guard 'w.DfNumber < v.DfNumber', but that seems unnecessary to me, so this assert is checking my understanding
           v.LowLink = Math.Min(v.LowLink, w.DfNumber);
         }
       }
@@ -270,7 +270,7 @@ namespace Microsoft.Dafny {
       }
       
       foreach (Vertex v in vertices.Values) {
-        Contract.Assert( v.Visited != VisitedStatus.OnStack);
+        Contract.Assert(v.Visited != VisitedStatus.OnStack);
         if (v.Visited == VisitedStatus.Unvisited) {
           List<Vertex> cycle = CycleSearch(v);
           if (cycle != null) {
@@ -296,10 +296,10 @@ namespace Microsoft.Dafny {
     List<Vertex/*!*/> CycleSearch(Vertex v)
     {
       Contract.Requires(v != null);
-     Contract.Requires( v.Visited == VisitedStatus.Unvisited);
-      Contract.Ensures(  v.Visited != VisitedStatus.Unvisited);
-      Contract.Ensures(  Contract.Result<List<Vertex>>() != null || v.Visited == VisitedStatus.Visited);
-      Contract.Ensures(  Contract.Result<List<Vertex>>() == null || Contract.Result<List<Vertex>>().Count != 0);
+     Contract.Requires(v.Visited == VisitedStatus.Unvisited);
+      Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
+      Contract.Ensures(Contract.Result<List<Vertex>>() != null || v.Visited == VisitedStatus.Visited);
+      Contract.Ensures(Contract.Result<List<Vertex>>() == null || Contract.Result<List<Vertex>>().Count != 0);
     
       v.Visited = VisitedStatus.OnStack;
       foreach (Vertex succ in v.Successors) {
@@ -316,7 +316,7 @@ namespace Microsoft.Dafny {
           }
           return cycle;
         } else {
-          Contract.Assert( succ.Visited == VisitedStatus.Unvisited);
+          Contract.Assert(succ.Visited == VisitedStatus.Unvisited);
           List<Vertex> cycle = CycleSearch(succ);
           if (cycle != null) {
             if (succ.Visited == VisitedStatus.Visited) {

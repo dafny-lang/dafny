@@ -600,7 +600,7 @@ namespace Microsoft.Dafny {
           if (arg.S != null) {
             wr.Write("\"{0}\"", arg.S);
           } else {
-            Contract.Assert( arg.E != null);
+            Contract.Assert(arg.E != null);
             TrExpr(arg.E);
           }
           wr.WriteLine(");");
@@ -678,7 +678,7 @@ namespace Microsoft.Dafny {
           TrVarDecl(local, false, indent);
         }
 
-        Contract.Assert( s.Method != null);  // follows from the fact that stmt has been successfully resolved
+        Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
         Indent(indent);
         if (s.Method.IsStatic) {
           wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
@@ -831,7 +831,7 @@ namespace Microsoft.Dafny {
     int tmpVarCount = 0;
     
     void TrAssignmentRhs(AssignmentRhs rhs){Contract.Requires(rhs != null);
-      Contract.Requires( !(rhs is HavocRhs));
+      Contract.Requires(!(rhs is HavocRhs));
       if (rhs is ExprRhs) {
         ExprRhs e = (ExprRhs)rhs;
         TrExpr(e.Expr);
@@ -1025,15 +1025,15 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         TrParenExpr(e.Seq);
-        Contract.Assert( e.Seq.Type != null);
+        Contract.Assert(e.Seq.Type != null);
         if (e.Seq.Type.IsArrayType) {
-          Contract.Assert( e.SelectOne);
-          Contract.Assert( e.E0 != null && e.E1 == null);
+          Contract.Assert(e.SelectOne);
+          Contract.Assert(e.E0 != null && e.E1 == null);
           wr.Write("[(int)");
           TrParenExpr(e.E0);
           wr.Write("]");
         } else if (e.SelectOne) {
-          Contract.Assert( e.E0 != null && e.E1 == null);
+          Contract.Assert(e.E0 != null && e.E1 == null);
           TrParenExpr(".Select", e.E0);
         } else {
           if (e.E1 != null) {
@@ -1086,7 +1086,7 @@ namespace Microsoft.Dafny {
       
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
-        Contract.Assert( dtv.Ctor != null);  // since dtv has been successfully resolved
+        Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         wr.Write("new {0}(new {0}", dtv.DatatypeName, DtCtorName(dtv.Ctor));
         if (dtv.InferredTypeArgs.Count != 0) {
           wr.Write("<{0}>", TypeNames(dtv.InferredTypeArgs));

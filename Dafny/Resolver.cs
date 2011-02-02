@@ -350,8 +350,8 @@ namespace Microsoft.Dafny {
     void ResolveClassMemberBodies(ClassDecl cl)
     {
       Contract.Requires(cl != null);
-      Contract.Requires( currentClass == null);
-      Contract.Ensures(  currentClass == null);
+      Contract.Requires(currentClass == null);
+      Contract.Ensures(currentClass == null);
     
       ResolveAttributes(cl.Attributes, false);
       currentClass = cl;
@@ -877,10 +877,10 @@ namespace Microsoft.Dafny {
     bool AssignProxy(TypeProxy proxy, Type t){
       Contract.Requires(proxy != null);
       Contract.Requires(t != null);
-     Contract.Requires( proxy.T == null);
-     Contract.Requires( (t is TypeProxy)|| ((TypeProxy)t).T == null);
+      Contract.Requires(proxy.T == null);
+      Contract.Requires((t is TypeProxy)|| ((TypeProxy)t).T == null);
       //modifies proxy.T, ((TypeProxy)t).T;  // might also change t.T if t is a proxy
-      Contract.Ensures(  Contract.Result<bool>() || proxy == t || proxy.T != null || (t is TypeProxy && ((TypeProxy)t).T != null));
+      Contract.Ensures(Contract.Result<bool>() || proxy == t || proxy.T != null || (t is TypeProxy && ((TypeProxy)t).T != null));
       if (proxy == t) {
         // they are already in the same equivalence class
         return true;
@@ -972,9 +972,9 @@ namespace Microsoft.Dafny {
     bool AssignRestrictedProxies(RestrictedTypeProxy a, RestrictedTypeProxy b)
     { Contract.Requires(a != null);
       Contract.Requires(b != null);
-      Contract.Requires( a != b);
-      Contract.Requires( a.T == null && b.T == null);
-      Contract.Requires( a.OrderID <= b.OrderID);
+      Contract.Requires(a != b);
+      Contract.Requires(a.T == null && b.T == null);
+      Contract.Requires(a.OrderID <= b.OrderID);
       //modifies a.T, b.T;
       Contract.Ensures(Contract.Result<bool>() || a.T != null || b.T != null);
     
@@ -1091,7 +1091,7 @@ namespace Microsoft.Dafny {
     }
     
     public void ResolveStatement(Statement stmt, bool specContextOnly, Method method){Contract.Requires(stmt != null);Contract.Requires(method != null);
-     Contract.Requires( !(stmt is LabelStmt));  // these should be handled inside lists of statements
+     Contract.Requires(!(stmt is LabelStmt));  // these should be handled inside lists of statements
       if (stmt is UseStmt) {
         UseStmt s = (UseStmt)stmt;
         s.IsGhost = true;
@@ -2283,8 +2283,8 @@ namespace Microsoft.Dafny {
     void ResolveReceiver(Expression expr, bool twoState, bool specContext)
     {
       Contract.Requires(expr != null);
-      Contract.Requires( currentClass != null);
-      Contract.Ensures(  expr.Type != null);
+      Contract.Requires(currentClass != null);
+      Contract.Ensures(expr.Type != null);
     
       if (expr is ThisExpr) {
         // Allow 'this' here, regardless of scope.AllowInstance.  The caller is responsible for
@@ -2441,7 +2441,7 @@ namespace Microsoft.Dafny {
     bool UsesSpecFeatures(Expression expr)
     {
       Contract.Requires(expr != null);
-      Contract.Requires( currentClass != null);
+      Contract.Requires(currentClass != null);
     
       if (expr is LiteralExpr) {
         return false;
@@ -2526,7 +2526,7 @@ namespace Microsoft.Dafny {
     public bool AllowInstance {
       get { return scopeSizeWhereInstancesWereDisallowed == -1; }
       set
-      {Contract.Requires( AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
+      {Contract.Requires(AllowInstance && !value);  // only allowed to change from true to false (that's all that's currently needed in Dafny); Pop is what can make the change in the other direction
         scopeSizeWhereInstancesWereDisallowed = names.Count;
       }
     }

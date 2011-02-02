@@ -234,7 +234,7 @@ namespace Microsoft.Boogie
     }
 
     static void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories){
-      Contract.Requires( 0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories);
+      Contract.Requires(0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories);
       Console.WriteLine();
       Console.Write("{0} finished with {1} verified, {2} error{3}", CommandLineOptions.Clo.ToolName, verified, errors, errors == 1 ? "" : "s");
       if (inconclusives != 0) {
@@ -344,7 +344,7 @@ namespace Microsoft.Boogie
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {Contract.Requires(program != null);
     Contract.Requires(cce.NonNullElements(bplFileName));
-      Contract.Ensures( 0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
+      Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
     
       
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
@@ -433,7 +433,7 @@ namespace Microsoft.Boogie
     static PipelineOutcome InferAndVerify (Program program,
                                            out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {Contract.Requires(program != null);
-      Contract.Ensures( 0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
+      Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
     
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
   
