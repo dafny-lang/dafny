@@ -3035,7 +3035,12 @@ namespace Microsoft.Dafny {
       }
       return oldBfs;
     }
-        
+
+    /// <summary>
+    /// Emit to "builder" a check that calleeDecreases is less than contextDecreases.  More precisely,
+    /// the check is:
+    ///     allowance || (calleeDecreases LESS contextDecreases).
+    /// </summary>
     void CheckCallTermination(IToken/*!*/ tok, List<Expression/*!*/>/*!*/ contextDecreases, List<Expression/*!*/>/*!*/ calleeDecreases,
                               Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap,
@@ -3047,6 +3052,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(builder != null);
 
+      // The interpretation of the given decreases-clause expression tuples is as a lexicographic tuple, extended into
+      // an infinite tuple by appending TOP elements.  The TOP element is strictly larger than any other value given
+      // by a Dafny expression.  Each Dafny types has its own ordering, and these orderings are combined into a partial
+      // order where elements from different Dafny types are incomparable.  Thus, as an optimization below, if two
+      // components from different types are compared, the answer is taken to be false.
+
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
       List<IToken> toks = new List<IToken>();
       List<Type> types = new List<Type>();
@@ -3056,6 +3067,7 @@ namespace Microsoft.Dafny {
         Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap);
         Expression e1 = contextDecreases[i];
         if (!CompatibleDecreasesTypes(cce.NonNull(e0.Type), cce.NonNull(e1.Type))) {
+          N = i;
           break;
         }
         toks.Add(tok);
@@ -3063,7 +3075,8 @@ namespace Microsoft.Dafny {
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
       }
-      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", false);
+      bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
+      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", endsWithWinningTopComparison);
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }

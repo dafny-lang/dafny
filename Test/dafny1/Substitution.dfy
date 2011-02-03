@@ -55,7 +55,7 @@ datatype Expression {
 }
 
 static function Substitute(e: Expression, v: int, val: int): Expression
-  decreases e, true;
+  decreases e;
 {
   match e
   case Const(c) => e
@@ -66,7 +66,7 @@ static function Substitute(e: Expression, v: int, val: int): Expression
 static function SubstSeq(/*ghost*/ parent: Expression,
                          q: seq<Expression>, v: int, val: int): seq<Expression>
   requires (forall a :: a in q ==> a < parent);
-  decreases parent, false, q;
+  decreases parent, q;
 {
   if q == [] then [] else
   SubstSeq(parent, q[..|q|-1], v, val) + [Substitute(q[|q|-1], v, val)]
@@ -74,7 +74,6 @@ static function SubstSeq(/*ghost*/ parent: Expression,
 
 static ghost method TheoremSeq(e: Expression, v: int, val: int)
   ensures Substitute(Substitute(e, v, val), v, val) == Substitute(e, v, val);
-  decreases e, true;
 {
   match e {
     case Const(c) =>
@@ -100,8 +99,7 @@ static ghost method TheoremSeq(e: Expression, v: int, val: int)
   }
 }
 
-static ghost method LemmaSeq(ghost parent: Expression, ghost q: seq<Expression>,
-                                    v: int, val: int)
+static ghost method LemmaSeq(ghost parent: Expression, ghost q: seq<Expression>, v: int, val: int)
   requires (forall a :: a in q ==> a < parent);
   ensures |SubstSeq(parent, q, v, val)| == |q|;
   ensures (forall k :: 0 <= k && k < |q| ==>

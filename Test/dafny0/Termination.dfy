@@ -192,3 +192,75 @@ method DecreasesYieldsAnInvariant(z: int) {
   }
   assert x - y < 100;  // follows from the fact that no loop iteration increases what's in the 'decreases' clause
 }
+
+// ----------------------- top elements --------------------------------------
+
+var count: int;
+
+// Here is the old way that this had to be specified:
+
+method OuterOld(a: int)
+  modifies this;
+  decreases a, true;
+{
+  count := count + 1;
+  call InnerOld(a, count);
+}
+
+method InnerOld(a: int, b: int)
+  modifies this;
+  decreases a, false, b;
+{
+  count := count + 1;
+  if (b == 0 && 1 <= a) {
+    call OuterOld(a - 1);
+  } else if (1 <= b) {
+    call InnerOld(a, b - 1);
+  }
+}
+
+// Now the default specifications ("decreases a;" and "decreases a, b;") suffice:
+
+method Outer(a: int)
+  modifies this;
+{
+  count := count + 1;
+  call Inner(a, count);
+}
+
+method Inner(a: int, b: int)
+  modifies this;
+{
+  count := count + 1;
+  if (b == 0 && 1 <= a) {
+    call Outer(a - 1);
+  } else if (1 <= b) {
+    call Inner(a, b - 1);
+  }
+}
+
+// -------------------------- decrease either datatype value -----------------
+
+function Zipper0<T>(a: List<T>, b: List<T>): List<T>
+{
+  match a
+  case Nil => b
+  case Cons(x, c) => #List.Cons(x, Zipper0(b, c))  // error: cannot prove termination
+}
+
+function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
+  decreases if k then a else b, if k then b else a;
+{
+  match a
+  case Nil => b
+  case Cons(x, c) => #List.Cons(x, Zipper1(b, c, !k))
+}
+
+function Zipper2<T>(a: List<T>, b: List<T>): List<T>
+  decreases /* max(a,b) */ if a < b then b else a,
+            /* min(a,b) */ if a < b then a else b;
+{
+  match a
+  case Nil => b
+  case Cons(x, c) => #List.Cons(x, Zipper2(b, c))
+}
