@@ -13,7 +13,7 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace DafnyLanguage
 {
-#if false
+#if LATER_MAYBE
   #region // (the current annoying) word highligher
   internal class HighlightWordTagger : ITagger<HighlightWordTag>
   {
@@ -60,8 +60,7 @@ namespace DafnyLanguage
       // If the new caret position is still within the current word (and on the same snapshot), we don't need to check it
       if (CurrentWord.HasValue
           && CurrentWord.Value.Snapshot == View.TextSnapshot
-          && point.Value >= CurrentWord.Value.Start
-          && point.Value <= CurrentWord.Value.End) {
+          && CurrentWord.Value.Start <= point.Value && point.Value <= CurrentWord.Value.End) {
         return;
       }
 

@@ -130,6 +130,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferIdleEventUtil.cs" />
+    <Compile Include="Visitor.cs" />
+    <Compile Include="IdentifierTagger.cs" />
     <Compile Include="OutliningTagger.cs" />
     <Compile Include="ResolverTagger.cs" />
     <Compile Include="DafnyDriver.cs" />
@@ -143,6 +145,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>

@@ -40,12 +40,14 @@ namespace DafnyLanguage
   }
 
   /// <summary>
-  /// Translate PkgDefTokenTags into ErrorTags and Error List items
+  /// Translate DafnyResolverTag's into IOutliningRegionTag's
   /// </summary>
   internal sealed class OutliningTagger : ITagger<IOutliningRegionTag>
   {
     ITextBuffer _buffer;
     ITagAggregator<DafnyResolverTag> _aggregator;
+    Dafny.Program _program;
+    List<ORegion> _regions = new List<ORegion>();
 
     internal OutliningTagger(ITextBuffer buffer, ITagAggregator<DafnyResolverTag> tagAggregator) {
       _buffer = buffer;
@@ -59,43 +61,11 @@ namespace DafnyLanguage
     public IEnumerable<ITagSpan<IOutliningRegionTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
       var snapshot = spans[0].Snapshot;
-      foreach (var tagSpan in this._aggregator.GetTags(spans)) {
-        DafnyResolverTag t = tagSpan.Tag;
-        DafnySuccessResolverTag st = t as DafnySuccessResolverTag;
-        if (st != null) {
-          foreach (Dafny.ModuleDecl module in st.Program.Modules) {
-            if (!module.IsDefaultModule) {
-              yield return GetOutliningRegionTag(snapshot, module, "module");
-            }
-            foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
-              if (d is Dafny.DatatypeDecl) {
-                yield return GetOutliningRegionTag(snapshot, d, "datatype");
-              } else {
-                Dafny.ClassDecl cl = (Dafny.ClassDecl)d;
-                if (!cl.IsDefaultClass) {
-                  yield return GetOutliningRegionTag(snapshot, cl, "class");
-                }
-                // do the class members (in particular, functions and methods)
-                foreach (Dafny.MemberDecl m in cl.Members) {
-                  if (m is Dafny.Function && ((Dafny.Function)m).Body != null) {
-                    yield return GetOutliningRegionTag(snapshot, m, "function");
-                  } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
-                    yield return GetOutliningRegionTag(snapshot, m, "method");
-                  }
-                }
-              }
-            }
-          }
-        }
+      foreach (var r in _regions) {
+        yield return new TagSpan<OutliningRegionTag>(
+          new SnapshotSpan(snapshot, r.Start, r.Length),
+          new OutliningRegionTag(false, false, "...", r.HoverText));
       }
-    }
-
-    TagSpan<OutliningRegionTag> GetOutliningRegionTag(ITextSnapshot snapshot, Dafny.Declaration decl, string kind) {
-      int startPosition = decl.BodyStartTok.pos + 1;  // skip the open-curly brace itself
-      int length = decl.BodyEndTok.pos - startPosition;
-      return new TagSpan<OutliningRegionTag>(
-        new SnapshotSpan(snapshot, startPosition, length),
-        new OutliningRegionTag(false, false, "...", string.Format("body of {0} {1}", kind, decl.Name)));
     }
 
     // the Classifier tagger is translating buffer change events into TagsChanged events, so we don't have to
@@ -104,6 +74,9 @@ namespace DafnyLanguage
     void _aggregator_TagsChanged(object sender, TagsChangedEventArgs e) {
       var r = sender as ResolverTagger;
       if (r != null && r._program != null) {
+        if (!ComputeOutliningRegions(r._program))
+          return;  // no new regions
+
         var chng = TagsChanged;
         if (chng != null) {
           NormalizedSnapshotSpanCollection spans = e.Span.GetSpans(_buffer.CurrentSnapshot);
@@ -112,6 +85,54 @@ namespace DafnyLanguage
             chng(this, new SnapshotSpanEventArgs(span));
           }
         }
+      }
+    }
+
+    bool ComputeOutliningRegions(Dafny.Program program) {
+      if (program == _program)
+        return false;  // no new regions
+
+      List<ORegion> newRegions = new List<ORegion>();
+
+      foreach (Dafny.ModuleDecl module in program.Modules) {
+        if (!module.IsDefaultModule) {
+          newRegions.Add(new ORegion(module, "module"));
+        }
+        foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
+          if (d is Dafny.DatatypeDecl) {
+            newRegions.Add(new ORegion(d, "datatype"));
+          } else {
+            Dafny.ClassDecl cl = (Dafny.ClassDecl)d;
+            if (!cl.IsDefaultClass) {
+              newRegions.Add(new ORegion(cl, "class"));
+            }
+            // do the class members (in particular, functions and methods)
+            foreach (Dafny.MemberDecl m in cl.Members) {
+              if (m is Dafny.Function && ((Dafny.Function)m).Body != null) {
+                newRegions.Add(new ORegion(m, "function"));
+              } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
+                newRegions.Add(new ORegion(m, "method"));
+              }
+            }
+          }
+        }
+      }
+      _regions = newRegions;
+      _program = program;
+      return true;
+    }
+
+    class ORegion
+    {
+      public readonly int Start;
+      public readonly int Length;
+      public readonly string HoverText;
+      public ORegion(Dafny.Declaration decl, string kind) {
+        int startPosition = decl.BodyStartTok.pos + 1;  // skip the open-curly brace itself
+        int length = decl.BodyEndTok.pos - startPosition;
+        Start = startPosition;
+        Length = length;
+        HoverText = string.Format("body of {0} {1}", kind, decl.Name);
       }
     }
   }

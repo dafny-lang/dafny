@@ -22,9 +22,12 @@ namespace DafnyLanguage
     [Import]
     internal IClassificationTypeRegistryService ClassificationTypeRegistry = null;
 
+    [Import]
+    internal Microsoft.VisualStudio.Language.StandardClassification.IStandardClassificationService Standards = null;
+
     public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag {
       ITagAggregator<DafnyTokenTag> tagAggregator = AggregatorFactory.CreateTagAggregator<DafnyTokenTag>(buffer);
-      return new DafnyClassifier(buffer, tagAggregator, ClassificationTypeRegistry) as ITagger<T>;
+      return new DafnyClassifier(buffer, tagAggregator, ClassificationTypeRegistry, Standards) as ITagger<T>;
     }
   }
 
@@ -36,15 +39,18 @@ namespace DafnyLanguage
 
     internal DafnyClassifier(ITextBuffer buffer,
                              ITagAggregator<DafnyTokenTag> tagAggregator,
-                             IClassificationTypeRegistryService typeService) {
+                             IClassificationTypeRegistryService typeService, Microsoft.VisualStudio.Language.StandardClassification.IStandardClassificationService standards) {
       _buffer = buffer;
       _aggregator = tagAggregator;
       _aggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
+      // use built-in classification types:
       _typeMap = new Dictionary<DafnyTokenKinds, IClassificationType>();
-      _typeMap[DafnyTokenKinds.Keyword] = typeService.GetClassificationType("keyword");  // use the built-in "keyword" classification type
-      _typeMap[DafnyTokenKinds.Number] = typeService.GetClassificationType("number");  // use the built-in "number" classification type
-      _typeMap[DafnyTokenKinds.String] = typeService.GetClassificationType("string");  // use the built-in "string" classification type
-      _typeMap[DafnyTokenKinds.Comment] = typeService.GetClassificationType("comment");  // use the built-in "comment" classification type
+      _typeMap[DafnyTokenKinds.Keyword] = standards.Keyword;
+      _typeMap[DafnyTokenKinds.Number] = standards.NumberLiteral;
+      _typeMap[DafnyTokenKinds.String] = standards.StringLiteral;
+      _typeMap[DafnyTokenKinds.Comment] = standards.Comment;
+      _typeMap[DafnyTokenKinds.VariableIdentifier] = standards.Identifier;
+      _typeMap[DafnyTokenKinds.TypeIdentifier] = typeService.GetClassificationType("Dafny user type");
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
@@ -72,47 +78,20 @@ namespace DafnyLanguage
     }
   }
 
-#if false  // the commented-out code here shows show to define new classifier types; however, the Dafny mode just uses the built-in "keyword" and "number" classifier types
   /// <summary>
-  /// Defines an editor format for the keyword type.
+  /// Defines an editor format for user-defined type.
   /// </summary>
   [Export(typeof(EditorFormatDefinition))]
-  [ClassificationType(ClassificationTypeNames = "Dafny-keyword")]
-  [Name("Dafny-keyword")]
-  //this should be visible to the end user
-  [UserVisible(false)]
+  [ClassificationType(ClassificationTypeNames = "Dafny user type")]
+  [Name("Dafny user type")]
+  [UserVisible(true)]
   //set the priority to be after the default classifiers
   [Order(Before = Priority.Default)]
-  internal sealed class Keyword : ClassificationFormatDefinition
+  internal sealed class DafnyTypeFormat : ClassificationFormatDefinition
   {
-    /// <summary>
-    /// Defines the visual format for the "ordinary" classification type
-    /// </summary>
-    public Keyword() {
-      this.DisplayName = "Dafny keyword"; //human readable version of the name
-      this.ForegroundColor = Colors.BlueViolet;
-    }
-  }
-
-  /// <summary>
-  /// Defines an editor format for the OrdinaryClassification type that has a purple background
-  /// and is underlined.
-  /// </summary>
-  [Export(typeof(EditorFormatDefinition))]
-  [ClassificationType(ClassificationTypeNames = "Dafny-number")]
-  [Name("Dafny-number")]
-  //this should be visible to the end user
-  [UserVisible(false)]
-  //set the priority to be after the default classifiers
-  [Order(Before = Priority.Default)]
-  internal sealed class Number : ClassificationFormatDefinition
-  {
-    /// <summary>
-    /// Defines the visual format for the "ordinary" classification type
-    /// </summary>
-    public Number() {
-      this.DisplayName = "Dafny numeric literal"; //human readable version of the name
-      this.ForegroundColor = Colors.Orange;
+    public DafnyTypeFormat() {
+      this.DisplayName = "Dafny user type"; //human readable version of the name
+      this.ForegroundColor = Colors.Coral;
     }
   }
 
@@ -122,15 +101,7 @@ namespace DafnyLanguage
     /// Defines the "ordinary" classification type.
     /// </summary>
     [Export(typeof(ClassificationTypeDefinition))]
-    [Name("Dafny-keyword")]
-    internal static ClassificationTypeDefinition Keyword = null;
-
-    /// <summary>
-    /// Defines the "ordinary" classification type.
-    /// </summary>
-    [Export(typeof(ClassificationTypeDefinition))]
-    [Name("Dafny-number")]
-    internal static ClassificationTypeDefinition Number = null;
+    [Name("Dafny user type")]
+    internal static ClassificationTypeDefinition UserType = null;
   }
-#endif
 }

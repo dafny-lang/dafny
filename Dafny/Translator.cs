@@ -472,9 +472,15 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       
       // axiom
-      //   mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh < FunctionContextHeight || InMethodContext))
+      //   mh < ModuleContextHeight ||
+      //   (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
       //   ==>
-      //   (forall $Heap, formals :: this != null && $IsHeap($Heap) && Pre($Heap,args) ==>
+      //   (forall $Heap, formals ::
+      //       { f(args) }
+      //       $IsHeap($Heap) && this != null &&
+      //       (((mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext) && Pre($Heap,args)) ||
+      //        f#canCall(args))
+      //       ==>
       //       f(args) == body && ens);
       //
       // The variables "formals" are the formals of function "f"; except, if a specialization is provided, then
@@ -533,14 +539,14 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh < FunctionContextHeight || InMethodContext))
-      ModuleDecl m = f.EnclosingClass.Module;
+      // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
+      ModuleDecl mod = f.EnclosingClass.Module;
       Bpl.Expr activate = Bpl.Expr.Or(
-        Bpl.Expr.Lt(Bpl.Expr.Literal(m.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Lt(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
         Bpl.Expr.And(
-          Bpl.Expr.Eq(Bpl.Expr.Literal(m.Height), etran.ModuleContextHeight()),
+          Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
           Bpl.Expr.Or(
-            Bpl.Expr.Lt(Bpl.Expr.Literal(m.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
+            Bpl.Expr.Le(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
             etran.InMethodContext())));
       
       Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
@@ -554,12 +560,26 @@ namespace Microsoft.Dafny {
         Contract.Assert(r != null);
         substMap.Add(specializationFormal, r);
       }
-      Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
-      Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
+      Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType));
+      Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), args);
 
+      Bpl.Expr pre = Bpl.Expr.True;
       foreach (Expression req in f.Req) {
-        ante = Bpl.Expr.And(ante, etran.TrExpr(Substitute(req, null, substMap)));
+        pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
+      // useViaPre: (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext) && Pre
+      Bpl.Expr useViaPre =
+        Bpl.Expr.And(
+          Bpl.Expr.Or(Bpl.Expr.Or(
+            Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
+            Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight())),
+            etran.InMethodContext()),
+          pre);
+      // useViaCanCall: f#canCall(args)
+      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullName + "#canCall", Bpl.Type.Bool);
+      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), args);
+      ante = Bpl.Expr.And(ante, Bpl.Expr.Or(useViaPre, useViaCanCall));
+
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr meat = null;
@@ -1086,7 +1106,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void AddWellformednessCheck(Function f){
+    void AddWellformednessCheck(Function f) {
       Contract.Requires(f != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(f.EnclosingClass != null);
@@ -1109,11 +1129,11 @@ namespace Microsoft.Dafny {
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       // the procedure itself
       Bpl.RequiresSeq req = new Bpl.RequiresSeq();
-      // free requires mh < ModuleContextHeight || (mh == ModuleContextHeight && fh < FunctionContextHeight);
-      ModuleDecl m = f.EnclosingClass.Module;
+      // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+      ModuleDecl mod = f.EnclosingClass.Module;
       Bpl.Expr context = Bpl.Expr.And(
-        Bpl.Expr.Eq(Bpl.Expr.Literal(m.Height), etran.ModuleContextHeight()),
-        Bpl.Expr.Eq(Bpl.Expr.Literal(m.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
+        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       req.Add(Requires(f.tok, true, context, null, null));
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
         req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
@@ -1499,6 +1519,12 @@ namespace Microsoft.Dafny {
               CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder, contextDecrInferred);
             }
           }
+
+          // all is okay, so allow this function application access to the function's axiom
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullName + "#canCall", Bpl.Type.Bool);
+          ExprSeq args = etran.FunctionInvocationArguments(e);
+          Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+          builder.Add(new Bpl.AssumeCmd(expr.tok, canCallFuncAppl));
         }
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
@@ -1838,6 +1864,10 @@ namespace Microsoft.Dafny {
         Bpl.Function limitedF = new Bpl.Function(f.tok, f.FullName + "#limited", args, res);
         sink.TopLevelDeclarations.Add(limitedF);
       }
+
+      res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+      Bpl.Function canCallF = new Bpl.Function(f.tok, f.FullName + "#canCall", args, res);
+      sink.TopLevelDeclarations.Add(canCallF);
     }
     
     /// <summary>
@@ -3351,7 +3381,7 @@ namespace Microsoft.Dafny {
 
       return new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
     }
-    
+
     // ----- Expression ---------------------------------------------------------------------------
     
     internal class ExpressionTranslator {
@@ -3585,16 +3615,7 @@ namespace Microsoft.Dafny {
             }
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(expr.tok, nm, translator.TrType(cce.NonNull(e.Type)));
-          Bpl.ExprSeq args = new Bpl.ExprSeq();
-          args.Add(HeapExpr);
-          if (!e.Function.IsStatic) {
-            args.Add(TrExpr(e.Receiver));
-          }
-          for (int i = 0; i < e.Args.Count; i++) {
-            Expression ee = e.Args[i];
-            Type t = e.Function.Formals[i].Type;
-            args.Add(CondApplyBox(expr.tok, TrExpr(ee), cce.NonNull(ee.Type), t));
-          }
+          Bpl.ExprSeq args = FunctionInvocationArguments(e);
           Bpl.Expr result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(id), args);
           return CondApplyUnbox(expr.tok, result, e.Function.ResultType, expr.Type);
         
@@ -3809,6 +3830,23 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
+      }
+
+      public ExprSeq FunctionInvocationArguments(FunctionCallExpr e) {
+        Contract.Requires(e != null);
+        Contract.Ensures(Contract.Result<ExprSeq>() != null);
+
+        Bpl.ExprSeq args = new Bpl.ExprSeq();
+        args.Add(HeapExpr);
+        if (!e.Function.IsStatic) {
+          args.Add(TrExpr(e.Receiver));
+        }
+        for (int i = 0; i < e.Args.Count; i++) {
+          Expression ee = e.Args[i];
+          Type t = e.Function.Formals[i].Type;
+          args.Add(CondApplyBox(e.tok, TrExpr(ee), cce.NonNull(ee.Type), t));
+        }
+        return args;
       }
 
       public Bpl.Expr GetArrayIndexFieldName(IToken tok, List<Expression> indices) {

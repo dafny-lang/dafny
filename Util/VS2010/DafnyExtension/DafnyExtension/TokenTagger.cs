@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
-
+using Dafny = Microsoft.Dafny;
 
 namespace DafnyLanguage
 {
@@ -23,7 +23,8 @@ namespace DafnyLanguage
 
   public enum DafnyTokenKinds
   {
-    Keyword, Number, String, Comment
+    Keyword, Number, String, Comment,
+    TypeIdentifier, VariableIdentifier
   }
 
   public class DafnyTokenTag : ITag
@@ -32,6 +33,18 @@ namespace DafnyLanguage
 
     public DafnyTokenTag(DafnyTokenKinds kind) {
       this.Kind = kind;
+    }
+  }
+  public class IdentifierDafnyTokenTag : DafnyTokenTag
+  {
+    public IdentifierDafnyTokenTag()
+      : base(DafnyTokenKinds.VariableIdentifier) {
+    }
+  }
+  public class TypeDafnyTokenTag : DafnyTokenTag
+  {
+    public TypeDafnyTokenTag()
+      : base(DafnyTokenKinds.TypeIdentifier) {
     }
   }
 
@@ -261,6 +274,7 @@ namespace DafnyLanguage
                 case "refines":
                 case "replaces":
                 case "requires":
+                case "result":
                 case "return":
                 case "returns":
                 case "seq":
