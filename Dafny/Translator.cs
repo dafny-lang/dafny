@@ -509,7 +509,7 @@ namespace Microsoft.Dafny {
         bvThis = null;
         bvThisIdExpr = null;
       } else {
-        bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType));
+        bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, predef.RefType));
         formals.Add(bvThis);
         bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         args.Add(bvThisIdExpr);
@@ -582,19 +582,16 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
-      Bpl.Expr meat = null;
+      Bpl.Expr meat;
       if (body != null) {
         meat = Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(Substitute(body, null, substMap)));
+      } else {
+        meat = Bpl.Expr.True;
       }
       foreach (Expression p in ens) {
         Bpl.Expr q = etran.LimitedFunctions(f).TrExpr(Substitute(p, null, substMap));
-        if (meat == null) {
-          meat = q;
-        } else {
-          meat = Bpl.Expr.And(meat, q);
-        }
+        meat = BplAnd(meat, q);
       }
-      Contract.Assert(meat != null);
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, meat));
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax));
     }
@@ -806,7 +803,7 @@ namespace Microsoft.Dafny {
       } else {
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (MaybeFreeExpression p in m.Req) {
-          CheckWellformed(p.E, null, null, localVariables, builder, etran);
+          CheckWellformed(p.E, new WFOptions(), null, localVariables, builder, etran);
           builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
         }
         // Note: the modifies clauses are not checked for well-formedness (is that sound?), because it used to
@@ -814,7 +811,7 @@ namespace Microsoft.Dafny {
         // absolutely well-defined.
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases) {
-          CheckWellformed(p, null, null, localVariables, builder, etran);
+          CheckWellformed(p, new WFOptions(), null, localVariables, builder, etran);
         }
 
         // play havoc with the heap according to the modifies clause
@@ -846,7 +843,7 @@ namespace Microsoft.Dafny {
 
         // check wellformedness of postconditions
         foreach (MaybeFreeExpression p in m.Ens) {
-          CheckWellformed(p.E, null, null, localVariables, builder, etran);
+          CheckWellformed(p.E, new WFOptions(), null, localVariables, builder, etran);
           builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
         }
 
@@ -1143,21 +1140,18 @@ namespace Microsoft.Dafny {
       Bpl.VariableSeq locals = new Bpl.VariableSeq();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
       
-      // check well-formedness of the preconditions, and then assume each one of them
+      // check well-formedness of the preconditions (including termination, but no reads checks), and then
+      // assume each one of them
       foreach (Expression p in f.Req) {
-        // Note, in this well-formedness check, function is passed in as null.  This will cause there to be
-        // no reads checks or decreases checks.  This seems like a good idea, and I hope it is also sound.
-        CheckWellformed(p, null, null, locals, builder, etran);
+        CheckWellformed(p, new WFOptions(f, null, false), null, locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
       }
       // Note: the reads clauses are not checked for well-formedness (is that sound?), because it used to
       // be that the syntax was not rich enough for programmers to specify reads clauses and always being
       // absolutely well-defined.
-      // check well-formedness of the decreases clauses
+      // check well-formedness of the decreases clauses (including termination, but no reads checks)
       foreach (Expression p in f.Decreases) {
-        // Note, in this well-formedness check, function is passed in as null.  This will cause there to be
-        // no reads checks or decreases checks.  This seems like a good idea, and I hope it is also sound.
-        CheckWellformed(p, null, null, locals, builder, etran);
+        CheckWellformed(p, new WFOptions(f, null, false), null, locals, builder, etran);
       }
       // Generate:
       //   if (*) {
@@ -1165,16 +1159,14 @@ namespace Microsoft.Dafny {
       //   } else {
       //     check well-formedness of body and check the postconditions themselves
       //   }
-      // Here go the postconditions
+      // Here go the postconditions (termination checks included, but no reads checks)
       StmtListBuilder postCheckBuilder = new StmtListBuilder();
       foreach (Expression p in f.Ens) {
-        // Note, in this well-formedness check, function is passed in as null.  This will cause there to be
-        // no reads checks or decreases checks.  This seems like a good idea, and I hope it is also sound.
-        CheckWellformed(p, null, null, locals, postCheckBuilder, etran);
+        CheckWellformed(p, new WFOptions(f, f, false), null, locals, postCheckBuilder, etran);
         // assume the postcondition for the benefit of checking the remaining postconditions
         postCheckBuilder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
       }
-      // Here goes the body
+      // Here goes the body (and include both termination checks and reads checks)
       StmtListBuilder bodyCheckBuilder = new StmtListBuilder();
       if (f.Body != null) {
         Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
@@ -1186,7 +1178,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
         DefineFrame(f.tok, f.Reads, bodyCheckBuilder, locals);
-        CheckWellformed(f.Body, f, funcAppl, locals, bodyCheckBuilder, etran);
+        CheckWellformed(f.Body, new WFOptions(f, null, true), funcAppl, locals, bodyCheckBuilder, etran);
 
         // check that postconditions hold
         foreach (Expression p in f.Ens) {
@@ -1406,11 +1398,39 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Instances of WFContext are used as an argument to CheckWellformed, supplying options for the
+    /// checks to be performed.
+    /// If non-null, "Decr" gives the caller to be used for termination checks.  If it is null, no
+    /// termination checks are performed.
+    /// If "SelfCallsAllowance" is non-null, termination checks will be omitted for calls that look
+    /// like it.  This is useful in function postconditions, where the result of the function is
+    /// syntactically given as what looks like a recursive call with the same arguments.
+    /// "DoReadsChecks" indicates whether or not to perform reads checks.  If so, the generated code
+    /// will make references to $_Frame.
+    /// </summary>
+    class WFOptions
+    {
+      public readonly Function Decr;
+      public readonly Function SelfCallsAllowance;
+      public readonly bool DoReadsChecks;
+      public WFOptions() { }
+      public WFOptions(Function decr, Function selfCallsAllowance, bool doReadsChecks) {
+        Decr = decr;
+        SelfCallsAllowance = selfCallsAllowance;
+        DoReadsChecks = doReadsChecks;
+      }
+    }
+
+    /// <summary>
+    /// Adds to "builder" code that checks the well-formedness of "expr".  Any local variables introduced
+    /// in this code are added to "locals".
     /// If "result" is non-null, then after checking the well-formedness of "expr", the generated code will
     /// assume the equivalent of "result == expr".
+    /// See class WFOptions for descriptions of the specified options.
     /// </summary>
-    void CheckWellformed(Expression expr, Function func, Bpl.Expr result, Bpl.VariableSeq locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran){
+    void CheckWellformed(Expression expr, WFOptions options, Bpl.Expr result, Bpl.VariableSeq locals, Bpl.StmtListBuilder builder, ExpressionTranslator etran){
       Contract.Requires(expr != null);
+      Contract.Requires(options != null);
       Contract.Requires(locals != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
@@ -1421,42 +1441,42 @@ namespace Microsoft.Dafny {
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         foreach (Expression el in e.Elements) {
-          CheckWellformed(el, func, null, locals, builder, etran);
+          CheckWellformed(el, options, null, locals, builder, etran);
         }
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
-        CheckWellformed(e.Obj, func, null, locals, builder, etran);
+        CheckWellformed(e.Obj, options, null, locals, builder, etran);
         CheckNonNull(expr.tok, e.Obj, builder, etran);
-        if (func != null && e.Field.IsMutable) {
+        if (options.DoReadsChecks && e.Field.IsMutable) {
           builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field"));
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         bool isSequence = e.Seq.Type is SeqType;
-        CheckWellformed(e.Seq, func, null, locals, builder, etran);
+        CheckWellformed(e.Seq, options, null, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr e0 = null;
         if (e.E0 != null) {
           e0 = etran.TrExpr(e.E0);
-          CheckWellformed(e.E0, func, null, locals, builder, etran);
+          CheckWellformed(e.E0, options, null, locals, builder, etran);
           builder.Add(Assert(expr.tok, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne), "index out of range"));
         }
         if (e.E1 != null) {
-          CheckWellformed(e.E1, func, null, locals, builder, etran);
+          CheckWellformed(e.E1, options, null, locals, builder, etran);
           builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true), "end-of-range beyond length of " + (isSequence ? "sequence" : "array")));
         }
-        if (func != null && cce.NonNull(e.Seq.Type).IsArrayType) {
+        if (options.DoReadsChecks && cce.NonNull(e.Seq.Type).IsArrayType) {
           Contract.Assert(e.E0 != null);
           Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, etran.TrExpr(e.E0));
           builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element"));
         }
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
-        CheckWellformed(e.Array, func, null, locals, builder, etran);
+        CheckWellformed(e.Array, options, null, locals, builder, etran);
         Bpl.Expr array = etran.TrExpr(e.Array);
         int i = 0;
         foreach (Expression idx in e.Indices) {
-          CheckWellformed(idx, func, null, locals, builder, etran);
+          CheckWellformed(idx, options, null, locals, builder, etran);
 
           Bpl.Expr index = etran.TrExpr(idx);
           Bpl.Expr lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
@@ -1467,23 +1487,23 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        CheckWellformed(e.Seq, func, null, locals, builder, etran);
+        CheckWellformed(e.Seq, options, null, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr index = etran.TrExpr(e.Index);
-        CheckWellformed(e.Index, func, null, locals, builder, etran);
+        CheckWellformed(e.Index, options, null, locals, builder, etran);
         builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range"));
-        CheckWellformed(e.Value, func, null, locals, builder, etran);
+        CheckWellformed(e.Value, options, null, locals, builder, etran);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
         // check well-formedness of receiver
-        CheckWellformed(e.Receiver, func, null, locals, builder, etran);
+        CheckWellformed(e.Receiver, options, null, locals, builder, etran);
         if (!e.Function.IsStatic && !(e.Receiver is ThisExpr)) {
           CheckNonNull(expr.tok, e.Receiver, builder, etran);
         }
         // check well-formedness of the other parameters
         foreach (Expression arg in e.Args) {
-          CheckWellformed(arg, func, null, locals, builder, etran);
+          CheckWellformed(arg, options, null, locals, builder, etran);
         }
         // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
         Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
@@ -1505,70 +1525,86 @@ namespace Microsoft.Dafny {
           Expression precond = Substitute(p, e.Receiver, substMap);
           builder.Add(Assert(expr.tok, etran.TrExpr(precond), "possible violation of function precondition"));
         }
-        if (func != null) {
-          // check that the callee reads only what the caller is already allowed to read
-          CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function");
-  
-          // finally, check that the decreases measure goes down
-          ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
-          if (module == cce.NonNull(func.EnclosingClass).Module) {
-            if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(func)) {
-              bool contextDecrInferred, calleeDecrInferred;
-              List<Expression> contextDecreases = FunctionDecreasesWithDefault(func, out contextDecrInferred);
-              List<Expression> calleeDecreases = FunctionDecreasesWithDefault(e.Function, out calleeDecrInferred);
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, e.Receiver, substMap, etran, builder, contextDecrInferred);
+        if (options.Decr != null || options.DoReadsChecks) {
+          if (options.DoReadsChecks) {
+            // check that the callee reads only what the caller is already allowed to read
+            CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function");
+          }
+
+          Bpl.Expr allowance = null;
+          if (options.Decr != null) {
+            // check that the decreases measure goes down
+            ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
+            if (module == cce.NonNull(options.Decr.EnclosingClass).Module) {
+              if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(options.Decr)) {
+                bool contextDecrInferred, calleeDecrInferred;
+                List<Expression> contextDecreases = FunctionDecreasesWithDefault(options.Decr, out contextDecrInferred);
+                List<Expression> calleeDecreases = FunctionDecreasesWithDefault(e.Function, out calleeDecrInferred);
+                if (e.Function == options.SelfCallsAllowance) {
+                  allowance = Bpl.Expr.True;
+                  if (!e.Function.IsStatic) {
+                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
+                  }
+                  for (int i = 0; i < e.Args.Count; i++) {
+                    Expression ee = e.Args[i];
+                    Formal ff = e.Function.Formals[i];
+                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.UniqueName, TrType(ff.Type))));
+                  }
+                }
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, builder, contextDecrInferred);
+              }
             }
           }
 
-          // all is okay, so allow this function application access to the function's axiom
+          // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
           Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullName + "#canCall", Bpl.Type.Bool);
           ExprSeq args = etran.FunctionInvocationArguments(e);
           Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-          builder.Add(new Bpl.AssumeCmd(expr.tok, canCallFuncAppl));
+          builder.Add(new Bpl.AssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
         }
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         foreach (Expression arg in dtv.Arguments) {
-          CheckWellformed(arg, func, null, locals, builder, etran);
+          CheckWellformed(arg, options, null, locals, builder, etran);
         }
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
-        CheckWellformed(e.E, func, null, locals, builder, etran.Old);
+        CheckWellformed(e.E, options, null, locals, builder, etran.Old);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
-        CheckWellformed(e.E, func, null, locals, builder, etran);
+        CheckWellformed(e.E, options, null, locals, builder, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
-        CheckWellformed(e.E, func, null, locals, builder, etran);
+        CheckWellformed(e.E, options, null, locals, builder, etran);
         if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
           CheckNonNull(expr.tok, e.E, builder, etran);
         }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
-        CheckWellformed(e.E0, func, null, locals, builder, etran);
+        CheckWellformed(e.E0, options, null, locals, builder, etran);
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
           case BinaryExpr.ResolvedOpcode.Imp:
             {
               Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
-              CheckWellformed(e.E1, func, null, locals, b, etran);
+              CheckWellformed(e.E1, options, null, locals, b, etran);
               builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.E0), b.Collect(expr.tok), null, null));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Or:
             {
               Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
-              CheckWellformed(e.E1, func, null, locals, b, etran);
+              CheckWellformed(e.E1, options, null, locals, b, etran);
               builder.Add(new Bpl.IfCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(expr.tok), null, null));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Div:
           case BinaryExpr.ResolvedOpcode.Mod:
-            CheckWellformed(e.E1, func, null, locals, builder, etran);
+            CheckWellformed(e.E1, options, null, locals, builder, etran);
             builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), Bpl.Expr.Literal(0)), "possible division by zero"));
             break;
           default:
-            CheckWellformed(e.E1, func, null, locals, builder, etran);
+            CheckWellformed(e.E1, options, null, locals, builder, etran);
             break;
         }
 
@@ -1584,20 +1620,20 @@ namespace Microsoft.Dafny {
           locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
         }
         Expression body = Substitute(e.Body, null, substMap);
-        CheckWellformed(body, func, null, locals, builder, etran);
+        CheckWellformed(body, options, null, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
-        CheckWellformed(e.Test, func, null, locals, builder, etran);
+        CheckWellformed(e.Test, options, null, locals, builder, etran);
         Bpl.StmtListBuilder bThen = new Bpl.StmtListBuilder();
         Bpl.StmtListBuilder bElse = new Bpl.StmtListBuilder();
-        CheckWellformed(e.Thn, func, null, locals, bThen, etran);
-        CheckWellformed(e.Els, func, null, locals, bElse, etran);
+        CheckWellformed(e.Thn, options, null, locals, bThen, etran);
+        CheckWellformed(e.Els, options, null, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
       
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
-        CheckWellformed(me.Source, func, null, locals, builder, etran);
+        CheckWellformed(me.Source, options, null, locals, builder, etran);
         Bpl.Expr src = etran.TrExpr(me.Source);
         Bpl.IfCmd ifcmd = null;
         StmtListBuilder elsBldr = new StmtListBuilder();
@@ -1608,7 +1644,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr ct = CtorInvocation(mc, etran, locals);
           // generate:  if (src == ctor(args)) { mc.Body is well-formed; assume Result == TrExpr(case); } else ...
           Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
-          CheckWellformed(mc.Body, func, null, locals, b, etran);
+          CheckWellformed(mc.Body, options, null, locals, b, etran);
           if (result != null) {
             b.Add(new Bpl.AssumeCmd(mc.tok, Bpl.Expr.Eq(result, etran.TrExpr(mc.Body))));
           }
@@ -2065,7 +2101,7 @@ namespace Microsoft.Dafny {
                                 
       //  call inlined r;
       currentMethod = r;
-      etran = new ExpressionTranslator(this, predef, heap, "this");
+      etran = new ExpressionTranslator(this, predef, heap);
       TrStmt(r.Body, builder, localVariables, etran);
 
       // clean method-translator state
@@ -2514,7 +2550,7 @@ namespace Microsoft.Dafny {
             bool contextDecrInferred, calleeDecrInferred;
             List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
             List<Expression> calleeDecreases = MethodDecreasesWithDefault(s.Method, out calleeDecrInferred);
-            CheckCallTermination(stmt.Tok, contextDecreases, calleeDecreases, s.Receiver, substMap, etran, builder, contextDecrInferred);
+            CheckCallTermination(stmt.Tok, contextDecreases, calleeDecreases, null, s.Receiver, substMap, etran, builder, contextDecrInferred);
           }
         }
 
@@ -3001,6 +3037,7 @@ namespace Microsoft.Dafny {
     }
         
     void CheckCallTermination(IToken/*!*/ tok, List<Expression/*!*/>/*!*/ contextDecreases, List<Expression/*!*/>/*!*/ calleeDecreases,
+                              Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap,
                               ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases) {
       Contract.Requires(tok != null);
@@ -3027,6 +3064,9 @@ namespace Microsoft.Dafny {
         caller.Add(etran.TrExpr(e1));
       }
       Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", false);
+      if (allowance != null) {
+        decrExpr = Bpl.Expr.Or(allowance, decrExpr);
+      }
       builder.Add(Assert(tok, decrExpr, inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure"));
     }
     
@@ -3326,7 +3366,7 @@ namespace Microsoft.Dafny {
         if (tRhs.ArrayDimensions != null) {
           int i = 0;
           foreach (Expression dim in tRhs.ArrayDimensions) {
-            CheckWellformed(dim, null, null, locals, builder, etran);
+            CheckWellformed(dim, new WFOptions(), null, locals, builder, etran);
             if (tRhs.ArrayDimensions.Count == 1) {
               builder.Add(Assert(tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
                 tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));

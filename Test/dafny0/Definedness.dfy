@@ -235,7 +235,7 @@ function Postie1(c: Mountain): Mountain
 
 function Postie2(c: Mountain): Mountain
   requires c != null && c.x == 5;
-  ensures Postie2(c).x == 5;  // well-formedness error (null dereference)
+  ensures Postie2(c).x == 5;  // error: well-formedness error (null dereference)
 {
   c
 }
