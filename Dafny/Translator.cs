@@ -3796,7 +3796,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr g = TrExpr(e.Test);
           Bpl.Expr thn = TrExpr(e.Thn);
           Bpl.Expr els = TrExpr(e.Els);
-          return translator.FunctionCall(expr.tok, BuiltinFunction.IfThenElse, translator.TrType(cce.NonNull(expr.Type)), g, thn, els);
+          return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new ExprSeq(g, thn, els));
            
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
@@ -4181,8 +4181,6 @@ namespace Microsoft.Dafny {
       IndexField,
       MultiIndexField,
       
-      IfThenElse,
-      
       Box,
       Unbox,
       
@@ -4298,11 +4296,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok, predef.BoxType), args);
-
-        case BuiltinFunction.IfThenElse:
-          Contract.Assert(args.Length == 3);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "$ite", typeInstantiation, args);
 
         case BuiltinFunction.Box:
           Contract.Assert(args.Length == 1);
