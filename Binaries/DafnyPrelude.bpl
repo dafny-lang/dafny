@@ -291,8 +291,7 @@ function {:inline true} read<alpha>(H:HeapType, r:ref, f:Field alpha): alpha { H
 function {:inline true} update<alpha>(H:HeapType, r:ref, f:Field alpha, v:alpha): HeapType { H[r,f := v] }
 
 function $IsGoodHeap(HeapType) returns (bool);
-var $Heap: HeapType where $IsGoodHeap($Heap) && #cev_var_update(#cev_pc, cev_implicit, #loc.$Heap, $Heap);
-const unique #loc.$Heap: $token;
+var $Heap: HeapType where $IsGoodHeap($Heap);
 
 function $HeapSucc(HeapType, HeapType) returns (bool);
 axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
@@ -316,91 +315,5 @@ axiom (forall x:int, y:int :: {x % y}  y < 0  ==>  y < x % y  &&  x % y <= 0);
 // the following axiom has some unfortunate matching, but it does state a property about % that
 // is sometime useful
 axiom (forall a: int, b: int, d: int :: { a % d, b % d } 2 <= d && a % d == b % d && a < b  ==>  a + d <= b);
-
-// ---------------------------------------------------------------
-// -- CEV (counterexample visualizer) ----------------------------
-// ---------------------------------------------------------------
-
-type $token;
-function $file_name_is(id:int, tok:$token) returns(bool);
-
-
-type cf_event;
-type var_locglob;
-
-const unique conditional_moment : cf_event;
-const unique took_then_branch : cf_event;
-const unique took_else_branch : cf_event;
-
-const unique loop_register : cf_event;
-const unique loop_entered : cf_event;
-const unique loop_exited : cf_event;
-
-const unique cev_local : var_locglob;
-const unique cev_global : var_locglob;
-const unique cev_parameter : var_locglob;
-const unique cev_implicit : var_locglob;
-
-
-function #cev_init(n:int) returns(bool);
-
-function #cev_save_position(n:int) returns($token);
-
-function #cev_var_intro<T,U>(n:int, locorglob:var_locglob, name:$token, val:T, typ: U) returns(bool);
-
-function #cev_var_update<T>(n:int, locorglob:var_locglob, name:$token, val:T) returns(bool);
-
-function #cev_control_flow_event(n:int, tag : cf_event) returns(bool);
-
-function #cev_function_call(n:int) returns(bool);
-
-
-
-var #cev_pc: int;
-
-procedure CevVarIntro<T>(pos: $token, locorglob: var_locglob, name: $token, val: T);
-  modifies #cev_pc;
-  ensures #cev_var_intro(old(#cev_pc), locorglob, name, val, 0);
-  ensures #cev_save_position(old(#cev_pc)) == pos;
-  ensures #cev_pc == old(#cev_pc) + 1;
-
-procedure CevUpdateHere<T>(name: $token, val: T);
-  ensures #cev_var_update(#cev_pc, cev_local, name, val);
-
-procedure CevStep(pos: $token);
-  modifies #cev_pc;
-  ensures #cev_save_position(old(#cev_pc)) == pos;
-  ensures #cev_pc == old(#cev_pc) + 1;
-
-// CevUpdate == CevUpdateHere + CevStep
-procedure CevUpdate<T>(pos: $token, name: $token, val: T);
-  modifies #cev_pc;
-  ensures #cev_var_update(old(#cev_pc), cev_local, name, val);
-  ensures #cev_save_position(old(#cev_pc)) == pos;
-  ensures #cev_pc == old(#cev_pc) + 1;
-
-procedure CevUpdateHeap(pos: $token, name: $token, val: HeapType);
-  modifies #cev_pc;
-  ensures #cev_var_update(old(#cev_pc), cev_implicit, name, val);
-  ensures #cev_save_position(old(#cev_pc)) == pos;
-  ensures #cev_pc == old(#cev_pc) + 1;
-
-procedure CevEvent(pos: $token, tag: cf_event);
-  modifies #cev_pc;
-  ensures #cev_control_flow_event(old(#cev_pc), tag);
-  ensures #cev_save_position(old(#cev_pc)) == pos;
-  ensures #cev_pc == old(#cev_pc) + 1;
-
-procedure CevStepEvent(pos: $token, tag: cf_event);
-  modifies #cev_pc;
-  ensures #cev_control_flow_event(old(#cev_pc)+1, tag);
-  ensures #cev_save_position(old(#cev_pc)+1) == pos;
-  ensures #cev_pc == old(#cev_pc) + 2;
-
-procedure CevPreLoop(pos: $token) returns (oldPC: int);
-  modifies #cev_pc;
-  ensures #cev_control_flow_event(old(#cev_pc), conditional_moment);
-  ensures #cev_save_position(old(#cev_pc)) == pos;
-  ensures oldPC == old(#cev_pc) && #cev_pc == old(#cev_pc) + 1;
 
 // ---------------------------------------------------------------

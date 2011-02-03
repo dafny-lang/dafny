@@ -264,22 +264,8 @@ namespace Microsoft.Boogie
       }
       if (error) {
         ErrorWriteLine(s);
-        if (CommandLineOptions.Clo.CEVPrint) {
-          TextWriter mw = VC.VCGen.ErrorReporter.ModelWriter;
-          mw.WriteLine("BEGINNING_OF_ERROR");
-          mw.WriteLine(s);
-          mw.WriteLine("END_OF_ERROR");
-          mw.Flush();
-        }
       } else {
         Console.WriteLine(s);
-        if (CommandLineOptions.Clo.CEVPrint) {
-          TextWriter mw = VC.VCGen.ErrorReporter.ModelWriter;
-          mw.WriteLine("BEGINNING_OF_RELATED_INFO");
-          mw.WriteLine(s);
-          mw.WriteLine("END_OF_RELATED_INFO");
-          mw.Flush();
-        }
       }
     }
 

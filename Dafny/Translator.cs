@@ -20,10 +20,6 @@ namespace Microsoft.Dafny {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
-      //base();
-      if (predef != null) {
-        cevVariables.Add(predef.HeapVarName, predef.CevHeapName);
-      }
     }
     
     // translation state
@@ -31,97 +27,25 @@ namespace Microsoft.Dafny {
     readonly Dictionary<Field/*!*/,Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
 
-    // Machinery for providing information to the Counterexample Visualizer
-    readonly Dictionary<string/*!*/,int>/*!*/ cevFilenames = new Dictionary<string/*!*/,int>();
-    readonly Dictionary<IToken/*!*/,Bpl.Constant/*!*/>/*!*/ cevLocations = new Dictionary<IToken/*!*/,Bpl.Constant/*!*/>();
-    readonly Dictionary<string/*!*/,Bpl.Constant/*!*/>/*!*/ cevVariables = new Dictionary<string/*!*/,Bpl.Constant/*!*/>();
-
     [ContractInvariantMethod]
     void ObjectInvariant() 
     {
       Contract.Invariant(cce.NonNullElements(classes));
       Contract.Invariant(cce.NonNullElements(fields));
       Contract.Invariant(cce.NonNullElements(fieldFunctions));
-      Contract.Invariant(cce.NonNullElements(cevFilenames));
-      Contract.Invariant(cce.NonNullElements(cevLocations));
-      Contract.Invariant(cce.NonNullElements(cevVariables));
     }
 
-
-    Bpl.Expr CevLocation(IToken tok)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(predef != null && sink != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-    
-      Bpl.Constant c;
-      if (cevLocations.TryGetValue(tok, out c)) {
-        Contract.Assert(c != null);
-      } else {
-        int fileId;
-        string filename = "#file^" + (tok.filename == null ? ".dfy" : tok.filename);
-        if (!cevFilenames.TryGetValue(filename, out fileId)) {
-          fileId = cevFilenames.Count;
-          cevFilenames.Add(filename, fileId);
-          Bpl.Constant fn = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, Sanitize(filename), predef.CevTokenType), true);
-          sink.TopLevelDeclarations.Add(fn);
-          sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, FunctionCall(tok, "$file_name_is", Bpl.Type.Bool, Bpl.Expr.Literal(fileId), new Bpl.IdentifierExpr(tok, fn))));
-        }
-        c = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, string.Format("#tok${0}^{1}.{2}", fileId, tok.line, tok.col), predef.CevTokenType), true);
-        cevLocations.Add(tok, c);
-        sink.TopLevelDeclarations.Add(c);
-      }
-      return new Bpl.IdentifierExpr(tok, c);
-    }
-    static string Sanitize(string s) {
-      Contract.Requires(s != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      StringBuilder sb = new StringBuilder();
-      foreach (char ch in s) {
-        if (char.IsLetterOrDigit(ch) || ch == '#' || ch == '^' || ch == '$' || ch == '.' || ch == '@') {
-          sb.Append(ch);
-        } else {
-          sb.Append(string.Format("%{0:X4}", (int)ch));
-        }
-      }
-      return sb.ToString();
-    }
-    Bpl.Expr CevVariable(Bpl.IToken tok, string name)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(predef != null && sink != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      
-      Bpl.Constant c;
-      if (cevVariables.TryGetValue(name, out c)) {
-        Contract.Assert(c != null);
-      } else {
-        c = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, string.Format("#loc.{0}", name), predef.CevTokenType), true);
-        cevVariables.Add(name, c);
-        sink.TopLevelDeclarations.Add(c);
-      }
-      return new Bpl.IdentifierExpr(tok, c);
-    }
-    
     readonly Bpl.Program sink;
     readonly PredefinedDecls predef;
 
     internal class PredefinedDecls {
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
-      public readonly Bpl.Type CevTokenType;
-      public readonly Bpl.Type CevVariableKind;
-      public readonly Bpl.Type CevEventType;
       private readonly Bpl.TypeSynonymDecl setTypeCtor;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       readonly Bpl.TypeCtorDecl fieldName;
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
-      public readonly Bpl.Constant CevHeapName;
       public readonly Bpl.Type ClassNameType;
       public readonly Bpl.Type DatatypeType;
       public readonly Bpl.Type DtCtorId;
@@ -131,15 +55,11 @@ namespace Microsoft.Dafny {
       void ObjectInvariant() {
         Contract.Invariant(RefType != null);
         Contract.Invariant(BoxType != null);
-        Contract.Invariant(CevTokenType != null);
-        Contract.Invariant(CevVariableKind != null);
-        Contract.Invariant(CevEventType != null);
         Contract.Invariant(setTypeCtor != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapType != null);
         Contract.Invariant(HeapVarName != null);
-        Contract.Invariant(CevEventType != null);
         Contract.Invariant(ClassNameType != null);
         Contract.Invariant(DatatypeType != null);
         Contract.Invariant(DtCtorId != null);
@@ -178,18 +98,14 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(tok, allocField);
       }
 
-      public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl cevTokenType, 
-                             Bpl.TypeCtorDecl cevVariableKind, Bpl.TypeCtorDecl cevEventType,
+      public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl dtCtorId,
-                             Bpl.Constant allocField, Bpl.Constant cevHeapNameConst) {
+                             Bpl.Constant allocField) {
         #region Non-null preconditions on parameters
         Contract.Requires(refType != null);
         Contract.Requires(boxType != null);
-        Contract.Requires(cevTokenType != null);
-        Contract.Requires(cevVariableKind != null);
-        Contract.Requires(cevEventType != null);
         Contract.Requires(setTypeCtor != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(fieldNameType != null);
@@ -198,21 +114,16 @@ namespace Microsoft.Dafny {
         Contract.Requires(datatypeType != null);
         Contract.Requires(dtCtorId != null);
         Contract.Requires(allocField != null);
-        Contract.Requires(cevHeapNameConst != null);
         #endregion
 
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new Bpl.TypeSeq());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new Bpl.TypeSeq());
-        this.CevTokenType = new Bpl.CtorType(Token.NoToken, cevTokenType, new Bpl.TypeSeq());
-        this.CevVariableKind = new Bpl.CtorType(Token.NoToken, cevVariableKind, new Bpl.TypeSeq());
-        this.CevEventType = new Bpl.CtorType(Token.NoToken, cevEventType, new Bpl.TypeSeq());
         this.setTypeCtor = setTypeCtor;
         this.seqTypeCtor = seqTypeCtor;
         this.fieldName = fieldNameType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
-        this.CevHeapName = cevHeapNameConst;
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new Bpl.TypeSeq());
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new Bpl.TypeSeq());
@@ -229,9 +140,6 @@ namespace Microsoft.Dafny {
       }
       
       Bpl.TypeCtorDecl refType = null;
-      Bpl.TypeCtorDecl cevTokenType = null;
-      Bpl.TypeCtorDecl cevVariableKind = null;
-      Bpl.TypeCtorDecl cevEventType = null;
       Bpl.TypeSynonymDecl setTypeCtor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
@@ -241,7 +149,6 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl boxType = null;
       Bpl.GlobalVariable heap = null;
       Bpl.Constant allocField = null;
-      Bpl.Constant cevHeapNameConst = null;
       foreach (Bpl.Declaration d in prog.TopLevelDeclarations) {
         if (d is Bpl.TypeCtorDecl) {
           Bpl.TypeCtorDecl dt = (Bpl.TypeCtorDecl)d;
@@ -259,12 +166,6 @@ namespace Microsoft.Dafny {
             refType = dt;
           } else if (dt.Name == "BoxType") {
             boxType = dt;
-          } else if (dt.Name == "$token") {
-            cevTokenType = dt;
-          } else if (dt.Name == "var_locglob") {
-            cevVariableKind = dt;
-          } else if (dt.Name == "cf_event") {
-            cevEventType = dt;
           }
         } else if (d is Bpl.TypeSynonymDecl) {
           Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
@@ -275,8 +176,6 @@ namespace Microsoft.Dafny {
           Bpl.Constant c = (Bpl.Constant)d;
           if (c.Name == "alloc") {
             allocField = c;
-          } else if (c.Name == "#loc.$Heap") {
-            cevHeapNameConst = c;
           }
         } else if (d is Bpl.GlobalVariable) {
           Bpl.GlobalVariable v = (Bpl.GlobalVariable)d;
@@ -301,22 +200,14 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type BoxType");
-      } else if (cevTokenType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type $token");
-      } else if (cevVariableKind == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type var_locglob");
-      } else if (cevEventType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type cf_event");
       } else if (heap == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
-      } else if (cevHeapNameConst == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of constant #loc.$Heap");
       } else {
-        return new PredefinedDecls(refType, boxType, cevTokenType, cevVariableKind, cevEventType,
+        return new PredefinedDecls(refType, boxType,
                                    setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
-                                   allocField, cevHeapNameConst);
+                                   allocField);
       }
       return null;
     }
@@ -963,9 +854,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(localVariables != null);
       Contract.Requires(predef != null);
     
-      // Add CEV prelude
-      CEVPrelude(m, inParams, outParams, builder);
-
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod, builder, localVariables);
     }
@@ -983,44 +871,12 @@ namespace Microsoft.Dafny {
       return CaptureState(tok, null);
     }
     
-    void CEVPrelude(Method m, Bpl.VariableSeq inParams, Bpl.VariableSeq outParams, Bpl.StmtListBuilder builder) 
-    {
-      Contract.Requires(m != null);
-      Contract.Requires(inParams != null);
-      Contract.Requires(outParams != null);
-      Contract.Requires(builder != null);
-      Contract.Requires(predef != null);
-    
-      builder.Add(Bpl.Cmd.SimpleAssign(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(1))));
-      foreach (Bpl.Variable p in inParams) {
-        Contract.Assert(p != null);
-        builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
-          new Bpl.ExprSeq(
-            CevLocation(p.tok),
-            new Bpl.IdentifierExpr(p.tok, "cev_parameter", predef.CevVariableKind),
-            CevVariable(p.tok, p.Name),
-            new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
-          new Bpl.IdentifierExprSeq()));
-      }
-      foreach (Bpl.Variable p in outParams) {
-        Contract.Assert(p != null);
-        builder.Add(new Bpl.CallCmd(p.tok, "CevVarIntro",
-          new Bpl.ExprSeq(
-            CevLocation(p.tok),
-            new Bpl.IdentifierExpr(p.tok, "cev_local", predef.CevVariableKind),  // treat out-parameters as locals
-            CevVariable(p.tok, p.Name),
-            new Bpl.IdentifierExpr(p.tok, p.Name, p.TypedIdent.Type)),  // it's important not to pass in just p, because that resolves to the proc's param, not the impl's param
-          new Bpl.IdentifierExprSeq()));
-      }      
-    }
-    
     void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, Bpl.StmtListBuilder/*!*/ builder, Bpl.VariableSeq/*!*/ localVariables){
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(frameClause));
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(localVariables));
-    
-    Contract.Requires(predef != null);
+      Contract.Requires(predef != null);
     
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, tok);
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
@@ -1266,7 +1122,6 @@ namespace Microsoft.Dafny {
       VariableSeq implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       Bpl.VariableSeq locals = new Bpl.VariableSeq();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
-      // todo: include CEV information of parameters and the heap
       
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (Expression p in f.Req) {
@@ -2029,7 +1884,6 @@ namespace Microsoft.Dafny {
         etran.InMethodContext());
       req.Add(Requires(m.tok, true, context, null, null));
       mod.Add(etran.HeapExpr);
-      mod.Add(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int));
       
       if (!wellformednessProc) {
         string comment = "user-defined preconditions";
@@ -2082,23 +1936,6 @@ namespace Microsoft.Dafny {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
       }
-
-      // CEV information
-      // free requires #cev_pc == 0;
-      req.Add(Requires(m.tok, true, Bpl.Expr.Eq(Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int), Bpl.Expr.Literal(0)), null, "CEV information"));
-      // free requires #cev_init(0);
-      req.Add(Requires(m.tok, true, FunctionCall(m.tok, BuiltinFunction.CevInit, null, Bpl.Expr.Literal(0)), null, null));
-      // free requires #cev_var_intro(0, cev_implicit, #loc.$Heap, $Heap, 0);
-      req.Add(Requires(m.tok, true, FunctionCall(m.tok, BuiltinFunction.CevVarIntro, null,
-        Bpl.Expr.Literal(0),
-        new Bpl.IdentifierExpr(m.tok, "cev_implicit", predef.CevVariableKind),
-        CevVariable(m.tok, predef.HeapVarName),
-        etran.HeapExpr,
-        Bpl.Expr.Literal(0)), null, null));
-      // free requires #cev_save_position(0) == #tok.Tok;
-      req.Add(Requires(m.tok, true, Bpl.Expr.Eq(FunctionCall(m.tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Literal(0)), CevLocation(m.tok)), null, null));
-      // free ensures old(#cev_pc) < #cev_pc;
-      ens.Add(Ensures(m.tok, true, Bpl.Expr.Lt(new Bpl.OldExpr(m.tok, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), null, "CEV information"));
 
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
       string name = wellformednessProc ? "CheckWellformed$$" + m.FullName : m.FullName;
@@ -2155,7 +1992,6 @@ namespace Microsoft.Dafny {
       Contract.Assert(r.Body != null);
       
       // declare a frame variable that allows anything to be changed (not checking modifies clauses)
-      CEVPrelude(m, inParams, outParams, builder);
       Bpl.IdentifierExpr theFrame = etran.TheFrame(m.tok);
       Contract.Assert(theFrame.Type != null);
       Bpl.LocalVariable frame = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, theFrame.Name, theFrame.Type));
@@ -2573,29 +2409,11 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;
         TrAssignment(stmt.Tok, s.Lhs, s.Rhs, builder, locals, etran);
-        if (s.Lhs is IdentifierExpr) {
-          Bpl.IdentifierExpr v = etran.TrVar(stmt.Tok, cce.NonNull((IdentifierExpr)s.Lhs).Var);
-          builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdate",
-            new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, v.Name), v),
-            new Bpl.IdentifierExprSeq()));
-        } else if (s.Lhs is SeqSelectExpr) {
-          // TODO: CEV
-        } else {
-          builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
-            new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
-            new Bpl.IdentifierExprSeq()));
-        }
       } else if (stmt is VarDecl) {
         AddComment(builder, stmt, "var-declaration statement");
         VarDecl s = (VarDecl)stmt;
         Bpl.Type varType = TrType(s.Type);
         Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.UniqueName, varType), s.Type, etran);
-        Bpl.Expr cevWh = FunctionCall(stmt.Tok, BuiltinFunction.CevVarUpdate, null,
-          Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int),
-          new Bpl.IdentifierExpr(stmt.Tok, "cev_local", predef.CevVariableKind),
-          CevVariable(stmt.Tok, s.UniqueName),
-          new Bpl.IdentifierExpr(stmt.Tok, s.UniqueName, varType));
-        wh = wh == null ? cevWh : Bpl.Expr.And(wh, cevWh);
         Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.UniqueName, varType, wh));
         locals.Add(var);
         if (s.Rhs != null) {
@@ -2603,13 +2421,6 @@ namespace Microsoft.Dafny {
           ide.Var = s;  ide.Type = s.Type;  // ... and resolve it right here
           TrAssignment(stmt.Tok, ide, s.Rhs, builder, locals, etran);
         }
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevVarIntro",
-          new Bpl.ExprSeq(
-            CevLocation(stmt.Tok),
-            new Bpl.IdentifierExpr(stmt.Tok, "cev_local", predef.CevVariableKind),
-            CevVariable(stmt.Tok, var.Name),
-            new Bpl.IdentifierExpr(stmt.Tok, var)),
-          new Bpl.IdentifierExprSeq()));
         
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
@@ -2689,11 +2500,7 @@ namespace Microsoft.Dafny {
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(stmt.Tok, lhs, FunctionCall(stmt.Tok, BuiltinFunction.Unbox, TrType(cce.NonNull(e.Type)), tmpVarIdE));
             builder.Add(cmd);
           }
-          builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHere",
-            new Bpl.ExprSeq(CevVariable(stmt.Tok, e.Name), lhs),
-            new Bpl.IdentifierExprSeq()));
         }
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStep", new Bpl.ExprSeq(CevLocation(stmt.Tok)), new Bpl.IdentifierExprSeq()));
         builder.Add(CaptureState(stmt.Tok));
         
       } else if (stmt is BlockStmt) {
@@ -2703,9 +2510,6 @@ namespace Microsoft.Dafny {
       } else if (stmt is IfStmt) {
         AddComment(builder, stmt, "if statement");
         IfStmt s = (IfStmt)stmt;
-        builder.Add(new Bpl.CallCmd(s.Tok, "CevEvent",
-          new Bpl.ExprSeq(CevLocation(s.Tok), new Bpl.IdentifierExpr(s.Tok, "conditional_moment", predef.CevEventType)),
-          new Bpl.IdentifierExprSeq()));
         Bpl.Expr guard;
         if (s.Guard == null) {
           guard = null;
@@ -2714,23 +2518,14 @@ namespace Microsoft.Dafny {
           guard = etran.TrExpr(s.Guard);
         }
         Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
-        b.Add(new Bpl.CallCmd(s.Thn.Tok, "CevEvent",
-          new Bpl.ExprSeq(CevLocation(s.Thn.Tok), new Bpl.IdentifierExpr(s.Thn.Tok, "took_then_branch", predef.CevEventType)),
-          new Bpl.IdentifierExprSeq()));
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
         Bpl.StmtList els;
         Bpl.IfCmd elsIf = null;
         if (s.Els == null) {
           b = new Bpl.StmtListBuilder();
-          b.Add(new Bpl.CallCmd(s.Tok, "CevEvent",
-            new Bpl.ExprSeq(CevLocation(s.Tok), new Bpl.IdentifierExpr(s.Tok, "took_else_branch", predef.CevEventType)),
-            new Bpl.IdentifierExprSeq()));
           els = b.Collect(s.Tok);
         } else {
           b = new Bpl.StmtListBuilder();
-          b.Add(new Bpl.CallCmd(s.Els.Tok, "CevEvent",
-            new Bpl.ExprSeq(CevLocation(s.Els.Tok), new Bpl.IdentifierExpr(s.Els.Tok, "took_else_branch", predef.CevEventType)),
-            new Bpl.IdentifierExprSeq()));
           els = TrStmt2StmtList(b, s.Els, locals, etran);
           if (els.BigBlocks.Count == 1) {
             Bpl.BigBlock bb = els.BigBlocks[0];
@@ -2822,15 +2617,6 @@ namespace Microsoft.Dafny {
         locals.Add(wVar);
         // havoc w;
         builder.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq(w)));
-
-        // CEV information
-        Bpl.LocalVariable preLoopCevPCVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopCevPC" + loopId, Bpl.Type.Int));
-        locals.Add(preLoopCevPCVar);
-        Bpl.IdentifierExpr preLoopCevPC = new Bpl.IdentifierExpr(stmt.Tok, preLoopCevPCVar);
-        // call preLoopCevPC := CevPreLoop(loc);
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevPreLoop",
-          new Bpl.ExprSeq(CevLocation(stmt.Tok)),
-          new Bpl.IdentifierExprSeq(preLoopCevPC)));  // TODO: does this screw up labeled breaks for this loop?
         
         List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
         Bpl.StmtListBuilder invDefinednessBuilder = new Bpl.StmtListBuilder();
@@ -2884,22 +2670,6 @@ namespace Microsoft.Dafny {
           invariants.Add(new Bpl.AssumeCmd(stmt.Tok, decrCheck));
         }
         
-        // CEV information
-        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Eq(FunctionCall(stmt.Tok, BuiltinFunction.CevProgramLocation, null, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int)), CevLocation(stmt.Tok))));
-        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Lt(preLoopCevPC, Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int))));
-        invariants.Add(new Bpl.AssumeCmd(stmt.Tok, FunctionCall(stmt.Tok, BuiltinFunction.CevControlFlowEvent,
-          null,
-          Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int),
-          new Bpl.IdentifierExpr(stmt.Tok, "loop_register", predef.CevEventType))));
-        foreach (Formal p in currentMethod.Outs) {
-          Bpl.Expr wh = FunctionCall(stmt.Tok, BuiltinFunction.CevVarUpdate, null,
-            Bpl.Expr.Ident("#cev_pc", Bpl.Type.Int),
-            new Bpl.IdentifierExpr(stmt.Tok, "cev_local", predef.CevVariableKind),
-            CevVariable(stmt.Tok, p.UniqueName),
-            etran.TrVar(stmt.Tok, p));
-          invariants.Add(new Bpl.AssumeCmd(stmt.Tok, wh));
-        }
-
         Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
         // as the first thing inside the loop, generate:  if (!w) { assert IsTotal(inv); assume false; }
         invDefinednessBuilder.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.False));
@@ -2915,10 +2685,6 @@ namespace Microsoft.Dafny {
           loopBodyBuilder.Add(new Bpl.IfCmd(s.Guard.tok, Bpl.Expr.Not(etran.TrExpr(s.Guard)), guardBreak.Collect(s.Guard.tok), null, null));
           guard = Bpl.Expr.True;
         }
-        // CEV information
-        loopBodyBuilder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
-          new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_entered", predef.CevEventType)),
-          new Bpl.IdentifierExprSeq()));
         loopBodyBuilder.Add(CaptureState(stmt.Tok, "loop entered"));
         // termination checking
         if (Contract.Exists(theDecreases,e=> e is WildcardExpr)) {
@@ -2943,9 +2709,6 @@ namespace Microsoft.Dafny {
         Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
 
         builder.Add(new Bpl.WhileCmd(stmt.Tok, guard, invariants, body));
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevStepEvent",
-          new Bpl.ExprSeq(CevLocation(stmt.Tok), new Bpl.IdentifierExpr(stmt.Tok, "loop_exited", predef.CevEventType)),
-          new Bpl.IdentifierExprSeq()));
         builder.Add(CaptureState(stmt.Tok, "loop exit"));
 
       } else if (stmt is ForeachStmt) {
@@ -3069,10 +2832,6 @@ namespace Microsoft.Dafny {
           builder.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
         }
         
-        // CEV information
-        builder.Add(new Bpl.CallCmd(stmt.Tok, "CevUpdateHeap",
-          new Bpl.ExprSeq(CevLocation(stmt.Tok), CevVariable(stmt.Tok, predef.HeapVarName), etran.HeapExpr),
-          new Bpl.IdentifierExprSeq()));
         builder.Add(CaptureState(stmt.Tok));
         
       } else if (stmt is MatchStmt) {
@@ -4437,14 +4196,7 @@ namespace Microsoft.Dafny {
       FDim,  // field dimension (0 - named, 1 or more - indexed)
       
       DatatypeCtorId,
-      DtRank,
-      
-      // CEV
-      CevInit,
-      CevVarIntro,
-      CevVarUpdate,
-      CevControlFlowEvent,
-      CevProgramLocation,
+      DtRank
     }
     
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.
@@ -4600,27 +4352,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "DtRank", Bpl.Type.Int, args);
           
-        case BuiltinFunction.CevInit:
-          Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "#cev_init", Bpl.Type.Bool, args);
-        case BuiltinFunction.CevVarIntro:
-          Contract.Assert(args.Length == 5);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "#cev_var_intro", Bpl.Type.Bool, args);
-        case BuiltinFunction.CevVarUpdate:
-          Contract.Assert(args.Length == 4);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "#cev_var_update", Bpl.Type.Bool, args);
-        case BuiltinFunction.CevControlFlowEvent:
-          Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "#cev_control_flow_event", Bpl.Type.Bool, args);
-        case BuiltinFunction.CevProgramLocation:
-          Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "#cev_save_position", predef.CevTokenType, args);
-           
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
       }
