@@ -3,7 +3,7 @@ class PriorityQueue {
   var n: int;  // current size
   ghost var Repr: set<object>;  // set of objects that make up the representation of a PriorityQueue
 
-  var a: array<int>;  // private implementation of PriorityQueu
+  var a: array<int>;  // private implementation of PriorityQueue
 
   function Valid(): bool
     reads this, Repr;
@@ -49,7 +49,7 @@ class PriorityQueue {
     requires 1 <= k && k <= n;
     requires MostlyValid();
     requires (forall j :: 2 <= j && j <= n && j != k ==> a[j/2] <= a[j]);
-    requires (forall j :: 1 <= j && j <= n ==> j/2 != k);  // k is a child
+    requires (forall j :: 1 <= j && j <= n ==> j/2 != k);  // k is a leaf
     modifies a;
     ensures Valid();
   {
@@ -84,7 +84,9 @@ class PriorityQueue {
     requires 1 <= k;
     requires MostlyValid();
     requires (forall j :: 2 <= j && j <= n && j/2 != k ==> a[j/2] <= a[j]);
-    requires k == 1;
+    requires (forall j :: 2 <= j && j <= n && 1 <= j/2/2 && j/2/2 != k ==> a[j/2/2] <= a[j]);
+    // Alternatively, the line above can be expressed as:
+    //     requires (forall j :: 1 <= k/2 && j/2 == k && j <= n ==> a[j/2/2] <= a[j]);
     modifies a;
     ensures Valid();
   {
@@ -92,7 +94,7 @@ class PriorityQueue {
     while (2*i <= n)  // while i is not a leaf
       invariant 1 <= i && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j/2 != i ==> a[j/2] <= a[j]);
-      invariant (forall j :: 1 <= j/2/2 && j/2 == i && j <= n ==> a[j/2/2] <= a[j]);
+      invariant (forall j :: 2 <= j && j <= n && 1 <= j/2/2 && j/2/2 != i ==> a[j/2/2] <= a[j]);
     {
       var smallestChild;
       if (2*i + 1 <= n && a[2*i + 1] < a[2*i]) {
@@ -117,7 +119,7 @@ class PriorityQueue_Alternative {
   var n: int;  // current size
   ghost var Repr: set<object>;  // set of objects that make up the representation of a PriorityQueue
 
-  var a: array<int>;  // private implementation of PriorityQueu
+  var a: array<int>;  // private implementation of PriorityQueue
 
   function Valid(): bool
     reads this, Repr;
@@ -156,21 +158,19 @@ class PriorityQueue_Alternative {
   {
     n := n + 1;
     a[n] := x;
-    call SiftUp(n);
+    call SiftUp();
   }
 
-  method SiftUp(k: int)
-    requires 1 <= k && k <= n;
+  method SiftUp()
     requires MostlyValid();
-    requires (forall j :: 2 <= j && j <= n && j != k ==> a[j/2] <= a[j]);
-    requires (forall j :: 1 <= j && j <= n ==> j/2 != k);  // k is a child
+    requires (forall j :: 2 <= j && j <= n && j != n ==> a[j/2] <= a[j]);
     modifies a;
     ensures Valid();
   {
-    var i := k;
+    var i := n;
     assert MostlyValid();
     while (1 < i)
-      invariant i <= k && MostlyValid();
+      invariant i <= n && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j != i ==> a[j/2] <= a[j]);
       invariant (forall j :: 1 <= j/2/2 && j/2 == i && j <= n ==> a[j/2/2] <= a[j]);
     {
@@ -191,18 +191,16 @@ class PriorityQueue_Alternative {
     x := a[1];
     a[1] := a[n];
     n := n - 1;
-    call SiftDown(1);
+    call SiftDown();
   }
 
-  method SiftDown(k: int)
-    requires 1 <= k;
+  method SiftDown()
     requires MostlyValid();
-    requires (forall j :: 2 <= j && j <= n && j/2 != k ==> a[j/2] <= a[j]);
-    requires k == 1;  // k is the root
+    requires (forall j :: 4 <= j && j <= n ==> a[j/2] <= a[j]);
     modifies a;
     ensures Valid();
   {
-    var i := k;
+    var i := 1;
     while (2*i <= n)  // while i is not a leaf
       invariant 1 <= i && MostlyValid();
       invariant (forall j :: 2 <= j && j <= n && j/2 != i ==> a[j/2] <= a[j]);
