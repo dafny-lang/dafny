@@ -89,7 +89,7 @@ class ExtensibleArray<T> {
       // there is room in "elements"
       elements[length - M] := t;
     } else {
-      if (length == 256) {
+      if (more == null) {
         var mr := new ExtensibleArray<array<T>>;  more := mr;
         call mr.Init();
         Repr := Repr + {mr} + mr.Repr;
@@ -105,4 +105,24 @@ class ExtensibleArray<T> {
     length := length + 1;
     Contents := Contents + [t];
   }
+}
+
+method Main() {
+  var a := new ExtensibleArray<int>;
+  call a.Init();
+  var n := 0;
+  while (n < 256*256+600)
+    invariant a.Valid() && fresh(a.Repr);
+    invariant |a.Contents| == n;
+  {
+    call a.Append(n);
+    n := n + 1;
+  }
+  call k := a.Get(570); print k, "\n";
+  call k := a.Get(0); print k, "\n";
+  call k := a.Get(1000); print k, "\n";
+  call a.Set(1000, 23);
+  call k := a.Get(0); print k, "\n";
+  call k := a.Get(1000); print k, "\n";
+  call k := a.Get(66000); print k, "\n";
 }
