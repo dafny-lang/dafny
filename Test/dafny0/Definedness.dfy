@@ -75,26 +75,26 @@ class StatementTwoShoes {
     modifies this, p;
   {
     p.x := a;  // error: receiver may be null
-    F(a).x := a;  // error: LHS may not be well defined
-    x := F(a-10).x;  // error: RHS may not be well defined
+    F(a).x := a;  // error: LHS may not be well defined (fn precondition)
+    x := F(a-10).x;  // error: RHS may not be well defined (fn precondition)
   }
 
   method N(a: int, b: int)
   {
-    assert 5 / a == 5 / a;  // error: expression may not be well defined
-    assume 20 / b == 5;  // error: expression may not be well defined
+    assert 5 / a == 5 / a;  // error: expression may not be well defined (div by zero)
+    assume 20 / b == 5;  // error: expression may not be well defined (div by zero)
   }
 
   method O(a: int) returns (b: int)
   {
-    if (20 / a == 5) {  // error: expression may not be well defined
+    if (20 / a == 5) {  // error: expression may not be well defined (div by zero)
       b := a;
     }
   }
 
   method P(a: int)
   {
-    while (20 / a == 5) {  // error: expression may not be well defined
+    while (20 / a == 5) {  // error: expression may not be well defined (div by zero)
       break;
     }
   }
@@ -103,13 +103,13 @@ class StatementTwoShoes {
   {
     var i := 1;
     while (i < a)
-      decreases F(i), F(a), a - i;  // error: component 1 may not be well defined
+      decreases F(i), F(a), a - i;  // error: component 1 may not be well defined (fn precond)
     {
       i := i + 1;
     }
     i := 1;
     while (i < a)
-      decreases F(b), a - i;  // error: component 0 may not be well defined
+      decreases F(b), a - i;  // error: component 0 may not be well defined (fn precond)
     {
       i := i + 1;
     }
@@ -119,7 +119,7 @@ class StatementTwoShoes {
   {
     var i := 0;
     while (i < 100)  // The following produces 3 complaints instead of 1, because loop invariants are not subject to subsumption
-      invariant F(a) != null;  // error: expression may not be well defined, and error: loop invariant may not hold
+      invariant F(a) != null;  // error: expression may not be well defined (fn precond), and error: loop invariant may not hold
       decreases F(a), 100 - i;  // error: component 0 not well defined
     {
       i := i + 1;
@@ -129,7 +129,7 @@ class StatementTwoShoes {
   method S(a: int)
   {
     var j := 0;
-    while (20 / a == 5 && j < 100)  // error: guard may not be well defined
+    while (20 / a == 5 && j < 100)  // error: guard may not be well defined (div by zero)
       invariant j <= 100;
       decreases F(101 - j), 100 - j;
     {
@@ -148,7 +148,7 @@ class StatementTwoShoes {
       j := j + 1;
     }
     j := 0;
-    while (20 / k == 5 && j < 100)  // error: guard may not be well defined
+    while (20 / k == 5 && j < 100)  // error: guard may not be well defined (div by zero)
       decreases 100 - j;
     {
       havoc k;
@@ -167,7 +167,7 @@ class StatementTwoShoes {
     }
     i := 0;
     while (i < 100)
-      invariant F(if i==77 then -3 else i) == this;  // error: expression may not be well defined
+      invariant F(if i==77 then -3 else i) == this;  // error: expression may not be well defined (fn precond)
     {
       i := i + 1;
       if (i == 77) { i := i + 1; }
@@ -188,7 +188,7 @@ class StatementTwoShoes {
       use G(5 / m.x);  // fine, because there are no welldefinedness checks on use statements
       m.x := m.x + 1;
     }
-    foreach (m in s + {F(a)})  // error: collection expression may not be well defined
+    foreach (m in s + {F(a)})  // error: collection expression may not be well defined (fn precondition)
     {
       m.x := 5;  // error: possible modifies clause violation
     }
@@ -207,7 +207,7 @@ class StatementTwoShoes {
     var i := 0;
     while (i < 100)
       // The following line produces two complaints, thanks to the w-encoding of the loop's invariant definedness checking
-      invariant 5 / x != 5 / x;  // error: not well-defined, and error: loop invariant does not hold initially
+      invariant 5 / x != 5 / x;  // error: not well-defined (div by zero), and error: loop invariant does not hold initially
     {
       i := i + 1;
     }

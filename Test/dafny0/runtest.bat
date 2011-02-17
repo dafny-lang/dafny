@@ -15,7 +15,8 @@ for %%f in (TypeTests.dfy SmallTests.dfy Definedness.dfy FunctionSpecifications.
             Array.dfy MultiDimArray.dfy
             Modules0.dfy Modules1.dfy BadFunction.dfy
             Termination.dfy Use.dfy DTypes.dfy
-            TypeParameters.dfy Datatypes.dfy SplitExpr.dfy Refinement.dfy RefinementErrors.dfy) do (
+            TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy SplitExpr.dfy
+            Refinement.dfy RefinementErrors.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 %* %%f

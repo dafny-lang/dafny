@@ -79,8 +79,8 @@ class Modifies {
   {
     x := x + 1;
     while (p != null && p.x < 75)
-      decreases 75 - p.x;  // error: not defined at top of each iteration (there's good reason to
-    {                      // insist on this; for example, the decrement check could not be performed
+      decreases 75 - p.x;  // error: not defined (null deref) at top of each iteration (there's good reason
+    {                      // to insist on this; for example, the decrement check could not be performed
       p.x := p.x + 1;      // at the end of the loop body if p were set to null in the loop body)
     }
   }
@@ -181,4 +181,54 @@ class Modifies {
       assert s != {1,0};
     }
   }
+}
+
+// ------------------ allocated --------------------------------------------------
+
+class AllocatedTests {
+  method M(r: AllocatedTests, k: Node, S: set<Node>, d: Lindgren)
+  {
+    assert allocated(r);
+    
+    var n := new Node;
+    var t := S + {n};
+    assert allocated(t);
+
+    assert allocated(d);
+    if (*) {
+      assert old(allocated(n));  // error: n was not allocated in the initial state
+    } else {
+      assert !old(allocated(n));  // correct
+    }
+
+    var U := {k,n};
+    if (*) {
+      assert old(allocated(U));  // error: n was not allocated initially
+    } else {
+      assert !old(allocated(U));  // correct (note, the assertion does NOT say: everything was unallocated in the initial state)
+    }
+
+    assert allocated(6);
+    assert allocated(6);
+    assert allocated(null);
+    assert allocated(#Lindgren.HerrNilsson);
+
+    match (d) {
+      case Pippi(n) => assert allocated(n);
+      case Longstocking(q, dd) => assert allocated(q); assert allocated(dd);
+      case HerrNilsson => assert old(allocated(d));
+    }
+    var ls := #Lindgren.Longstocking([], d);
+    assert allocated(ls);
+    assert old(allocated(ls));
+
+    assert old(allocated(#Lindgren.Longstocking([r], d)));
+    assert old(allocated(#Lindgren.Longstocking([n], d)));  // error, because n was not allocated initially
+  }
+}
+
+datatype Lindgren {
+  Pippi(Node);
+  Longstocking(seq<object>, Lindgren);
+  HerrNilsson;
 }

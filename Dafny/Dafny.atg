@@ -1188,6 +1188,8 @@ ConstAtomExpression<out Expression/*!*/ e>
     ")" ]                                      (. e = new DatatypeValue(t, dtName.val, id.val, elements); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e> ")"                  (. e = new FreshExpr(x, e); .)
+  | "allocated"                                (. x = t; .)
+    "(" Expression<out e> ")"                  (. e = new AllocatedExpr(x, e); .)
   | "|"                                        (. x = t; .)
       Expression<out e>                        (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
     "|"

@@ -1992,7 +1992,13 @@ namespace Microsoft.Dafny {
           Error(expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);
         }
         expr.Type = Type.Bool;
-        
+
+      } else if (expr is AllocatedExpr) {
+        AllocatedExpr e = (AllocatedExpr)expr;
+        ResolveExpression(e.E, twoState, specContext);
+        // e.E can be of any type
+        expr.Type = Type.Bool;
+
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         ResolveExpression(e.E, twoState, specContext);
@@ -2479,8 +2485,9 @@ namespace Microsoft.Dafny {
         OldExpr e = (OldExpr)expr;
         return UsesSpecFeatures(e.E);
       } else if (expr is FreshExpr) {
-        FreshExpr e = (FreshExpr)expr;
-        return UsesSpecFeatures(e.E);
+        return true;
+      } else if (expr is AllocatedExpr) {
+        return true;
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         return UsesSpecFeatures(e.E);

@@ -1622,30 +1622,22 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class MatchCaseStmt {
-    public readonly IToken tok;
-    public readonly string Id;
-    public DatatypeCtor Ctor;  // filled in by resolution
-    public readonly List<BoundVar/*!*/>/*!*/ Arguments;
+  public class MatchCaseStmt : MatchCase
+  {
     public readonly List<Statement/*!*/>/*!*/ Body;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(tok != null);
-      Contract.Invariant(Id != null);
-      Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-
-    public MatchCaseStmt(IToken tok, string id, [Captured] List<BoundVar/*!*/>/*!*/ arguments, [Captured] List<Statement/*!*/>/*!*/ body) {
+    public MatchCaseStmt(IToken tok, string id, [Captured] List<BoundVar/*!*/>/*!*/ arguments, [Captured] List<Statement/*!*/>/*!*/ body)
+      : base(tok, id, arguments)
+    {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
-      this.tok = tok;
-      this.Id = id;
-      this.Arguments = arguments;
       this.Body = body;
     }
   }
@@ -1989,11 +1981,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       E = expr;
-
     }
   }
 
-  public class UnaryExpr : Expression {
+  public class AllocatedExpr : Expression
+  {
+    public readonly Expression E;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(E != null);
+    }
+
+    public AllocatedExpr(IToken tok, Expression expr)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      E = expr;
+    }
+  }
+
+  public class UnaryExpr : Expression
+  {
     public enum Opcode {
       Not,
       SeqLength
@@ -2266,29 +2274,44 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class MatchCaseExpr {
+  public abstract class MatchCase
+  {
     public readonly IToken tok;
     public readonly string Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public readonly List<BoundVar/*!*/>/*!*/ Arguments;
-    public readonly Expression/*!*/ Body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
       Contract.Invariant(Id != null);
-      Contract.Invariant(Body != null);
       Contract.Invariant(cce.NonNullElements(Arguments));
     }
 
+    public MatchCase(IToken tok, string id, [Captured] List<BoundVar/*!*/>/*!*/ arguments) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      Contract.Requires(cce.NonNullElements(arguments));
+      this.tok = tok;
+      this.Id = id;
+      this.Arguments = arguments;
+    }
+  }
 
-    public MatchCaseExpr(IToken tok, string id, [Captured] List<BoundVar/*!*/>/*!*/ arguments, Expression body) {
+  public class MatchCaseExpr : MatchCase
+  {
+    public readonly Expression/*!*/ Body;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Body != null);
+    }
+
+    public MatchCaseExpr(IToken tok, string id, [Captured] List<BoundVar/*!*/>/*!*/ arguments, Expression body)
+      : base(tok, id, arguments)
+    {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(body != null);
-      this.tok = tok;
-      this.Id = id;
-      this.Arguments = arguments;
       this.Body = body;
     }
   }

@@ -13,7 +13,7 @@ syntax keyword dafnyStatement havoc assume assert return call new print break la
 syntax keyword dafnyKeyword var ghost returns null static this refines replaces by
 syntax keyword dafnyType int bool seq set object array array2 array3
 syntax keyword dafnyLogic requires ensures modifies reads decreases invariant 
-syntax keyword dafnyOperator forall exists old fresh
+syntax keyword dafnyOperator forall exists old fresh allocated
 syntax keyword dafnyBoolean true false
   
 syntax region dafnyString start=/"/ skip=/\\"/ end=/"/

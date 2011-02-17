@@ -63,3 +63,33 @@ class AnotherNode {
     r.next := n;
   }
 }
+
+method TestAllocatednessAxioms(a: List<Node>, b: List<Node>, c: List<AnotherNode>)
+{
+  var n := new Node;
+  var p := n;
+  match a {
+    case Nil =>
+    case Cons(x, tail) => assert x != n; p := x;
+  }
+  match b {
+    case Nil =>
+    case Cons(x, tail) =>
+      match tail {
+        case Nil =>
+        case Cons(y, more) =>
+          assert y != n;
+          assert y != p;  // error: if p is car(a), then it and y may very well be equal
+      }
+  }
+  match c {
+    case Nil =>
+    case Cons(x, tail) =>
+      match tail {
+        case Nil =>
+        case Cons(y, more) =>
+          var o: object := y;
+          assert p != null ==> p != o;  // follows from well-typedness
+      }
+  }
+}

@@ -101,7 +101,7 @@ namespace Microsoft.Dafny {
     public void PrintClass_Members(ClassDecl c, int indent)
     {
       Contract.Requires(c != null);
-      Contract.Requires(c.Members.Count != 0);
+      Contract.Requires( c.Members.Count != 0);
     
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in c.Members) {
@@ -184,7 +184,7 @@ namespace Microsoft.Dafny {
         if (arg.S != null) {
           wr.Write("\"{0}\"", arg.S);
         } else {
-          Contract.Assert(arg.E != null);
+          Contract.Assert( arg.E != null);
           PrintExpression(arg.E);
         }
       }
@@ -260,7 +260,7 @@ namespace Microsoft.Dafny {
     const int IndentAmount = 2;
     const string BunchaSpaces = "                                ";
     void Indent(int amount)
-    {  Contract.Requires(0 <= amount);
+    {  Contract.Requires( 0 <= amount);
     
       while (0 < amount) {
         wr.Write(BunchaSpaces.Substring(0, amount));
@@ -667,7 +667,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, int indent)
     {
-      Contract.Requires(-1 <= indent);
+      Contract.Requires( -1 <= indent);
     
       Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
@@ -728,7 +728,7 @@ namespace Microsoft.Dafny {
         PrintExpr(e.Seq, 0x00, false, indent);  // BOGUS: fix me
         wr.Write("[");
         if (e.SelectOne) {
-          Contract.Assert(e.E0 != null);
+          Contract.Assert( e.E0 != null);
           PrintExpression(e.E0);
         } else {
           if (e.E0 != null) {
@@ -805,7 +805,12 @@ namespace Microsoft.Dafny {
         wr.Write("fresh(");
         PrintExpression(((FreshExpr)expr).E);
         wr.Write(")");
-      
+
+      } else if (expr is AllocatedExpr) {
+        wr.Write("allocated(");
+        PrintExpression(((AllocatedExpr)expr).E);
+        wr.Write(")");
+
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.SeqLength) {

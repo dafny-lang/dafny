@@ -445,6 +445,9 @@ namespace Microsoft.Dafny {
             }
           }
 
+        } else if (member is CouplingInvariant) {
+          Error("coupling invariants are not supported in compilation");
+
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }

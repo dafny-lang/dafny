@@ -25,8 +25,7 @@ class C {
   method A1(a: CP<int,C>)
   {
     var x: object := a;
-    assert (forall b: CP<int,Stack> :: x == b ==> b == null);  // error (we don't add a type antecedent to
-                                                               // quantifiers; is that what we want?)
+    assert (forall b: CP<int,Stack> :: x == b ==> b == null);  // follows from type antecedents
   }
 
   var a2x: set<CP<C,Node>>;

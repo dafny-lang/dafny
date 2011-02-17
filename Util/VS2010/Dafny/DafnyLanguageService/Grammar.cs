@@ -27,7 +27,7 @@ namespace Demo
           "in", "forall", "exists",
           "seq", "set", "array", "array2", "array3",
           "match", "case",
-          "fresh", "old"
+          "fresh", "allocated", "old"
           );
 
         StringLiteral s = new StringLiteral("String", "'", StringFlags.AllowsDoubledQuote);
@@ -335,6 +335,7 @@ namespace Demo
           | "match"
           | "case"
           | "fresh"
+          | "allocated"
           | "old"
           | ident
           | "}"

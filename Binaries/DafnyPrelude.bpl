@@ -51,6 +51,15 @@ function Set#Intersection<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
   Set#Intersection(a,b)[o] <==> a[o] && b[o]);
 
+axiom (forall<T> a, b: Set T :: { Set#Union(Set#Union(a, b), b) }
+  Set#Union(Set#Union(a, b), b) == Set#Union(a, b));
+axiom (forall<T> a, b: Set T :: { Set#Union(a, Set#Union(a, b)) }
+  Set#Union(a, Set#Union(a, b)) == Set#Union(a, b));
+axiom (forall<T> a, b: Set T :: { Set#Intersection(Set#Intersection(a, b), b) }
+  Set#Intersection(Set#Intersection(a, b), b) == Set#Intersection(a, b));
+axiom (forall<T> a, b: Set T :: { Set#Intersection(a, Set#Intersection(a, b)) }
+  Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
+
 function Set#Difference<T>(Set T, Set T) returns (Set T);
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Difference(a,b)[o] }
   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
@@ -205,8 +214,8 @@ const unique class.bool: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
 
-function dtype(ref) returns (ClassName);
-function TypeParams(ref, int) returns (ClassName);
+function /*{:never_pattern true}*/ dtype(ref) returns (ClassName);
+function /*{:never_pattern true}*/ TypeParams(ref, int) returns (ClassName);
 
 function TypeTuple(a: ClassName, b: ClassName) returns (ClassName);
 function TypeTupleCar(ClassName) returns (ClassName);
@@ -221,6 +230,9 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 // ---------------------------------------------------------------
 
 type DatatypeType;
+
+function /*{:never_pattern true}*/ DtType(DatatypeType) returns (ClassName);  // the analog of dtype for datatype values
+function /*{:never_pattern true}*/ DtTypeParams(DatatypeType, int) returns (ClassName);  // the analog of TypeParams
 
 type DtCtorId;
 function DatatypeCtorId(DatatypeType) returns (DtCtorId);
@@ -244,9 +256,6 @@ type Field alpha;
 
 function FDim<T>(Field T): int;
 
-const unique alloc: Field bool;
-axiom FDim(alloc) == 0;
-
 function IndexField(int): Field BoxType;
 axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
 function IndexField_Inverse<T>(Field T): int;
@@ -262,6 +271,50 @@ axiom (forall f: Field BoxType, i: int :: { MultiIndexField(f,i) }
 
 
 function DeclType<T>(Field T) returns (ClassName);
+
+// ---------------------------------------------------------------
+// -- Allocatedness ----------------------------------------------
+// ---------------------------------------------------------------
+
+const unique alloc: Field bool;
+axiom FDim(alloc) == 0;
+
+function DtAlloc(DatatypeType, HeapType): bool;
+axiom (forall h, k: HeapType, d: DatatypeType ::
+  { $HeapSucc(h, k), DtAlloc(d, h) }
+  { $HeapSucc(h, k), DtAlloc(d, k) }
+  $HeapSucc(h, k) ==> DtAlloc(d, h) ==> DtAlloc(d, k));
+
+function GenericAlloc(BoxType, HeapType): bool;
+axiom (forall h: HeapType, k: HeapType, d: BoxType ::
+  { $HeapSucc(h, k), GenericAlloc(d, h) }
+  { $HeapSucc(h, k), GenericAlloc(d, k) }
+  $HeapSucc(h, k) ==> GenericAlloc(d, h) ==> GenericAlloc(d, k));
+// GenericAlloc ==>
+axiom (forall b: BoxType, h: HeapType ::
+  { GenericAlloc(b, h), h[$Unbox(b): ref, alloc] }
+  GenericAlloc(b, h) ==>
+  $Unbox(b): ref == null || h[$Unbox(b): ref, alloc]);
+axiom (forall b: BoxType, h: HeapType, i: int ::
+  { GenericAlloc(b, h), Seq#Index($Unbox(b): Seq BoxType, i) }
+  GenericAlloc(b, h) &&
+  0 <= i && i < Seq#Length($Unbox(b): Seq BoxType) ==>
+  GenericAlloc( Seq#Index($Unbox(b): Seq BoxType, i), h ) );
+axiom (forall b: BoxType, h: HeapType, t: BoxType ::
+  { GenericAlloc(b, h), ($Unbox(b): Set BoxType)[t] }
+  GenericAlloc(b, h) && ($Unbox(b): Set BoxType)[t] ==>
+  GenericAlloc(t, h));
+axiom (forall b: BoxType, h: HeapType ::
+  { GenericAlloc(b, h), DtType($Unbox(b): DatatypeType) }
+  GenericAlloc(b, h) ==> DtAlloc($Unbox(b): DatatypeType, h));
+// ==> GenericAlloc
+axiom (forall b: bool, h: HeapType ::
+  $IsGoodHeap(h) ==> GenericAlloc($Box(b), h));
+axiom (forall x: int, h: HeapType ::
+  $IsGoodHeap(h) ==> GenericAlloc($Box(x), h));
+axiom (forall r: ref, h: HeapType ::
+  { GenericAlloc($Box(r), h) }
+  $IsGoodHeap(h) && (r == null || h[r,alloc]) ==> GenericAlloc($Box(r), h));
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------

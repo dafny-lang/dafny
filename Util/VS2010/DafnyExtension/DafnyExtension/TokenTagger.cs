@@ -233,6 +233,7 @@ namespace DafnyLanguage
             } else {
               switch (s) {
                 #region keywords
+                case "allocated":
                 case "array":
                 case "assert":
                 case "assume":

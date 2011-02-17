@@ -132,3 +132,29 @@ method IsRogerCool(n: int)
     assert RogerThat(2 < 3 && n < n && n < n+1);  // same here; cool, huh?
   }
 }
+
+// ----------------------
+
+class TyKn_C<T> {
+  var x: T;
+  function G(): T;
+  method M() returns (t: T);
+}
+
+class TyKn_K {
+  function F(): int { 176 }
+}
+
+method TyKn_Main(k0: TyKn_K) {
+  var c := new TyKn_C<TyKn_K>;
+  var k1: TyKn_K;
+
+  assert k0 != null ==> k0.F() == 176;
+  assert k1 != null ==> k1.F() == 176;
+
+  assert c.x != null ==> c.x.F() == 176;  // the Dafny encoding needs the canCall mechanism to verify this
+  assert c.G() != null ==> c.G().F() == 176;  // ditto
+  call k2 := c.M();
+  assert k2 != null ==> k2.F() == 176;  // the canCall mechanism does the trick here, but so does the encoding
+                                        // via k2's where clause
+}

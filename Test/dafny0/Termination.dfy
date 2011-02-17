@@ -264,3 +264,51 @@ function Zipper2<T>(a: List<T>, b: List<T>): List<T>
   case Nil => b
   case Cons(x, c) => #List.Cons(x, Zipper2(b, c))
 }
+
+// -------------------------- test translation of while (*) -----------------
+
+method WhileStar0(n: int)
+  requires 2 <= n;
+{
+  var m := n;
+  var k := 0;
+  while (*)
+    invariant 0 <= k && 0 <= m;
+    decreases *;
+  {
+    k := k + m;
+    m := m + k;
+  }
+  assert 0 <= k;
+}
+
+method WhileStar1()
+{
+  var k := 0;
+  while (*)  // error: failure to prove termination
+  {
+    k := k + 1;
+    if (k == 17) { break; }
+  }
+}
+
+method WhileStar2()
+{
+  var k := 0;
+  while (*)
+    invariant k < 17;
+    decreases 17 - k;
+  {
+    k := k + 1;
+    if (k == 17) { break; }
+  }
+}
+
+// -----------------
+
+function ReachBack(n: int): bool
+  requires 0 <= n;
+  ensures ReachBack(n);
+{
+  (forall m :: 0 <= m && m < n ==> ReachBack(m))
+}
