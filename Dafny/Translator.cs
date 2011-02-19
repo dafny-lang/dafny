@@ -2208,20 +2208,9 @@ namespace Microsoft.Dafny {
           if (p.IsFree) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
-            List<Expression> definitions, pieces;
-            if (!SplitExpr(p.E, out definitions, out pieces)) {
-              req.Add(Requires(p.E.tok, false, etran.TrExpr(p.E), null, comment));
-            } else {
-              req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));  // add the entire condition as a free precondition
-              Bpl.Expr ante = Bpl.Expr.True;
-              foreach (Expression d in definitions) {
-                Bpl.Expr trD = etran.TrExpr(d);
-                req.Add(Requires(d.tok, true, trD, null, null));
-                ante = Bpl.Expr.And(ante, trD);
-              }
-              foreach (Expression se in pieces) {
-                req.Add(Requires(se.tok, false, Bpl.Expr.Imp(ante, etran.TrExpr(se)), null, null));  // TODO: it would be fine to have these use {:subsumption 0}
-              }
+            bool splitHappened;  // we actually don't care
+            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+              req.Add(Requires(s.E.tok, s.IsFree, s.E, null, null));
             }
           }
           comment = null;
@@ -2231,20 +2220,9 @@ namespace Microsoft.Dafny {
           if (p.IsFree) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
-            List<Expression> definitions, pieces;
-            if (!SplitExpr(p.E, out definitions, out pieces)) {
-              ens.Add(Ensures(p.E.tok, false, etran.TrExpr(p.E), null, comment));
-            } else {
-              ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));  // add the entire condition as a free postcondition
-              Bpl.Expr ante = Bpl.Expr.True;
-              foreach (Expression d in definitions) {
-                Bpl.Expr trD = etran.TrExpr(d);
-                ens.Add(Ensures(d.tok, true, trD, null, null));
-                ante = Bpl.Expr.And(ante, trD);
-              }
-              foreach (Expression se in pieces) {
-                ens.Add(Ensures(se.tok, false, Bpl.Expr.Imp(ante, etran.TrExpr(se)), null, null));  // TODO: it would be fine to have these use {:subsumption 0}
-              }
+            bool splitHappened;  // we actually don't care
+            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+              ens.Add(Ensures(s.E.tok, s.IsFree, s.E, null, null));
             }
           }
           comment = null;
@@ -2692,15 +2670,15 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "assert statement");
         AssertStmt s = (AssertStmt)stmt;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        List<Expression> definitions, pieces;
-        if (!SplitExpr(s.Expr, out definitions, out pieces)) {
+        bool splitHappened;
+        var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
+        if (!splitHappened) {
           builder.Add(Assert(s.Expr.tok, etran.TrExpr(s.Expr), "assertion violation"));
         } else {
-          foreach (Expression p in definitions) {
-            builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
-          }
-          foreach (Expression p in pieces) {
-            builder.Add(AssertNS(p.tok, etran.TrExpr(p), "assertion violation"));
+          foreach (var split in ss) {
+            if (!split.IsFree) {
+              builder.Add(AssertNS(split.E.tok, split.E, "assertion violation"));
+            }
           }
           builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
         }
@@ -2910,20 +2888,20 @@ namespace Microsoft.Dafny {
           if (loopInv.IsFree) {
             invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
           } else {
-            List<Expression> definitions, pieces;
-            if (!SplitExpr(loopInv.E, out definitions, out pieces)) {
-              invariants.Add(Assert(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E)), "loop invariant violation"));
+            bool splitHappened;
+            var ss = TrSplitExpr(loopInv.E, etran, out splitHappened);
+            if (!splitHappened) {
+              var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
+              invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
             } else {
-              Bpl.Expr ante = w;
-              foreach (Expression d in definitions) {
-                Bpl.Expr trD = etran.TrExpr(d);
-                invariants.Add(new Bpl.AssumeCmd(d.tok, trD));
-                ante = Bpl.Expr.And(ante, trD);
+              foreach (var split in ss) {
+                var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
+                if (split.IsFree) {
+                  invariants.Add(new Bpl.AssumeCmd(split.E.tok, wInv));
+                } else {
+                  invariants.Add(Assert(split.E.tok, wInv, "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+                }
               }
-              foreach (Expression se in pieces) {
-                invariants.Add(Assert(se.tok, Bpl.Expr.Imp(ante, etran.TrExpr(se)), "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
-              }
-              invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
             }
           }
         }
@@ -3047,17 +3025,22 @@ namespace Microsoft.Dafny {
           if (ps is AssertStmt) {
             Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, IsTotal(ps.Expr, etran)));
             builder.Add(AssertNS(ps.Expr.tok, q, "assert condition must be well defined"));  // totality check
-            List<Expression> definitions, pieces;
-            SplitExpr(ps.Expr, out definitions, out pieces);
-            foreach (Expression d in definitions) {
-              Bpl.Expr e = etran.TrExpr(d);
-              q = new Bpl.ForallExpr(d.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
-              builder.Add(new Bpl.AssumeCmd(d.tok, q));
-            }
-            foreach (Expression se in pieces) {
-              Bpl.Expr e = etran.TrExpr(se);
-              q = new Bpl.ForallExpr(se.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
-              builder.Add(Assert(se.tok, q, "assertion violation"));  // TODO: it would be a fine idea to let this use {:subsumption 0}
+            bool splitHappened;
+            var ss = TrSplitExpr(ps.Expr, etran, out splitHappened);
+            if (!splitHappened) {
+              Bpl.Expr e = etran.TrExpr(ps.Expr);
+              q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
+              builder.Add(Assert(ps.Expr.tok, q, "assertion violation"));
+            } else {
+              foreach (var split in ss) {
+                if (!split.IsFree) {
+                  q = new Bpl.ForallExpr(split.E.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, split.E));
+                  builder.Add(AssertNS(split.E.tok, q, "assertion violation"));
+                }
+              }
+              Bpl.Expr e = etran.TrExpr(ps.Expr);
+              q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, e));
+              builder.Add(new Bpl.AssumeCmd(ps.Expr.tok, q));
             }
           } else if (ps is AssumeStmt) {
             Bpl.Expr eIsTotal = IsTotal(ps.Expr, etran);
@@ -3781,16 +3764,23 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "$InMethodContext", Bpl.Type.Bool);
       }
 
+      /// <summary>
+      /// Translates Dafny expression "expr" into a Boogie expression.  If the type of "expr" can be a boolean, then the
+      /// token (source location) of the resulting expression is filled in (it wouldn't hurt if the token were always
+      /// filled in, but it is really necessary for anything that may show up in a Boogie assert, since that location may
+      /// then show up in an error message).
+      /// </summary>
       public Bpl.Expr TrExpr(Expression expr)
       {
         Contract.Requires(expr != null);
         Contract.Requires(predef != null);
+
         if (expr is LiteralExpr) {
           LiteralExpr e = (LiteralExpr)expr;
           if (e.Value == null) {
             return predef.Null;
           } else if (e.Value is bool) {
-            return Bpl.Expr.Literal((bool)e.Value);
+            return new Bpl.LiteralExpr(e.tok, (bool)e.Value);
           } else if (e.Value is BigInteger) {
             return Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value));
           } else {
@@ -3953,7 +3943,7 @@ namespace Microsoft.Dafny {
             // generate:  x == null || !old($Heap)[x]
             Bpl.Expr oNull = Bpl.Expr.Eq(TrExpr(e.E), predef.Null);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, TrExpr(e.E), oldHeap));
-            return Bpl.Expr.Or(oNull, oIsFresh);
+            return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Or, oNull, oIsFresh);
           }
 
         } else if (expr is AllocatedExpr) {
@@ -3966,7 +3956,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr arg = TrExpr(e.E);
           switch (e.Op) {
             case UnaryExpr.Opcode.Not:
-              return Bpl.Expr.Not(arg);
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
             case UnaryExpr.Opcode.SeqLength:
               if (e.E.Type is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
@@ -3984,47 +3974,48 @@ namespace Microsoft.Dafny {
             return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
             Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
-            return Bpl.Expr.Not(arg);
+            return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
           }
           Bpl.Expr e1 = TrExpr(e.E1);
+          BinaryOperator.Opcode bOpcode;
           switch (e.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Iff:
-              return Bpl.Expr.Iff(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Iff; break;
             case BinaryExpr.ResolvedOpcode.Imp:
-              return Bpl.Expr.Imp(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Imp; break;
             case BinaryExpr.ResolvedOpcode.And:
-              return Bpl.Expr.And(e0, e1);
+              bOpcode = BinaryOperator.Opcode.And; break;
             case BinaryExpr.ResolvedOpcode.Or:
-              return Bpl.Expr.Or(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Or; break;
               
             case BinaryExpr.ResolvedOpcode.EqCommon:
-              return Bpl.Expr.Eq(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Eq; break;
             case BinaryExpr.ResolvedOpcode.NeqCommon:
-              return Bpl.Expr.Neq(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Neq; break;
               
             case BinaryExpr.ResolvedOpcode.Lt:
-              return Bpl.Expr.Lt(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Lt; break;
             case BinaryExpr.ResolvedOpcode.Le:
-              return Bpl.Expr.Le(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Le; break;
             case BinaryExpr.ResolvedOpcode.Ge:
-              return Bpl.Expr.Ge(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Ge; break;
             case BinaryExpr.ResolvedOpcode.Gt:
-              return Bpl.Expr.Gt(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Gt; break;
             case BinaryExpr.ResolvedOpcode.Add:
-              return Bpl.Expr.Add(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Add; break;
             case BinaryExpr.ResolvedOpcode.Sub:
-              return Bpl.Expr.Sub(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Sub; break;
             case BinaryExpr.ResolvedOpcode.Mul:
-              return Bpl.Expr.Mul(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Mul; break;
             case BinaryExpr.ResolvedOpcode.Div:
-              return Bpl.Expr.Div(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Div; break;
             case BinaryExpr.ResolvedOpcode.Mod:
-              return Bpl.Expr.Mod(e0, e1);
+              bOpcode = BinaryOperator.Opcode.Mod; break;
 
             case BinaryExpr.ResolvedOpcode.SetEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.SetNeq:
-              return Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1));
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperSubset:
               return ProperSubset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.Subset:
@@ -4032,7 +4023,7 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Superset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0);
             case BinaryExpr.ResolvedOpcode.ProperSuperset:
-              return Bpl.Expr.And(
+              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
                 translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0),
                 Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1)));
             case BinaryExpr.ResolvedOpcode.Disjoint:
@@ -4049,14 +4040,14 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.SeqEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.SeqNeq:
-              return Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1));
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperPrefix:
               return ProperPrefix(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.Prefix:
               {
                 Bpl.Expr len0 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e0);
                 Bpl.Expr len1 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e1);
-                return Bpl.Expr.And(
+                return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
                   Bpl.Expr.Le(len0, len1),
                   translator.FunctionCall(expr.tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
               }
@@ -4068,20 +4059,21 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.NotInSeq:
               Bpl.Expr arg = translator.FunctionCall(expr.tok, BuiltinFunction.SeqContains, null, e1,
                        BoxIfNecessary(expr.tok, e0, cce.NonNull(e.E0.Type)));
-              return Bpl.Expr.Not(arg);
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
 
             case BinaryExpr.ResolvedOpcode.RankLt:
-              return Bpl.Expr.Lt(
+              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Lt,
                 translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e0),
                 translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e1));
             case BinaryExpr.ResolvedOpcode.RankGt:
-              return Bpl.Expr.Gt(
+              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Gt,
                 translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e0),
                 translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e1));
               
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
           }
+          return Bpl.Expr.Binary(expr.tok, bOpcode, e0, e1);
         
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
@@ -4734,100 +4726,99 @@ namespace Microsoft.Dafny {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, name, Bpl.Type.Int)), new Bpl.ExprSeq(arr));
     }
 
-    public bool SplitExpr(Expression expr, out List<Expression/*!*/>/*!*/ definitions, out List<Expression/*!*/>/*!*/ pieces) {
-      Contract.Requires(expr != null);
-      Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out definitions)));
-      Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out pieces)));
-      definitions = new List<Expression>();
-      pieces = new List<Expression>();
-      return SplitExpr(expr, true, definitions, pieces);
+    public class SplitExprInfo
+    {
+      public readonly bool IsFree;
+      public readonly Bpl.Expr E;
+      public SplitExprInfo(bool isFree, Bpl.Expr e) {
+        Contract.Requires(e != null);
+        IsFree = isFree;
+        E = e;
+      }
     }
 
-    ///<summary>
-    /// Returns false if no split occurred (in that case, nothing was added to definitions, and (exactly) expr itself was added to pieces.
-    ///</summary>
-    public bool SplitExpr(Expression expr, bool expandFunctions, List<Expression/*!*/>/*!*/ definitions, List<Expression/*!*/>/*!*/ pieces)
-     {
+    internal List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, out bool splitHappened) {
       Contract.Requires(expr != null);
-      Contract.Requires(cce.NonNullElements(definitions));
-      Contract.Requires(cce.NonNullElements(pieces));
+      Contract.Requires(etran != null);
+      Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
+
+      var splits = new List<SplitExprInfo>();
+      splitHappened = TrSplitExpr(expr, splits, true, etran);
+      return splits;
+    }
+
+    internal bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool expandFunctions, ExpressionTranslator etran) {
+      Contract.Requires(expr != null);
       Contract.Requires(expr.Type is BoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type is BoolType));
+      Contract.Requires(splits != null);
+      Contract.Requires(etran != null);
+
       if (expr is BoxingCastExpr) {
-        BoxingCastExpr bce = (BoxingCastExpr)expr;
-        List<Expression> pp = new List<Expression>();
-        if (SplitExpr(bce.E, expandFunctions, definitions, pp)) {
-          foreach (Expression e in pp) {
-            Expression r = new BoxingCastExpr(e, bce.FromType, bce.ToType);
-            r.Type = bce.ToType;  // resolve here
-            pieces.Add(r);
+        var bce = (BoxingCastExpr)expr;
+        var ss = new List<SplitExprInfo>();
+        if (TrSplitExpr(bce.E, ss, expandFunctions, etran)) {
+          foreach (var s in ss) {
+            splits.Add(new SplitExprInfo(s.IsFree, etran.CondApplyBox(s.E.tok, s.E, bce.FromType, bce.ToType)));
           }
           return true;
         }
-        
+
       } else if (expr is BinaryExpr) {
-        BinaryExpr bin = (BinaryExpr)expr;
+        var bin = (BinaryExpr)expr;
         if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          SplitExpr(bin.E0, expandFunctions, definitions, pieces);
-          SplitExpr(bin.E1, expandFunctions, definitions, pieces);
+          TrSplitExpr(bin.E0, splits, expandFunctions, etran);
+          TrSplitExpr(bin.E1, splits, expandFunctions, etran);
           return true;
-        
+
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          List<Expression> pp = new List<Expression>();
-          if (SplitExpr(bin.E1, expandFunctions, definitions, pp)) {
-            foreach (Expression e in pp) {
-              BinaryExpr r = new BinaryExpr(e.tok, bin.Op, bin.E0, e);
-              r.ResolvedOp = bin.ResolvedOp;  r.Type = bin.Type;  // resolve on the fly
-              pieces.Add(r);
-            }
-            return true;
-          }
-        }
-      
-      } else if (expr is ITEExpr) {
-        ITEExpr ite = (ITEExpr)expr;
-
-        List<Expression> pp = new List<Expression>();
-        SplitExpr(ite.Thn, expandFunctions, definitions, pp);
-        foreach (Expression e in pp) {
-          BinaryExpr r = new BinaryExpr(e.tok, BinaryExpr.Opcode.Imp, ite.Test, e);
-          r.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  r.Type = ite.Type;  // resolve on the fly
-          pieces.Add(r);
-        }
-
-        Expression negatedGuard = new UnaryExpr(ite.Test.tok, UnaryExpr.Opcode.Not, ite.Test);
-        negatedGuard.Type = ite.Test.Type;  // resolve on the fly
-        pp = new List<Expression>();
-        SplitExpr(ite.Els, expandFunctions, definitions, pp);
-        foreach (Expression e in pp) {
-          BinaryExpr r = new BinaryExpr(e.tok, BinaryExpr.Opcode.Imp, negatedGuard, e);
-          r.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  r.Type = ite.Type;  // resolve on the fly
-          pieces.Add(r);
-        }
-        return true;
-      
-      } else if (expr is OldExpr) {
-        List<Expression> dd = new List<Expression>();
-        List<Expression> pp = new List<Expression>();
-        if (SplitExpr(((OldExpr)expr).E, expandFunctions, dd, pp)) {
-          foreach (Expression e in dd) {
-            Expression r = new OldExpr(expr.tok, e);
-            r.Type = Type.Bool;  // resolve here
-            definitions.Add(r);
-          }
-          foreach (Expression e in pp) {
-            Expression r = new OldExpr(expr.tok, e);
-            r.Type = e.Type;  // resolve here
-            pieces.Add(r);
+          var lhs = etran.TrExpr(bin.E0);
+          var ss = new List<SplitExprInfo>();
+          TrSplitExpr(bin.E1, ss, expandFunctions, etran);
+          foreach (var s in ss) {
+            // as the source location in the following implication, use that of the translated "s"
+            splits.Add(new SplitExprInfo(s.IsFree, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, lhs, s.E)));
           }
           return true;
         }
-        
+
+      } else if (expr is ITEExpr) {
+        var ite = (ITEExpr)expr;
+
+        var ssThen = new List<SplitExprInfo>();
+        var ssElse = new List<SplitExprInfo>();
+        // Note: The following lines intentionally uses | instead of ||, because we need both calls to TrSplitExpr
+        if (TrSplitExpr(ite.Thn, ssThen, expandFunctions, etran) | TrSplitExpr(ite.Thn, ssElse, expandFunctions, etran)) {
+          var test = etran.TrExpr(ite.Test);
+          foreach (var s in ssThen) {
+            // as the source location in the following implication, use that of the translated "s"
+            splits.Add(new SplitExprInfo(s.IsFree, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, test, s.E)));
+          }
+
+          var negatedTest = Bpl.Expr.Not(test);
+          foreach (var s in ssElse) {
+            // as the source location in the following implication, use that of the translated "s"
+            splits.Add(new SplitExprInfo(s.IsFree, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, negatedTest, s.E)));
+          }
+
+          return true;
+        }
+
+      } else if (expr is OldExpr) {
+        var e = (OldExpr)expr;
+        var ss = new List<SplitExprInfo>();
+        if (TrSplitExpr(e.E, ss, expandFunctions, etran)) {
+          foreach (var s in ss) {
+            splits.Add(new SplitExprInfo(s.IsFree, new Bpl.OldExpr(s.E.tok, s.E)));
+          }
+          return true;
+        }
+
       } else if (expandFunctions && expr is FunctionCallExpr) {
-        FunctionCallExpr fexp = (FunctionCallExpr)expr;
+        var fexp = (FunctionCallExpr)expr;
         Contract.Assert(fexp.Function != null);  // filled in during resolution
         if (fexp.Function.Body != null && !(fexp.Function.Body is MatchExpr)) {
           // inline this body
-          Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
+          Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
           Contract.Assert(fexp.Args.Count == fexp.Function.Formals.Count);
           for (int i = 0; i < fexp.Function.Formals.Count; i++) {
             Formal p = fexp.Function.Formals[i];
@@ -4838,29 +4829,46 @@ namespace Microsoft.Dafny {
           }
           Expression body = Substitute(fexp.Function.Body, fexp.Receiver, substMap);
 
-          // add definition:  fn(args) ==> body
-          Expression bodyx = new UnboxingCastExpr(body, fexp.Function.ResultType, cce.NonNull(expr.Type));
-          bodyx.Type = expr.Type;  // resolve here
-          BinaryExpr def = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Imp, fexp, bodyx);
-          def.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  def.Type = Type.Bool;  // resolve on the fly
-          definitions.Add(def);
+          // Produce, for a "body" split into b0, b1, b2:
+          //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
+          //     checked F#canCall(args) ==> F(args) || b0
+          //     checked F#canCall(args) ==> F(args) || b1
+          //     checked F#canCall(args) ==> F(args) || b2
+          // Note that "body" does not contain limited calls.
+
+          // F#canCall(args)
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, fexp.Function.FullName + "#canCall", Bpl.Type.Bool);
+          ExprSeq args = etran.FunctionInvocationArguments(fexp);
+          Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+
+          // F(args)
+          Bpl.Expr fargs = etran.TrExpr(fexp);
+
+          // body
+          Bpl.Expr trBody = etran.TrExpr(body);
+          trBody = etran.CondApplyUnbox(trBody.tok, trBody, fexp.Function.ResultType, expr.Type);
+
+          // here goes the free piece:
+          splits.Add(new SplitExprInfo(true, BplAnd(canCall, BplAnd(fargs, trBody))));
 
           // recurse on body
-          List<Expression> pp = new List<Expression>();
-          SplitExpr(body, false, definitions, pp);
-          foreach (Expression e in pp) {
-            Expression r = new UnboxingCastExpr(e, fexp.Function.ResultType, expr.Type);
-            r.Type = expr.Type;  // resolve here
-            pieces.Add(r);
+          var ss = new List<SplitExprInfo>();
+          TrSplitExpr(body, ss, false, etran);
+          foreach (var s in ss) {
+            var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, fexp.Function.ResultType, expr.Type);
+            var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
+            var p = Bpl.Expr.Binary(new NestedToken(fexp.tok, s.E.tok), BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
+            splits.Add(new SplitExprInfo(s.IsFree, p));
           }
+
           return true;
         }
       }
 
-      pieces.Add(expr);
+      splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
       return false;
     }
-    
+
     static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullElements(substMap));

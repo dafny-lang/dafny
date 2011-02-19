@@ -252,10 +252,9 @@ namespace Microsoft.Boogie
 
     
 
-    static void ReportBplError(Absy node, string message, bool error)
+    static void ReportBplError(IToken tok, string message, bool error)
     {
-      Contract.Requires(node!= null);Contract.Requires(message != null);
-      IToken tok = node.tok;
+      Contract.Requires(message != null);
       string s;
       if (tok == null) {
         s = message;
@@ -266,6 +265,10 @@ namespace Microsoft.Boogie
         ErrorWriteLine(s);
       } else {
         Console.WriteLine(s);
+      }
+      if (tok is Dafny.NestedToken) {
+        var nt = (Dafny.NestedToken)tok;
+        ReportBplError(nt.Inner, "Related location", false);
       }
     }
 
@@ -501,7 +504,7 @@ namespace Microsoft.Boogie
             }
             catch (VCGenException e)
             {
-                ReportBplError(impl, String.Format("Error BP5010: {0}  Encountered in implementation {1}.", e.Message, impl.Name), true);
+                ReportBplError(impl.tok, String.Format("Error BP5010: {0}  Encountered in implementation {1}.", e.Message, impl.Name), true);
                 errors = null;
                 outcome = VCGen.Outcome.Inconclusive;
             }
@@ -557,8 +560,8 @@ namespace Microsoft.Boogie
                         if (error is CallCounterexample)
                         {
                             CallCounterexample err = (CallCounterexample)error;
-                            ReportBplError(err.FailingCall, "Error BP5002: A precondition for this call might not hold.", true);
-                            ReportBplError(err.FailingRequires, "Related location: This is the precondition that might not hold.", false);
+                            ReportBplError(err.FailingCall.tok, "Error BP5002: A precondition for this call might not hold.", true);
+                            ReportBplError(err.FailingRequires.tok, "Related location: This is the precondition that might not hold.", false);
                             if (CommandLineOptions.Clo.XmlSink != null)
                             {
                                 CommandLineOptions.Clo.XmlSink.WriteError("precondition violation", err.FailingCall.tok, err.FailingRequires.tok, error.Trace);
@@ -567,8 +570,8 @@ namespace Microsoft.Boogie
                         else if (error is ReturnCounterexample)
                         {
                             ReturnCounterexample err = (ReturnCounterexample)error;
-                            ReportBplError(err.FailingReturn, "Error BP5003: A postcondition might not hold on this return path.", true);
-                            ReportBplError(err.FailingEnsures, "Related location: This is the postcondition that might not hold.", false);
+                            ReportBplError(err.FailingReturn.tok, "Error BP5003: A postcondition might not hold on this return path.", true);
+                            ReportBplError(err.FailingEnsures.tok, "Related location: This is the postcondition that might not hold.", false);
                             if (CommandLineOptions.Clo.XmlSink != null)
                             {
                                 CommandLineOptions.Clo.XmlSink.WriteError("postcondition violation", err.FailingReturn.tok, err.FailingEnsures.tok, error.Trace);
@@ -579,7 +582,7 @@ namespace Microsoft.Boogie
                             AssertCounterexample err = (AssertCounterexample)error;
                             if (err.FailingAssert is LoopInitAssertCmd)
                             {
-                                ReportBplError(err.FailingAssert, "Error BP5004: This loop invariant might not hold on entry.", true);
+                                ReportBplError(err.FailingAssert.tok, "Error BP5004: This loop invariant might not hold on entry.", true);
                                 if (CommandLineOptions.Clo.XmlSink != null)
                                 {
                                     CommandLineOptions.Clo.XmlSink.WriteError("loop invariant entry violation", err.FailingAssert.tok, null, error.Trace);
@@ -588,7 +591,7 @@ namespace Microsoft.Boogie
                             else if (err.FailingAssert is LoopInvMaintainedAssertCmd)
                             {
                                 // this assertion is a loop invariant which is not maintained
-                                ReportBplError(err.FailingAssert, "Error BP5005: This loop invariant might not be maintained by the loop.", true);
+                                ReportBplError(err.FailingAssert.tok, "Error BP5005: This loop invariant might not be maintained by the loop.", true);
                                 if (CommandLineOptions.Clo.XmlSink != null)
                                 {
                                     CommandLineOptions.Clo.XmlSink.WriteError("loop invariant maintenance violation", err.FailingAssert.tok, null, error.Trace);
@@ -601,7 +604,7 @@ namespace Microsoft.Boogie
                                 {
                                     msg = "Error BP5001: This assertion might not hold.";
                                 }
-                                ReportBplError(err.FailingAssert, msg, true);
+                                ReportBplError(err.FailingAssert.tok, msg, true);
                                 if (CommandLineOptions.Clo.XmlSink != null)
                                 {
                                     CommandLineOptions.Clo.XmlSink.WriteError("assertion violation", err.FailingAssert.tok, null, error.Trace);

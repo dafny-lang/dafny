@@ -1644,7 +1644,48 @@ namespace Microsoft.Dafny {
 
   // ------------------------------------------------------------------------------------------------------
 
-  public abstract class Expression {
+  public class NestedToken : IToken
+  {
+    public NestedToken(IToken outer, IToken inner) {
+      Outer = outer;
+      Inner = inner;
+    }
+    public readonly IToken Outer;
+    public readonly IToken Inner;
+
+    public int col {
+      get { return Outer.col; }
+      set { Outer.col = value; }
+    }
+    public string filename {
+      get { return Outer.filename; }
+      set { Outer.filename = value; }
+    }
+    public bool IsValid {
+      get { return Outer.IsValid; }
+    }
+    public int kind {
+      get { return Outer.kind; }
+      set { Outer.kind = value; }
+    }
+    public int line {
+      get { return Outer.line; }
+      set { Outer.line = value; }
+    }
+    public int pos {
+      get { return Outer.pos; }
+      set { Outer.pos = value; }
+    }
+    public string val {
+      get { return Outer.val; }
+      set { Outer.val = value; }
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------------------
+
+  public abstract class Expression
+  {
     public readonly IToken tok;
     [ContractInvariantMethod]
     void ObjectInvariant() {

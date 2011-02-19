@@ -133,6 +133,22 @@ method IsRogerCool(n: int)
   }
 }
 
+method LoopyRoger(n: int)
+{
+  var i := 0;
+  while (i < n)
+    invariant RogerThat(0 <= n ==> i <= n);
+  {
+    i := i + 1;
+  }
+  i := 0;
+  while (i < n)
+    invariant RogerThat(0 <= n ==> i <= n);  // error: failure to maintain loop invariant
+  {
+    i := i + 2;
+  }
+}
+
 // ----------------------
 
 class TyKn_C<T> {
