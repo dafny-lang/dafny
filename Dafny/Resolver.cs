@@ -1128,9 +1128,14 @@ namespace Microsoft.Dafny {
             s.TargetStmt = target;
           }
         }
-      
+        if (specContextOnly) {
+          Error(stmt, "break statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        }
+
       } else if (stmt is ReturnStmt) {
-        // nothing to resolve
+        if (specContextOnly) {
+          Error(stmt, "return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        }
         
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;

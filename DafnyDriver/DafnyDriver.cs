@@ -268,7 +268,7 @@ namespace Microsoft.Boogie
       }
       if (tok is Dafny.NestedToken) {
         var nt = (Dafny.NestedToken)tok;
-        ReportBplError(nt.Inner, "Related location", false);
+        ReportBplError(nt.Inner, "Related location: Related location", false);
       }
     }
 
