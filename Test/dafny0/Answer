@@ -504,15 +504,15 @@ Use.dfy(126,23): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Use.dfy(151,12): Error: assertion violation
-Use.dfy(143,5): Related location
+Use.dfy(143,5): Related location: Related location
 Execution trace:
     (0,0): anon0
 Use.dfy(160,12): Error: assertion violation
-Use.dfy(143,5): Related location
+Use.dfy(143,5): Related location: Related location
 Execution trace:
     (0,0): anon0
 Use.dfy(169,12): Error: assertion violation
-Use.dfy(143,5): Related location
+Use.dfy(143,5): Related location: Related location
 Execution trace:
     (0,0): anon0
 Use.dfy(213,19): Error: assertion violation
@@ -541,21 +541,21 @@ Execution trace:
     (0,0): anon3_Then
     (0,0): anon2
 TypeParameters.dfy(130,12): Error: assertion violation
-TypeParameters.dfy(130,28): Related location
+TypeParameters.dfy(130,28): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then
     TypeParameters.dfy(130,32): anon15_Else
     (0,0): anon5
 TypeParameters.dfy(132,12): Error: assertion violation
-TypeParameters.dfy(132,33): Related location
+TypeParameters.dfy(132,33): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then
     TypeParameters.dfy(132,37): anon18_Else
     (0,0): anon11
 TypeParameters.dfy(146,15): Error BP5005: This loop invariant might not be maintained by the loop.
-TypeParameters.dfy(146,38): Related location
+TypeParameters.dfy(146,38): Related location: Related location
 Execution trace:
     (0,0): anon0
     TypeParameters.dfy(139,3): anon17_LoopHead
