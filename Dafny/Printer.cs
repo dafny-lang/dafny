@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
       if (f.Body != null) {
         Indent(indent);
         wr.WriteLine("{");
-        PrintExtendedExpr(f.Body, ind);
+        PrintExtendedExpr(f.Body, ind, true, false);
         Indent(indent);
         wr.WriteLine("}");
       }
@@ -560,7 +560,9 @@ namespace Microsoft.Dafny {
           }
           wr.WriteLine(" =>");
           foreach (Statement bs in mc.Body) {
+            Indent(caseInd + IndentAmount);
             PrintStatement(bs, caseInd + IndentAmount);
+            wr.WriteLine();
           }
         }
         Indent(indent);
@@ -604,7 +606,7 @@ namespace Microsoft.Dafny {
     
     // ----------------------------- PrintExpression -----------------------------
 
-    public void PrintExtendedExpr(Expression expr, int indent) {
+    public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen) {
       Contract.Requires(expr != null);
       Indent(indent);
       if (expr is ITEExpr) {
@@ -613,7 +615,7 @@ namespace Microsoft.Dafny {
           wr.Write("if ");
           PrintExpression(ite.Test);
           wr.WriteLine(" then");
-          PrintExtendedExpr(ite.Thn, indent + IndentAmount);
+          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false);
           expr = ite.Els;
           if (expr is ITEExpr) {
             Indent(indent);  wr.Write("else ");
@@ -621,7 +623,7 @@ namespace Microsoft.Dafny {
             Indent(indent);  wr.WriteLine("else");
             Indent(indent + IndentAmount);
             PrintExpression(expr);
-            wr.WriteLine();
+            wr.WriteLine(endWithCloseParen ? ")" : "");
             return;
           }
         }
@@ -629,7 +631,10 @@ namespace Microsoft.Dafny {
         MatchExpr me = (MatchExpr)expr;
         wr.Write("match ");
         PrintExpression(me.Source);
+        wr.WriteLine();
+        int i = 0;
         foreach (MatchCaseExpr mc in me.Cases) {
+          bool isLastCase = i == me.Cases.Count - 1;
           Indent(indent);
           wr.Write("case {0}", mc.Id);
           if (mc.Arguments.Count != 0) {
@@ -640,12 +645,18 @@ namespace Microsoft.Dafny {
             }
             wr.Write(")");
           }
-          wr.WriteLine(" =>");
-          PrintExtendedExpr(mc.Body, indent + IndentAmount);
+          bool parensNeeded = !isLastCase && mc.Body is MatchExpr;
+          if (parensNeeded) {
+            wr.WriteLine(" => (");
+          } else {
+            wr.WriteLine(" =>");
+          }
+          PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, parensNeeded || (isLastCase && endWithCloseParen));
+          i++;
         }
       } else {
         PrintExpression(expr, indent);
-        wr.WriteLine();
+        wr.WriteLine(endWithCloseParen ? ")" : "");
       }
     }
     

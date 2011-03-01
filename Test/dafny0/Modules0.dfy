@@ -120,3 +120,56 @@ class Ghosty {
   method Callee(a: int, ghost b: int) { }
   ghost method Theorem(a: int) { }
 }
+
+// ---------------------- illegal match expressions ---------------
+
+datatype Tree { Nil; Cons(int, Tree, Tree); }
+
+function NestedMatch0(tree: Tree): int
+{
+  match tree
+  case Nil => 0
+  case Cons(h,l,r) =>
+    match tree  // error: cannot match on "tree" again
+    case Nil => 0
+    case Cons(hh,ll,rr) => hh
+}
+
+function NestedMatch1(tree: Tree): int
+{
+  match tree
+  case Nil => 0
+  case Cons(h,l,r) =>
+    match l
+    case Nil => 0
+    case Cons(h0,l0,r0) =>
+      match r
+      case Nil => 0
+      case Cons(h1,l1,r1) => h + h0 + h1
+}
+
+function NestedMatch2(tree: Tree): int
+{
+  match tree
+  case Nil => 0
+  case Cons(h,l,r) =>
+    match l
+    case Nil => 0
+    case Cons(h,l0,tree) =>  // fine to declare another "h" and "tree" here
+      match r
+      case Nil => 0
+      case Cons(h1,l1,r1) => h + h1
+}
+
+function NestedMatch3(tree: Tree): int
+{
+  match tree
+  case Nil => 0
+  case Cons(h,l,r) =>
+    match l
+    case Nil => 0
+    case Cons(h0,l0,r0) =>
+      match l  // error: cannot match on "l" again
+      case Nil => 0
+      case Cons(h1,l1,r1) => h + h0 + h1
+}

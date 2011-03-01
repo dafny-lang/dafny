@@ -666,6 +666,9 @@ MatchExpression<out Expression/*!*/ e>
   .)
   "match"                     (. x = t; .)
   Expression<out e>
+  /* Note: The following gives rise to a '"case" is start & successor of deletable structure' error,
+     but it's okay, because we want this closer match expression to bind as much as possible--use
+     parens around it to limit its scope. */
   { CaseExpression<out c>     (. cases.Add(c); .)
   }
   (. e = new MatchExpr(x, e, cases); .)
@@ -686,8 +689,18 @@ CaseExpression<out MatchCaseExpr/*!*/ c>
     }
   ")" ]
   "=>"
-  Expression<out body>        (. c = new MatchCaseExpr(x, id.val, arguments, body);
+  MatchOrExpr<out body>       (. c = new MatchCaseExpr(x, id.val, arguments, body);
                                  parseVarScope.PopMarker(); .)
+  .
+
+/* Note, '(' is start of more than one alternative in MatchOrExpr, but the first intentionally hides
+   the third alternative in this regard, in order to also allow match expressions to be parenthesized. */
+MatchOrExpr<out Expression/*!*/ e>
+= (. e = dummyExpr; .)
+  ( "(" MatchOrExpr<out e> ")"
+  | MatchExpression<out e>
+  | Expression<out e>
+  )
   .
 
 /*------------------------------------------------------------------------*/

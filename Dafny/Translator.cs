@@ -445,17 +445,11 @@ namespace Microsoft.Dafny {
           Function f = (Function)member;
           AddFunction(f);
           if (f.Body is MatchExpr) {
-            MatchExpr me = (MatchExpr)f.Body;
-            Formal formal = (Formal)((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
-            foreach (MatchCaseExpr mc in me.Cases) {
-              Contract.Assert(mc.Ctor != null);  // the field is filled in by resolution
-              Bpl.Axiom ax = FunctionAxiom(f, mc.Body, new List<Expression>(), formal, mc.Ctor, mc.Arguments);
-              sink.TopLevelDeclarations.Add(ax);
-            }
-            Bpl.Axiom axPost = FunctionAxiom(f, null, f.Ens, null, null, null);
+            AddFunctionAxiomCase(f, (MatchExpr)f.Body, null);
+            Bpl.Axiom axPost = FunctionAxiom(f, null, f.Ens, null);
             sink.TopLevelDeclarations.Add(axPost);
           } else {
-            Bpl.Axiom ax = FunctionAxiom(f, f.Body, f.Ens, null, null, null);
+            Bpl.Axiom ax = FunctionAxiom(f, f.Body, f.Ens, null);
             sink.TopLevelDeclarations.Add(ax);
           }
           if (f.IsRecursive && !f.IsUnlimited) {
@@ -492,16 +486,81 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens,
-                                 Formal specializationFormal,
-                                 DatatypeCtor ctor, List<BoundVar/*!*/> specializationReplacementFormals){
+    void AddFunctionAxiomCase(Function f, MatchExpr me, Specialization prev) {
       Contract.Requires(f != null);
-      Contract.Requires(specializationFormal == null || body != null);
+      Contract.Requires(me != null);
+      IVariable formal = ((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
+      foreach (MatchCaseExpr mc in me.Cases) {
+        Contract.Assert(mc.Ctor != null);  // the field is filled in by resolution
+        Specialization s = new Specialization(formal, mc, prev);
+        if (mc.Body is MatchExpr) {
+          AddFunctionAxiomCase(f, (MatchExpr)mc.Body, s);
+        } else {
+          Bpl.Axiom ax = FunctionAxiom(f, mc.Body, new List<Expression>(), s);
+          sink.TopLevelDeclarations.Add(ax);
+        }
+      }
+    }
+
+    class Specialization
+    {
+      public readonly List<Formal/*!*/> Formals;
+      public readonly List<Expression/*!*/> ReplacementExprs;
+      public readonly List<BoundVar/*!*/> ReplacementFormals;
+      [ContractInvariantMethod]
+      void ObjectInvariant() {
+        Contract.Invariant(cce.NonNullElements(Formals));
+        Contract.Invariant(cce.NonNullElements(ReplacementExprs));
+        Contract.Invariant(Formals.Count == ReplacementExprs.Count);
+        Contract.Invariant(cce.NonNullElements(ReplacementFormals));
+      }
+
+      public Specialization(IVariable formal, MatchCase mc, Specialization prev) {
+        Contract.Requires(formal is Formal || formal is BoundVar);
+        Contract.Requires(mc != null);
+        Contract.Requires(prev == null || formal is BoundVar || !prev.Formals.Contains((Formal)formal));
+
+        List<Expression> rArgs = new List<Expression>();
+        foreach (BoundVar p in mc.Arguments) {
+          IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+          ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+          rArgs.Add(ie);
+        }
+        // create and resolve datatype value
+        var r = new DatatypeValue(mc.tok, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs);
+        r.Ctor = mc.Ctor;
+        r.Type = new UserDefinedType(mc.tok, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);
+
+        Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+        substMap.Add(formal, r);
+
+        // Fill in the fields
+        Formals = new List<Formal>();
+        ReplacementExprs = new List<Expression>();
+        ReplacementFormals = new List<BoundVar>();
+        if (prev != null) {
+          Formals.AddRange(prev.Formals);
+          foreach (var e in prev.ReplacementExprs) {
+            ReplacementExprs.Add(Substitute(e, null, substMap));
+          }
+          foreach (var rf in prev.ReplacementFormals) {
+            if (rf != formal) {
+              ReplacementFormals.Add(rf);
+            }
+          }
+        }
+        if (formal is Formal) {
+          Formals.Add((Formal)formal);
+          ReplacementExprs.Add(r);
+        }
+        ReplacementFormals.AddRange(mc.Arguments);
+      }
+    }
+
+    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization) {
+      Contract.Requires(f != null);
       Contract.Requires(ens != null);
-      Contract.Requires(cce.NonNullElements(specializationReplacementFormals));
       Contract.Requires(predef != null);
-      Contract.Requires((specializationFormal == null) == (ctor == null));
-      Contract.Requires((specializationFormal == null) == (specializationReplacementFormals == null));
       Contract.Requires(f.EnclosingClass != null);
  
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
@@ -523,12 +582,12 @@ namespace Microsoft.Dafny {
       //       f(args)-has-the-expected-type);
       //
       // The variables "formals" are the formals of function "f"; except, if a specialization is provided, then
-      // "specializationFormal" (which is expected to be among the formals of "f") is excluded and replaced by
-      // "specializationReplacementFormals".
+      // "specialization.Formals" (which are expected to be among the formals of "f") are excluded and replaced by
+      // "specialization.ReplacementFormals".
       // The list "args" is the list of formals of function "f"; except, if a specialization is provided, then
-      // "specializationFormal" is replaced by the expression "ctor(specializationReplacementFormals)".
-      // If a specialization is provided, occurrences of "specializationFormal" in "body", "f.Req", and "f.Ens"
-      // are also replaced by that expression.
+      // each of the "specialization.Formals" is replaced by the corresponding expression in "specialization.ReplacementExprs".
+      // If a specialization is provided, occurrences of "specialization.Formals" in "body", "f.Req", and "f.Ens"
+      // are also replaced by those corresponding expressions.
       //
       // The translation of "body" uses the #limited form whenever the callee is in the same SCC of the call graph.
       //
@@ -562,25 +621,18 @@ namespace Microsoft.Dafny {
           etran.GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = Bpl.Expr.And(ante, wh);
       }
-      DatatypeValue r = null;
-      if (specializationReplacementFormals != null) {
-        Contract.Assert(ctor != null);  // follows from if guard and the precondition
-        List<Expression> rArgs = new List<Expression>();
-        foreach (BoundVar p in specializationReplacementFormals) {
+      if (specialization != null) {
+        foreach (BoundVar p in specialization.ReplacementFormals) {
           bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
           formals.Add(bv);
-          IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
-          ie.Var = p;  ie.Type = ie.Var.Type;  // resolve it here
-          rArgs.Add(ie);
           // add well-typedness conjunct to antecedent
           Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, bv), p.Type, etran);
           if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
         }
-        r = new DatatypeValue(f.tok, cce.NonNull(ctor.EnclosingDatatype).Name, ctor.Name, rArgs);
-        r.Ctor = ctor;  r.Type = new UserDefinedType(f.tok, ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);  // resolve it here
       }
       foreach (Formal p in f.Formals) {
-        if (p != specializationFormal) {
+        int i = specialization == null ? -1 : specialization.Formals.FindIndex(val => val == p);
+        if (i == -1) {
           bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
           formals.Add(bv);
           Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
@@ -589,8 +641,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
           if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
         } else {
-          Contract.Assert(r != null);  // it is set above
-          args.Add(etran.TrExpr(r));
+          args.Add(etran.TrExpr(specialization.ReplacementExprs[i]));
           // note, well-typedness conjuncts for the replacement formals has already been done above
         }
       }
@@ -606,9 +657,11 @@ namespace Microsoft.Dafny {
             etran.InMethodContext())));
       
       Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-      if (specializationFormal != null) {
-        Contract.Assert(r != null);
-        substMap.Add(specializationFormal, r);
+      if (specialization != null) {
+        Contract.Assert(specialization.Formals.Count == specialization.ReplacementExprs.Count);
+        for (int i = 0; i < specialization.Formals.Count; i++) {
+          substMap.Add(specialization.Formals[i], specialization.ReplacementExprs[i]);
+        }
       }
       Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType));
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), args);
@@ -649,8 +702,12 @@ namespace Microsoft.Dafny {
       if (whr != null) { meat = Bpl.Expr.And(meat, whr); }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, meat));
       string comment = "definition axiom for " + f.FullName;
-      if (specializationFormal != null) {
-        comment = string.Format("{0}, specialized for '{1}'", comment, specializationFormal.Name);
+      if (specialization != null) {
+        string sep = "{0}, specialized for '{1}'";
+        foreach (var formal in specialization.Formals) {
+          comment = string.Format(sep, comment, formal.Name);
+          sep = "{0}, '{1}'";
+        }
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
     }
@@ -1831,11 +1888,7 @@ namespace Microsoft.Dafny {
           Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
           Bpl.Expr ct = CtorInvocation(mc, etran, locals, b);
           // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-          CheckWellformed(mc.Body, options, null, locals, b, etran);
-          if (result != null) {
-            b.Add(new Bpl.AssumeCmd(mc.tok, Bpl.Expr.Eq(result, etran.TrExpr(mc.Body))));
-            b.Add(new Bpl.AssumeCmd(mc.tok, CanCallAssumption(mc.Body, etran)));
-          }
+          CheckWellformed(mc.Body, options, result, locals, b, etran);
           ifcmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifcmd, els);
           els = null;
         }

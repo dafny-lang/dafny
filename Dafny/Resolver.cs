@@ -624,7 +624,8 @@ namespace Microsoft.Dafny {
         // any type is fine
       }
       if (f.Body != null) {
-        ResolveExpression(f.Body, false, f.IsGhost);
+        List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
+        ResolveExpression(f.Body, false, f.IsGhost, matchVarContext);
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(f.Body.Type, f.ResultType)) {
           Error(f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
@@ -1713,7 +1714,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// "twoState" implies that "old" and "fresh" expressions are allowed
     /// </summary>
-    void ResolveExpression(Expression expr, bool twoState, bool specContext){
+    void ResolveExpression(Expression expr, bool twoState, bool specContext) {
+      ResolveExpression(expr, twoState, specContext, null);
+    }
+
+    void ResolveExpression(Expression expr, bool twoState, bool specContext, List<IVariable> matchVarContext) {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
@@ -2207,6 +2212,7 @@ namespace Microsoft.Dafny {
           dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
         }
         Dictionary<string,DatatypeCtor> ctors;
+        IVariable goodMatchVariable = null;
         if (dtd == null) {
           Error(me.Source, "the type of the match source expression must be a datatype");
           ctors = null;
@@ -2216,8 +2222,12 @@ namespace Microsoft.Dafny {
           Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
           
           IdentifierExpr ie = me.Source as IdentifierExpr;
-          if (ie == null || !(ie.Var is Formal)) {
-            Error(me.Source.tok, "match source expression must be a formal parameter of the enclosing function");
+          if (ie == null || !(ie.Var is Formal || ie.Var is BoundVar)) {
+            Error(me.Source.tok, "match source expression must be a formal parameter of the enclosing function or an enclosing match expression");
+          } else if (!matchVarContext.Contains(ie.Var)) {
+            Error(me.Source.tok, "match source expression '{0}' has already been used as a match source expression in this context", ie.Var.Name);
+          } else {
+            goodMatchVariable = ie.Var;
           }
           
           // build the type-parameter substitution map for this use of the datatype
@@ -2270,7 +2280,12 @@ namespace Microsoft.Dafny {
             }
             i++;
           }
-          ResolveExpression(mc.Body, twoState, specContext);
+          List<IVariable> innerMatchVarContext = new List<IVariable>(matchVarContext);
+          if (goodMatchVariable != null) {
+            innerMatchVarContext.Remove(goodMatchVariable);  // this variable is no longer available for matching
+          }
+          innerMatchVarContext.AddRange(mc.Arguments);
+          ResolveExpression(mc.Body, twoState, specContext, innerMatchVarContext);
           Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(expr.Type, mc.Body.Type)) {
             Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
