@@ -1630,10 +1630,10 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Type SubstType(Type type, Dictionary<TypeParameter/*!*/,Type/*!*/>/*!*/ subst) {
-    Contract.Requires(type != null);
-    Contract.Requires(cce.NonNullElements(subst));
-    Contract.Ensures(Contract.Result<Type>() != null);
+    public static Type SubstType(Type type, Dictionary<TypeParameter/*!*/,Type/*!*/>/*!*/ subst) {
+      Contract.Requires(type != null);
+      Contract.Requires(cce.NonNullElements(subst));
+      Contract.Ensures(Contract.Result<Type>() != null);
 
       if (type is BasicType) {
         return type;

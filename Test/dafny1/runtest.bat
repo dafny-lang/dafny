@@ -20,6 +20,7 @@ for %%f in (Queue.dfy PriorityQueue.dfy ExtensibleArray.dfy
             SchorrWaite.dfy
             Cubes.dfy SumOfCubes.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy
+            Induction.dfy
             Celebrity.dfy
             UltraFilter.dfy) do (
   echo.

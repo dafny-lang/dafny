@@ -86,3 +86,56 @@ function G(d: Data): int
   case Lemon => G(d)
   case Kiwi(x) => 7
 }
+
+// -------- some things about induction ---------------------------------
+
+datatype Tree<T> {
+  Leaf(T);
+  Branch(Tree<T>, Tree<T>);
+}
+
+class DatatypeInduction<T> {
+  function LeafCount<G>(tree: Tree<G>): int
+  {
+    match tree
+    case Leaf(t) => 1
+    case Branch(left, right) => LeafCount(left) + LeafCount(right)
+  }
+
+  method Theorem0(tree: Tree<T>)
+    ensures 1 <= LeafCount(tree);
+  {
+    assert (forall t: Tree<T> {:induction} :: 1 <= LeafCount(t));
+  }
+
+  // also make sure it works for an instantiated generic datatype
+  method Theorem1(bt: Tree<bool>, it: Tree<int>)
+    ensures 1 <= LeafCount(bt);
+    ensures 1 <= LeafCount(it);
+  {
+    assert (forall t: Tree<bool> {:induction} :: 1 <= LeafCount(t));
+    assert (forall t: Tree<int> {:induction} :: 1 <= LeafCount(t));
+  }
+
+  method NotATheorem0(tree: Tree<T>)
+    ensures LeafCount(tree) % 2 == 1;
+  {
+    assert (forall t: Tree<T> {:induction} :: LeafCount(t) % 2 == 1);  // error: fails for Branch case
+  }
+
+  method NotATheorem1(tree: Tree<T>)
+    ensures 2 <= LeafCount(tree);
+  {
+    assert (forall t: Tree<T> {:induction} :: 2 <= LeafCount(t));  // error: fails for Leaf case
+  }
+
+  function Predicate(): bool
+  {
+    (forall t: Tree<T> {:induction} :: 2 <= LeafCount(t))
+  }
+
+  method NotATheorem2()
+  {
+    assert Predicate();  // error (this tests Related Location for induction via a predicate)
+  }
+}

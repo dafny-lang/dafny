@@ -210,20 +210,18 @@ class Recursive {
 
   method F0()
   {
-    assert Fib(2) == 1;  // error (does not know about Fib for the recursive calls)
+    assert Fib(3) == 2;  // error (does not know about Fib for the recursive calls)
   }
 
   method F1()
   {
     assert Fib(0) == 0;
-    assert Fib(1) == 1;
-    assert Fib(2) == 1;  // now it knows
+    assert Fib(3) == 2;  // now it knows
   }
 
   method F2()
   {
-    assert Fib(0) == 0;
-    use Fib(1);
-    assert Fib(2) == 1;  // now it knows, too
+    use Fib(0);
+    assert Fib(3) == 2;  // now it knows, too
   }
 }

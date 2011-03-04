@@ -416,7 +416,9 @@ namespace Microsoft.Dafny {
       args = new List<Bpl.Expr>();
       foreach (Formal arg in formals) {
         Contract.Assert(arg != null);
-        Bpl.Variable bv = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "a" + bvs.Length, TrType(arg.Type)));
+        var nm = string.Format("a{0}#{1}", bvs.Length, otherTmpVarCount);
+        otherTmpVarCount++;
+        Bpl.Variable bv = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         bvs.Add(bv);
         args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
       }
@@ -444,16 +446,20 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           Function f = (Function)member;
           AddFunction(f);
-          if (f.Body is MatchExpr) {
-            AddFunctionAxiomCase(f, (MatchExpr)f.Body, null);
-            Bpl.Axiom axPost = FunctionAxiom(f, null, f.Ens, null);
-            sink.TopLevelDeclarations.Add(axPost);
-          } else {
-            Bpl.Axiom ax = FunctionAxiom(f, f.Body, f.Ens, null);
-            sink.TopLevelDeclarations.Add(ax);
-          }
           if (f.IsRecursive && !f.IsUnlimited) {
-            AddLimitedAxioms(f);
+            AddLimitedAxioms(f, 2);
+            AddLimitedAxioms(f, 1);
+          }
+          for (int layerOffset = 0; layerOffset < 2; layerOffset++) {
+            if (f.Body is MatchExpr) {
+              AddFunctionAxiomCase(f, (MatchExpr)f.Body, null, layerOffset);
+              Bpl.Axiom axPost = FunctionAxiom(f, null, f.Ens, null, layerOffset);
+              sink.TopLevelDeclarations.Add(axPost);
+            } else {
+              Bpl.Axiom ax = FunctionAxiom(f, f.Body, f.Ens, null, layerOffset);
+              sink.TopLevelDeclarations.Add(ax);
+            }
+            if (!f.IsRecursive || f.IsUnlimited) { break; }
           }
           AddFrameAxiom(f);
           AddWellformednessCheck(f);
@@ -486,17 +492,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddFunctionAxiomCase(Function f, MatchExpr me, Specialization prev) {
+    void AddFunctionAxiomCase(Function f, MatchExpr me, Specialization prev, int layerOffset) {
       Contract.Requires(f != null);
       Contract.Requires(me != null);
+      Contract.Requires(layerOffset == 0 || layerOffset == 1);
+
       IVariable formal = ((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
       foreach (MatchCaseExpr mc in me.Cases) {
         Contract.Assert(mc.Ctor != null);  // the field is filled in by resolution
         Specialization s = new Specialization(formal, mc, prev);
         if (mc.Body is MatchExpr) {
-          AddFunctionAxiomCase(f, (MatchExpr)mc.Body, s);
+          AddFunctionAxiomCase(f, (MatchExpr)mc.Body, s, layerOffset);
         } else {
-          Bpl.Axiom ax = FunctionAxiom(f, mc.Body, new List<Expression>(), s);
+          Bpl.Axiom ax = FunctionAxiom(f, mc.Body, new List<Expression>(), s, layerOffset);
           sink.TopLevelDeclarations.Add(ax);
         }
       }
@@ -557,9 +565,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization) {
+    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
       Contract.Requires(f != null);
       Contract.Requires(ens != null);
+      Contract.Requires(layerOffset == 0 || (layerOffset == 1 && f.IsRecursive && !f.IsUnlimited));
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
  
@@ -576,10 +585,10 @@ namespace Microsoft.Dafny {
       //         $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
       //         Pre($Heap,args))
       //       ==>
-      //       body-can-make-its-calls &&
+      //       body-can-make-its-calls &&                         // generated only for layerOffset==0
       //       f(args) == body &&
-      //       ens &&
-      //       f(args)-has-the-expected-type);
+      //       ens &&                                             // generated only for layerOffset==0
+      //       f(args)-has-the-expected-type);                    // generated only for layerOffset==0
       //
       // The variables "formals" are the formals of function "f"; except, if a specialization is provided, then
       // "specialization.Formals" (which are expected to be among the formals of "f") are excluded and replaced by
@@ -590,6 +599,8 @@ namespace Microsoft.Dafny {
       // are also replaced by those corresponding expressions.
       //
       // The translation of "body" uses the #limited form whenever the callee is in the same SCC of the call graph.
+      //
+      // if layerOffset==1, then the names f#2 and f are used instead of f and f#limited.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
@@ -663,7 +674,7 @@ namespace Microsoft.Dafny {
           substMap.Add(specialization.Formals[i], specialization.ReplacementExprs[i]);
         }
       }
-      Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType));
+      Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, FunctionName(f, 1+layerOffset), TrType(f.ResultType));
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), args);
 
       Bpl.Expr pre = Bpl.Expr.True;
@@ -686,22 +697,28 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr meat;
-      if (body != null) {
-        Expression bodyWithSubst = Substitute(body, null, substMap);
-        meat = Bpl.Expr.And(
-          CanCallAssumption(bodyWithSubst, etran),
-          Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)));
-      } else {
+      if (body == null) {
         meat = Bpl.Expr.True;
+      } else {
+        Expression bodyWithSubst = Substitute(body, null, substMap);
+        if (layerOffset == 0) {
+          meat = Bpl.Expr.And(
+            CanCallAssumption(bodyWithSubst, etran),
+            Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)));
+        } else {
+          meat = Bpl.Expr.Eq(funcAppl, etran.TrExpr(bodyWithSubst));
+        }
       }
-      foreach (Expression p in ens) {
-        Bpl.Expr q = etran.LimitedFunctions(f).TrExpr(Substitute(p, null, substMap));
-        meat = BplAnd(meat, q);
+      if (layerOffset == 0) {
+        foreach (Expression p in ens) {
+          Bpl.Expr q = etran.LimitedFunctions(f).TrExpr(Substitute(p, null, substMap));
+          meat = BplAnd(meat, q);
+        }
+        Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran);
+        if (whr != null) { meat = Bpl.Expr.And(meat, whr); }
       }
-      Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran);
-      if (whr != null) { meat = Bpl.Expr.And(meat, whr); }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, meat));
-      string comment = "definition axiom for " + f.FullName;
+      string comment = "definition axiom for " + FunctionName(f, 1+layerOffset);
       if (specialization != null) {
         string sep = "{0}, specialized for '{1}'";
         foreach (var formal in specialization.Formals) {
@@ -712,11 +729,15 @@ namespace Microsoft.Dafny {
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
     }
     
-    void AddLimitedAxioms(Function f){
+    void AddLimitedAxioms(Function f, int fromLayer) {
       Contract.Requires(f != null);
       Contract.Requires(f.IsRecursive && !f.IsUnlimited);
+      Contract.Requires(fromLayer == 1 || fromLayer == 2);
       Contract.Requires(sink != null && predef != null);
-      // axiom (forall formals :: { f(args) } f(args) == f#limited(args))
+      // With fromLayer==1, generate:
+      //   axiom (forall formals :: { f(args) } f(args) == f#limited(args))
+      // With fromLayer==2, generate:
+      // axiom (forall formals :: { f#2(args) } f#2(args) == f(args))
 
       Bpl.VariableSeq formals = new Bpl.VariableSeq();
       Bpl.ExprSeq args = new Bpl.ExprSeq();
@@ -739,10 +760,10 @@ namespace Microsoft.Dafny {
         formals.Add(bv);
         args.Add(new Bpl.IdentifierExpr(p.tok, bv));
       }
-      
-      Bpl.FunctionCall origFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
+
+      Bpl.FunctionCall origFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, FunctionName(f, fromLayer), TrType(f.ResultType)));
       Bpl.Expr origFuncAppl = new Bpl.NAryExpr(f.tok, origFuncID, args);
-      Bpl.FunctionCall limitedFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#limited", TrType(f.ResultType)));
+      Bpl.FunctionCall limitedFuncID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, FunctionName(f, fromLayer-1), TrType(f.ResultType)));
       Bpl.Expr limitedFuncAppl = new Bpl.NAryExpr(f.tok, limitedFuncID, args);
       
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
@@ -750,6 +771,25 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(origFuncAppl));
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(origFuncAppl, limitedFuncAppl));
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+    }
+
+    /// <summary>
+    /// Returns the appropriate Boogie function for the given function.  In particular:
+    /// Layer 2:  f#2        --currently used only for induction axioms
+    /// Layer 1:  f          --this is the default name
+    /// Layer 0:  f#limited  --does not trigger the function definition axiom
+    /// </summary>
+    public static string FunctionName(Function f, int layer) {
+      Contract.Requires(f != null);
+      Contract.Requires(0 <= layer && layer < 3);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      string name = f.FullName;
+      switch (layer) {
+        case 2: name += "#2"; break;
+        case 0: name += "#limited"; break;
+      }
+      return name;
     }
     
     /// <summary>
@@ -1101,7 +1141,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Imp(q0, eq)));
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, axiomComment));
         if (axiomComment != null && f.IsRecursive && !f.IsUnlimited) {
-          fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName + "#limited", TrType(f.ResultType)));
+          fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, FunctionName(f, 0), TrType(f.ResultType)));
           axiomComment = null;  // the comment goes only with the first frame axiom
         } else {
           break;  // no more frame axioms to produce
@@ -1407,7 +1447,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr total = IsTotal(e.Body, etran);
         if (total != Bpl.Expr.True) {
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e, bvars);
+          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
           total = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, total));
         }
         return total;
@@ -1534,7 +1574,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr total = CanCallAssumption(e.Body, etran);
         if (total != Bpl.Expr.True) {
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e, bvars);
+          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
           total = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, total));
         }
         return total;
@@ -2201,8 +2241,8 @@ namespace Microsoft.Dafny {
       sink.TopLevelDeclarations.Add(func);
       
       if (f.IsRecursive && !f.IsUnlimited) {
-        Bpl.Function limitedF = new Bpl.Function(f.tok, f.FullName + "#limited", args, res);
-        sink.TopLevelDeclarations.Add(limitedF);
+        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 0), args, res));
+        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 2), args, res));
       }
 
       res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
@@ -3710,6 +3750,8 @@ namespace Microsoft.Dafny {
       public readonly Translator translator;
       public readonly string This;
       readonly Function applyLimited_CurrentFunction;
+      readonly int layerOffset = 0;
+      public int Statistics_FunctionCount = 0;
       [ContractInvariantMethod]
       void ObjectInvariant() 
       {
@@ -3717,6 +3759,8 @@ namespace Microsoft.Dafny {
         Contract.Invariant(predef != null);
         Contract.Invariant(translator != null);
         Contract.Invariant(This != null);
+        Contract.Invariant(layerOffset == 0 || layerOffset == 1);
+        Contract.Invariant(0 <= Statistics_FunctionCount);
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, IToken heapToken) {
@@ -3750,7 +3794,7 @@ namespace Microsoft.Dafny {
         this.This = thisVar;
       }
       
-      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Function applyLimited_CurrentFunction) {
+      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Function applyLimited_CurrentFunction, int layerOffset) {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
@@ -3760,7 +3804,8 @@ namespace Microsoft.Dafny {
         this.HeapExpr = heap;
         this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
         this.This = "this";
-      }     
+        this.layerOffset = layerOffset;
+      }
 
       ExpressionTranslator oldEtran;
       public ExpressionTranslator Old {
@@ -3768,7 +3813,7 @@ namespace Microsoft.Dafny {
           Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), applyLimited_CurrentFunction);
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), applyLimited_CurrentFunction, layerOffset);
           }
           return oldEtran;
         }
@@ -3784,7 +3829,15 @@ namespace Microsoft.Dafny {
         Contract.Requires(applyLimited_CurrentFunction != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction);
+        return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction, layerOffset);
+      }
+
+      public ExpressionTranslator LayerOffset(int offset) {
+        Contract.Requires(0 <= offset);
+        Contract.Requires(layerOffset + offset <= 1);
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+
+        return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction, layerOffset + offset);
       }
 
       public Bpl.IdentifierExpr TheFrame(IToken tok)
@@ -3938,12 +3991,14 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          string nm = cce.NonNull(e.Function).FullName;
+          Statistics_FunctionCount++;
+          int offsetToUse = e.Function.IsRecursive && !e.Function.IsUnlimited ? this.layerOffset : 0;
+          string nm = FunctionName(e.Function, 1 + offsetToUse);
           if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive && !e.Function.IsUnlimited) {
             ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
             if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
               if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
-                nm += "#limited";
+                nm = FunctionName(e.Function, 0 + offsetToUse);
               }
             }
           }
@@ -4131,7 +4186,7 @@ namespace Microsoft.Dafny {
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-          Bpl.Expr typeAntecedent = TrBoundVariables(e, bvars);
+          Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
           Bpl.QKeyValue kv = TrAttributes(e.Attributes);
           Bpl.Trigger tr = null;
           for (Triggers trigs = e.Trigs; trigs != null; trigs = trigs.Prev) {
@@ -4170,12 +4225,12 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public Bpl.Expr TrBoundVariables(QuantifierExpr e, Bpl.VariableSeq bvars) {
-        Contract.Requires(e != null);
+      public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, Bpl.VariableSeq bvars) {
+        Contract.Requires(boundVars != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
         
         Bpl.Expr typeAntecedent = Bpl.Expr.True;
-        foreach (BoundVar bv in e.BoundVars) {
+        foreach (BoundVar bv in boundVars) {
           Bpl.Variable bvar = new Bpl.BoundVariable(bv.tok, new Bpl.TypedIdent(bv.tok, bv.UniqueName, translator.TrType(bv.Type)));
           bvars.Add(bvar);
           Bpl.Expr wh = translator.GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, bvar), bv.Type, this);
@@ -4257,7 +4312,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr f0 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, fn.FullName, translator.TrType(e.Type))), args);
         Bpl.Expr f1;
         if (fn.IsRecursive && !fn.IsUnlimited) {
-          f1 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, fn.FullName + "#limited", translator.TrType(e.Type))), args);
+          f1 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, FunctionName(fn, 0), translator.TrType(e.Type))), args);
         } else {
           f1 = f0;
         }
@@ -4916,10 +4971,121 @@ namespace Microsoft.Dafny {
 
           return true;
         }
+
+      } else if (expr is ForallExpr) {
+        ForallExpr e = (ForallExpr)expr;
+        for (var a = e.Attributes; a != null; a = a.Prev) {
+          if (a.Name == "induction") {
+            if (e.BoundVars.Count == 1) {
+              var n = e.BoundVars[0];
+              // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
+              //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
+              BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
+              otherTmpVarCount++;
+
+              IdentifierExpr ieK = new IdentifierExpr(k.tok, k.UniqueName);
+              ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
+              Bpl.Expr boogieK = etran.TrExpr(ieK);
+
+              IdentifierExpr ieN = new IdentifierExpr(n.tok, n.UniqueName);
+              ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
+              Bpl.Expr boogieN = etran.TrExpr(ieN);
+
+              var substMap = new Dictionary<IVariable, Expression>();
+              substMap.Add(n, ieK);
+              Expression bodyK = Substitute(e.Body, null, substMap);
+
+              Bpl.Expr less;  // says that k is bounded from below and less than n, for each respective type
+              if (n.Type is BoolType) {
+                less = Bpl.Expr.And(Bpl.Expr.Not(boogieK), boogieN);
+              } else if (n.Type is IntType) {
+                less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), boogieK), Bpl.Expr.Lt(boogieK, boogieN));
+              } else if (n.Type is SetType) {
+                less = etran.ProperSubset(e.tok, boogieK, boogieN);
+              } else if (n.Type is SeqType) {
+                Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieK);
+                Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieN);
+                less = Bpl.Expr.Lt(b0, b1);
+              } else if (n.Type.IsDatatype) {
+                Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieK);
+                Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieN);
+                less = Bpl.Expr.Lt(b0, b1);
+              } else {
+                // reference type
+                Bpl.Expr b0 = Bpl.Expr.Neq(boogieK, predef.Null);
+                Bpl.Expr b1 = Bpl.Expr.Neq(boogieN, predef.Null);
+                less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
+              }
+
+              Bpl.Expr ihBody = Bpl.Expr.Imp(less, etran.TrExpr(bodyK));
+              Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+              Bpl.Expr typeAntecedent = etran.TrBoundVariables(new List<BoundVar>() { k }, bvars);
+              Bpl.Expr ih = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, ihBody));
+
+              // More precisely now:
+              //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
+              //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
+              bvars = new Bpl.VariableSeq();
+              typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
+              foreach (var kase in InductionCases(expr.tok, n.Type, boogieN, etran)) {
+                var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
+                var bdy = etran.LayerOffset(1).TrExpr(e.Body);
+                Bpl.Expr q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
+                splits.Add(new SplitExprInfo(false, q));
+              }
+
+              // Finally, assume the original quantifier (forall n :: P(n))
+              splits.Add(new SplitExprInfo(true, etran.TrExpr(expr)));
+              return true;
+            }
+          }
+        }
       }
 
-      splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
-      return false;
+      if (expandFunctions) {
+        etran = etran.LayerOffset(1);
+        splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
+        return etran.Statistics_FunctionCount != 0;
+      } else {
+        splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
+        return false;
+      }
+    }
+
+    IEnumerable<Bpl.Expr> InductionCases(IToken tok, Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
+      DatatypeDecl dt = ty.AsDatatype;
+      if (dt == null) {
+        yield return new Bpl.LiteralExpr(tok, true);  // note, we don't use Bpl.Expr.True here, because we want to set the source location
+      } else {
+        UserDefinedType instantiatedType = (UserDefinedType)ty;  // correctness of cast follows from the non-null return of ty.AsDatatype
+        var subst = new Dictionary<TypeParameter, Type>();
+        for (int i = 0; i < dt.TypeArgs.Count; i++) {
+          subst.Add(dt.TypeArgs[i], instantiatedType.TypeArgs[i]);
+        }
+        
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          IToken kaseTok = new NestedToken(tok, ctor.tok);
+          Bpl.VariableSeq bvs;
+          List<Bpl.Expr> args;
+          CreateBoundVariables(ctor.Formals, out bvs, out args);
+          Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+          // (exists args :: args-have-the-expected-types ==> ct(args) == expr)
+          Bpl.Expr q = Bpl.Expr.Binary(kaseTok, BinaryOperator.Opcode.Eq, ct, expr);
+          if (bvs.Length != 0) {
+            int i = 0;
+            Bpl.Expr typeAntecedent = Bpl.Expr.True;
+            foreach (Formal arg in ctor.Formals) {
+              Bpl.Expr wh = GetWhereClause(arg.tok, args[i], Resolver.SubstType(arg.Type, subst), etran);
+              if (wh != null) {
+                typeAntecedent = BplAnd(typeAntecedent, wh);
+              }
+              i++;
+            }
+            q = new Bpl.ExistsExpr(kaseTok, bvs, BplAnd(typeAntecedent, q));
+          }
+          yield return q;
+        }
+      }
     }
 
     static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
