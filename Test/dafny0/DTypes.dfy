@@ -105,7 +105,7 @@ class DatatypeInduction<T> {
   method Theorem0(tree: Tree<T>)
     ensures 1 <= LeafCount(tree);
   {
-    assert (forall t: Tree<T> {:induction} :: 1 <= LeafCount(t));
+    assert (forall t: Tree<T> :: 1 <= LeafCount(t));
   }
 
   // also make sure it works for an instantiated generic datatype
@@ -113,29 +113,50 @@ class DatatypeInduction<T> {
     ensures 1 <= LeafCount(bt);
     ensures 1 <= LeafCount(it);
   {
-    assert (forall t: Tree<bool> {:induction} :: 1 <= LeafCount(t));
-    assert (forall t: Tree<int> {:induction} :: 1 <= LeafCount(t));
+    assert (forall t: Tree<bool> :: 1 <= LeafCount(t));
+    assert (forall t: Tree<int> :: 1 <= LeafCount(t));
   }
 
   method NotATheorem0(tree: Tree<T>)
     ensures LeafCount(tree) % 2 == 1;
   {
-    assert (forall t: Tree<T> {:induction} :: LeafCount(t) % 2 == 1);  // error: fails for Branch case
+    assert (forall t: Tree<T> :: LeafCount(t) % 2 == 1);  // error: fails for Branch case
   }
 
   method NotATheorem1(tree: Tree<T>)
     ensures 2 <= LeafCount(tree);
   {
-    assert (forall t: Tree<T> {:induction} :: 2 <= LeafCount(t));  // error: fails for Leaf case
+    assert (forall t: Tree<T> :: 2 <= LeafCount(t));  // error: fails for Leaf case
   }
 
   function Predicate(): bool
   {
-    (forall t: Tree<T> {:induction} :: 2 <= LeafCount(t))
+    (forall t: Tree<T> :: 2 <= LeafCount(t))
   }
 
   method NotATheorem2()
   {
     assert Predicate();  // error (this tests Related Location for induction via a predicate)
+  }
+
+  // ----- here is a test for induction over integers
+
+  method IntegerInduction_Succeeds(a: array<int>)
+    requires a != null;
+    requires a.Length == 0 || a[0] == 0;
+    requires (forall j :: 1 <= j && j < a.Length ==> a[j] == a[j-1]+2*j-1);
+  {
+    // The following assertion can be proved by induction:
+    assert (forall n {:induction} :: 0 <= n && n < a.Length ==> a[n] == n*n);
+  }
+
+  method IntegerInduction_Fails(a: array<int>)
+    requires a != null;
+    requires a.Length == 0 || a[0] == 0;
+    requires (forall j :: 1 <= j && j < a.Length ==> a[j] == a[j-1]+2*j-1);
+  {
+    // ...but the induction heuristics don't recognize the situation as one where
+    // applying induction would be profitable:
+    assert (forall n :: 0 <= n && n < a.Length ==> a[n] == n*n);  // error reported
   }
 }

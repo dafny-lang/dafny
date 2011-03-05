@@ -4974,71 +4974,67 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ForallExpr) {
         ForallExpr e = (ForallExpr)expr;
-        for (var a = e.Attributes; a != null; a = a.Prev) {
-          if (a.Name == "induction") {
-            if (e.BoundVars.Count == 1) {
-              var n = e.BoundVars[0];
-              // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
-              //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
-              BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
-              otherTmpVarCount++;
+        if (ApplyInduction(e)) {
+          var n = e.BoundVars[0];
+          // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
+          //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
+          BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
+          otherTmpVarCount++;
 
-              IdentifierExpr ieK = new IdentifierExpr(k.tok, k.UniqueName);
-              ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
-              Bpl.Expr boogieK = etran.TrExpr(ieK);
+          IdentifierExpr ieK = new IdentifierExpr(k.tok, k.UniqueName);
+          ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
+          Bpl.Expr boogieK = etran.TrExpr(ieK);
 
-              IdentifierExpr ieN = new IdentifierExpr(n.tok, n.UniqueName);
-              ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
-              Bpl.Expr boogieN = etran.TrExpr(ieN);
+          IdentifierExpr ieN = new IdentifierExpr(n.tok, n.UniqueName);
+          ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
+          Bpl.Expr boogieN = etran.TrExpr(ieN);
 
-              var substMap = new Dictionary<IVariable, Expression>();
-              substMap.Add(n, ieK);
-              Expression bodyK = Substitute(e.Body, null, substMap);
+          var substMap = new Dictionary<IVariable, Expression>();
+          substMap.Add(n, ieK);
+          Expression bodyK = Substitute(e.Body, null, substMap);
 
-              Bpl.Expr less;  // says that k is bounded from below and less than n, for each respective type
-              if (n.Type is BoolType) {
-                less = Bpl.Expr.And(Bpl.Expr.Not(boogieK), boogieN);
-              } else if (n.Type is IntType) {
-                less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), boogieK), Bpl.Expr.Lt(boogieK, boogieN));
-              } else if (n.Type is SetType) {
-                less = etran.ProperSubset(e.tok, boogieK, boogieN);
-              } else if (n.Type is SeqType) {
-                Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieK);
-                Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieN);
-                less = Bpl.Expr.Lt(b0, b1);
-              } else if (n.Type.IsDatatype) {
-                Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieK);
-                Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieN);
-                less = Bpl.Expr.Lt(b0, b1);
-              } else {
-                // reference type
-                Bpl.Expr b0 = Bpl.Expr.Neq(boogieK, predef.Null);
-                Bpl.Expr b1 = Bpl.Expr.Neq(boogieN, predef.Null);
-                less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
-              }
-
-              Bpl.Expr ihBody = Bpl.Expr.Imp(less, etran.TrExpr(bodyK));
-              Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-              Bpl.Expr typeAntecedent = etran.TrBoundVariables(new List<BoundVar>() { k }, bvars);
-              Bpl.Expr ih = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, ihBody));
-
-              // More precisely now:
-              //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
-              //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
-              bvars = new Bpl.VariableSeq();
-              typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
-              foreach (var kase in InductionCases(expr.tok, n.Type, boogieN, etran)) {
-                var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
-                var bdy = etran.LayerOffset(1).TrExpr(e.Body);
-                Bpl.Expr q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
-                splits.Add(new SplitExprInfo(false, q));
-              }
-
-              // Finally, assume the original quantifier (forall n :: P(n))
-              splits.Add(new SplitExprInfo(true, etran.TrExpr(expr)));
-              return true;
-            }
+          Bpl.Expr less;  // says that k is bounded from below and less than n, for each respective type
+          if (n.Type is BoolType) {
+            less = Bpl.Expr.And(Bpl.Expr.Not(boogieK), boogieN);
+          } else if (n.Type is IntType) {
+            less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), boogieK), Bpl.Expr.Lt(boogieK, boogieN));
+          } else if (n.Type is SetType) {
+            less = etran.ProperSubset(e.tok, boogieK, boogieN);
+          } else if (n.Type is SeqType) {
+            Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieK);
+            Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieN);
+            less = Bpl.Expr.Lt(b0, b1);
+          } else if (n.Type.IsDatatype) {
+            Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieK);
+            Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieN);
+            less = Bpl.Expr.Lt(b0, b1);
+          } else {
+            // reference type
+            Bpl.Expr b0 = Bpl.Expr.Neq(boogieK, predef.Null);
+            Bpl.Expr b1 = Bpl.Expr.Neq(boogieN, predef.Null);
+            less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
           }
+
+          Bpl.Expr ihBody = Bpl.Expr.Imp(less, etran.TrExpr(bodyK));
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          Bpl.Expr typeAntecedent = etran.TrBoundVariables(new List<BoundVar>() { k }, bvars);
+          Bpl.Expr ih = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, ihBody));
+
+          // More precisely now:
+          //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
+          //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
+          bvars = new Bpl.VariableSeq();
+          typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
+          foreach (var kase in InductionCases(expr.tok, n.Type, boogieN, etran)) {
+            var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
+            var bdy = etran.LayerOffset(1).TrExpr(e.Body);
+            Bpl.Expr q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
+            splits.Add(new SplitExprInfo(false, q));
+          }
+
+          // Finally, assume the original quantifier (forall n :: P(n))
+          splits.Add(new SplitExprInfo(true, etran.TrExpr(expr)));
+          return true;
         }
       }
 
@@ -5049,6 +5045,158 @@ namespace Microsoft.Dafny {
       } else {
         splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
         return false;
+      }
+    }
+
+    bool ApplyInduction(ForallExpr e)
+    {
+      Contract.Requires(e != null);
+      Contract.Ensures(!Contract.Result<bool>() || e.BoundVars.Count == 1);
+
+      if (e.BoundVars.Count != 1) {
+        return false;
+      }
+      for (var a = e.Attributes; a != null; a = a.Prev) {
+        if (a.Name == "induction") {
+          // return 'true', except if there is one argument and it is 'false'
+          if (a.Args.Count == 1) {
+            var arg = a.Args[0].E as LiteralExpr;
+            if (arg != null && arg.Value is bool && !(bool)arg.Value) {
+              if (CommandLineOptions.Clo.Trace) {
+                Console.Write("Suppressing automatic induction on: ");
+                new Printer(Console.Out).PrintExpression(e);
+                Console.WriteLine();
+              }
+              return false;
+            }
+          }
+          if (CommandLineOptions.Clo.Trace) {
+            Console.Write("Applying requested induction on: ");
+            new Printer(Console.Out).PrintExpression(e);
+            Console.WriteLine();
+          }
+          return true;
+        }
+      }
+
+      // consider automatically applying induction
+      var n = e.BoundVars[0];
+      if (VarOccursInArgumentToRecursiveFunction(e.Body, n, null)) {
+        if (CommandLineOptions.Clo.Trace) {
+          Console.Write("Applying automatic induction on: ");
+          new Printer(Console.Out).PrintExpression(e);
+          Console.WriteLine();
+        }
+        return true;
+      }
+
+      return false;
+    }
+
+    /// <summary>
+    /// Returns 'true' iff
+    ///    there is a subexpression of 'expr' of the form 'F(...n...)' where 'F' is a recursive function
+    ///    and 'n' appears in an "elevated" subexpression of some argument to 'F',
+    ///    or
+    ///    'p' is non-null and 'p' appears in an "elevated" subexpression of 'expr'.
+    /// Requires that 'p' is either 'null' of 'n'.
+    /// </summary>
+    static bool VarOccursInArgumentToRecursiveFunction(Expression expr, BoundVar n, BoundVar p) {
+      Contract.Requires(expr != null);
+      Contract.Requires(n != null);
+
+      if (expr is LiteralExpr || expr is WildcardExpr || expr is ThisExpr) {
+        return false;
+      } else if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
+        return p != null && e.Var == p;
+      } else if (expr is DisplayExpression) {
+        var e = (DisplayExpression)expr;
+        return e.Elements.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, null));  // subexpressions are not "elevated"
+      } else if (expr is FieldSelectExpr) {
+        var e = (FieldSelectExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.Obj, n, null);  // subexpressions are not "elevated"
+      } else if (expr is SeqSelectExpr) {
+        var e = (SeqSelectExpr)expr;
+        p = e.SelectOne ? null : p;
+        return VarOccursInArgumentToRecursiveFunction(e.Seq, n, null) ||  // this subexpression is not "elevated"
+          (e.E0 != null && VarOccursInArgumentToRecursiveFunction(e.E0, n, p)) ||  // this one is, if the SeqSelectExpr denotes a range
+          (e.E1 != null && VarOccursInArgumentToRecursiveFunction(e.E1, n, p));    // ditto
+      } else if (expr is SeqUpdateExpr) {
+        var e = (SeqUpdateExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.Seq, n, p) ||  // this subexpression is "elevated"
+          VarOccursInArgumentToRecursiveFunction(e.Index, n, null) ||  // but this one
+          VarOccursInArgumentToRecursiveFunction(e.Value, n, null);    // and this one are not
+      } else if (expr is MultiSelectExpr) {
+        var e = (MultiSelectExpr)expr;
+        // subexpressions are not "elevated"
+        return VarOccursInArgumentToRecursiveFunction(e.Array, n, null) ||
+          e.Indices.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, null));
+      } else if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        // For recursive functions:  arguments are "elevated"
+        // For non-recursive function:  arguments are "elevated" if the call is
+        if (e.Function.IsRecursive) {
+          p = n;
+        }
+        return VarOccursInArgumentToRecursiveFunction(e.Receiver, n, p) ||
+          e.Args.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, p));
+      } else if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
+        if (!n.Type.IsDatatype) {
+          p = null;
+        }
+        return e.Arguments.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, p));
+      } else if (expr is OldExpr) {
+        var e = (OldExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
+      } else if (expr is FreshExpr) {
+        var e = (FreshExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, null);
+      } else if (expr is AllocatedExpr) {
+        var e = (AllocatedExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, null);
+      } else if (expr is UnaryExpr) {
+        var e = (UnaryExpr)expr;
+        // arguments to both Not and SeqLength are "elevated"
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Add:
+          case BinaryExpr.ResolvedOpcode.Sub:
+          case BinaryExpr.ResolvedOpcode.Mul:
+          case BinaryExpr.ResolvedOpcode.Div:
+          case BinaryExpr.ResolvedOpcode.Mod:
+          case BinaryExpr.ResolvedOpcode.Union:
+          case BinaryExpr.ResolvedOpcode.Intersection:
+          case BinaryExpr.ResolvedOpcode.SetDifference:
+          case BinaryExpr.ResolvedOpcode.Concat:
+            // these operators have "elevated" arguments
+            break;
+          default:
+            // whereas all other binary operators do not
+            p = null;
+            break;
+        }
+        return VarOccursInArgumentToRecursiveFunction(e.E0, n, p) ||
+          VarOccursInArgumentToRecursiveFunction(e.E1, n, p);
+      } else if (expr is QuantifierExpr) {
+        var e = (QuantifierExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.Body, n, null);
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.Test, n, null) ||  // test is not "elevated"
+          VarOccursInArgumentToRecursiveFunction(e.Thn, n, p) ||           // but the two branches are
+          VarOccursInArgumentToRecursiveFunction(e.Els, n, p);
+      } else if (expr is BoxingCastExpr) {
+        var e = (BoxingCastExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
+      } else if (expr is UnboxingCastExpr) {
+        var e = (UnboxingCastExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
       }
     }
 

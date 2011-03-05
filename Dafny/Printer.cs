@@ -168,9 +168,9 @@ namespace Microsoft.Dafny {
       if (a != null) {
         PrintAttributes(a.Prev);
         
-        wr.Write("{ :{0}", a.Name);
+        wr.Write("{{:{0}", a.Name);
         PrintAttributeArgs(a.Args);
-        wr.Write(" } ");
+        wr.Write("} ");
       }
     }
     

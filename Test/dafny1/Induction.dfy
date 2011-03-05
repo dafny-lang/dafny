@@ -49,7 +49,7 @@ class IntegerInduction {
     }
   }
 
-  // Here is another proof.  It makes use of Dafny's {:induction} attribute to
+  // Here is another proof.  It makes use of Dafny's induction heuristics to
   // prove the lemma.
 
   ghost method Theorem2(n: int)
@@ -59,7 +59,7 @@ class IntegerInduction {
     if (n != 0) {
       call Theorem0(n-1);
 
-      assert (forall m {:induction} :: 0 <= m ==> 2 * Gauss(m) == m*(m+1));
+      assert (forall m :: 0 <= m ==> 2 * Gauss(m) == m*(m+1));
     }
   }
 
@@ -91,7 +91,7 @@ class IntegerInduction {
   // Finally, with the postcondition of GaussWithPost, one can prove the entire theorem by induction
 
   ghost method Theorem4()
-    ensures (forall n {:induction} :: 0 <= n ==> SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
+    ensures (forall n :: 0 <= n ==> SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
   {
     // look ma, no hints!
   }
@@ -102,7 +102,7 @@ class IntegerInduction {
   {
     // the postcondition is a simple consequence of these quantified versions of the theorem:
     if (*) {
-      assert (forall m {:induction} :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m));
+      assert (forall m :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m));
     } else {
       call Theorem4();
     }
@@ -125,7 +125,7 @@ class DatatypeInduction<T> {
   method Theorem0(tree: Tree<T>)
     ensures 1 <= LeafCount(tree);
   {
-    assert (forall t: Tree<T> {:induction} :: 1 <= LeafCount(t));
+    assert (forall t: Tree<T> :: 1 <= LeafCount(t));
   }
 
   // see also Test/dafny0/DTypes.dfy for more variations of this example

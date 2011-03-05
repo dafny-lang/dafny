@@ -310,5 +310,19 @@ function ReachBack(n: int): bool
   requires 0 <= n;
   ensures ReachBack(n);
 {
-  (forall m :: 0 <= m && m < n ==> ReachBack(m))
+  // Turn off induction for this test, since that's not the point of
+  // the test case.
+  (forall m {:induction false} :: 0 <= m && m < n ==> ReachBack(m))
 }
+
+function ReachBack_Alt(n: int): bool
+  requires 0 <= n;
+{
+  n == 0 || ReachBack_Alt(n-1)
+}
+
+ghost method Lemma_ReachBack()
+{
+  assert (forall m :: 0 <= m ==> ReachBack_Alt(m));
+}
+
