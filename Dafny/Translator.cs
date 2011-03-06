@@ -515,12 +515,14 @@ namespace Microsoft.Dafny {
       public readonly List<Formal/*!*/> Formals;
       public readonly List<Expression/*!*/> ReplacementExprs;
       public readonly List<BoundVar/*!*/> ReplacementFormals;
+      public readonly Dictionary<IVariable, Expression> SubstMap;
       [ContractInvariantMethod]
       void ObjectInvariant() {
         Contract.Invariant(cce.NonNullElements(Formals));
         Contract.Invariant(cce.NonNullElements(ReplacementExprs));
         Contract.Invariant(Formals.Count == ReplacementExprs.Count);
         Contract.Invariant(cce.NonNullElements(ReplacementFormals));
+        Contract.Invariant(SubstMap != null);
       }
 
       public Specialization(IVariable formal, MatchCase mc, Specialization prev) {
@@ -546,6 +548,7 @@ namespace Microsoft.Dafny {
         Formals = new List<Formal>();
         ReplacementExprs = new List<Expression>();
         ReplacementFormals = new List<BoundVar>();
+        SubstMap = new Dictionary<IVariable, Expression>();
         if (prev != null) {
           Formals.AddRange(prev.Formals);
           foreach (var e in prev.ReplacementExprs) {
@@ -556,12 +559,16 @@ namespace Microsoft.Dafny {
               ReplacementFormals.Add(rf);
             }
           }
+          foreach (var entry in prev.SubstMap) {
+            SubstMap.Add(entry.Key, Substitute(entry.Value, null, substMap));
+          }
         }
         if (formal is Formal) {
           Formals.Add((Formal)formal);
           ReplacementExprs.Add(r);
         }
         ReplacementFormals.AddRange(mc.Arguments);
+        SubstMap.Add(formal, r);
       }
     }
 
@@ -667,12 +674,9 @@ namespace Microsoft.Dafny {
             Bpl.Expr.Le(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
             etran.InMethodContext())));
       
-      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      var substMap = new Dictionary<IVariable, Expression>();
       if (specialization != null) {
-        Contract.Assert(specialization.Formals.Count == specialization.ReplacementExprs.Count);
-        for (int i = 0; i < specialization.Formals.Count; i++) {
-          substMap.Add(specialization.Formals[i], specialization.ReplacementExprs[i]);
-        }
+        substMap = specialization.SubstMap;
       }
       Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, FunctionName(f, 1+layerOffset), TrType(f.ResultType));
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), args);
@@ -3022,7 +3026,7 @@ namespace Microsoft.Dafny {
             types.Add(cce.NonNull(e.Type));
             decrs.Add(etran.TrExpr(e));
           }
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, etran, null, null, true);
+          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, etran, null, null, true, false);
           invariants.Add(new Bpl.AssumeCmd(stmt.Tok, decrCheck));
         }
         
@@ -3058,7 +3062,7 @@ namespace Microsoft.Dafny {
             types.Add(cce.NonNull(e.Type));
             decrs.Add(etran.TrExpr(e));
           }
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false);
+          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false, false);
           loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, inferredDecreases ? "cannot prove termination; try supplying a decreases clause for the loop" : "decreases expression might not decrease"));
         }
         // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
@@ -3370,7 +3374,7 @@ namespace Microsoft.Dafny {
         caller.Add(etran.TrExpr(e1));
       }
       bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
-      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", endsWithWinningTopComparison);
+      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", endsWithWinningTopComparison, false);
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
@@ -3384,8 +3388,8 @@ namespace Microsoft.Dafny {
     /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
     /// </summary>
     Bpl.Expr DecreasesCheck(List<IToken/*!*/>/*!*/ toks, List<Type/*!*/>/*!*/ types, List<Bpl.Expr/*!*/>/*!*/ ee0, List<Bpl.Expr/*!*/>/*!*/ ee1,
-                             ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange)
-     {
+                             ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound)
+    {
       Contract.Requires(cce.NonNullElements(toks));
       Contract.Requires(cce.NonNullElements(types));
       Contract.Requires(cce.NonNullElements(ee0));
@@ -3393,7 +3397,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       Contract.Requires(types.Count == ee0.Count && ee0.Count == ee1.Count);
-      Contract.Requires(builder != null && suffixMsg != null);
+      Contract.Requires((builder != null) == (suffixMsg != null));
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       int N = types.Count;
@@ -3403,7 +3407,7 @@ namespace Microsoft.Dafny {
       List<Bpl.Expr> Less = new List<Bpl.Expr>(N);
       for (int i = 0; i < N; i++) {
         Bpl.Expr less, atmost, eq;
-        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out atmost, out eq, etran);
+        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out atmost, out eq, etran, includeLowerBound);
         Eq.Add(eq);
         Less.Add(allowNoChange ? atmost : less);
       }
@@ -3463,7 +3467,8 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq, ExpressionTranslator/*!*/ etran)
+    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq,
+                       ExpressionTranslator/*!*/ etran, bool includeLowerBound)
      {
       Contract.Requires(tok != null);
       Contract.Requires(ty != null);
@@ -3483,6 +3488,10 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Lt(e0, e1);
         atmost = Bpl.Expr.Le(e0, e1);
+        if (includeLowerBound) {
+          less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), e0), less);
+          atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), e0), atmost);
+        }
       } else if (ty is SetType) {
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, e0, e1);
         less = etran.ProperSubset(tok, e0, e1);
@@ -4974,58 +4983,62 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ForallExpr) {
         ForallExpr e = (ForallExpr)expr;
-        if (ApplyInduction(e)) {
-          var n = e.BoundVars[0];
+        var inductionVariables = ApplyInduction(e);
+        if (inductionVariables.Count != 0) {
           // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
           //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
-          BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
-          otherTmpVarCount++;
-
-          IdentifierExpr ieK = new IdentifierExpr(k.tok, k.UniqueName);
-          ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
-          Bpl.Expr boogieK = etran.TrExpr(ieK);
-
-          IdentifierExpr ieN = new IdentifierExpr(n.tok, n.UniqueName);
-          ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
-          Bpl.Expr boogieN = etran.TrExpr(ieN);
-
+          var kvars = new List<BoundVar>();
+          var kk = new List<Bpl.Expr>();
+          var nn = new List<Bpl.Expr>();
+          var toks = new List<IToken>();
+          var types = new List<Type>();
           var substMap = new Dictionary<IVariable, Expression>();
-          substMap.Add(n, ieK);
+          foreach (var n in inductionVariables) {
+            toks.Add(n.tok);
+            types.Add(n.Type);
+            BoundVar k = new BoundVar(n.tok, n.Name + "$ih#" + otherTmpVarCount, n.Type);
+            otherTmpVarCount++;
+            kvars.Add(k);
+
+            IdentifierExpr ieK = new IdentifierExpr(k.tok, k.UniqueName);
+            ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
+            kk.Add(etran.TrExpr(ieK));
+
+            IdentifierExpr ieN = new IdentifierExpr(n.tok, n.UniqueName);
+            ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
+            nn.Add(etran.TrExpr(ieN));
+
+            substMap.Add(n, ieK);
+          }
           Expression bodyK = Substitute(e.Body, null, substMap);
 
-          Bpl.Expr less;  // says that k is bounded from below and less than n, for each respective type
-          if (n.Type is BoolType) {
-            less = Bpl.Expr.And(Bpl.Expr.Not(boogieK), boogieN);
-          } else if (n.Type is IntType) {
-            less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), boogieK), Bpl.Expr.Lt(boogieK, boogieN));
-          } else if (n.Type is SetType) {
-            less = etran.ProperSubset(e.tok, boogieK, boogieN);
-          } else if (n.Type is SeqType) {
-            Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieK);
-            Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.SeqLength, null, boogieN);
-            less = Bpl.Expr.Lt(b0, b1);
-          } else if (n.Type.IsDatatype) {
-            Bpl.Expr b0 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieK);
-            Bpl.Expr b1 = FunctionCall(e.tok, BuiltinFunction.DtRank, null, boogieN);
-            less = Bpl.Expr.Lt(b0, b1);
-          } else {
-            // reference type
-            Bpl.Expr b0 = Bpl.Expr.Neq(boogieK, predef.Null);
-            Bpl.Expr b1 = Bpl.Expr.Neq(boogieN, predef.Null);
-            less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
-          }
+          Bpl.Expr less = DecreasesCheck(toks, types, kk, nn, etran, null, null, false, true);
 
           Bpl.Expr ihBody = Bpl.Expr.Imp(less, etran.TrExpr(bodyK));
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(new List<BoundVar>() { k }, bvars);
+          Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);
           Bpl.Expr ih = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, ihBody));
 
           // More precisely now:
           //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
           //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
+          var caseProduct = new List<Bpl.Expr>() { new Bpl.LiteralExpr(expr.tok, true) };  // make sure to include the correct token information
+          var i = 0;
+          foreach (var n in inductionVariables) {
+            var newCases = new List<Bpl.Expr>();
+            foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
+              if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
+                foreach (var cs in caseProduct) {
+                  newCases.Add(Bpl.Expr.Binary(new NestedToken(cs.tok, kase.tok), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                }
+              }
+            }
+            caseProduct = newCases;
+            i++;
+          }
           bvars = new Bpl.VariableSeq();
           typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
-          foreach (var kase in InductionCases(expr.tok, n.Type, boogieN, etran)) {
+          foreach (var kase in caseProduct) {
             var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
             var bdy = etran.LayerOffset(1).TrExpr(e.Body);
             Bpl.Expr q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
@@ -5048,14 +5061,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    bool ApplyInduction(ForallExpr e)
+    List<BoundVar> ApplyInduction(ForallExpr e)
     {
       Contract.Requires(e != null);
-      Contract.Ensures(!Contract.Result<bool>() || e.BoundVars.Count == 1);
+      Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
 
-      if (e.BoundVars.Count != 1) {
-        return false;
-      }
       for (var a = e.Attributes; a != null; a = a.Prev) {
         if (a.Name == "induction") {
           // return 'true', except if there is one argument and it is 'false'
@@ -5067,7 +5077,7 @@ namespace Microsoft.Dafny {
                 new Printer(Console.Out).PrintExpression(e);
                 Console.WriteLine();
               }
-              return false;
+              return new List<BoundVar>();
             }
           }
           if (CommandLineOptions.Clo.Trace) {
@@ -5075,22 +5085,24 @@ namespace Microsoft.Dafny {
             new Printer(Console.Out).PrintExpression(e);
             Console.WriteLine();
           }
-          return true;
+          return e.BoundVars;
         }
       }
 
       // consider automatically applying induction
-      var n = e.BoundVars[0];
-      if (VarOccursInArgumentToRecursiveFunction(e.Body, n, null)) {
-        if (CommandLineOptions.Clo.Trace) {
-          Console.Write("Applying automatic induction on: ");
-          new Printer(Console.Out).PrintExpression(e);
-          Console.WriteLine();
+      var inductionVariables = new List<BoundVar>();
+      foreach (var n in e.BoundVars) {
+        if (VarOccursInArgumentToRecursiveFunction(e.Body, n, null)) {
+          if (CommandLineOptions.Clo.Trace) {
+            Console.Write("Applying automatic induction on variable '{0}' of: ", n.Name);
+            new Printer(Console.Out).PrintExpression(e);
+            Console.WriteLine();
+          }
+          inductionVariables.Add(n);
         }
-        return true;
       }
 
-      return false;
+      return inductionVariables;
     }
 
     /// <summary>
@@ -5200,10 +5212,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    IEnumerable<Bpl.Expr> InductionCases(IToken tok, Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
+    IEnumerable<Bpl.Expr> InductionCases(Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
       DatatypeDecl dt = ty.AsDatatype;
       if (dt == null) {
-        yield return new Bpl.LiteralExpr(tok, true);  // note, we don't use Bpl.Expr.True here, because we want to set the source location
+        yield return Bpl.Expr.True;
       } else {
         UserDefinedType instantiatedType = (UserDefinedType)ty;  // correctness of cast follows from the non-null return of ty.AsDatatype
         var subst = new Dictionary<TypeParameter, Type>();
@@ -5212,13 +5224,12 @@ namespace Microsoft.Dafny {
         }
         
         foreach (DatatypeCtor ctor in dt.Ctors) {
-          IToken kaseTok = new NestedToken(tok, ctor.tok);
           Bpl.VariableSeq bvs;
           List<Bpl.Expr> args;
           CreateBoundVariables(ctor.Formals, out bvs, out args);
           Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
           // (exists args :: args-have-the-expected-types ==> ct(args) == expr)
-          Bpl.Expr q = Bpl.Expr.Binary(kaseTok, BinaryOperator.Opcode.Eq, ct, expr);
+          Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Length != 0) {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
@@ -5229,7 +5240,7 @@ namespace Microsoft.Dafny {
               }
               i++;
             }
-            q = new Bpl.ExistsExpr(kaseTok, bvs, BplAnd(typeAntecedent, q));
+            q = new Bpl.ExistsExpr(ctor.tok, bvs, BplAnd(typeAntecedent, q));
           }
           yield return q;
         }

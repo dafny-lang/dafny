@@ -75,6 +75,10 @@ Dafny program verifier finished with 6 verified, 0 errors
 
 Dafny program verifier finished with 22 verified, 0 errors
 
+-------------------- Rippling.dfy --------------------
+
+Dafny program verifier finished with 132 verified, 0 errors
+
 -------------------- Celebrity.dfy --------------------
 
 Dafny program verifier finished with 11 verified, 0 errors
