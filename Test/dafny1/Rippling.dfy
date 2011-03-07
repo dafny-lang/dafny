@@ -348,9 +348,8 @@ ghost method P15()
 }
 
 ghost method P16()
-  ensures (forall x, xs :: last(#List.Cons(x, xs)) == x ==> xs == #List.Nil);
+  ensures (forall x, xs :: xs == #List.Nil ==> last(#List.Cons(x, xs)) == x);
 {
-  assume false;  // Dafny is not able to verify it automatically
 }
 
 ghost method P17()
