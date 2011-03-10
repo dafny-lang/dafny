@@ -10,24 +10,24 @@ using Microsoft.Boogie;
 
 public static class cce {
   [Pure]
-  public static T NonNull<T>(T t) {
+  public static T NonNull<T>(T t) where T : class {
     Contract.Assert(t != null);
     return t;
   }
   [Pure]
-  public static bool NonNullElements<T>(IEnumerable<T> collection) {
+  public static bool NonNullElements<T>(IEnumerable<T> collection) where T : class {
     return collection != null && Contract.ForAll(collection, c => c != null);
   }
   [Pure]
-  public static bool NonNullElements<TKey, TValue>(IDictionary<TKey, TValue> collection) {
-    return collection != null && NonNullElements(collection.Keys) && NonNullElements(collection.Values);
+  public static bool NonNullDictionaryAndValues<TKey, TValue>(IDictionary<TKey, TValue> collection) where TValue : class {
+    return collection != null && NonNullElements(collection.Values);
   }
   [Pure]
   public static bool NonNullElements(VariableSeq collection) {
     return collection != null && Contract.ForAll(0, collection.Length, i => collection[i] != null);
   }
   [Pure]
-  public static bool NonNullElements<T>(Microsoft.Dafny.Graph<T> collection) {
+  public static bool NonNullElements<T>(Microsoft.Dafny.Graph<T> collection) where T : class {
     return collection != null && cce.NonNullElements(collection.TopologicallySortedComponents());
   }
   [Pure]

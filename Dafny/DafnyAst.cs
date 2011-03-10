@@ -247,7 +247,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
-      Contract.Invariant(cce.NonNullElements(Name));
+      Contract.Invariant(Name != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 

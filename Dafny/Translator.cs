@@ -30,9 +30,9 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() 
     {
-      Contract.Invariant(cce.NonNullElements(classes));
-      Contract.Invariant(cce.NonNullElements(fields));
-      Contract.Invariant(cce.NonNullElements(fieldFunctions));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(classes));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(fields));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(fieldFunctions));
     }
 
     readonly Bpl.Program sink;
@@ -1030,7 +1030,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(calleeFrame));
       Contract.Requires(receiverReplacement != null);
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(etran != null);
       Contract.Requires(builder != null);
       Contract.Requires(errorMessage != null);
@@ -1160,7 +1160,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(cce.NonNullElements(rw));
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(predef != null);
       Contract.Requires((receiverReplacement == null) == (substMap == null));
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -2463,13 +2463,13 @@ namespace Microsoft.Dafny {
     {
       private readonly Dictionary<string,Bpl.Expr> subst;
       public NominalSubstituter(Dictionary<string,Bpl.Expr> subst) :base(){
-        Contract.Requires(cce.NonNullElements(subst));
+        Contract.Requires(cce.NonNullDictionaryAndValues(subst));
         this.subst = subst;
       }
 
       [ContractInvariantMethod]
       void ObjectInvariant() {
-        Contract.Invariant(cce.NonNullElements(subst));
+        Contract.Invariant(cce.NonNullDictionaryAndValues(subst));
       }
 
           
@@ -3346,7 +3346,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
       Contract.Requires(cce.NonNullElements(calleeDecreases));
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(etran != null);
       Contract.Requires(builder != null);
 
@@ -5249,7 +5249,7 @@ namespace Microsoft.Dafny {
 
     static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(expr != null);
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
       Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
@@ -5397,7 +5397,7 @@ namespace Microsoft.Dafny {
     static List<Expression/*!*/>/*!*/ SubstituteExprList(List<Expression/*!*/>/*!*/ elist,
                                                  Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(cce.NonNullElements(elist));
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<Expression>>()));
       List<Expression> newElist = null;  // initialized lazily
       for (int i = 0; i < elist.Count; i++)
@@ -5422,7 +5422,7 @@ namespace Microsoft.Dafny {
     }
     
     static Triggers SubstTriggers(Triggers trigs, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       if (trigs != null) {
         List<Expression> terms = SubstituteExprList(trigs.Terms, receiverReplacement, substMap);
         Triggers prev = SubstTriggers(trigs.Prev, receiverReplacement, substMap);
@@ -5434,7 +5434,7 @@ namespace Microsoft.Dafny {
     }
 
     static Attributes SubstAttributes(Attributes attrs, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {
-      Contract.Requires(cce.NonNullElements(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       if (attrs != null) {
         List<Attributes.Argument> newArgs = new List<Attributes.Argument>();  // allocate it eagerly, what the heck, it doesn't seem worth the extra complexity in the code to do it lazily for the infrequently occurring attributes
         bool anyArgSubst = false;

@@ -58,10 +58,10 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(builtIns != null);
-      Contract.Invariant(cce.NonNullElements(classes));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(classes));
       Contract.Invariant(cce.NonNullElements(importGraph));
-      Contract.Invariant(cce.NonNullElements(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullElements(v)));
-      Contract.Invariant(cce.NonNullElements(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullElements(v)));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
 
     bool checkRefinements = true; // used to indicate a cycle in refinements
@@ -1632,7 +1632,7 @@ namespace Microsoft.Dafny {
 
     public static Type SubstType(Type type, Dictionary<TypeParameter/*!*/,Type/*!*/>/*!*/ subst) {
       Contract.Requires(type != null);
-      Contract.Requires(cce.NonNullElements(subst));
+      Contract.Requires(cce.NonNullDictionaryAndValues(subst));
       Contract.Ensures(Contract.Result<Type>() != null);
 
       if (type is BasicType) {

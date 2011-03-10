@@ -332,7 +332,7 @@ namespace Microsoft.Boogie
     static PipelineOutcome BoogiePipelineWithRerun (Program/*!*/ program, string/*!*/ bplFileName,
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {Contract.Requires(program != null);
-    Contract.Requires(cce.NonNullElements(bplFileName));
+    Contract.Requires(bplFileName != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
     
       

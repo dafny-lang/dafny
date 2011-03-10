@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
 
-  public class Graph<Node>
+  public class Graph<Node> where Node : class
   {
     enum VisitedStatus { Unvisited, OnStack, Visited }
     class Vertex {
