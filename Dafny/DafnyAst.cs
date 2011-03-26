@@ -2100,6 +2100,7 @@ namespace Microsoft.Dafny {
   {
     public enum Opcode {
       Not,
+      SetChoose,  // Important: SetChoose is not a function, so it can only be used in a statement context (in particular, the RHS of an assignment)
       SeqLength
     }
     public readonly Opcode Op;

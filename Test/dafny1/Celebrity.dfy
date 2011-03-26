@@ -1,9 +1,5 @@
 // Celebrity example, inspired by the Rodin tutorial
 
-method Pick<T>(S: set<T>) returns (t: T);
-  requires S != {};
-  ensures t in S;
-
 static function method Knows<Person>(a: Person, b: Person): bool;
   requires a != b;  // forbid asking about the reflexive case
 
@@ -26,20 +22,20 @@ method FindCelebrity1<Person>(people: set<Person>, ghost c: Person) returns (r: 
   ensures r == c;
 {
   var Q := people;
-  call x := Pick(Q);
+  var x := choose(Q);
   while (Q != {x})
     //invariant Q <= people;  // inv1 in Rodin's Celebrity_1, but it's not needed here
     invariant IsCelebrity(c, Q);  // inv2
     invariant x in Q;
     decreases Q;
   {
-    call y := Pick(Q - {x});
+    var y := choose(Q - {x});
     if (Knows(x, y)) {
       Q := Q - {x};  // remove_1
     } else {
       Q := Q - {y};  assert x in Q;  // remove_2
     }
-    call x := Pick(Q);
+    x := choose(Q);
   }
   r := x;
 }
@@ -48,7 +44,7 @@ method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: 
   requires IsCelebrity(c, people);
   ensures r == c;
 {
-  call b := Pick(people);
+  var b := choose(people);
   var R := people - {b};
   while (R != {})
     invariant R <= people;  // inv1
@@ -58,7 +54,7 @@ method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: 
 
     decreases R;
   {
-    call x := Pick(R);
+    var x := choose(R);
     if (Knows(x, b)) {
       R := R - {x};
     } else {

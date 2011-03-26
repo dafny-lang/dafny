@@ -41,6 +41,7 @@ namespace Microsoft.Dafny {
     internal class PredefinedDecls {
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
+      public readonly Bpl.Type TickType;
       private readonly Bpl.TypeSynonymDecl setTypeCtor;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       readonly Bpl.TypeCtorDecl fieldName;
@@ -55,6 +56,7 @@ namespace Microsoft.Dafny {
       void ObjectInvariant() {
         Contract.Invariant(RefType != null);
         Contract.Invariant(BoxType != null);
+        Contract.Invariant(TickType != null);
         Contract.Invariant(setTypeCtor != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
@@ -98,7 +100,7 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(tok, allocField);
       }
 
-      public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
+      public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl dtCtorId,
@@ -106,6 +108,7 @@ namespace Microsoft.Dafny {
         #region Non-null preconditions on parameters
         Contract.Requires(refType != null);
         Contract.Requires(boxType != null);
+        Contract.Requires(tickType != null);
         Contract.Requires(setTypeCtor != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(fieldNameType != null);
@@ -119,6 +122,7 @@ namespace Microsoft.Dafny {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new Bpl.TypeSeq());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new Bpl.TypeSeq());
+        this.TickType = new Bpl.CtorType(Token.NoToken, tickType, new Bpl.TypeSeq());
         this.setTypeCtor = setTypeCtor;
         this.seqTypeCtor = seqTypeCtor;
         this.fieldName = fieldNameType;
@@ -147,6 +151,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl dtCtorId = null;
       Bpl.TypeCtorDecl boxType = null;
+      Bpl.TypeCtorDecl tickType = null;
       Bpl.GlobalVariable heap = null;
       Bpl.Constant allocField = null;
       foreach (Bpl.Declaration d in prog.TopLevelDeclarations) {
@@ -166,6 +171,8 @@ namespace Microsoft.Dafny {
             refType = dt;
           } else if (dt.Name == "BoxType") {
             boxType = dt;
+          } else if (dt.Name == "TickType") {
+            tickType = dt;
           }
         } else if (d is Bpl.TypeSynonymDecl) {
           Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
@@ -200,12 +207,14 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type BoxType");
+      } else if (tickType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
       } else if (heap == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else {
-        return new PredefinedDecls(refType, boxType,
+        return new PredefinedDecls(refType, boxType, tickType,
                                    setTypeCtor, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
                                    allocField);
       }
@@ -1425,7 +1434,10 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         Bpl.Expr t = IsTotal(e.E, etran);
-        if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
+        if (e.Op == UnaryExpr.Opcode.SetChoose) {
+          Bpl.Expr emptySet = FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          return Bpl.Expr.And(t, Bpl.Expr.Neq(etran.TrExpr(e.E), emptySet));
+        } else  if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
           return Bpl.Expr.And(t, Bpl.Expr.Neq(etran.TrExpr(e.E), predef.Null));
         }
         return t;
@@ -1864,7 +1876,10 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, options, null, locals, builder, etran);
-        if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
+        if (e.Op == UnaryExpr.Opcode.SetChoose) {
+          Bpl.Expr emptySet = FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
+          builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E), emptySet), "choose is defined only on nonempty sets"));
+        } else if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
           CheckNonNull(expr.tok, e.E, builder, etran, options.AssertKv);
         }
       } else if (expr is BinaryExpr) {
@@ -2303,6 +2318,7 @@ namespace Microsoft.Dafny {
         etran.InMethodContext());
       req.Add(Requires(m.tok, true, context, null, null));
       mod.Add(etran.HeapExpr);
+      mod.Add(etran.Tick());
       
       if (!wellformednessProc) {
         string comment = "user-defined preconditions";
@@ -3683,6 +3699,11 @@ namespace Microsoft.Dafny {
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(tok, etran));
         }
+        var ch = ((ExprRhs)rhs).Expr as UnaryExpr;
+        if (ch != null && ch.Op == UnaryExpr.Opcode.SetChoose) {
+          // havoc $Tick;
+          builder.Add(new Bpl.HavocCmd(ch.tok, new Bpl.IdentifierExprSeq(etran.Tick())));
+        }
         
       } else if (rhs is HavocRhs) {
         Contract.Assert(lhs is IdentifierExpr);  // for this kind of RHS, the LHS is restricted to be a simple variable
@@ -3766,7 +3787,7 @@ namespace Microsoft.Dafny {
       [ContractInvariantMethod]
       void ObjectInvariant() 
       {
-        Contract.Invariant(HeapExpr!=null);
+        Contract.Invariant(HeapExpr != null);
         Contract.Invariant(predef != null);
         Contract.Invariant(translator != null);
         Contract.Invariant(This != null);
@@ -3862,7 +3883,14 @@ namespace Microsoft.Dafny {
         Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.TypeSeq(predef.RefType, fieldAlpha), Bpl.Type.Bool);
         return new Bpl.IdentifierExpr(tok, "$_Frame", ty);
       }
-      
+
+      public Bpl.IdentifierExpr Tick() {
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
+
+        return new Bpl.IdentifierExpr(Token.NoToken, "$Tick", predef.TickType);
+      }
+
       public Bpl.IdentifierExpr ModuleContextHeight()
         {
        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
@@ -4076,6 +4104,12 @@ namespace Microsoft.Dafny {
           switch (e.Op) {
             case UnaryExpr.Opcode.Not:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
+            case UnaryExpr.Opcode.SetChoose:
+              var x = translator.FunctionCall(expr.tok, BuiltinFunction.SetChoose, predef.BoxType, arg, Tick());
+              if (!ModeledAsBoxType(e.Type)) {
+                x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, translator.TrType(e.Type), x);
+              }
+              return x;
             case UnaryExpr.Opcode.SeqLength:
               if (e.E.Type is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
@@ -4600,6 +4634,7 @@ namespace Microsoft.Dafny {
       SetEqual,
       SetSubset,
       SetDisjoint,
+      SetChoose,
       
       SeqLength,
       SeqEmpty,
@@ -4680,6 +4715,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
+        case BuiltinFunction.SetChoose:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "Set#Choose", typeInstantiation, args);
 
         case BuiltinFunction.SeqLength:
           Contract.Assert(args.Length == 1);

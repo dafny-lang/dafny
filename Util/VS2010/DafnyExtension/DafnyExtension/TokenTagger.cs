@@ -242,6 +242,7 @@ namespace DafnyLanguage
                 case "by":
                 case "call":
                 case "case":
+                case "choose":
                 case "class":
                 case "datatype":
                 case "decreases":

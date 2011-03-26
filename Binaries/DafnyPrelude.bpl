@@ -80,6 +80,10 @@ function Set#Disjoint<T>(Set T, Set T) returns (bool);
 axiom (forall<T> a: Set T, b: Set T :: { Set#Disjoint(a,b) }
   Set#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} !a[o] || !b[o]));
 
+function Set#Choose<T>(Set T, TickType) returns (T);
+axiom (forall<T> a: Set T, tick: TickType :: { Set#Choose(a, tick) }
+  a != Set#Empty() ==> a[Set#Choose(a, tick)]);
+
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------
 // ---------------------------------------------------------------
@@ -345,6 +349,13 @@ axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
+
+// ---------------------------------------------------------------
+// -- Non-determinism --------------------------------------------
+// ---------------------------------------------------------------
+
+type TickType;
+var $Tick: TickType;
 
 // ---------------------------------------------------------------
 // -- Arithmetic -------------------------------------------------

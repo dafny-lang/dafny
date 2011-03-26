@@ -741,7 +741,7 @@ OneStmt<out Statement/*!*/ s>
   | AssumeStmt<out s>
   | UseStmt<out s>
   | PrintStmt<out s>
-  | AssignStmt<out s>
+  | AssignStmt<out s, true>
   | HavocStmt<out s>
   | CallStmt<out s>
   | IfStmt<out s>
@@ -758,7 +758,7 @@ OneStmt<out Statement/*!*/ s>
   )
   .
 
-AssignStmt<out Statement/*!*/ s>
+AssignStmt<out Statement/*!*/ s, bool allowChoose>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression/*!*/ lhs;
      List<Expression> rhs;
@@ -771,6 +771,12 @@ AssignStmt<out Statement/*!*/ s>
                                             Contract.Assert(rhs != null);
                                             Contract.Assert(rhs.Count == 1);
                                             s = new AssignStmt(x, lhs, rhs[0]);
+                                            if (!allowChoose) {
+                                              var r = rhs[0] as UnaryExpr;
+                                              if (r != null && r.Op == UnaryExpr.Opcode.SetChoose) {
+                                                SemErr("choose operator not allowed as RHS in foreach assignment");
+                                              }
+                                            }
                                           } else if (rhs == null) {
                                             s = new AssignStmt(x, lhs, ty);
                                           } else {
@@ -795,8 +801,12 @@ AssignRhs<.out List<Expression> ee, out Type ty.>
                                           UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
                                        .)
     ]
-  | Expression<out e>                  (. ee = new List<Expression>(); ee.Add(e); .)
-  )                                    (. if (ee == null && ty == null) { ee = new List<Expression>(); ee.Add(dummyExpr); } .)
+  | "choose"                           (. x = t; .)
+    "(" Expression<out e> ")"          (. e = new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e);
+                                          ee = new List<Expression>() { e };
+                                       .)
+  | Expression<out e>                  (. ee = new List<Expression>() { e }; .)
+  )                                    (. if (ee == null && ty == null) { ee = new List<Expression>() { dummyExpr}; } .)
   .
 
 HavocStmt<out Statement/*!*/ s>
@@ -1015,7 +1025,7 @@ ForeachStmt<out Statement/*!*/ s>
     | AssumeStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     | UseStmt<out s>                           (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     }
-    ( AssignStmt<out s>                        (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
+    ( AssignStmt<out s, false>                 (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
     | HavocStmt<out s>                         (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
     )
   "}"                                          (. if (bodyAssign != null) {

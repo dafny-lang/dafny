@@ -1119,6 +1119,10 @@ namespace Microsoft.Dafny {
             wr.Write("!");
             TrParenExpr(e.E);
             break;
+          case UnaryExpr.Opcode.SetChoose:
+            TrParenExpr(e.E);
+            wr.Write(".Choose()");
+            break;
           case UnaryExpr.Opcode.SeqLength:
             if (cce.NonNull(e.E.Type).IsArrayType) {
               wr.Write("new BigInteger(");

@@ -2032,6 +2032,13 @@ namespace Microsoft.Dafny {
             }
             expr.Type = Type.Bool;
             break;
+          case UnaryExpr.Opcode.SetChoose:
+            var elType = new InferredTypeProxy();
+            if (!UnifyTypes(e.E.Type, new SetType(elType))) {
+              Error(expr, "choose operator expects a set argument (instead got {0})", e.E.Type);
+            }
+            expr.Type = elType;
+            break;
           case UnaryExpr.Opcode.SeqLength:
             if (!UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
               Error(expr, "length operator expects a sequence argument (instead got {0})", e.E.Type);

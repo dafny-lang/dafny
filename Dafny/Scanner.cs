@@ -19,7 +19,7 @@ public class Buffer {
 	//    a) whole stream in buffer
 	//    b) part of stream in buffer
 	// 2) non seekable stream (network, console)
-  
+
 	public const int EOF = 65535 + 1; // char.MaxValue + 1;
 	const int MIN_BUFFER_LENGTH = 1024; // 1KB
 	const int MAX_BUFFER_LENGTH = MIN_BUFFER_LENGTH * 64; // 64KB
@@ -31,15 +31,17 @@ public class Buffer {
 	Stream/*!*/ stream;      // input stream (seekable)
 	bool isUserStream;  // was the stream opened by the user?
 
-[ContractInvariantMethod]
-void ObjectInvariant(){
-  Contract.Invariant(buf != null);
-  Contract.Invariant(stream != null);}
-    [NotDelayed]
-	public Buffer (Stream/*!*/ s, bool isUserStream) :base() {
+	[ContractInvariantMethod]
+	void ObjectInvariant(){
+		Contract.Invariant(buf != null);
+		Contract.Invariant(stream != null);
+	}
+
+//  [NotDelayed]
+	public Buffer (Stream/*!*/ s, bool isUserStream) : base() {
 	  Contract.Requires(s != null);
 		stream = s; this.isUserStream = isUserStream;
-		
+
 		int fl, bl;
 		if (s.CanSeek) {
 			fl = (int) s.Length;
@@ -51,12 +53,12 @@ void ObjectInvariant(){
 
 		buf = new byte[(bl>0) ? bl : MIN_BUFFER_LENGTH];
 		fileLen = fl;  bufLen = bl;
-		
+
 		if (fileLen > 0) Pos = 0; // setup buffer to position 0 (start)
 		else bufPos = 0; // index 0 is already after the file, thus Pos = 0 is invalid
 		if (bufLen == fileLen && s.CanSeek) Close();
 	}
-	
+
 	protected Buffer(Buffer/*!*/ b) { // called in UTF8Buffer constructor
 	  Contract.Requires(b != null);
 		buf = b.buf;
@@ -73,14 +75,14 @@ void ObjectInvariant(){
 	}
 
 	~Buffer() { Close(); }
-	
+
 	protected void Close() {
 		if (!isUserStream && stream != null) {
 			stream.Close();
 			//stream = null;
 		}
 	}
-	
+
 	public virtual int Read () {
 		if (bufPos < bufLen) {
 			return buf[bufPos++];
@@ -100,7 +102,7 @@ void ObjectInvariant(){
 		Pos = curPos;
 		return ch;
 	}
-	
+
 	public string/*!*/ GetString (int beg, int end) {
 	  Contract.Ensures(Contract.Result<string>() != null);
 		int len = 0;
@@ -139,7 +141,7 @@ void ObjectInvariant(){
 			}
 		}
 	}
-	
+
 	// Read the next chunk of bytes from the stream, increases the buffer
 	// if needed and updates the fields fileLen and bufLen.
 	// Returns the number of bytes read.
@@ -209,23 +211,24 @@ public class UTF8Buffer: Buffer {
 public class Scanner {
 	const char EOL = '\n';
 	const int eofSym = 0; /* pdt */
-	const int maxT = 104;
-	const int noSym = 104;
+	const int maxT = 105;
+	const int noSym = 105;
 
 
-[ContractInvariantMethod]
-void objectInvariant(){
-  Contract.Invariant(buffer!=null);
-  Contract.Invariant(t != null);
-  Contract.Invariant(start != null);
-  Contract.Invariant(tokens != null);
-  Contract.Invariant(pt != null);
-  Contract.Invariant(tval != null);
-  Contract.Invariant(Filename != null);
-  Contract.Invariant(errorHandler != null);
-}
+	[ContractInvariantMethod]
+	void objectInvariant(){
+		Contract.Invariant(buffer!=null);
+		Contract.Invariant(t != null);
+		Contract.Invariant(start != null);
+		Contract.Invariant(tokens != null);
+		Contract.Invariant(pt != null);
+		Contract.Invariant(tval != null);
+		Contract.Invariant(Filename != null);
+		Contract.Invariant(errorHandler != null);
+	}
+
 	public Buffer/*!*/ buffer; // scanner buffer
-	
+
 	Token/*!*/ t;          // current token
 	int ch;           // current input character
 	int pos;          // byte position of current character
@@ -236,13 +239,13 @@ void objectInvariant(){
 
 	Token/*!*/ tokens;     // list of tokens already peeked (first token is a dummy)
 	Token/*!*/ pt;         // current peek token
-	
+
 	char[]/*!*/ tval = new char[128]; // text of current token
 	int tlen;         // length of current token
-	
+
 	private string/*!*/ Filename;
 	private Errors/*!*/ errorHandler;
-	
+
 	static Scanner() {
 		start = new Hashtable(128);
 		for (int i = 39; i <= 39; ++i) start[i] = 1;
@@ -291,9 +294,9 @@ void objectInvariant(){
 		start[Buffer.EOF] = -1;
 
 	}
-	
-	[NotDelayed]
-	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler) :base(){
+
+//	[NotDelayed]
+	public Scanner (string/*!*/ fileName, Errors/*!*/ errorHandler) : base() {
 	  Contract.Requires(fileName != null);
 	  Contract.Requires(errorHandler != null);
 		this.errorHandler = errorHandler;
@@ -303,15 +306,14 @@ void objectInvariant(){
 			Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
 			buffer = new Buffer(stream, false);
 			Filename = fileName;
-			
 			Init();
 		} catch (IOException) {
 			throw new FatalError("Cannot open file " + fileName);
 		}
 	}
-	
-	[NotDelayed]
-	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName) :base(){
+
+//	[NotDelayed]
+	public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fileName) : base() {
 	  Contract.Requires(s != null);
 	  Contract.Requires(errorHandler != null);
 	  Contract.Requires(fileName != null);
@@ -320,10 +322,9 @@ void objectInvariant(){
 		buffer = new Buffer(s, true);
 		this.errorHandler = errorHandler;
 		this.Filename = fileName;
-		
 		Init();
 	}
-	
+
 	void Init() {
 		pos = -1; line = 1; col = 0;
 		oldEols = 0;
@@ -344,11 +345,11 @@ void objectInvariant(){
 	Contract.Ensures(Contract.Result<string>() != null);
 	  int p = buffer.Pos;
 	  int ch = buffer.Read();
-      // replace isolated '\r' by '\n' in order to make
+	  // replace isolated '\r' by '\n' in order to make
 	  // eol handling uniform across Windows, Unix and Mac
 	  if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
 	  while (ch != EOL && ch != Buffer.EOF){
-	    ch = buffer.Read();
+		ch = buffer.Read();
 		// replace isolated '\r' by '\n' in order to make
 		// eol handling uniform across Windows, Unix and Mac
 		if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
@@ -359,7 +360,7 @@ void objectInvariant(){
 	}
 
 	void NextCh() {
-		if (oldEols > 0) { ch = EOL; oldEols--; } 
+		if (oldEols > 0) { ch = EOL; oldEols--; }
 		else {
 //			pos = buffer.Pos;
 //			ch = buffer.Read(); col++;
@@ -367,9 +368,9 @@ void objectInvariant(){
 //			// eol handling uniform across Windows, Unix and Mac
 //			if (ch == '\r' && buffer.Peek() != '\n') ch = EOL;
 //			if (ch == EOL) { line++; col = 0; }
-			
+
 			while (true) {
-			    pos = buffer.Pos;
+				pos = buffer.Pos;
 				ch = buffer.Read(); col++;
 				// replace isolated '\r' by '\n' in order to make
 				// eol handling uniform across Windows, Unix and Mac
@@ -419,7 +420,7 @@ void objectInvariant(){
 				return;
 			  }
 
-			
+
 		}
 
 	}
@@ -518,28 +519,29 @@ void objectInvariant(){
 			case "break": t.kind = 45; break;
 			case "return": t.kind = 46; break;
 			case "new": t.kind = 48; break;
-			case "havoc": t.kind = 51; break;
-			case "if": t.kind = 52; break;
-			case "else": t.kind = 53; break;
-			case "while": t.kind = 54; break;
-			case "invariant": t.kind = 55; break;
-			case "call": t.kind = 56; break;
-			case "foreach": t.kind = 57; break;
-			case "in": t.kind = 58; break;
-			case "assert": t.kind = 60; break;
-			case "assume": t.kind = 61; break;
-			case "use": t.kind = 62; break;
-			case "print": t.kind = 63; break;
-			case "then": t.kind = 64; break;
-			case "false": t.kind = 88; break;
-			case "true": t.kind = 89; break;
-			case "null": t.kind = 90; break;
-			case "fresh": t.kind = 93; break;
-			case "allocated": t.kind = 94; break;
-			case "this": t.kind = 96; break;
-			case "old": t.kind = 97; break;
-			case "forall": t.kind = 98; break;
-			case "exists": t.kind = 100; break;
+			case "choose": t.kind = 51; break;
+			case "havoc": t.kind = 52; break;
+			case "if": t.kind = 53; break;
+			case "else": t.kind = 54; break;
+			case "while": t.kind = 55; break;
+			case "invariant": t.kind = 56; break;
+			case "call": t.kind = 57; break;
+			case "foreach": t.kind = 58; break;
+			case "in": t.kind = 59; break;
+			case "assert": t.kind = 61; break;
+			case "assume": t.kind = 62; break;
+			case "use": t.kind = 63; break;
+			case "print": t.kind = 64; break;
+			case "then": t.kind = 65; break;
+			case "false": t.kind = 89; break;
+			case "true": t.kind = 90; break;
+			case "null": t.kind = 91; break;
+			case "fresh": t.kind = 94; break;
+			case "allocated": t.kind = 95; break;
+			case "this": t.kind = 97; break;
+			case "old": t.kind = 98; break;
+			case "forall": t.kind = 99; break;
+			case "exists": t.kind = 101; break;
 			default: break;
 		}
 	}
@@ -556,10 +558,13 @@ void objectInvariant(){
 		t.pos = pos; t.col = col; t.line = line;
 		t.filename = this.Filename;
 		int state;
-		if (start.ContainsKey(ch)) { state = (int) cce.NonNull( start[ch]); }
+		if (start.ContainsKey(ch)) {
+			Contract.Assert(start[ch] != null);
+			state = (int) start[ch];
+		}
 		else { state = 0; }
 		tlen = 0; AddCh();
-		
+
 		switch (state) {
 			case -1: { t.kind = eofSym; break; } // NextCh already done
 			case 0: {
@@ -665,63 +670,63 @@ void objectInvariant(){
 				if (ch == '>') {AddCh(); goto case 30;}
 				else {goto case 0;}
 			case 30:
-				{t.kind = 65; break;}
-			case 31:
 				{t.kind = 66; break;}
-			case 32:
+			case 31:
 				{t.kind = 67; break;}
-			case 33:
+			case 32:
 				{t.kind = 68; break;}
+			case 33:
+				{t.kind = 69; break;}
 			case 34:
 				if (ch == '&') {AddCh(); goto case 35;}
 				else {goto case 0;}
 			case 35:
-				{t.kind = 69; break;}
-			case 36:
 				{t.kind = 70; break;}
-			case 37:
+			case 36:
 				{t.kind = 71; break;}
-			case 38:
+			case 37:
 				{t.kind = 72; break;}
+			case 38:
+				{t.kind = 73; break;}
 			case 39:
-				{t.kind = 75; break;}
-			case 40:
 				{t.kind = 76; break;}
-			case 41:
+			case 40:
 				{t.kind = 77; break;}
+			case 41:
+				{t.kind = 78; break;}
 			case 42:
 				if (ch == 'n') {AddCh(); goto case 43;}
 				else {goto case 0;}
 			case 43:
-				{t.kind = 78; break;}
-			case 44:
 				{t.kind = 79; break;}
-			case 45:
+			case 44:
 				{t.kind = 80; break;}
-			case 46:
+			case 45:
 				{t.kind = 81; break;}
-			case 47:
+			case 46:
 				{t.kind = 82; break;}
-			case 48:
+			case 47:
 				{t.kind = 83; break;}
-			case 49:
+			case 48:
 				{t.kind = 84; break;}
-			case 50:
+			case 49:
 				{t.kind = 85; break;}
+			case 50:
+				{t.kind = 86; break;}
 			case 51:
-				{t.kind = 87; break;}
+				{t.kind = 88; break;}
 			case 52:
-				{t.kind = 91; break;}
+				{t.kind = 92; break;}
 			case 53:
-				{t.kind = 95; break;}
+				{t.kind = 96; break;}
 			case 54:
-				{t.kind = 99; break;}
+				{t.kind = 100; break;}
 			case 55:
-				{t.kind = 101; break;}
-			case 56:
 				{t.kind = 102; break;}
-			case 57:
+			case 56:
 				{t.kind = 103; break;}
+			case 57:
+				{t.kind = 104; break;}
 			case 58:
 				recEnd = pos; recKind = 20;
 				if (ch == '=') {AddCh(); goto case 26;}
@@ -740,40 +745,40 @@ void objectInvariant(){
 				else if (ch == '=') {AddCh(); goto case 66;}
 				else {goto case 0;}
 			case 62:
-				recEnd = pos; recKind = 59;
+				recEnd = pos; recKind = 60;
 				if (ch == '|') {AddCh(); goto case 37;}
-				else {t.kind = 59; break;}
+				else {t.kind = 60; break;}
 			case 63:
-				recEnd = pos; recKind = 86;
+				recEnd = pos; recKind = 87;
 				if (ch == '=') {AddCh(); goto case 40;}
 				else if (ch == '!') {AddCh(); goto case 41;}
 				else if (ch == 'i') {AddCh(); goto case 42;}
-				else {t.kind = 86; break;}
+				else {t.kind = 87; break;}
 			case 64:
-				recEnd = pos; recKind = 92;
+				recEnd = pos; recKind = 93;
 				if (ch == '.') {AddCh(); goto case 53;}
-				else {t.kind = 92; break;}
+				else {t.kind = 93; break;}
 			case 65:
-				recEnd = pos; recKind = 74;
+				recEnd = pos; recKind = 75;
 				if (ch == '=') {AddCh(); goto case 29;}
-				else {t.kind = 74; break;}
+				else {t.kind = 75; break;}
 			case 66:
-				recEnd = pos; recKind = 73;
+				recEnd = pos; recKind = 74;
 				if (ch == '>') {AddCh(); goto case 32;}
-				else {t.kind = 73; break;}
+				else {t.kind = 74; break;}
 
 		}
 		t.val = new String(tval, 0, tlen);
 		return t;
 	}
-	
+
 	private void SetScannerBehindT() {
 		buffer.Pos = t.pos;
 		NextCh();
 		line = t.line; col = t.col;
 		for (int i = 0; i < tlen; i++) NextCh();
 	}
-	
+
 	// get the next token (possibly a token already seen during peeking)
 	public Token/*!*/ Scan () {
 	 Contract.Ensures(Contract.Result<Token>() != null);
@@ -794,7 +799,7 @@ void objectInvariant(){
 			}
 			pt = pt.next;
 		} while (pt.kind > maxT); // skip pragmas
-	
+
 		return pt;
 	}
 
