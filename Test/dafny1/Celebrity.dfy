@@ -4,7 +4,7 @@ method Pick<T>(S: set<T>) returns (t: T);
   requires S != {};
   ensures t in S;
 
-static function Knows<Person>(a: Person, b: Person): bool;
+static function method Knows<Person>(a: Person, b: Person): bool;
   requires a != b;  // forbid asking about the reflexive case
 
 static function IsCelebrity<Person>(c: Person, people: set<Person>): bool

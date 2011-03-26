@@ -108,7 +108,6 @@ class MyClass<T> {
     if (forall x :: x*x in S ==> 0 <= x && x < 100) then a else b
   }
   // And if statements
-/****
   method N(s: seq<int>) returns (ghost g: int, h: int)
   {
     if ( (forall x :: x in s ==> 0 <= x) ) {
@@ -117,9 +116,8 @@ class MyClass<T> {
     if ( (forall x :: x*x in s ==> x < 100) ) {  // this is fine, since the whole statement is a ghost statement
       g := 2;
     }
-    if ( (forall x :: x*x in s ==> x < 50) ) {  // error: cannot compile this guard of a non-ghost if statement
-      h := 6;
+    if ( (forall x :: x*x in s ==> x < 50) ) {
+      h := 6;  // error: cannot compile this guard of a non-ghost if statement
     }
   }
-****/
 }

@@ -1120,6 +1120,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         ResolveAttributeArgs(s.Args, false, false);
+        if (specContextOnly) {
+          Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        }
           
       } else if (stmt is BreakStmt) {
         BreakStmt s = (BreakStmt)stmt;
@@ -1160,6 +1163,9 @@ namespace Microsoft.Dafny {
             lvalueIsGhost = var.IsGhost;
             if (!var.IsMutable) {
               Error(stmt, "LHS of assignment must denote a mutable variable or field");
+            }
+            if (!lvalueIsGhost && specContextOnly) {
+              Error(stmt, "Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
           }
         } else if (s.Lhs is FieldSelectExpr) {
@@ -1268,6 +1274,10 @@ namespace Microsoft.Dafny {
         // now that the declaration has been processed, add the name to the scope
         if (!scope.Push(s.Name, s)) {
           Error(s, "Duplicate local-variable name: {0}", s.Name);
+        }
+        if (specContextOnly) {
+          // a local variable in a specification-only context might as well be ghost
+          s.IsGhost = true;
         }
       
       } else if (stmt is CallStmt) {
@@ -2180,14 +2190,7 @@ namespace Microsoft.Dafny {
         expr.Type = Type.Bool;
 
         if (prevErrorCount == ErrorCount) {
-          if (specContext) {
-            // any quantifier is allowed
-          } else {
-            // ...but in non-spec contexts, it is necessary to compile the quantifier, so only certain quantifiers
-            // whose bound variables draw their values from bounded pools of values are allowed.  To check for such
-            // "bounded pools", this resolving code looks for certain patterns.
-            e.Bounds = DiscoverBounds(e);
-          }
+          e.Bounds = DiscoverBounds(e, specContext);
         }
         
       } else if (expr is WildcardExpr) {
@@ -2319,10 +2322,11 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Tries to find a bounded pool for each of the bound variables of "e".  If this process fails, appropriate
-    /// error messages are reported and "null" is returned.
+    /// error messages are reported and "null" is returned, unless "friendlyTry" is "true", in which case no
+    /// error messages are reported.
     /// Requires "e" to be successfully resolved.
     /// </summary>
-    List<QuantifierExpr.BoundedPool> DiscoverBounds(QuantifierExpr e) {
+    List<QuantifierExpr.BoundedPool> DiscoverBounds(QuantifierExpr e, bool friendlyTry) {
       Contract.Requires(e != null);
       Contract.Requires(e.Type != null);  // a sanity check (but not a complete proof) that "e" has been resolved
       Contract.Ensures(Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == e.BoundVars.Count);
@@ -2397,7 +2401,9 @@ namespace Microsoft.Dafny {
           CHECK_NEXT_CONJUNCT: ;
           }
           // we have checked every conjunct in the range expression and still have not discovered good bounds
-          Error(e, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+          if (!friendlyTry) {
+            Error(e, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+          }
           return null;
         }
       CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
@@ -2901,7 +2907,8 @@ namespace Microsoft.Dafny {
         }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
       } else if (expr is QuantifierExpr) {
-        return true;
+        var e = (QuantifierExpr)expr;
+        return e.Bounds == null;  // if the resolver found bounds, then the quantifier can be compiled
       } else if (expr is WildcardExpr) {
         return false;
       } else if (expr is ITEExpr) {

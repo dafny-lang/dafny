@@ -2300,7 +2300,7 @@ namespace Microsoft.Dafny {
     {
     }
 
-    public List<BoundedPool> Bounds;  // initialized and filled in by resolver; it remains null for quantifiers in specification contexts
+    public List<BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant bounds == null || bounds.Count == BoundVars.Count;
 
     public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ body, Triggers trigs, Attributes attrs)

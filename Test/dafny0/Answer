@@ -407,7 +407,8 @@ NonGhostQuantifiers.dfy(71,5): Error: quantifiers in non-ghost contexts must be 
 NonGhostQuantifiers.dfy(86,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
 NonGhostQuantifiers.dfy(94,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
 NonGhostQuantifiers.dfy(103,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
-7 resolution/type errors detected in NonGhostQuantifiers.dfy
+NonGhostQuantifiers.dfy(120,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+8 resolution/type errors detected in NonGhostQuantifiers.dfy
 
 -------------------- Modules0.dfy --------------------
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
