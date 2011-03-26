@@ -107,6 +107,25 @@ class IntegerInduction {
       call Theorem4();
     }
   }
+
+  // The body of this function method gives a single quantifier, which leads to an efficient
+  // way to check sortedness at run time.  However, an alternative, and ostensibly more general,
+  // way to express sortedness is given in the function's postcondition.  The alternative
+  // formulation may be easier to understand for a human and may also be more readily applicable
+  // for the program verifier.  Dafny will show that postcondition holds, which ensures the
+  // equivalence of the two formulations.
+  // The proof of the postcondition requires induction.  It would have been nicer to state it
+  // as one formula of the form "IsSorted(s) <==> ...", but then Dafny would never consider the
+  // possibility of applying induction.  Instead, the "==>" and "<==" cases are given separately.
+  // Proving the "<==" case is simple; it's the "==>" case that requires induction.
+  // The example uses an attribute that requests induction on just "j".  However, the proof also
+  // goes through by applying induction just on "i" or applying induction on both bound variables.
+  function method IsSorted(s: seq<int>): bool
+    ensures IsSorted(s) ==> (forall i,j {:induction j} :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]);
+    ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s);
+  {
+    (forall i :: 0 <= i && i+1 < |s| ==> s[i] <= s[i+1])
+  }
 }
 
 datatype Tree<T> {

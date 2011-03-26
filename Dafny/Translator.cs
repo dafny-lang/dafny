@@ -1290,7 +1290,12 @@ namespace Microsoft.Dafny {
 
         // check that postconditions hold
         foreach (Expression p in f.Ens) {
-          bodyCheckBuilder.Add(Assert(p.tok, etran.TrExpr(p), "possible violation of function postcondition"));
+          bool splitHappened;
+          foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
+            if (!s.IsFree) {
+              bodyCheckBuilder.Add(Assert(s.E.tok, s.E, "possible violation of function postcondition"));
+            }
+          }
         }
       }
       // Combine the two
@@ -3294,18 +3299,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr.Type is BoolType);
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
-      if (expr is BinaryExpr) {
-        BinaryExpr bin = (BinaryExpr)expr;
-        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          foreach (Expression e in Conjuncts(bin.E0)) {
-            yield return e;
-          }
-          Contract.Assert(bin != null);  // the necessity of this cast is a compiler bug, but perhaps an irrepairable one
-          foreach (Expression e in Conjuncts(bin.E1)) {
-            yield return e;
-          }
-          yield break;
+      var bin = expr as BinaryExpr;
+      if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+        foreach (Expression e in Conjuncts(bin.E0)) {
+          yield return e;
         }
+        foreach (Expression e in Conjuncts(bin.E1)) {
+          yield return e;
+        }
+        yield break;
       }
       yield return expr;
     }
@@ -5068,20 +5070,60 @@ namespace Microsoft.Dafny {
 
       for (var a = e.Attributes; a != null; a = a.Prev) {
         if (a.Name == "induction") {
-          // return 'true', except if there is one argument and it is 'false'
+          // Here are the supported forms of the :induction attribute.
+          //    :induction           -- apply induction to all bound variables
+          //    :induction false     -- suppress induction, that is, don't apply it to any bound variable
+          //    :induction L       where L is a list consisting entirely of bound variables:
+          //                         -- apply induction to the specified bound variables
+          //    :induction X       where X is anything else
+          //                         -- treat the same as {:induction}, that is, apply induction to all
+          //                            bound variables
+
+          // Handle {:induction false}
           if (a.Args.Count == 1) {
             var arg = a.Args[0].E as LiteralExpr;
             if (arg != null && arg.Value is bool && !(bool)arg.Value) {
               if (CommandLineOptions.Clo.Trace) {
-                Console.Write("Suppressing automatic induction on: ");
+                Console.Write("Suppressing automatic induction for: ");
                 new Printer(Console.Out).PrintExpression(e);
                 Console.WriteLine();
               }
               return new List<BoundVar>();
             }
           }
+
+          // Handle {:induction L}
+          if (a.Args.Count != 0) {
+            var L = new List<BoundVar>();
+            foreach (var arg in a.Args) {
+              var id = arg.E as IdentifierExpr;
+              var bv = id == null ? null : id.Var as BoundVar;
+              if (bv != null && e.BoundVars.Contains(bv)) {
+                // add to L, but don't add duplicates
+                if (!L.Contains(bv)) {
+                  L.Add(bv);
+                }
+              } else {
+                goto USE_DEFAULT_FORM;
+              }
+            }
+            if (CommandLineOptions.Clo.Trace) {
+              string sep = "Applying requested induction on ";
+              foreach (var bv in L) {
+                Console.Write("{0}{1}", sep, bv.Name);
+                sep = ", ";
+              }
+              Console.Write(" of: ");
+              new Printer(Console.Out).PrintExpression(e);
+              Console.WriteLine();
+            }
+            return L;
+          USE_DEFAULT_FORM: ;
+          }
+
+          // We have the {:induction} case, or something to be treated in the same way
           if (CommandLineOptions.Clo.Trace) {
-            Console.Write("Applying requested induction on: ");
+            Console.Write("Applying requested induction on all bound variables of: ");
             new Printer(Console.Out).PrintExpression(e);
             Console.WriteLine();
           }

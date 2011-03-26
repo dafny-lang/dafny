@@ -1091,8 +1091,10 @@ namespace Microsoft.Dafny {
       }
     }
     
-    public void ResolveStatement(Statement stmt, bool specContextOnly, Method method){Contract.Requires(stmt != null);Contract.Requires(method != null);
-     Contract.Requires(!(stmt is LabelStmt));  // these should be handled inside lists of statements
+    public void ResolveStatement(Statement stmt, bool specContextOnly, Method method) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(method != null);
+      Contract.Requires(!(stmt is LabelStmt));  // these should be handled inside lists of statements
       if (stmt is UseStmt) {
         UseStmt s = (UseStmt)stmt;
         s.IsGhost = true;
@@ -2157,10 +2159,8 @@ namespace Microsoft.Dafny {
         
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
+        int prevErrorCount = ErrorCount;
         scope.PushMarker();
-        if (!specContext) {
-          Error(expr, "quantifiers are allowed only in specification contexts");
-        }
         foreach (BoundVar v in e.BoundVars) {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
@@ -2178,6 +2178,17 @@ namespace Microsoft.Dafny {
         ResolveTriggers(e.Trigs, twoState);
         scope.PopMarker();
         expr.Type = Type.Bool;
+
+        if (prevErrorCount == ErrorCount) {
+          if (specContext) {
+            // any quantifier is allowed
+          } else {
+            // ...but in non-spec contexts, it is necessary to compile the quantifier, so only certain quantifiers
+            // whose bound variables draw their values from bounded pools of values are allowed.  To check for such
+            // "bounded pools", this resolving code looks for certain patterns.
+            e.Bounds = DiscoverBounds(e);
+          }
+        }
         
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
@@ -2303,6 +2314,378 @@ namespace Microsoft.Dafny {
       if (expr.Type == null) {
         // some resolution error occurred
         expr.Type = Type.Flexible;
+      }
+    }
+
+    /// <summary>
+    /// Tries to find a bounded pool for each of the bound variables of "e".  If this process fails, appropriate
+    /// error messages are reported and "null" is returned.
+    /// Requires "e" to be successfully resolved.
+    /// </summary>
+    List<QuantifierExpr.BoundedPool> DiscoverBounds(QuantifierExpr e) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type != null);  // a sanity check (but not a complete proof) that "e" has been resolved
+      Contract.Ensures(Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == e.BoundVars.Count);
+
+      var bounds = new List<QuantifierExpr.BoundedPool>();
+      for (int j = 0; j < e.BoundVars.Count; j++) {
+        var bv = e.BoundVars[j];
+        if (bv.Type == Type.Bool) {
+          // easy
+          bounds.Add(new QuantifierExpr.BoolBoundedPool());
+        } else {
+          // Go through the conjuncts of the range expression look for bounds.
+          Expression lowerBound = null;
+          Expression upperBound = null;
+          foreach (var conjunct in NormalizedConjuncts(e.Body, e is ExistsExpr)) {
+            var c = conjunct as BinaryExpr;
+            if (c == null) {
+              goto CHECK_NEXT_CONJUNCT;
+            }
+            var e0 = c.E0;
+            var e1 = c.E1;
+            var op = c.ResolvedOp;
+            int whereIsBv = SanitizeForBoundDiscovery(e.BoundVars, j, ref op, ref e0, ref e1);
+            if (whereIsBv < 0) {
+              goto CHECK_NEXT_CONJUNCT;
+            }
+            switch (op) {
+              case BinaryExpr.ResolvedOpcode.InSet:
+                if (whereIsBv == 0) {
+                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  goto CHECK_NEXT_BOUND_VARIABLE;
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.InSeq:
+                if (whereIsBv == 0) {
+                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  goto CHECK_NEXT_BOUND_VARIABLE;
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.EqCommon:
+                if (bv.Type == Type.Int) {
+                  var otherOperand = whereIsBv == 0 ? e1 : e0;
+                  bounds.Add(new QuantifierExpr.IntBoundedPool(otherOperand, Plus(otherOperand, 1)));
+                  goto CHECK_NEXT_BOUND_VARIABLE;
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Gt:
+              case BinaryExpr.ResolvedOpcode.Ge:
+                Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct and SanitizeForBoundDiscovery
+              case BinaryExpr.ResolvedOpcode.Lt:
+                if (whereIsBv == 0 && upperBound == null) {
+                  upperBound = e1;  // bv < E
+                } else if (whereIsBv == 1 && lowerBound == null) {
+                  lowerBound = Plus(e0, 1);  // E < bv
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Le:
+                if (whereIsBv == 0 && upperBound == null) {
+                  upperBound = Plus(e1, 1);  // bv <= E
+                } else if (whereIsBv == 1 && lowerBound == null) {
+                  lowerBound = e0;  // E <= bv
+                }
+                break;
+              default:
+                break;
+            }
+            if (lowerBound != null && upperBound != null) {
+              // we have found two halves
+              bounds.Add(new QuantifierExpr.IntBoundedPool(lowerBound, upperBound));
+              goto CHECK_NEXT_BOUND_VARIABLE;
+            }
+          CHECK_NEXT_CONJUNCT: ;
+          }
+          // we have checked every conjunct in the range expression and still have not discovered good bounds
+          Error(e, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+          return null;
+        }
+      CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
+      }
+      return bounds;
+    }
+
+    /// <summary>
+    /// If the return value is negative, the resulting "op", "e0", and "e1" should not be used.
+    /// Otherwise, the following is true on return:
+    /// The new "e0 op e1" is equivalent to the old "e0 op e1".
+    /// One of "e0" and "e1" is the identifier "boundVars[bvi]"; the return value is either 0 or 1, and indicates which.
+    /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
+    /// Requires the initial value of "op" not to be Gt or Ge, and ensures the same about the final value of "op".
+    /// </summary>
+    int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, ref BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1)
+    {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(boundVars != null);
+      Contract.Requires(0 <= bvi && bvi < boundVars.Count);
+      Contract.Ensures(Contract.Result<int>() < 2);
+
+      var bv = boundVars[bvi];
+
+      // make an initial assessment of where bv is; to continue, we need bv to appear in exactly one operand
+      var fv0 = FreeVariables(e0);
+      var fv1 = FreeVariables(e1);
+      Expression thisSide;
+      Expression thatSide;
+      int whereIsBv;
+      if (fv0.Contains(bv)) {
+        if (fv1.Contains(bv)) {
+          return -1;
+        }
+        whereIsBv = 0;
+        thisSide = e0; thatSide = e1;
+      } else if (fv1.Contains(bv)) {
+        whereIsBv = 1;
+        thisSide = e1; thatSide = e0;
+      } else {
+        return -1;
+      }
+
+      // Next, clean up the side where bv is by adjusting both sides of the expression
+      while (true) {
+        switch (op) {
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.NeqCommon:
+          case BinaryExpr.ResolvedOpcode.Gt:
+          case BinaryExpr.ResolvedOpcode.Ge:
+          case BinaryExpr.ResolvedOpcode.Le:
+          case BinaryExpr.ResolvedOpcode.Lt:
+            var bin = thisSide as BinaryExpr;
+            if (bin != null) {
+              if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+                // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
+                if (!FreeVariables(bin.E1).Contains(bv)) {
+                  thisSide = bin.E0;
+                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
+                } else {
+                  thisSide = bin.E1;
+                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
+                }
+                ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+                thatSide.Type = bin.Type;
+                continue;  // continue simplifying
+
+              } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
+                // Change "A-B op C" in a similar way.
+                if (!FreeVariables(bin.E1).Contains(bv)) {
+                  // change to "A op C+B"
+                  thisSide = bin.E0;
+                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
+                  ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
+                } else {
+                  // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
+                  // to return with the operator being > or >=, we instead end with "A-C op B" and switch the
+                  // mapping of thisSide/thatSide to e0/e1 (by inverting "whereIsBv").
+                  thisSide = bin.E1;
+                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
+                  ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+                  whereIsBv = 1 - whereIsBv;
+                }
+                thatSide.Type = bin.Type;
+                continue;  // continue simplifying
+              }
+            }
+            break;  // done simplifying
+          default:
+            break;  // done simplifying
+        }
+        break;  // done simplifying
+      }
+
+      // Now, see if the interesting side is simply bv itself
+      if (thisSide is IdentifierExpr && ((IdentifierExpr)thisSide).Var == bv) {
+        // we're cool
+      } else {
+        // no, the situation is more complicated than we care to understand
+        return -1;
+      }
+
+      // Finally, check that the other side does not contain "bv" or any of the bound variables
+      // listed after "bv" in the quantifier.
+      var fv = FreeVariables(thatSide);
+      for (int i = bvi; i < boundVars.Count; i++) {
+        if (fv.Contains(boundVars[i])) {
+          return -1;
+        }
+      }
+
+      // As we return, also return the adjusted sides
+      if (whereIsBv == 0) {
+        e0 = thisSide; e1 = thatSide;
+      } else {
+        e0 = thatSide; e1 = thisSide;
+      }
+      return whereIsBv;
+    }
+
+    /// <summary>
+    /// Returns all conjuncts of "expr" in "polarity" positions.  That is, if "polarity" is "true", then
+    /// returns the conjuncts of "expr" in positive positions; else, returns the conjuncts of "expr" in
+    /// negative positions.  The method considers a canonical-like form of the expression that pushes
+    /// negations inwards far enough that one can determine what the result is going to be (so, almost
+    /// a negation normal form).
+    /// As a convenience, arithmetic inequalities are rewritten so that the negation of an arithmetic
+    /// inequality is never returned and the comparisons > and >= are never returned; the negation of
+    /// a common equality or disequality is rewritten analogously.
+    /// Requires "expr" to be successfully resolved.
+    /// </summary>
+    IEnumerable<Expression> NormalizedConjuncts(Expression expr, bool polarity) {
+      // We consider 5 cases.  To describe them, define P(e)=Conjuncts(e,true) and N(e)=Conjuncts(e,false).
+      //   *  X ==> Y    is treated as a shorthand for !X || Y, and so is described by the remaining cases
+      //   *  X && Y     P(_) = P(X),P(Y)    and    N(_) = !(X && Y)
+      //   *  X || Y     P(_) = (X || Y)     and    N(_) = N(X),N(Y)
+      //   *  !X         P(_) = N(X)         and    N(_) = P(X)
+      //   *  else       P(_) = else         and    N(_) = !else
+      // So for ==>, we have:
+      //   *  X ==> Y    P(_) = P(!X || Y) = (!X || Y) = (X ==> Y)
+      //                 N(_) = N(!X || Y) = N(!X),N(Y) = P(X),N(Y)
+
+      // Binary expressions
+      var b = expr as BinaryExpr;
+      if (b != null) {
+        bool breakDownFurther = false;
+        bool p0 = polarity;
+        if (b.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          breakDownFurther = polarity;
+        } else if (b.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          breakDownFurther = !polarity;
+        } else if (b.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+          breakDownFurther = !polarity;
+          p0 = !p0;
+        }
+        if (breakDownFurther) {
+          foreach (var c in NormalizedConjuncts(b.E0, p0)) {
+            yield return c;
+          }
+          foreach (var c in NormalizedConjuncts(b.E1, polarity)) {
+            yield return c;
+          }
+          yield break;
+        }
+      }
+
+      // Unary expression
+      var u = expr as UnaryExpr;
+      if (u != null && u.Op == UnaryExpr.Opcode.Not) {
+        foreach (var c in NormalizedConjuncts(u.E, !polarity)) {
+          yield return c;
+        }
+        yield break;
+      }
+
+      // no other case applied, so return the expression or its negation, but first clean it up a little
+      b = expr as BinaryExpr;
+      if (b != null) {
+        BinaryExpr.Opcode newOp;
+        BinaryExpr.ResolvedOpcode newROp;
+        bool swapOperands;
+        switch (b.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Gt:  // A > B         yield polarity ? (B < A) : (A <= B);
+            newOp = polarity ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.Lt : BinaryExpr.ResolvedOpcode.Le;
+            swapOperands = polarity;
+            break;
+          case BinaryExpr.ResolvedOpcode.Ge:  // A >= B        yield polarity ? (B <= A) : (A < B);
+            newOp = polarity ? BinaryExpr.Opcode.Le : BinaryExpr.Opcode.Lt;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.Le : BinaryExpr.ResolvedOpcode.Lt;
+            swapOperands = polarity;
+            break;
+          case BinaryExpr.ResolvedOpcode.Le:  // A <= B        yield polarity ? (A <= B) : (B < A);
+            newOp = polarity ? BinaryExpr.Opcode.Le : BinaryExpr.Opcode.Lt;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.Le : BinaryExpr.ResolvedOpcode.Lt;
+            swapOperands = !polarity;
+            break;
+          case BinaryExpr.ResolvedOpcode.Lt:  // A < B         yield polarity ? (A < B) : (B <= A);
+            newOp = polarity ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.Lt : BinaryExpr.ResolvedOpcode.Le;
+            swapOperands = !polarity;
+            break;
+          case BinaryExpr.ResolvedOpcode.EqCommon:  // A == B         yield polarity ? (A == B) : (A != B);
+            newOp = polarity ? BinaryExpr.Opcode.Eq : BinaryExpr.Opcode.Neq;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.EqCommon : BinaryExpr.ResolvedOpcode.NeqCommon;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NeqCommon:  // A != B         yield polarity ? (A != B) : (A == B);
+            newOp = polarity ? BinaryExpr.Opcode.Neq : BinaryExpr.Opcode.Eq;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NeqCommon : BinaryExpr.ResolvedOpcode.EqCommon;
+            swapOperands = false;
+            break;
+          default:
+            goto JUST_RETURN_IT;
+        }
+        if (newROp != b.ResolvedOp || swapOperands) {
+          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
+          b.ResolvedOp = newROp;
+          b.Type = Type.Bool;
+          yield return b;
+        }
+      }
+    JUST_RETURN_IT: ;
+      if (polarity) {
+        yield return expr;
+      } else {
+        expr = new UnaryExpr(expr.tok, UnaryExpr.Opcode.Not, expr);
+        expr.Type = Type.Bool;
+        yield return expr;
+      }
+    }
+
+    Expression Plus(Expression e, int n) {
+      Contract.Requires(0 <= n);
+
+      var nn = new LiteralExpr(e.tok, n);
+      nn.Type = Type.Int;
+      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Add, e, nn);
+      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
+      p.Type = Type.Int;
+      return p;
+    }
+
+    /// <summary>
+    /// Returns the set of free variables in "expr".
+    /// Requires "expr" to be successfully resolved.
+    /// Ensures that the set returned has no aliases.
+    /// </summary>
+    ISet<IVariable> FreeVariables(Expression expr) {
+      Contract.Requires(expr != null);
+      Contract.Ensures(expr.Type != null);
+
+      if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
+        return new HashSet<IVariable>() { e.Var };
+
+      } else  if (expr is QuantifierExpr) {
+        var e = (QuantifierExpr)expr;
+        var s = FreeVariables(e.Body);
+        foreach (var bv in e.BoundVars) {
+          s.Remove(bv);
+        }
+        return s;
+
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var s = FreeVariables(e.Source);
+        foreach (MatchCaseExpr mc in e.Cases) {
+          var t = FreeVariables(mc.Body);
+          foreach (var bv in mc.Arguments) {
+            t.Remove(bv);
+          }
+          s.UnionWith(t);
+        }
+        return s;
+
+      } else {
+        ISet<IVariable> s = null;
+        foreach (var e in expr.SubExpressions) {
+          var t = FreeVariables(e);
+          if (s == null) {
+            s = t;
+          } else {
+            s.UnionWith(t);
+          }
+        }
+        return s == null ? new HashSet<IVariable>() : s;
       }
     }
     

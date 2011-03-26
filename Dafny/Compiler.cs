@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
     void CompileBuiltIns(BuiltIns builtIns) {
       wr.WriteLine("namespace Dafny {");
       Indent(IndentAmount);
-      wr.WriteLine("public class Helpers {");
+      wr.WriteLine("public partial class Helpers {");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
@@ -1262,7 +1262,43 @@ namespace Microsoft.Dafny {
         }
       
       } else if (expr is QuantifierExpr) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // a quantifier is always a ghost
+        var e = (QuantifierExpr)expr;
+        Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
+        var n = e.BoundVars.Count;
+        Contract.Assert(e.Bounds.Count == n);
+        for (int i = n; 0 <= --i; ) {
+          var bound = e.Bounds[i];
+          var bv = e.BoundVars[i];
+          // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
+          if (bound is QuantifierExpr.BoolBoundedPool) {
+            wr.Write("Dafny.Helpers.QuantBool(");
+          } else if (bound is QuantifierExpr.IntBoundedPool) {
+            var b = (QuantifierExpr.IntBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantInt(");
+            TrExpr(b.LowerBound);
+            wr.Write(", ");
+            TrExpr(b.UpperBound);
+            wr.Write(", ");
+          } else if (bound is QuantifierExpr.SetBoundedPool) {
+            var b = (QuantifierExpr.SetBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantSet(");
+            TrExpr(b.Set);
+            wr.Write(", ");
+          } else if (bound is QuantifierExpr.SeqBoundedPool) {
+            var b = (QuantifierExpr.SeqBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantSeq(");
+            TrExpr(b.Seq);
+            wr.Write(", ");
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+          }
+          wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
+          wr.Write("{0} => ", bv.Name);
+        }
+        TrExpr(e.Body);
+        for (int i = 0; i < n; i++) {
+          wr.Write(")");
+        }
       
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;

@@ -1,5 +1,5 @@
 // VSComp 2010, problem 4, N queens
-// Rustan Leino, 31 August 2010.
+// Rustan Leino, 31 August 2010, updated 24 March 2011.
 //
 // In the version of this program that I wrote during the week of VSTTE 2010, I had
 // an unproved assumption.  In this version, I simply changed the existential quantifier
@@ -11,17 +11,7 @@
 // The correctness of this program relies on some properties of Queens boards.  These
 // are stated and proved as lemmas, which here are given in assert statements.
 //
-// There are two annoyances in this program:
-//
-// One has to do with Dafny's split between ''ghost'' variables/code and ''physical''
-// variables/code.  The ''ghost'' things are used by the verifier, but are ignored by
-// the compiler.  This is generally good, since any additional specifications are ghost
-// state that are needed to convince the verifier that a program is correct (let alone
-// express what it means for the program to be correct) are not required at run time.
-// However, Dafny currently considers *all* quantifiers to be ghost-only, which
-// necessitates some duplication of the 'IsConsistent' condition.
-//
-// The other annoyance is that Dafny's proof-term representation of the function
+// There is an annoyance in this program.  Dafny's proof-term representation of the function
 // 'IsConsistent' implicitly takes the heap as an argument, despite the fact that
 // 'IsConsistent' does not depend on any part of the heap.  Dafny ought to be able
 // to figure that out from the fact that 'IsConsistent' has no 'reads' clause.
@@ -29,6 +19,10 @@
 // below are specified with an (easy-to-prove) postcondition that 'IsConsistent(B,p)'
 // does not change for any 'B' and 'p', even if the method may change the heap in
 // some way.
+//
+// The March 2011 update of this program was to make use of Dafny's new heuristics for
+// compiling quantifiers.  This makes it possible to call IsConsistent, whose body uses
+// a universal quantifier, from non-ghost code, which simplifies this program.
 
 
 // The Search method returns whether or not there exists an N-queens solution for the
@@ -50,44 +44,13 @@ method Search(N: int) returns (success: bool, board: seq<int>)
 
 // Given a board, this function says whether or not the queen placed in column 'pos'
 // is consistent with the queens placed in columns to its left.
-static function IsConsistent(board: seq<int>, pos: int): bool
+static function method IsConsistent(board: seq<int>, pos: int): bool
 {
   0 <= pos && pos < |board| &&
   (forall q :: 0 <= q && q < pos ==>
       board[q] != board[pos] &&
       board[q] - board[pos] != pos - q &&
       board[pos] - board[q] != pos - q)
-}
-
-method CheckConsistent(board: seq<int>, pos: int) returns (b: bool)
-  ensures b <==> IsConsistent(board, pos);
-  ensures (forall B, p :: IsConsistent(B, p) <==> old(IsConsistent(B, p)));
-{
-  // The Dafny compiler won't compile a function with a 'forall' inside.  (This seems reasonable
-  // in general, since quantifiers could range over all the integers.  Here, however, where the
-  // range of the quantifier is bounded, it just seems stupid.)  Therefore, we
-  // have to provide a method that computes the same thing as the function defines.
-  if (0 <= pos && pos < |board|) {
-    var p := 0;
-    while (p < pos)
-      invariant p <= pos;
-      invariant (forall q :: 0 <= q && q < p ==>
-                  board[q] != board[pos] &&
-                  board[q] - board[pos] != pos - q &&
-                  board[pos] - board[q] != pos - q);
-    {
-      if (!(board[p] != board[pos] &&
-            board[p] - board[pos] != pos - p &&
-            board[pos] - board[p] != pos - p)) {
-        b := false;
-        return;
-      }
-      p := p + 1;
-    }
-    b := true;
-    return;
-  }
-  b := false;
 }
 
 // Here comes the method where the real work is being done.  With an ultimate board size of 'N'
@@ -135,8 +98,7 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
     {
       // Let's try to extend the board-so-far with a queen in column 'n':
       var candidateBoard := boardSoFar + [n];
-      call consistent := CheckConsistent(candidateBoard, pos);
-      if (consistent) {
+      if (IsConsistent(candidateBoard, pos)) {
         // The new queen is consistent.  Thus, 'candidateBoard' is consistent in column 'pos'.
         // The consistency of the queens in columns left of 'pos' follows from the
         // consistency of those queens in 'boardSoFar' and the fact that 'candidateBoard' is

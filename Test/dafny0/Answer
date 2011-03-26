@@ -295,7 +295,7 @@ Execution trace:
     Definedness.dfy(208,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(231,30): Error: possible violation of function postcondition
+Definedness.dfy(231,46): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
@@ -321,7 +321,7 @@ Execution trace:
     (0,0): anon13_Else
     (0,0): anon7
     (0,0): anon9
-FunctionSpecifications.dfy(40,18): Error: possible violation of function postcondition
+FunctionSpecifications.dfy(40,24): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon12_Else
     (0,0): anon15_Else
@@ -398,6 +398,16 @@ Execution trace:
     (0,0): anon6_Then
 
 Dafny program verifier finished with 8 verified, 2 errors
+
+-------------------- NonGhostQuantifiers.dfy --------------------
+NonGhostQuantifiers.dfy(13,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
+NonGhostQuantifiers.dfy(57,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'i'
+NonGhostQuantifiers.dfy(61,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(71,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(86,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(94,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
+NonGhostQuantifiers.dfy(103,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
+7 resolution/type errors detected in NonGhostQuantifiers.dfy
 
 -------------------- Modules0.dfy --------------------
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T

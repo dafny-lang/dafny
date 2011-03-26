@@ -1732,6 +1732,10 @@ namespace Microsoft.Dafny {
 
       this.tok = tok;
     }
+
+    public virtual IEnumerable<Expression> SubExpressions {
+      get { yield break; }
+    }
   }
 
   public class LiteralExpr : Expression {
@@ -1802,7 +1806,10 @@ namespace Microsoft.Dafny {
       this.DatatypeName = datatypeName;
       this.MemberName = memberName;
       this.Arguments = arguments;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get { return Arguments; }
     }
   }
 
@@ -1835,8 +1842,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Name = name;
-
-
     }
   }
 
@@ -1851,7 +1856,10 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(cce.NonNullElements(elements));
       Elements = elements;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get { return Elements; }
     }
   }
 
@@ -1882,7 +1890,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(FieldName != null);
     }
 
-
     public FieldSelectExpr(IToken tok, Expression obj, string fieldName)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -1890,7 +1897,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(fieldName != null);
       this.Obj = obj;
       this.FieldName = fieldName;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return Obj; }
     }
   }
 
@@ -1918,6 +1928,14 @@ namespace Microsoft.Dafny {
       E0 = e0;
       E1 = e1;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Seq;
+        if (E0 != null) yield return E0;
+        if (E1 != null) yield return E1;
+      }
+    }
   }
 
   public class MultiSelectExpr : Expression {
@@ -1939,6 +1957,15 @@ namespace Microsoft.Dafny {
       Array = array;
       Indices = indices;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Array;
+        foreach (var e in Indices) {
+          yield return e;
+        }
+      }
+    }
   }
 
   public class SeqUpdateExpr : Expression {
@@ -1955,7 +1982,14 @@ namespace Microsoft.Dafny {
       Seq = seq;
       Index = index;
       Value = val;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Seq;
+        yield return Index;
+        yield return Value;
+      }
     }
   }
 
@@ -1990,6 +2024,15 @@ namespace Microsoft.Dafny {
       this.Receiver = receiver;
       this.Args = args;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Receiver;
+        foreach (var e in Args) {
+          yield return e;
+        }
+      }
+    }
   }
 
   public class OldExpr : Expression {
@@ -2008,6 +2051,10 @@ namespace Microsoft.Dafny {
       cce.Owner.AssignSame(this, expr);
       E = expr;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
+    }
   }
 
   public class FreshExpr : Expression {
@@ -2022,6 +2069,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       E = expr;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
     }
   }
 
@@ -2039,6 +2090,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       E = expr;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
+    }
   }
 
   public class UnaryExpr : Expression
@@ -2054,7 +2109,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(E != null);
     }
 
-
     public UnaryExpr(IToken tok, Opcode op, Expression e)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -2062,6 +2116,10 @@ namespace Microsoft.Dafny {
       this.Op = op;
       this.E = e;
 
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
     }
   }
 
@@ -2195,7 +2253,13 @@ namespace Microsoft.Dafny {
       this.Op = op;
       this.E0 = e0;
       this.E1 = e1;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return E0;
+        yield return E1;
+      }
     }
   }
 
@@ -2209,9 +2273,35 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Body != null);
     }
 
-
     public readonly Triggers Trigs;
     public readonly Attributes Attributes;
+
+    public abstract class BoundedPool { }
+    public class IntBoundedPool : BoundedPool
+    {
+      public readonly Expression LowerBound;
+      public readonly Expression UpperBound;
+      public IntBoundedPool(Expression lowerBound, Expression upperBound) {
+        LowerBound = lowerBound;
+        UpperBound = upperBound;
+      }
+    }
+    public class SetBoundedPool : BoundedPool
+    {
+      public readonly Expression Set;
+      public SetBoundedPool(Expression set) { Set = set; }
+    }
+    public class SeqBoundedPool : BoundedPool
+    {
+      public readonly Expression Seq;
+      public SeqBoundedPool(Expression seq) { Seq = seq; }
+    }
+    public class BoolBoundedPool : BoundedPool
+    {
+    }
+
+    public List<BoundedPool> Bounds;  // initialized and filled in by resolver; it remains null for quantifiers in specification contexts
+    // invariant bounds == null || bounds.Count == BoundVars.Count;
 
     public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ body, Triggers trigs, Attributes attrs)
       : base(tok) {
@@ -2223,7 +2313,10 @@ namespace Microsoft.Dafny {
       this.Body = body;
       this.Trigs = trigs;
       this.Attributes = attrs;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return Body; }
     }
   }
 
@@ -2264,7 +2357,6 @@ namespace Microsoft.Dafny {
     public WildcardExpr(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);
-
     }
   }
 
@@ -2279,7 +2371,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Els != null);
     }
 
-
     public ITEExpr(IToken tok, Expression test, Expression thn, Expression els)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -2289,7 +2380,14 @@ namespace Microsoft.Dafny {
       this.Test = test;
       this.Thn = thn;
       this.Els = els;
+    }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Test;
+        yield return Thn;
+        yield return Els;
+      }
     }
   }
 
@@ -2302,7 +2400,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Cases));
     }
 
-
     public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr/*!*/>/*!*/ cases)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -2310,8 +2407,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+    }
 
-
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Source;
+        foreach (var mc in Cases) {
+          yield return mc.Body;
+        }
+      }
     }
   }
 
@@ -2368,7 +2472,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(ToType != null);
     }
 
-
     public BoxingCastExpr(Expression e, Type fromType, Type toType)
       : base(e.tok) {
       Contract.Requires(e != null);
@@ -2378,6 +2481,10 @@ namespace Microsoft.Dafny {
       E = e;
       FromType = fromType;
       ToType = toType;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
     }
   }
 
@@ -2392,7 +2499,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(ToType != null);
     }
 
-
     public UnboxingCastExpr(Expression e, Type fromType, Type toType)
       : base(e.tok) {
       Contract.Requires(e != null);
@@ -2402,6 +2508,10 @@ namespace Microsoft.Dafny {
       E = e;
       FromType = fromType;
       ToType = toType;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
     }
   }
 
