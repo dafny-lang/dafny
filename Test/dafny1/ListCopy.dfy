@@ -19,8 +19,7 @@ class Node {
     var newRegion: set<Node> := {};
 
     if (oldListPtr != null) {
-      newRoot := new Node;
-      call newRoot.Init();
+      newRoot := new Node.Init();
       newRegion := newRegion + {newRoot};
       var prev := newRoot;
 
@@ -33,8 +32,7 @@ class Node {
         invariant newRegion !! existingRegion;
         decreases *;  // omit loop termination check
       {
-        var tmp := new Node;
-        call tmp.Init();
+        var tmp := new Node.Init();
 
         newRegion := newRegion + {tmp};
         prev.nxt := tmp;

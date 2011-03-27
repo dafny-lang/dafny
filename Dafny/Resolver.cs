@@ -1236,7 +1236,7 @@ namespace Microsoft.Dafny {
           }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
-          Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost);
+          Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
           if (!UnifyTypes(s.Lhs.Type, t)) {
             Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, s.Lhs.Type);
           }
@@ -1261,7 +1261,7 @@ namespace Microsoft.Dafny {
             rhsType = rr.Expr.Type;
           } else if (s.Rhs is TypeRhs) {
             TypeRhs rr = (TypeRhs)s.Rhs;
-            rhsType = ResolveTypeRhs(rr, stmt, s.IsGhost);
+            rhsType = ResolveTypeRhs(rr, stmt, s.IsGhost, method);
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
           }
@@ -1282,109 +1282,7 @@ namespace Microsoft.Dafny {
       
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
-
-        // resolve receiver
-        ResolveReceiver(s.Receiver, true, false);
-        Contract.Assert(s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
-        // resolve the method name
-        UserDefinedType ctype;
-        MemberDecl member = ResolveMember(s.Tok, s.Receiver.Type, s.MethodName, out ctype);
-        Method callee = null;
-        if (member == null) {
-          // error has already been reported by ResolveMember
-        } else if (!(member is Method)) {
-          Error(s, "member {0} in class {1} does not refer to a method", s.MethodName, cce.NonNull(ctype).Name);
-        } else {
-          callee = (Method)member;
-          s.Method = callee;
-          s.IsGhost = callee.IsGhost;
-          if (specContextOnly && !callee.IsGhost) {
-            Error(s, "only ghost methods can be called from this context");
-          }
-        }
-
-        // resolve any local variables declared here
-        foreach (AutoVarDecl local in s.NewVars) {
-          // first, fix up the local variables to be ghost variable if the corresponding formal out-parameter is a ghost
-          if (s.IsGhost || callee != null && local.Index < callee.Outs.Count && callee.Outs[local.Index].IsGhost) {
-            local.MakeGhost();
-          }
-          ResolveStatement(local, specContextOnly, method);
-        }
-        
-        // resolve left-hand side
-        Dictionary<string,object> lhsNameSet = new Dictionary<string,object>();
-        foreach (IdentifierExpr lhs in s.Lhs) {
-          ResolveExpression(lhs, true, true);
-          if (lhsNameSet.ContainsKey(lhs.Name)) {
-            Error(s, "Duplicate variable in left-hand side of call statement: {0}", lhs.Name);
-          } else {
-            lhsNameSet.Add(lhs.Name, null);
-          }
-        }
-        // resolve arguments
-        int j = 0;
-        foreach (Expression e in s.Args) {
-          bool allowGhost = s.IsGhost || callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
-          ResolveExpression(e, true, allowGhost);
-          j++;
-        }
-        
-        if (callee == null) {
-          // error has been reported above
-        } else if (callee.Ins.Count != s.Args.Count) {
-          Error(s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
-        } else if (callee.Outs.Count != s.Lhs.Count) {
-          Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
-        } else {
-          Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember above
-          if (!scope.AllowInstance && !callee.IsStatic && s.Receiver is ThisExpr) {
-            // The call really needs an instance, but that instance is given as 'this', which is not
-            // available in this context.  For more details, see comment in the resolution of a
-            // FunctionCallExpr.
-            Error(s.Receiver, "'this' is not allowed in a 'static' context");
-          }
-          // build the type substitution map
-          Dictionary<TypeParameter,Type> subst = new Dictionary<TypeParameter,Type>();
-          for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-            subst.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
-          }
-          foreach (TypeParameter p in callee.TypeArgs) {
-            subst.Add(p, new ParamTypeProxy(p));
-          }
-          // type check the arguments
-          for (int i = 0; i < callee.Ins.Count; i++) {
-            Type st = SubstType(callee.Ins[i].Type, subst);
-            if (!UnifyTypes(cce.NonNull(s.Args[i].Type), st)) {
-              Error(s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
-            }
-          }
-          for (int i = 0; i < callee.Outs.Count; i++) {
-            Type st = SubstType(callee.Outs[i].Type, subst);
-            IdentifierExpr lhs = s.Lhs[i];
-            if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
-              Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
-            } else if (!specContextOnly && !cce.NonNull(lhs.Var).IsGhost && (s.IsGhost || callee.Outs[i].IsGhost)) {
-              Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
-            }
-          }
-          
-          // Resolution termination check
-          if (method.EnclosingClass != null && callee.EnclosingClass != null) {
-            ModuleDecl callerModule = method.EnclosingClass.Module;
-            ModuleDecl calleeModule = callee.EnclosingClass.Module;
-            if (callerModule == calleeModule) {
-              // intra-module call; this is allowed; add edge in module's call graph
-              callerModule.CallGraph.AddEdge(method, callee);
-            } else if (calleeModule.IsDefaultModule) {
-              // all is fine: everything implicitly imports the default module
-            } else if (importGraph.Reaches(callerModule, calleeModule)) {
-              // all is fine: the callee is downstream of the caller
-            } else {
-              Error(s, "inter-module calls must follow the module import relation (so module {0} must transitively import {1})", callerModule.Name, calleeModule.Name);
-            }
-          }
-        }
+        ResolveCallStmt(s, specContextOnly, method, null);
         
       } else if (stmt is BlockStmt) {
         scope.PushMarker();
@@ -1572,6 +1470,126 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
+
+    void ResolveCallStmt(CallStmt s, bool specContextOnly, Method method, Type receiverType) {
+      Contract.Requires(s != null);
+      Contract.Requires(method != null);
+      bool isInitCall = receiverType != null;
+
+      // resolve receiver, unless told otherwise
+      if (receiverType == null) {
+        ResolveReceiver(s.Receiver, true, false);
+        Contract.Assert(s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
+        receiverType = s.Receiver.Type;
+      }
+      // resolve the method name
+      UserDefinedType ctype;
+      MemberDecl member = ResolveMember(s.Tok, receiverType, s.MethodName, out ctype);
+      Method callee = null;
+      if (member == null) {
+        // error has already been reported by ResolveMember
+      } else if (!(member is Method)) {
+        Error(s, "member {0} in class {1} does not refer to a method", s.MethodName, cce.NonNull(ctype).Name);
+      } else {
+        callee = (Method)member;
+        s.Method = callee;
+        s.IsGhost = callee.IsGhost;
+        if (specContextOnly && !callee.IsGhost) {
+          Error(s, "only ghost methods can be called from this context");
+        }
+      }
+
+      // resolve any local variables declared here
+      foreach (AutoVarDecl local in s.NewVars) {
+        // first, fix up the local variables to be ghost variable if the corresponding formal out-parameter is a ghost
+        if (s.IsGhost || callee != null && local.Index < callee.Outs.Count && callee.Outs[local.Index].IsGhost) {
+          local.MakeGhost();
+        }
+        ResolveStatement(local, specContextOnly, method);
+      }
+
+      // resolve left-hand side
+      Dictionary<string, object> lhsNameSet = new Dictionary<string, object>();
+      foreach (IdentifierExpr lhs in s.Lhs) {
+        ResolveExpression(lhs, true, true);
+        if (lhsNameSet.ContainsKey(lhs.Name)) {
+          Error(s, "Duplicate variable in left-hand side of call statement: {0}", lhs.Name);
+        } else {
+          lhsNameSet.Add(lhs.Name, null);
+        }
+      }
+      // resolve arguments
+      int j = 0;
+      foreach (Expression e in s.Args) {
+        bool allowGhost = s.IsGhost || callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
+        ResolveExpression(e, true, allowGhost);
+        j++;
+      }
+
+      if (callee == null) {
+        // error has been reported above
+      } else if (callee.Ins.Count != s.Args.Count) {
+        Error(s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
+      } else if (callee.Outs.Count != s.Lhs.Count) {
+        if (isInitCall) {
+          Error(s, "a method called as an initialization method must not have any result arguments");
+        } else {
+          Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
+        }
+      } else {
+        Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember above
+        if (isInitCall) {
+          if (callee.IsStatic) {
+            Error(s.Tok, "a method called as an initialization method must not be 'static'");
+          }
+        } else  if (!scope.AllowInstance && !callee.IsStatic && s.Receiver is ThisExpr) {
+          // The call really needs an instance, but that instance is given as 'this', which is not
+          // available in this context.  For more details, see comment in the resolution of a
+          // FunctionCallExpr.
+          Error(s.Receiver, "'this' is not allowed in a 'static' context");
+        }
+        // build the type substitution map
+        Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+        for (int i = 0; i < ctype.TypeArgs.Count; i++) {
+          subst.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
+        }
+        foreach (TypeParameter p in callee.TypeArgs) {
+          subst.Add(p, new ParamTypeProxy(p));
+        }
+        // type check the arguments
+        for (int i = 0; i < callee.Ins.Count; i++) {
+          Type st = SubstType(callee.Ins[i].Type, subst);
+          if (!UnifyTypes(cce.NonNull(s.Args[i].Type), st)) {
+            Error(s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
+          }
+        }
+        for (int i = 0; i < callee.Outs.Count; i++) {
+          Type st = SubstType(callee.Outs[i].Type, subst);
+          IdentifierExpr lhs = s.Lhs[i];
+          if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
+            Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
+          } else if (!specContextOnly && !cce.NonNull(lhs.Var).IsGhost && (s.IsGhost || callee.Outs[i].IsGhost)) {
+            Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+          }
+        }
+
+        // Resolution termination check
+        if (method.EnclosingClass != null && callee.EnclosingClass != null) {
+          ModuleDecl callerModule = method.EnclosingClass.Module;
+          ModuleDecl calleeModule = callee.EnclosingClass.Module;
+          if (callerModule == calleeModule) {
+            // intra-module call; this is allowed; add edge in module's call graph
+            callerModule.CallGraph.AddEdge(method, callee);
+          } else if (calleeModule.IsDefaultModule) {
+            // all is fine: everything implicitly imports the default module
+          } else if (importGraph.Reaches(callerModule, calleeModule)) {
+            // all is fine: the callee is downstream of the caller
+          } else {
+            Error(s, "inter-module calls must follow the module import relation (so module {0} must transitively import {1})", callerModule.Name, calleeModule.Name);
+          }
+        }
+      }
+    }
     
     void ResolveBlockStatement(BlockStmt blockStmt, bool specContextOnly, Method method)
     {
@@ -1593,15 +1611,18 @@ namespace Microsoft.Dafny {
       for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
     }
 
-    Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContext) {
+    Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContext, Method method) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
+      Contract.Requires(method != null);
       Contract.Ensures(Contract.Result<Type>() != null);
 
       ResolveType(rr.EType);
       if (rr.ArrayDimensions == null) {
         if (!rr.EType.IsRefType) {
           Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
+        } else if (rr.InitCall != null) {
+          ResolveCallStmt(rr.InitCall, specContext, method, rr.EType);
         }
         return rr.EType;
       } else {

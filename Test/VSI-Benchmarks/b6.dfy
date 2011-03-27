@@ -47,8 +47,7 @@ class Collection<T> {
     ensures fresh(iter.footprint) && iter.pos == -1;
     ensures iter.c == this;
   {
-      iter:= new Iterator<T>;
-      call iter.Init(this);
+      iter:= new Iterator<T>.Init(this);
   }
   
 }
@@ -107,8 +106,7 @@ class Client
 
   method Main()
   {
-    var c := new Collection<int>;
-    call c.Init();
+    var c := new Collection<int>.Init();
     call c.Add(33);
     call c.Add(45);
     call c.Add(78);

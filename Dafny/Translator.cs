@@ -1345,7 +1345,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
     
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         return Bpl.Expr.True;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -1503,7 +1503,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         return Bpl.Expr.True;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -1714,7 +1714,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
     
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr) {
+      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         // always allowed
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -2848,91 +2848,7 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
-        foreach (VarDecl local in s.NewVars) {
-          TrStmt(local, builder, locals, etran);
-        }
-        AddComment(builder, stmt, "call statement");
-        Bpl.ExprSeq ins = new Bpl.ExprSeq();
-        Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
-        if (!s.Method.IsStatic) {
-          ins.Add(etran.TrExpr(s.Receiver));
-        }
-
-        // Ideally, the modifies and decreases checks would be done after the precondition check,
-        // but Boogie doesn't give us a hook for that.  So, we set up our own local variables here to
-        // store the actual parameters.
-        // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
-        Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
-        for (int i = 0; i < s.Method.Ins.Count; i++) {
-          Formal p = s.Method.Ins[i];
-          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
-          local.type = local.OptionalType;  // resolve local here
-          IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
-          ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
-          substMap.Add(p, ie);
-          locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
-          
-          Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-          Expression actual = s.Args[i];
-          TrStmt_CheckWellformed(actual, builder, locals, etran, true);
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.CondApplyBox(stmt.Tok, etran.TrExpr(actual), cce.NonNull(actual.Type), s.Method.Ins[i].Type));
-          builder.Add(cmd);
-          ins.Add(lhs);
-        }
-        // Also create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
-        Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
-        List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
-        for (int i = 0; i < s.Lhs.Count; i++) {
-          Expression e = s.Lhs[i];
-          if (ExpressionTranslator.ModeledAsBoxType(s.Method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(cce.NonNull(e.Type))) {
-            // we need an Unbox
-            Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
-            otherTmpVarCount++;
-            locals.Add(var);
-            Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(stmt.Tok, var.Name, predef.BoxType);
-            tmpOuts.Add(varIdE);
-            outs.Add(varIdE);
-          } else {
-            tmpOuts.Add(null);
-            outs.Add(etran.TrExpr(e));
-          }
-        }
-
-        // Check modifies clause
-        CheckFrameSubset(stmt.Tok, s.Method.Mod, s.Receiver, substMap, etran, builder, "call may violate caller's modifies clause", null);
-
-        // Check termination
-        ModuleDecl module = cce.NonNull(s.Method.EnclosingClass).Module;
-        if (module == cce.NonNull(currentMethod.EnclosingClass).Module) {
-          if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
-            bool contextDecrInferred, calleeDecrInferred;
-            List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
-            List<Expression> calleeDecreases = MethodDecreasesWithDefault(s.Method, out calleeDecrInferred);
-            CheckCallTermination(stmt.Tok, contextDecreases, calleeDecreases, null, s.Receiver, substMap, etran, builder, contextDecrInferred);
-          }
-        }
-
-        // Make the call
-        Bpl.CallCmd call = new Bpl.CallCmd(stmt.Tok, s.Method.FullName, ins, outs);
-        builder.Add(call);
-        for (int i = 0; i < s.Lhs.Count; i++) {
-          Bpl.IdentifierExpr tmpVarIdE = tmpOuts[i];
-          IdentifierExpr e = s.Lhs[i];
-          Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(e);  // TODO: is this cast always justified?
-          if (tmpVarIdE != null) {
-            // Instead of an assignment:
-            //    e := UnBox(tmpVar);
-            // we use:
-            //    havoc e; assume e == UnBox(tmpVar);
-            // because that will reap the benefits of e's where clause, so that some additional type information will be known about
-            // the out-parameter.
-            Bpl.Cmd cmd = new Bpl.HavocCmd(stmt.Tok, new IdentifierExprSeq(lhs));
-            builder.Add(cmd);
-            cmd = new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.Eq(lhs, FunctionCall(stmt.Tok, BuiltinFunction.Unbox, TrType(cce.NonNull(e.Type)), tmpVarIdE)));
-            builder.Add(cmd);
-          }
-        }
-        builder.Add(CaptureState(stmt.Tok));
+        TrCallStmt(s, builder, locals, etran, null);
         
       } else if (stmt is BlockStmt) {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {
@@ -3264,6 +3180,100 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    void TrCallStmt(CallStmt s, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran, Bpl.Expr actualReceiver) {
+      Contract.Requires(s != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      Expression receiver = actualReceiver == null ? s.Receiver : new BoogieWrapper(actualReceiver);
+      foreach (VarDecl local in s.NewVars) {
+        TrStmt(local, builder, locals, etran);
+      }
+      AddComment(builder, s, actualReceiver == null ? "call statement" : "init call statement");
+      Bpl.ExprSeq ins = new Bpl.ExprSeq();
+      Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
+      if (!s.Method.IsStatic) {
+        ins.Add(etran.TrExpr(receiver));
+      }
+
+      // Ideally, the modifies and decreases checks would be done after the precondition check,
+      // but Boogie doesn't give us a hook for that.  So, we set up our own local variables here to
+      // store the actual parameters.
+      // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
+      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      for (int i = 0; i < s.Method.Ins.Count; i++) {
+        Formal p = s.Method.Ins[i];
+        VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
+        local.type = local.OptionalType;  // resolve local here
+        IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
+        ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+        substMap.Add(p, ie);
+        locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
+
+        Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+        Expression actual = s.Args[i];
+        TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.CondApplyBox(s.Tok, etran.TrExpr(actual), cce.NonNull(actual.Type), s.Method.Ins[i].Type));
+        builder.Add(cmd);
+        ins.Add(lhs);
+      }
+      // Also create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
+      Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
+      List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
+      for (int i = 0; i < s.Lhs.Count; i++) {
+        Expression e = s.Lhs[i];
+        if (ExpressionTranslator.ModeledAsBoxType(s.Method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(cce.NonNull(e.Type))) {
+          // we need an Unbox
+          Bpl.LocalVariable var = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
+          otherTmpVarCount++;
+          locals.Add(var);
+          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(s.Tok, var.Name, predef.BoxType);
+          tmpOuts.Add(varIdE);
+          outs.Add(varIdE);
+        } else {
+          tmpOuts.Add(null);
+          outs.Add(etran.TrExpr(e));
+        }
+      }
+
+      // Check modifies clause
+      CheckFrameSubset(s.Tok, s.Method.Mod, receiver, substMap, etran, builder, "call may violate caller's modifies clause", null);
+
+      // Check termination
+      ModuleDecl module = cce.NonNull(s.Method.EnclosingClass).Module;
+      if (module == cce.NonNull(currentMethod.EnclosingClass).Module) {
+        if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
+          bool contextDecrInferred, calleeDecrInferred;
+          List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
+          List<Expression> calleeDecreases = MethodDecreasesWithDefault(s.Method, out calleeDecrInferred);
+          CheckCallTermination(s.Tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred);
+        }
+      }
+
+      // Make the call
+      Bpl.CallCmd call = new Bpl.CallCmd(s.Tok, s.Method.FullName, ins, outs);
+      builder.Add(call);
+      for (int i = 0; i < s.Lhs.Count; i++) {
+        Bpl.IdentifierExpr tmpVarIdE = tmpOuts[i];
+        IdentifierExpr e = s.Lhs[i];
+        Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(e);  // TODO: is this cast always justified?
+        if (tmpVarIdE != null) {
+          // Instead of an assignment:
+          //    e := UnBox(tmpVar);
+          // we use:
+          //    havoc e; assume e == UnBox(tmpVar);
+          // because that will reap the benefits of e's where clause, so that some additional type information will be known about
+          // the out-parameter.
+          Bpl.Cmd cmd = new Bpl.HavocCmd(s.Tok, new IdentifierExprSeq(lhs));
+          builder.Add(cmd);
+          cmd = new Bpl.AssumeCmd(s.Tok, Bpl.Expr.Eq(lhs, FunctionCall(s.Tok, BuiltinFunction.Unbox, TrType(cce.NonNull(e.Type)), tmpVarIdE)));
+          builder.Add(cmd);
+        }
+      }
+      builder.Add(CaptureState(s.Tok));
     }
     
     static Expression CreateIntLiteral(IToken tok, int n)
@@ -3707,7 +3717,7 @@ namespace Microsoft.Dafny {
         
       } else if (rhs is HavocRhs) {
         Contract.Assert(lhs is IdentifierExpr);  // for this kind of RHS, the LHS is restricted to be a simple variable
-        Bpl.IdentifierExpr x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+        var x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
         builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(x)));
 
       } else {
@@ -3726,7 +3736,7 @@ namespace Microsoft.Dafny {
             i++;
           }
         }
-        
+
         Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
         builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(nw)));
         // assume $nw != null && !$Heap[$nw, alloc] && dtype($nw) == RHS;
@@ -3757,11 +3767,14 @@ namespace Microsoft.Dafny {
         Bpl.IdentifierExpr heap = (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr;
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
         builder.Add(cmd);
+        // assume $IsGoodHeap($Heap);
+        builder.Add(AssumeGoodHeap(tok, etran));
+        if (tRhs.InitCall != null) {
+          TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
+        }
         // x := $nw;
         Bpl.IdentifierExpr x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
         builder.Add(Bpl.Cmd.SimpleAssign(tok, x, nw));
-        // assume $IsGoodHeap($Heap);
-        builder.Add(AssumeGoodHeap(tok, etran));
       }
       builder.Add(CaptureState(tok));
     }
@@ -3775,8 +3788,23 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Expression ---------------------------------------------------------------------------
-    
-    internal class ExpressionTranslator {
+
+    /// <summary>
+    /// This class gives a way to represent a Boogie translation target as if it were still a Dafny expression.
+    /// </summary>
+    internal class BoogieWrapper : Expression
+    {
+      public readonly Bpl.Expr Expr;
+      public BoogieWrapper(Bpl.Expr expr)
+        : base(expr.tok)
+      {
+        Contract.Requires(expr != null);
+        Expr = expr;
+      }
+    }
+
+    internal class ExpressionTranslator
+    {
       public readonly Bpl.Expr HeapExpr;
       public readonly PredefinedDecls predef;
       public readonly Translator translator;
@@ -3938,6 +3966,10 @@ namespace Microsoft.Dafny {
         } else if (expr is IdentifierExpr) {
           IdentifierExpr e = (IdentifierExpr)expr;
           return TrVar(expr.tok, cce.NonNull(e.Var));
+
+        } else if (expr is BoogieWrapper) {
+          var e = (BoogieWrapper)expr;
+          return e.Expr;
         
         } else if (expr is SetDisplayExpr) {
           SetDisplayExpr e = (SetDisplayExpr)expr;
@@ -5198,7 +5230,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(n != null);
 
-      if (expr is LiteralExpr || expr is WildcardExpr || expr is ThisExpr) {
+      if (expr is LiteralExpr || expr is WildcardExpr || expr is ThisExpr || expr is BoogieWrapper) {
         return false;
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
@@ -5335,7 +5367,7 @@ namespace Microsoft.Dafny {
 
       Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
       
-      if (expr is LiteralExpr || expr is WildcardExpr) {
+      if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
         return receiverReplacement == null ? expr : receiverReplacement;

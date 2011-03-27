@@ -662,13 +662,27 @@ namespace Microsoft.Dafny {
           wr.WriteLine(";");
 
         } else {
-          Indent(indent);
-          TrExpr(s.Lhs);
-          if (!(s.Rhs is HavocRhs)) {
+          var tRhs = s.Rhs as TypeRhs;
+          if (tRhs != null && tRhs.InitCall != null) {
+            string nw = "_nw" + tmpVarCount;
+            tmpVarCount++;
+            Indent(indent);
+            wr.Write("{0} = ", nw);
+            TrAssignmentRhs(s.Rhs);
+            wr.WriteLine(";");
+            Indent(indent);
+            TrCallStmt(tRhs.InitCall, nw, indent);
+            wr.WriteLine(";");
+            Indent(indent);
+            TrExpr(s.Lhs);
+            wr.WriteLine(" = {0};", nw);
+          } else if (!(s.Rhs is HavocRhs)) {
+            Indent(indent);
+            TrExpr(s.Lhs);
             wr.Write(" = ");
             TrAssignmentRhs(s.Rhs);
+            wr.WriteLine(";");
           }
-          wr.WriteLine(";");
         }
         
       } else if (stmt is VarDecl) {
@@ -676,39 +690,7 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
-
-        foreach (VarDecl local in s.NewVars) {
-          TrVarDecl(local, false, indent);
-        }
-
-        Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
-        Indent(indent);
-        if (s.Method.IsStatic) {
-          wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
-        } else {
-          TrParenExpr(s.Receiver);
-        }
-        wr.Write(".{0}(", s.Method.Name);
-
-        string sep = "";
-        for (int i = 0; i < s.Method.Ins.Count; i++) {
-          Formal p = s.Method.Ins[i];
-          if (!p.IsGhost) {
-            wr.Write(sep);
-            TrExpr(s.Args[i]);
-            sep = ", ";
-          }
-        }
-        for (int i = 0; i < s.Method.Outs.Count; i++) {
-          Formal p = s.Method.Outs[i];
-          if (!p.IsGhost) {
-            wr.Write("{0}out ", sep);
-            TrExpr(s.Lhs[i]);
-            sep = ", ";
-          }
-        }
-
-        wr.WriteLine(");");
+        TrCallStmt(s, null, indent);
         
       } else if (stmt is BlockStmt) {
         Indent(indent);  wr.WriteLine("{");
@@ -830,10 +812,50 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
+
+    void TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
+      Contract.Requires(s != null);
+
+      foreach (VarDecl local in s.NewVars) {
+        TrVarDecl(local, false, indent);
+      }
+
+      Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
+      Indent(indent);
+      if (receiverReplacement != null) {
+        wr.Write(receiverReplacement);
+      } else if (s.Method.IsStatic) {
+        wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
+      } else {
+        TrParenExpr(s.Receiver);
+      }
+      wr.Write(".{0}(", s.Method.Name);
+
+      string sep = "";
+      for (int i = 0; i < s.Method.Ins.Count; i++) {
+        Formal p = s.Method.Ins[i];
+        if (!p.IsGhost) {
+          wr.Write(sep);
+          TrExpr(s.Args[i]);
+          sep = ", ";
+        }
+      }
+      for (int i = 0; i < s.Method.Outs.Count; i++) {
+        Formal p = s.Method.Outs[i];
+        if (!p.IsGhost) {
+          wr.Write("{0}out ", sep);
+          TrExpr(s.Lhs[i]);
+          sep = ", ";
+        }
+      }
+
+      wr.WriteLine(");");
+    }
     
     int tmpVarCount = 0;
     
-    void TrAssignmentRhs(AssignmentRhs rhs){Contract.Requires(rhs != null);
+    void TrAssignmentRhs(AssignmentRhs rhs) {
+      Contract.Requires(rhs != null);
       Contract.Requires(!(rhs is HavocRhs));
       if (rhs is ExprRhs) {
         ExprRhs e = (ExprRhs)rhs;
@@ -904,11 +926,17 @@ namespace Microsoft.Dafny {
       if (s.Rhs != null) {
         wr.Write(" = ");
         TrAssignmentRhs(s.Rhs);
+        wr.WriteLine(";");
+        var tRhs = s.Rhs as TypeRhs;
+        if (tRhs != null && tRhs.InitCall != null) {
+          TrCallStmt(tRhs.InitCall, s.Name, indent);
+        }
       } else if (alwaysInitialize) {
         // produce a default value
-        wr.Write(" = {0}", DefaultValue(s.Type));
+        wr.WriteLine(" = {0};", DefaultValue(s.Type));
+      } else {
+        wr.WriteLine(";");
       }
-      wr.WriteLine(";");
     }
 
     void MatchCasePrelude(string source, DatatypeCtor ctor, List<BoundVar/*!*/>/*!*/ arguments, int caseIndex, int caseCount, int indent) {

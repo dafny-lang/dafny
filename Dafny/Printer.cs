@@ -590,6 +590,10 @@ namespace Microsoft.Dafny {
             s = ", ";
           }
           wr.Write("]");
+        } else if (t.InitCall != null) {
+          wr.Write(".{0}(", t.InitCall.MethodName);
+          PrintExpressionList(t.InitCall.Args);
+          wr.Write(")");
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS

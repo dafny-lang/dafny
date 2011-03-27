@@ -30,12 +30,10 @@ class AmortizedQueue<T> {
     modifies this;
     ensures Valid() && List == [];
   {
-    var tmp := new LinkedList<T>;
+    var tmp := new LinkedList<T>.Init();
     front := tmp;
-    call front.Init();
-    tmp := new LinkedList<T>;
+    tmp := new LinkedList<T>.Init();
     rear := tmp;
-    call rear.Init();
     Repr := {this};
     Repr := Repr + front.Repr + rear.Repr;
     List := [];
@@ -54,8 +52,7 @@ class AmortizedQueue<T> {
       call ff := f.Concat(rr);
       front := ff;
 
-      var tmp := new LinkedList<T>;
-      call tmp.Init();
+      var tmp := new LinkedList<T>.Init();
       rear := tmp;
     }
     Repr := {this};
@@ -74,8 +71,7 @@ class AmortizedQueue<T> {
     requires Valid() && List != [];
     ensures r != null && r.Valid() && r.List == List[1..];
   {
-    r := new AmortizedQueue<T>;
-    call r.InitFromPieces(front.tail, rear);
+    r := new AmortizedQueue<T>.InitFromPieces(front.tail, rear);
   }
 
   method Enqueue(item: T) returns (r: AmortizedQueue<T>)
@@ -83,8 +79,7 @@ class AmortizedQueue<T> {
     ensures r != null && r.Valid() && r.List == List + [item];
   {
     call rr := rear.Cons(item);
-    var tmp := new AmortizedQueue<T>;
-    call tmp.InitFromPieces(front, rr);
+    var tmp := new AmortizedQueue<T>.InitFromPieces(front, rr);
     r := tmp;
   }
 }
@@ -158,8 +153,7 @@ class LinkedList<T> {
       r := this;
     } else {
       call r := tail.Reverse();
-      var e := new LinkedList<T>;
-      call e.Init();
+      var e := new LinkedList<T>.Init();
       call e := e.Cons(head);
       call r := r.Concat(e);
     }

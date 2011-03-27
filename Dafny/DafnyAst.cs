@@ -1316,16 +1316,23 @@ namespace Microsoft.Dafny {
 
   public class TypeRhs : DeterminedAssignmentRhs {
     public readonly Type EType;
+    public readonly List<Expression> ArrayDimensions;
+    public readonly CallStmt InitCall;  // may be null (and is definitely null for arrays)
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(EType != null);
       Contract.Invariant(ArrayDimensions == null || 1 <= ArrayDimensions.Count);
+      Contract.Invariant(ArrayDimensions == null || InitCall == null);
     }
 
-    public readonly List<Expression> ArrayDimensions;
     public TypeRhs(Type type) {
       Contract.Requires(type != null);
       EType = type;
+    }
+    public TypeRhs(Type type, CallStmt initCall) {
+      Contract.Requires(type != null);
+      EType = type;
+      InitCall = initCall;
     }
     public TypeRhs(Type type, List<Expression> arrayDimensions) {
       Contract.Requires(type != null);
@@ -1355,13 +1362,13 @@ namespace Microsoft.Dafny {
       this.Lhs = lhs;
       this.Rhs = new ExprRhs(rhs);
     }
-    public AssignStmt(IToken tok, Expression lhs, Type type)
+    public AssignStmt(IToken tok, Expression lhs, Type type, CallStmt initCall)
       : base(tok) {  // alloc statement
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(type != null);
       this.Lhs = lhs;
-      this.Rhs = new TypeRhs(type);
+      this.Rhs = new TypeRhs(type, initCall);
     }
     public AssignStmt(IToken tok, Expression lhs, Type type, List<Expression> arrayDimensions)
       : base(tok) {  // array alloc statement

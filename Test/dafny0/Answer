@@ -79,7 +79,9 @@ TypeTests.dfy(64,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(66,6): Error: Duplicate local-variable name: x
 TypeTests.dfy(69,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(72,6): Error: Duplicate local-variable name: y
-14 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(79,17): Error: member F in class C does not refer to a method
+TypeTests.dfy(80,17): Error: a method called as an initialization method must not have any result arguments
+16 resolution/type errors detected in TypeTests.dfy
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
@@ -142,8 +144,14 @@ Execution trace:
     (0,0): anon6
     (0,0): anon14_Then
     (0,0): anon11
+SmallTests.dfy(272,24): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(250,30): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(267,19): anon3_Else
+    (0,0): anon2
 
-Dafny program verifier finished with 29 verified, 12 errors
+Dafny program verifier finished with 34 verified, 13 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero

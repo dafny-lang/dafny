@@ -54,8 +54,7 @@ class Benchmark3 {
     // the final Queue is a permutation of the input Queue
     ensures (forall i :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
   {
-    r := new Queue<int>;
-    call r.Init();
+    r := new Queue<int>.Init();
     ghost var p := [];
     
     var n := 0;

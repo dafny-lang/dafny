@@ -72,3 +72,11 @@ method DuplicateVarName(x: int) returns (y: int)
   var y := y;  // error: redeclaration of an out-parameter is not allowed (it is
                // treated like an outermost-scoped local in this regard)
 }
+
+// ---------------------
+
+method InitCalls() {
+  var c := new C.F(null, null);  // error: F is not a method
+  var d := new C.M(8);  // error: M has out parameters
+  var e := new C.Caller();
+}

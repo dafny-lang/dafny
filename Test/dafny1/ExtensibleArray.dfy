@@ -90,8 +90,8 @@ class ExtensibleArray<T> {
       elements[length - M] := t;
     } else {
       if (more == null) {
-        var mr := new ExtensibleArray<array<T>>;  more := mr;
-        call mr.Init();
+        var mr := new ExtensibleArray<array<T>>.Init();
+        more := mr;
         Repr := Repr + {mr} + mr.Repr;
       }
       // "elements" is full, so move it into "more" and allocate a new array
@@ -108,8 +108,7 @@ class ExtensibleArray<T> {
 }
 
 method Main() {
-  var a := new ExtensibleArray<int>;
-  call a.Init();
+  var a := new ExtensibleArray<int>.Init();
   var n := 0;
   while (n < 256*256+600)
     invariant a.Valid() && fresh(a.Repr);

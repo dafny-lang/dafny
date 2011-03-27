@@ -31,8 +31,7 @@ class Queue<T> {
     ensures Valid() && fresh(footprint - {this});
     ensures |contents| == 0;
   {
-    var n := new Node<T>;
-    call n.Init();
+    var n := new Node<T>.Init();
     head := n;
     tail := n;
     contents := n.tailContents;
@@ -53,8 +52,8 @@ class Queue<T> {
     ensures Valid() && fresh(footprint - old(footprint));
     ensures contents == old(contents) + [t];
   {
-    var n := new Node<T>;
-    call n.Init();  n.data := t;
+    var n := new Node<T>.Init();
+    n.data := t;
     tail.next := n;
     tail := n;
 
@@ -150,10 +149,8 @@ class Node<T> {
 class Main<U> {
   method A<T>(t: T, u: T, v: T)
   {
-    var q0 := new Queue<T>;
-    call q0.Init();
-    var q1 := new Queue<T>;
-    call q1.Init();
+    var q0 := new Queue<T>.Init();
+    var q1 := new Queue<T>.Init();
 
     call q0.Enqueue(t);
     call q0.Enqueue(u);

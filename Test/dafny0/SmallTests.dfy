@@ -232,3 +232,43 @@ datatype Lindgren {
   Longstocking(seq<object>, Lindgren);
   HerrNilsson;
 }
+
+// --------------------------------------------------
+
+class InitCalls {
+  var z: int;
+  var p: InitCalls;
+
+  method Init(y: int)
+    modifies this;
+    ensures z == y;
+  {
+    z := y;
+  }
+
+  method InitFromReference(q: InitCalls)
+    requires q != null && 15 <= q.z;
+    modifies this;
+    ensures p == q;
+  {
+    p := q;
+  }
+
+  method TestDriver()
+  {
+    var c: InitCalls;
+    c := new InitCalls.Init(15);
+    var d := new InitCalls.Init(17);
+    var e: InitCalls := new InitCalls.Init(18);
+    var f: object := new InitCalls.Init(19);
+    assert c.z + d.z + e.z == 50;
+    // poor man's type cast:
+    ghost var g: InitCalls;
+    assert f == g ==> g.z == 19;
+
+    // test that the call is done before the assignment to the LHS
+    var r := c;
+    r := new InitCalls.InitFromReference(r);  // fine, since r.z==15
+    r := new InitCalls.InitFromReference(r);  // error, since r.z is unknown
+  }
+}

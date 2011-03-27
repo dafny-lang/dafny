@@ -31,8 +31,7 @@ class UnboundedStack<T> {
     ensures IsUnboundedStack();
     ensures content == [val] + old(content);
   {
-    var tmp := new Node<T>;
-    call tmp.InitNode(val,top);
+    var tmp := new Node<T>.InitNode(val,top);
     top := tmp;
     representation := representation + top.footprint;
     content := [val] + content;

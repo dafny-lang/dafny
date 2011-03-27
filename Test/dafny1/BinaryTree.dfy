@@ -58,8 +58,7 @@ class IntSet {
     decreases if n == null then {} else n.Repr;
   {
     if (n == null) {
-      m := new Node;
-      call m.Init(x);
+      m := new Node.Init(x);
     } else if (x == n.data) {
       m := n;
     } else {
@@ -224,8 +223,7 @@ class Node {
 class Main {
   method Client0(x: int)
   {
-    var s := new IntSet;
-    call s.Init();
+    var s := new IntSet.Init();
 
     call s.Insert(12);
     call s.Insert(24);

@@ -135,18 +135,14 @@ class Composite {
 
 method Main()
 {
-  var c0 := new Composite;
-  call c0.Init(57);
+  var c0 := new Composite.Init(57);
 
-  var c1 := new Composite;
-  call c1.Init(12);
+  var c1 := new Composite.Init(12);
   call c0.Add({c0}, c1, {c1});
 
-  var c2 := new Composite;
-  call c2.Init(48);
+  var c2 := new Composite.Init(48);
 
-  var c3 := new Composite;
-  call c3.Init(48);
+  var c3 := new Composite.Init(48);
   call c2.Add({c2}, c3, {c3});
   call c0.Add({c0,c1}, c2, {c2,c3});
 
@@ -160,15 +156,15 @@ method Main()
 }
 
 method Harness() {
-  var a := new Composite;  call a.Init(5);
-  var b := new Composite;  call b.Init(7);
+  var a := new Composite.Init(5);
+  var b := new Composite.Init(7);
   call a.Add({a}, b, {b});
   assert a.sum == 12;
 
   call b.Update(17, {a,b});
   assert a.sum == 22;
 
-  var c := new Composite;  call c.Init(10);
+  var c := new Composite.Init(10);
   call b.Add({a,b}, c, {c});
   call b.Dislodge({a,b,c});
   assert b.sum == 27;
