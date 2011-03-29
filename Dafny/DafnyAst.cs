@@ -1318,6 +1318,7 @@ namespace Microsoft.Dafny {
     public readonly Type EType;
     public readonly List<Expression> ArrayDimensions;
     public readonly CallStmt InitCall;  // may be null (and is definitely null for arrays)
+    public Type Type;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(EType != null);

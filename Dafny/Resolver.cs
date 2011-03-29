@@ -1624,7 +1624,7 @@ namespace Microsoft.Dafny {
         } else if (rr.InitCall != null) {
           ResolveCallStmt(rr.InitCall, specContext, method, rr.EType);
         }
-        return rr.EType;
+        rr.Type = rr.EType;
       } else {
         int i = 0;
         foreach (Expression dim in rr.ArrayDimensions) {
@@ -1635,8 +1635,9 @@ namespace Microsoft.Dafny {
           }
           i++;
         }
-        return builtIns.ArrayType(rr.ArrayDimensions.Count, rr.EType);
+        rr.Type = builtIns.ArrayType(rr.ArrayDimensions.Count, rr.EType);
       }
+      return rr.Type;
     }
 
     MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out UserDefinedType ctype)

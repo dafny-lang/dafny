@@ -3643,87 +3643,130 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
-      if (rhs is ExprRhs) {
-        TrStmt_CheckWellformed(lhs, builder, locals, etran, true);
-        TrStmt_CheckWellformed(((ExprRhs)rhs).Expr, builder, locals, etran, true);
-        Bpl.Expr bRhs = etran.TrExpr(((ExprRhs)rhs).Expr);
-        if (lhs is IdentifierExpr) {
-          Bpl.IdentifierExpr bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
-          builder.Add(cmd);
-        } else if (lhs is FieldSelectExpr) {
-          FieldSelectExpr fse = (FieldSelectExpr)lhs;
-          Contract.Assert(fse.Field != null);
-          // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(fse.Obj), GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
-          
-          Bpl.IdentifierExpr h = cce.NonNull((Bpl.IdentifierExpr)etran.HeapExpr);  // TODO: is this cast always justified?
-          bRhs = etran.CondApplyBox(tok, bRhs, cce.NonNull((ExprRhs)rhs).Expr.Type, fse.Field.Type);
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, etran.TrExpr(fse.Obj), new Bpl.IdentifierExpr(tok, GetField(fse.Field)), bRhs));
+
+      TrStmt_CheckWellformed(lhs, builder, locals, etran, true);
+
+      if (lhs is IdentifierExpr) {
+        var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+        TrAssignmentRhs(tok, bLhs, lhs.Type, rhs, builder, locals, etran);
+
+      } else if (lhs is FieldSelectExpr) {
+        var fse = (FieldSelectExpr)lhs;
+        Contract.Assert(fse.Field != null);
+        var obj = etran.TrExpr(fse.Obj); // TODO: save this value in a variable, if needed
+        // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
+        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
+
+        Bpl.Expr bRhs = TrAssignmentRhs(tok, null, fse.Field.Type, rhs, builder, locals, etran);
+
+        var h = (Bpl.IdentifierExpr)etran.HeapExpr;  // TODO: is this cast always justified?
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fse.Field)), bRhs));
+        builder.Add(cmd);
+        // assume $IsGoodHeap($Heap);
+        builder.Add(AssumeGoodHeap(tok, etran));
+
+      } else if (lhs is SeqSelectExpr) {
+        SeqSelectExpr sel = (SeqSelectExpr)lhs;
+        Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
+        if (sel.SelectOne) {
+          Contract.Assert(sel.E0 != null);
+          var obj = etran.TrExpr(sel.Seq); // TODO: save this value in a variable, if needed
+          Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0)); // TODO: save this value in a variable, if needed
+          // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
+
+          Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, builder, locals, etran);
+
+          var h = (Bpl.IdentifierExpr)etran.HeapExpr;  // TODO: is this cast always justified?
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, bRhs));
           builder.Add(cmd);
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(tok, etran));
-        } else if (lhs is SeqSelectExpr) {
-          SeqSelectExpr sel = (SeqSelectExpr)lhs;
-          Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
-          bRhs = etran.BoxIfNecessary(tok, bRhs, UserDefinedType.ArrayElementType(sel.Seq.Type));
-          if (sel.SelectOne) {
-            Contract.Assert(sel.E0 != null);
-            Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0));
-            // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(sel.Seq), fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
 
-            Bpl.IdentifierExpr h = cce.NonNull((Bpl.IdentifierExpr)etran.HeapExpr);  // TODO: is this cast always justified?
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, etran.TrExpr(sel.Seq), fieldName, bRhs));
-            builder.Add(cmd);
-            // assume $IsGoodHeap($Heap);
-            builder.Add(AssumeGoodHeap(tok, etran));
-          } else {
-            Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
-            Bpl.Expr high = sel.E1 == null ? ArrayLength(tok, etran.TrExpr(sel.Seq), 1, 0) : etran.TrExpr(sel.E1);
-            // check frame:
-            // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
-            Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(tok, iVar);
-            Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Le(low, ie), Bpl.Expr.Lt(ie, high));
-            Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, ie);
-            Bpl.Expr cons = Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(sel.Seq), fieldName);
-            Bpl.Expr q = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(ante, cons));
-            builder.Add(Assert(tok, q, "assignment may update an array element not in the enclosing method's modifies clause"));
-            // do the update:  call UpdateArrayRange(arr, low, high, rhs);
-            builder.Add(new Bpl.CallCmd(tok, "UpdateArrayRange",
-              new Bpl.ExprSeq(etran.TrExpr(sel.Seq), low, high, bRhs),
-              new Bpl.IdentifierExprSeq()));
-          }
         } else {
-          MultiSelectExpr mse = (MultiSelectExpr)lhs;
-          Contract.Assert(mse.Array.Type != null && mse.Array.Type.IsArrayType);
-          bRhs = etran.BoxIfNecessary(tok, bRhs, UserDefinedType.ArrayElementType(mse.Array.Type));
-
-          Bpl.Expr fieldName = etran.GetArrayIndexFieldName(mse.tok, mse.Indices);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), etran.TrExpr(mse.Array), fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
-
-          Bpl.IdentifierExpr h = cce.NonNull((Bpl.IdentifierExpr)etran.HeapExpr);  // TODO: is this cast always justified?
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, etran.TrExpr(mse.Array), fieldName, bRhs));
-          builder.Add(cmd);
-          // assume $IsGoodHeap($Heap);
-          builder.Add(AssumeGoodHeap(tok, etran));
+          var obj = etran.TrExpr(sel.Seq); // TODO: save this value in a variable, if needed
+          Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0); // TODO: save this value in a variable, if needed
+          Bpl.Expr high = sel.E1 == null ? ArrayLength(tok, obj, 1, 0) : etran.TrExpr(sel.E1); // TODO: save this value in a variable, if needed
+          // check frame:
+          // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
+          Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
+          Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(tok, iVar);
+          Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Le(low, ie), Bpl.Expr.Lt(ie, high));
+          Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, ie);
+          Bpl.Expr cons = Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName);
+          Bpl.Expr q = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(ante, cons));
+          builder.Add(Assert(tok, q, "assignment may update an array element not in the enclosing method's modifies clause"));
+          // compute the RHS
+          Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, builder, locals, etran);
+          // do the update:  call UpdateArrayRange(arr, low, high, rhs);
+          builder.Add(new Bpl.CallCmd(tok, "UpdateArrayRange",
+            new Bpl.ExprSeq(obj, low, high, bRhs),
+            new Bpl.IdentifierExprSeq()));
         }
-        var ch = ((ExprRhs)rhs).Expr as UnaryExpr;
+
+      } else {
+        MultiSelectExpr mse = (MultiSelectExpr)lhs;
+        Contract.Assert(mse.Array.Type != null && mse.Array.Type.IsArrayType);
+
+        var obj = etran.TrExpr(mse.Array); // TODO: save this value in a variable, if needed
+        Bpl.Expr fieldName = etran.GetArrayIndexFieldName(mse.tok, mse.Indices); // TODO: save this value in a variable, if needed
+        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
+
+        Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, builder, locals, etran);
+
+        var h = (Bpl.IdentifierExpr)etran.HeapExpr;  // TODO: is this cast always justified?
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, bRhs));
+        builder.Add(cmd);
+        // assume $IsGoodHeap($Heap);
+        builder.Add(AssumeGoodHeap(tok, etran));
+      }
+
+      builder.Add(CaptureState(tok));
+    }
+
+    /// <summary>
+    /// Generates an assignment of the translation of "rhs" to "bLhs" and then return "bLhs".  If "bLhs" is
+    /// passed in as "null", this method will create a new temporary Boogie variable to hold the result.
+    /// </summary>
+    Bpl.IdentifierExpr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bLhs, Type lhsType, AssignmentRhs rhs,
+                                       Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+
+      if (bLhs == null) {
+        var nm = string.Format("$rhs#{0}", otherTmpVarCount);
+        otherTmpVarCount++;
+        var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, lhsType == null ? predef.BoxType : TrType(lhsType)));
+        locals.Add(v);
+        bLhs = new Bpl.IdentifierExpr(tok, v);
+      }
+
+      if (rhs is ExprRhs) {
+        var e = (ExprRhs)rhs;
+
+        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
+
+        Bpl.Expr bRhs = etran.TrExpr(e.Expr);
+        bRhs = etran.CondApplyBox(tok, bRhs, e.Expr.Type, lhsType);
+
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
+        builder.Add(cmd);
+        var ch = e.Expr as UnaryExpr;
         if (ch != null && ch.Op == UnaryExpr.Opcode.SetChoose) {
           // havoc $Tick;
           builder.Add(new Bpl.HavocCmd(ch.tok, new Bpl.IdentifierExprSeq(etran.Tick())));
         }
-        
+
       } else if (rhs is HavocRhs) {
-        Contract.Assert(lhs is IdentifierExpr);  // for this kind of RHS, the LHS is restricted to be a simple variable
-        var x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
-        builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(x)));
+        builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(bLhs)));
 
       } else {
         Contract.Assert(rhs is TypeRhs);  // otherwise, an unexpected AssignmentRhs
         TypeRhs tRhs = (TypeRhs)rhs;
-        Contract.Assert(lhs is IdentifierExpr);  // for this kind of RHS, the LHS is restricted to be a simple variable
 
         if (tRhs.ArrayDimensions != null) {
           int i = 0;
@@ -3772,13 +3815,12 @@ namespace Microsoft.Dafny {
         if (tRhs.InitCall != null) {
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
         }
-        // x := $nw;
-        Bpl.IdentifierExpr x = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
-        builder.Add(Bpl.Cmd.SimpleAssign(tok, x, nw));
+        // bLhs := $nw;
+        builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, etran.CondApplyBox(tok, nw, tRhs.Type, lhsType)));
       }
-      builder.Add(CaptureState(tok));
+      return bLhs;
     }
-    
+
     Bpl.AssumeCmd AssumeGoodHeap(IToken tok, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -4400,10 +4442,9 @@ namespace Microsoft.Dafny {
         Contract.Requires(tok != null);
         Contract.Requires(e != null);
         Contract.Requires(fromType != null);
-        Contract.Requires(toType != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-        if (!ModeledAsBoxType(fromType) && ModeledAsBoxType(toType)) {
+        if (!ModeledAsBoxType(fromType) && (toType == null || ModeledAsBoxType(toType))) {
           return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
         } else {
           return e;
@@ -4416,11 +4457,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(fromType != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-        if (!ModeledAsBoxType(fromType)) {
-          return translator.FunctionCall(tok, BuiltinFunction.Box, null, e);
-        } else {
-          return e;
-        }
+        return CondApplyBox(tok, e, fromType, null);
       }
       
       public Bpl.Expr CondApplyUnbox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
