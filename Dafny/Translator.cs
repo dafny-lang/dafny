@@ -1977,9 +1977,11 @@ namespace Microsoft.Dafny {
       if (decr.Count == 0) {
         decr = new List<Expression>();
         foreach (Formal p in m.Ins) {
-          IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
-          ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-          decr.Add(ie);  // use the method's first parameter instead
+          if (!p.Type.IsTypeParameter) {
+            IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+            ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+            decr.Add(ie);  // use the method's first parameter instead
+          }
         }
         inferredDecreases = true;
       }
@@ -1995,9 +1997,11 @@ namespace Microsoft.Dafny {
         decr = new List<Expression>();
         if (f.Reads.Count == 0) {
           foreach (Formal p in f.Formals) {
-            IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
-            ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-            decr.Add(ie);  // use the function's first parameter instead
+            if (!p.Type.IsTypeParameter) {
+              IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+              ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+              decr.Add(ie);  // use the function's first parameter instead
+            }
           }
           inferredDecreases = true;
         } else {
@@ -3489,9 +3493,11 @@ namespace Microsoft.Dafny {
         return u is SeqType;
       } else if (t.IsDatatype) {
         return u.IsDatatype;
-      } else {
-        Contract.Assert(t.IsRefType);
+      } else if (t.IsRefType) {
         return u.IsRefType;
+      } else {
+        Contract.Assert(t.IsTypeParameter);
+        return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
       }
     }
     

@@ -64,3 +64,39 @@ static function XForestInc(forest: TreeList): TreeList
   case Nil => forest
   case Cons(tree, tail) => #TreeList.Cons(XInc(tree), XForestInc(tail))
 }
+
+// ------------------ fun with recursive functions
+
+function len<T>(l: List<T>): int
+{
+  match l
+  case Nil => 0
+  case Cons(h,t) => 1 + len(t)
+}
+
+function SingletonList<T>(h: T): List<T>
+  ensures len(SingletonList(h)) == 1;
+{
+  #List.Cons(h, #List.Nil)
+}
+
+function Append<T>(a: List<T>, b: List<T>): List<T>
+  ensures len(Append(a,b)) == len(a) + len(b);
+{
+  match a
+  case Nil => b
+  case Cons(h,t) => #List.Cons(h, Append(t, b))
+}
+
+function Rotate<T>(n: int, l: List<T>): List<T>
+  requires 0 <= n;
+  ensures len(Rotate(n, l)) == len(l);  
+{
+  match l
+  case Nil => l
+  case Cons(h, t) =>
+    if n == 0 then l else
+      Rotate(n-1, Append(t, SingletonList(h)))
+}
+
+
