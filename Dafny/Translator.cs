@@ -5143,9 +5143,11 @@ namespace Microsoft.Dafny {
           foreach (var n in inductionVariables) {
             var newCases = new List<Bpl.Expr>();
             foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
-              if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                foreach (var cs in caseProduct) {
+              foreach (var cs in caseProduct) {
+                if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
                   newCases.Add(Bpl.Expr.Binary(new NestedToken(cs.tok, kase.tok), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                } else {
+                  newCases.Add(cs);
                 }
               }
             }
