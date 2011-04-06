@@ -119,12 +119,12 @@ class IntegerInduction {
   // possibility of applying induction.  Instead, the "==>" and "<==" cases are given separately.
   // Proving the "<==" case is simple; it's the "==>" case that requires induction.
   // The example uses an attribute that requests induction on just "j".  However, the proof also
-  // goes through by applying induction just on "i" or applying induction on both bound variables.
+  // goes through by applying induction on both bound variables.
   function method IsSorted(s: seq<int>): bool
     ensures IsSorted(s) ==> (forall i,j {:induction j} :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]);
     ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s);
   {
-    (forall i :: 0 <= i && i+1 < |s| ==> s[i] <= s[i+1])
+    (forall i :: 1 <= i && i < |s| ==> s[i-1] <= s[i])
   }
 }
 
