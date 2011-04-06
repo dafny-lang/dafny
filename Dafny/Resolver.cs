@@ -1169,27 +1169,22 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (s.Lhs is FieldSelectExpr) {
-          // LHS is fine, but restrict the RHS to ExprRhs
-          if (!(s.Rhs is ExprRhs)) {
-            Error(stmt, "Assignment to field must have an expression RHS; try using a temporary local variable");
-          } else {
-            FieldSelectExpr fse = (FieldSelectExpr)s.Lhs;
-            if (fse.Field != null) {  // otherwise, an error was reported above
-              lvalueIsGhost = fse.Field.IsGhost;
-              if (!lvalueIsGhost) {
-                if (specContextOnly) {
-                  Error(stmt, "Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
-                } else {
-                  // It is now that we wish we would have resolved s.Lhs to not allow ghosts.  Too late, so we do
-                  // the next best thing.
-                  if (lhsResolvedSuccessfully && UsesSpecFeatures(fse.Obj)) {
-                    Error(stmt, "Assignment to non-ghost field is not allowed to use specification-only expressions in the receiver");
-                  }
+          FieldSelectExpr fse = (FieldSelectExpr)s.Lhs;
+          if (fse.Field != null) {  // otherwise, an error was reported above
+            lvalueIsGhost = fse.Field.IsGhost;
+            if (!lvalueIsGhost) {
+              if (specContextOnly) {
+                Error(stmt, "Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+              } else {
+                // It is now that we wish we would have resolved s.Lhs to not allow ghosts.  Too late, so we do
+                // the next best thing.
+                if (lhsResolvedSuccessfully && UsesSpecFeatures(fse.Obj)) {
+                  Error(stmt, "Assignment to non-ghost field is not allowed to use specification-only expressions in the receiver");
                 }
               }
-              if (!fse.Field.IsMutable) {
-                Error(stmt, "LHS of assignment does not denote a mutable field");
-              }
+            }
+            if (!fse.Field.IsMutable) {
+              Error(stmt, "LHS of assignment does not denote a mutable field");
             }
           }
         } else if (s.Lhs is SeqSelectExpr) {
@@ -1204,17 +1199,14 @@ namespace Microsoft.Dafny {
             if (specContextOnly) {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
-          }
-          if (!(s.Rhs is ExprRhs)) {
-            Error(stmt, "Assignment to array element must have an expression RHS; try using a temporary local variable");
+            if (!lhs.SelectOne && !(s.Rhs is ExprRhs)) {
+              Error(stmt, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
+            }
           }
 
         } else if (s.Lhs is MultiSelectExpr) {
           if (specContextOnly) {
             Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
-          }
-          if (!(s.Rhs is ExprRhs)) {
-            Error(stmt, "Assignment to array element must have an expression RHS; try using a temporary local variable");
           }
 
         } else {
@@ -1222,22 +1214,22 @@ namespace Microsoft.Dafny {
         }
         
         s.IsGhost = lvalueIsGhost;
+        Type lhsType = s.Lhs.Type;
+        if (s.Lhs is SeqSelectExpr && !((SeqSelectExpr)s.Lhs).SelectOne) {
+          Contract.Assert(lhsType.IsArrayType);
+          lhsType = UserDefinedType.ArrayElementType(lhsType);
+        }
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
           ResolveExpression(rr.Expr, true, lvalueIsGhost);
           Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          Type lhsType = s.Lhs.Type;
-          if (s.Lhs is SeqSelectExpr && !((SeqSelectExpr)s.Lhs).SelectOne) {
-            Contract.Assert(lhsType.IsArrayType);
-            lhsType = UserDefinedType.ArrayElementType(lhsType);
-          }
           if (!UnifyTypes(lhsType, rr.Expr.Type)) {
             Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, s.Lhs.Type);
           }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
           Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
-          if (!UnifyTypes(s.Lhs.Type, t)) {
+          if (!UnifyTypes(lhsType, t)) {
             Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, s.Lhs.Type);
           }
         } else if (s.Rhs is HavocRhs) {

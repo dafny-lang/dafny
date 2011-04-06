@@ -1294,6 +1294,7 @@ namespace Microsoft.Dafny {
   public abstract class AssignmentRhs {
     internal AssignmentRhs() {
     }
+    public abstract bool CanAffectPreviouslyKnownExpressions { get; }
   }
 
   public abstract class DeterminedAssignmentRhs : AssignmentRhs {
@@ -1312,6 +1313,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Expr = expr;
     }
+    public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   }
 
   public class TypeRhs : DeterminedAssignmentRhs {
@@ -1341,9 +1343,22 @@ namespace Microsoft.Dafny {
       EType = type;
       ArrayDimensions = arrayDimensions;
     }
+    public override bool CanAffectPreviouslyKnownExpressions {
+      get {
+        if (InitCall != null) {
+          foreach (var mod in InitCall.Method.Mod) {
+            if (!(mod.E is ThisExpr)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+    }
   }
 
   public class HavocRhs : AssignmentRhs {
+    public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   }
 
   public class AssignStmt : Statement {

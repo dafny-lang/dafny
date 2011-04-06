@@ -37,10 +37,10 @@ class A {
   method O() {
     var zz2 := new A[25];
     assert zz2 != zz0;  // holds because zz2 is newly allocated
-    /******  These would be good things to be able to verify, but the current encoding is not up to the task
     var o: object := zz0;
     assert this != o;  // holds because zz0 has a different type
-    if (zz0 != null && zz1 != null && 2 <= |zz0| && |zz0| == |zz1|) {
+    /******  This would be a good thing to be able to verify, but the current encoding is not up to the task
+    if (zz0 != null && zz1 != null && 2 <= zz0.Length && zz0.Length == zz1.Length) {
       o := zz1[1];
       assert zz0[1] == o ==> o == null;  // holds because zz0 and zz1 have different element types
     }

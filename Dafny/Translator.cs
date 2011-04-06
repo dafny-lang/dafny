@@ -869,35 +869,68 @@ namespace Microsoft.Dafny {
     Method currentMethod = null;  // the method whose implementation is currently being translated
     int loopHeapVarCount = 0;
     int otherTmpVarCount = 0;
-    Bpl.IdentifierExpr _phvie = null;
+    Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
+    Bpl.IdentifierExpr GetTmpVar_IdExpr(IToken tok, string name, Bpl.Type ty, Bpl.VariableSeq locals)  // local variable that's shared between statements that need it
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(ty != null);
+      Contract.Requires(locals != null);
+      Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
+
+      Bpl.IdentifierExpr ie;
+      if (_tmpIEs.TryGetValue(name, out ie)) {
+        Contract.Assume(ie.Type.Equals(ty));
+      } else {
+        // the "tok" and "ty" of the first request for this variable is the one we use
+        var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, ty));  // important for the "$nw" client: no where clause (see GetNewVar_IdExpr)
+        locals.Add(v);
+        ie = new Bpl.IdentifierExpr(tok, v);
+        _tmpIEs.Add(name, ie);
+      }
+      return ie;
+    }
+
     Bpl.IdentifierExpr GetPrevHeapVar_IdExpr(IToken tok, Bpl.VariableSeq locals) {  // local variable that's shared between statements that need it
       Contract.Requires(tok != null);
       Contract.Requires(locals != null); Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
 
-      if (_phvie == null) {
-        // the "tok" of the first request for this variable is the one we use
-        Bpl.LocalVariable prevHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$prevHeap", predef.HeapType));
-        locals.Add(prevHeapVar);
-        _phvie = new Bpl.IdentifierExpr(tok, prevHeapVar);
-      }
-      return _phvie;
+      return GetTmpVar_IdExpr(tok, "$prevHeap", predef.HeapType, locals);
     }
-    Bpl.IdentifierExpr _nwie = null;
+    
     Bpl.IdentifierExpr GetNewVar_IdExpr(IToken tok, Bpl.VariableSeq locals)  // local variable that's shared between statements that need it
     {
       Contract.Requires(tok != null);
       Contract.Requires(locals != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
-    
-      if (_nwie == null) {
-        // the "tok" of the first request for this variable is the one we use
-        Bpl.LocalVariable nwVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$nw", predef.RefType));  // important: no where clause (that's why we're going through the trouble of setting of this variable in the first place)
-        locals.Add(nwVar);
-        _nwie = new Bpl.IdentifierExpr(tok, nwVar);
+
+      // important: the following declaration produces no where clause (that's why we're going through the trouble of setting of this variable in the first place)
+      return GetTmpVar_IdExpr(tok, "$nw", predef.RefType, locals);
+    }
+
+    /// <summary>
+    /// Returns an expression whose value is the same as "expr", but that is guaranteed to preserve the its value passed
+    /// the evaluation of "rhs".  If necessary, a new local variable called "name" with type "ty" is added to "locals" and
+    /// assigned in "builder" to be used to hold the value of "expr".  It is assumed that all requests for a given "name"
+    /// have the same type "ty" and that these variables can be shared.
+    /// </summary>
+    Bpl.Expr SaveInTemp(Bpl.Expr expr, AssignmentRhs rhs, string name, Bpl.Type ty, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals) {
+      Contract.Requires(expr != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(name != null);
+      Contract.Requires(ty != null);
+      Contract.Requires(locals != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      if (rhs.CanAffectPreviouslyKnownExpressions) {
+        var save = GetTmpVar_IdExpr(expr.tok, name, ty, locals);
+        builder.Add(Bpl.Cmd.SimpleAssign(expr.tok, save, expr));
+        return save;
+      } else {
+        return expr;
       }
-      return _nwie;
     }
 
     void AddMethodImpl(Method m, Bpl.Procedure proc, bool wellformednessProc)
@@ -906,8 +939,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(wellformednessProc || m.Body != null);
-      Contract.Requires(currentMethod == null && loopHeapVarCount == 0 && _phvie == null && _nwie == null);
-      Contract.Ensures(currentMethod == null && loopHeapVarCount == 0 && _phvie == null && _nwie == null);
+      Contract.Requires(currentMethod == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
+      Contract.Ensures(currentMethod == null && loopHeapVarCount == 0 && _tmpIEs.Count == 0);
     
       currentMethod = m;
 
@@ -974,8 +1007,7 @@ namespace Microsoft.Dafny {
       currentMethod = null;
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
-      _phvie = null;
-      _nwie = null;
+      _tmpIEs.Clear();
     }
 
     void GenerateImplPrelude(Method m, Bpl.VariableSeq inParams, Bpl.VariableSeq outParams,
@@ -2436,8 +2468,7 @@ namespace Microsoft.Dafny {
       currentMethod = m;
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
-      _phvie = null;
-      _nwie = null;
+      _tmpIEs.Clear();
             
       //  call inlined m;
       TrStmt(m.Body, builder, localVariables, etran);
@@ -2459,8 +2490,7 @@ namespace Microsoft.Dafny {
       currentMethod = null;
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
-      _phvie = null;
-      _nwie = null;
+      _tmpIEs.Clear();
       
       // assert output variables of r and m are pairwise equal
       Contract.Assert(outParams.Length % 2 == 0);
@@ -3659,7 +3689,7 @@ namespace Microsoft.Dafny {
       } else if (lhs is FieldSelectExpr) {
         var fse = (FieldSelectExpr)lhs;
         Contract.Assert(fse.Field != null);
-        var obj = etran.TrExpr(fse.Obj); // TODO: save this value in a variable, if needed
+        var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhs, "$obj", predef.RefType, builder, locals);
         // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
         builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
 
@@ -3676,8 +3706,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
         if (sel.SelectOne) {
           Contract.Assert(sel.E0 != null);
-          var obj = etran.TrExpr(sel.Seq); // TODO: save this value in a variable, if needed
-          Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0)); // TODO: save this value in a variable, if needed
+          var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhs, "$obj", predef.RefType, builder, locals);
+          var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0)), rhs, "$index", predef.FieldName(tok, predef.BoxType), builder, locals);
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
 
@@ -3690,9 +3720,9 @@ namespace Microsoft.Dafny {
           builder.Add(AssumeGoodHeap(tok, etran));
 
         } else {
-          var obj = etran.TrExpr(sel.Seq); // TODO: save this value in a variable, if needed
-          Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0); // TODO: save this value in a variable, if needed
-          Bpl.Expr high = sel.E1 == null ? ArrayLength(tok, obj, 1, 0) : etran.TrExpr(sel.E1); // TODO: save this value in a variable, if needed
+          var obj = etran.TrExpr(sel.Seq);
+          Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
+          Bpl.Expr high = sel.E1 == null ? ArrayLength(tok, obj, 1, 0) : etran.TrExpr(sel.E1);
           // check frame:
           // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
@@ -3714,8 +3744,8 @@ namespace Microsoft.Dafny {
         MultiSelectExpr mse = (MultiSelectExpr)lhs;
         Contract.Assert(mse.Array.Type != null && mse.Array.Type.IsArrayType);
 
-        var obj = etran.TrExpr(mse.Array); // TODO: save this value in a variable, if needed
-        Bpl.Expr fieldName = etran.GetArrayIndexFieldName(mse.tok, mse.Indices); // TODO: save this value in a variable, if needed
+        var obj = SaveInTemp(etran.TrExpr(mse.Array), rhs, "$obj", predef.RefType, builder, locals);
+        var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.tok, mse.Indices), rhs, "$index", predef.FieldName(mse.tok, predef.BoxType), builder, locals);
         builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
 
         Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, builder, locals, etran);

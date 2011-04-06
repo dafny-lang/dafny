@@ -48,7 +48,7 @@ class Glossary {
     var rs:= new ReaderStream;
     call rs.Open();
     var glossary := new Map<Word,seq<Word>>.Init();
-    var q:= new Queue<Word>.Init();
+    var q := new Queue<Word>.Init();
     
     while (true)
       invariant rs.Valid() && fresh(rs.footprint);

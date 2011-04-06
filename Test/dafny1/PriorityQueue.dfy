@@ -27,8 +27,7 @@ class PriorityQueue {
     ensures N == capacity;
   {
     N := capacity;
-    var arr := new int[N+1];
-    a := arr;
+    a := new int[N+1];
     n := 0;
     Repr := {this};
     Repr := Repr + {a};
@@ -143,8 +142,7 @@ class PriorityQueue_Alternative {
     ensures N == capacity;
   {
     N := capacity;
-    var arr := new int[N+1];
-    a := arr;
+    a := new int[N+1];
     n := 0;
     Repr := {this};
     Repr := Repr + {a};

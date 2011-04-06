@@ -12,7 +12,7 @@ for %%f in (Simple.dfy) do (
 )
 
 for %%f in (TypeTests.dfy SmallTests.dfy Definedness.dfy FunctionSpecifications.dfy
-            Array.dfy MultiDimArray.dfy NonGhostQuantifiers.dfy
+            Array.dfy MultiDimArray.dfy NonGhostQuantifiers.dfy AdvancedLHS.dfy
             Modules0.dfy Modules1.dfy BadFunction.dfy
             Termination.dfy Use.dfy DTypes.dfy
             TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy SplitExpr.dfy

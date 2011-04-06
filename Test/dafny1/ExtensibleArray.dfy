@@ -39,7 +39,7 @@ class ExtensibleArray<T> {
     ensures Valid() && fresh(Repr - {this});
     ensures Contents == [];
   {
-    var arr := new T[256];  elements := arr;
+    elements := new T[256];
     more := null;
     length := 0;
     M := 0;
@@ -90,15 +90,14 @@ class ExtensibleArray<T> {
       elements[length - M] := t;
     } else {
       if (more == null) {
-        var mr := new ExtensibleArray<array<T>>.Init();
-        more := mr;
-        Repr := Repr + {mr} + mr.Repr;
+        more := new ExtensibleArray<array<T>>.Init();
+        Repr := Repr + {more} + more.Repr;
       }
       // "elements" is full, so move it into "more" and allocate a new array
       call more.Append(elements);
       Repr := Repr + more.Repr;
       M := M + 256;
-      var arr := new T[256];  elements := arr;
+      elements := new T[256];
       Repr := Repr + {elements};
       elements[0] := t;
     }

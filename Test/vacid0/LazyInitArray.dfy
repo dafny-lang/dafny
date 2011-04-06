@@ -41,9 +41,9 @@ class LazyInitArray<T> {
     ensures |Contents| == N && Zero == zero;
     ensures (forall x :: x in Contents ==> x == zero);
   {
-    var aa := new T[N+1];  a := aa;
-    var ii := new int[N];  b := ii;
-    ii := new int[N];      c := ii;
+    a := new T[N+1];
+    b := new int[N];
+    c := new int[N];
     n := 0;
 
     // initialize ghost variable Contents to a sequence of length N containing only zero's,

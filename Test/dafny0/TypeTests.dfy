@@ -80,3 +80,12 @@ method InitCalls() {
   var d := new C.M(8);  // error: M has out parameters
   var e := new C.Caller();
 }
+
+// ---------------------
+
+method ArrayRangeAssignments(a: array<C>)
+  requires a != null && 10 <= a.Length;
+{
+  a[0..5] := new C;  // this is not allowed
+  havoc a[1..4];  // this is not allowed
+}

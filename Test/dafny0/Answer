@@ -81,7 +81,9 @@ TypeTests.dfy(69,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(72,6): Error: Duplicate local-variable name: y
 TypeTests.dfy(79,17): Error: member F in class C does not refer to a method
 TypeTests.dfy(80,17): Error: a method called as an initialization method must not have any result arguments
-16 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(89,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
+TypeTests.dfy(90,2): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
+18 resolution/type errors detected in TypeTests.dfy
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
@@ -417,6 +419,14 @@ NonGhostQuantifiers.dfy(94,10): Error: quantifiers in non-ghost contexts must be
 NonGhostQuantifiers.dfy(103,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
 NonGhostQuantifiers.dfy(120,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 8 resolution/type errors detected in NonGhostQuantifiers.dfy
+
+-------------------- AdvancedLHS.dfy --------------------
+AdvancedLHS.dfy(32,23): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Else
+
+Dafny program verifier finished with 7 verified, 1 error
 
 -------------------- Modules0.dfy --------------------
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
