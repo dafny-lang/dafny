@@ -8,7 +8,7 @@ class C {
     x := new C;
     x := new C.Init();
     havoc x;
-    x := choose(S);
+    x := choose S;
 
     // test evaluation order
     var c := x;

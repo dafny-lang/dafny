@@ -25,7 +25,7 @@ public class Parser {
 	const bool T = true;
 	const bool x = false;
 	const int minErrDist = 2;
-
+	
 	public Scanner/*!*/ scanner;
 	public Errors/*!*/  errors;
 
@@ -161,10 +161,10 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		if (errDist >= minErrDist) errors.SemErr(t, msg);
 		errDist = 0;
 	}
-
-	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
-	  Contract.Requires(tok != null);
-	  Contract.Requires(msg != null);
+	
+    public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
 	  errors.SemErr(tok, msg);
 	}
 
@@ -177,15 +177,15 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 			la = t;
 		}
 	}
-
+	
 	void Expect (int n) {
 		if (la.kind==n) Get(); else { SynErr(n); }
 	}
-
+	
 	bool StartOf (int s) {
 		return set[s, la.kind];
 	}
-
+	
 	void ExpectWeak (int n, int follow) {
 		if (la.kind == n) Get();
 		else {
@@ -209,7 +209,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		}
 	}
 
-
+	
 	void Dafny() {
 		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt;
 		Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
@@ -1423,9 +1423,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		} else if (la.kind == 52) {
 			Get();
 			x = t; 
-			Expect(30);
 			Expression(out e);
-			Expect(31);
 			e = new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e);
 			ee = new List<Expression>() { e };
 			
@@ -2107,13 +2105,13 @@ List<Expression/*!*/>/*!*/ decreases) {
 
 	public void Parse() {
 		la = new Token();
-		la.val = "";
+		la.val = "";		
 		Get();
 		Dafny();
 
-		Expect(0);
+    Expect(0);
 	}
-
+	
 	static readonly bool[,]/*!*/ set = {
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x},
 		{x,x,x,x, x,T,x,x, x,T,T,T, T,T,T,x, T,x,T,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x},
@@ -2142,20 +2140,18 @@ List<Expression/*!*/>/*!*/ decreases) {
 public class Errors {
 	public int count = 0;                                    // number of errors detected
 	public System.IO.TextWriter/*!*/ errorStream = Console.Out;   // error messages go to this stream
-	public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
-	public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
-
+  public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
+  public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
+  
 	public void SynErr(string filename, int line, int col, int n) {
-		SynErr(filename, line, col, GetSyntaxErrorString(n));
-	}
-
-	public virtual void SynErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
+    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  }
+	public virtual void SynErr(string filename, int line, int col, string msg) {
+	  Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
-	}
-
-	string GetSyntaxErrorString(int n) {
+  }
+  string GetSyntaxErrorString(int n) {
 		string s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -2310,7 +2306,7 @@ public class Errors {
 
 			default: s = "error " + n; break;
 		}
-		return s;
+    return s;
 	}
 
 	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {  // semantic errors
@@ -2318,9 +2314,8 @@ public class Errors {
 		Contract.Requires(msg != null);
 		SemErr(tok.filename, tok.line, tok.col, msg);
 	}
-
 	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
+	  Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
 	}

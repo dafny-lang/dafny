@@ -22,20 +22,20 @@ method FindCelebrity1<Person>(people: set<Person>, ghost c: Person) returns (r: 
   ensures r == c;
 {
   var Q := people;
-  var x := choose(Q);
+  var x := choose Q;
   while (Q != {x})
     //invariant Q <= people;  // inv1 in Rodin's Celebrity_1, but it's not needed here
     invariant IsCelebrity(c, Q);  // inv2
     invariant x in Q;
     decreases Q;
   {
-    var y := choose(Q - {x});
+    var y := choose Q - {x};
     if (Knows(x, y)) {
       Q := Q - {x};  // remove_1
     } else {
       Q := Q - {y};  assert x in Q;  // remove_2
     }
-    x := choose(Q);
+    x := choose Q;
   }
   r := x;
 }
@@ -44,7 +44,7 @@ method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: 
   requires IsCelebrity(c, people);
   ensures r == c;
 {
-  var b := choose(people);
+  var b := choose people;
   var R := people - {b};
   while (R != {})
     invariant R <= people;  // inv1
@@ -54,7 +54,7 @@ method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: 
 
     decreases R;
   {
-    var x := choose(R);
+    var x := choose R;
     if (Knows(x, b)) {
       R := R - {x};
     } else {

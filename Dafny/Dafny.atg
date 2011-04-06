@@ -810,7 +810,7 @@ AssignRhs<.out List<Expression> ee, out Type ty, out CallStmt initCall, Expressi
                                                                   receiverForInitCall, x.val, args); .)
     ]
   | "choose"                           (. x = t; .)
-    "(" Expression<out e> ")"          (. e = new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e);
+    Expression<out e>                  (. e = new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e);
                                           ee = new List<Expression>() { e };
                                        .)
   | Expression<out e>                  (. ee = new List<Expression>() { e }; .)

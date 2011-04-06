@@ -839,28 +839,19 @@ namespace Microsoft.Dafny {
           int opBindingStrength;
           switch (e.Op) {
             case UnaryExpr.Opcode.SetChoose:
-              op = "choose";  opBindingStrength = -1;  break;
+              op = "choose ";  opBindingStrength = 0;  break;
             case UnaryExpr.Opcode.Not:
               op = "!";  opBindingStrength = 0x60;  break;
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
           }
-          if (opBindingStrength == -1) {
-            // print as a function
-            wr.Write(op);
-            wr.Write("(");
-            PrintExpression(e.E);
-            wr.Write(")");
-          } else {
-            // print as an operator
-            bool parensNeeded = opBindingStrength < contextBindingStrength ||
-              (fragileContext && opBindingStrength == contextBindingStrength);
+          bool parensNeeded = opBindingStrength < contextBindingStrength ||
+            (fragileContext && opBindingStrength == contextBindingStrength);
 
-            if (parensNeeded) { wr.Write("("); }
-            wr.Write(op);
-            PrintExpr(e.E, opBindingStrength, false, -1);
-            if (parensNeeded) { wr.Write(")"); }
-          }
+          if (parensNeeded) { wr.Write("("); }
+          wr.Write(op);
+          PrintExpr(e.E, opBindingStrength, false, -1);
+          if (parensNeeded) { wr.Write(")"); }
         }
       
       } else if (expr is BinaryExpr) {
