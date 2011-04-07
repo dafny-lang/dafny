@@ -1,0 +1,45 @@
+﻿%{
+
+open Ast
+
+%}
+
+// The start token becomes a parser function in the compiled code:
+%start start
+
+// These are the terminal tokens of the grammar along with the types of
+// the data carried by each token:
+%token <System.Int32> INT32
+%token <System.Double> FLOAT
+%token PLUS MINUS ASTER	SLASH
+%token LPAREN RPAREN
+%token EOF
+
+// This is the type of the data produced by a successful reduction of the 'start'
+// symbol:
+%type < Ast.Equation > start
+
+%%
+
+// These are the rules of the grammar along with the F# code of the 
+// actions executed as rules are reduced.  In this case the actions 
+// produce data using F# data construction terms.
+start: Prog { Equation($1) }
+
+Prog:
+    | Expr EOF					{ $1 }
+
+Expr: 
+    | Expr PLUS  Term			{ Plus($1, $3)  }
+    | Expr MINUS Term			{ Minus($1, $3) }
+    | Term						{ Term($1)      }
+
+Term:
+    | Term ASTER Factor			{ Times($1, $3)  }
+    | Term SLASH Factor			{ Divide($1, $3) }
+    | Factor					{ Factor($1)     }
+    
+Factor:
+    | FLOAT						{ Float($1)  }
+    | INT32						{ Integer($1) }
+    | LPAREN Expr RPAREN		{ ParenEx($2) }
