@@ -2,6 +2,11 @@
 
 open Ast
 
+let rec MyFold ee acc =
+  match ee with
+    | [] -> acc
+    | x::rest -> BinaryExpr(30,"&&",x, MyFold rest acc)
+
 %}
 
 // The start token becomes a parser function in the compiled code:
@@ -41,9 +46,9 @@ TopLevelDecls:
     | TopLevelDecl TopLevelDecls  { $1 :: $2 }
 
 TopLevelDecl:
-    | CLASS ID TypeParams LCURLY Members RCURLY                       { Class($2, $3, $5) }
-    | MODEL ID TypeParams LCURLY ConcreteVars Frame Invariant RCURLY  { Model($2, $3, $5, $6, $7) }
-    | CODE ID TypeParams LCURLY RCURLY                                { Code($2, $3) }
+    | CLASS ID TypeParams LCURLY Members RCURLY       { Class($2, $3, $5) }
+    | MODEL ID TypeParams LCURLY FrameMembers RCURLY  { match $5 with (vv,fr,inv) -> Model($2, $3, vv, fr, inv) }
+    | CODE ID TypeParams LCURLY RCURLY                { Code($2, $3) }
 
 TypeParams:
     |                          { [] }
@@ -81,22 +86,16 @@ Member:
     | CONSTRUCTOR ID Signature Pre StmtList  { Constructor($2, $3, $4, $5) }
     | METHOD ID Signature Pre StmtList       { Method($2, $3, $4, $5) }
 
-ConcreteVars:
-    |                          { [] }
-    | VAR VarDecl ConcreteVars { $2 :: $3 }
-
-Frame:
-    |                           { [] }
-    | FRAME                     { [] }
-    | FRAME FramePartitionList  { $2 }
+FrameMembers:
+    |                                        { [], [], IdLiteral("true") }
+    | VAR VarDecl FrameMembers               { match $3 with (vv,fr,inv) -> $2 :: vv, fr, inv }
+    | FRAME FrameMembers                     { $2 }
+    | FRAME FramePartitionList FrameMembers  { match $3 with (vv,fr,inv) -> vv, List.append $2 fr, inv }
+    | INVARIANT ExprList FrameMembers        { match $3 with (vv,fr,inv) -> vv, fr, MyFold $2 inv }
 
 FramePartitionList:
     | FramePartition                     { $1 }
     | FramePartition FramePartitionList  { List.append $1 $2 }
-
-Invariant:
-    |                    { IdLiteral "true" }
-    | INVARIANT ExprList { List.fold (fun x y -> BinaryExpr(30,"&&",x,y)) (IdLiteral "true") $2 }
 
 VarDeclList:
     |                           { [] }
