@@ -16,7 +16,7 @@ type Expr =
   | Star
   | Dot of Expr * string
   | UnaryExpr of string * Expr
-  | BinaryExpr of (int * string) * Expr * Expr
+  | BinaryExpr of int * string * Expr * Expr
   | SelectExpr of Expr * Expr
   | UpdateExpr of Expr * Expr * Expr
   | SequenceExpr of Expr list

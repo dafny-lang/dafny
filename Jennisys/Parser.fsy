@@ -63,7 +63,7 @@ Signature:
 
 Pre:
     |                           { IdLiteral "true" }
-    | REQUIRES Expr Pre         { BinaryExpr((30,"&&"), $2, $3) }
+    | REQUIRES Expr Pre         { BinaryExpr(30,"&&", $2, $3) }
 
 StmtList:
     |                    { [] }
@@ -91,7 +91,7 @@ Frame:
 
 Invariant:
     |                    { IdLiteral "true" }
-    | INVARIANT ExprList { List.fold (fun x y -> BinaryExpr((30,"&&"),x,y)) (IdLiteral "true") $2 }
+    | INVARIANT ExprList { List.fold (fun x y -> BinaryExpr(30,"&&",x,y)) (IdLiteral "true") $2 }
 
 VarDeclList:
     |                           { [] }
@@ -112,38 +112,62 @@ ExprList:
     | Expr ExprList     { $1 :: $2 }
 
 Expr:
-  | INTEGER            { IntLiteral($1) }
-  | ID                 { IdLiteral($1) }
-  | STAR               { Star }
-  | Expr DOT ID        { Dot($1, $3) }
-  | UnaryOp Expr       { UnaryExpr($1, $2) }
-  | Expr BinaryOp Expr { BinaryExpr($2, $1, $3) }
-  | Expr LBRACKET Expr RBRACKET           { SelectExpr($1, $3) }
-  | Expr LBRACKET Expr GETS Expr RBRACKET { UpdateExpr($1, $3, $5) }
-  | LPAREN Expr RPAREN { $2 }
-  | LBRACKET ExprList RBRACKET            { SequenceExpr($2) }
-  | VERTBAR Expr VERTBAR                  { SeqLength($2) }
-  | FORALL VarDeclList COLONCOLON Expr    { ForallExpr($2, $4) }
+    | Expr10            { $1 }
 
-UnaryOp:  // unary operators have strength 90
-  | NOT      { "!" }
-  | MINUS    { "-" }
+Expr10:
+    | Expr20            { $1 }
+    | Expr10 IFF Expr20 { BinaryExpr(10,"<==>",$1,$3) }
 
-BinaryOp:
-  | STAR     { 60, "*" }
-  | DIV      { 60, "div" }
-  | MOD      { 60, "mod" }
-  | PLUS     { 50, "+" }
-  | MINUS    { 50, "-" }
-  | EQ       { 40, "=" }
-  | NEQ      { 40, "!=" }
-  | LESS     { 40, "<" }
-  | ATMOST   { 40, "<=" }
-  | ATLEAST  { 40, ">=" }
-  | GREATER  { 40, ">" }
-  | IN       { 40, "in" }
-  | NOTIN    { 40, "!in" }
-  | AND      { 30, "&&" }  // Note, this one also occurs above
-  | OR       { 30, "||" }
-  | IMPLIES  { 20, "==>" }
-  | IFF      { 10, "<==>" }
+Expr20:
+    | Expr30                { $1 }
+    | Expr30 IMPLIES Expr20 { BinaryExpr(20,"==>",$1,$3) }
+
+Expr30:
+    | Expr40               { $1 }
+    | Expr40 AND Expr30and { BinaryExpr(30,"&&",$1,$3) }
+    | Expr40 OR Expr30or   { BinaryExpr(30,"||",$1,$3) }
+Expr30and:
+    | Expr40               { $1 }
+    | Expr40 AND Expr30and { BinaryExpr(30,"&&",$1,$3) }
+Expr30or:
+    | Expr40               { $1 }
+    | Expr40 AND Expr30or  { BinaryExpr(30,"||",$1,$3) }
+
+Expr40:
+    | Expr50                { $1 }
+    | Expr50 EQ Expr50      { BinaryExpr(40,"=",$1,$3) }
+    | Expr50 NEQ Expr50     { BinaryExpr(40,"!=",$1,$3) }
+    | Expr50 LESS Expr50    { BinaryExpr(40,"<",$1,$3) }
+    | Expr50 ATMOST Expr50  { BinaryExpr(40,"<=",$1,$3) }
+    | Expr50 ATLEAST Expr50 { BinaryExpr(40,">=",$1,$3) }
+    | Expr50 GREATER Expr50 { BinaryExpr(40,">",$1,$3) }
+    | Expr50 IN Expr50      { BinaryExpr(40,"in",$1,$3) }
+    | Expr50 NOTIN Expr50   { BinaryExpr(40,"!in",$1,$3) }
+
+Expr50:
+    | Expr60               { $1 }
+    | Expr50 PLUS Expr60   { BinaryExpr(50,"+",$1,$3) }
+    | Expr50 MINUS Expr60  { BinaryExpr(50,"-",$1,$3) }
+
+Expr60:
+    | Expr90              { $1 }
+    | Expr60 STAR Expr90  { BinaryExpr(60,"*",$1,$3) }
+    | Expr60 DIV Expr90   { BinaryExpr(60,"div",$1,$3) }
+    | Expr60 MOD Expr90   { BinaryExpr(60,"mod",$1,$3) }
+
+Expr90:
+  | Expr100           { $1 }
+  | NOT Expr90        { UnaryExpr("!", $2) }
+  | MINUS Expr90      { UnaryExpr("-", $2) }
+
+Expr100:
+  | INTEGER                                  { IntLiteral($1) }
+  | ID                                       { IdLiteral($1) }
+  | STAR                                     { Star }
+  | Expr100 DOT ID                           { Dot($1, $3) }
+  | Expr100 LBRACKET Expr RBRACKET           { SelectExpr($1, $3) }
+  | Expr100 LBRACKET Expr GETS Expr RBRACKET { UpdateExpr($1, $3, $5) }
+  | LPAREN Expr RPAREN                       { $2 }
+  | LBRACKET ExprList RBRACKET               { SequenceExpr($2) }
+  | VERTBAR Expr VERTBAR                     { SeqLength($2) }
+  | FORALL VarDeclList COLONCOLON Expr       { ForallExpr($2, $4) }

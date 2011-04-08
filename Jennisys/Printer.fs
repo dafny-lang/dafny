@@ -25,7 +25,7 @@ let rec PrintExpr ctx expr =
   | Star -> printf "*"
   | Dot(e,id) -> PrintExpr 100 e ; printf ".%s" id
   | UnaryExpr(op,e) -> printf "%s" op ; PrintExpr 90 e
-  | BinaryExpr((strength,op),e0,e1) ->
+  | BinaryExpr(strength,op,e0,e1) ->
       let needParens = strength <= ctx
       if needParens then printf "(" else ()
       PrintExpr strength e0 ; printf " %s " op ; PrintExpr strength e1
@@ -55,7 +55,7 @@ let PrintSig signature =
 let rec ForeachConjunct f expr =
   match expr with
   | IdLiteral("true") -> ()
-  | BinaryExpr((_,"&&"),e0,e1) -> ForeachConjunct f e0 ; ForeachConjunct f e1
+  | BinaryExpr(_,"&&",e0,e1) -> ForeachConjunct f e0 ; ForeachConjunct f e1
   | _ -> f expr
 
 let rec Indent i =
