@@ -75,7 +75,7 @@ let PrintRoutine signature pre body =
   PrintSig signature
   printfn ""
   pre |> ForeachConjunct (fun e -> printf "    requires " ; PrintExpr 0 e ; printfn "")
-  PrintStmtList body 2
+  PrintStmtList body 4
 
 let PrintMember m =
   match m with

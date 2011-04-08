@@ -86,8 +86,13 @@ ConcreteVars:
     | VAR VarDecl ConcreteVars { $2 :: $3 }
 
 Frame:
-    |                    { [] }
-    | FRAME ExprList     { $2 }
+    |                           { [] }
+    | FRAME                     { [] }
+    | FRAME FramePartitionList  { $2 }
+
+FramePartitionList:
+    | FramePartition                     { $1 }
+    | FramePartition FramePartitionList  { List.append $1 $2 }
 
 Invariant:
     |                    { IdLiteral "true" }
@@ -163,11 +168,18 @@ Expr90:
 Expr100:
   | INTEGER                                  { IntLiteral($1) }
   | ID                                       { IdLiteral($1) }
-  | STAR                                     { Star }
   | Expr100 DOT ID                           { Dot($1, $3) }
-  | Expr100 LBRACKET Expr RBRACKET           { SelectExpr($1, $3) }
+  | Expr100 LBRACKET StarExpr RBRACKET       { SelectExpr($1, $3) }
   | Expr100 LBRACKET Expr GETS Expr RBRACKET { UpdateExpr($1, $3, $5) }
   | LPAREN Expr RPAREN                       { $2 }
   | LBRACKET ExprList RBRACKET               { SequenceExpr($2) }
   | VERTBAR Expr VERTBAR                     { SeqLength($2) }
   | FORALL VarDeclList COLONCOLON Expr       { ForallExpr($2, $4) }
+
+StarExpr:
+  | STAR                  { Star }
+  | Expr                  { $1 }
+
+FramePartition:
+  | Expr100                     { [$1] }
+  | Expr100 STAR FramePartition { $1 :: $3 }
