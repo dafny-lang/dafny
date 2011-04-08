@@ -9,37 +9,141 @@ open Ast
 
 // These are the terminal tokens of the grammar along with the types of
 // the data carried by each token:
-%token <System.Int32> INT32
-%token <System.Double> FLOAT
-%token PLUS MINUS ASTER	SLASH
-%token LPAREN RPAREN
+%token <string> ID
+%token <System.Numerics.BigInteger> INTEGER
+%token DOT
+%token NOT
+%token STAR DIV MOD
+%token PLUS MINUS
+%token EQ NEQ LESS ATMOST ATLEAST GREATER IN NOTIN
+%token AND OR
+%token IMPLIES
+%token IFF
+%token LPAREN RPAREN LBRACKET RBRACKET LCURLY RCURLY VERTBAR
+%token GETS COLON COLONCOLON COMMA
+%token CLASS MODEL CODE
+%token VAR CONSTRUCTOR METHOD FRAME INVARIANT RETURNS REQUIRES FORALL
 %token EOF
 
 // This is the type of the data produced by a successful reduction of the 'start'
 // symbol:
-%type < Ast.Equation > start
+%type < Ast.Program > start
 
 %%
 
 // These are the rules of the grammar along with the F# code of the 
 // actions executed as rules are reduced.  In this case the actions 
 // produce data using F# data construction terms.
-start: Prog { Equation($1) }
+start: TopLevelDecls EOF     { Program($1) }
 
-Prog:
-    | Expr EOF					{ $1 }
+TopLevelDecls:
+    |                             { [] }
+    | TopLevelDecl TopLevelDecls  { $1 :: $2 }
 
-Expr: 
-    | Expr PLUS  Term			{ Plus($1, $3)  }
-    | Expr MINUS Term			{ Minus($1, $3) }
-    | Term						{ Term($1)      }
+TopLevelDecl:
+    | CLASS ID TypeParams LCURLY Members RCURLY                       { Class($2, $3, $5) }
+    | MODEL ID TypeParams LCURLY ConcreteVars Frame Invariant RCURLY  { Model($2, $3, $5, $6, $7) }
+    | CODE ID TypeParams LCURLY RCURLY                                { Code($2, $3) }
 
-Term:
-    | Term ASTER Factor			{ Times($1, $3)  }
-    | Term SLASH Factor			{ Divide($1, $3) }
-    | Factor					{ Factor($1)     }
-    
-Factor:
-    | FLOAT						{ Float($1)  }
-    | INT32						{ Integer($1) }
-    | LPAREN Expr RPAREN		{ ParenEx($2) }
+TypeParams:
+    |                          { [] }
+    | LBRACKET IdList RBRACKET { $2 }
+
+IdList:
+    | ID            { [$1] }
+    | ID IdList     { $1 :: $2 }
+
+Members:
+    |                      { [] }
+    | Member Members       { $1 :: $2 }
+
+Signature:
+    | LPAREN VarDeclList RPAREN  { Sig($2, []) }
+    | LPAREN VarDeclList RPAREN RETURNS LPAREN VarDeclList RPAREN  { Sig($2, $6) }
+
+Pre:
+    |                           { IdLiteral "true" }
+    | REQUIRES Expr Pre         { BinaryExpr((30,"&&"), $2, $3) }
+
+StmtList:
+    |                    { [] }
+    | Stmt StmtList      { $1 :: $2 }
+
+Stmt:
+    | BlockStmt          { $1 }
+    | Expr GETS Expr     { Assign($1, $3) }
+
+BlockStmt:
+    | LCURLY StmtList RCURLY   { Block $2 }
+
+Member:
+    | VAR VarDecl                            { Field($2) }
+    | CONSTRUCTOR ID Signature Pre StmtList  { Constructor($2, $3, $4, $5) }
+    | METHOD ID Signature Pre StmtList       { Method($2, $3, $4, $5) }
+
+ConcreteVars:
+    |                          { [] }
+    | VAR VarDecl ConcreteVars { $2 :: $3 }
+
+Frame:
+    |                    { [] }
+    | FRAME ExprList     { $2 }
+
+Invariant:
+    |                    { IdLiteral "true" }
+    | INVARIANT ExprList { List.fold (fun x y -> BinaryExpr((30,"&&"),x,y)) (IdLiteral "true") $2 }
+
+VarDeclList:
+    |                           { [] }
+    | VarDecl                   { [$1] }
+    | VarDecl COMMA VarDeclList { $1 :: $3 }
+
+VarDecl:
+    | ID               { Var($1,None) }
+    | ID COLON Type    { Var($1,Some($3)) }
+
+Type:
+    | ID                         { NamedType($1) }
+    | ID LBRACKET Type RBRACKET  { InstantiatedType($1, $3) }
+
+ExprList:
+    |                   { [] }
+    | Expr              { [$1] }
+    | Expr ExprList     { $1 :: $2 }
+
+Expr:
+  | INTEGER            { IntLiteral($1) }
+  | ID                 { IdLiteral($1) }
+  | STAR               { Star }
+  | Expr DOT ID        { Dot($1, $3) }
+  | UnaryOp Expr       { UnaryExpr($1, $2) }
+  | Expr BinaryOp Expr { BinaryExpr($2, $1, $3) }
+  | Expr LBRACKET Expr RBRACKET           { SelectExpr($1, $3) }
+  | Expr LBRACKET Expr GETS Expr RBRACKET { UpdateExpr($1, $3, $5) }
+  | LPAREN Expr RPAREN { $2 }
+  | LBRACKET ExprList RBRACKET            { SequenceExpr($2) }
+  | VERTBAR Expr VERTBAR                  { SeqLength($2) }
+  | FORALL VarDeclList COLONCOLON Expr    { ForallExpr($2, $4) }
+
+UnaryOp:  // unary operators have strength 90
+  | NOT      { "!" }
+  | MINUS    { "-" }
+
+BinaryOp:
+  | STAR     { 60, "*" }
+  | DIV      { 60, "div" }
+  | MOD      { 60, "mod" }
+  | PLUS     { 50, "+" }
+  | MINUS    { 50, "-" }
+  | EQ       { 40, "=" }
+  | NEQ      { 40, "!=" }
+  | LESS     { 40, "<" }
+  | ATMOST   { 40, "<=" }
+  | ATLEAST  { 40, ">=" }
+  | GREATER  { 40, ">" }
+  | IN       { 40, "in" }
+  | NOTIN    { 40, "!in" }
+  | AND      { 30, "&&" }  // Note, this one also occurs above
+  | OR       { 30, "||" }
+  | IMPLIES  { 20, "==>" }
+  | IFF      { 10, "<==>" }

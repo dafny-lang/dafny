@@ -10,27 +10,64 @@ let lexeme lexbuf =
 
 // These are some regular expression definitions
 let digit = ['0'-'9']
+let nondigit = [ 'a'-'z' 'A'-'Z' '_' ]
+let idchar = (nondigit | digit)
 let whitespace = [' ' '\t' ]
 let newline = ('\n' | '\r' '\n')
 
 rule tokenize = parse
-| whitespace	{ tokenize lexbuf }
-| newline       { tokenize lexbuf }
+| whitespace  { tokenize lexbuf }
+| newline     { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf }
+// TODO:  | "//"[-newline]* { tokenize lexbuf }
 // keywords
 | "class"    { CLASS }
 | "model"    { MODEL }
 | "code"     { CODE }
+| "var"          { VAR }
+| "constructor"  { CONSTRUCTOR }
+| "method"       { METHOD }
+| "frame"        { FRAME }
+| "invariant"    { INVARIANT }
+| "returns"      { RETURNS }
+| "requires"     { REQUIRES }
+| "forall"       { FORALL }
 // Operators
-| "+"			{ PLUS }
-| "-"			{ MINUS }
-| "*"			{ ASTER }
-| "/"			{ SLASH }
+| "."      { DOT }
+| "+"      { PLUS }
+| "-"      { MINUS }
+| "*"      { STAR }
+| "div"    { DIV }
+| "mod"    { MOD }
+| "&&"     { AND }
+| "||"     { OR }
+| "!"      { NOT }
+| "==>"    { IMPLIES }
+| "<==>"   { IFF }
+| "<"      { LESS }
+| "<="     { ATMOST }
+| "="      { EQ }
+| "!="     { NEQ }
+| ">="     { ATLEAST }
+| ">"      { GREATER }
+| "in"     { IN }
+| "!in"    { NOTIN }
 // Misc
-| "("			{ LPAREN }
-| ")"			{ RPAREN }
+| ":="     { GETS }
+| "("      { LPAREN }
+| ")"      { RPAREN }
+| "["      { LBRACKET }
+| "]"      { RBRACKET }
+| "{"      { LCURLY }
+| "}"      { RCURLY }
+| "|"      { VERTBAR }
+| ":"      { COLON }
+| "::"     { COLONCOLON }
+| ","      { COMMA }
 // Numberic constants
-| ['-']?digit+									{ INT32 (Int32.Parse(lexeme lexbuf)) }
-| ['-']?digit+('.'digit+)?(['e''E']digit+)?		{ FLOAT (Double.Parse(lexeme lexbuf)) }
+| digit+        { INTEGER (System.Numerics.BigInteger.Parse(lexeme lexbuf)) }
+// identifiers
+| idchar+       { ID (LexBuffer<char>.LexemeString lexbuf) }
 // EOF
 | eof   { EOF }
+| _ { printfn "Unrecognized input character: %s" (lexeme lexbuf) ; EOF }
 

@@ -8,7 +8,7 @@
     <ProjectGuid>{f2ff4b3a-2fe8-474a-88df-6950f7d78908}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>Language</RootNamespace>
-    <AssemblyName>Language</AssemblyName>
+    <AssemblyName>Jennisys</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <Name>Language</Name>
@@ -56,6 +56,7 @@
     <FsLex Include="Lexer.fsl">
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>
+    <Compile Include="Printer.fs" />
     <Compile Include="Jennisys.fs" />
   </ItemGroup>
   <ItemGroup>
@@ -66,6 +67,7 @@
     <Reference Include="FSharp.Core" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

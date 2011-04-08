@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Jennisys", "Jennisys.fsproj", "{F2FF4B3A-2FE8-474A-88DF-6950F7D78908}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Jennisys", "Jennisys\Jennisys.fsproj", "{F2FF4B3A-2FE8-474A-88DF-6950F7D78908}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
