@@ -32,14 +32,14 @@ let rec MyFold ee acc =
 
 // This is the type of the data produced by a successful reduction of the 'start'
 // symbol:
-%type < Ast.Program > start
+%type < Ast.SyntacticProgram > start
 
 %%
 
 // These are the rules of the grammar along with the F# code of the 
 // actions executed as rules are reduced.  In this case the actions 
 // produce data using F# data construction terms.
-start: TopLevelDecls EOF     { Program($1) }
+start: TopLevelDecls EOF     { SProgram($1) }
 
 TopLevelDecls:
     |                             { [] }

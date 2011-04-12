@@ -40,5 +40,11 @@ type TopLevelDecl =
   | Model of string * string list * VarDecl list * Expr list * Expr
   | Code of string * string list
 
+type SyntacticProgram =
+  | SProgram of TopLevelDecl list
+
+type Component =
+  | Component of (*class*)TopLevelDecl * (*model*)TopLevelDecl * (*code*)TopLevelDecl
+
 type Program =
-  | Program of TopLevelDecl list
+  | Program of Component list
