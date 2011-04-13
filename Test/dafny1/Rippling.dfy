@@ -370,7 +370,12 @@ ghost method P19()
 ghost method P20()
   ensures (forall xs :: len(sort(xs)) == len(xs));
 {
-  assume false;  // Dafny is not able to verify it automatically
+  // proving this theorem requires an additional lemma:
+  assert (forall k, ks :: len(ins(k, ks)) == len(#List.Cons(k, ks)));
+  // ...and one manually introduced case study:
+  assert (forall ys ::
+           sort(ys) == #List.Nil ||
+           (exists z, zs :: sort(ys) == #List.Cons(z, zs)));
 }
 
 ghost method P21()
@@ -510,7 +515,8 @@ ghost method P46()
 ghost method P47()
   ensures (forall a :: height(mirror(a)) == height(a));
 {
-  assume false;  // Dafny is not able to verify it automatically
+  // proving this theorem requires an additional lemma:
+  assert (forall x,y :: max(x,y) == max(y,x));
 }
 
 // ...
@@ -518,17 +524,33 @@ ghost method P47()
 ghost method P54()
   ensures (forall m, n :: minus(add(m, n), n) == m);
 {
-  assume false;  // Dafny is not able to verify it automatically
+  // the proof of this theorem follows from two lemmas:
+  assert (forall m, n :: minus(add(n, m), n) == m);
+  assert (forall m, n :: add(m, n) == add(n, m));
 }
 
 ghost method P65()
   ensures (forall i, m :: less(i, #Nat.Suc(add(m, i))) == #Bool.True);
 {
-  assume false;  // Dafny is not able to verify it automatically
+  if (*) {
+    // the proof of this theorem follows from two lemmas:
+    assert (forall i, m :: less(i, #Nat.Suc(add(i, m))) == #Bool.True);
+    assert (forall m, n :: add(m, n) == add(n, m));
+  } else {
+    // a different way to prove it uses the following lemma:
+    assert (forall x,y :: add(x, #Nat.Suc(y)) == #Nat.Suc(add(x,y)));
+  }
 }
 
 ghost method P67()
   ensures (forall m, n :: leq(n, add(m, n)) == #Bool.True);
 {
-  assume false;  // Dafny is not able to verify it automatically
+  if (*) {
+    // the proof of this theorem follows from two lemmas:
+    assert (forall m, n :: leq(n, add(n, m)) == #Bool.True);
+    assert (forall m, n :: add(m, n) == add(n, m));
+  } else {
+    // a different way to prove it uses the following lemma:
+    assert (forall x,y :: add(x, #Nat.Suc(y)) == #Nat.Suc(add(x,y)));
+  }
 }
