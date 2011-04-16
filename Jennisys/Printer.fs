@@ -110,4 +110,4 @@ let PrintDecl d =
 
 let Print prog =
   match prog with
-  | Program(decls) -> List.iter PrintDecl decls
+  | SProgram(decls) -> List.iter PrintDecl decls

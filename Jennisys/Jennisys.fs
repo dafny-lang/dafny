@@ -11,11 +11,13 @@ open Ast
 open Lexer
 open Parser
 open Printer
+open TypeChecker
+open Analyzer
 
 
-let readAndProcess tracing (filename: string) =
+let readAndProcess tracing analyzing (filename: string) =
     try
-        printfn "Jennisys, Copyright (c) 2011, Microsoft."
+        printfn "// Jennisys, Copyright (c) 2011, Microsoft."
         // lex
         let f = if filename = null then Console.In else new StreamReader(filename) :> TextReader
         let lexbuf = LexBuffer<char>.FromTextReader(f)
@@ -25,12 +27,19 @@ let readAndProcess tracing (filename: string) =
                            pos_lnum=1 }
         try
             // parse
-            let prog = Parser.start Lexer.tokenize lexbuf
+            let sprog = Parser.start Lexer.tokenize lexbuf
             // print the given Jennisys program
             if tracing then
                 printfn "---------- Given Jennisys program ----------"
-                Print prog
+                Print sprog
             else ()
+            match TypeCheck sprog with
+              | None -> ()  // errors have already been reported
+              | Some(prog) ->
+                  if analyzing then
+                    // output a Dafny program with the constraints to be solved
+                    Analyze prog
+                  else ()
             // that's it
             if tracing then printfn "----------" else ()
         with
@@ -42,14 +51,14 @@ let readAndProcess tracing (filename: string) =
      | ex ->
         printfn "Unhandled Exception: %s" ex.Message
 
-let rec start n (args: string []) tracing filename =
+let rec start n (args: string []) tracing analyzing filename =
   if n < args.Length then
     let arg = args.[n]
     if arg = "/break" then ignore (System.Diagnostics.Debugger.Launch()) else ()
     let filename = if arg.StartsWith "/" then filename else arg
-    start (n+1) args (tracing || arg = "/trace") filename
+    start (n+1) args (tracing || arg = "/trace") (analyzing && arg <> "/noAnalysis") filename
   else
-    readAndProcess tracing filename
+    readAndProcess tracing analyzing filename
 
 let args = Environment.GetCommandLineArgs()
-start 1 args false null
+start 1 args false true null

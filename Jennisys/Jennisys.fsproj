@@ -57,6 +57,8 @@
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>
     <Compile Include="Printer.fs" />
+    <Compile Include="TypeChecker.fs" />
+    <Compile Include="Analyzer.fs" />
     <Compile Include="Jennisys.fs" />
   </ItemGroup>
   <ItemGroup>
