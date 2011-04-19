@@ -22,7 +22,7 @@ namespace Demo
           "call", "if", "then", "else", "while", "invariant",
           "break", "label", "return", "foreach", "havoc", "print", "use",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
-          "int", "bool", "false", "true", "null",
+          "bool", "nat", "int", "false", "true", "null",
           "function", "free",
           "in", "forall", "exists",
           "seq", "set", "array", "array2", "array3",
@@ -317,8 +317,9 @@ namespace Demo
           | "modifies"
           | "reads"
           | "decreases"
-          | "int"
           | "bool"
+          | "nat"
+          | "int"
           | "false"
           | "true"
           | "null"
@@ -381,7 +382,7 @@ namespace Demo
           ;
 
         typeDecl.Rule
-          = (ToTerm("int") | "bool" | ident | "seq" | "set" | "array") + (("<" + MakePlusRule(typeDecl, ToTerm(","), typeDecl) + ">") | Empty)
+          = (ToTerm("int") | "nat" | "bool" | ident | "seq" | "set" | "array") + (("<" + MakePlusRule(typeDecl, ToTerm(","), typeDecl) + ">") | Empty)
           | ToTerm("token") + "<" + (typeDecl + ".") + ident + ">"
           ;
 

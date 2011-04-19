@@ -65,6 +65,7 @@ class C {
 Dafny program verifier finished with 0 verified, 0 errors
 
 -------------------- TypeTests.dfy --------------------
+TypeTests.dfy(95,9): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, got D)
 TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
@@ -83,7 +84,52 @@ TypeTests.dfy(79,17): Error: member F in class C does not refer to a method
 TypeTests.dfy(80,17): Error: a method called as an initialization method must not have any result arguments
 TypeTests.dfy(89,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
 TypeTests.dfy(90,2): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
-18 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(96,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(97,6): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(98,6): Error: sorry, cannot instantiate 'array' type with a subrange type
+22 resolution/type errors detected in TypeTests.dfy
+
+-------------------- NatTypes.dfy --------------------
+NatTypes.dfy(7,10): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+NatTypes.dfy(31,5): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    NatTypes.dfy(19,3): anon10_LoopHead
+    (0,0): anon10_LoopBody
+    NatTypes.dfy(19,3): anon11_Else
+    (0,0): anon3
+    (0,0): anon12_Then
+    (0,0): anon9
+NatTypes.dfy(38,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+NatTypes.dfy(40,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+NatTypes.dfy(54,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+NatTypes.dfy(71,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Then
+NatTypes.dfy(89,9): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+NatTypes.dfy(104,45): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+
+Dafny program verifier finished with 12 verified, 8 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

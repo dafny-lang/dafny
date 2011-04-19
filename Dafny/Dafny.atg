@@ -516,6 +516,7 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
      List<Type/*!*/>/*!*/ gt;
   .)
   ( "bool"                          (. tok = t; .)
+  | "nat"                           (. tok = t;  ty = new NatType(); .)
   | "int"                           (. tok = t;  ty = new IntType(); .)
   | "set"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {

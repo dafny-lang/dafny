@@ -89,3 +89,12 @@ method ArrayRangeAssignments(a: array<C>)
   a[0..5] := new C;  // this is not allowed
   havoc a[1..4];  // this is not allowed
 }
+
+// --------------------- tests of restrictions on subranges (nat)
+
+method K(s: set<nat>) {  // error: not allowed to instantiate 'set' with 'nat'
+  var d: MutuallyRecursiveDataType<nat>;  // error: not allowed to instantiate with 'nat'
+  var a := new nat[100];  // error: not allowed the type array<nat>
+  var b := new nat[100,200];  // error: not allowed the type array2<nat>
+}
+

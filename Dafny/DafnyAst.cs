@@ -135,6 +135,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool IsSubrangeType {
+      get { return this is NatType; }
+    }
+
     public bool IsRefType {
       get {
         if (this is ObjectType) {
@@ -197,7 +201,16 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ObjectType : BasicType {
+  public class NatType : IntType
+  {
+    [Pure]
+    public override string ToString() {
+      return "nat";
+    }
+  }
+
+  public class ObjectType : BasicType
+  {
     [Pure]
     public override string ToString() {
       return "object";
@@ -218,9 +231,8 @@ namespace Microsoft.Dafny {
   }
 
   public class SetType : CollectionType {
-    public SetType(Type arg) :base(arg){
+    public SetType(Type arg) : base(arg) {
       Contract.Requires(arg != null);
-
     }
     [Pure]
     public override string ToString() {
@@ -231,7 +243,7 @@ namespace Microsoft.Dafny {
   }
 
   public class SeqType : CollectionType {
-    public SeqType(Type arg):base(arg) {
+    public SeqType(Type arg) : base(arg) {
       Contract.Requires(arg != null);
 
     }

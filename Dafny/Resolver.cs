@@ -281,7 +281,7 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          ResolveType(((Field)member).Type);
+          ResolveType(member.tok, ((Field)member).Type);
           
         } else if (member is Function) {
           Function f = (Function)member;
@@ -581,9 +581,9 @@ namespace Microsoft.Dafny {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.Type);
+        ResolveType(p.tok, p.Type);
       }
-      ResolveType(f.ResultType);
+      ResolveType(f.tok, f.ResultType);
       scope.PopMarker();
     }
 
@@ -679,14 +679,14 @@ namespace Microsoft.Dafny {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.Type);
+        ResolveType(p.tok, p.Type);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.Type);
+        ResolveType(p.tok, p.Type);
       }
       scope.PopMarker();
     }
@@ -756,21 +756,29 @@ namespace Microsoft.Dafny {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.Type);
+        ResolveType(p.tok, p.Type);
       }
       scope.PopMarker();
     }
 
-    public void ResolveType(Type type) {
+    public void ResolveType(IToken tok, Type type) {
       Contract.Requires(type != null);
       if (type is BasicType) {
         // nothing to resolve
       } else if (type is CollectionType) {
-        ResolveType(((CollectionType)type).Arg);
+        var t = (CollectionType)type;
+        var argType = t.Arg;
+        ResolveType(tok, argType);
+        if (argType.IsSubrangeType) {
+          Error(tok, "sorry, cannot instantiate collection type with a subrange type");
+        }
       } else if (type is UserDefinedType) {
         UserDefinedType t = (UserDefinedType)type;
         foreach (Type tt in t.TypeArgs) {
-          ResolveType(tt);
+          ResolveType(t.tok, tt);
+          if (tt.IsSubrangeType) {
+            Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
+          }
         }
         TypeParameter tp = allTypeParameters.Find(t.Name);
         if (tp != null) {
@@ -793,7 +801,7 @@ namespace Microsoft.Dafny {
       } else if (type is TypeProxy) {
         TypeProxy t = (TypeProxy)type;
         if (t.T != null) {
-          ResolveType(t.T);
+          ResolveType(tok, t.T);
         }
         
       } else {
@@ -965,8 +973,12 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected proxy type
       }
       
-      // do the merge
-      proxy.T = t;
+      // do the merge, but never infer a subrange type
+      if (t is NatType) {
+        proxy.T = Type.Int;
+      } else {
+        proxy.T = t;
+      }
       return true;
     }
     
@@ -1241,7 +1253,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDecl) {
         VarDecl s = (VarDecl)stmt;
         if (s.OptionalType != null) {
-          ResolveType(s.OptionalType);
+          ResolveType(stmt.Tok, s.OptionalType);
           s.type = s.OptionalType;
         }
         if (s.Rhs != null) {
@@ -1343,7 +1355,7 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
         Contract.Assert(b);  // since we just pushed a marker, we expect the Push to succeed
-        ResolveType(s.BoundVar.Type);
+        ResolveType(s.BoundVar.tok, s.BoundVar.Type);
         int prevErrorCount = ErrorCount;
         
         ResolveExpression(s.Range, true, true);
@@ -1437,7 +1449,7 @@ namespace Microsoft.Dafny {
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.Type);
+            ResolveType(v.tok, v.Type);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -1609,7 +1621,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(method != null);
       Contract.Ensures(Contract.Result<Type>() != null);
 
-      ResolveType(rr.EType);
+      ResolveType(stmt.Tok, rr.EType);
       if (rr.ArrayDimensions == null) {
         if (!rr.EType.IsRefType) {
           Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
@@ -1619,6 +1631,9 @@ namespace Microsoft.Dafny {
         rr.Type = rr.EType;
       } else {
         int i = 0;
+        if (rr.EType.IsSubrangeType) {
+          Error(stmt, "sorry, cannot instantiate 'array' type with a subrange type");
+        }
         foreach (Expression dim in rr.ArrayDimensions) {
           Contract.Assert(dim != null);
           ResolveExpression(dim, true, specContext);
@@ -1807,7 +1822,7 @@ namespace Microsoft.Dafny {
             subst.Add(dt.TypeArgs[i], t);
           }
           expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
-          ResolveType(expr.Type);
+          ResolveType(expr.tok, expr.Type);
           
           DatatypeCtor ctor;
           if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
@@ -2196,7 +2211,7 @@ namespace Microsoft.Dafny {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.Type);
+          ResolveType(v.tok, v.Type);
         }
         ResolveExpression(e.Body, twoState, specContext);
         Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
@@ -2304,7 +2319,7 @@ namespace Microsoft.Dafny {
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.Type);
+            ResolveType(v.tok, v.Type);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -2360,7 +2375,7 @@ namespace Microsoft.Dafny {
           bounds.Add(new QuantifierExpr.BoolBoundedPool());
         } else {
           // Go through the conjuncts of the range expression look for bounds.
-          Expression lowerBound = null;
+          Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
           foreach (var conjunct in NormalizedConjuncts(e.Body, e is ExistsExpr)) {
             var c = conjunct as BinaryExpr;
@@ -2388,7 +2403,7 @@ namespace Microsoft.Dafny {
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.EqCommon:
-                if (bv.Type == Type.Int) {
+                if (bv.Type is IntType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
                   bounds.Add(new QuantifierExpr.IntBoundedPool(otherOperand, Plus(otherOperand, 1)));
                   goto CHECK_NEXT_BOUND_VARIABLE;
