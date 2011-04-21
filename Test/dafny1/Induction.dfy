@@ -49,6 +49,13 @@ class IntegerInduction {
     }
   }
 
+  ghost method DoItAllInOneGo()
+    ensures (forall n :: 0 <= n ==>
+                SumOfCubes(n) == Gauss(n) * Gauss(n) &&
+                2 * Gauss(n) == n*(n+1));
+  {
+  }
+
   // Here is another proof.  It makes use of Dafny's induction heuristics to
   // prove the lemma.
 
@@ -57,7 +64,7 @@ class IntegerInduction {
     ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
   {
     if (n != 0) {
-      call Theorem0(n-1);
+      call Theorem2(n-1);
 
       assert (forall m :: 0 <= m ==> 2 * Gauss(m) == m*(m+1));
     }
@@ -91,7 +98,8 @@ class IntegerInduction {
   // Finally, with the postcondition of GaussWithPost, one can prove the entire theorem by induction
 
   ghost method Theorem4()
-    ensures (forall n :: 0 <= n ==> SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
+    ensures (forall n :: 0 <= n ==>
+        SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n));
   {
     // look ma, no hints!
   }
@@ -148,4 +156,20 @@ class DatatypeInduction<T> {
   }
 
   // see also Test/dafny0/DTypes.dfy for more variations of this example
+}
+
+// ----------------------- Induction and case splits -----------------
+// This is a simple example where the induction hypothesis and the
+// case splits are decoupled.
+
+datatype D = Nothing | Something(D);
+
+function FooD(n: nat, d: D): int
+  ensures 10 <= FooD(n, d);
+{
+  match d
+  case Nothing =>
+    if n == 0 then 10 else FooD(n-1, #D.Something(d))
+  case Something(next) =>
+    if n < 100 then n + 12 else FooD(n-13, next)
 }

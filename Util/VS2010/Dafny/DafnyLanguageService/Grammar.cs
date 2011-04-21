@@ -178,6 +178,7 @@ namespace Demo
                     | "=" | "+=" | "-="
                     | "."
                     | "==>" | "<==>" | "<<"
+                    | "="  // this is for datatype declarations, not an operator
                     ;
 
         LUnOp.Rule = ToTerm("-") | "~" | "!";
@@ -349,6 +350,7 @@ namespace Demo
           | ","
           | ":"
           | ";"
+          | "="  // this is for datatype declarations, not an operator
           | "."
           | "`"
           | "=="
@@ -435,20 +437,7 @@ namespace Demo
         #endregion
 
         #region 5. Operators precedence
-        RegisterOperators(1, "<==>");
-        RegisterOperators(2, "+", "-");
-        RegisterOperators(3, "*", "/", "%", "!!");
-        RegisterOperators(4, Associativity.Right, "^");
-        RegisterOperators(5, "||");
-        RegisterOperators(6, "&&");
-        RegisterOperators(7, "==", "!=", ">", "<", ">=", "<=");
-        RegisterOperators(8, "in");
-        RegisterOperators(9, "-", "!", "++", "--");
-        RegisterOperators(10, "==>");
-        RegisterOperators(11, ".");
-
-        //RegisterOperators(10, Associativity.Right, ".",",", ")", "(", "]", "[", "{", "}");
-        //RegisterOperators(11, Associativity.Right, "else");
+        // not used
         #endregion
 
         #region 6. Punctuation symbols

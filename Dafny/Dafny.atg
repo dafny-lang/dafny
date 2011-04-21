@@ -278,19 +278,26 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
-     IToken bodyStart;
+     IToken bodyStart = Token.NoToken;  // dummy assignment
   .)
   "datatype"
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  "{"                                      (. bodyStart = t; .)
-  { DatatypeMemberDecl<ctors>
-  }
-  "}"                                      (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
-                                              dt.BodyStartTok = bodyStart;
-                                              dt.BodyEndTok = t;
-                                           .)
+  (
+    "{"                                      (. bodyStart = t; .)
+    { DatatypeMemberDecl<ctors> ";" }
+    "}"
+  | 
+    "="                                      (. bodyStart = t; .)
+    DatatypeMemberDecl<ctors>
+    { "|" DatatypeMemberDecl<ctors> }
+    ";"
+  )
+  (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+     dt.BodyStartTok = bodyStart;
+     dt.BodyEndTok = t;
+  .)
   .
 
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
@@ -308,7 +315,6 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   (. parseVarScope.PopMarker();
      ctors.Add(new DatatypeCtor(id, id.val, typeArgs, formals, attrs));
   .)
-  ";"
   .
 
 FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
