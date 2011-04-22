@@ -471,7 +471,7 @@ namespace Microsoft.Dafny {
           wr.Write(" := ");
         }
         if (!(s.Receiver is ThisExpr)) {
-          PrintExpr(s.Receiver, 0x70, false, -1);
+          PrintExpr(s.Receiver, 0x70, false, false, -1);
           wr.Write(".");
         }
         wr.Write("{0}(", s.MethodName);
@@ -666,7 +666,7 @@ namespace Microsoft.Dafny {
     
     public void PrintExpression(Expression expr) {
       Contract.Requires(expr != null);
-      PrintExpr(expr, 0, false, -1);
+      PrintExpr(expr, 0, false, true, -1);
     }
     
     /// <summary>
@@ -674,17 +674,17 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void PrintExpression(Expression expr, int indent) {
       Contract.Requires(expr != null);
-      PrintExpr(expr, 0, false, indent);
+      PrintExpr(expr, 0, false, true, indent);
     }
     
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, int indent)
+    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, int indent)
     {
-      Contract.Requires( -1 <= indent);
-    
+      Contract.Requires(-1 <= indent);
       Contract.Requires(expr != null);
+
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
@@ -726,7 +726,7 @@ namespace Microsoft.Dafny {
         
         if (parensNeeded) { wr.Write("("); }
         if (!(e.Obj is ImplicitThisExpr)) {
-          PrintExpr(e.Obj, opBindingStrength, false, -1);
+          PrintExpr(e.Obj, opBindingStrength, false, false, -1);
           wr.Write(".");
         }
         wr.Write(e.FieldName);
@@ -740,7 +740,7 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
         
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 0x00, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, 0x00, false, false, indent);  // BOGUS: fix me
         wr.Write("[");
         if (e.SelectOne) {
           Contract.Assert( e.E0 != null);
@@ -765,7 +765,7 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Array, 0x00, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Array, 0x00, false, false, indent);  // BOGUS: fix me
         string prefix = "[";
         foreach (Expression idx in e.Indices) {
           Contract.Assert(idx != null);
@@ -784,7 +784,7 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
         
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 00, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, 00, false, false, indent);  // BOGUS: fix me
         wr.Write("[");
         PrintExpression(e.Index);
         wr.Write(" := ");
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny {
         
         if (parensNeeded) { wr.Write("("); }
         if (!(e.Receiver is ThisExpr)) {
-          PrintExpr(e.Receiver, opBindingStrength, false, -1);
+          PrintExpr(e.Receiver, opBindingStrength, false, false, -1);
           wr.Write(".");
         }
         wr.Write(e.Name);
@@ -850,7 +850,7 @@ namespace Microsoft.Dafny {
 
           if (parensNeeded) { wr.Write("("); }
           wr.Write(op);
-          PrintExpr(e.E, opBindingStrength, false, -1);
+          PrintExpr(e.E, opBindingStrength, false, parensNeeded || isRightmost, -1);
           if (parensNeeded) { wr.Write(")"); }
         }
       
@@ -900,35 +900,38 @@ namespace Microsoft.Dafny {
         string op = BinaryExpr.OpcodeString(e.Op);
         if (parensNeeded) { wr.Write("("); }
         if (0 <= indent && e.Op == BinaryExpr.Opcode.And) {
-          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, indent);
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, indent);
           wr.WriteLine(" {0}", op);
           Indent(indent);
-          PrintExpr(e.E1, opBindingStrength, fragileRightContext, indent);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, indent);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Imp) {
-          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, indent);
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, indent);
           wr.WriteLine(" {0}", op);
           int ind = indent + IndentAmount;
           Indent(ind);
-          PrintExpr(e.E1, opBindingStrength, fragileRightContext, ind);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, ind);
         } else {
-          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, -1);
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, -1);
           wr.Write(" {0} ", op);
-          PrintExpr(e.E1, opBindingStrength, fragileRightContext, -1);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
         }
         if (parensNeeded) { wr.Write(")"); }
       
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
-        wr.Write(e is ForallExpr ? "(forall " : "(exists ");
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write(e is ForallExpr ? "forall " : "exists ");
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
           wr.Write("{0}{1}", sep, bv.Name);
           sep = ", ";
           PrintType(": ", bv.Type);
         }
-        wr.Write(" :: ");
+        wr.Write(" ");
         PrintAttributes(e.Attributes);
         PrintTriggers(e.Trigs);
+        wr.Write(":: ");
         if (0 <= indent) {
           int ind = indent + IndentAmount;
           wr.WriteLine();
@@ -937,25 +940,21 @@ namespace Microsoft.Dafny {
         } else {
           PrintExpression(e.Body);
         }
-        wr.Write(")");
+        if (parensNeeded) { wr.Write(")"); }
         
       } else if (expr is WildcardExpr) {
         wr.Write("*");
         
       } else if (expr is ITEExpr) {
         ITEExpr ite = (ITEExpr)expr;
-        // determine if parens are needed
-        int opBindingStrength = 0x00;
-        bool parensNeeded = opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
-        
+        bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("if ");
         PrintExpression(ite.Test);
         wr.Write(" then ");
         PrintExpression(ite.Thn);
         wr.Write(" else ");
-        PrintExpr(ite.Els, opBindingStrength, false, indent);
+        PrintExpression(ite.Els);
         if (parensNeeded) { wr.Write(")"); }
         
       } else if (expr is MatchExpr) {

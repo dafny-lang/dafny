@@ -1084,15 +1084,8 @@ PrintStmt<out Statement/*!*/ s>
 
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  Expression/*!*/ e0;  Expression/*!*/ e1 = dummyExpr;
-     e = dummyExpr;
-  .)
-  ( "if"                               (. x = t; .)
-    Expression<out e>
-    "then" Expression<out e0>
-    "else" Expression<out e1>          (. e = new ITEExpr(x, e, e0, e1); .)
-  | EquivExpression<out e>
-  )
+=
+  EquivExpression<out e>
   .
 
 /*------------------------------------------------------------------------*/
@@ -1212,6 +1205,7 @@ NegOp = "!" | '\u00ac'.
 
 ConstAtomExpression<out Expression/*!*/ e>            
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x, dtName, id;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
+     Expression e0, e1;
      e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
@@ -1238,6 +1232,11 @@ ConstAtomExpression<out Expression/*!*/ e>
   | "["                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
     "]"
+  | "if"                                       (. x = t; .)
+    Expression<out e>
+    "then" Expression<out e0>
+    "else" Expression<out e1>                  (. e = new ITEExpr(x, e, e0, e1); .)
+  | QuantifierGuts<out e>
   )
   .
 
@@ -1336,8 +1335,7 @@ SelectOrCallSuffix<ref Expression/*!*/ e>
   .
 
 /* ObjectExpression represents those expressions E that could possibly be used in E.f
-   or E(...), except Ident.  Since the lookahead is just 1, quantifier expressions are also
-   parsed here.  The expression returned is never an lvalue.
+   or E(...), except Ident.  The expression returned is never an lvalue.
 */
 ObjectExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
@@ -1346,9 +1344,8 @@ ObjectExpression<out Expression/*!*/ e>
     "("
       Expression<out e>
     ")"                                        (. e = new OldExpr(x, e); .)
-  | "(" ( QuantifierGuts<out e>
-        | Expression<out e>
-        )
+  | "("
+      Expression<out e>
     ")"
   )
   .

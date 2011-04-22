@@ -2232,7 +2232,7 @@ namespace Microsoft.Dafny {
 
       switch (op) {
         case Opcode.Iff:
-          return "==";
+          return "<==>";
         case Opcode.Imp:
           return "==>";
         case Opcode.And:
