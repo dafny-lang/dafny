@@ -36,6 +36,10 @@ let rec PrintExpr ctx expr =
       printf "forall " ; vv |> PrintSep ", " PrintVarDecl ; printf " :: " ; PrintExpr 0 e
       if needParens then printf ")" else ()
 
+let VarsAreDifferent aa bb =
+  printf "false"
+  List.iter2 (fun (_,Var(a,_)) (_,Var(b,_)) -> printf " || %s != %s" a b) aa bb
+
 let Fields members =
   members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
 
@@ -59,13 +63,45 @@ let rec Substitute substMap = function
   | ForallExpr(vv,e) -> ForallExpr(vv, Substitute substMap e)
   | expr -> expr
 
+let rec PrintStmt stmt indent =
+  match stmt with
+  | Block(stmts) ->
+      Indent indent ; printfn "{"
+      PrintStmtList stmts (indent + 2)
+      Indent indent ; printfn "}"
+  | Assign(lhs,rhs) -> Indent indent ; PrintExpr 0 lhs ; printf " := " ; PrintExpr 0 rhs ; printfn ";"
+and PrintStmtList stmts indent =
+  stmts |> List.iter (fun s -> PrintStmt s indent)
+
+let GenerateCode methodName signature pre stmts inv assumeInvInitially =
+  printfn "  method %s()" methodName
+  printfn "    modifies this;"
+  printfn "  {"
+  if assumeInvInitially then
+    // assume invariant
+    printf "    assume " ; PrintExpr 0 inv ; printfn ";"
+  else ()
+  // print signature as local variables
+  match signature with
+    | Sig(ins,outs) ->
+        List.concat [ins; outs] |> List.iter (fun vd -> printf "    var " ; PrintVarDecl vd ; printfn ";")
+  // assume preconditions
+  printf "    assume " ; PrintExpr 0 pre ; printfn ";"
+  // do statements
+  stmts |> List.iter (fun s -> PrintStmt s 4)
+  // assume invariant
+  printf "    assume " ; PrintExpr 0 inv ; printfn ";"
+  // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
+  printfn "    assert false;"
+  printfn "}"
+
 let AnalyzeComponent c =
   match c with
   | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
       let aVars = Fields members
       let aVars0 = Rename "0" aVars
       let aVars1 = Rename "1" aVars
-      let allVars = List.concat [List.map (fun (a,b) -> b) aVars0; List.map (fun (a,b) -> b) aVars1; cVars]
+      let allVars = List.concat [aVars; List.map (fun (a,b) -> b) aVars0; List.map (fun (a,b) -> b) aVars1; cVars]
       let inv0 = Substitute (Map.ofList aVars0) inv
       let inv1 = Substitute (Map.ofList aVars1) inv
       // Now print it as a Dafny program
@@ -74,14 +110,20 @@ let AnalyzeComponent c =
         | [] -> ()
         | _ -> printf "<" ; typeParams |> PrintSep ", " (fun tp -> printf "%s" tp) ; printf ">"
       printfn " {"
-      // the fields, both abstract and concrete
+      // the fields: original abstract fields plus two more copies thereof, plus and concrete fields
       allVars |> List.iter (function Var(nm,None) -> printfn "  var %s;" nm | Var(nm,Some(tp)) -> printf "  var %s: " nm ; PrintType tp ; printfn ";")
       // the method
       printfn "  method %s_checkInjective() {" name
+      printf "    assume " ; VarsAreDifferent aVars0 aVars1 ; printfn ";"
       printf "    assume " ; PrintExpr 0 inv0 ; printfn ";"
       printf "    assume " ; PrintExpr 0 inv1 ; printfn ";"
-      printfn "    assert false;"
+      printfn "    assert false;" // {:msg "Two abstract states map to the same concrete state"}
       printfn "  }"
+      // generate code
+      members |> List.iter (function
+        | Constructor(methodName,signature,pre,stmts) -> GenerateCode methodName signature pre stmts inv false
+        | Method(methodName,signature,pre,stmts) -> GenerateCode methodName signature pre stmts inv true
+        | _ -> ())
       // the end of the class
       printfn "}"
   | _ -> assert false  // unexpected case
