@@ -555,7 +555,7 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        if (tok.val.Length != 5) {
                                          dims = int.Parse(tok.val.Substring(5));
                                        }
-                                       ty = theBuiltIns.ArrayType(dims, gt[0], true);
+                                       ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
                                     .)
   | Ident<out tok>                  (. gt = new List<Type/*!*/>(); .)
     [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
@@ -808,7 +808,7 @@ AssignRhs<.out List<Expression> ee, out Type ty, out CallStmt initCall, Expressi
     [ "["                              (. ee = new List<Expression>(); .)
       Expressions<ee>
       "]"                              (. // make sure an array class with this dimensionality exists
-                                          UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
+                                          UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
                                        .)
     | "." Ident<out x>
       "("                              (. args = new List<Expression/*!*/>(); .)

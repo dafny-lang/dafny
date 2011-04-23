@@ -877,7 +877,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			if (tok.val.Length != 5) {
 			  dims = int.Parse(tok.val.Substring(5));
 			}
-			ty = theBuiltIns.ArrayType(dims, gt[0], true);
+			ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
 			
 		} else if (la.kind == 1) {
 			Ident(out tok);
@@ -1419,7 +1419,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 					ee = new List<Expression>(); 
 					Expressions(ee);
 					Expect(53);
-					UserDefinedType tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
+					UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
 					
 				} else {
 					Get();
