@@ -60,7 +60,7 @@ datatype List<T> {
   Cons(nat, T, List<T>);
 }
 
-method MatchIt(list: List<bool>) returns (k: nat)
+method MatchIt(list: List<object>) returns (k: nat)
 {
   match (list) {
     case Nil =>

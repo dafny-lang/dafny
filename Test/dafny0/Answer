@@ -483,9 +483,12 @@ Modules0.dfy(62,6): Error: inter-module calls must follow the module import rela
 Modules0.dfy(72,6): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
 Modules0.dfy(91,4): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
 Modules0.dfy(116,16): Error: ghost variables are allowed only in specification contexts
-Modules0.dfy(133,10): Error: match source expression 'tree' has already been used as a match source expression in this context
-Modules0.dfy(172,12): Error: match source expression 'l' has already been used as a match source expression in this context
-10 resolution/type errors detected in Modules0.dfy
+Modules0.dfy(130,11): Error: old expressions are allowed only in specification and ghost contexts
+Modules0.dfy(131,11): Error: fresh expressions are allowed only in specification and ghost contexts
+Modules0.dfy(132,11): Error: allocated expressions are allowed only in specification and ghost contexts
+Modules0.dfy(148,10): Error: match source expression 'tree' has already been used as a match source expression in this context
+Modules0.dfy(187,12): Error: match source expression 'l' has already been used as a match source expression in this context
+13 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
 Modules1.dfy(55,3): Error: decreases expression must be bounded below by 0
