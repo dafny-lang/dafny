@@ -391,6 +391,10 @@ Execution trace:
 
 Dafny program verifier finished with 3 verified, 3 errors
 
+-------------------- ResolutionErrors.dfy --------------------
+ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
+1 resolution/type errors detected in ResolutionErrors.dfy
+
 -------------------- Array.dfy --------------------
 Array.dfy(10,12): Error: assignment may update an array element not in the enclosing method's modifies clause
 Execution trace:

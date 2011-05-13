@@ -1316,7 +1316,7 @@ namespace Microsoft.Dafny {
       
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
-        bool bodyIsSpecOnly = specContextOnly;
+        bool bodyMustBeSpecOnly = specContextOnly;
         if (s.Guard != null) {
           int prevErrorCount = ErrorCount;
           ResolveExpression(s.Guard, true, true);
@@ -1326,7 +1326,7 @@ namespace Microsoft.Dafny {
             Error(s.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Guard.Type);
           }
           if (!specContextOnly && successfullyResolved) {
-            bodyIsSpecOnly = UsesSpecFeatures(s.Guard);
+            bodyMustBeSpecOnly = UsesSpecFeatures(s.Guard);
           }
         }
         foreach (MaybeFreeExpression inv in s.Invariants) {
@@ -1338,10 +1338,13 @@ namespace Microsoft.Dafny {
         }
         foreach (Expression e in s.Decreases) {
           ResolveExpression(e, true, true);
+          if (bodyMustBeSpecOnly && e is WildcardExpr) {
+            Error(e, "'decreases *' is not allowed on ghost loops");
+          }
           // any type is fine
         }
-        s.IsGhost = bodyIsSpecOnly;
-        ResolveStatement(s.Body, bodyIsSpecOnly, method);
+        s.IsGhost = bodyMustBeSpecOnly;
+        ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
       
       } else if (stmt is ForeachStmt) {
         ForeachStmt s = (ForeachStmt)stmt;

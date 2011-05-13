@@ -11,8 +11,8 @@ for %%f in (Simple.dfy) do (
   %DAFNY_EXE% %* /dprint:- /env:0 /noVerify %%f
 )
 
-for %%f in (TypeTests.dfy NatTypes.dfy  SmallTests.dfy Definedness.dfy
-            FunctionSpecifications.dfy
+for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
+            FunctionSpecifications.dfy ResolutionErrors.dfy
             Array.dfy MultiDimArray.dfy NonGhostQuantifiers.dfy AdvancedLHS.dfy
             Modules0.dfy Modules1.dfy BadFunction.dfy
             Termination.dfy Use.dfy DTypes.dfy
