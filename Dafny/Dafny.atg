@@ -1312,6 +1312,8 @@ SelectOrCallSuffix<ref Expression/*!*/ e>
       )
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
+           // make sure an array class with this dimensionality exists
+           UserDefinedType tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
          } else {
            if (!anyDots && e0 == null) {
              /* a parsing error occurred */

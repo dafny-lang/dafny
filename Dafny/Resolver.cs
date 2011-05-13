@@ -960,7 +960,7 @@ namespace Microsoft.Dafny {
           if (!UnifyTypes(iProxy.Arg, ((SeqType)t).Arg)) {
             return false;
           }
-        } else if (t.IsArrayType) {
+        } else if (t.IsArrayType && (t.AsArrayType).Dims == 1) {
           Type elType = UserDefinedType.ArrayElementType(t);
           if (!UnifyTypes(iProxy.Arg, elType)) {
             return false;
@@ -1909,7 +1909,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
         if (!UnifyTypes(e.Array.Type, builtIns.ArrayType(e.Indices.Count, elementType))) {
-          Error(e.Array, "array selection requires an array (got {0})", e.Array.Type);
+          Error(e.Array, "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
         }
         int i = 0;
         foreach (Expression idx in e.Indices) {

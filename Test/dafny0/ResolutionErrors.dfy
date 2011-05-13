@@ -16,3 +16,11 @@ method UmmThisIsntGoingToWork()
    assert a[1] == -1;  // ...for then this would incorrectly verify
    b[a[1]] := 0;
 }
+
+method M<T>(a: array3<T>, b: array<T>, m: int, n: int)
+{
+  // the following invalid expressions were once incorrectly resolved:
+  var x := a[m, n];        // error
+  var y := a[m];           // error
+  var z := b[m, n, m, n];  // error
+}
