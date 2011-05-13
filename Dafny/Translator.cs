@@ -1785,6 +1785,9 @@ namespace Microsoft.Dafny {
         bool isSequence = e.Seq.Type is SeqType;
         CheckWellformed(e.Seq, options, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
+        if (e.Seq.Type.IsArrayType) {
+          builder.Add(Assert(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), "array may be null"));
+        }
         Bpl.Expr e0 = null;
         if (e.E0 != null) {
           e0 = etran.TrExpr(e.E0);

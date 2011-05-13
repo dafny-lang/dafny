@@ -40,20 +40,21 @@ namespace Microsoft.Dafny {
       ClassDecl obj = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
       SystemModule.TopLevelDecls.Add(obj);
       // add one-dimensional arrays, since they may arise during type checking
-      UserDefinedType tmp = ArrayType(1, Type.Int, true);
+      UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
     }
 
     public UserDefinedType ArrayType(int dims, Type arg) {
-      return ArrayType(dims, arg, false);
+      return ArrayType(Token.NoToken, dims, arg, false);
     }
-    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
+    public UserDefinedType ArrayType(IToken tok, int dims, Type arg, bool allowCreationOfNewClass) {
+      Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
       List<Type/*!*/> typeArgs = new List<Type/*!*/>();
       typeArgs.Add(arg);
-      UserDefinedType udt = new UserDefinedType(Token.NoToken, ArrayClassName(dims), typeArgs);
+      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
         for (int d = 0; d < dims; d++) {

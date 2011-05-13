@@ -19,7 +19,7 @@ for %%f in (Queue.dfy PriorityQueue.dfy ExtensibleArray.dfy
             ListCopy.dfy ListReverse.dfy ListContents.dfy
             MatrixFun.dfy pow2.dfy
             SchorrWaite.dfy
-            Cubes.dfy SumOfCubes.dfy
+            Cubes.dfy SumOfCubes.dfy FindZero.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy
             Induction.dfy Rippling.dfy
             Celebrity.dfy

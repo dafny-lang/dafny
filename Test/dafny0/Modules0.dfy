@@ -121,6 +121,21 @@ class Ghosty {
   ghost method Theorem(a: int) { }
 }
 
+var SomeField: int;
+
+method SpecialFunctions()
+  modifies this;
+{
+  SomeField := SomeField + 4;
+  var a := old(SomeField);  // error: old can only be used in ghost contexts
+  var b := fresh(this);  // error: fresh can only be used in ghost contexts
+  var c := allocated(this);  // error: allocated can only be used in ghost contexts
+  if (fresh(this)) {  // this guard makes the if statement a ghost statement
+    ghost var x := old(SomeField);  // this is a ghost context, so it's okay
+    ghost var y := allocated(this);  // this is a ghost context, so it's okay
+  }
+}
+
 // ---------------------- illegal match expressions ---------------
 
 datatype Tree { Nil; Cons(int, Tree, Tree); }

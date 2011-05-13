@@ -837,7 +837,11 @@ namespace Microsoft.Dafny {
       
 #if !NO_CHEAP_OBJECT_WORKAROUND
       if (a is ObjectType || b is ObjectType) {  // TODO: remove this temporary hack
-        // allow anything with object; this is BOGUS
+        var other = a is ObjectType ? b : a;
+        if (other is BoolType || other is IntType || other is SetType || other is SeqType || other.IsDatatype) {
+          return false;
+        }
+        // allow anything else with object; this is BOGUS
         return true;
       }
 #endif
@@ -2022,6 +2026,8 @@ namespace Microsoft.Dafny {
         OldExpr e = (OldExpr)expr;
         if (!twoState) {
           Error(expr, "old expressions are not allowed in this context");
+        } else if (!specContext) {
+          Error(expr, "old expressions are allowed only in specification and ghost contexts");
         }
         ResolveExpression(e.E, twoState, specContext);
         expr.Type = e.E.Type;
@@ -2030,6 +2036,8 @@ namespace Microsoft.Dafny {
         FreshExpr e = (FreshExpr)expr;
         if (!twoState) {
           Error(expr, "fresh expressions are not allowed in this context");
+        } else if (!specContext) {
+          Error(expr, "fresh expressions are allowed only in specification and ghost contexts");
         }
         ResolveExpression(e.E, twoState, specContext);
         // the type of e.E must be either an object or a collection of objects
@@ -2050,6 +2058,9 @@ namespace Microsoft.Dafny {
       } else if (expr is AllocatedExpr) {
         AllocatedExpr e = (AllocatedExpr)expr;
         ResolveExpression(e.E, twoState, specContext);
+        if (!specContext) {
+          Error(expr, "allocated expressions are allowed only in specification and ghost contexts");
+        }
         // e.E can be of any type
         expr.Type = Type.Bool;
 
