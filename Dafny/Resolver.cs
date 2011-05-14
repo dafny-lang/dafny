@@ -2398,12 +2398,11 @@ namespace Microsoft.Dafny {
             }
             var e0 = c.E0;
             var e1 = c.E1;
-            var op = c.ResolvedOp;
-            int whereIsBv = SanitizeForBoundDiscovery(e.BoundVars, j, ref op, ref e0, ref e1);
+            int whereIsBv = SanitizeForBoundDiscovery(e.BoundVars, j, c.ResolvedOp, ref e0, ref e1);
             if (whereIsBv < 0) {
               goto CHECK_NEXT_CONJUNCT;
             }
-            switch (op) {
+            switch (c.ResolvedOp) {
               case BinaryExpr.ResolvedOpcode.InSet:
                 if (whereIsBv == 0) {
                   bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
@@ -2412,7 +2411,7 @@ namespace Microsoft.Dafny {
                 break;
               case BinaryExpr.ResolvedOpcode.InSeq:
                 if (whereIsBv == 0) {
-                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  bounds.Add(new QuantifierExpr.SeqBoundedPool(e1));
                   goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
@@ -2425,7 +2424,7 @@ namespace Microsoft.Dafny {
                 break;
               case BinaryExpr.ResolvedOpcode.Gt:
               case BinaryExpr.ResolvedOpcode.Ge:
-                Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct and SanitizeForBoundDiscovery
+                Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
               case BinaryExpr.ResolvedOpcode.Lt:
                 if (whereIsBv == 0 && upperBound == null) {
                   upperBound = e1;  // bv < E
@@ -2462,14 +2461,13 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// If the return value is negative, the resulting "op", "e0", and "e1" should not be used.
+    /// If the return value is negative, the resulting "e0" and "e1" should not be used.
     /// Otherwise, the following is true on return:
     /// The new "e0 op e1" is equivalent to the old "e0 op e1".
     /// One of "e0" and "e1" is the identifier "boundVars[bvi]"; the return value is either 0 or 1, and indicates which.
     /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
-    /// Requires the initial value of "op" not to be Gt or Ge, and ensures the same about the final value of "op".
     /// </summary>
-    int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, ref BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1)
+    int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1)
     {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
@@ -2499,54 +2497,57 @@ namespace Microsoft.Dafny {
       }
 
       // Next, clean up the side where bv is by adjusting both sides of the expression
-      while (true) {
-        switch (op) {
-          case BinaryExpr.ResolvedOpcode.EqCommon:
-          case BinaryExpr.ResolvedOpcode.NeqCommon:
-          case BinaryExpr.ResolvedOpcode.Gt:
-          case BinaryExpr.ResolvedOpcode.Ge:
-          case BinaryExpr.ResolvedOpcode.Le:
-          case BinaryExpr.ResolvedOpcode.Lt:
+      switch (op) {
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.Lt:
+          // Repeatedly move additive or subtractive terms from thisSide to thatSide
+          while (true) {
             var bin = thisSide as BinaryExpr;
-            if (bin != null) {
-              if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
-                // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
-                if (!FreeVariables(bin.E1).Contains(bv)) {
-                  thisSide = bin.E0;
-                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
-                } else {
-                  thisSide = bin.E1;
-                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
-                }
-                ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-                thatSide.Type = bin.Type;
-                continue;  // continue simplifying
+            if (bin == null) {
+              break;  // done simplifying
 
-              } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
-                // Change "A-B op C" in a similar way.
-                if (!FreeVariables(bin.E1).Contains(bv)) {
-                  // change to "A op C+B"
-                  thisSide = bin.E0;
-                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
-                  ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
-                } else {
-                  // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
-                  // to return with the operator being > or >=, we instead end with "A-C op B" and switch the
-                  // mapping of thisSide/thatSide to e0/e1 (by inverting "whereIsBv").
-                  thisSide = bin.E1;
-                  thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
-                  ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-                  whereIsBv = 1 - whereIsBv;
-                }
-                thatSide.Type = bin.Type;
-                continue;  // continue simplifying
+            } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+              // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
+              if (!FreeVariables(bin.E1).Contains(bv)) {
+                thisSide = bin.E0;
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
+              } else {
+                thisSide = bin.E1;
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
               }
+              ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+              thatSide.Type = bin.Type;
+
+            } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
+              // Change "A-B op C" in a similar way.
+              if (!FreeVariables(bin.E1).Contains(bv)) {
+                // change to "A op C+B"
+                thisSide = bin.E0;
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
+                ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
+              } else {
+                // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
+                // to change "op", we instead end with "A-C op B" and switch the mapping of thisSide/thatSide
+                // to e0/e1 (by inverting "whereIsBv").
+                thisSide = bin.E1;
+                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
+                ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+                whereIsBv = 1 - whereIsBv;
+              }
+              thatSide.Type = bin.Type;
+
+            } else {
+              break;  // done simplifying
             }
-            break;  // done simplifying
-          default:
-            break;  // done simplifying
-        }
-        break;  // done simplifying
+          }
+          break;
+
+        default:
+          break;
       }
 
       // Now, see if the interesting side is simply bv itself
@@ -2675,6 +2676,7 @@ namespace Microsoft.Dafny {
           b.ResolvedOp = newROp;
           b.Type = Type.Bool;
           yield return b;
+          yield break;
         }
       }
     JUST_RETURN_IT: ;
