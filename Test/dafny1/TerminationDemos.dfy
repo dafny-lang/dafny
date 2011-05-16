@@ -42,6 +42,28 @@ class Ackermann {
     else
       G(m - 1, G(m, n - 1))
   }
+
+  function H(m: nat, n: nat): nat
+  {
+    if m == 0 then
+      n + 1
+    else if n == 0 then
+      H(m - 1, 1)
+    else
+      H(m - 1, H(m, n - 1))
+  }
+
+  method ComputeAck(m: nat, n: nat) returns (r: nat)
+  {
+    if (m == 0) {
+      r := n + 1;
+    } else if (n == 0) {
+      call r := ComputeAck(m - 1, 1);
+    } else {
+      call s := ComputeAck(m, n - 1);
+      call r := ComputeAck(m - 1, s);
+    }
+  }
 }
 
 // -----------------------------------
