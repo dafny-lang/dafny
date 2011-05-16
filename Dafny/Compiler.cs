@@ -1335,7 +1335,7 @@ namespace Microsoft.Dafny {
           wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
           wr.Write("@{0} => ", bv.Name);
         }
-        TrExpr(e.Body);
+        TrExpr(e.LogicalBody());
         for (int i = 0; i < n; i++) {
           wr.Write(")");
         }

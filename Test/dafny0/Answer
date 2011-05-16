@@ -198,8 +198,18 @@ Execution trace:
     (0,0): anon0
     SmallTests.dfy(267,19): anon3_Else
     (0,0): anon2
+SmallTests.dfy(307,3): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(301,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon18_Else
+    (0,0): anon11
+    (0,0): anon23_Then
+    (0,0): anon24_Then
+    (0,0): anon15
+    (0,0): anon25_Else
 
-Dafny program verifier finished with 34 verified, 13 errors
+Dafny program verifier finished with 39 verified, 14 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -464,14 +474,17 @@ Dafny program verifier finished with 8 verified, 2 errors
 
 -------------------- NonGhostQuantifiers.dfy --------------------
 NonGhostQuantifiers.dfy(13,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
-NonGhostQuantifiers.dfy(57,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'i'
-NonGhostQuantifiers.dfy(61,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
-NonGhostQuantifiers.dfy(71,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
-NonGhostQuantifiers.dfy(86,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
-NonGhostQuantifiers.dfy(94,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
-NonGhostQuantifiers.dfy(103,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
-NonGhostQuantifiers.dfy(120,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-8 resolution/type errors detected in NonGhostQuantifiers.dfy
+NonGhostQuantifiers.dfy(42,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
+NonGhostQuantifiers.dfy(46,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'd'
+NonGhostQuantifiers.dfy(50,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
+NonGhostQuantifiers.dfy(74,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'i'
+NonGhostQuantifiers.dfy(78,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(88,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(103,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(111,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
+NonGhostQuantifiers.dfy(120,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
+NonGhostQuantifiers.dfy(137,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+11 resolution/type errors detected in NonGhostQuantifiers.dfy
 
 -------------------- AdvancedLHS.dfy --------------------
 AdvancedLHS.dfy(32,23): Error: target object may be null

@@ -931,14 +931,19 @@ namespace Microsoft.Dafny {
         wr.Write(" ");
         PrintAttributes(e.Attributes);
         PrintTriggers(e.Trigs);
+        if (e.Range != null) {
+          wr.Write("| ");
+          PrintExpression(e.Range);
+          wr.Write(" ");
+        }
         wr.Write(":: ");
         if (0 <= indent) {
           int ind = indent + IndentAmount;
           wr.WriteLine();
           Indent(ind);
-          PrintExpression(e.Body, ind);
+          PrintExpression(e.Term, ind);
         } else {
-          PrintExpression(e.Body);
+          PrintExpression(e.Term);
         }
         if (parensNeeded) { wr.Write(")"); }
         

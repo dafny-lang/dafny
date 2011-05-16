@@ -272,3 +272,39 @@ class InitCalls {
     r := new InitCalls.InitFromReference(r);  // error, since r.z is unknown
   }
 }
+
+// --------------- some tests with quantifiers and ranges ----------------------
+
+method QuantifierRange0<T>(a: seq<T>, x: T, y: T, N: int)
+  requires 0 <= N && N <= |a|;
+  requires forall k | 0 <= k && k < N :: a[k] != x;
+  requires exists k | 0 <= k && k < N :: a[k] == y;
+  ensures forall k :: 0 <= k && k < N ==> a[k] != x;  // same as the precondition, but using ==> instead of |
+  ensures exists k :: 0 <= k && k < N && a[k] == y;  // same as the precondition, but using && instead of |
+{
+  assert x != y;
+}
+
+method QuantifierRange1<T>(a: seq<T>, x: T, y: T, N: int)
+  requires 0 <= N && N <= |a|;
+  requires forall k :: 0 <= k && k < N ==> a[k] != x;
+  requires exists k :: 0 <= k && k < N && a[k] == y;
+  ensures forall k | 0 <= k && k < N :: a[k] != x;  // same as the precondition, but using | instead of ==>
+  ensures exists k | 0 <= k && k < N :: a[k] == y;  // same as the precondition, but using | instead of &&
+{
+  assert x != y;
+}
+
+method QuantifierRange2<T>(a: seq<T>, x: T, y: T, N: int)
+  requires 0 <= N && N <= |a|;
+  requires exists k | 0 <= k && k < N :: a[k] == y;
+  ensures forall k | 0 <= k && k < N :: a[k] == y;  // error
+{
+  assert N != 0;
+  if (N == 1) {
+    assert forall k | a[if 0 <= k && k < N then k else 0] != y :: k < 0 || N <= k;  // in this case, the precondition holds trivially
+  }
+  if (forall k | 0 <= k && k < N :: a[k] == x) {
+    assert x == y;
+  }
+}

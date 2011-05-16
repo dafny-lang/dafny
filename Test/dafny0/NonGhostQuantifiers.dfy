@@ -33,6 +33,23 @@ class MyClass<T> {
     (forall n :: 2 <= n ==> 1000 <= n || (exists d :: n < d && d < 2*n))
   }
 
+  function method GoodRange(): bool
+  {
+    (forall n | 2 <= n :: 1000 <= n || (exists d | n < d :: d < 2*n)) && (exists K: nat | K < 100 :: true)
+  }
+  function method BadRangeForall(): bool
+  {
+    forall n | n <= 2 :: 1000 <= n || n % 2 == 0  // error: cannot bound range for n
+  }
+  function method BadRangeExists(): bool
+  {
+    exists d | d < 1000 :: d < 2000  // error: cannot bound range for d
+  }
+  function method WhatAboutThis(): bool
+  {
+    forall n :: 2 <= n && (forall M | M == 1000 :: n < M) ==> n % 2 == 0  // error: heuristics don't get this one for n
+  }
+
   // Here are more tests
 
   function method F(a: array<T>): bool

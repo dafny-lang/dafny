@@ -1361,6 +1361,7 @@ QuantifierGuts<out Expression/*!*/ q>
      List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
      Attributes attrs = null;
      Triggers trigs = null;
+     Expression range = null;
      Expression/*!*/ body;
   .)
   ( Forall                                     (. x = t;  univ = true; .)
@@ -1372,12 +1373,15 @@ QuantifierGuts<out Expression/*!*/ q>
     IdentTypeOptional<out bv>                  (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
   }
   { AttributeOrTrigger<ref attrs, ref trigs> }
+  [ "|"
+    Expression<out range>
+  ]
   QSep
   Expression<out body>
   (. if (univ) {
-       q = new ForallExpr(x, bvars, body, trigs, attrs);
+       q = new ForallExpr(x, bvars, range, body, trigs, attrs);
      } else {
-       q = new ExistsExpr(x, bvars, body, trigs, attrs);
+       q = new ExistsExpr(x, bvars, range, body, trigs, attrs);
      }
      parseVarScope.PopMarker();
   .)

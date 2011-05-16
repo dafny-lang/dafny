@@ -1920,6 +1920,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
 		Attributes attrs = null;
 		Triggers trigs = null;
+		Expression range = null;
 		Expression/*!*/ body;
 		
 		if (la.kind == 101 || la.kind == 102) {
@@ -1940,12 +1941,16 @@ List<Expression/*!*/>/*!*/ decreases) {
 		while (la.kind == 7) {
 			AttributeOrTrigger(ref attrs, ref trigs);
 		}
+		if (la.kind == 17) {
+			Get();
+			Expression(out range);
+		}
 		QSep();
 		Expression(out body);
 		if (univ) {
-		 q = new ForallExpr(x, bvars, body, trigs, attrs);
+		 q = new ForallExpr(x, bvars, range, body, trigs, attrs);
 		} else {
-		  q = new ExistsExpr(x, bvars, body, trigs, attrs);
+		  q = new ExistsExpr(x, bvars, range, body, trigs, attrs);
 		}
 		parseVarScope.PopMarker();
 		

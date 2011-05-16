@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny {
         return z == null ? r : BplAnd(r, z);
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
-        Bpl.Expr total = IsTotal(e.Body, etran);
+        Bpl.Expr total = IsTotal(e.LogicalBody(), etran);
         if (total != Bpl.Expr.True) {
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
@@ -1638,7 +1638,7 @@ namespace Microsoft.Dafny {
         return BplAnd(t0, t1);
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
-        Bpl.Expr total = CanCallAssumption(e.Body, etran);
+        Bpl.Expr total = CanCallAssumption(e.LogicalBody(), etran);
         if (total != Bpl.Expr.True) {
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
@@ -1986,7 +1986,7 @@ namespace Microsoft.Dafny {
             builder.Add(new Bpl.AssumeCmd(bv.tok, wh));
           }
         }
-        Expression body = Substitute(e.Body, null, substMap);
+        Expression body = Substitute(e.LogicalBody(), null, substMap);
         CheckWellformed(body, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
@@ -4415,13 +4415,17 @@ namespace Microsoft.Dafny {
             }
             tr = new Bpl.Trigger(expr.tok, true, tt, tr);
           }
-          Bpl.Expr body = TrExpr(e.Body);
+          var antecedent = typeAntecedent;
+          if (e.Range != null) {
+            antecedent = Bpl.Expr.And(antecedent, TrExpr(e.Range));
+          }
+          Bpl.Expr body = TrExpr(e.Term);
           
           if (e is ForallExpr) {
-            return new Bpl.ForallExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, Bpl.Expr.Imp(typeAntecedent, body));
+            return new Bpl.ForallExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, Bpl.Expr.Imp(antecedent, body));
           } else {
             Contract.Assert(e is ExistsExpr);
-            return new Bpl.ExistsExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, Bpl.Expr.And(typeAntecedent, body));
+            return new Bpl.ExistsExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, Bpl.Expr.And(antecedent, body));
           }
         
         } else if (expr is ITEExpr) {
@@ -5220,7 +5224,7 @@ namespace Microsoft.Dafny {
 
             substMap.Add(n, ieK);
           }
-          Expression bodyK = Substitute(e.Body, null, substMap);
+          Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
 
           Bpl.Expr less = DecreasesCheck(toks, types, kk, nn, etran, null, null, false, true);
 
@@ -5252,7 +5256,7 @@ namespace Microsoft.Dafny {
           typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
           foreach (var kase in caseProduct) {
             var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
-            var bdy = etran.LayerOffset(1).TrExpr(e.Body);
+            var bdy = etran.LayerOffset(1).TrExpr(e.LogicalBody());
             Bpl.Expr q = new Bpl.ForallExpr(kase.tok, bvars, Bpl.Expr.Imp(ante, bdy));
             splits.Add(new SplitExprInfo(false, q));
           }
@@ -5344,7 +5348,7 @@ namespace Microsoft.Dafny {
       // consider automatically applying induction
       var inductionVariables = new List<BoundVar>();
       foreach (var n in e.BoundVars) {
-        if (VarOccursInArgumentToRecursiveFunction(e.Body, n, null)) {
+        if (VarOccursInArgumentToRecursiveFunction(e.LogicalBody(), n, null)) {
           if (CommandLineOptions.Clo.Trace) {
             Console.Write("Applying automatic induction on variable '{0}' of: ", n.Name);
             new Printer(Console.Out).PrintExpression(e);
@@ -5447,7 +5451,7 @@ namespace Microsoft.Dafny {
           VarOccursInArgumentToRecursiveFunction(e.E1, n, p);
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
-        return VarOccursInArgumentToRecursiveFunction(e.Body, n, null);
+        return VarOccursInArgumentToRecursiveFunction(e.LogicalBody(), n, null);
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, null) ||  // test is not "elevated"
@@ -5617,14 +5621,15 @@ namespace Microsoft.Dafny {
         
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
-        Expression newBody = Substitute(e.Body, receiverReplacement, substMap);
+        Expression newRange = e.Range == null ? null : Substitute(e.Range, receiverReplacement, substMap);
+        Expression newTerm = Substitute(e.Term, receiverReplacement, substMap);
         Triggers newTrigs = SubstTriggers(e.Trigs, receiverReplacement, substMap);
         Attributes newAttrs = SubstAttributes(e.Attributes, receiverReplacement, substMap);
-        if (newBody != e.Body || newTrigs != e.Trigs || newAttrs != e.Attributes) {
+        if (newRange != e.Range || newTerm != e.Term || newTrigs != e.Trigs || newAttrs != e.Attributes) {
           if (expr is ForallExpr) {
-            newExpr = new ForallExpr(expr.tok, e.BoundVars, newBody, newTrigs, newAttrs);
+            newExpr = new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
           } else {
-            newExpr = new ExistsExpr(expr.tok, e.BoundVars, newBody, newTrigs, newAttrs);
+            newExpr = new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
           }
         }
         

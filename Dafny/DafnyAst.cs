@@ -2300,17 +2300,23 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class QuantifierExpr : Expression {
+  /// <summary>
+  /// A ComprehensionExpr has the form:
+  ///   BINDER x Attributes | Range(x) :: Term(x)
+  /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
+  /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
+  /// </summary>
+  public abstract class ComprehensionExpr : Expression {
     public readonly List<BoundVar/*!*/>/*!*/ BoundVars;
-    public readonly Expression/*!*/ Body;
+    public readonly Expression Range;
+    public readonly Expression/*!*/ Term;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(BoundVars != null);
-      Contract.Invariant(Body != null);
+      Contract.Invariant(Term != null);
     }
 
-    public readonly Triggers Trigs;
     public readonly Attributes Attributes;
 
     public abstract class BoundedPool { }
@@ -2338,23 +2344,40 @@ namespace Microsoft.Dafny {
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
-    // invariant bounds == null || bounds.Count == BoundVars.Count;
+    // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
-    public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ body, Triggers trigs, Attributes attrs)
+    public ComprehensionExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ range, Expression/*!*/ term, Attributes attrs)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
-      Contract.Requires(body != null);
+      Contract.Requires(term != null);
 
       this.BoundVars = bvars;
-      this.Body = body;
-      this.Trigs = trigs;
+      this.Range = range;
+      this.Term = term;
       this.Attributes = attrs;
     }
 
     public override IEnumerable<Expression> SubExpressions {
-      get { yield return Body; }
+      get {
+        if (Range != null) { yield return Range; }
+        yield return Term; 
+      }
     }
+  }
+
+  public abstract class QuantifierExpr : ComprehensionExpr {
+    public readonly Triggers Trigs;
+
+    public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ range, Expression/*!*/ term, Triggers trigs, Attributes attrs)
+      : base(tok, bvars, range, term, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(bvars));
+      Contract.Requires(term != null);
+
+      this.Trigs = trigs;
+    }
+    public abstract Expression/*!*/ LogicalBody();
   }
 
   public class Triggers {
@@ -2373,20 +2396,38 @@ namespace Microsoft.Dafny {
   }
 
   public class ForallExpr : QuantifierExpr {
-    public ForallExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression body, Triggers trig, Attributes attrs)
-      : base(tok, bvars, body, trig, attrs) {
+    public ForallExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression term, Triggers trig, Attributes attrs)
+      : base(tok, bvars, range, term, trig, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
-      Contract.Requires(body != null);
+      Contract.Requires(term != null);
+    }
+    public override Expression/*!*/ LogicalBody() {
+      if (Range == null) {
+        return Term;
+      }
+      var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.Imp, Range, Term);
+      body.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
+      body.Type = Term.Type;
+      return body;
     }
   }
 
   public class ExistsExpr : QuantifierExpr {
-    public ExistsExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression body, Triggers trig, Attributes attrs)
-      : base(tok, bvars, body, trig, attrs) {
+    public ExistsExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression term, Triggers trig, Attributes attrs)
+      : base(tok, bvars, range, term, trig, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
-      Contract.Requires(body != null);
+      Contract.Requires(term != null);
+    }
+    public override Expression/*!*/ LogicalBody() {
+      if (Range == null) {
+        return Term;
+      }
+      var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.And, Range, Term);
+      body.ResolvedOp = BinaryExpr.ResolvedOpcode.And;
+      body.Type = Term.Type;
+      return body;
     }
   }
 

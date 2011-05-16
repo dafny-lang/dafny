@@ -2227,10 +2227,17 @@ namespace Microsoft.Dafny {
           }
           ResolveType(v.tok, v.Type);
         }
-        ResolveExpression(e.Body, twoState, specContext);
-        Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Body.Type, Type.Bool)) {
-          Error(expr, "body of quantifier must be of type bool (instead got {0})", e.Body.Type);
+        if (e.Range != null) {
+          ResolveExpression(e.Range, twoState, specContext);
+          Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.Range.Type, Type.Bool)) {
+            Error(expr, "range of quantifier must be of type bool (instead got {0})", e.Range.Type);
+          }
+        }
+        ResolveExpression(e.Term, twoState, specContext);
+        Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Term.Type, Type.Bool)) {
+          Error(expr, "body of quantifier must be of type bool (instead got {0})", e.Term.Type);
         }
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes and triggers (below).
@@ -2391,7 +2398,7 @@ namespace Microsoft.Dafny {
           // Go through the conjuncts of the range expression look for bounds.
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
-          foreach (var conjunct in NormalizedConjuncts(e.Body, e is ExistsExpr)) {
+          foreach (var conjunct in NormalizedConjuncts(e.LogicalBody(), e is ExistsExpr)) {
             var c = conjunct as BinaryExpr;
             if (c == null) {
               goto CHECK_NEXT_CONJUNCT;
@@ -2715,7 +2722,7 @@ namespace Microsoft.Dafny {
 
       } else  if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
-        var s = FreeVariables(e.Body);
+        var s = FreeVariables(e.LogicalBody());
         foreach (var bv in e.BoundVars) {
           s.Remove(bv);
         }
