@@ -20,14 +20,14 @@ const null: ref;
 
 type Set T = [T]bool;
 
-function Set#Empty<T>() returns (Set T);
+function Set#Empty<T>(): Set T;
 axiom (forall<T> o: T :: { Set#Empty()[o] } !Set#Empty()[o]);
 
-function Set#Singleton<T>(T) returns (Set T);
+function Set#Singleton<T>(T): Set T;
 axiom (forall<T> r: T :: { Set#Singleton(r) } Set#Singleton(r)[r]);
 axiom (forall<T> r: T, o: T :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> r == o);
 
-function Set#UnionOne<T>(Set T, T) returns (Set T);
+function Set#UnionOne<T>(Set T, T): Set T;
 axiom (forall<T> a: Set T, x: T, o: T :: { Set#UnionOne(a,x)[o] }
   Set#UnionOne(a,x)[o] <==> o == x || a[o]);
 axiom (forall<T> a: Set T, x: T :: { Set#UnionOne(a, x) }
@@ -35,7 +35,7 @@ axiom (forall<T> a: Set T, x: T :: { Set#UnionOne(a, x) }
 axiom (forall<T> a: Set T, x: T, y: T :: { Set#UnionOne(a, x), a[y] }
   a[y] ==> Set#UnionOne(a, x)[y]);
 
-function Set#Union<T>(Set T, Set T) returns (Set T);
+function Set#Union<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Union(a,b)[o] }
   Set#Union(a,b)[o] <==> a[o] || b[o]);
 axiom (forall<T> a, b: Set T, y: T :: { Set#Union(a, b), a[y] }
@@ -47,7 +47,7 @@ axiom (forall<T> a, b: Set T :: { Set#Union(a, b) }
     Set#Difference(Set#Union(a, b), a) == b &&
     Set#Difference(Set#Union(a, b), b) == a);
 
-function Set#Intersection<T>(Set T, Set T) returns (Set T);
+function Set#Intersection<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
   Set#Intersection(a,b)[o] <==> a[o] && b[o]);
 
@@ -60,27 +60,27 @@ axiom (forall<T> a, b: Set T :: { Set#Intersection(Set#Intersection(a, b), b) }
 axiom (forall<T> a, b: Set T :: { Set#Intersection(a, Set#Intersection(a, b)) }
   Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
 
-function Set#Difference<T>(Set T, Set T) returns (Set T);
+function Set#Difference<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Difference(a,b)[o] }
   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
 axiom (forall<T> a, b: Set T, y: T :: { Set#Difference(a, b), b[y] }
   b[y] ==> !Set#Difference(a, b)[y] );
 
-function Set#Subset<T>(Set T, Set T) returns (bool);
+function Set#Subset<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
 
-function Set#Equal<T>(Set T, Set T) returns (bool);
+function Set#Equal<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }
   Set#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <==> b[o]));
 axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }  // extensionality axiom for sets
   Set#Equal(a,b) ==> a == b);
 
-function Set#Disjoint<T>(Set T, Set T) returns (bool);
+function Set#Disjoint<T>(Set T, Set T): bool;
 axiom (forall<T> a: Set T, b: Set T :: { Set#Disjoint(a,b) }
   Set#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} !a[o] || !b[o]));
 
-function Set#Choose<T>(Set T, TickType) returns (T);
+function Set#Choose<T>(Set T, TickType): T;
 axiom (forall<T> a: Set T, tick: TickType :: { Set#Choose(a, tick) }
   a != Set#Empty() ==> a[Set#Choose(a, tick)]);
 
@@ -90,25 +90,25 @@ axiom (forall<T> a: Set T, tick: TickType :: { Set#Choose(a, tick) }
 
 type Seq T;
 
-function Seq#Length<T>(Seq T) returns (int);
+function Seq#Length<T>(Seq T): int;
 axiom (forall<T> s: Seq T :: { Seq#Length(s) } 0 <= Seq#Length(s));
 
-function Seq#Empty<T>() returns (Seq T);
+function Seq#Empty<T>(): Seq T;
 axiom (forall<T> :: Seq#Length(Seq#Empty(): Seq T) == 0);
 axiom (forall<T> s: Seq T :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#Empty());
 
-function Seq#Singleton<T>(T) returns (Seq T);
+function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
 
-function Seq#Build<T>(s: Seq T, index: int, val: T, newLength: int) returns (Seq T);
+function Seq#Build<T>(s: Seq T, index: int, val: T, newLength: int): Seq T;
 axiom (forall<T> s: Seq T, i: int, v: T, len: int :: { Seq#Length(Seq#Build(s,i,v,len)) }
   0 <= len ==> Seq#Length(Seq#Build(s,i,v,len)) == len);
 
-function Seq#Append<T>(Seq T, Seq T) returns (Seq T);
+function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
 
-function Seq#Index<T>(Seq T, int) returns (T);
+function Seq#Index<T>(Seq T, int): T;
 axiom (forall<T> t: T :: { Seq#Index(Seq#Singleton(t), 0) } Seq#Index(Seq#Singleton(t), 0) == t);
 axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Index(Seq#Append(s0,s1), n) }
   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
@@ -118,7 +118,7 @@ axiom (forall<T> s: Seq T, i: int, v: T, len: int, n: int :: { Seq#Index(Seq#Bui
     (i == n ==> Seq#Index(Seq#Build(s,i,v,len),n) == v) &&
     (i != n ==> Seq#Index(Seq#Build(s,i,v,len),n) == Seq#Index(s,n)));
 
-function Seq#Update<T>(Seq T, int, T) returns (Seq T);
+function Seq#Update<T>(Seq T, int, T): Seq T;
 axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Length(Seq#Update(s,i,v)) }
   0 <= i && i < Seq#Length(s) ==> Seq#Length(Seq#Update(s,i,v)) == Seq#Length(s));
 axiom (forall<T> s: Seq T, i: int, v: T, n: int :: { Seq#Index(Seq#Update(s,i,v),n) }
@@ -126,7 +126,7 @@ axiom (forall<T> s: Seq T, i: int, v: T, n: int :: { Seq#Index(Seq#Update(s,i,v)
     (i == n ==> Seq#Index(Seq#Update(s,i,v),n) == v) &&
     (i != n ==> Seq#Index(Seq#Update(s,i,v),n) == Seq#Index(s,n)));
 
-function Seq#Contains<T>(Seq T, T) returns (bool);
+function Seq#Contains<T>(Seq T, T): bool;
 axiom (forall<T> s: Seq T, x: T :: { Seq#Contains(s,x) }
   Seq#Contains(s,x) <==>
     (exists i: int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && Seq#Index(s,i) == x));
@@ -153,22 +153,22 @@ axiom (forall<T> s: Seq T, n: int, x: T ::
     (exists i: int :: { Seq#Index(s, i) }
       0 <= n && n <= i && i < Seq#Length(s) && Seq#Index(s, i) == x));
 
-function Seq#Equal<T>(Seq T, Seq T) returns (bool);
+function Seq#Equal<T>(Seq T, Seq T): bool;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Equal(s0,s1) }
   Seq#Equal(s0,s1) <==>
     Seq#Length(s0) == Seq#Length(s1) &&
     (forall j: int :: { Seq#Index(s0,j) } { Seq#Index(s1,j) }
         0 <= j && j < Seq#Length(s0) ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
-axiom(forall<T> a: Seq T, b: Seq T :: { Seq#Equal(a,b) }  // extensionality axiom for sequences
+axiom (forall<T> a: Seq T, b: Seq T :: { Seq#Equal(a,b) }  // extensionality axiom for sequences
   Seq#Equal(a,b) ==> a == b);
 
-function Seq#SameUntil<T>(Seq T, Seq T, int) returns (bool);
+function Seq#SameUntil<T>(Seq T, Seq T, int): bool;
 axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#SameUntil(s0,s1,n) }
   Seq#SameUntil(s0,s1,n) <==>
     (forall j: int :: { Seq#Index(s0,j) } { Seq#Index(s1,j) }
         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
 
-function Seq#Take<T>(s: Seq T, howMany: int) returns (Seq T);
+function Seq#Take<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n) &&
@@ -177,7 +177,7 @@ axiom (forall<T> s: Seq T, n: int, j: int :: { Seq#Index(Seq#Take(s,n), j) } {:w
   0 <= j && j < n && j < Seq#Length(s) ==>
     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
 
-function Seq#Drop<T>(s: Seq T, howMany: int) returns (Seq T);
+function Seq#Drop<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
   0 <= n ==>
     (n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n) &&
@@ -197,8 +197,8 @@ axiom (forall<T> s, t: Seq T ::
 
 type BoxType;
 
-function $Box<T>(T) returns (BoxType);
-function $Unbox<T>(BoxType) returns (T);
+function $Box<T>(T): BoxType;
+function $Unbox<T>(BoxType): T;
 
 axiom (forall<T> x: T :: { $Box(x) } $Unbox($Box(x)) == x);
 axiom (forall b: BoxType :: { $Unbox(b): int } $Box($Unbox(b): int) == b);
@@ -206,7 +206,10 @@ axiom (forall b: BoxType :: { $Unbox(b): ref } $Box($Unbox(b): ref) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Set BoxType } $Box($Unbox(b): Set BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Seq BoxType } $Box($Unbox(b): Seq BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): DatatypeType } $Box($Unbox(b): DatatypeType) == b);
-// note: an axiom like this for bool would not be sound
+// Note: an axiom like this for bool would not be sound; instead, we do:
+function $IsCanonicalBoolBox(BoxType): bool;
+axiom $IsCanonicalBoolBox($Box(false)) && $IsCanonicalBoolBox($Box(true));
+axiom (forall b: BoxType :: { $Unbox(b): bool } $IsCanonicalBoolBox(b) ==> $Box($Unbox(b): bool) == b);
 
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
@@ -218,12 +221,12 @@ const unique class.bool: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
 
-function /*{:never_pattern true}*/ dtype(ref) returns (ClassName);
-function /*{:never_pattern true}*/ TypeParams(ref, int) returns (ClassName);
+function /*{:never_pattern true}*/ dtype(ref): ClassName;
+function /*{:never_pattern true}*/ TypeParams(ref, int): ClassName;
 
-function TypeTuple(a: ClassName, b: ClassName) returns (ClassName);
-function TypeTupleCar(ClassName) returns (ClassName);
-function TypeTupleCdr(ClassName) returns (ClassName);
+function TypeTuple(a: ClassName, b: ClassName): ClassName;
+function TypeTupleCar(ClassName): ClassName;
+function TypeTupleCdr(ClassName): ClassName;
 // TypeTuple is injective in both arguments:
 axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
   TypeTupleCar(TypeTuple(a,b)) == a &&
@@ -235,13 +238,13 @@ axiom (forall a: ClassName, b: ClassName :: { TypeTuple(a,b) }
 
 type DatatypeType;
 
-function /*{:never_pattern true}*/ DtType(DatatypeType) returns (ClassName);  // the analog of dtype for datatype values
-function /*{:never_pattern true}*/ DtTypeParams(DatatypeType, int) returns (ClassName);  // the analog of TypeParams
+function /*{:never_pattern true}*/ DtType(DatatypeType): ClassName;  // the analog of dtype for datatype values
+function /*{:never_pattern true}*/ DtTypeParams(DatatypeType, int): ClassName;  // the analog of TypeParams
 
 type DtCtorId;
-function DatatypeCtorId(DatatypeType) returns (DtCtorId);
+function DatatypeCtorId(DatatypeType): DtCtorId;
 
-function DtRank(DatatypeType) returns (int);
+function DtRank(DatatypeType): int;
 
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------
@@ -274,7 +277,7 @@ axiom (forall f: Field BoxType, i: int :: { MultiIndexField(f,i) }
   MultiIndexField_Inverse1(MultiIndexField(f,i)) == i);
 
 
-function DeclType<T>(Field T) returns (ClassName);
+function DeclType<T>(Field T): ClassName;
 
 // ---------------------------------------------------------------
 // -- Allocatedness ----------------------------------------------
@@ -339,10 +342,10 @@ type HeapType = <alpha>[ref,Field alpha]alpha;
 function {:inline true} read<alpha>(H:HeapType, r:ref, f:Field alpha): alpha { H[r, f] }
 function {:inline true} update<alpha>(H:HeapType, r:ref, f:Field alpha, v:alpha): HeapType { H[r,f := v] }
 
-function $IsGoodHeap(HeapType) returns (bool);
+function $IsGoodHeap(HeapType): bool;
 var $Heap: HeapType where $IsGoodHeap($Heap);
 
-function $HeapSucc(HeapType, HeapType) returns (bool);
+function $HeapSucc(HeapType, HeapType): bool;
 axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
   $HeapSucc(h, update(h, r, f, x)));
 axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }

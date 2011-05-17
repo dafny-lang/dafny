@@ -3676,11 +3676,15 @@ namespace Microsoft.Dafny {
         Bpl.Expr xSubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, x, i);
         Bpl.Expr unbox = ExpressionTranslator.ModeledAsBoxType(st.Arg) ? xSubI : FunctionCall(tok, BuiltinFunction.Unbox, TrType(st.Arg), xSubI);
 
+        Bpl.Expr c = GetBoolBoxCondition(xSubI, st.Arg);
         Bpl.Expr wh = GetWhereClause(tok, unbox, st.Arg, etran);
         if (wh != null) {
+          c = BplAnd(c, wh);
+        }
+        if (c != Bpl.Expr.True) {
           Bpl.Expr range = InSeqRange(tok, i, x, true, null, false);
           Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubI));
-          return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.Imp(range, wh));
+          return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.Imp(range, c));
         }
 
       } else if (type.IsRefType) {
@@ -3704,6 +3708,18 @@ namespace Microsoft.Dafny {
       }
 
       return null;
+    }
+
+    Bpl.Expr GetBoolBoxCondition(Expr box, Type type) {
+      Contract.Requires(box != null);
+      Contract.Requires(type != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      if (type is BoolType) {
+        return FunctionCall(box.tok, BuiltinFunction.IsCanonicalBoolBox, null, box);
+      } else {
+        return Bpl.Expr.True;
+      }
     }
 
     void TrAssignment(IToken tok, Expression lhs, AssignmentRhs rhs, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals,
@@ -4826,6 +4842,7 @@ namespace Microsoft.Dafny {
       
       Box,
       Unbox,
+      IsCanonicalBoolBox,
       
       IsGoodHeap,
       HeapSucc,
@@ -4957,6 +4974,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
           return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
+        case BuiltinFunction.IsCanonicalBoolBox:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$IsCanonicalBoolBox", Bpl.Type.Bool, args);
 
         case BuiltinFunction.IsGoodHeap:
           Contract.Assert(args.Length == 1);
