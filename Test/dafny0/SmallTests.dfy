@@ -308,3 +308,13 @@ method QuantifierRange2<T>(a: seq<T>, x: T, y: T, N: int)
     assert x == y;
   }
 }
+
+// ----------------------- tests that involve sequences of boxed booleans --------
+
+ghost method M(zeros: seq<bool>, Z: bool)
+  requires 1 <= |zeros| && Z == false;
+  requires forall k :: 0 <= k && k < |zeros| ==> zeros[k] == Z;
+{
+  var x := [Z];
+  assert zeros[0..1] == [Z];
+}
