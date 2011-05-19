@@ -2303,6 +2303,8 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// A ComprehensionExpr has the form:
   ///   BINDER x Attributes | Range(x) :: Term(x)
+  /// When BINDER is "forall" or "exists", the range may be "null" (which stands for the logical value "true").
+  /// For other BINDERs (currently, "set"), the range is non-null.
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
@@ -2346,7 +2348,7 @@ namespace Microsoft.Dafny {
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
-    public ComprehensionExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ range, Expression/*!*/ term, Attributes attrs)
+    public ComprehensionExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression/*!*/ term, Attributes attrs)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
@@ -2369,7 +2371,7 @@ namespace Microsoft.Dafny {
   public abstract class QuantifierExpr : ComprehensionExpr {
     public readonly Triggers Trigs;
 
-    public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ range, Expression/*!*/ term, Triggers trigs, Attributes attrs)
+    public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression/*!*/ term, Triggers trigs, Attributes attrs)
       : base(tok, bvars, range, term, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
@@ -2431,7 +2433,23 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
+  public class SetComprehension : ComprehensionExpr
+  {
+    public readonly bool TermIsImplicit;
+
+    public SetComprehension(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ range, Expression term)
+      : base(tok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(bvars));
+      Contract.Requires(1 <= bvars.Count);
+      Contract.Requires(range != null);
+
+      TermIsImplicit = term == null;
+    }
+  }
+
+  public class WildcardExpr : Expression
+  {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
     public WildcardExpr(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);

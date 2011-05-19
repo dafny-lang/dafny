@@ -1509,9 +1509,12 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr r = BplAnd(t0, t1);
         return z == null ? r : BplAnd(r, z);
-      } else if (expr is QuantifierExpr) {
-        QuantifierExpr e = (QuantifierExpr)expr;
-        Bpl.Expr total = IsTotal(e.LogicalBody(), etran);
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        var total = IsTotal(e.Term, etran);
+        if (e.Range != null) {
+          total = BplAnd(IsTotal(e.Range, etran), BplImp(etran.TrExpr(e.Range), total));
+        }
         if (total != Bpl.Expr.True) {
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
@@ -1636,9 +1639,12 @@ namespace Microsoft.Dafny {
             break;
         }
         return BplAnd(t0, t1);
-      } else if (expr is QuantifierExpr) {
-        QuantifierExpr e = (QuantifierExpr)expr;
-        Bpl.Expr total = CanCallAssumption(e.LogicalBody(), etran);
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        var total = CanCallAssumption(e.Term, etran);
+        if (e.Range != null) {
+          total = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), total));
+        }
         if (total != Bpl.Expr.True) {
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
@@ -1681,6 +1687,18 @@ namespace Microsoft.Dafny {
         return a;
       } else {
         return Bpl.Expr.And(a, b);
+      }
+    }
+    
+    Bpl.Expr BplImp(Bpl.Expr a, Bpl.Expr b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      if (a == Bpl.Expr.True || b == Bpl.Expr.True) {
+        return b;
+      } else {
+        return Bpl.Expr.Imp(a, b);
       }
     }
     
@@ -1970,8 +1988,8 @@ namespace Microsoft.Dafny {
             break;
         }
 
-      } else if (expr is QuantifierExpr) {
-        QuantifierExpr e = (QuantifierExpr)expr;
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
         Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
         foreach (BoundVar bv in e.BoundVars) {
           VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost, null);
@@ -1986,8 +2004,18 @@ namespace Microsoft.Dafny {
             builder.Add(new Bpl.AssumeCmd(bv.tok, wh));
           }
         }
-        Expression body = Substitute(e.LogicalBody(), null, substMap);
-        CheckWellformed(body, options, locals, builder, etran);
+
+        Expression body = Substitute(e.Term, null, substMap);
+        if (e.Range == null) {
+          CheckWellformed(body, options, locals, builder, etran);
+        } else {
+          Expression range = Substitute(e.Range, null, substMap);
+          CheckWellformed(range, options, locals, builder, etran);
+
+          Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
+          CheckWellformed(body, options, locals, b, etran);
+          builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(range), b.Collect(expr.tok), null, null));
+        }
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
@@ -4443,7 +4471,24 @@ namespace Microsoft.Dafny {
             Contract.Assert(e is ExistsExpr);
             return new Bpl.ExistsExpr(expr.tok, new Bpl.TypeVariableSeq(), bvars, kv, tr, Bpl.Expr.And(antecedent, body));
           }
-        
+
+        } else if (expr is SetComprehension) {
+          var e = (SetComprehension)expr;
+          // Translate "set xs | R :: T" into "lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))".
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes);
+
+          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.otherTmpVarCount, predef.BoxType));
+          translator.otherTmpVarCount++;
+          Bpl.Expr y = new Bpl.IdentifierExpr(expr.tok, yVar);
+
+          var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
+          var ebody = Bpl.Expr.And(translator.BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
+          var exst = new Bpl.ExistsExpr(expr.tok, bvars, ebody);
+
+          return new Bpl.LambdaExpr(expr.tok, new Bpl.TypeVariableSeq(), new VariableSeq(yVar), kv, exst);
+
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
           Bpl.Expr g = TrExpr(e.Test);
@@ -5470,9 +5515,10 @@ namespace Microsoft.Dafny {
         }
         return VarOccursInArgumentToRecursiveFunction(e.E0, n, p) ||
           VarOccursInArgumentToRecursiveFunction(e.E1, n, p);
-      } else if (expr is QuantifierExpr) {
-        var e = (QuantifierExpr)expr;
-        return VarOccursInArgumentToRecursiveFunction(e.LogicalBody(), n, null);
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        return (e.Range != null && VarOccursInArgumentToRecursiveFunction(e.Range, n, null)) ||
+          VarOccursInArgumentToRecursiveFunction(e.Term, n, null);
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, null) ||  // test is not "elevated"
@@ -5640,18 +5686,27 @@ namespace Microsoft.Dafny {
           newExpr = newBin;
         }
         
-      } else if (expr is QuantifierExpr) {
-        QuantifierExpr e = (QuantifierExpr)expr;
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
         Expression newRange = e.Range == null ? null : Substitute(e.Range, receiverReplacement, substMap);
         Expression newTerm = Substitute(e.Term, receiverReplacement, substMap);
-        Triggers newTrigs = SubstTriggers(e.Trigs, receiverReplacement, substMap);
         Attributes newAttrs = SubstAttributes(e.Attributes, receiverReplacement, substMap);
-        if (newRange != e.Range || newTerm != e.Term || newTrigs != e.Trigs || newAttrs != e.Attributes) {
-          if (expr is ForallExpr) {
-            newExpr = new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
-          } else {
-            newExpr = new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
+        if (e is SetComprehension) {
+          if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
+            newExpr = new SetComprehension(expr.tok, e.BoundVars, newRange, newTerm);
           }
+        } else if (e is QuantifierExpr) {
+          var q = (QuantifierExpr)e;
+          Triggers newTrigs = SubstTriggers(q.Trigs, receiverReplacement, substMap);
+          if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newTrigs != q.Trigs) {
+            if (expr is ForallExpr) {
+              newExpr = new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
+            } else {
+              newExpr = new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
+            }
+          }
+        } else {
+          Contract.Assume(false);  // unexpected ComprehensionExpr
         }
         
       } else if (expr is ITEExpr) {

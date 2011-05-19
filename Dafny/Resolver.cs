@@ -2247,9 +2247,35 @@ namespace Microsoft.Dafny {
         expr.Type = Type.Bool;
 
         if (prevErrorCount == ErrorCount) {
-          e.Bounds = DiscoverBounds(e, specContext);
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.LogicalBody(), e is ExistsExpr, specContext ? null : "quantifiers in non-ghost contexts must be compilable");
         }
-        
+
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
+        int prevErrorCount = ErrorCount;
+        scope.PushMarker();
+        foreach (BoundVar v in e.BoundVars) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate bound-variable name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type);
+        }
+        ResolveExpression(e.Range, twoState, specContext);
+        Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Range.Type, Type.Bool)) {
+          Error(expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
+        }
+        ResolveExpression(e.Term, twoState, specContext);
+        Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
+
+        ResolveAttributes(e.Attributes, twoState);
+        scope.PopMarker();
+        expr.Type = new SetType(e.Term.Type);
+
+        if (prevErrorCount == ErrorCount) {
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, "a set comprehension must produce a finite set");
+        }
+
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
         
@@ -2378,34 +2404,36 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Tries to find a bounded pool for each of the bound variables of "e".  If this process fails, appropriate
-    /// error messages are reported and "null" is returned, unless "friendlyTry" is "true", in which case no
-    /// error messages are reported.
+    /// Tries to find a bounded pool for each of the bound variables "bvars" of "expr".  If this process
+    /// fails, then "null" is returned and:
+    /// if "errorMessage" is non-null, then appropriate error messages are reported and "null" is returned;
+    /// if "errorMessage" is null, no error messages are reported.
     /// Requires "e" to be successfully resolved.
     /// </summary>
-    List<QuantifierExpr.BoundedPool> DiscoverBounds(QuantifierExpr e, bool friendlyTry) {
-      Contract.Requires(e != null);
-      Contract.Requires(e.Type != null);  // a sanity check (but not a complete proof) that "e" has been resolved
-      Contract.Ensures(Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == e.BoundVars.Count);
+    List<QuantifierExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, string errorMessage) {
+      Contract.Requires(tok != null);
+      Contract.Requires(bvars != null);
+      Contract.Requires(expr.Type != null);  // a sanity check (but not a complete proof) that "e" has been resolved
+      Contract.Ensures(Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == bvars.Count);
 
       var bounds = new List<QuantifierExpr.BoundedPool>();
-      for (int j = 0; j < e.BoundVars.Count; j++) {
-        var bv = e.BoundVars[j];
-        if (bv.Type == Type.Bool) {
+      for (int j = 0; j < bvars.Count; j++) {
+        var bv = bvars[j];
+        if (bv.Type is BoolType) {
           // easy
           bounds.Add(new QuantifierExpr.BoolBoundedPool());
         } else {
           // Go through the conjuncts of the range expression look for bounds.
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
-          foreach (var conjunct in NormalizedConjuncts(e.LogicalBody(), e is ExistsExpr)) {
+          foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
             var c = conjunct as BinaryExpr;
             if (c == null) {
               goto CHECK_NEXT_CONJUNCT;
             }
             var e0 = c.E0;
             var e1 = c.E1;
-            int whereIsBv = SanitizeForBoundDiscovery(e.BoundVars, j, c.ResolvedOp, ref e0, ref e1);
+            int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, ref e0, ref e1);
             if (whereIsBv < 0) {
               goto CHECK_NEXT_CONJUNCT;
             }
@@ -2457,8 +2485,8 @@ namespace Microsoft.Dafny {
           CHECK_NEXT_CONJUNCT: ;
           }
           // we have checked every conjunct in the range expression and still have not discovered good bounds
-          if (!friendlyTry) {
-            Error(e, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+          if (errorMessage != null) {
+            Error(tok, "{0}, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", errorMessage, bv.Name);
           }
           return null;
         }

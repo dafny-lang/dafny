@@ -1306,7 +1306,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
-        for (int i = n; 0 <= --i; ) {
+        for (int i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
           // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
@@ -1339,7 +1339,68 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < n; i++) {
           wr.Write(")");
         }
-      
+
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
+        // For "set i,j,k,l | R(i,j,k,l) :: Term(i,j,k,l)" where the term has type "G", emit something like:
+        // ((ComprehensionDelegate<G>)delegate() {
+        //   var _coll = new List<G>();
+        //   foreach (L l in sq.Elements) {
+        //     foreach (K k in st.Elements) {
+        //       for (BigInteger j = Lo; j < Hi; j++) {
+        //         for (bool i in Helper.AllBooleans) {
+        //           if (R(i,j,k,l)) {
+        //             _coll.Add(Term(i,j,k,l));
+        //           }
+        //         }
+        //       }
+        //     }
+        //   }
+        //   return Dafny.Set<G>.FromCollection(_coll);
+        // })()
+        Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
+        var typeName = TypeName(((SetType)e.Type).Arg);
+        wr.Write("((Dafny.Helpers.ComprehensionDelegate<{0}>)delegate() {{ ", typeName);
+        wr.Write("var _coll = new System.Collections.Generic.List<{0}>(); ", typeName);
+        var n = e.BoundVars.Count;
+        Contract.Assert(e.Bounds.Count == n);
+        for (int i = 0; i < n; i++) {
+          var bound = e.Bounds[i];
+          var bv = e.BoundVars[i];
+          if (bound is QuantifierExpr.BoolBoundedPool) {
+            wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.Name);
+          } else if (bound is QuantifierExpr.IntBoundedPool) {
+            var b = (QuantifierExpr.IntBoundedPool)bound;
+            wr.Write("for (var @{0} = ", bv.Name);
+            TrExpr(b.LowerBound);
+            wr.Write("; @{0} < ", bv.Name);
+            TrExpr(b.UpperBound);
+            wr.Write("; @{0}++) {{ ", bv.Name);
+          } else if (bound is QuantifierExpr.SetBoundedPool) {
+            var b = (QuantifierExpr.SetBoundedPool)bound;
+            wr.Write("foreach (var @{0} in (", bv.Name);
+            TrExpr(b.Set);
+            wr.Write(").Elements) { ");
+          } else if (bound is QuantifierExpr.SeqBoundedPool) {
+            var b = (QuantifierExpr.SeqBoundedPool)bound;
+            wr.Write("foreach (var @{0} in (", bv.Name);
+            TrExpr(b.Seq);
+            wr.Write(").Elements) { ");
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+          }
+        }
+        wr.Write("if (");
+        TrExpr(e.Range);
+        wr.Write(") { _coll.Add(");
+        TrExpr(e.Term);
+        wr.Write("); }");
+        for (int i = 0; i < n; i++) {
+          wr.Write("}");
+        }
+        wr.Write("return Dafny.Set<{0}>.FromCollection(_coll); ", typeName);
+        wr.Write("})()");
+
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         wr.Write("(");

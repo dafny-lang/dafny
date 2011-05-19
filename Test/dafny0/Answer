@@ -527,6 +527,19 @@ Execution trace:
 
 Dafny program verifier finished with 2 verified, 1 error
 
+-------------------- Comprehensions.dfy --------------------
+Comprehensions.dfy(9,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+    (0,0): anon8
+
+Dafny program verifier finished with 6 verified, 1 error
+
 -------------------- Termination.dfy --------------------
 Termination.dfy(102,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:

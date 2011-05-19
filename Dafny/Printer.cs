@@ -946,7 +946,28 @@ namespace Microsoft.Dafny {
           PrintExpression(e.Term);
         }
         if (parensNeeded) { wr.Write(")"); }
-        
+
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("set ");
+        string sep = "";
+        foreach (BoundVar bv in e.BoundVars) {
+          wr.Write("{0}{1}", sep, bv.Name);
+          sep = ", ";
+          PrintType(": ", bv.Type);
+        }
+        wr.Write(" ");
+        PrintAttributes(e.Attributes);
+        wr.Write("| ");
+        PrintExpression(e.Range);
+        if (!e.TermIsImplicit) {
+          wr.Write(" :: ");
+          PrintExpression(e.Term);
+        }
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is WildcardExpr) {
         wr.Write("*");
         

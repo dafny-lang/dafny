@@ -1237,6 +1237,7 @@ ConstAtomExpression<out Expression/*!*/ e>
     "then" Expression<out e0>
     "else" Expression<out e1>                  (. e = new ITEExpr(x, e, e0, e1); .)
   | QuantifierGuts<out e>
+  | ComprehensionExpr<out e>
   )
   .
 
@@ -1390,6 +1391,31 @@ QuantifierGuts<out Expression/*!*/ q>
 Forall = "forall" | '\u2200'.
 Exists = "exists" | '\u2203'.
 QSep = "::" | '\u2022'.
+
+ComprehensionExpr<out Expression/*!*/ q>
+= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
+     IToken/*!*/ x = Token.NoToken;
+     BoundVar/*!*/ bv;
+     List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
+     Expression/*!*/ range;
+     Expression body = null;
+  .)
+  "set"                                        (. x = t; .)
+  (. parseVarScope.PushMarker(); .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
+  { ","
+    IdentTypeOptional<out bv>                  (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
+  }
+  "|" Expression<out range>
+  [
+    QSep
+    Expression<out body>
+  ]
+  (. if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
+     q = new SetComprehension(x, bvars, range, body);
+     parseVarScope.PopMarker();
+  .)
+  .
 
 Expressions<.List<Expression/*!*/>/*!*/ args.>
 = (. Contract.Requires(cce.NonNullElements(args)); Expression/*!*/ e; .)
