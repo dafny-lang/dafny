@@ -1642,10 +1642,12 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Source != null);
       Contract.Invariant(cce.NonNullElements(Cases));
+      Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
     public readonly Expression Source;
     public readonly List<MatchCaseStmt/*!*/>/*!*/ Cases;
+    public readonly List<DatatypeCtor/*!*/> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
 
     public MatchStmt(IToken tok, Expression source, [Captured] List<MatchCaseStmt/*!*/>/*!*/ cases)
       : base(tok) {
@@ -2490,10 +2492,13 @@ namespace Microsoft.Dafny {
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
     public readonly Expression Source;
     public readonly List<MatchCaseExpr/*!*/>/*!*/ Cases;
+    public readonly List<DatatypeCtor/*!*/> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Source != null);
       Contract.Invariant(cce.NonNullElements(Cases));
+      Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
     public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr/*!*/>/*!*/ cases)

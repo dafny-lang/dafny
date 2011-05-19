@@ -540,6 +540,42 @@ Execution trace:
 
 Dafny program verifier finished with 6 verified, 1 error
 
+-------------------- ControlStructures.dfy --------------------
+ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+ControlStructures.dfy(14,3): Error: missing case in case statement: Purple
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+ControlStructures.dfy(43,5): Error: missing case in case statement: Red
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon9_Else
+    (0,0): anon10_Then
+ControlStructures.dfy(51,3): Error: missing case in case statement: Red
+Execution trace:
+    (0,0): anon8_Else
+    (0,0): anon9_Else
+    (0,0): anon10_Else
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+
+Dafny program verifier finished with 8 verified, 5 errors
+
 -------------------- Termination.dfy --------------------
 Termination.dfy(102,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:

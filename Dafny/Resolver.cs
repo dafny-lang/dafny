@@ -1473,7 +1473,16 @@ namespace Microsoft.Dafny {
           scope.PopMarker();
         }
         if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-          Error(stmt, "match expression does not cover all constructors");
+          // We could complain about the syntactic omission of constructors:
+          //   Error(stmt, "match statement does not cover all constructors");
+          // but instead we let the verifier do a semantic check.
+          // So, for now, record the missing constructors:
+          foreach (var ctr in dtd.Ctors) {
+            if (!memberNamesUsed.ContainsKey(ctr.Name)) {
+              s.MissingCases.Add(ctr);
+            }
+          }
+          Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
         }
         
         
@@ -2390,7 +2399,16 @@ namespace Microsoft.Dafny {
           scope.PopMarker();
         }
         if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-          Error(expr, "match expression does not cover all constructors");
+          // We could complain about the syntactic omission of constructors:
+          //   Error(expr, "match expression does not cover all constructors");
+          // but instead we let the verifier do a semantic check.
+          // So, for now, record the missing constructors:
+          foreach (var ctr in dtd.Ctors) {
+            if (!memberNamesUsed.ContainsKey(ctr.Name)) {
+              me.MissingCases.Add(ctr);
+            }
+          }
+          Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
         }
         
       } else {

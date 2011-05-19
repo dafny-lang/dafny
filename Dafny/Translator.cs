@@ -1371,8 +1371,26 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(mc.tok, mc.Ctor.FullName, predef.DatatypeType);
       return new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(id), args);
     }
-    
-    Bpl.Expr IsTotal(Expression expr, ExpressionTranslator etran){
+
+    Bpl.Expr CtorInvocation(IToken tok, DatatypeCtor ctor, ExpressionTranslator etran, Bpl.VariableSeq locals, StmtListBuilder localTypeAssumptions) {
+      Contract.Requires(tok != null);
+      Contract.Requires(ctor != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(localTypeAssumptions != null);
+      Contract.Requires(predef != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      VariableSeq bvars;
+      List<Bpl.Expr> args;
+      CreateBoundVariables(ctor.Formals, out bvars, out args);
+      locals.AddRange(bvars);
+
+      Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(tok, ctor.FullName, predef.DatatypeType);
+      return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), new ExprSeq(args.ToArray()));
+    }
+
+    Bpl.Expr IsTotal(Expression expr, ExpressionTranslator etran) {
       Contract.Requires(expr != null);Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -2030,20 +2048,40 @@ namespace Microsoft.Dafny {
         MatchExpr me = (MatchExpr)expr;
         CheckWellformed(me.Source, options, locals, builder, etran);
         Bpl.Expr src = etran.TrExpr(me.Source);
-        Bpl.IfCmd ifcmd = null;
+        Bpl.IfCmd ifCmd = null;
         StmtListBuilder elsBldr = new StmtListBuilder();
         elsBldr.Add(new Bpl.AssumeCmd(expr.tok, Bpl.Expr.False));
         StmtList els = elsBldr.Collect(expr.tok);
+        foreach (var missingCtor in me.MissingCases) {
+          // havoc all bound variables
+          var b = new Bpl.StmtListBuilder();
+          VariableSeq newLocals = new VariableSeq();
+          Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
+          locals.AddRange(newLocals);
+
+          if (newLocals.Length != 0) {
+            Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
+            foreach (Variable local in newLocals) {
+              havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
+            }
+            builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
+          }
+          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+
+          Bpl.Expr guard = Bpl.Expr.Eq(src, r);
+          ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
+          els = null;
+        }
         for (int i = me.Cases.Count; 0 <= --i; ) {
           MatchCaseExpr mc = me.Cases[i];
           Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
           Bpl.Expr ct = CtorInvocation(mc, etran, locals, b);
           // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
           CheckWellformedWithResult(mc.Body, options, result, resultType, locals, b, etran);
-          ifcmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifcmd, els);
+          ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
           els = null;
         }
-        builder.Add(ifcmd);
+        builder.Add(ifCmd);
         result = null;
         
       } else {
@@ -3233,16 +3271,36 @@ namespace Microsoft.Dafny {
         builder.Add(CaptureState(stmt.Tok));
         
       } else if (stmt is MatchStmt) {
-        MatchStmt s = (MatchStmt)stmt;
+        var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
         Bpl.Expr source = etran.TrExpr(s.Source);
         
-        Bpl.StmtListBuilder b = new Bpl.StmtListBuilder();
+        var b = new Bpl.StmtListBuilder();
         b.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.False));
         Bpl.StmtList els = b.Collect(stmt.Tok);
         Bpl.IfCmd ifCmd = null;
+        foreach (var missingCtor in s.MissingCases) {
+          // havoc all bound variables
+          b = new Bpl.StmtListBuilder();
+          VariableSeq newLocals = new VariableSeq();
+          Bpl.Expr r = CtorInvocation(s.Tok, missingCtor, etran, newLocals, b);
+          locals.AddRange(newLocals);
+
+          if (newLocals.Length != 0) {
+            Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
+            foreach (Variable local in newLocals) {
+              havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
+            }
+            builder.Add(new Bpl.HavocCmd(s.Tok, havocIds));
+          }
+          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+
+          Bpl.Expr guard = Bpl.Expr.Eq(source, r);
+          ifCmd = new Bpl.IfCmd(s.Tok, guard, b.Collect(s.Tok), ifCmd, els);
+          els = null;
+        }
         for (int i = s.Cases.Count; 0 <= --i; ) {
-          MatchCaseStmt mc = (MatchCaseStmt)s.Cases[i];
+          var mc = (MatchCaseStmt)s.Cases[i];
           // havoc all bound variables
           b = new Bpl.StmtListBuilder();
           VariableSeq newLocals = new VariableSeq();
@@ -3266,7 +3324,7 @@ namespace Microsoft.Dafny {
           ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
           els = null;
         }
-        Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count != 0.
+        Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
         builder.Add(ifCmd);
 
       } else {

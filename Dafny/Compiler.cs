@@ -795,21 +795,22 @@ namespace Microsoft.Dafny {
         // } else if (true) {
         //   ...
         // }
+        if (s.Cases.Count != 0) {
+          string source = "_source" + tmpVarCount;
+          tmpVarCount++;
+          Indent(indent);
+          wr.Write("{0} {1} = ", TypeName(cce.NonNull(s.Source.Type)), source);
+          TrExpr(s.Source);
+          wr.WriteLine(";");
 
-        string source = "_source" + tmpVarCount;
-        tmpVarCount++;
-        Indent(indent);
-        wr.Write("{0} {1} = ", TypeName(cce.NonNull(s.Source.Type)), source);
-        TrExpr(s.Source);
-        wr.WriteLine(";");
-        
-        int i = 0;
-        foreach (MatchCaseStmt mc in s.Cases) {
-          MatchCasePrelude(source, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, indent);
-          TrStmtList(mc.Body, indent);
-          i++;
+          int i = 0;
+          foreach (MatchCaseStmt mc in s.Cases) {
+            MatchCasePrelude(source, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, indent);
+            TrStmtList(mc.Body, indent);
+            i++;
+          }
+          Indent(indent); wr.WriteLine("}");
         }
-        Indent(indent);  wr.WriteLine("}");
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
