@@ -716,7 +716,20 @@ namespace Microsoft.Dafny {
           Indent(indent);  wr.WriteLine("else");
           TrStmt(s.Els, indent);
         }
-        
+
+      } else if (stmt is AlternativeStmt) {
+        var s = (AlternativeStmt)stmt;
+        Indent(indent);
+        foreach (var alternative in s.Alternatives) {
+          wr.Write("if (");
+          TrExpr(alternative.Guard);
+          wr.WriteLine(") {");
+          TrStmtList(alternative.Body, indent);
+          Indent(indent);
+          wr.Write("} else ");
+        }
+        wr.WriteLine("{ /*unreachable alternative*/ }");
+
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         if (s.Guard == null) {
@@ -728,6 +741,26 @@ namespace Microsoft.Dafny {
           TrExpr(s.Guard);
           wr.WriteLine(")");
           TrStmt(s.Body, indent);
+        }
+
+      } else if (stmt is AlternativeLoopStmt) {
+        var s = (AlternativeLoopStmt)stmt;
+        if (s.Alternatives.Count != 0) {
+          Indent(indent);
+          wr.WriteLine("while (true) {");
+          int ind = indent + IndentAmount;
+          Indent(ind);
+          foreach (var alternative in s.Alternatives) {
+            wr.Write("if (");
+            TrExpr(alternative.Guard);
+            wr.WriteLine(") {");
+            TrStmtList(alternative.Body, ind);
+            Indent(ind);
+            wr.Write("} else ");
+          }
+          wr.WriteLine("{ break; }");
+          Indent(indent);
+          wr.WriteLine("}");
         }
 
       } else if (stmt is ForeachStmt) {
@@ -1127,7 +1160,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
-        wr.Write("new {0}(new {0}", dtv.DatatypeName, DtCtorName(dtv.Ctor));
+        wr.Write("new {0}(new {1}", dtv.DatatypeName, DtCtorName(dtv.Ctor));
         if (dtv.InferredTypeArgs.Count != 0) {
           wr.Write("<{0}>", TypeNames(dtv.InferredTypeArgs));
         }

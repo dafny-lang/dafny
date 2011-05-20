@@ -573,8 +573,12 @@ Execution trace:
     (0,0): anon10_Else
     (0,0): anon11_Else
     (0,0): anon12_Then
+ControlStructures.dfy(72,3): Error: alternative cases fail to cover all possibilties
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
 
-Dafny program verifier finished with 8 verified, 5 errors
+Dafny program verifier finished with 15 verified, 6 errors
 
 -------------------- Termination.dfy --------------------
 Termination.dfy(102,3): Error: cannot prove termination; try supplying a decreases clause for the loop

@@ -881,29 +881,72 @@ IfStmt<out Statement/*!*/ ifStmt>
      Statement/*!*/ s;
      Statement els = null;
      IToken bodyStart, bodyEnd;
+     List<GuardedAlternative> alternatives;
+     ifStmt = dummyStmt;  // to please the compiler
   .)
   "if"                       (. x = t; .)
-  Guard<out guard>
-  BlockStmt<out thn, out bodyStart, out bodyEnd>
-  [ "else"
-    ( IfStmt<out s>                                 (. els = s; .)
-    | BlockStmt<out s, out bodyStart, out bodyEnd>  (. els = s; .)
-    )
-  ]
-  (. ifStmt = new IfStmt(x, guard, thn, els); .)
+  (
+    Guard<out guard>
+    BlockStmt<out thn, out bodyStart, out bodyEnd>
+    [ "else"
+      ( IfStmt<out s>                                 (. els = s; .)
+      | BlockStmt<out s, out bodyStart, out bodyEnd>  (. els = s; .)
+      )
+    ]
+    (. ifStmt = new IfStmt(x, guard, thn, els); .)
+  |
+    AlternativeBlock<out alternatives>
+    (. ifStmt = new AlternativeStmt(x, alternatives); .)
+  )
+  .
+
+AlternativeBlock<.out List<GuardedAlternative> alternatives.>
+= (. alternatives = new List<GuardedAlternative>();
+     IToken x;
+     Expression e;
+     List<Statement> body;
+  .)
+  "{"
+  { "case"                      (. x = t; .)
+    Expression<out e>
+    "=>"
+    (. body = new List<Statement>(); .)
+    (. parseVarScope.PushMarker(); .)
+    { Stmt<body> }
+    (. parseVarScope.PopMarker(); .)
+    (. alternatives.Add(new GuardedAlternative(x, e, body)); .)
+  }
+  "}"
   .
 
 WhileStmt<out Statement/*!*/ stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
      Expression guard;
-     bool isFree;  Expression/*!*/ e;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Statement/*!*/ body;
      IToken bodyStart, bodyEnd;
+     List<GuardedAlternative> alternatives;
+     stmt = dummyStmt;  // to please the compiler
   .)
   "while"                    (. x = t; .)
-  Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+  (
+    Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    LoopSpec<out invariants, out decreases>
+    BlockStmt<out body, out bodyStart, out bodyEnd>
+    (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
+  |
+    LoopSpec<out invariants, out decreases>
+    AlternativeBlock<out alternatives>
+    (. stmt = new AlternativeLoopStmt(x, invariants, decreases, alternatives); .)
+  )
+  .
+
+LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases.>
+= (. bool isFree;  Expression/*!*/ e;
+     invariants = new List<MaybeFreeExpression/*!*/>();
+     decreases = new List<Expression/*!*/>();
+  .)
   {                          (. isFree = false; .)
      [ "free"                (. isFree = true; .)
      ]
@@ -916,7 +959,6 @@ WhileStmt<out Statement/*!*/ stmt>
      }
      ";"
   }
-  BlockStmt<out body, out bodyStart, out bodyEnd>  (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
   .
 
 Guard<out Expression e>   /* null represents demonic-choice */

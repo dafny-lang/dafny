@@ -1317,7 +1317,11 @@ namespace Microsoft.Dafny {
         if (s.Els != null) {
           ResolveStatement(s.Els, branchesAreSpecOnly, method);
         }
-      
+
+      } else if (stmt is AlternativeStmt) {
+        var s = (AlternativeStmt)stmt;
+        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, method);
+
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         bool bodyMustBeSpecOnly = specContextOnly;
@@ -1349,7 +1353,25 @@ namespace Microsoft.Dafny {
         }
         s.IsGhost = bodyMustBeSpecOnly;
         ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
-      
+
+      } else if (stmt is AlternativeLoopStmt) {
+        var s = (AlternativeLoopStmt)stmt;
+        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, method);
+        foreach (MaybeFreeExpression inv in s.Invariants) {
+          ResolveExpression(inv.E, true, true);
+          Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(inv.E.Type, Type.Bool)) {
+            Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
+          }
+        }
+        foreach (Expression e in s.Decreases) {
+          ResolveExpression(e, true, true);
+          if (s.IsGhost && e is WildcardExpr) {
+            Error(e, "'decreases *' is not allowed on ghost loops");
+          }
+          // any type is fine
+        }
+
       } else if (stmt is ForeachStmt) {
         ForeachStmt s = (ForeachStmt)stmt;
 
@@ -1489,6 +1511,34 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
+    }
+
+    bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, Method method) {
+      Contract.Requires(alternatives != null);
+      Contract.Requires(method != null);
+
+      bool isGhost = specContextOnly;
+      // first, resolve the guards, which tells us whether or not the entire statement is a ghost statement
+      foreach (var alternative in alternatives) {
+        int prevErrorCount = ErrorCount;
+        ResolveExpression(alternative.Guard, true, true);
+        Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
+        bool successfullyResolved = ErrorCount == prevErrorCount;
+        if (!UnifyTypes(alternative.Guard.Type, Type.Bool)) {
+          Error(alternative.Guard, "condition is expected to be of type {0}, but is {1}", Type.Bool, alternative.Guard.Type);
+        }
+        if (!specContextOnly && successfullyResolved) {
+          isGhost = isGhost || UsesSpecFeatures(alternative.Guard);
+        }
+      }
+      foreach (var alternative in alternatives) {
+        scope.PushMarker();
+        foreach (Statement ss in alternative.Body) {
+          ResolveStatement(ss, isGhost, method);
+        }
+        scope.PopMarker();
+      }
+      return isGhost;
     }
 
     void ResolveCallStmt(CallStmt s, bool specContextOnly, Method method, Type receiverType) {

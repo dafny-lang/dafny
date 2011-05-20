@@ -2139,15 +2139,16 @@ namespace Microsoft.Dafny {
       return decr;
     }
 
-    List<Expression> LoopDecreasesWithDefault(WhileStmt s, out bool inferredDecreases) {
-      Contract.Requires(s != null);
+    List<Expression> LoopDecreasesWithDefault(IToken tok, Expression Guard, List<Expression> Decreases, out bool inferredDecreases) {
+      Contract.Requires(tok != null);
+      Contract.Requires(Decreases != null);
 
-      List<Expression> theDecreases = s.Decreases;
+      List<Expression> theDecreases = Decreases;
       inferredDecreases = false;
-      if (theDecreases.Count == 0 && s.Guard != null) {
+      if (theDecreases.Count == 0 && Guard != null) {
         theDecreases = new List<Expression>();
         Expression prefix = null;
-        foreach (Expression guardConjunct in Conjuncts(s.Guard)) {
+        foreach (Expression guardConjunct in Conjuncts(Guard)) {
           Expression guess = null;
           BinaryExpr bin = guardConjunct as BinaryExpr;
           if (bin != null) {
@@ -2155,23 +2156,23 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.Lt:
               case BinaryExpr.ResolvedOpcode.Le:
                 // for A < B and A <= B, use the decreases B - A
-                guess = CreateIntSub(s.Tok, bin.E1, bin.E0);
+                guess = CreateIntSub(tok, bin.E1, bin.E0);
                 break;
               case BinaryExpr.ResolvedOpcode.Ge:
               case BinaryExpr.ResolvedOpcode.Gt:
                 // for A >= B and A > B, use the decreases A - B
-                guess = CreateIntSub(s.Tok, bin.E0, bin.E1);
+                guess = CreateIntSub(tok, bin.E0, bin.E1);
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 if (bin.E0.Type is IntType) {
                   // for A != B where A and B are integers, use the absolute difference between A and B (that is: if 0 <= A-B then A-B else B-A)
-                  Expression AminusB = CreateIntSub(s.Tok, bin.E0, bin.E1);
-                  Expression BminusA = CreateIntSub(s.Tok, bin.E1, bin.E0);
-                  Expression zero = CreateIntLiteral(s.Tok, 0);
-                  BinaryExpr test = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Le, zero, AminusB);
+                  Expression AminusB = CreateIntSub(tok, bin.E0, bin.E1);
+                  Expression BminusA = CreateIntSub(tok, bin.E1, bin.E0);
+                  Expression zero = CreateIntLiteral(tok, 0);
+                  BinaryExpr test = new BinaryExpr(tok, BinaryExpr.Opcode.Le, zero, AminusB);
                   test.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
                   test.Type = Type.Bool;  // resolve here
-                  guess = CreateIntITE(s.Tok, test, AminusB, BminusA);
+                  guess = CreateIntITE(tok, test, AminusB, BminusA);
                 }
                 break;
               default:
@@ -2181,8 +2182,8 @@ namespace Microsoft.Dafny {
           if (guess != null) {
             if (prefix != null) {
               // Make the following guess:  if prefix then guess else -1
-              Expression negativeOne = CreateIntLiteral(s.Tok, -1);
-              guess = CreateIntITE(s.Tok, prefix, guess, negativeOne);
+              Expression negativeOne = CreateIntLiteral(tok, -1);
+              guess = CreateIntITE(tok, prefix, guess, negativeOne);
             }
             theDecreases.Add(guess);
             inferredDecreases = true;
@@ -2191,7 +2192,7 @@ namespace Microsoft.Dafny {
           if (prefix == null) {
             prefix = guardConjunct;
           } else {
-            BinaryExpr and = new BinaryExpr(s.Tok, BinaryExpr.Opcode.And, prefix, guardConjunct);
+            BinaryExpr and = new BinaryExpr(tok, BinaryExpr.Opcode.And, prefix, guardConjunct);
             and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
             and.Type = Type.Bool;  // resolve here
             prefix = and;
@@ -3013,134 +3014,28 @@ namespace Microsoft.Dafny {
           }
         }
         builder.Add(new Bpl.IfCmd(stmt.Tok, guard, thn, elsIf, els));
-        
+
+      } else if (stmt is AlternativeStmt) {
+        AddComment(builder, stmt, "alternative statement");
+        var s = (AlternativeStmt)stmt;
+        var elseCase = Assert(s.Tok, Bpl.Expr.False, "alternative cases fail to cover all possibilties");
+        TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran);
+
       } else if (stmt is WhileStmt) {
         AddComment(builder, stmt, "while statement");
-        WhileStmt s = (WhileStmt)stmt;
-        int loopId = loopHeapVarCount;
-        loopHeapVarCount++;
-        
-        // use simple heuristics to create a default decreases clause, if none is given
-        bool inferredDecreases;
-        List<Expression> theDecreases = LoopDecreasesWithDefault(s, out inferredDecreases);
-        
-        Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
-        locals.Add(preLoopHeapVar);
-        Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(stmt.Tok, preLoopHeapVar);
-        ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
-        builder.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
+        var s = (WhileStmt)stmt;
+        TrLoop(s, s.Guard,
+          delegate(Bpl.StmtListBuilder bld) { TrStmt(s.Body, bld, locals, etran); },
+          builder, locals, etran);
 
-        List<Bpl.Expr> initDecr = null;
-        if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
-          initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr" + loopId + "$init$");
-        }
-
-        // the variable w is used to coordinate the definedness checking of the loop invariant
-        Bpl.LocalVariable wVar = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$w" + loopId, Bpl.Type.Bool));
-        Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(stmt.Tok, wVar);
-        locals.Add(wVar);
-        // havoc w;
-        builder.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq(w)));
-        
-        List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
-        Bpl.StmtListBuilder invDefinednessBuilder = new Bpl.StmtListBuilder();
-        foreach (MaybeFreeExpression loopInv in s.Invariants) {
-          TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
-          invDefinednessBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
-
-          invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
-          if (loopInv.IsFree) {
-            invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
-          } else {
-            bool splitHappened;
-            var ss = TrSplitExpr(loopInv.E, etran, out splitHappened);
-            if (!splitHappened) {
-              var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-              invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
-            } else {
-              foreach (var split in ss) {
-                var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
-                if (split.IsFree) {
-                  invariants.Add(new Bpl.AssumeCmd(split.E.tok, wInv));
-                } else {
-                  invariants.Add(Assert(split.E.tok, wInv, "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
-                }
-              }
-            }
-          }
-        }
-        // check definedness of decreases clause
-        // TODO: can this check be omitted if the decreases clause is inferred?
-        foreach (Expression e in theDecreases) {
-          TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
-        }
-        // include boilerplate invariants
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(stmt.Tok, currentMethod, etranPreLoop, etran)) {
-          if (tri.IsFree) {
-            invariants.Add(new Bpl.AssumeCmd(stmt.Tok, tri.Expr));
-          } else {
-            Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(stmt.Tok, tri.Expr, tri.ErrorMessage));
-          }
-        }
-        // include a free invariant that says that all completed iterations so far have only decreased the termination metric
-        if (initDecr != null) {
-          List<IToken> toks = new List<IToken>();
-          List<Type> types = new List<Type>();
-          List<Bpl.Expr> decrs = new List<Bpl.Expr>();
-          foreach (Expression e in theDecreases) {
-            toks.Add(e.tok);
-            types.Add(cce.NonNull(e.Type));
-            decrs.Add(etran.TrExpr(e));
-          }
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, etran, null, null, true, false);
-          invariants.Add(new Bpl.AssumeCmd(stmt.Tok, decrCheck));
-        }
-        
-        Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
-        // as the first thing inside the loop, generate:  if (!w) { assert IsTotal(inv); assume false; }
-        invDefinednessBuilder.Add(new Bpl.AssumeCmd(stmt.Tok, Bpl.Expr.False));
-        loopBodyBuilder.Add(new Bpl.IfCmd(stmt.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(stmt.Tok), null, null));
-        // generate:  assert IsTotal(guard); if (!guard) { break; }
-        Bpl.Expr guard = null;
-        if (s.Guard != null) {
-          TrStmt_CheckWellformed(s.Guard, loopBodyBuilder, locals, etran, true);
-          guard = Bpl.Expr.Not(etran.TrExpr(s.Guard));
-        }
-        Bpl.StmtListBuilder guardBreak = new Bpl.StmtListBuilder();
-        guardBreak.Add(new Bpl.BreakCmd(s.Tok, null));
-        loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
-
-        loopBodyBuilder.Add(CaptureState(stmt.Tok, "loop entered"));
-        // termination checking
-        if (Contract.Exists(theDecreases, e => e is WildcardExpr)) {
-          // omit termination checking for this loop
-          TrStmt(s.Body, loopBodyBuilder, locals, etran);
-        } else {
-          List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr" + loopId + "$");
-          // time for the actual loop body
-          TrStmt(s.Body, loopBodyBuilder, locals, etran);
-          // check definedness of decreases expressions
-          List<IToken> toks = new List<IToken>();
-          List<Type> types = new List<Type>();
-          List<Bpl.Expr> decrs = new List<Bpl.Expr>();
-          foreach (Expression e in theDecreases) {
-            toks.Add(e.tok);
-            types.Add(cce.NonNull(e.Type));
-            decrs.Add(etran.TrExpr(e));
-          }
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false, false);
-          loopBodyBuilder.Add(Assert(stmt.Tok, decrCheck, inferredDecreases ? "cannot prove termination; try supplying a decreases clause for the loop" : "decreases expression might not decrease"));
-        }
-        // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
-        // of invariant-maintenance can use the appropriate canCall predicates.
-        foreach (MaybeFreeExpression loopInv in s.Invariants) {
-          loopBodyBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, CanCallAssumption(loopInv.E, etran)));
-        }
-        Bpl.StmtList body = loopBodyBuilder.Collect(stmt.Tok);
-
-        builder.Add(new Bpl.WhileCmd(stmt.Tok, Bpl.Expr.True, invariants, body));
-        builder.Add(CaptureState(stmt.Tok, "loop exit"));
+      } else if (stmt is AlternativeLoopStmt) {
+        AddComment(builder, stmt, "alternative loop statement");
+        var s = (AlternativeLoopStmt)stmt;
+        var tru = new LiteralExpr(s.Tok, true);
+        tru.Type = Type.Bool;  // resolve here
+        TrLoop(s, tru,
+          delegate(Bpl.StmtListBuilder bld) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, etran); },
+          builder, locals, etran);
 
       } else if (stmt is ForeachStmt) {
         AddComment(builder, stmt, "foreach statement");
@@ -3330,6 +3225,193 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    delegate void BodyTranslator(Bpl.StmtListBuilder builder);
+
+    void TrLoop(LoopStmt s, Expression Guard, BodyTranslator bodyTr,
+                Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      Contract.Requires(s != null);
+      Contract.Requires(bodyTr != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      int loopId = loopHeapVarCount;
+      loopHeapVarCount++;
+
+      // use simple heuristics to create a default decreases clause, if none is given
+      bool inferredDecreases;
+      List<Expression> theDecreases = LoopDecreasesWithDefault(s.Tok, Guard, s.Decreases, out inferredDecreases);
+
+      Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
+      locals.Add(preLoopHeapVar);
+      Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
+      ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
+      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
+
+      List<Bpl.Expr> initDecr = null;
+      if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
+        initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr" + loopId + "$init$");
+      }
+
+      // the variable w is used to coordinate the definedness checking of the loop invariant
+      Bpl.LocalVariable wVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w" + loopId, Bpl.Type.Bool));
+      Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(s.Tok, wVar);
+      locals.Add(wVar);
+      // havoc w;
+      builder.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq(w)));
+
+      List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
+      Bpl.StmtListBuilder invDefinednessBuilder = new Bpl.StmtListBuilder();
+      foreach (MaybeFreeExpression loopInv in s.Invariants) {
+        TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
+        invDefinednessBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
+
+        invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
+        if (loopInv.IsFree) {
+          invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
+        } else {
+          bool splitHappened;
+          var ss = TrSplitExpr(loopInv.E, etran, out splitHappened);
+          if (!splitHappened) {
+            var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
+            invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
+          } else {
+            foreach (var split in ss) {
+              var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
+              if (split.IsFree) {
+                invariants.Add(new Bpl.AssumeCmd(split.E.tok, wInv));
+              } else {
+                invariants.Add(Assert(split.E.tok, wInv, "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+              }
+            }
+          }
+        }
+      }
+      // check definedness of decreases clause
+      // TODO: can this check be omitted if the decreases clause is inferred?
+      foreach (Expression e in theDecreases) {
+        TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
+      }
+      // include boilerplate invariants
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, currentMethod, etranPreLoop, etran)) {
+        if (tri.IsFree) {
+          invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
+        } else {
+          Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
+          invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
+        }
+      }
+      // include a free invariant that says that all completed iterations so far have only decreased the termination metric
+      if (initDecr != null) {
+        List<IToken> toks = new List<IToken>();
+        List<Type> types = new List<Type>();
+        List<Bpl.Expr> decrs = new List<Bpl.Expr>();
+        foreach (Expression e in theDecreases) {
+          toks.Add(e.tok);
+          types.Add(cce.NonNull(e.Type));
+          decrs.Add(etran.TrExpr(e));
+        }
+        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, etran, null, null, true, false);
+        invariants.Add(new Bpl.AssumeCmd(s.Tok, decrCheck));
+      }
+
+      Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
+      // as the first thing inside the loop, generate:  if (!w) { assert IsTotal(inv); assume false; }
+      invDefinednessBuilder.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+      loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
+      // generate:  assert IsTotal(guard); if (!guard) { break; }
+      Bpl.Expr guard = null;
+      if (Guard != null) {
+        TrStmt_CheckWellformed(Guard, loopBodyBuilder, locals, etran, true);
+        guard = Bpl.Expr.Not(etran.TrExpr(Guard));
+      }
+      Bpl.StmtListBuilder guardBreak = new Bpl.StmtListBuilder();
+      guardBreak.Add(new Bpl.BreakCmd(s.Tok, null));
+      loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
+
+      loopBodyBuilder.Add(CaptureState(s.Tok, "loop entered"));
+      // termination checking
+      if (Contract.Exists(theDecreases, e => e is WildcardExpr)) {
+        // omit termination checking for this loop
+        bodyTr(loopBodyBuilder);
+      } else {
+        List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr" + loopId + "$");
+        // time for the actual loop body
+        bodyTr(loopBodyBuilder);
+        // check definedness of decreases expressions
+        List<IToken> toks = new List<IToken>();
+        List<Type> types = new List<Type>();
+        List<Bpl.Expr> decrs = new List<Bpl.Expr>();
+        foreach (Expression e in theDecreases) {
+          toks.Add(e.tok);
+          types.Add(cce.NonNull(e.Type));
+          decrs.Add(etran.TrExpr(e));
+        }
+        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false, false);
+        loopBodyBuilder.Add(Assert(s.Tok, decrCheck, inferredDecreases ? "cannot prove termination; try supplying a decreases clause for the loop" : "decreases expression might not decrease"));
+      }
+      // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
+      // of invariant-maintenance can use the appropriate canCall predicates.
+      foreach (MaybeFreeExpression loopInv in s.Invariants) {
+        loopBodyBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, CanCallAssumption(loopInv.E, etran)));
+      }
+      Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
+
+      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
+      builder.Add(CaptureState(s.Tok, "loop exit"));
+    }
+
+    void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
+                        Bpl.StmtListBuilder builder, VariableSeq locals, ExpressionTranslator etran) {
+      Contract.Requires(alternatives != null);
+      Contract.Requires((elseCase0 == null) == (elseCase1 == null));  // ugly way of doing a type union
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      if (alternatives.Count == 0) {
+        if (elseCase0 != null) {
+          builder.Add(elseCase0);
+        } else {
+          builder.Add(elseCase1);
+        }
+        return;
+      }
+
+      // build the negation of the disjunction of all guards (that is, the conjunction of their negations)
+      Bpl.Expr noGuard = Bpl.Expr.True;
+      foreach (var alternative in alternatives) {
+        noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(alternative.Guard)));
+      }
+
+      var b = new Bpl.StmtListBuilder();
+      var elseTok = elseCase0 != null ? elseCase0.tok : elseCase1.tok;
+      b.Add(new Bpl.AssumeCmd(elseTok, noGuard));
+      if (elseCase0 != null) {
+        b.Add(elseCase0);
+      } else {
+        b.Add(elseCase1);
+      }
+      Bpl.StmtList els = b.Collect(elseTok);
+
+      Bpl.IfCmd elsIf = null;
+      for (int i = alternatives.Count; 0 <= --i; ) {
+        Contract.Assert(elsIf == null || els == null);  // loop invariant
+        var alternative = alternatives[i];
+        b = new Bpl.StmtListBuilder();
+        TrStmt_CheckWellformed(alternative.Guard, b, locals, etran, true);
+        b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
+        foreach (var s in alternative.Body) {
+          TrStmt(s, b, locals, etran);
+        }
+        Bpl.StmtList thn = b.Collect(alternative.Tok);
+        elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
+        els = null;
+      }
+      Contract.Assert(elsIf != null && els == null); // follows from loop invariant and the fact that there's more than one alternative
+      builder.Add(elsIf);
     }
 
     void TrCallStmt(CallStmt s, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran, Bpl.Expr actualReceiver) {

@@ -1557,8 +1557,6 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Thn != null);
-
-
       Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt);
     }
     public IfStmt(IToken tok, Expression guard, Statement thn, Statement els)
@@ -1574,36 +1572,103 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class WhileStmt : Statement {
+  public class GuardedAlternative
+  {
+    public readonly IToken Tok;
     public readonly Expression Guard;
+    public readonly List<Statement> Body;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Tok != null);
+      Contract.Invariant(Guard != null);
+      Contract.Invariant(Body != null);
+    }
+    public GuardedAlternative(IToken tok, Expression guard, List<Statement> body)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(body != null);
+      this.Tok = tok;
+      this.Guard = guard;
+      this.Body = body;
+    }
+  }
+
+  public class AlternativeStmt : Statement
+  {
+    public readonly List<GuardedAlternative> Alternatives;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Alternatives != null);
+    }
+    public AlternativeStmt(IToken tok, List<GuardedAlternative> alternatives)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(alternatives != null);
+      this.Alternatives = alternatives;
+    }
+  }
+
+  public abstract class LoopStmt : Statement
+  {
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Invariants;
     public readonly List<Expression/*!*/>/*!*/ Decreases;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(cce.NonNullElements(Invariants));
+      Contract.Invariant(cce.NonNullElements(Decreases));
+    }
+    public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases)
+    : base(tok) 
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(invariants));
+      Contract.Requires(cce.NonNullElements(decreases));
+
+      this.Invariants = invariants;
+      this.Decreases = decreases;
+    }
+  }
+
+  public class WhileStmt : LoopStmt
+  {
+    public readonly Expression Guard;
     public readonly Statement/*!*/ Body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Body != null);
-      Contract.Invariant(cce.NonNullElements(Invariants));
-      Contract.Invariant(cce.NonNullElements(Decreases));
     }
-
 
     public WhileStmt(IToken tok, Expression guard,
                      List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases,
                      Statement/*!*/ body)
-      : base(tok) {
+      : base(tok, invariants, decreases) {
       Contract.Requires(tok != null);
       Contract.Requires(body != null);
-      Contract.Requires(cce.NonNullElements(invariants));
-      Contract.Requires(cce.NonNullElements(decreases));
       this.Guard = guard;
-      this.Invariants = invariants;
-      this.Decreases = decreases;
       this.Body = body;
-
     }
   }
 
-  public class ForeachStmt : Statement {
+  public class AlternativeLoopStmt : LoopStmt
+  {
+    public readonly List<GuardedAlternative> Alternatives;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Alternatives != null);
+    }
+    public AlternativeLoopStmt(IToken tok,
+                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases,
+                               List<GuardedAlternative> alternatives)
+      : base(tok, invariants, decreases) {
+      Contract.Requires(tok != null);
+      Contract.Requires(alternatives != null);
+      this.Alternatives = alternatives;
+    }
+  }
+
+  public class ForeachStmt : Statement
+  {
     public readonly BoundVar/*!*/ BoundVar;
     public readonly Expression/*!*/ Collection;
     public readonly Expression/*!*/ Range;
