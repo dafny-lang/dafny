@@ -1850,83 +1850,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
-        // Look up "id" as follows:
-        //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
-        //  - type name (class or datatype)
-        //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
-        //  - field name (with implicit receiver) (if the field is ocluded by anything above, one can use an explicit "this.")
-        // Note, at present, modules do not give rise to new namespaces, which is something that should
-        // be changed in the language when modules are given more attention.
-        Expression r = null;  // resolved version of e
-
-        TopLevelDecl decl;
-        Tuple<DatatypeCtor, bool> pair;
-        Dictionary<string, MemberDecl> members;
-        MemberDecl member;
-        var id = e.Tokens[0];
-        if (scope.Find(id.val) != null) {
-          // ----- root is a local variable, parameter, or bound variable
-          r = new IdentifierExpr(id, id.val);
-          ResolveExpression(r, twoState, specContext);
-          r = ResolveSuffix(r, e, 1, twoState, specContext);
-
-        } else if (classes.TryGetValue(id.val, out decl)) {
-          if (e.Tokens.Count == 1 && e.Arguments == null) {
-            Error(id, "name of type ('{0}') is used as a variable", id.val);
-          } else if (e.Tokens.Count == 1 && e.Arguments != null) {
-            Error(id, "name of type ('{0}') is used as a function", id.val);
-            // resolve the arguments nonetheless
-            foreach (var arg in e.Arguments) {
-              ResolveExpression(arg, twoState, specContext);
-            }
-          } else if (decl is ClassDecl) {
-            // ----- root is a class
-            var cd = (ClassDecl)decl;
-            r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, specContext);
-
-          } else {
-            // ----- root is a datatype
-            var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
-            var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
-            r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
-            ResolveExpression(r, twoState, specContext);
-            if (e.Tokens.Count != 2) {
-              r = ResolveSuffix(r, e, 2, twoState, specContext);
-            }
-          }
-
-        } else if (allDatatypeCtors.TryGetValue(id.val, out pair)) {
-          // ----- root is a datatype constructor
-          if (pair.Item2) {
-            // there is more than one constructor with this name
-            Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
-          } else {
-            var args = (e.Tokens.Count == 1 ? e.Arguments : null) ?? new List<Expression>();
-            r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
-            ResolveExpression(r, twoState, specContext);
-            if (e.Tokens.Count != 1) {
-              r = ResolveSuffix(r, e, 1, twoState, specContext);
-            }
-          }
-
-        } else if (classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member)) {
-          // ----- field, function, or method
-          r = ResolveSuffix(new ImplicitThisExpr(id), e, 0, twoState, specContext);
-
-        } else {
-          Error(id, "unresolved identifier: {0}", id.val);
-          // resolve arguments, if any
-          if (e.Arguments != null) {
-            foreach (var arg in e.Arguments) {
-              ResolveExpression(arg, twoState, specContext);
-            }
-          }
-        }
-
-        if (r != null) {
-          e.ResolvedExpression = r;
-          e.Type = r.Type;
-        }
+        ResolveIdentifierSequence(e, twoState, specContext, false);
 
       } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -2555,16 +2479,106 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// If "!allowMethodCall", or if "e" does not designate a method call, resolves "e" and returns "null".
+    /// Otherwise, resolves all sub-parts of "e" and returns a (resolved) CallRhs expression representing the call.
+    /// </summary>
+    CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool specContext, bool allowMethodCall) {
+      // Look up "id" as follows:
+      //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
+      //  - type name (class or datatype)
+      //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
+      //  - field name (with implicit receiver) (if the field is ocluded by anything above, one can use an explicit "this.")
+      // Note, at present, modules do not give rise to new namespaces, which is something that should
+      // be changed in the language when modules are given more attention.
+      Expression r = null;  // resolved version of e
+      CallRhs call = null;
+
+      TopLevelDecl decl;
+      Tuple<DatatypeCtor, bool> pair;
+      Dictionary<string, MemberDecl> members;
+      MemberDecl member;
+      var id = e.Tokens[0];
+      if (scope.Find(id.val) != null) {
+        // ----- root is a local variable, parameter, or bound variable
+        r = new IdentifierExpr(id, id.val);
+        ResolveExpression(r, twoState, specContext);
+        r = ResolveSuffix(r, e, 1, twoState, specContext, allowMethodCall, out call);
+
+      } else if (classes.TryGetValue(id.val, out decl)) {
+        if (e.Tokens.Count == 1 && e.Arguments == null) {
+          Error(id, "name of type ('{0}') is used as a variable", id.val);
+        } else if (e.Tokens.Count == 1 && e.Arguments != null) {
+          Error(id, "name of type ('{0}') is used as a function", id.val);
+          // resolve the arguments nonetheless
+          foreach (var arg in e.Arguments) {
+            ResolveExpression(arg, twoState, specContext);
+          }
+        } else if (decl is ClassDecl) {
+          // ----- root is a class
+          var cd = (ClassDecl)decl;
+          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, specContext, allowMethodCall, out call);
+
+        } else {
+          // ----- root is a datatype
+          var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
+          var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
+          r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
+          ResolveExpression(r, twoState, specContext);
+          if (e.Tokens.Count != 2) {
+            r = ResolveSuffix(r, e, 2, twoState, specContext, allowMethodCall, out call);
+          }
+        }
+
+      } else if (allDatatypeCtors.TryGetValue(id.val, out pair)) {
+        // ----- root is a datatype constructor
+        if (pair.Item2) {
+          // there is more than one constructor with this name
+          Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
+        } else {
+          var args = (e.Tokens.Count == 1 ? e.Arguments : null) ?? new List<Expression>();
+          r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
+          ResolveExpression(r, twoState, specContext);
+          if (e.Tokens.Count != 1) {
+            r = ResolveSuffix(r, e, 1, twoState, specContext, allowMethodCall, out call);
+          }
+        }
+
+      } else if (classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member)) {
+        // ----- field, function, or method
+        r = ResolveSuffix(new ImplicitThisExpr(id), e, 0, twoState, specContext, allowMethodCall, out call);
+
+      } else {
+        Error(id, "unresolved identifier: {0}", id.val);
+        // resolve arguments, if any
+        if (e.Arguments != null) {
+          foreach (var arg in e.Arguments) {
+            ResolveExpression(arg, twoState, specContext);
+          }
+        }
+      }
+
+      if (r != null) {
+        e.ResolvedExpression = r;
+        e.Type = r.Type;
+      }
+      return call;
+    }
+
+    /// <summary>
     /// Given resolved expression "r" and unresolved expressions e.Tokens[p..] and e.Arguments.
     /// Returns a resolved version of the expression:
     ///   r    . e.Tokens[p]    . e.Tokens[p+1]    ...    . e.Tokens[e.Tokens.Count-1]    ( e.Arguments )
+    /// Except, if "allowMethodCall" is "true" and the would-be-returned value designates a method
+    /// call, instead returns null and returns "call" as a non-null value.
     /// </summary>
-    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool specContext) {
+    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool specContext, bool allowMethodCall, out CallRhs call) {
       Contract.Requires(r != null);
       Contract.Requires(e != null);
       Contract.Requires(0 <= p && p <= e.Tokens.Count);
-      Contract.Ensures(Contract.Result<Expression>() != null);
+      Contract.Ensures((Contract.Result<Expression>() != null && Contract.ValueAtReturn(out call) == null) ||
+        (allowMethodCall && Contract.Result<Expression>() == null && Contract.ValueAtReturn(out call) != null));
 
+      call = null;
       int nonCallArguments = e.Arguments == null ? e.Tokens.Count : e.Tokens.Count - 1;
       for (; p < nonCallArguments; p++) {
         r = new FieldSelectExpr(e.Tokens[p], r, e.Tokens[p].val);
@@ -2573,9 +2587,18 @@ namespace Microsoft.Dafny {
 
       if (p < e.Tokens.Count) {
         Contract.Assert(e.Arguments != null);
-        // TODO: treat differently if what is being called is a method
-        r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.Arguments);
-        ResolveExpression(r, twoState, specContext);
+
+        Dictionary<string, MemberDecl> members;
+        MemberDecl member;
+        if (classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(e.Tokens[p].val, out member) && member is Method) {
+          // method
+          call = new CallRhs(e.Tokens[p], r, e.Tokens[p].val, e.Arguments);
+          // TODO: resolve call, and sometimes return an error message if a call is not allowed here
+          r = null;
+        } else {
+          r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.Arguments);
+          ResolveExpression(r, twoState, specContext);
+        }
       } else if (e.Arguments != null) {
         Contract.Assert(p == e.Tokens.Count);
         Error(e.OpenParen, "non-function expression is called with parameters");

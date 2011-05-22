@@ -1365,6 +1365,45 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class CallRhs : AssignmentRhs
+  {
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Receiver != null);
+      Contract.Invariant(MethodName != null);
+      Contract.Invariant(cce.NonNullElements(Args));
+    }
+
+    public readonly IToken Tok;
+    public readonly Expression/*!*/ Receiver;
+    public readonly string/*!*/ MethodName;
+    public readonly List<Expression/*!*/>/*!*/ Args;
+    public Method Method;  // filled in by resolution
+
+    public CallRhs(IToken tok, Expression/*!*/ receiver, string/*!*/ methodName, List<Expression/*!*/>/*!*/ args)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(methodName != null);
+      Contract.Requires(cce.NonNullElements(args));
+
+      this.Tok = tok;
+      this.Receiver = receiver;
+      this.MethodName = methodName;
+      this.Args = args;
+    }
+    public override bool CanAffectPreviouslyKnownExpressions {
+      get {
+        foreach (var mod in Method.Mod) {
+          if (!(mod.E is ThisExpr)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+  }
+
   public class HavocRhs : AssignmentRhs {
     public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   }
