@@ -1850,6 +1850,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// Instances of this class are introduced during resolution to indicate that a static method or function has
+  /// been invoked without specifying a receiver (that is, by just giving the name of the enclosing class).
+  /// </summary>
+  public class StaticReceiverExpr : LiteralExpr
+  {
+    public StaticReceiverExpr(IToken tok, ClassDecl cl)
+      : base(tok)  // constructs a LiteralExpr representing the 'null' literal
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(cl != null);
+      var typeArgs = new List<Type>();
+      foreach (var ta in cl.TypeArgs) {
+        typeArgs.Add(new InferredTypeProxy());
+      }
+      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+    }
+  }
+
   public class LiteralExpr : Expression {
     public readonly object Value;
 

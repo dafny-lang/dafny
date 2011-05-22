@@ -1871,29 +1871,27 @@ namespace Microsoft.Dafny {
           r = ResolveSuffix(r, e, 1, twoState, specContext);
 
         } else if (classes.TryGetValue(id.val, out decl)) {
-          if (decl is ClassDecl) {
+          if (e.Tokens.Count == 1 && e.Arguments == null) {
+            Error(id, "name of type ('{0}') is used as a variable", id.val);
+          } else if (e.Tokens.Count == 1 && e.Arguments != null) {
+            Error(id, "name of type ('{0}') is used as a function", id.val);
+            // resolve the arguments nonetheless
+            foreach (var arg in e.Arguments) {
+              ResolveExpression(arg, twoState, specContext);
+            }
+          } else if (decl is ClassDecl) {
             // ----- root is a class
             var cd = (ClassDecl)decl;
-            Contract.Assert(false); // TODO
+            r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, specContext);
 
           } else {
             // ----- root is a datatype
             var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
-            if (e.Tokens.Count == 1 && e.Arguments == null) {
-              Error(id, "name of datatype ('{0}') is used as a variable", id.val);
-            } else if (e.Tokens.Count == 1 && e.Arguments != null) {
-              Error(id, "name of dataypte ('{0}') is used as a function", id.val);
-              // resolve the arguments nonetheless
-              foreach (var arg in e.Arguments) {
-                ResolveExpression(arg, twoState, specContext);
-              }
-            } else {
-              var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
-              r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
-              ResolveExpression(r, twoState, specContext);
-              if (e.Tokens.Count != 2) {
-                r = ResolveSuffix(r, e, 2, twoState, specContext);
-              }
+            var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
+            r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
+            ResolveExpression(r, twoState, specContext);
+            if (e.Tokens.Count != 2) {
+              r = ResolveSuffix(r, e, 2, twoState, specContext);
             }
           }
 
@@ -2035,6 +2033,9 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           e.Field = (Field)member;
+          if (e.Obj is StaticReceiverExpr) {
+            Error(expr, "a field must be selected via an object, not just a class name");
+          }
           // build the type substitution map
           Dictionary<TypeParameter,Type> subst = new Dictionary<TypeParameter,Type>();
           for (int i = 0; i < ctype.TypeArgs.Count; i++) {
@@ -2108,6 +2109,9 @@ namespace Microsoft.Dafny {
         } else {
           Function function = (Function)member;
           e.Function = function;
+          if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
+            Error(expr, "an instance function must be selected via an object, not just a class name");
+          }
           if (!specContext && function.IsGhost) {
             Error(expr, "function calls are allowed only in specification contexts (consider declaring the function a 'function method')");
           }
