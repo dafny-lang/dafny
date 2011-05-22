@@ -186,15 +186,10 @@ namespace Microsoft.Dafny {
         // }
         Indent(indent);
         wr.Write("public class {0}", DtCtorName(ctor));
-        if (dt.TypeArgs.Count != 0 || ctor.TypeArgs.Count != 0) {
+        if (dt.TypeArgs.Count != 0) {
           wr.Write("<");
-          string sep = "";
           if (dt.TypeArgs.Count != 0) {
             wr.Write("{0}", TypeParameters(dt.TypeArgs));
-            sep = ",";
-          }
-          if (ctor.TypeArgs.Count != 0) {
-            wr.Write("{0}{1}", sep, TypeParameters(ctor.TypeArgs));
           }
           wr.Write(">");
         }
@@ -1444,7 +1439,11 @@ namespace Microsoft.Dafny {
         wr.Write(") : (");
         TrExpr(e.Els);
         wr.Write(")");
-         
+
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        TrExpr(e.ResolvedExpression);
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

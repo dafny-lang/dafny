@@ -182,7 +182,7 @@ class Main {
   {
     var t := root;
     var p: Node := null;  // parent of t in original graph
-    ghost var path := #Path.Empty;
+    ghost var path := Path.Empty;
     t.marked := true;
     t.pathFromRoot := path;
     ghost var stackNodes := [];
@@ -256,7 +256,7 @@ class Main {
         t.children := t.children[..t.childrenVisited] + [p] + t.children[t.childrenVisited + 1..];
         p := t;
         stackNodes := stackNodes + [t];
-        path := #Path.Extend(path, t);
+        path := Path.Extend(path, t);
         t := newT;
         t.marked := true;
         t.pathFromRoot := path;

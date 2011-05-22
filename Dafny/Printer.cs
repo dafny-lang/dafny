@@ -248,7 +248,7 @@ namespace Microsoft.Dafny {
     public void PrintCtor(DatatypeCtor ctor, int indent) {
       Contract.Requires(ctor != null);
       Indent(indent);
-      PrintClassMethodHelper("", ctor.Attributes, ctor.Name, ctor.TypeArgs);
+      PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
       if (ctor.Formals.Count != 0) {
         PrintFormals(ctor.Formals);
       }
@@ -1015,6 +1015,24 @@ namespace Microsoft.Dafny {
         wr.Write(" else ");
         PrintExpression(ite.Els);
         if (parensNeeded) { wr.Write(")"); }
+        
+      } else if (expr is ParensExpression) {
+        var e = (ParensExpression)expr;
+        // printing of parentheses is done optimally, not according to the parentheses in the given program
+        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, indent);
+
+      } else if (expr is IdentifierSequence) {
+        var e = (IdentifierSequence)expr;
+        string sep = "";
+        foreach (var id in e.Tokens) {
+          wr.Write("{0}{1}", sep, id.val);
+          sep = ".";
+        }
+        if (e.Arguments != null) {
+          wr.Write("(");
+          PrintExpressionList(e.Arguments);
+          wr.Write(")");
+        }
         
       } else if (expr is MatchExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr

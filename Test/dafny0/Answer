@@ -53,7 +53,7 @@ datatype List<T> {
 
 datatype WildData {
   Something;
-  JustAboutAnything<G, H>(G, myName: set<H>, int, WildData);
+  JustAboutAnything(bool, myName: set<int>, int, WildData);
   More(List<int>);
 }
 
@@ -620,7 +620,7 @@ Execution trace:
     (0,0): anon5
     Termination.dfy(119,3): anon12_Else
     (0,0): anon7
-Termination.dfy(248,36): Error: cannot prove termination; try supplying a decreases clause
+Termination.dfy(248,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
@@ -694,7 +694,7 @@ DTypes.dfy(134,6): Related location: Related location
 DTypes.dfy(93,3): Related location: Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(160,13): Error: assertion violation
+DTypes.dfy(160,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

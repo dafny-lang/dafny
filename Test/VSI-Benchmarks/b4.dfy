@@ -88,7 +88,7 @@ class Map<Key,Value> {
     }
   }
 
-  method Remove(key: Key)
+  method Remove(key: Key)// returns (ghost h: int)
     requires Valid();
     modifies Repr;
     ensures Valid() && fresh(Repr - old(Repr));
@@ -111,6 +111,9 @@ class Map<Key,Value> {
     if (p != null) {
       Keys := Keys[..n] + Keys[n+1..];
       Values := Values[..n] + Values[n+1..];
+      assert Keys[n..] == old(Keys)[n+1..];
+      assert Values[n..] == old(Values)[n+1..];
+
       nodes := nodes[..n] + nodes[n+1..];
       if (prev == null) {
         head := head.next;

@@ -506,7 +506,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(me != null);
       Contract.Requires(layerOffset == 0 || layerOffset == 1);
 
-      IVariable formal = ((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
+      IVariable formal = ((IdentifierExpr)me.Source.Resolved).Var;  // correctness of casts follows from what resolution checks
       foreach (MatchCaseExpr mc in me.Cases) {
         Contract.Assert(mc.Ctor != null);  // the field is filled in by resolution
         Specialization s = new Specialization(formal, mc, prev);
@@ -1546,6 +1546,9 @@ namespace Microsoft.Dafny {
         total = BplAnd(total, Bpl.Expr.Imp(test, IsTotal(e.Thn, etran)));
         total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), IsTotal(e.Els, etran)));
         return total;
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return IsTotal(e.ResolvedExpression, etran);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1676,6 +1679,9 @@ namespace Microsoft.Dafny {
         total = BplAnd(total, Bpl.Expr.Imp(test, CanCallAssumption(e.Thn, etran)));
         total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), CanCallAssumption(e.Els, etran)));
         return total;
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return CanCallAssumption(e.ResolvedExpression, etran);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -2083,7 +2089,11 @@ namespace Microsoft.Dafny {
         }
         builder.Add(ifCmd);
         result = null;
-        
+
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -4635,7 +4645,11 @@ namespace Microsoft.Dafny {
           Bpl.Expr thn = TrExpr(e.Thn);
           Bpl.Expr els = TrExpr(e.Els);
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new ExprSeq(g, thn, els));
-           
+
+        } else if (expr is ConcreteSyntaxExpression) {
+          var e = (ConcreteSyntaxExpression)expr;
+          return TrExpr(e.ResolvedExpression);
+
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
@@ -5300,6 +5314,10 @@ namespace Microsoft.Dafny {
           return true;
         }
 
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return TrSplitExpr(e.ResolvedExpression, splits, expandFunctions, etran);
+
       } else if (expr is BinaryExpr) {
         var bin = (BinaryExpr)expr;
         if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
@@ -5664,6 +5682,9 @@ namespace Microsoft.Dafny {
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, null) ||  // test is not "elevated"
           VarOccursInArgumentToRecursiveFunction(e.Thn, n, p) ||           // but the two branches are
           VarOccursInArgumentToRecursiveFunction(e.Els, n, p);
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.ResolvedExpression, n, p);
       } else if (expr is BoxingCastExpr) {
         var e = (BoxingCastExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
@@ -5857,6 +5878,10 @@ namespace Microsoft.Dafny {
         if (test != e.Test || thn != e.Thn || els != e.Els) {
           newExpr = new ITEExpr(expr.tok, test, thn, els);
         }
+
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return Substitute(e.ResolvedExpression, receiverReplacement, substMap);
       }
       
       if (newExpr == null) {

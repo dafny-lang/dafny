@@ -13,15 +13,15 @@ static function Subst(e: Expr, v: int, val: int): Expr
 {
   match e
   case Const(c) => e
-  case Var(x) => if x == v then #Expr.Const(val) else e
-  case Nary(op, args) => #Expr.Nary(op, SubstList(args, v, val))
+  case Var(x) => if x == v then Expr.Const(val) else e
+  case Nary(op, args) => Expr.Nary(op, SubstList(args, v, val))
 }
 
 static function SubstList(l: List, v: int, val: int): List
 {
   match l
   case Nil => l
-  case Cons(e, tail) => #List.Cons(Subst(e, v, val), SubstList(tail, v, val))
+  case Cons(e, tail) => Cons(Subst(e, v, val), SubstList(tail, v, val))
 }
 
 static ghost method Theorem(e: Expr, v: int, val: int)
@@ -59,8 +59,8 @@ static function Substitute(e: Expression, v: int, val: int): Expression
 {
   match e
   case Const(c) => e
-  case Var(x) => if x == v then #Expression.Const(val) else e
-  case Nary(op, args) => #Expression.Nary(op, SubstSeq(e, args, v, val))
+  case Var(x) => if x == v then Expression.Const(val) else e
+  case Nary(op, args) => Expression.Nary(op, SubstSeq(e, args, v, val))
 }
 
 static function SubstSeq(/*ghost*/ parent: Expression,

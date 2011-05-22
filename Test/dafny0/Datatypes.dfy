@@ -19,14 +19,14 @@ class Node {
 
   method Init()
     modifies this;
-    ensures Repr(#List.Nil);
+    ensures Repr(Nil);
   {
     next := null;
   }
 
   method Add(d: int, L: List<int>) returns (r: Node)
     requires Repr(L);
-    ensures r != null && r.Repr(#List.Cons(d, L));
+    ensures r != null && r.Repr(Cons(d, L));
   {
     r := new Node;
     r.data := d;
@@ -49,14 +49,14 @@ class AnotherNode {
   }
 
   method Create() returns (n: AnotherNode)
-    ensures Repr(n, #List.Nil);
+    ensures Repr(n, Nil);
   {
     n := null;
   }
 
   method Add(n: AnotherNode, d: int, L: List<int>) returns (r: AnotherNode)
     requires Repr(n, L);
-    ensures Repr(r, #List.Cons(d, L));
+    ensures Repr(r, Cons(d, L));
   {
     r := new AnotherNode;
     r.data := d;
@@ -117,7 +117,7 @@ class NestedMatchExpr {
   method TestNesting0()
   {
     var x := 5;
-    var list := #List.Cons(3, #List.Cons(6, #List.Nil));
+    var list := Cons(3, Cons(6, Nil));
     assert Cadr(list, x) == 6;
     match (list) {
       case Nil => assert false;

@@ -725,28 +725,21 @@ namespace Microsoft.Dafny {
   }
 
   public class DatatypeCtor : Declaration, TypeParameter.ParentType {
-    public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly List<Formal/*!*/>/*!*/ Formals;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(cce.NonNullElements(TypeArgs));
       Contract.Invariant(cce.NonNullElements(Formals));
     }
 
     // TODO: One could imagine having a precondition on datatype constructors
     public DatatypeDecl EnclosingDatatype;  // filled in during resolution
 
-    public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
-      [Captured] List<Formal/*!*/>/*!*/ formals,
-                        Attributes attributes)
+    public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Formal/*!*/>/*!*/ formals, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(formals));
-      this.TypeArgs = typeArgs;
       this.Formals = formals;
-
     }
 
     public string FullName {
@@ -1235,6 +1228,8 @@ namespace Microsoft.Dafny {
 
             if (expr is OldExpr) {
               expr = ((OldExpr)expr).E;
+            } else if (expr is ConcreteSyntaxExpression) {
+              expr = ((ConcreteSyntaxExpression)expr).ResolvedExpression;
             } else {
               break;
             }
@@ -1795,6 +1790,20 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
     }
 
+    public Expression Resolved {
+      get {
+        Contract.Requires(type != null);  // should be called only on resolved expressions; this approximates that precondition
+        Expression r = this;
+        while (true) {
+          var rr = r as ConcreteSyntaxExpression;
+          if (rr == null) { break; }
+          r = rr.ResolvedExpression;
+          Contract.Assert(r != null);  // this is true if the expression is indeed resolved
+        }
+        return r;
+      }
+    }
+
     protected Type type;
     public Type Type {  // filled in during resolution
       [Verify(false)]  // TODO: how do we allow Type.get to modify type and still be [Pure]?
@@ -1898,7 +1907,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
     }
-
 
     public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression/*!*/>/*!*/ arguments)
       : base(tok) {
@@ -2707,13 +2715,53 @@ namespace Microsoft.Dafny {
     public readonly string FieldName;
     public Field Field;  // filled in during resolution (but is null if FieldName is)
 
-
     public FrameExpression(Expression e, string fieldName) {
       Contract.Requires(e != null);
       Contract.Requires(!(e is WildcardExpr) || fieldName == null);
 
       E = e;
       FieldName = fieldName;
+    }
+  }
+
+  /// <summary>
+  /// This class represents a piece of concrete syntax in the parse tree.  During resolution,
+  /// it gets "replaced" by the expression in "ResolvedExpression".
+  /// </summary>
+  public abstract class ConcreteSyntaxExpression : Expression
+  {
+    public Expression ResolvedExpression;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+    public ConcreteSyntaxExpression(IToken tok)
+      : base(tok) {
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return ResolvedExpression; }
+    }
+  }
+
+  public class ParensExpression : ConcreteSyntaxExpression
+  {
+    public readonly Expression E;
+    public ParensExpression(IToken tok, Expression e)
+      : base(tok) {
+      E = e;
+    }
+  }
+
+  public class IdentifierSequence : ConcreteSyntaxExpression
+  {
+    public readonly List<IToken> Tokens;
+    public readonly IToken OpenParen;
+    public readonly List<Expression> Arguments;
+    public IdentifierSequence(List<IToken> tokens, IToken openParen, List<Expression> args)
+      : base(tokens[0]) {
+      Contract.Requires(tokens != null && 1 <= tokens.Count);
+      /* "args" is null to indicate the absence of a parenthesized suffix */
+      Contract.Requires(args == null || openParen != null);
+
+      Tokens = tokens;
+      OpenParen = openParen;
+      Arguments = args;
     }
   }
 }

@@ -79,7 +79,7 @@ class Termination {
 
   method Q<T>(list: List<T>) {
     var l := list;
-    while (l != #List.Nil)
+    while (l != List.Nil)
       decreases l;
     {
       call x, l := Traverse(l);
@@ -87,8 +87,8 @@ class Termination {
   }
 
   method Traverse<T>(a: List<T>) returns (val: T, b: List<T>);
-    requires a != #List.Nil;
-    ensures a == #List.Cons(val, b);
+    requires a != List.Nil;
+    ensures a == List.Cons(val, b);
 }
 
 datatype List<T> {
@@ -245,7 +245,7 @@ function Zipper0<T>(a: List<T>, b: List<T>): List<T>
 {
   match a
   case Nil => b
-  case Cons(x, c) => #List.Cons(x, Zipper0(b, c))  // error: cannot prove termination
+  case Cons(x, c) => List.Cons(x, Zipper0(b, c))  // error: cannot prove termination
 }
 
 function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
@@ -253,7 +253,7 @@ function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
 {
   match a
   case Nil => b
-  case Cons(x, c) => #List.Cons(x, Zipper1(b, c, !k))
+  case Cons(x, c) => List.Cons(x, Zipper1(b, c, !k))
 }
 
 function Zipper2<T>(a: List<T>, b: List<T>): List<T>
@@ -262,7 +262,7 @@ function Zipper2<T>(a: List<T>, b: List<T>): List<T>
 {
   match a
   case Nil => b
-  case Cons(x, c) => #List.Cons(x, Zipper2(b, c))
+  case Cons(x, c) => List.Cons(x, Zipper2(b, c))
 }
 
 // -------------------------- test translation of while (*) -----------------

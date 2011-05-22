@@ -169,7 +169,7 @@ function FooD(n: nat, d: D): int
 {
   match d
   case Nothing =>
-    if n == 0 then 10 else FooD(n-1, #D.Something(d))
+    if n == 0 then 10 else FooD(n-1, D.Something(d))
   case Something(next) =>
     if n < 100 then n + 12 else FooD(n-13, next)
 }

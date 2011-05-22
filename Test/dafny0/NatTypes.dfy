@@ -47,7 +47,7 @@ function method FenEric<T>(t0: T, t1: T): T;
 datatype Pair<T> { Pr(T, T); }
 
 method K(n: nat, i: int) {
-  match (#Pair.Pr(n, i)) {
+  match (Pair.Pr(n, i)) {
     case Pr(k, l) =>
       assert k == n;  // fine: although the type of k is int, we know it's equal to n
       assert 0 <= k;

@@ -48,6 +48,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes = new Dictionary<string/*!*/,TopLevelDecl/*!*/>();
     readonly Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/,Dictionary<string/*!*/,DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/,Dictionary<string/*!*/,DatatypeCtor/*!*/>/*!*/>();
+    readonly Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ importGraph = new Graph<ModuleDecl/*!*/>();
 
     public Resolver(Program prog) {
@@ -205,6 +206,15 @@ namespace Microsoft.Dafny {
               Error(ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
             } else {
               ctors.Add(ctor.Name, ctor);
+              // also register the constructor name globally
+              Tuple<DatatypeCtor, bool> pair;
+              if (allDatatypeCtors.TryGetValue(ctor.Name, out pair)) {
+                // mark it as a duplicate
+                allDatatypeCtors[ctor.Name] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+              } else {
+                // add new
+                allDatatypeCtors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
+              }
             }
           }
         }
@@ -433,7 +443,6 @@ namespace Microsoft.Dafny {
         ctor.EnclosingDatatype = dt;
 
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(ctor.TypeArgs, true, ctor);
         ResolveCtorSignature(ctor);
         allTypeParameters.PopMarker();
         
@@ -1432,7 +1441,7 @@ namespace Microsoft.Dafny {
         }
         Dictionary<string,DatatypeCtor> ctors;
         if (dtd == null) {
-          Error(s.Source, "the type of the match source expression must be a datatype");
+          Error(s.Source, "the type of the match source expression must be a datatype (instead found {0})", s.Source.Type);
           ctors = null;
         } else {
           Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
@@ -1467,12 +1476,6 @@ namespace Microsoft.Dafny {
             }
           }
           scope.PushMarker();
-          if (ctor != null) {
-            // add the constructor's own type parameters to the substitution map
-            foreach (TypeParameter p in ctor.TypeArgs) {
-              subst.Add(p, new ParamTypeProxy(p));
-            }
-          }
           int i = 0;
           foreach (BoundVar v in mc.Arguments) {
             if (!scope.Push(v.Name, v)) {
@@ -1838,8 +1841,96 @@ namespace Microsoft.Dafny {
       // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
       // of this method will assign proxy type to the expression, which reduces the number of error messages that are produced
       // while type checking the rest of the program.
-      
-      if (expr is LiteralExpr) {
+
+      if (expr is ParensExpression) {
+        var e = (ParensExpression)expr;
+        ResolveExpression(e.E, twoState, specContext);
+        e.ResolvedExpression = e.E;
+        e.Type = e.E.Type;
+
+      } else if (expr is IdentifierSequence) {
+        var e = (IdentifierSequence)expr;
+        // Look up "id" as follows:
+        //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
+        //  - type name (class or datatype)
+        //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
+        //  - field name (with implicit receiver) (if the field is ocluded by anything above, one can use an explicit "this.")
+        // Note, at present, modules do not give rise to new namespaces, which is something that should
+        // be changed in the language when modules are given more attention.
+        Expression r = null;  // resolved version of e
+
+        TopLevelDecl decl;
+        Tuple<DatatypeCtor, bool> pair;
+        Dictionary<string, MemberDecl> members;
+        MemberDecl member;
+        var id = e.Tokens[0];
+        if (scope.Find(id.val) != null) {
+          // ----- root is a local variable, parameter, or bound variable
+          r = new IdentifierExpr(id, id.val);
+          ResolveExpression(r, twoState, specContext);
+          r = ResolveSuffix(r, e, 1, twoState, specContext);
+
+        } else if (classes.TryGetValue(id.val, out decl)) {
+          if (decl is ClassDecl) {
+            // ----- root is a class
+            var cd = (ClassDecl)decl;
+            Contract.Assert(false); // TODO
+
+          } else {
+            // ----- root is a datatype
+            var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
+            if (e.Tokens.Count == 1 && e.Arguments == null) {
+              Error(id, "name of datatype ('{0}') is used as a variable", id.val);
+            } else if (e.Tokens.Count == 1 && e.Arguments != null) {
+              Error(id, "name of dataypte ('{0}') is used as a function", id.val);
+              // resolve the arguments nonetheless
+              foreach (var arg in e.Arguments) {
+                ResolveExpression(arg, twoState, specContext);
+              }
+            } else {
+              var args = (e.Tokens.Count == 2 ? e.Arguments : null) ?? new List<Expression>();
+              r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
+              ResolveExpression(r, twoState, specContext);
+              if (e.Tokens.Count != 2) {
+                r = ResolveSuffix(r, e, 2, twoState, specContext);
+              }
+            }
+          }
+
+        } else if (allDatatypeCtors.TryGetValue(id.val, out pair)) {
+          // ----- root is a datatype constructor
+          if (pair.Item2) {
+            // there is more than one constructor with this name
+            Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
+          } else {
+            var args = (e.Tokens.Count == 1 ? e.Arguments : null) ?? new List<Expression>();
+            r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
+            ResolveExpression(r, twoState, specContext);
+            if (e.Tokens.Count != 1) {
+              r = ResolveSuffix(r, e, 1, twoState, specContext);
+            }
+          }
+
+        } else if (classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member)) {
+          // ----- field, function, or method
+          r = ResolveSuffix(new ImplicitThisExpr(id), e, 0, twoState, specContext);
+
+        } else {
+          Error(id, "unresolved identifier: {0}", id.val);
+          // resolve arguments, if any
+          if (e.Arguments != null) {
+            foreach (var arg in e.Arguments) {
+              ResolveExpression(arg, twoState, specContext);
+            }
+          }
+        }
+
+        if (r != null) {
+          e.ResolvedExpression = r;
+          e.Type = r.Type;
+        }
+
+      } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
           e.Type = new ObjectTypeProxy();
@@ -1898,12 +1989,6 @@ namespace Microsoft.Dafny {
             dtv.Ctor = ctor;
             if (ctor.Formals.Count != dtv.Arguments.Count) {
               Error(expr.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", dtv.DatatypeName, dtv.Arguments.Count, ctor.Formals.Count);
-            }
-            // add the constructor's own type parameters to the substitution map
-            foreach (TypeParameter p in ctor.TypeArgs) {
-              Type t = new ParamTypeProxy(p);
-              dtv.InferredTypeArgs.Add(t);
-              subst.Add(p, t);
             }
           }
           int j = 0;
@@ -2370,14 +2455,14 @@ namespace Microsoft.Dafny {
         Dictionary<string,DatatypeCtor> ctors;
         IVariable goodMatchVariable = null;
         if (dtd == null) {
-          Error(me.Source, "the type of the match source expression must be a datatype");
+          Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
           ctors = null;
         } else {
           Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
           ctors = datatypeCtors[dtd];
           Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
           
-          IdentifierExpr ie = me.Source as IdentifierExpr;
+          IdentifierExpr ie = me.Source.Resolved as IdentifierExpr;
           if (ie == null || !(ie.Var is Formal || ie.Var is BoundVar)) {
             Error(me.Source.tok, "match source expression must be a formal parameter of the enclosing function or an enclosing match expression");
           } else if (!matchVarContext.Contains(ie.Var)) {
@@ -2414,12 +2499,6 @@ namespace Microsoft.Dafny {
             }
           }
           scope.PushMarker();
-          if (ctor != null) {
-            // add the constructor's own type parameters to the substitution map
-            foreach (TypeParameter p in ctor.TypeArgs) {
-              subst.Add(p, new ParamTypeProxy(p));
-            }
-          }
           int i = 0;
           foreach (BoundVar v in mc.Arguments) {
             if (!scope.Push(v.Name, v)) {
@@ -2469,6 +2548,39 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = Type.Flexible;
       }
+    }
+
+    /// <summary>
+    /// Given resolved expression "r" and unresolved expressions e.Tokens[p..] and e.Arguments.
+    /// Returns a resolved version of the expression:
+    ///   r    . e.Tokens[p]    . e.Tokens[p+1]    ...    . e.Tokens[e.Tokens.Count-1]    ( e.Arguments )
+    /// </summary>
+    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool specContext) {
+      Contract.Requires(r != null);
+      Contract.Requires(e != null);
+      Contract.Requires(0 <= p && p <= e.Tokens.Count);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+
+      int nonCallArguments = e.Arguments == null ? e.Tokens.Count : e.Tokens.Count - 1;
+      for (; p < nonCallArguments; p++) {
+        r = new FieldSelectExpr(e.Tokens[p], r, e.Tokens[p].val);
+        ResolveExpression(r, twoState, specContext);
+      }
+
+      if (p < e.Tokens.Count) {
+        Contract.Assert(e.Arguments != null);
+        // TODO: treat differently if what is being called is a method
+        r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.Arguments);
+        ResolveExpression(r, twoState, specContext);
+      } else if (e.Arguments != null) {
+        Contract.Assert(p == e.Tokens.Count);
+        Error(e.OpenParen, "non-function expression is called with parameters");
+        // resolve the arguments nonetheless
+        foreach (var arg in e.Arguments) {
+          ResolveExpression(arg, twoState, specContext);
+        }
+      }
+      return r;
     }
 
     /// <summary>
@@ -2569,6 +2681,7 @@ namespace Microsoft.Dafny {
     /// The new "e0 op e1" is equivalent to the old "e0 op e1".
     /// One of "e0" and "e1" is the identifier "boundVars[bvi]"; the return value is either 0 or 1, and indicates which.
     /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
+    /// Ensures that the resulting "e0" and "e1" are not ConcreteSyntaxExpression's.
     /// </summary>
     int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1)
     {
@@ -2577,8 +2690,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(boundVars != null);
       Contract.Requires(0 <= bvi && bvi < boundVars.Count);
       Contract.Ensures(Contract.Result<int>() < 2);
+      Contract.Ensures(!(Contract.ValueAtReturn(out e0) is ConcreteSyntaxExpression));
+      Contract.Ensures(!(Contract.ValueAtReturn(out e1) is ConcreteSyntaxExpression));
 
       var bv = boundVars[bvi];
+      e0 = e0.Resolved;
+      e1 = e1.Resolved;
 
       // make an initial assessment of where bv is; to continue, we need bv to appear in exactly one operand
       var fv0 = FreeVariables(e0);
@@ -2616,10 +2733,10 @@ namespace Microsoft.Dafny {
             } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
               // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
               if (!FreeVariables(bin.E1).Contains(bv)) {
-                thisSide = bin.E0;
+                thisSide = bin.E0.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
               } else {
-                thisSide = bin.E1;
+                thisSide = bin.E1.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
               }
               ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
@@ -2629,14 +2746,14 @@ namespace Microsoft.Dafny {
               // Change "A-B op C" in a similar way.
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 // change to "A op C+B"
-                thisSide = bin.E0;
+                thisSide = bin.E0.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
               } else {
                 // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
                 // to change "op", we instead end with "A-C op B" and switch the mapping of thisSide/thatSide
                 // to e0/e1 (by inverting "whereIsBv").
-                thisSide = bin.E1;
+                thisSide = bin.E1.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
                 whereIsBv = 1 - whereIsBv;
@@ -2689,6 +2806,7 @@ namespace Microsoft.Dafny {
     /// inequality is never returned and the comparisons > and >= are never returned; the negation of
     /// a common equality or disequality is rewritten analogously.
     /// Requires "expr" to be successfully resolved.
+    /// Ensures that what is returned is not a ConcreteSyntaxExpression.
     /// </summary>
     IEnumerable<Expression> NormalizedConjuncts(Expression expr, bool polarity) {
       // We consider 5 cases.  To describe them, define P(e)=Conjuncts(e,true) and N(e)=Conjuncts(e,false).
@@ -2700,6 +2818,7 @@ namespace Microsoft.Dafny {
       // So for ==>, we have:
       //   *  X ==> Y    P(_) = P(!X || Y) = (!X || Y) = (X ==> Y)
       //                 N(_) = N(!X || Y) = N(!X),N(Y) = P(X),N(Y)
+      expr = expr.Resolved;
 
       // Binary expressions
       var b = expr as BinaryExpr;
@@ -3075,6 +3194,9 @@ namespace Microsoft.Dafny {
           return true;
         }
         return Contract.Exists( me.Cases,mc=> UsesSpecFeatures(mc.Body));
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return UsesSpecFeatures(e.ResolvedExpression);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -3087,8 +3209,8 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() 
     {
-        Contract.Invariant(names != null);
-    Contract.Invariant(things != null);
+      Contract.Invariant(names != null);
+      Contract.Invariant(things != null);
       Contract.Invariant(names.Count == things.Count);
       Contract.Invariant(-1 <= scopeSizeWhereInstancesWereDisallowed && scopeSizeWhereInstancesWereDisallowed <= names.Count);
     }
@@ -3123,7 +3245,7 @@ namespace Microsoft.Dafny {
       }
     }
     
-    // Pushes name-->var association and returns "true", if name has not already been pushed since the last marker.
+    // Pushes name-->thing association and returns "true", if name has not already been pushed since the last marker.
     // If name already has been pushed since the last marker, does nothing and returns "false".
     public bool Push(string name, Thing thing) {
       Contract.Requires(name != null);

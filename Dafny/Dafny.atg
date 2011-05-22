@@ -304,16 +304,14 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
 = (. Contract.Requires(cce.NonNullElements(ctors));
      Attributes attrs = null;
      IToken/*!*/ id;
-     List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
   .)
   { Attribute<ref attrs> }
   Ident<out id>
-  [ GenericParameters<typeArgs> ]
   (. parseVarScope.PushMarker(); .)
   [ FormalsOptionalIds<formals> ]
   (. parseVarScope.PopMarker();
-     ctors.Add(new DatatypeCtor(id, id.val, typeArgs, formals, attrs));
+     ctors.Add(new DatatypeCtor(id, id.val, formals, attrs));
   .)
   .
 
@@ -1238,15 +1236,23 @@ UnaryExpression<out Expression/*!*/ e>
     UnaryExpression<out e>                     (. e = new BinaryExpr(x, BinaryExpr.Opcode.Sub, new LiteralExpr(x, 0), e); .)
   | NegOp                                      (. x = t; .)
     UnaryExpression<out e>                     (. e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); .)
-  | SelectExpression<out e>
+  | EndlessExpression<out e>     /* these have no further suffix */
+  | DottedIdentifiersAndFunction<out e>
+    { Suffix<ref e> }
   | ConstAtomExpression<out e>
+    { Suffix<ref e> }
   )
   .
 
 NegOp = "!" | '\u00ac'.
 
-ConstAtomExpression<out Expression/*!*/ e>            
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x, dtName, id;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
+/* A ConstAtomExpression is never an l-value.  Also, a ConstAtomExpression is never followed by
+ * an open paren (but could very well have a suffix that starts with a period or a square bracket).
+ * (The "Also..." part may change if expressions in Dafny could yield functions.)
+ */
+ConstAtomExpression<out Expression/*!*/ e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken/*!*/ x, dtName, id;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
      Expression e0, e1;
      e = dummyExpr;
   .)
@@ -1254,17 +1260,13 @@ ConstAtomExpression<out Expression/*!*/ e>
   | "true"                                     (. e = new LiteralExpr(t, true); .)
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
-  | "#"                                        (. x = t; .)
-    Ident<out dtName>
-    "."
-    Ident<out id>                              (. elements = new List<Expression/*!*/>(); .)
-    [ "("
-      [ Expressions<elements> ]
-    ")" ]                                      (. e = new DatatypeValue(t, dtName.val, id.val, elements); .)
+  | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e> ")"                  (. e = new FreshExpr(x, e); .)
   | "allocated"                                (. x = t; .)
     "(" Expression<out e> ")"                  (. e = new AllocatedExpr(x, e); .)
+  | "old"                                      (. x = t; .)
+    "(" Expression<out e> ")"                  (. e = new OldExpr(x, e); .)
   | "|"                                        (. x = t; .)
       Expression<out e>                        (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
     "|"
@@ -1274,7 +1276,19 @@ ConstAtomExpression<out Expression/*!*/ e>
   | "["                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
     "]"
-  | "if"                                       (. x = t; .)
+  | "("                                        (. x = t; .)
+      Expression<out e>                        (. e = new ParensExpression(x, e); .)
+    ")"
+  )
+  .
+
+EndlessExpression<out Expression e>
+= (. IToken/*!*/ x, dtName, id;  BigInteger n;
+     List<Expression/*!*/>/*!*/ elements;
+     Expression e0, e1;
+     e = dummyExpr;
+  .)
+  ( "if"                                       (. x = t; .)
     Expression<out e>
     "then" Expression<out e0>
     "else" Expression<out e1>                  (. e = new ITEExpr(x, e, e0, e1); .)
@@ -1282,6 +1296,7 @@ ConstAtomExpression<out Expression/*!*/ e>
   | ComprehensionExpr<out e>
   )
   .
+
 
 /*------------------------------------------------------------------------*/
 
@@ -1307,6 +1322,22 @@ SelectExpression<out Expression/*!*/ e>
   { SelectOrCallSuffix<ref e> }
   .
 
+DottedIdentifiersAndFunction<out Expression e>
+= (. IToken id;  IToken openParen = null;
+     List<Expression> args = null;
+     List<IToken> idents = new List<IToken>();
+  .)
+  Ident<out id>                        (. idents.Add(id); .)
+  { "."
+    Ident<out id>                      (. idents.Add(id); .)
+  }
+  [ "("                                (. openParen = t;  args = new List<Expression>(); .)
+      [ Expressions<args> ]
+    ")"
+  ]
+  (. e = new IdentifierSequence(idents, openParen, args); .)
+  .
+
 IdentOrFuncExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ id;  e = dummyExpr;  List<Expression/*!*/>/*!*/ args; .)
   Ident<out id>
@@ -1321,6 +1352,10 @@ IdentOrFuncExpression<out Expression/*!*/ e>
                                                   }
                                                 }
                                              .)
+  .
+
+Suffix<ref Expression/*!*/ e>
+= SelectOrCallSuffix<ref e>
   .
 
 SelectOrCallSuffix<ref Expression/*!*/ e>

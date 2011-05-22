@@ -46,7 +46,7 @@ datatype List<T> {
 
 datatype WildData {
   Something();
-  JustAboutAnything<G,H>(G, myName: set<H>, int, WildData);
+  JustAboutAnything(bool, myName: set<int>, int, WildData);
   More(List<int>);
 }
 

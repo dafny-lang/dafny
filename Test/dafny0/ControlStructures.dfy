@@ -9,7 +9,7 @@ method M0(d: D)
 }
 
 method M1(d: D)
-  requires d != #D.Blue;
+  requires d != D.Blue;
 {
   match (d) {  // error: missing case: Purple
     case Green =>
@@ -18,7 +18,7 @@ method M1(d: D)
 }
 
 method M2(d: D)
-  requires d != #D.Blue && d != #D.Purple;
+  requires d != D.Blue && d != D.Purple;
 {
   match (d) {
     case Green =>
@@ -27,9 +27,9 @@ method M2(d: D)
 }
 
 method M3(d: D)
-  requires d == #D.Green;
+  requires d == D.Green;
 {
-  if (d != #D.Green) {
+  if (d != D.Green) {
     match (d) {
       // nothing here
     }
@@ -37,9 +37,9 @@ method M3(d: D)
 }
 
 method M4(d: D)
-  requires d == #D.Green || d == #D.Red;
+  requires d == D.Green || d == D.Red;
 {
-  if (d != #D.Green) {
+  if (d != D.Green) {
     match (d) {  // error: missing case Red
       // nothing here
     }
@@ -56,7 +56,7 @@ function F0(d: D): int
 
 function F1(d: D, x: int): int
   requires x < 100;
-  requires d == #D.Red ==> x == 200;  // (an impossibility, given the first precondition, so d != Red)
+  requires d == D.Red ==> x == 200;  // (an impossibility, given the first precondition, so d != Red)
 {
   match (d)
   case Purple => 80
