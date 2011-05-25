@@ -1884,7 +1884,7 @@ namespace Microsoft.Dafny {
         Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
-          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
+          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
           ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
@@ -2016,7 +2016,7 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
         foreach (BoundVar bv in e.BoundVars) {
-          VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost, null);
+          VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
           ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
@@ -2981,11 +2981,6 @@ namespace Microsoft.Dafny {
         Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.UniqueName, varType), s.Type, etran);
         Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.UniqueName, varType, wh));
         locals.Add(var);
-        if (s.Rhs != null) {
-          IdentifierExpr ide = new IdentifierExpr(stmt.Tok, var.Name);  // allocate an expression for the assignment LHS...
-          ide.Var = s;  ide.Type = s.Type;  // ... and resolve it right here
-          TrAssignment(stmt.Tok, ide, s.Rhs, builder, locals, etran);
-        }
         
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
@@ -3455,7 +3450,7 @@ namespace Microsoft.Dafny {
       Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < s.Method.Ins.Count; i++) {
         Formal p = s.Method.Ins[i];
-        VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
+        VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here

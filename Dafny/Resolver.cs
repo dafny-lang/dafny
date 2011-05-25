@@ -1270,6 +1270,17 @@ namespace Microsoft.Dafny {
           ResolveStatement(a, specContextOnly, method);
         }
 
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        foreach (var vd in s.Lhss) {
+          ResolveStatement(vd, specContextOnly, method);
+          s.ResolvedStatements.Add(vd);
+        }
+        if (s.Update != null) {
+          ResolveStatement(s.Update, specContextOnly, method);
+          s.ResolvedStatements.Add(s.Update);
+        }
+
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         int prevErrorCount = ErrorCount;
@@ -1386,28 +1397,6 @@ namespace Microsoft.Dafny {
         if (s.OptionalType != null) {
           ResolveType(stmt.Tok, s.OptionalType);
           s.type = s.OptionalType;
-        }
-        if (s.Rhs != null) {
-          Type rhsType;
-          if (s.Rhs is ExprRhs) {
-            ExprRhs rr = (ExprRhs)s.Rhs;
-            ResolveExpression(rr.Expr, true, true);
-            if (!s.IsGhost) {
-              CheckIsNonGhost(rr.Expr);
-            }
-            Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-            rhsType = rr.Expr.Type;
-          } else if (s.Rhs is TypeRhs) {
-            TypeRhs rr = (TypeRhs)s.Rhs;
-            rhsType = ResolveTypeRhs(rr, stmt, s.IsGhost, method);
-          } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
-          }
-          if (s.OptionalType == null) {
-            s.type = rhsType;
-          } else if (!UnifyTypes(s.OptionalType, rhsType)) {
-            Error(stmt, "initialization RHS (of type {0}) not assignable to variable (of type {1})", rhsType, s.OptionalType);
-          }
         }
         // now that the declaration has been processed, add the name to the scope
         if (!scope.Push(s.Name, s)) {

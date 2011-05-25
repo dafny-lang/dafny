@@ -1417,6 +1417,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class VarDeclStmt : ConcreteSyntaxStatement
+  {
+    public readonly List<VarDecl> Lhss;
+    public readonly UpdateStmt Update;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(cce.NonNullElements(Lhss));
+    }
+
+    public VarDeclStmt(IToken tok, List<VarDecl> lhss, UpdateStmt update)
+      : base(tok)
+    {
+      Contract.Requires(lhss != null);
+
+      Lhss = lhss;
+      Update = update;
+    }
+  }
+
   public class UpdateStmt : ConcreteSyntaxStatement
   {
     public readonly List<Expression> Lhss;
@@ -1496,7 +1515,18 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(name != null);
-      Contract.Invariant(OptionalType != null || Rhs != null);
+      Contract.Invariant(OptionalType != null);
+    }
+
+    public VarDecl(IToken tok, string name, Type type, bool isGhost)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);  // can be a proxy, though
+
+      this.name = name;
+      this.OptionalType = type;
+      this.IsGhost = isGhost;
     }
 
     public string/*!*/ Name {
@@ -1543,27 +1573,12 @@ namespace Microsoft.Dafny {
         return base.IsGhost;
       }
     }
-
-    public readonly DeterminedAssignmentRhs Rhs;
-
-    public VarDecl(IToken tok, string name, Type type, bool isGhost, DeterminedAssignmentRhs rhs)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(type != null || rhs != null);
-
-      this.name = name;
-      this.OptionalType = type;
-      this.IsGhost = isGhost;
-      this.Rhs = rhs;
-
-    }
   }
 
   public class AutoVarDecl : VarDecl {
     public readonly int Index;
     public AutoVarDecl(IToken tok, string name, Type type, int index)
-      : base(tok, name, type, false, null) {
+      : base(tok, name, type, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Index = index;

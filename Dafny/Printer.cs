@@ -449,13 +449,7 @@ namespace Microsoft.Dafny {
           wr.Write("ghost ");
         }
         wr.Write("var {0}", s.Name);
-        if (s.OptionalType != null) {
-          PrintType(": ", s.OptionalType);
-        }
-        if (s.Rhs != null) {
-          wr.Write(" := ");
-          PrintDeterminedRhs(s.Rhs);
-        }
+        PrintType(": ", s.OptionalType);
         wr.Write(";");
       
       } else if (stmt is CallStmt) {
@@ -594,11 +588,36 @@ namespace Microsoft.Dafny {
           PrintExpression(lhs);
           sep = ", ";
         }
-        sep = " := ";
+        if (s.Lhss.Count != 0) {
+          sep = " := ";
+        }
         foreach (var rhs in s.Rhss) {
           wr.Write(sep);
           PrintDeterminedRhs(rhs);
           sep = ", ";
+        }
+        wr.Write(";");
+
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        if (s.Lhss[0].IsGhost) {
+          wr.Write("ghost ");
+        }
+        wr.Write("var ");
+        string sep = "";
+        foreach (var lhs in s.Lhss) {
+          wr.Write("{0}{1}", sep, lhs.Name);
+          PrintType(": ", lhs.OptionalType);
+          sep = ", ";
+        }
+        if (s.Update != null) {
+          wr.Write(" := ");
+          sep = "";
+          foreach (var rhs in s.Update.Rhss) {
+            wr.Write(sep);
+            PrintDeterminedRhs(rhs);
+            sep = ", ";
+          }
         }
         wr.Write(";");
 

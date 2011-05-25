@@ -374,6 +374,15 @@ IdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   Type<out ty>
   .
 
+LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
+= (. IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
+  .)
+  Ident<out id>
+  [ ":" Type<out ty>             (. optType = ty; .)
+  ]
+  (. var = new VarDecl(id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
+  .
+
 IdentTypeOptional<out BoundVar/*!*/ var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
@@ -725,7 +734,6 @@ BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
 = (. Contract.Requires(cce.NonNullElements(ss)); Statement/*!*/ s;
-     IToken bodyStart, bodyEnd;
   .)
   ( OneStmt<out s>                                (. ss.Add(s); .)
   | VarDeclStmts<ss>
@@ -758,6 +766,7 @@ OneStmt<out Statement/*!*/ s>
     ] ";"                              (. s = new BreakStmt(x, label); .)
   | "return"                           (. x = t; .)
     ";"                                (. s = new ReturnStmt(x); .)
+  | VarDeclStatement<out s>
   | UpdateStmt<out s>
   )
   .
@@ -881,10 +890,46 @@ AssignRhs<.out IToken tok, out List<Expression> ee, out Type ty, out CallStmt in
   )                                    (. if (ee == null && ty == null) { ee = new List<Expression>() { dummyExpr}; } .)
   .
 
+VarDeclStatement<.out Statement/*!*/ s.>
+= (. IToken x = null, assignTok = null;  bool isGhost = false;
+     VarDecl/*!*/ d;
+     DeterminedAssignmentRhs r;  Expression lhs0;
+     List<VarDecl> lhss = new List<VarDecl>();
+     List<DeterminedAssignmentRhs> rhss = new List<DeterminedAssignmentRhs>();
+  .)
+  [ "ghost"                                 (. isGhost = true;  x = t; .)
+  ]
+  "var"                                     (. if (!isGhost) { x = t; } .)
+  LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); .)
+  { ","
+    LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); .)
+  }
+  [ ":="                           (. assignTok = t;  lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name); .)
+    Rhs<out r, lhs0>               (. rhss.Add(r); .)
+    { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
+    }
+  ]
+  ";"
+  (. UpdateStmt update;
+     if (rhss.Count == 0) {
+       update = null;
+     } else {
+       var ies = new List<Expression>();
+       foreach (var lhs in lhss) {
+         ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+       }
+       update = new UpdateStmt(assignTok, ies, rhss);
+     }
+     s = new VarDeclStmt(x, lhss, update);
+  .)
+  .
+
 HavocStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ lhs; .)
   "havoc"                              (. x = t; .)
-  LhsExpr<out lhs> ";"                 (. s = new AssignStmt(x, lhs); .)
+/*  LhsExpr<out lhs> ";"                 (. s = new AssignStmt(x, lhs); .)
+*/
+  Lhs<out lhs> ";"                     (. s = new AssignStmt(x, lhs); .)
   .
 
 LhsExpr<out Expression/*!*/ e>
@@ -894,9 +939,9 @@ LhsExpr<out Expression/*!*/ e>
 
 VarDeclStmts<.List<Statement/*!*/>/*!*/ ss.>
 = (. Contract.Requires(cce.NonNullElements(ss)); VarDecl/*!*/ d;  bool isGhost = false; .)
-  [ "ghost"                            (. isGhost = true; .)
+  [ "ghostXYZXYZ"                            (. isGhost = true; .)
   ]
-  "var"
+  "varXYZXYZ"
   IdentTypeRhs<out d, isGhost>         (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
   { "," IdentTypeRhs<out d, isGhost>   (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
   }
@@ -928,7 +973,7 @@ IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
      } else if (optionalType == null) {
        optionalType = new InferredTypeProxy();
      }
-     d = new VarDecl(id, id.val, optionalType, isGhost, optionalRhs);
+     d = new VarDecl(id, id.val, optionalType, isGhost /*** OLD, optionalRhs ***/);
   .)
   .
 
@@ -1323,8 +1368,7 @@ NegOp = "!" | '\u00ac'.
  */
 ConstAtomExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x, dtName, id;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
-     Expression e0, e1;
+     IToken/*!*/ x;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
      e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
@@ -1354,8 +1398,7 @@ ConstAtomExpression<out Expression/*!*/ e>
   .
 
 EndlessExpression<out Expression e>
-= (. IToken/*!*/ x, dtName, id;  BigInteger n;
-     List<Expression/*!*/>/*!*/ elements;
+= (. IToken/*!*/ x;
      Expression e0, e1;
      e = dummyExpr;
   .)

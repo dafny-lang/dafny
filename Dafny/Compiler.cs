@@ -967,15 +967,7 @@ namespace Microsoft.Dafny {
 
       Indent(indent);
       wr.Write("{0} @{1}", TypeName(s.Type), s.Name);
-      if (s.Rhs != null) {
-        wr.Write(" = ");
-        TrAssignmentRhs(s.Rhs);
-        wr.WriteLine(";");
-        var tRhs = s.Rhs as TypeRhs;
-        if (tRhs != null && tRhs.InitCall != null) {
-          TrCallStmt(tRhs.InitCall, s.Name, indent);
-        }
-      } else if (alwaysInitialize) {
+      if (alwaysInitialize) {
         // produce a default value
         wr.WriteLine(" = {0};", DefaultValue(s.Type));
       } else {
