@@ -3232,6 +3232,13 @@ namespace Microsoft.Dafny {
         Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
         builder.Add(ifCmd);
 
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        // TODO: Update statements should perform multiple assignments in parallel!
+        foreach (var ss in s.ResolvedStatements) {
+          TrStmt(ss, builder, locals, etran);
+        }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -3905,12 +3912,14 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
+      // TODO:  Contract.Requires(!(lhs is ConcreteSyntaxExpression));
       Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
+      lhs = lhs.Resolved;  // TODO: delete this line and instead bring in the commented-out precondition above
       TrStmt_CheckWellformed(lhs, builder, locals, etran, true);
 
       if (lhs is IdentifierExpr) {

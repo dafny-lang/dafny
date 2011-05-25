@@ -470,7 +470,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write(" := ");
         }
-        if (!(s.Receiver is ThisExpr)) {
+        if (!(s.Receiver is ImplicitThisExpr)) {
           PrintExpr(s.Receiver, 0x70, false, false, -1);
           wr.Write(".");
         }
@@ -584,8 +584,24 @@ namespace Microsoft.Dafny {
           }
         }
         Indent(indent);
-        wr.WriteLine("}");
-        
+        wr.Write("}");
+
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        string sep = "";
+        foreach (var lhs in s.Lhss) {
+          wr.Write(sep);
+          PrintExpression(lhs);
+          sep = ", ";
+        }
+        sep = " := ";
+        foreach (var rhs in s.Rhss) {
+          wr.Write(sep);
+          PrintDeterminedRhs(rhs);
+          sep = ", ";
+        }
+        wr.Write(";");
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -829,12 +845,12 @@ namespace Microsoft.Dafny {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Receiver is ThisExpr) &&
+        bool parensNeeded = !(e.Receiver is ImplicitThisExpr) &&
           opBindingStrength < contextBindingStrength ||
           (fragileContext && opBindingStrength == contextBindingStrength);
         
         if (parensNeeded) { wr.Write("("); }
-        if (!(e.Receiver is ThisExpr)) {
+        if (!(e.Receiver is ImplicitThisExpr)) {
           PrintExpr(e.Receiver, opBindingStrength, false, false, -1);
           wr.Write(".");
         }

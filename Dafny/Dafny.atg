@@ -727,11 +727,6 @@ Stmt<.List<Statement/*!*/>/*!*/ ss.>
 = (. Contract.Requires(cce.NonNullElements(ss)); Statement/*!*/ s;
      IToken bodyStart, bodyEnd;
   .)
-  /* By first reading a sequence of block statements, we avoid problems in the generated parser, despite
-     the ambiguity in the grammar.  See Note in ConstAtomExpression production.
-  */
-  { BlockStmt<out s, out bodyStart, out bodyEnd>  (. ss.Add(s); .)
-  }
   ( OneStmt<out s>                                (. ss.Add(s); .)
   | VarDeclStmts<ss>
   )
@@ -740,15 +735,18 @@ Stmt<.List<Statement/*!*/>/*!*/ ss.>
 OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
+     IToken bodyStart, bodyEnd;
   .)
   /* This list does not contain BlockStmt, see comment above in Stmt production. */
-  ( AssertStmt<out s>
+  ( BlockStmt<out s, out bodyStart, out bodyEnd>
+  | AssertStmt<out s>
   | AssumeStmt<out s>
   | UseStmt<out s>
   | PrintStmt<out s>
-  | AssignStmt<out s, true>
+/*  | AssignStmt<out s, true> */
   | HavocStmt<out s>
   | CallStmt<out s>
+  | "call" UpdateStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | MatchStmt<out s>
@@ -760,49 +758,41 @@ OneStmt<out Statement/*!*/ s>
     ] ";"                              (. s = new BreakStmt(x, label); .)
   | "return"                           (. x = t; .)
     ";"                                (. s = new ReturnStmt(x); .)
+  | UpdateStmt<out s>
   )
   .
 
-AssignStmt<out Statement/*!*/ s, bool allowChoose>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression/*!*/ lhs;
-     List<Expression> rhs;
-     Type ty;
-     s = dummyStmt;
-     CallStmt initCall = null;
+UpdateStmt<out Statement/*!*/ s>
+= (. List<Expression> lhss = new List<Expression>();
+     List<DeterminedAssignmentRhs> rhss = new List<DeterminedAssignmentRhs>();
+     Expression e;  DeterminedAssignmentRhs r;
+     Expression lhs0;
+     IToken x;
   .)
-  LhsExpr<out lhs>
-  ":="                                 (. x = t; .)
-  AssignRhs<out rhs, out ty, out initCall, lhs> 
-                                       (. if (ty == null) {
-                                            Contract.Assert(rhs != null);
-                                            Contract.Assert(rhs.Count == 1);
-                                            s = new AssignStmt(x, lhs, rhs[0]);
-                                            if (!allowChoose) {
-                                              var r = rhs[0] as UnaryExpr;
-                                              if (r != null && r.Op == UnaryExpr.Opcode.SetChoose) {
-                                                SemErr("choose operator not allowed as RHS in foreach assignment");
-                                              }
-                                            }
-                                          } else if (rhs == null) {
-                                            s = new AssignStmt(x, lhs, ty, initCall);
-                                          } else {
-                                            s = new AssignStmt(x, lhs, ty, rhs);
-                                          }
-                                       .)
-  ";"
+  Lhs<out e>                       (. x = e.tok; .)
+  ( ";"                            (. rhss.Add(new ExprRhs(e)); .)
+  |                                (. lhss.Add(e);  lhs0 = e; .)
+    { "," Lhs<out e>               (. lhss.Add(e); .)
+    }
+    ":="                           (. x = t; .)
+    Rhs<out r, lhs0>               (. rhss.Add(r); .)
+    { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
+    }
+    ";"
+  )
+  (. s = new UpdateStmt(x, lhss, rhss); .)
   .
 
-AssignRhs<.out List<Expression> ee, out Type ty, out CallStmt initCall, Expression receiverForInitCall.>
-/* ensures ee != null || ty != null; */
-/* ensures ee != null ==> 1 <= ee.Count; */
-/* ensures ty == null ==> 1 == ee.Count; */
-= (. IToken/*!*/ x;  Expression/*!*/ e;
-     ee = null;  ty = null;
-     initCall = null;
+Rhs<out DeterminedAssignmentRhs r, Expression receiverForInitCall>
+= (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
+     List<Expression> ee = null;
+     Type ty = null;
+     CallStmt initCall = null;
      List<Expression> args;
+     r = null;  // to please compiler
   .)
-  ( "new" TypeAndToken<out x, out ty>
+  ( "new"                              (. newToken = t; .)
+    TypeAndToken<out x, out ty>
     [ "["                              (. ee = new List<Expression>(); .)
       Expressions<ee>
       "]"                              (. // make sure an array class with this dimensionality exists
@@ -814,11 +804,80 @@ AssignRhs<.out List<Expression> ee, out Type ty, out CallStmt initCall, Expressi
       ")"                              (. initCall = new CallStmt(x, new List<AutoVarDecl>(), new List<IdentifierExpr>(),
                                                                   receiverForInitCall, x.val, args); .)
     ]
+    (. if (ee != null) {
+         r = new TypeRhs(newToken, ty, ee);
+       } else {
+         r = new TypeRhs(newToken, ty, initCall);
+       }
+    .)
+
+  /* One day, the choose expression should be treated just as a special case of a method call. */
   | "choose"                           (. x = t; .)
+    Expression<out e>                  (. r = new ExprRhs(new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e)); .)
+
+  | Expression<out e>                  (. r = new ExprRhs(e); .)
+  )
+  .
+
+AssignStmt<out Statement/*!*/ s, bool allowChoose>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     IToken/*!*/ x, rhsTok;
+     Expression/*!*/ lhs;
+     List<Expression> rhs;
+     Type ty;
+     s = dummyStmt;
+     CallStmt initCall = null;
+  .)
+  LhsExpr<out lhs>
+  ":="                                 (. x = t; .)
+  AssignRhs<out rhsTok, out rhs, out ty, out initCall, lhs> 
+                                       (. if (ty == null) {
+                                            Contract.Assert(rhs != null);
+                                            Contract.Assert(rhs.Count == 1);
+                                            s = new AssignStmt(x, lhs, new ExprRhs(rhs[0]));
+                                            if (!allowChoose) {
+                                              var r = rhs[0] as UnaryExpr;
+                                              if (r != null && r.Op == UnaryExpr.Opcode.SetChoose) {
+                                                SemErr("choose operator not allowed as RHS in foreach assignment");
+                                              }
+                                            }
+                                          } else if (rhs == null) {
+                                            s = new AssignStmt(x, lhs, new TypeRhs(rhsTok, ty, initCall));
+                                          } else {
+                                            s = new AssignStmt(x, lhs, new TypeRhs(rhsTok, ty, rhs));
+                                          }
+                                       .)
+  ";"
+  .
+
+AssignRhs<.out IToken tok, out List<Expression> ee, out Type ty, out CallStmt initCall, Expression receiverForInitCall.>
+/* ensures ee != null || ty != null; */
+/* ensures ee != null ==> 1 <= ee.Count; */
+/* ensures ty == null ==> 1 == ee.Count; */
+= (. IToken/*!*/ x;  Expression/*!*/ e;
+     ee = null;  ty = null;
+     initCall = null;
+     List<Expression> args;
+     tok = Token.NoToken;  // to please compiler
+  .)
+  ( "new"                              (. tok = t; .)
+    TypeAndToken<out x, out ty>
+    [ "["                              (. ee = new List<Expression>(); .)
+      Expressions<ee>
+      "]"                              (. // make sure an array class with this dimensionality exists
+                                          UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
+                                       .)
+    | "." Ident<out x>
+      "("                              (. args = new List<Expression/*!*/>(); .)
+        [ Expressions<args> ]
+      ")"                              (. initCall = new CallStmt(x, new List<AutoVarDecl>(), new List<IdentifierExpr>(),
+                                                                  receiverForInitCall, x.val, args); .)
+    ]
+  | "choose"                           (. x = t;  tok = t; .)
     Expression<out e>                  (. e = new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e);
                                           ee = new List<Expression>() { e };
                                        .)
-  | Expression<out e>                  (. ee = new List<Expression>() { e }; .)
+  | Expression<out e>                  (. tok = e.tok;  ee = new List<Expression>() { e }; .)
   )                                    (. if (ee == null && ty == null) { ee = new List<Expression>() { dummyExpr}; } .)
   .
 
@@ -845,7 +904,8 @@ VarDeclStmts<.List<Statement/*!*/>/*!*/ ss.>
   .
 
 IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
-= (. Contract.Ensures(Contract.ValueAtReturn(out d) != null); IToken/*!*/ id;  Type/*!*/ ty;
+= (. Contract.Ensures(Contract.ValueAtReturn(out d) != null);
+     IToken/*!*/ id, rhsTok = null;  Type/*!*/ ty;
      List<Expression> rhs = null;  Type newType = null;
      Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
      CallStmt initCall = null;
@@ -854,16 +914,16 @@ IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
   [ ":" Type<out ty>                   (. optionalType = ty; .)
   ]
   [ ":="
-    AssignRhs<out rhs, out newType, out initCall, new IdentifierExpr(id, id.val)>
+    AssignRhs<out rhsTok, out rhs, out newType, out initCall, new IdentifierExpr(id, id.val)>
   ]
   (. if (newType == null && rhs != null) {
        Contract.Assert(rhs.Count == 1);
        optionalRhs = new ExprRhs(rhs[0]);
      } else if (newType != null) {
        if (rhs == null) {
-         optionalRhs = new TypeRhs(newType, initCall);
+         optionalRhs = new TypeRhs(rhsTok, newType, initCall);
        } else {
-         optionalRhs = new TypeRhs(newType, rhs);
+         optionalRhs = new TypeRhs(rhsTok, newType, rhs);
        }
      } else if (optionalType == null) {
        optionalType = new InferredTypeProxy();
@@ -1010,7 +1070,7 @@ CallStmt<out Statement/*!*/ s>
      List<IdentifierExpr/*!*/> lhs = new List<IdentifierExpr/*!*/>();
      List<AutoVarDecl/*!*/> newVars = new List<AutoVarDecl/*!*/>();
   .)
-  "call"                       (. x = t; .)
+  "callXYZXYZ"                       (. x = t; .)
   CallStmtSubExpr<out e>
   
   [ ","                        /* call a,b,c,... := ... */
@@ -1240,6 +1300,17 @@ UnaryExpression<out Expression/*!*/ e>
   | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
   | ConstAtomExpression<out e>
+    { Suffix<ref e> }
+  )
+  .
+
+Lhs<out Expression e>
+= (. e = null;  // to please the compiler
+  .)
+  ( DottedIdentifiersAndFunction<out e>
+    { Suffix<ref e> }
+  | ConstAtomExpression<out e>
+    Suffix<ref e>
     { Suffix<ref e> }
   )
   .

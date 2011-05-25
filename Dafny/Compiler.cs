@@ -840,6 +840,13 @@ namespace Microsoft.Dafny {
           Indent(indent); wr.WriteLine("}");
         }
 
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        // TODO: Update statements should perform multiple assignments in parallel!
+        foreach (var ss in s.ResolvedStatements) {
+          TrStmt(ss, indent);
+        }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
