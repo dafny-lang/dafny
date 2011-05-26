@@ -35,37 +35,37 @@ method Mul(x: int, y: int) returns (r: int)
   if (x == 0) {
     r := 0;
   } else if (x < 0) {
-    call r := Mul(-x, y);
+    r := Mul(-x, y);
     r := -r;
   } else {
-    call r := Mul(x-1, y);
-    call r := Add(r, y);
+    r := Mul(x-1, y);
+    r := Add(r, y);
   }
 }
 
 // ---------------------------
 
 method Main() {
-  call TestAdd(3, 180);
-  call TestAdd(3, -180);
-  call TestAdd(0, 1);
+  TestAdd(3, 180);
+  TestAdd(3, -180);
+  TestAdd(0, 1);
 
-  call TestMul(3, 180);
-  call TestMul(3, -180);
-  call TestMul(180, 3);
-  call TestMul(-180, 3);
-  call TestMul(0, 1);
-  call TestMul(1, 0);
+  TestMul(3, 180);
+  TestMul(3, -180);
+  TestMul(180, 3);
+  TestMul(-180, 3);
+  TestMul(0, 1);
+  TestMul(1, 0);
 }
 
 method TestAdd(x: int, y: int) {
   print x, " + ", y, " = ";
-  call z := Add(x, y);
+  var z := Add(x, y);
   print z, "\n";
 }
 
 method TestMul(x: int, y: int) {
   print x, " * ", y, " = ";
-  call z := Mul(x, y);
+  var z := Mul(x, y);
   print z, "\n";
 }

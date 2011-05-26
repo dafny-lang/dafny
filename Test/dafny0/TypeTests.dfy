@@ -8,8 +8,8 @@ class C {
 
   method Caller()
   {
-    call m,n := M(true);  // error on in-parameter
-    call n,m := M(m);  // 2 errors on out-parameters
+    var m,n := M(true);  // error on in-parameter
+    n,m := M(m);  // 2 errors on out-parameters
   }
 }
 

@@ -20,10 +20,10 @@ class MyClass<T,U> {
       } else {
         this.x := x + 0;
       }
-      call t, u, v := M(true, lotsaObjects);
+      t, u, v := M(true, lotsaObjects);
       var to: MyClass<T,U>;
-      call to, u, v := this.M(true, lotsaObjects);
-      call to, u, v := to.M(true, lotsaObjects);
+      to, u, v := this.M(true, lotsaObjects);
+      to, u, v := to.M(true, lotsaObjects);
       assert v[x] != null ==> null !in v[2..x][1..][5 := v[this.x]][..10];
     }
   }

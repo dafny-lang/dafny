@@ -47,10 +47,10 @@ method TestNameResolution0() {
   z := Global.F(2);  // error: invocation of instance function requires an instance
   z := G(2);  // error: cannot resolve G
   z := Global.G(2);
-  call z := M(2);  // error: cannot resolve M
-//  call z := Global.M(2);  // error: call to instance method requires an instance
-  call z := N(1);  // error: cannot resolve N
-//  call z := Global.N(1);
+  z := M(2);  // error: cannot resolve M
+  z := Global.M(2);  // error: call to instance method requires an instance
+  z := N(1);  // error: cannot resolve N
+  z := Global.N(1);
 
   z := z(5);  // error: using local as if it were a function
   z := Global.z;  // error: class Global does not have a member z
@@ -59,7 +59,7 @@ method TestNameResolution0() {
   z := Global.X;  // this means the instance field X of the object stored in the local variable 'Global'
   var gg: Global := null;
   var y := gg.G(5);
-  call y := gg.N(5);
+  y := gg.N(5);
 }
 
 datatype Abc = Abel | Benny | Cecilia(y: int) | David(x: int) | Eleanor;

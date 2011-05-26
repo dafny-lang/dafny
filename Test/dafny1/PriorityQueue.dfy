@@ -41,7 +41,7 @@ class PriorityQueue {
   {
     n := n + 1;
     a[n] := x;
-    call SiftUp(n);
+    SiftUp(n);
   }
 
   method SiftUp(k: int)
@@ -76,7 +76,7 @@ class PriorityQueue {
     x := a[1];
     a[1] := a[n];
     n := n - 1;
-    call SiftDown(1);
+    SiftDown(1);
   }
 
   method SiftDown(k: int)
@@ -156,7 +156,7 @@ class PriorityQueue_Alternative {
   {
     n := n + 1;
     a[n] := x;
-    call SiftUp();
+    SiftUp();
   }
 
   method SiftUp()
@@ -189,7 +189,7 @@ class PriorityQueue_Alternative {
     x := a[1];
     a[1] := a[n];
     n := n - 1;
-    call SiftDown();
+    SiftDown();
   }
 
   method SiftDown()

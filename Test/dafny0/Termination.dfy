@@ -28,8 +28,8 @@ class Termination {
   }
 
   method Lex() {
-    call x := Update();
-    call y := Update();
+    var x := Update();
+    var y := Update();
     while (!(x == 0 && y == 0))
       invariant 0 <= x && 0 <= y;
       decreases x, y;
@@ -38,7 +38,7 @@ class Termination {
         y := y - 1;
       } else {
         x := x - 1;
-        call y := Update();
+        y := Update();
       }
     }
   }
@@ -82,7 +82,8 @@ class Termination {
     while (l != List.Nil)
       decreases l;
     {
-      call x, l := Traverse(l);
+      var x;
+      x, l := Traverse(l);
     }
   }
 
@@ -204,7 +205,7 @@ method OuterOld(a: int)
   decreases a, true;
 {
   count := count + 1;
-  call InnerOld(a, count);
+  InnerOld(a, count);
 }
 
 method InnerOld(a: int, b: int)
@@ -213,9 +214,9 @@ method InnerOld(a: int, b: int)
 {
   count := count + 1;
   if (b == 0 && 1 <= a) {
-    call OuterOld(a - 1);
+    OuterOld(a - 1);
   } else if (1 <= b) {
-    call InnerOld(a, b - 1);
+    InnerOld(a, b - 1);
   }
 }
 
@@ -225,7 +226,7 @@ method Outer(a: int)
   modifies this;
 {
   count := count + 1;
-  call Inner(a, count);
+  Inner(a, count);
 }
 
 method Inner(a: int, b: int)
@@ -233,9 +234,9 @@ method Inner(a: int, b: int)
 {
   count := count + 1;
   if (b == 0 && 1 <= a) {
-    call Outer(a - 1);
+    Outer(a - 1);
   } else if (1 <= b) {
-    call Inner(a, b - 1);
+    Inner(a, b - 1);
   }
 }
 

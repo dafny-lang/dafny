@@ -74,7 +74,7 @@ class A {
       var s := z[1,2,4];  // first three powers of 2 (tra-la-la)
       var some: A;
       f[i,j,k] := some;
-      call M3(i-1, j, k);
+      M3(i-1, j, k);
       assert s == z[1,2,4];
       if (*) {
         assert f[i,j,k] == some;  // error: the recursive call may have modified any element in 'f'

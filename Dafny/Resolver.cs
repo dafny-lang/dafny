@@ -1234,6 +1234,9 @@ namespace Microsoft.Dafny {
               var a = new AssignStmt(s.Tok, s.Lhss[i].Resolved, s.Rhss[i]);
               s.ResolvedStatements.Add(a);
             }
+            if (s.Lhss.Count != 1) {
+              Error(s, "multi-assignments not yet supported");  // TODO
+            }
           }
         } else {
           // if there was an effectful RHS, that must be the only RHS
@@ -1251,14 +1254,15 @@ namespace Microsoft.Dafny {
           } else {
             // a call statement
             if (ErrorCount == prevErrorCount) {
-#if !FULL_LHS_SUPPORT_FOR_CALLS
               var idLhss = new List<IdentifierExpr>();
               foreach (var ll in s.Lhss) {
-                var ie = (IdentifierExpr)ll.Resolved;  // TODO: the CallStmt should handle all LHS's, not just identifier expressions
-                Contract.Assert(ie != null);
-                idLhss.Add(ie);
+                var ie = ll.Resolved as IdentifierExpr;  // TODO: the CallStmt should handle all LHS's, not just identifier expressions
+                if (ie == null) {
+                  Error(ll, "actual out-parameters of calls must be variables, not fields");
+                } else {
+                  idLhss.Add(ie);
+                }
               }
-#endif
               var a = new CallStmt(callRhs.Tok, idLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
               s.ResolvedStatements.Add(a);
             }
@@ -1736,11 +1740,15 @@ namespace Microsoft.Dafny {
           if (callee.IsStatic) {
             Error(s.Tok, "a method called as an initialization method must not be 'static'");
           }
-        } else  if (!scope.AllowInstance && !callee.IsStatic && s.Receiver is ThisExpr) {
-          // The call really needs an instance, but that instance is given as 'this', which is not
-          // available in this context.  For more details, see comment in the resolution of a
-          // FunctionCallExpr.
-          Error(s.Receiver, "'this' is not allowed in a 'static' context");
+        } else if (!callee.IsStatic) {
+          if (!scope.AllowInstance && s.Receiver is ThisExpr) {
+            // The call really needs an instance, but that instance is given as 'this', which is not
+            // available in this context.  For more details, see comment in the resolution of a
+            // FunctionCallExpr.
+            Error(s.Receiver, "'this' is not allowed in a 'static' context");
+          } else if (s.Receiver is StaticReceiverExpr) {
+            Error(s.Receiver, "call to instance method requires an instance");
+          }
         }
         // build the type substitution map
         Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
@@ -2653,15 +2661,19 @@ namespace Microsoft.Dafny {
           Error(e, "wrong number of function arguments (got {0}, expected {1})", e.Args.Count, function.Formals.Count);
         } else {
           Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember
-          if (!scope.AllowInstance && !function.IsStatic && e.Receiver is ThisExpr) {
-            // The call really needs an instance, but that instance is given as 'this', which is not
-            // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
-            // have been caught in the recursive call to resolve e.Receiver, but not the specific case
-            // of e.Receiver being 'this' (explicitly or implicitly), for that case needs to be allowed
-            // in the event that a class function calls another class function (and note that we need the
-            // type of the receiver in order to find the method, so we could not have made this check
-            // earlier).
-            Error(e.Receiver, "'this' is not allowed in a 'static' context");
+          if (!function.IsStatic) {
+            if (!scope.AllowInstance && e.Receiver is ThisExpr) {
+              // The call really needs an instance, but that instance is given as 'this', which is not
+              // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
+              // have been caught in the recursive call to resolve e.Receiver, but not the specific case
+              // of e.Receiver being 'this' (explicitly or implicitly), for that case needs to be allowed
+              // in the event that a static function calls another static function (and note that we need the
+              // type of the receiver in order to find the method, so we could not have made this check
+              // earlier).
+              Error(e.Receiver, "'this' is not allowed in a 'static' context");
+            } else if (e.Receiver is StaticReceiverExpr) {
+              Error(e.Receiver, "call to instance function requires an instance");
+            }
           }
           // build the type substitution map
           Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();

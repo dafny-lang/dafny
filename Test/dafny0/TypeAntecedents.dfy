@@ -35,7 +35,7 @@ method BadLemma(c0: Color, c1: Color)
 }
 
 method Main() {
-  call BadLemma(Color.Yellow, Color.Blue);
+  BadLemma(Color.Yellow, Color.Blue);
   assert false;  // this shows how things can really go wrong if BadLemma verified successfully
 }
 
@@ -68,7 +68,7 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
         assert false;  // error
       }
   }
-  call k := N();
+  var k := N();
   assert k.H() == 5;
   ghost var l := NF();
   assert l != null ==> l.H() == 5;

@@ -39,7 +39,7 @@ method Search(N: int) returns (success: bool, board: seq<int>)
                   ==>
                   (exists p :: 0 <= p && p < N && !IsConsistent(B, p)));
 {
-  call success, board := SearchAux(N, []);
+  success, board := SearchAux(N, []);
 }
 
 // Given a board, this function says whether or not the queen placed in column 'pos'
@@ -110,7 +110,7 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
 
         // Thus, we meet the precondition of 'SearchAux' on 'candidateBoard', so let's search
         // for a solution that extends 'candidateBoard'.
-        call s, b := SearchAux(N, candidateBoard);
+        var s, b := SearchAux(N, candidateBoard);
         if (s) {
           // The recursive call to 'SearchAux' found consistent positions for all remaining columns
           newBoard := b;
@@ -137,11 +137,11 @@ method SearchAux(N: int, boardSoFar: seq<int>) returns (success: bool, newBoard:
 
 method Main()
 {
-  call s, b := Search(2);
+  var s, b := Search(2);
   print "N=2 returns ", s, "\n";
-  call s, b := Search(4);
+  s, b := Search(4);
   print "N=4 returns ", s, "\n";
-  call PrintSeq(b);
+  PrintSeq(b);
 }
 
 method PrintSeq(b: seq<int>)

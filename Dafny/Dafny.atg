@@ -28,7 +28,6 @@ static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
 static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument("dummyAttrArg");
-static Scope<string>/*!*/ parseVarScope = new Scope<string>();
 static int anonymousIds = 0;
 
 struct MemberModifiers {
@@ -292,11 +291,8 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   .)
   { Attribute<ref attrs> }
   Ident<out id>
-  (. parseVarScope.PushMarker(); .)
   [ FormalsOptionalIds<formals> ]
-  (. parseVarScope.PopMarker();
-     ctors.Add(new DatatypeCtor(id, id.val, formals, attrs));
-  .)
+  (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
 
 FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
@@ -321,7 +317,6 @@ CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
      List<IToken/*!*/> ids = new List<IToken/*!*/>();;
      IToken/*!*/ id;
      Expression/*!*/ e;
-     parseVarScope.PushMarker();
   .)
   "replaces"
   (. if (mmod.IsUnlimited) { SemErr(t, "coupling invariants cannot be declared 'unlimited'"); }
@@ -329,15 +324,13 @@ CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
      if (mmod.IsGhost) { SemErr(t, "coupling invariants cannot be declared 'ghost'"); }
   .)
   { Attribute<ref attrs> }  
-  Ident<out id>                                     (. ids.Add(id); parseVarScope.Push(id.val, id.val); .)
-  { "," Ident<out id>                               (. ids.Add(id); parseVarScope.Push(id.val, id.val); .)
+  Ident<out id>                                     (. ids.Add(id); .)
+  { "," Ident<out id>                               (. ids.Add(id); .)
   }
   "by"    
   Expression<out e>
   ";"
-  (. mm.Add(new CouplingInvariant(ids, e, attrs));
-     parseVarScope.PopMarker();
-  .)  
+  (. mm.Add(new CouplingInvariant(ids, e, attrs)); .)  
   .
 
 
@@ -441,7 +434,6 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  (. parseVarScope.PushMarker(); .)
   Formals<true, true, ins>
   [ "returns"
     Formals<false, true, outs>
@@ -451,8 +443,7 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
   | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
   )
   
-  (. parseVarScope.PopMarker();
-     if (isRefinement)
+  (. if (isRefinement)
        m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
      else 
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
@@ -483,8 +474,8 @@ Formals<.bool incoming, bool allowGhosts, List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; .)
   "("
   [
-    GIdentType<allowGhosts, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); .)
-    { "," GIdentType<allowGhosts, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost));  parseVarScope.Push(id.val, id.val); .)
+    GIdentType<allowGhosts, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
+    { "," GIdentType<allowGhosts, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
     }
   ]
   ")"
@@ -494,8 +485,8 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost));  parseVarScope.Push(name, name); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost>  (. formals.Add(new Formal(id, name, ty, true, isGhost));  parseVarScope.Push(name, name); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost>  (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
     }
   ]
   ")"
@@ -588,7 +579,6 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   { Attribute<ref attrs> }
   Ident<out id> 
   [ GenericParameters<typeArgs> ]
-  (. parseVarScope.PushMarker(); .)
   Formals<true, false, formals>
   ":"
   Type<out returnType>
@@ -597,8 +587,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   | { FunctionSpec<reqs, reads, ens, decreases> }
     FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   )
-  (. parseVarScope.PopMarker();
-     f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, decreases, body, attrs);
+  (. f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, decreases, body, attrs);
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
   .)
@@ -677,18 +666,15 @@ CaseExpression<out MatchCaseExpr/*!*/ c>
      List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
      Expression/*!*/ body;
   .)
-  "case"                      (. x = t;  parseVarScope.PushMarker(); .)
+  "case"                      (. x = t; .)
   Ident<out id>
   [ "("
-    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
-                                 parseVarScope.Push(arg.val, arg.val); .)
-    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
-                                 parseVarScope.Push(arg.val, arg.val); .)
+    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
+    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
     }
   ")" ]
   "=>"
-  MatchOrExpr<out body>       (. c = new MatchCaseExpr(x, id.val, arguments, body);
-                                 parseVarScope.PopMarker(); .)
+  MatchOrExpr<out body>       (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
   .
 
 /* Note, '(' is start of more than one alternative in MatchOrExpr, but the first intentionally hides
@@ -707,13 +693,11 @@ BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
-  (. parseVarScope.PushMarker(); .)
   "{"                                  (. bodyStart = t; .)
   { Stmt<body>
   }
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, body); .)
-  (. parseVarScope.PopMarker(); .)
   .
 
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
@@ -733,8 +717,9 @@ OneStmt<out Statement/*!*/ s>
   | AssumeStmt<out s>
   | UseStmt<out s>
   | PrintStmt<out s>
+  | UpdateStmt<out s>
   | HavocStmt<out s>
-  | "call" UpdateStmt<out s>
+  | VarDeclStatement<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | MatchStmt<out s>
@@ -746,8 +731,6 @@ OneStmt<out Statement/*!*/ s>
     ] ";"                              (. s = new BreakStmt(x, label); .)
   | "return"                           (. x = t; .)
     ";"                                (. s = new ReturnStmt(x); .)
-  | VarDeclStatement<out s>
-  | UpdateStmt<out s>
   )
   .
 
@@ -885,9 +868,7 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives.>
     Expression<out e>
     "=>"
     (. body = new List<Statement>(); .)
-    (. parseVarScope.PushMarker(); .)
     { Stmt<body> }
-    (. parseVarScope.PopMarker(); .)
     (. alternatives.Add(new GuardedAlternative(x, e, body)); .)
   }
   "}"
@@ -963,21 +944,16 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
      List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
-  "case"                      (. x = t;  parseVarScope.PushMarker(); .)
+  "case"                      (. x = t; .)
   Ident<out id>
   [ "("
-    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
-                                 parseVarScope.Push(arg.val, arg.val); .)
-    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy()));
-                                 parseVarScope.Push(arg.val, arg.val); .)
+    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
+    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
     }
   ")" ]
   "=>"
-    (. parseVarScope.PushMarker(); .)
     { Stmt<body> }
-    (. parseVarScope.PopMarker(); .)
   (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
-  (. parseVarScope.PopMarker(); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -991,7 +967,6 @@ ForeachStmt<out Statement/*!*/ s>
      List<PredicateStmt/*!*/> bodyPrefix = new List<PredicateStmt/*!*/>();
      Statement bodyAssign = null;
   .)
-  (. parseVarScope.PushMarker(); .)
   "foreach"                                    (. x = t;
                                                   range = new LiteralExpr(x, true);
                                                   ty = new InferredTypeProxy();
@@ -999,7 +974,6 @@ ForeachStmt<out Statement/*!*/ s>
   "(" Ident<out boundVar>
       [ ":" Type<out ty> ]
       "in" Expression<out collection>
-                                               (. parseVarScope.Push(boundVar.val, boundVar.val); .)
       [ "|" Expression<out range> ]
   ")"
   "{"
@@ -1016,7 +990,6 @@ ForeachStmt<out Statement/*!*/ s>
                                                     s = dummyStmt;  // some error occurred in parsing the bodyAssign
                                                   }
                                                .)
-  (. parseVarScope.PopMarker(); .)
   .
 
 AssertStmt<out Statement/*!*/ s>
@@ -1322,10 +1295,9 @@ QuantifierGuts<out Expression/*!*/ q>
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
   )
-  (. parseVarScope.PushMarker(); .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
+    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   { AttributeOrTrigger<ref attrs, ref trigs> }
   [ "|"
@@ -1338,7 +1310,6 @@ QuantifierGuts<out Expression/*!*/ q>
      } else {
        q = new ExistsExpr(x, bvars, range, body, trigs, attrs);
      }
-     parseVarScope.PopMarker();
   .)
   .
 
@@ -1355,10 +1326,9 @@ ComprehensionExpr<out Expression/*!*/ q>
      Expression body = null;
   .)
   "set"                                        (. x = t; .)
-  (. parseVarScope.PushMarker(); .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv);  parseVarScope.Push(bv.Name, bv.Name); .)
+    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   "|" Expression<out range>
   [
@@ -1367,7 +1337,6 @@ ComprehensionExpr<out Expression/*!*/ q>
   ]
   (. if (body == null && bvars.Count != 1) { SemErr(t, "a set comprehension with more than one bound variable must have a term expression"); }
      q = new SetComprehension(x, bvars, range, body);
-     parseVarScope.PopMarker();
   .)
   .
 

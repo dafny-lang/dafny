@@ -22,10 +22,10 @@ class MyClass<T, U> {
       } else {
         this.x := x + 0;
       }
-      call t, u, v := M(true, lotsaObjects);
+      t, u, v := M(true, lotsaObjects);
       var to: MyClass<T,U>;
-      call to, u, v := M(true, lotsaObjects);
-      call to, u, v := to.M(true, lotsaObjects);
+      to, u, v := this.M(true, lotsaObjects);
+      to, u, v := to.M(true, lotsaObjects);
       assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
     }
   }
@@ -70,9 +70,9 @@ TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, g
 TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, got int)
-TypeTests.dfy(11,4): Error: incorrect type of method in-parameter 0 (expected int, got bool)
-TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 0 (expected int, got C)
-TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 1 (expected C, got int)
+TypeTests.dfy(11,15): Error: incorrect type of method in-parameter 0 (expected int, got bool)
+TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 0 (expected int, got C)
+TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 1 (expected C, got int)
 TypeTests.dfy(20,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Nothing' can be constructed
 TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 TypeTests.dfy(55,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
@@ -85,12 +85,12 @@ TypeTests.dfy(80,17): Error: a method called as an initialization method must no
 TypeTests.dfy(89,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
 TypeTests.dfy(90,2): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
 TypeTests.dfy(96,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(97,6): Error: sorry, cannot instantiate 'array' type with a subrange type
-TypeTests.dfy(98,6): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(97,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(98,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 22 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
-NatTypes.dfy(7,10): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(7,5): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
 NatTypes.dfy(31,5): Error: value assigned to a nat must be non-negative
@@ -119,7 +119,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(89,9): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(89,16): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -160,11 +160,11 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(129,7): Error: call may violate caller's modifies clause
+SmallTests.dfy(129,9): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(131,7): Error: call may violate caller's modifies clause
+SmallTests.dfy(131,9): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -402,7 +402,7 @@ Execution trace:
 Dafny program verifier finished with 3 verified, 3 errors
 
 -------------------- ResolutionErrors.dfy --------------------
-ResolutionErrors.dfy(39,13): Error: 'this' is not allowed in a 'class' context
+ResolutionErrors.dfy(39,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(23,12): Error: sequence/array selection requires a sequence or array (got array3<T>)
@@ -410,9 +410,11 @@ ResolutionErrors.dfy(24,11): Error: array selection requires an array4 (got arra
 ResolutionErrors.dfy(45,14): Error: a field must be selected via an object, not just a class name
 ResolutionErrors.dfy(46,7): Error: unresolved identifier: F
 ResolutionErrors.dfy(47,14): Error: an instance function must be selected via an object, not just a class name
+ResolutionErrors.dfy(47,7): Error: call to instance function requires an instance
 ResolutionErrors.dfy(48,7): Error: unresolved identifier: G
-ResolutionErrors.dfy(50,2): Error: member M does not exist in class _default
-ResolutionErrors.dfy(52,2): Error: member N does not exist in class _default
+ResolutionErrors.dfy(50,7): Error: unresolved identifier: M
+ResolutionErrors.dfy(51,7): Error: call to instance method requires an instance
+ResolutionErrors.dfy(52,7): Error: unresolved identifier: N
 ResolutionErrors.dfy(55,8): Error: non-function expression is called with parameters
 ResolutionErrors.dfy(56,14): Error: member z does not exist in class Global
 ResolutionErrors.dfy(75,12): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
@@ -420,7 +422,7 @@ ResolutionErrors.dfy(80,12): Error: the name 'David' denotes a datatype construc
 ResolutionErrors.dfy(81,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(83,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(85,12): Error: wrong number of arguments to datatype constructor Abc (found 2, expected 1)
-18 resolution/type errors detected in ResolutionErrors.dfy
+20 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- Array.dfy --------------------
 Array.dfy(10,12): Error: assignment may update an array element not in the enclosing method's modifies clause
@@ -512,11 +514,11 @@ Dafny program verifier finished with 7 verified, 1 error
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
 Modules0.dfy(13,7): Error: module T named among imports does not exist
 Modules0.dfy(24,7): Error: import graph contains a cycle: H -> I -> J -> G
-Modules0.dfy(51,6): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
-Modules0.dfy(62,6): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
-Modules0.dfy(72,6): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
-Modules0.dfy(91,4): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
-Modules0.dfy(116,16): Error: ghost variables are allowed only in specification contexts
+Modules0.dfy(51,8): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
+Modules0.dfy(62,9): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
+Modules0.dfy(72,9): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
+Modules0.dfy(91,6): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
+Modules0.dfy(116,11): Error: ghost variables are allowed only in specification contexts
 Modules0.dfy(130,11): Error: old expressions are allowed only in specification and ghost contexts
 Modules0.dfy(131,11): Error: fresh expressions are allowed only in specification and ghost contexts
 Modules0.dfy(132,11): Error: allocated expressions are allowed only in specification and ghost contexts
@@ -599,57 +601,57 @@ Execution trace:
 Dafny program verifier finished with 15 verified, 6 errors
 
 -------------------- Termination.dfy --------------------
-Termination.dfy(102,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(103,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(102,3): anon7_LoopHead
+    Termination.dfy(103,3): anon7_LoopHead
     (0,0): anon7_LoopBody
-    Termination.dfy(102,3): anon8_Else
+    Termination.dfy(103,3): anon8_Else
     (0,0): anon3
-    Termination.dfy(102,3): anon9_Else
+    Termination.dfy(103,3): anon9_Else
     (0,0): anon5
-Termination.dfy(110,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(111,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(110,3): anon9_LoopHead
+    Termination.dfy(111,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(110,3): anon10_Else
+    Termination.dfy(111,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(110,3): anon12_Else
+    Termination.dfy(111,3): anon12_Else
     (0,0): anon7
-Termination.dfy(119,3): Error: decreases expression might not decrease
+Termination.dfy(120,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(119,3): anon9_LoopHead
+    Termination.dfy(120,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(119,3): anon10_Else
+    Termination.dfy(120,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(119,3): anon12_Else
+    Termination.dfy(120,3): anon12_Else
     (0,0): anon7
-Termination.dfy(120,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
+Termination.dfy(121,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Execution trace:
     (0,0): anon0
-    Termination.dfy(119,3): anon9_LoopHead
+    Termination.dfy(120,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(119,3): anon10_Else
+    Termination.dfy(120,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(119,3): anon12_Else
+    Termination.dfy(120,3): anon12_Else
     (0,0): anon7
-Termination.dfy(248,35): Error: cannot prove termination; try supplying a decreases clause
+Termination.dfy(249,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-Termination.dfy(288,3): Error: decreases expression might not decrease
+Termination.dfy(289,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(288,3): anon10_LoopHead
+    Termination.dfy(289,3): anon10_LoopHead
     (0,0): anon10_LoopBody
-    Termination.dfy(288,3): anon11_Else
-    Termination.dfy(288,3): anon12_Else
+    Termination.dfy(289,3): anon11_Else
+    Termination.dfy(289,3): anon12_Else
     (0,0): anon13_Else
     (0,0): anon8
 

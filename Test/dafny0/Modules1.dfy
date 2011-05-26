@@ -37,7 +37,7 @@ method Proc0(x: int)
   decreases x;
 {
   if (0 <= x) {
-    call Proc1(x - 1);
+    Proc1(x - 1);
   }
 }
 
@@ -45,18 +45,18 @@ method Proc1(x: int)
   decreases x;
 {
   if (0 <= x) {
-    call Proc0(x - 1);
+    Proc0(x - 1);
   }
 }
 
 method Botch0(x: int)
   decreases x;
 {
-  call Botch1(x - 1);  // error: failure to keep termination metric bounded
+  Botch1(x - 1);  // error: failure to keep termination metric bounded
 }
 
 method Botch1(x: int)
   decreases x;
 {
-  call Botch0(x);  // error: failure to decrease termination metric
+  Botch0(x);  // error: failure to decrease termination metric
 }

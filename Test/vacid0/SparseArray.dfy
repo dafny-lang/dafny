@@ -37,11 +37,9 @@ class SparseArray<T> {
     ensures |Contents| == N && this.zero == zero;
     ensures (forall x :: x in Contents ==> x == zero);
   {
-    var aa;
-    var ii;
-    call aa := AllocateArray(N);  this.a := aa;
-    call ii := AllocateArray(N);  this.b := ii;
-    call ii := AllocateArray(N);  this.c := ii;
+    var aa := AllocateArray(N);  this.a := aa;
+    var bb := AllocateArray(N);  this.b := bb;
+    bb := AllocateArray(N);  this.c := bb;
     this.n := 0;
 
     // initialize ghost variable Contents to a sequence of length N containing only zero's,

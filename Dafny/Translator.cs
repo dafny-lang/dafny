@@ -2983,8 +2983,7 @@ namespace Microsoft.Dafny {
         locals.Add(var);
         
       } else if (stmt is CallStmt) {
-        CallStmt s = (CallStmt)stmt;
-        TrCallStmt(s, builder, locals, etran, null);
+        TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
         
       } else if (stmt is BlockStmt) {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {

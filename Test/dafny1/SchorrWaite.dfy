@@ -26,7 +26,7 @@ class Main {
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
   {
-    call RecursiveMarkWorker(root, S, {});
+    RecursiveMarkWorker(root, S, {});
   }
 
   method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set<Node>)
@@ -67,7 +67,7 @@ class Main {
       {
         var c := root.children[i];
         if (c != null) {
-          call RecursiveMarkWorker(c, S, stackNodes + {root});
+          RecursiveMarkWorker(c, S, stackNodes + {root});
         }
         i := i + 1;
       }

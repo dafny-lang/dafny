@@ -87,10 +87,10 @@ class Benchmark3 {
       invariant (forall i :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
       invariant (forall i :: 0 <= i && i < |p| ==> q.contents[i] == old(q.contents)[p[i]]);
     {  
-      call m,k := RemoveMin(q);
+      var m,k := RemoveMin(q);
       perm := perm + [p[k]]; //adds index of min to perm
       p := p[k+1..] + p[..k]; //remove index of min from p  
-      call r.Enqueue(m);
+      r.Enqueue(m);
       pperm := pperm[k+1..|p|+1] + pperm[..k] + pperm[|p|+1..] + [pperm[k]];
     }
   }
@@ -116,8 +116,8 @@ class Benchmark3 {
       invariant 0 <= k && k < |old(q.contents)| && old(q.contents)[k] == m;
       invariant (forall i :: 0<= i && i < j ==> m <= old(q.contents)[i]); //m is min so far
     {
-      call x:= q.Dequeue();
-      call q.Enqueue(x);
+      var x := q.Dequeue();
+      q.Enqueue(x);
       if (x < m) { k := j; m := x; }
       j := j+1;
     }
@@ -127,11 +127,11 @@ class Benchmark3 {
       invariant j <= k;
       invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
     {
-      call x := q.Dequeue();
-      call q.Enqueue(x);
+      var x := q.Dequeue();
+      q.Enqueue(x);
       j := j+1;
     }
 
-    call m:= q.Dequeue();
+    m := q.Dequeue();
   }
 }

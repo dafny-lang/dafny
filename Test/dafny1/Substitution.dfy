@@ -31,7 +31,7 @@ static ghost method Theorem(e: Expr, v: int, val: int)
     case Const(c) =>
     case Var(x) =>
     case Nary(op, args) =>
-      call Lemma(args, v, val);
+      Lemma(args, v, val);
   }
 }
 
@@ -41,8 +41,8 @@ static ghost method Lemma(l: List, v: int, val: int)
   match l {
     case Nil =>
     case Cons(e, tail) =>
-      call Theorem(e, v, val);
-      call Lemma(tail, v, val);
+      Theorem(e, v, val);
+      Lemma(tail, v, val);
   }
 }
 
@@ -80,11 +80,11 @@ static ghost method TheoremSeq(e: Expression, v: int, val: int)
     case Var(x) =>
     case Nary(op, args) =>
       ghost var seArgs := SubstSeq(e, args, v, val);
-      call LemmaSeq(e, args, v, val);
+      LemmaSeq(e, args, v, val);
 
       ghost var se := Substitute(e, v, val);
       ghost var seArgs2 := SubstSeq(se, seArgs, v, val);
-      call LemmaSeq(se, seArgs, v, val);
+      LemmaSeq(se, seArgs, v, val);
 
       var N := |args|;
       var j := 0;
@@ -92,7 +92,7 @@ static ghost method TheoremSeq(e: Expression, v: int, val: int)
         invariant j <= N;
         invariant (forall k :: 0 <= k && k < j ==> seArgs2[k] == seArgs[k]);
       {
-        call TheoremSeq(args[j], v, val);
+        TheoremSeq(args[j], v, val);
         j := j + 1;
       }
       assert seArgs == seArgs2;
@@ -107,6 +107,6 @@ static ghost method LemmaSeq(ghost parent: Expression, ghost q: seq<Expression>,
 {
   if (q == []) {
   } else {
-    call LemmaSeq(parent, q[..|q|-1], v, val);
+    LemmaSeq(parent, q[..|q|-1], v, val);
   }
 }

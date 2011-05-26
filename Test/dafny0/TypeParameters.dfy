@@ -13,7 +13,7 @@ class C<U> {
   method Main(u: U)
   {
     var t := F(3,u) && F(this,u);
-    call kz := M(t,u);
+    var kz := M(t,u);
     assert kz && (G() || !G());
   }
 
@@ -30,14 +30,14 @@ class SetTest {
   method Good()
   {
     var s := {2, 5, 3};
-    call t := Add(s, 7);
+    var t := Add(s, 7);
     assert {5,7,2,3} == t;
   }
 
   method Bad()
   {
     var s := {2, 50, 3};
-    call t := Add(s, 7);
+    var t := Add(s, 7);
     assert {5,7,2,3} == t;  // error
   }
 }
@@ -52,14 +52,14 @@ class SequenceTest {
   method Good()
   {
     var s := [2, 5, 3];
-    call t := Add(s, 7);
+    var t := Add(s, 7);
     assert [2,5,3,7] == t;
   }
 
   method Bad()
   {
     var s := [2, 5, 3];
-    call t := Add(s, 7);
+    var t := Add(s, 7);
     assert [2,5,7,3] == t || [2,5,3] == t;  // error
   }
 }
@@ -92,7 +92,7 @@ class CClient {
     }
     c.x := 5;
     c.x := c.x;
-    call z := c.M(c, 17);
+    var z := c.M(c, 17);
     assert z == c.x;
   }
 }
@@ -170,7 +170,7 @@ method TyKn_Main(k0: TyKn_K) {
 
   assert c.x != null ==> c.x.F() == 176;  // the Dafny encoding needs the canCall mechanism to verify this
   assert c.G() != null ==> c.G().F() == 176;  // ditto
-  call k2 := c.M();
+  var k2 := c.M();
   assert k2 != null ==> k2.F() == 176;  // the canCall mechanism does the trick here, but so does the encoding
                                         // via k2's where clause
 }

@@ -54,7 +54,7 @@ class Map<Key,Value> {
     ensures !present ==> key !in Keys;
     ensures present ==> (exists i :: 0 <= i && i < |Keys| && Keys[i] == key && Values[i] == val);
   {
-    call p, n, prev := FindIndex(key);
+    var p, n, prev := FindIndex(key);
     if (p == null) {
       present := false;
     } else {
@@ -74,7 +74,7 @@ class Map<Key,Value> {
                     Keys[j] == old(Keys)[j] && Values[j] == old(Values)[j]));
     ensures key !in old(Keys) ==> Keys == [key] + old(Keys) && Values == [val] + old(Values);
   {
-    call p, n, prev := FindIndex(key);
+    var p, n, prev := FindIndex(key);
     if (p == null) {
       var h := new Node<Key,Value>;
       h.key := key;  h.val := val;  h.next := head;
@@ -107,7 +107,7 @@ class Map<Key,Value> {
               Keys[h..] == old(Keys)[h+1..] &&
               Values[h..] == old(Values)[h+1..]);
   {
-    call p, n, prev := FindIndex(key);
+    var p, n, prev := FindIndex(key);
     if (p != null) {
       Keys := Keys[..n] + Keys[n+1..];
       Values := Values[..n] + Values[n+1..];

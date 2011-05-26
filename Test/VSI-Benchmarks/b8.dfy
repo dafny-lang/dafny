@@ -46,7 +46,7 @@ class Glossary {
   method Main()
   {
     var rs:= new ReaderStream;
-    call rs.Open();
+    rs.Open();
     var glossary := new Map<Word,seq<Word>>.Init();
     var q := new Queue<Word>.Init();
     
@@ -60,21 +60,22 @@ class Glossary {
       invariant q.contents == glossary.keys;
       decreases *;  // we leave out the decreases clause - unbounded stream
     {
-      call term,definition := readDefinition(rs);
+      var term,definition := readDefinition(rs);
       if (term == null) {
         break;
       }
-      call present, d := glossary.Find(term);
+      var present, d := glossary.Find(term);
       if (!present) {
-        call glossary.Add(term,definition);
-        call q.Enqueue(term);
+        glossary.Add(term,definition);
+        q.Enqueue(term);
       }
     }    
     
-    call rs.Close();
-    call q,p := Sort(q);
+    rs.Close();
+    var p;
+    q,p := Sort(q);
     var wr := new WriterStream;
-    call wr.Create();
+    wr.Create();
     
     while (0 < |q.contents|)
       invariant wr.Valid() && fresh(wr.footprint);
@@ -84,12 +85,12 @@ class Glossary {
       invariant q !in wr.footprint;
       invariant (forall k :: k in q.contents ==> k in glossary.keys);
     {
-      call term := q.Dequeue();
-      call present,definition := glossary.Find(term);
+      var term := q.Dequeue();
+      var present,definition := glossary.Find(term);
       assert present;
       
       // write term with a html anchor
-      call wr.PutWordInsideTag(term, term);
+      wr.PutWordInsideTag(term, term);
       var i := 0;
 
       var qcon := q.contents;
@@ -103,19 +104,20 @@ class Glossary {
         invariant (forall k :: k in q.contents ==> k in glossary.keys);
       {
         var w := definition[i];
-        call present, d := glossary.Find(w);
+        var d;
+        present, d := glossary.Find(w);
         if (present)
         {
-          call wr. PutWordInsideHyperlink(w, w);
+          wr. PutWordInsideHyperlink(w, w);
         }
         else 
         {
-          call wr. PutWord(w);
+          wr. PutWord(w);
         }
         i:= i +1;
       }
     }
-    call wr.Close();          
+    wr.Close();          
   }
     
 
@@ -125,7 +127,7 @@ class Glossary {
     ensures rs.Valid() && fresh(rs.footprint - old(rs.footprint));
     ensures term != null ==> null !in definition;
   {
-    call term := rs.GetWord();
+    term := rs.GetWord();
     if (term != null)
     {
       definition := [];
@@ -134,7 +136,7 @@ class Glossary {
         invariant null !in definition;
         decreases *;  // we leave out the decreases clause - unbounded stream
       {
-        call w := rs.GetWord();
+        var w := rs.GetWord();
         if (w == null)
         {
           break;
@@ -273,7 +275,7 @@ class Map<Key,Value> {
     ensures present ==> (exists i :: 0 <= i && i < |keys| &&
                                      keys[i] == key && values[i] == val);
   {
-    call j := FindIndex(key);
+    var j := FindIndex(key);
     if (j == -1) {
       present := false;
     } else {
@@ -292,7 +294,7 @@ class Map<Key,Value> {
               (forall j :: 0 <= j && j < |values| && i != j ==> keys[j] == old(keys)[j] && values[j] == old(values)[j]));
     ensures key !in old(keys) ==> keys == old(keys) + [key] && values == old(values) + [val];
   {
-    call j := FindIndex(key);
+    var j := FindIndex(key);
     if (j == -1) {
       keys := keys + [key];
       values := values + [val];
@@ -321,7 +323,7 @@ class Map<Key,Value> {
               keys[h..] == old(keys)[h+1..] &&
               values[h..] == old(values)[h+1..]);
   {
-    call j := FindIndex(key);
+    var j := FindIndex(key);
     if (0 <= j) {
       keys := keys[..j] + keys[j+1..];
       values := values[..j] + values[j+1..];

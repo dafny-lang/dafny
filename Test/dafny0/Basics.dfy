@@ -23,19 +23,19 @@ method TestCalls(k: nat) {
   ghost var r: int;
   ghost var s := Global.G(k);
 
-//  call r := Global.N(k);
+//  r := Global.N(k);
 //  assert r == s;
 
-  call r := g.N(k);
+  r := g.N(k);
   assert r == s;
-  call r := h.N(k);
+  r := h.N(k);
   assert r == s;
 
   g := null;
-  call r := g.N(k);
+  r := g.N(k);
   assert r == s;
 
-//  call r := Global.N(r);
+//  r := Global.N(r);
   if (k == 0) {
     assert r == s;
   } else {

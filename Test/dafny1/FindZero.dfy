@@ -9,7 +9,7 @@ method FindZero(a: array<int>) returns (r: int)
     invariant forall i :: 0 <= i && i < n && i < a.Length ==> a[i] != 0;
   {
     if (a[n] == 0) { r := n; return; }
-    call Lemma(a, n, a[n]);
+    Lemma(a, n, a[n]);
     n := n + a[n];
   }
   r := -1;
@@ -25,6 +25,6 @@ ghost method Lemma(a: array<int>, k: int, m: int)
 {
   if (0 < m && k < a.Length) {
     assert a[k] != 0;
-    call Lemma(a, k+1, m-1);
+    Lemma(a, k+1, m-1);
   }
 }

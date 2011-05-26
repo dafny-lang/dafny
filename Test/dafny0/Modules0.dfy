@@ -38,17 +38,17 @@ module J imports G, M {
 module X2 imports X1 {
   class MyClass2 {
     method Down(x1: MyClass1, x0: MyClass0) {
-      call x1.Down(x0);
+      x1.Down(x0);
     }
     method WayDown(x0: MyClass0, g: ClassG) {
-      call x0.Down();
-      call g.T();  // allowed, because this follows import relation
+      x0.Down();
+      g.T();  // allowed, because this follows import relation
       var t := g.TFunc();  // allowed, because this follows import relation
     }
     method Up() {
     }
     method Somewhere(y: MyClassY) {
-      call y.M();  // error: does not follow import relation
+      y.M();  // error: does not follow import relation
     }
   }
 }
@@ -56,10 +56,10 @@ module X2 imports X1 {
 module X1 imports X0 {
   class MyClass1 {
     method Down(x0: MyClass0) {
-      call x0.Down();
+      x0.Down();
     }
     method Up(x2: MyClass2) {
-      call x2.Up();  // error: does not follow import relation
+      x2.Up();  // error: does not follow import relation
     }
   }
 }
@@ -69,7 +69,7 @@ module X0 {
     method Down() {
     }
     method Up(x1: MyClass1, x2: MyClass2) {
-      call x1.Up(x2);  // error: does not follow import relation
+      x1.Up(x2);  // error: does not follow import relation
     }
   }
 }
@@ -78,7 +78,7 @@ module YY {
   class MyClassY {
     method M() { }
     method P(g: ClassG) {
-      call g.T();  // allowed, because this follows import relation
+      g.T();  // allowed, because this follows import relation
       var t := g.TFunc();  // allowed, because this follows import relation
     }
   }
@@ -88,20 +88,20 @@ class ClassG {
   method T() { }
   function method TFunc(): int { 10 }
   method V(y: MyClassY) {
-    call y.M();  // error: does not follow import relation
+    y.M();  // error: does not follow import relation
   }
 }
 
 method Ping() {
-  call Pong();  // allowed: intra-module call
+  Pong();  // allowed: intra-module call
 }
 
 method Pong() {
-  call Ping();  // allowed: intra-module call
+  Ping();  // allowed: intra-module call
 }
 
 method ProcG(g: ClassG) {
-  call g.T();  // allowed: intra-module call
+  g.T();  // allowed: intra-module call
   var t := g.TFunc();  // allowed: intra-module call
 }
 
@@ -111,11 +111,11 @@ class Ghosty {
   method Caller() {
     var x := 3;
     ghost var y := 3;
-    call Callee(x, y);  // fine
-    call Callee(x, x);  // fine
-    call Callee(y, x);  // error: cannot pass in ghost to a physical formal
-    call Theorem(x);  // fine
-    call Theorem(y);  // fine, because it's a ghost method
+    Callee(x, y);  // fine
+    Callee(x, x);  // fine
+    Callee(y, x);  // error: cannot pass in ghost to a physical formal
+    Theorem(x);  // fine
+    Theorem(y);  // fine, because it's a ghost method
   }
   method Callee(a: int, ghost b: int) { }
   ghost method Theorem(a: int) { }

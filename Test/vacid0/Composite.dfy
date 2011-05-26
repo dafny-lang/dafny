@@ -44,7 +44,7 @@ class Composite {
   {
     var delta := x - val;
     val := x;
-    call Adjust(delta, S, S);
+    Adjust(delta, S, S);
   }
 
   method Add(ghost S: set<Composite>, child: Composite, ghost U: set<Composite>)
@@ -73,7 +73,7 @@ class Composite {
       right := child;
     }
     child.parent := this;
-    call Adjust(child.sum, S, S+U);
+    Adjust(child.sum, S, S+U);
   }
 
   method Dislodge(ghost S: set<Composite>)
@@ -97,7 +97,7 @@ class Composite {
         p.right := null;
       }
       var delta := -sum;
-      call p.Adjust(delta, S - {this}, S);
+      p.Adjust(delta, S - {this}, S);
     }
   }
 
@@ -138,35 +138,35 @@ method Main()
   var c0 := new Composite.Init(57);
 
   var c1 := new Composite.Init(12);
-  call c0.Add({c0}, c1, {c1});
+  c0.Add({c0}, c1, {c1});
 
   var c2 := new Composite.Init(48);
 
   var c3 := new Composite.Init(48);
-  call c2.Add({c2}, c3, {c3});
-  call c0.Add({c0,c1}, c2, {c2,c3});
+  c2.Add({c2}, c3, {c3});
+  c0.Add({c0,c1}, c2, {c2,c3});
 
   ghost var S := {c0, c1, c2, c3};
-  call c1.Update(100, S);
-  call c2.Update(102, S);
+  c1.Update(100, S);
+  c2.Update(102, S);
 
-  call c2.Dislodge(S);
-  call c2.Update(496, S);
-  call c0.Update(0, S);
+  c2.Dislodge(S);
+  c2.Update(496, S);
+  c0.Update(0, S);
 }
 
 method Harness() {
   var a := new Composite.Init(5);
   var b := new Composite.Init(7);
-  call a.Add({a}, b, {b});
+  a.Add({a}, b, {b});
   assert a.sum == 12;
 
-  call b.Update(17, {a,b});
+  b.Update(17, {a,b});
   assert a.sum == 22;
 
   var c := new Composite.Init(10);
-  call b.Add({a,b}, c, {c});
-  call b.Dislodge({a,b,c});
+  b.Add({a,b}, c, {c});
+  b.Dislodge({a,b,c});
   assert b.sum == 27;
 }
 
