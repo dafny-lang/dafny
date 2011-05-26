@@ -38,22 +38,6 @@ struct MemberModifiers {
 }
 
 // helper routine for parsing call statements
-private static void RecordCallLhs(IdentifierExpr/*!*/ e,
-                                  List<IdentifierExpr/*!*/>/*!*/ lhs,
-                                  List<AutoVarDecl/*!*/>/*!*/ newVars) {
-  Contract.Requires(e != null);
-  Contract.Requires(cce.NonNullElements(lhs));
-  Contract.Requires(cce.NonNullElements(newVars));
-  int index = lhs.Count;
-  lhs.Add(e);
-  if (parseVarScope.Find(e.Name) == null) {
-    AutoVarDecl d = new AutoVarDecl(e.tok, e.Name, new InferredTypeProxy(), index);
-    newVars.Add(d);
-    parseVarScope.Push(e.Name, e.Name);
-  }
-}
-
-// helper routine for parsing call statements
 private static Expression/*!*/ ConvertToLocal(Expression/*!*/ e)
 {
 Contract.Requires(e != null);
@@ -733,11 +717,9 @@ BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   .
 
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
-= (. Contract.Requires(cce.NonNullElements(ss)); Statement/*!*/ s;
+= (. Statement/*!*/ s;
   .)
-  ( OneStmt<out s>                                (. ss.Add(s); .)
-  | VarDeclStmts<ss>
-  )
+  OneStmt<out s>                                (. ss.Add(s); .)
   .
 
 OneStmt<out Statement/*!*/ s>
@@ -751,9 +733,7 @@ OneStmt<out Statement/*!*/ s>
   | AssumeStmt<out s>
   | UseStmt<out s>
   | PrintStmt<out s>
-/*  | AssignStmt<out s, true> */
   | HavocStmt<out s>
-  | CallStmt<out s>
   | "call" UpdateStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
@@ -810,7 +790,7 @@ Rhs<out DeterminedAssignmentRhs r, Expression receiverForInitCall>
     | "." Ident<out x>
       "("                              (. args = new List<Expression/*!*/>(); .)
         [ Expressions<args> ]
-      ")"                              (. initCall = new CallStmt(x, new List<AutoVarDecl>(), new List<IdentifierExpr>(),
+      ")"                              (. initCall = new CallStmt(x, new List<IdentifierExpr>(),
                                                                   receiverForInitCall, x.val, args); .)
     ]
     (. if (ee != null) {
@@ -826,68 +806,6 @@ Rhs<out DeterminedAssignmentRhs r, Expression receiverForInitCall>
 
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
-  .
-
-AssignStmt<out Statement/*!*/ s, bool allowChoose>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     IToken/*!*/ x, rhsTok;
-     Expression/*!*/ lhs;
-     List<Expression> rhs;
-     Type ty;
-     s = dummyStmt;
-     CallStmt initCall = null;
-  .)
-  LhsExpr<out lhs>
-  ":="                                 (. x = t; .)
-  AssignRhs<out rhsTok, out rhs, out ty, out initCall, lhs> 
-                                       (. if (ty == null) {
-                                            Contract.Assert(rhs != null);
-                                            Contract.Assert(rhs.Count == 1);
-                                            s = new AssignStmt(x, lhs, new ExprRhs(rhs[0]));
-                                            if (!allowChoose) {
-                                              var r = rhs[0] as UnaryExpr;
-                                              if (r != null && r.Op == UnaryExpr.Opcode.SetChoose) {
-                                                SemErr("choose operator not allowed as RHS in foreach assignment");
-                                              }
-                                            }
-                                          } else if (rhs == null) {
-                                            s = new AssignStmt(x, lhs, new TypeRhs(rhsTok, ty, initCall));
-                                          } else {
-                                            s = new AssignStmt(x, lhs, new TypeRhs(rhsTok, ty, rhs));
-                                          }
-                                       .)
-  ";"
-  .
-
-AssignRhs<.out IToken tok, out List<Expression> ee, out Type ty, out CallStmt initCall, Expression receiverForInitCall.>
-/* ensures ee != null || ty != null; */
-/* ensures ee != null ==> 1 <= ee.Count; */
-/* ensures ty == null ==> 1 == ee.Count; */
-= (. IToken/*!*/ x;  Expression/*!*/ e;
-     ee = null;  ty = null;
-     initCall = null;
-     List<Expression> args;
-     tok = Token.NoToken;  // to please compiler
-  .)
-  ( "new"                              (. tok = t; .)
-    TypeAndToken<out x, out ty>
-    [ "["                              (. ee = new List<Expression>(); .)
-      Expressions<ee>
-      "]"                              (. // make sure an array class with this dimensionality exists
-                                          UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
-                                       .)
-    | "." Ident<out x>
-      "("                              (. args = new List<Expression/*!*/>(); .)
-        [ Expressions<args> ]
-      ")"                              (. initCall = new CallStmt(x, new List<AutoVarDecl>(), new List<IdentifierExpr>(),
-                                                                  receiverForInitCall, x.val, args); .)
-    ]
-  | "choose"                           (. x = t;  tok = t; .)
-    Expression<out e>                  (. e = new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e);
-                                          ee = new List<Expression>() { e };
-                                       .)
-  | Expression<out e>                  (. tok = e.tok;  ee = new List<Expression>() { e }; .)
-  )                                    (. if (ee == null && ty == null) { ee = new List<Expression>() { dummyExpr}; } .)
   .
 
 VarDeclStatement<.out Statement/*!*/ s.>
@@ -916,7 +834,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      } else {
        var ies = new List<Expression>();
        foreach (var lhs in lhss) {
-         ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+         ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
        }
        update = new UpdateStmt(assignTok, ies, rhss);
      }
@@ -927,54 +845,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
 HavocStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ lhs; .)
   "havoc"                              (. x = t; .)
-/*  LhsExpr<out lhs> ";"                 (. s = new AssignStmt(x, lhs); .)
-*/
   Lhs<out lhs> ";"                     (. s = new AssignStmt(x, lhs); .)
-  .
-
-LhsExpr<out Expression/*!*/ e>
-= (.Contract.Ensures(Contract.ValueAtReturn(out e)!=null);.)
-  SelectExpression<out e>
-  .
-
-VarDeclStmts<.List<Statement/*!*/>/*!*/ ss.>
-= (. Contract.Requires(cce.NonNullElements(ss)); VarDecl/*!*/ d;  bool isGhost = false; .)
-  [ "ghostXYZXYZ"                            (. isGhost = true; .)
-  ]
-  "varXYZXYZ"
-  IdentTypeRhs<out d, isGhost>         (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
-  { "," IdentTypeRhs<out d, isGhost>   (. ss.Add(d);  parseVarScope.Push(d.Name, d.Name); .)
-  }
-  ";"
-  .
-
-IdentTypeRhs<out VarDecl/*!*/ d, bool isGhost>
-= (. Contract.Ensures(Contract.ValueAtReturn(out d) != null);
-     IToken/*!*/ id, rhsTok = null;  Type/*!*/ ty;
-     List<Expression> rhs = null;  Type newType = null;
-     Type optionalType = null;  DeterminedAssignmentRhs optionalRhs = null;
-     CallStmt initCall = null;
-  .)
-  Ident<out id>
-  [ ":" Type<out ty>                   (. optionalType = ty; .)
-  ]
-  [ ":="
-    AssignRhs<out rhsTok, out rhs, out newType, out initCall, new IdentifierExpr(id, id.val)>
-  ]
-  (. if (newType == null && rhs != null) {
-       Contract.Assert(rhs.Count == 1);
-       optionalRhs = new ExprRhs(rhs[0]);
-     } else if (newType != null) {
-       if (rhs == null) {
-         optionalRhs = new TypeRhs(rhsTok, newType, initCall);
-       } else {
-         optionalRhs = new TypeRhs(rhsTok, newType, rhs);
-       }
-     } else if (optionalType == null) {
-       optionalType = new InferredTypeProxy();
-     }
-     d = new VarDecl(id, id.val, optionalType, isGhost /*** OLD, optionalRhs ***/);
-  .)
   .
 
 IfStmt<out Statement/*!*/ ifStmt>
@@ -1109,66 +980,16 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   (. parseVarScope.PopMarker(); .)
   .
 
-CallStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x, id;
-     Expression/*!*/ e;
-     List<IdentifierExpr/*!*/> lhs = new List<IdentifierExpr/*!*/>();
-     List<AutoVarDecl/*!*/> newVars = new List<AutoVarDecl/*!*/>();
-  .)
-  "callXYZXYZ"                       (. x = t; .)
-  CallStmtSubExpr<out e>
-  
-  [ ","                        /* call a,b,c,... := ... */
-                               (. e = ConvertToLocal(e);
-                                  if (e is IdentifierExpr) {
-                                    RecordCallLhs((IdentifierExpr)e, lhs, newVars);
-                                  } else if (e is FieldSelectExpr) {
-                                    SemErr(e.tok, "each LHS of call statement must be a variable, not a field");
-                                  } else {
-                                    SemErr(e.tok, "each LHS of call statement must be a variable");
-                                  }
-                               .)
-    Ident<out id>              (. RecordCallLhs(new IdentifierExpr(id, id.val), lhs, newVars); .)
-    { "," Ident<out id>        (. RecordCallLhs(new IdentifierExpr(id, id.val), lhs, newVars); .)
-    }
-    ":="
-    CallStmtSubExpr<out e>
-
-  | ":="                       /* call a := ... */
-                               (. e = ConvertToLocal(e);
-                                  if (e is IdentifierExpr) {
-                                    RecordCallLhs((IdentifierExpr)e, lhs, newVars);
-                                  } else if (e is FieldSelectExpr) {
-                                    SemErr(e.tok, "each LHS of call statement must be a variable, not a field");
-                                  } else {
-                                    SemErr(e.tok, "each LHS of call statement must be a variable");
-                                  }
-                               .)
-    CallStmtSubExpr<out e>
-  ]
-  ";"
-
-  /* "e" has now been parsed as one of: IdentifierExpr, FunctionCallExpr, FieldSelectExpr.
-     It denotes the RHS, so to be legal it must be a FunctionCallExpr.  */
-  (. if (e is FunctionCallExpr) {
-       FunctionCallExpr fce = (FunctionCallExpr)e;
-       s = new CallStmt(x, newVars, lhs, fce.Receiver, fce.Name, fce.Args);  // this actually does an ownership transfer of fce.Args
-     } else {
-       SemErr("RHS of call statement must denote a method invocation");
-       s = new CallStmt(x, newVars, lhs, dummyExpr, "dummyMethodName", new List<Expression/*!*/>());
-     }
-  .)
-  .
-
 /*------------------------------------------------------------------------*/
 
 ForeachStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x, boundVar;
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     IToken/*!*/ x, boundVar;
      Type/*!*/ ty;
      Expression/*!*/ collection;
      Expression/*!*/ range;
      List<PredicateStmt/*!*/> bodyPrefix = new List<PredicateStmt/*!*/>();
-     AssignStmt bodyAssign = null;
+     Statement bodyAssign = null;
   .)
   (. parseVarScope.PushMarker(); .)
   "foreach"                                    (. x = t;
@@ -1186,8 +1007,8 @@ ForeachStmt<out Statement/*!*/ s>
     | AssumeStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     | UseStmt<out s>                           (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     }
-    ( AssignStmt<out s, false>                 (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
-    | HavocStmt<out s>                         (. if (s is AssignStmt) { bodyAssign = (AssignStmt)s; } .)
+    ( UpdateStmt<out s>                        (. bodyAssign = s; .)
+    | HavocStmt<out s>                         (. bodyAssign = s; .)
     )
   "}"                                          (. if (bodyAssign != null) {
                                                     s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign);
@@ -1414,28 +1235,6 @@ EndlessExpression<out Expression e>
 
 /*------------------------------------------------------------------------*/
 
-/* returns one of:
-   -- IdentifierExpr
-   -- FunctionCallExpr
-   -- FieldSelectExpr
-*/
-CallStmtSubExpr<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
-  ( IdentOrFuncExpression<out e>
-  | ObjectExpression<out e>
-    SelectOrCallSuffix<ref e>
-  )
-  { SelectOrCallSuffix<ref e> }
-  .
-
-SelectExpression<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
-  ( IdentOrFuncExpression<out e>
-  | ObjectExpression<out e>
-  )
-  { SelectOrCallSuffix<ref e> }
-  .
-
 DottedIdentifiersAndFunction<out Expression e>
 = (. IToken id;  IToken openParen = null;
      List<Expression> args = null;
@@ -1452,27 +1251,7 @@ DottedIdentifiersAndFunction<out Expression e>
   (. e = new IdentifierSequence(idents, openParen, args); .)
   .
 
-IdentOrFuncExpression<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ id;  e = dummyExpr;  List<Expression/*!*/>/*!*/ args; .)
-  Ident<out id>
-  [ "("                                      (. args = new List<Expression/*!*/>(); .)
-      [ Expressions<args> ]
-    ")"                                      (. e = new FunctionCallExpr(id, id.val, new ImplicitThisExpr(id), args); .)
-  ]                                          (. if (e == dummyExpr) {
-                                                  if (parseVarScope.Find(id.val) != null) {
-                                                    e = new IdentifierExpr(id, id.val);
-                                                  } else {
-                                                    e = new FieldSelectExpr(id, new ImplicitThisExpr(id), id.val);
-                                                  }
-                                                }
-                                             .)
-  .
-
 Suffix<ref Expression/*!*/ e>
-= SelectOrCallSuffix<ref e>
-  .
-
-SelectOrCallSuffix<ref Expression/*!*/ e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null); IToken/*!*/ id, x;  List<Expression/*!*/>/*!*/ args;
      Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false;
      List<Expression> multipleIndices = null;
@@ -1525,22 +1304,6 @@ SelectOrCallSuffix<ref Expression/*!*/ e>
          }
       .)
     "]"
-  )
-  .
-
-/* ObjectExpression represents those expressions E that could possibly be used in E.f
-   or E(...), except Ident.  The expression returned is never an lvalue.
-*/
-ObjectExpression<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
-  ( "this"                                     (. e = new ThisExpr(t); .)
-  | "old"                                      (. x = t; .)
-    "("
-      Expression<out e>
-    ")"                                        (. e = new OldExpr(x, e); .)
-  | "("
-      Expression<out e>
-    ")"
   )
   .
 

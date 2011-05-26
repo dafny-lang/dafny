@@ -1253,14 +1253,13 @@ namespace Microsoft.Dafny {
             if (ErrorCount == prevErrorCount) {
 #if !FULL_LHS_SUPPORT_FOR_CALLS
               var idLhss = new List<IdentifierExpr>();
-              var autos = new List<AutoVarDecl>();
               foreach (var ll in s.Lhss) {
                 var ie = (IdentifierExpr)ll.Resolved;  // TODO: the CallStmt should handle all LHS's, not just identifier expressions
                 Contract.Assert(ie != null);
                 idLhss.Add(ie);
               }
 #endif
-              var a = new CallStmt(s.Tok, autos, idLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+              var a = new CallStmt(callRhs.Tok, idLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
               s.ResolvedStatements.Add(a);
             }
           }
@@ -1520,14 +1519,29 @@ namespace Microsoft.Dafny {
         bool specOnly = specContextOnly ||
                         (successfullyResolvedCollectionAndRange && (UsesSpecFeatures(s.Collection) || UsesSpecFeatures(s.Range)));
         s.IsGhost = specOnly;
-        ResolveStatement(s.BodyAssign, specOnly, method);
+        ResolveStatement(s.GivenBody, specOnly, method);
         // check for correct usage of BoundVar in LHS and RHS of this assignment
-        FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
-        IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
-        if (obj != null && obj.Var == s.BoundVar) {
-          // exemplary!
+        if (s.GivenBody is AssignStmt) {
+          s.BodyAssign = (AssignStmt)s.GivenBody;
+        } else if (s.GivenBody is ConcreteSyntaxStatement) {
+          var css = (ConcreteSyntaxStatement)s.GivenBody;
+          if (css.ResolvedStatements.Count == 1 && css.ResolvedStatements[0] is AssignStmt) {
+            s.BodyAssign = (AssignStmt)css.ResolvedStatements[0];
+          }
+        }
+        if (s.BodyAssign == null) {
+          Error(s, "update statement inside foreach must be a single assignment statement");
         } else {
-          Error(s, "assignment inside foreach must assign to a field of the bound variable of the foreach statement");
+          FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
+          IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
+          if (obj == null || obj.Var != s.BoundVar) {
+            Error(s, "assignment inside foreach must assign to a field of the bound variable of the foreach statement");
+          } else {
+            var rhs = s.BodyAssign.Rhs as ExprRhs;
+            if (rhs != null && rhs.Expr is UnaryExpr && ((UnaryExpr)rhs.Expr).Op == UnaryExpr.Opcode.SetChoose) {
+              Error(s, "foreach statement does not support 'choose' statements");
+            }
+          }
         }
 
         scope.PopMarker();
@@ -1682,15 +1696,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // resolve any local variables declared here
-      foreach (AutoVarDecl local in s.NewVars) {
-        // first, fix up the local variables to be ghost variable if the corresponding formal out-parameter is a ghost
-        if (s.IsGhost || callee != null && local.Index < callee.Outs.Count && callee.Outs[local.Index].IsGhost) {
-          local.MakeGhost();
-        }
-        ResolveStatement(local, specContextOnly, method);
-      }
-
       // resolve left-hand side
       Dictionary<string, object> lhsNameSet = new Dictionary<string, object>();
       foreach (IdentifierExpr lhs in s.Lhs) {
@@ -1758,7 +1763,11 @@ namespace Microsoft.Dafny {
           if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
             Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
           } else if (!specContextOnly && !cce.NonNull(lhs.Var).IsGhost && (s.IsGhost || callee.Outs[i].IsGhost)) {
-            Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+            if (lhs is AutoGhostIdentifierExpr && lhs.Var is VarDecl) {
+              ((VarDecl)lhs.Var).MakeGhost();
+            } else {
+              Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+            }
           }
         }
 

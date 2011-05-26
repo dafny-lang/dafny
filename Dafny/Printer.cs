@@ -548,7 +548,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
         }
         Indent(ind);
-        PrintStatement(s.BodyAssign, ind);
+        PrintStatement(s.GivenBody, ind);
         wr.WriteLine();
         Indent(indent);
         wr.Write("}");

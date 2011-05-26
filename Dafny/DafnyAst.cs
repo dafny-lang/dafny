@@ -1573,17 +1573,6 @@ namespace Microsoft.Dafny {
         return base.IsGhost;
       }
     }
-  }
-
-  public class AutoVarDecl : VarDecl {
-    public readonly int Index;
-    public AutoVarDecl(IToken tok, string name, Type type, int index)
-      : base(tok, name, type, false) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Index = index;
-
-    }
     /// <summary>
     /// This method retrospectively makes the VarDecl a ghost.  It is to be used only during resolution.
     /// </summary>
@@ -1597,34 +1586,29 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Receiver != null);
       Contract.Invariant(MethodName != null);
-      Contract.Invariant(cce.NonNullElements(NewVars));
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
-    public readonly List<AutoVarDecl/*!*/>/*!*/ NewVars;
     public readonly List<IdentifierExpr/*!*/>/*!*/ Lhs;
     public readonly Expression/*!*/ Receiver;
     public readonly string/*!*/ MethodName;
     public readonly List<Expression/*!*/>/*!*/ Args;
     public Method Method;  // filled in by resolution
 
-    public CallStmt(IToken tok, List<AutoVarDecl/*!*/>/*!*/ newVars, List<IdentifierExpr/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
+    public CallStmt(IToken tok, List<IdentifierExpr/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
       string/*!*/ methodName, List<Expression/*!*/>/*!*/ args)
       : base(tok) {
       Contract.Requires(tok != null);
-      Contract.Requires(cce.NonNullElements(newVars));
       Contract.Requires(cce.NonNullElements(lhs));
       Contract.Requires(receiver != null);
       Contract.Requires(methodName != null);
       Contract.Requires(cce.NonNullElements(args));
 
-      this.NewVars = newVars;
       this.Lhs = lhs;
       this.Receiver = receiver;
       this.MethodName = methodName;
       this.Args = args;
-
     }
   }
 
@@ -1762,32 +1746,31 @@ namespace Microsoft.Dafny {
     public readonly Expression/*!*/ Collection;
     public readonly Expression/*!*/ Range;
     public readonly List<PredicateStmt/*!*/>/*!*/ BodyPrefix;
-    public readonly AssignStmt/*!*/ BodyAssign;
+    public readonly Statement GivenBody;  // used only until resolution; afterwards, use BodyAssign
+    public AssignStmt/*!*/ BodyAssign;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(BoundVar != null);
       Contract.Invariant(Collection != null);
       Contract.Invariant(Range != null);
       Contract.Invariant(cce.NonNullElements(BodyPrefix));
-      Contract.Invariant(BodyAssign != null);
+      Contract.Invariant(GivenBody != null);
     }
 
-
     public ForeachStmt(IToken tok, BoundVar boundVar, Expression collection, Expression range,
-    List<PredicateStmt/*!*/>/*!*/ bodyPrefix, AssignStmt bodyAssign)
+      List<PredicateStmt/*!*/>/*!*/ bodyPrefix, Statement givenBody)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVar != null);
       Contract.Requires(collection != null);
       Contract.Requires(range != null);
       Contract.Requires(cce.NonNullElements(bodyPrefix));
-      Contract.Requires(bodyAssign != null);
+      Contract.Requires(givenBody != null);
       this.BoundVar = boundVar;
       this.Collection = collection;
       this.Range = range;
       this.BodyPrefix = bodyPrefix;
-      this.BodyAssign = bodyAssign;
-
+      this.GivenBody = givenBody;
     }
   }
 
@@ -2069,6 +2052,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Name = name;
     }
+  }
+
+  /// <summary>
+  /// If an "AutoGhostIdentifierExpr" is used as the out-parameter of a ghost method or
+  /// a method with a ghost parameter, resolution will change the .Var's .IsGhost to true
+  /// automatically.  This class is intended to be used only as a communicate between the
+  /// parser and parts of the resolver.
+  /// </summary>
+  public class AutoGhostIdentifierExpr : IdentifierExpr
+  {
+    public AutoGhostIdentifierExpr(IToken tok, string name)
+      : base(tok, name) { }
   }
 
   public abstract class DisplayExpression : Expression {

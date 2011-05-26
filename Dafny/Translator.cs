@@ -3433,9 +3433,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       Expression receiver = actualReceiver == null ? s.Receiver : new BoogieWrapper(actualReceiver);
-      foreach (VarDecl local in s.NewVars) {
-        TrStmt(local, builder, locals, etran);
-      }
       AddComment(builder, s, actualReceiver == null ? "call statement" : "init call statement");
       Bpl.ExprSeq ins = new Bpl.ExprSeq();
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved

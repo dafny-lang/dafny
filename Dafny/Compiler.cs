@@ -855,10 +855,6 @@ namespace Microsoft.Dafny {
     void TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
       Contract.Requires(s != null);
 
-      foreach (VarDecl local in s.NewVars) {
-        TrVarDecl(local, false, indent);
-      }
-
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
       Indent(indent);
       if (receiverReplacement != null) {
