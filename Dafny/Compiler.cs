@@ -609,14 +609,9 @@ namespace Microsoft.Dafny {
           wr.WriteLine(");");
         }
       } else if (stmt is BreakStmt) {
-        BreakStmt s = (BreakStmt)stmt;
+        var s = (BreakStmt)stmt;
         Indent(indent);
-        if (s.TargetLabel == null) {
-          // use the scoping rules of C#
-          wr.WriteLine("break;");
-        } else {
-          wr.WriteLine("goto after_{0};", s.TargetLabel);
-        }
+        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.UniqueId);
       } else if (stmt is ReturnStmt) {
         Indent(indent);
         wr.WriteLine("return;");
@@ -927,29 +922,11 @@ namespace Microsoft.Dafny {
     }
     
     void TrStmtList(List<Statement/*!*/>/*!*/ stmts, int indent) {Contract.Requires(cce.NonNullElements(stmts));
-      List<string/*!*/> currentLabels = null;
       foreach (Statement ss in stmts) {
-        if (ss is LabelStmt) {
-          LabelStmt s = (LabelStmt)ss;
-          if (currentLabels == null) {
-            currentLabels = new List<string>();
-          }
-          currentLabels.Add(s.Label);
-        } else {
-          TrStmt(ss, indent + IndentAmount);
-          SpillLabels(currentLabels, indent);
-          currentLabels = null;
-        }
-      }
-      SpillLabels(currentLabels, indent);
-    }
-
-    void SpillLabels(List<string> labels, int indent) {
-      Contract.Requires(cce.NonNullElements(labels));
-      if (labels != null) {
-        foreach (string label in labels) {
-          Indent(indent);
-          wr.WriteLine("after_{0}: ;", label);
+        TrStmt(ss, indent + IndentAmount);
+        if (ss.Labels != null) {
+          Indent(indent);  // labels are not indented as much as the statements
+          wr.WriteLine("after_{0}: ;", ss.Labels.UniqueId);
         }
       }
     }

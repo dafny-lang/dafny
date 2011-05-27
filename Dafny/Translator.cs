@@ -2899,7 +2899,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(currentMethod != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
-
      
       return TrStmt2StmtList(new Bpl.StmtListBuilder(), block, locals, etran);
     }
@@ -2912,7 +2911,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(currentMethod != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
-
       
       TrStmt(block, builder, locals, etran);
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
@@ -2961,12 +2959,10 @@ namespace Microsoft.Dafny {
           }
         }
         
-      } else if (stmt is LabelStmt) {
-        AddComment(builder, stmt, "label statement");  // TODO: ouch, comments probably mess up what the label labels in the Boogie program
-        builder.AddLabelCmd(((LabelStmt)stmt).Label);
       } else if (stmt is BreakStmt) {
         AddComment(builder, stmt, "break statement");
-        builder.Add(new Bpl.BreakCmd(stmt.Tok, ((BreakStmt)stmt).TargetLabel));  // TODO: handle name clashes of labels
+        var s = (BreakStmt)stmt;
+        builder.Add(new GotoCmd(s.Tok, new StringSeq("after_" + s.TargetStmt.Labels.UniqueId)));
       } else if (stmt is ReturnStmt) {
         AddComment(builder, stmt, "return statement");
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
@@ -2988,6 +2984,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is BlockStmt) {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {
           TrStmt(ss, builder, locals, etran);
+          if (ss.Labels != null) {
+            builder.AddLabelCmd("after_" + ss.Labels.UniqueId);
+          }
         }
       } else if (stmt is IfStmt) {
         AddComment(builder, stmt, "if statement");
@@ -3259,7 +3258,7 @@ namespace Microsoft.Dafny {
       locals.Add(preLoopHeapVar);
       Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
-      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
+      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
       List<Bpl.Expr> initDecr = null;
       if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {

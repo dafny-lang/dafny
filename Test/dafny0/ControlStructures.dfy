@@ -135,3 +135,108 @@ method B(x: int) returns (r: int)
       r := r - 1;
   }
 }
+
+// --------------- breaks ---------------
+
+method TheBreaker_AllGood(M: int, N: int, O: int)
+{
+  var a, b, c, d, e;
+  var i := 0;
+  while (i < M)
+  {
+    var j := 0;
+    label InnerHasLabel:
+    while (j < N)
+    {
+      var u := 2000;
+      label MyLabelBlock:
+      label MyLabelBlockAgain:
+      if (*) {
+        a := 15; break;
+      } else if (*) {
+        b := 12; break break;
+      } else if (*) {
+        c := 21; break InnerHasLabel;
+      } else if (*) {
+        while (u < 10000) {
+          u := u + 3;
+          if (*) { u := 1998; break MyLabelBlock; }
+          if (*) { u := 1998; break MyLabelBlockAgain; }
+        }
+        assert 10000 <= u;
+        u := 1998;
+      } else {
+        u := u - 2;
+      }
+      assert u == 1998;
+      var k := 0;
+      while
+        decreases O - k;
+      {
+        case k < O && k % 2 == 0 =>
+          d := 187; break;
+        case k < O =>
+          if (*) { e := 4; break InnerHasLabel; }
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
+      }
+      assert O <= k || d == 187 || e == 7;
+      j := j + 1;
+    }
+    assert N <= j || a == 15 || c == 21 || e == 4;
+    i := i + 1;
+  }
+  assert M <= i || b == 12 || e == 37;
+}
+
+method TheBreaker_SomeBad(M: int, N: int, O: int)
+{
+  var a, b, c, d, e;
+  var i := 0;
+  while (i < M)
+  {
+    var j := 0;
+    label InnerHasLabel:
+    while (j < N)
+    {
+      var u := 2000;
+      label MyLabelBlock:
+      label MyLabelBlockAgain:
+      if (*) {
+        a := 15; break;
+      } else if (*) {
+        b := 12; break break;
+      } else if (*) {
+        c := 21; break InnerHasLabel;
+      } else if (*) {
+        while (u < 10000) {
+          u := u + 3;
+          if (*) { u := 1998; break MyLabelBlock; }
+          if (*) { u := 1998; break MyLabelBlockAgain; }
+        }
+        assert u < 2000;  // error (and no way to get past this assert statement)
+      } else {
+        u := u - 2;
+      }
+      assert u == 1998;
+      var k := 0;
+      while
+        decreases O - k;
+      {
+        case k < O && k % 2 == 0 =>
+          d := 187; break;
+        case k < O =>
+          if (*) { e := 4; break InnerHasLabel; }
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
+      }
+      assert O <= k || e == 7;  // error: d == 187
+      j := j + 1;
+    }
+    assert N <= j || c == 21 || e == 4;  // error: a == 15
+    i := i + 1;
+  }
+  assert M <= i || b == 12;  // error: e == 37
+}

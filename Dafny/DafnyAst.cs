@@ -1141,6 +1141,8 @@ namespace Microsoft.Dafny {
 
   public abstract class Statement {
     public readonly IToken Tok;
+    public LabelNode Labels;  // mutable during resolution
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
@@ -1153,7 +1155,25 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class PredicateStmt : Statement {
+  public class LabelNode
+  {
+    public readonly IToken Tok;
+    public readonly string Label;
+    public readonly int UniqueId;
+    public readonly LabelNode Next;
+    static int nodes = 0;
+
+    public LabelNode(IToken tok, string label, LabelNode next) {
+      Contract.Requires(tok != null);
+      Tok = tok;
+      Label = label;
+      Next = next;
+      UniqueId = nodes++;
+    }
+  }
+
+  public abstract class PredicateStmt : Statement
+  {
     [Peer]
     public readonly Expression Expr;
     [ContractInvariantMethod]
@@ -1255,31 +1275,25 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LabelStmt : Statement {
-    public readonly string Label;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Label != null);
-    }
-
-    public LabelStmt(IToken/*!*/ tok, string/*!*/ label)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(label != null);
-      this.Label = label;
-
-    }
-  }
-
   public class BreakStmt : Statement {
     public readonly string TargetLabel;
+    public readonly int BreakCount;
     public Statement TargetStmt;  // filled in during resolution
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(TargetLabel == null || 1 <= BreakCount);
+    }
 
     public BreakStmt(IToken tok, string targetLabel)
       : base(tok) {
       Contract.Requires(tok != null);
       this.TargetLabel = targetLabel;
-
+    }
+    public BreakStmt(IToken tok, int breakCount)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(1 <= breakCount);
+      this.BreakCount = breakCount;
     }
   }
 
@@ -1287,7 +1301,6 @@ namespace Microsoft.Dafny {
     public ReturnStmt(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);
-
     }
   }
 

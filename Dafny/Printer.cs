@@ -396,6 +396,13 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
+      for (LabelNode label = stmt.Labels; label != null; label = label.Next) {
+        if (label.Label != null) {
+          wr.WriteLine("label {0}:", label.Label);
+          Indent(indent);
+        }
+      }
+        
       if (stmt is AssertStmt) {
         wr.Write("assert ");
         PrintExpression(((AssertStmt)stmt).Expr);
@@ -417,15 +424,17 @@ namespace Microsoft.Dafny {
         PrintAttributeArgs(s.Args);
         wr.Write(";");
         
-      } else if (stmt is LabelStmt) {
-        wr.Write("label {0}:", ((LabelStmt)stmt).Label);
-        
       } else if (stmt is BreakStmt) {
         BreakStmt s = (BreakStmt)stmt;
-        if (s.TargetLabel == null) {
-          wr.Write("break;");
-        } else {
+        if (s.TargetLabel != null) {
           wr.Write("break {0};", s.TargetLabel);
+        } else {
+          string sep = "";
+          for (int i = 0; i < s.BreakCount; i++) {
+            wr.Write("{0}break", sep);
+            sep = " ";
+          }
+          wr.Write(";");
         }
         
       } else if (stmt is ReturnStmt) {

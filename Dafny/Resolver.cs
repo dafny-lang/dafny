@@ -277,6 +277,8 @@ namespace Microsoft.Dafny {
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     readonly Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
+    readonly List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
+    readonly Dictionary<Statement, bool> inSpecOnlyContext = new Dictionary<Statement, bool>();  // invariant: domain contain union of the domains of "labeledStatements" and "loopStack"
     
     /// <summary>
     /// Assumes type parameters have already been pushed
@@ -1118,11 +1120,14 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
       }
     }
-    
+
+    /// <summary>
+    /// "specContextOnly" means that the statement must be erasable, that is, it should be okay to omit it
+    /// at run time.  That means it must not have any side effects on non-ghost variables, for example.
+    /// </summary>
     public void ResolveStatement(Statement stmt, bool specContextOnly, Method method) {
       Contract.Requires(stmt != null);
       Contract.Requires(method != null);
-      Contract.Requires(!(stmt is LabelStmt));  // these should be handled inside lists of statements
       if (stmt is UseStmt) {
         UseStmt s = (UseStmt)stmt;
         s.IsGhost = true;
@@ -1153,21 +1158,36 @@ namespace Microsoft.Dafny {
         }
           
       } else if (stmt is BreakStmt) {
-        BreakStmt s = (BreakStmt)stmt;
+        var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
           Statement target = labeledStatements.Find(s.TargetLabel);
           if (target == null) {
             Error(s, "break label is undefined or not in scope: {0}", s.TargetLabel);
           } else {
             s.TargetStmt = target;
+            bool targetIsLoop = target is WhileStmt || target is AlternativeLoopStmt;
+            if (specContextOnly && !s.TargetStmt.IsGhost && !inSpecOnlyContext[s.TargetStmt]) {
+              Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
+            }
           }
-        }
-        if (specContextOnly) {
-          Error(stmt, "break statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        } else {
+          if (loopStack.Count < s.BreakCount) {
+            Error(s, "trying to break out of more loop levels than there are enclosing loops");
+          } else {
+            Statement target = loopStack[loopStack.Count - s.BreakCount];
+            if (target.Labels == null) {
+              // make sure there is a label, because the compiler and translator will want to see a unique ID
+              target.Labels = new LabelNode(target.Tok, null, null);
+            }
+            s.TargetStmt = target;
+            if (specContextOnly && !target.IsGhost && !inSpecOnlyContext[target]) {
+              Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost loop");
+            }
+          }
         }
 
       } else if (stmt is ReturnStmt) {
-        if (specContextOnly) {
+        if (specContextOnly && !method.IsGhost) {
           Error(stmt, "return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
         }
       
@@ -1301,7 +1321,7 @@ namespace Microsoft.Dafny {
           if (var == null) {
             // the LHS didn't resolve correctly; some error would already have been reported
           } else {
-            lvalueIsGhost = var.IsGhost;
+            lvalueIsGhost = var.IsGhost || method.IsGhost;
             if (!var.IsMutable) {
               Error(stmt, "LHS of assignment must denote a mutable variable or field");
             }
@@ -1441,7 +1461,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, method);
+        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, null, method);
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
@@ -1473,11 +1493,16 @@ namespace Microsoft.Dafny {
           // any type is fine
         }
         s.IsGhost = bodyMustBeSpecOnly;
+        loopStack.Add(s);  // push
+        if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
+          inSpecOnlyContext.Add(s, specContextOnly);
+        }
         ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
+        loopStack.RemoveAt(loopStack.Count-1);  // pop
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, method);
+        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, s, method);
         foreach (MaybeFreeExpression inv in s.Invariants) {
           ResolveExpression(inv.E, true);
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -1643,7 +1668,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, Method method) {
+    bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, AlternativeLoopStmt loopToCatchBreaks, Method method) {
       Contract.Requires(alternatives != null);
       Contract.Requires(method != null);
 
@@ -1661,6 +1686,13 @@ namespace Microsoft.Dafny {
           isGhost = isGhost || UsesSpecFeatures(alternative.Guard);
         }
       }
+
+      if (loopToCatchBreaks != null) {
+        loopStack.Add(loopToCatchBreaks);  // push
+        if (loopToCatchBreaks.Labels == null) {  // otherwise, "loopToCatchBreak" is already in "inSpecOnlyContext" map
+          inSpecOnlyContext.Add(loopToCatchBreaks, specContextOnly);
+        }
+      }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
         foreach (Statement ss in alternative.Body) {
@@ -1668,6 +1700,10 @@ namespace Microsoft.Dafny {
         }
         scope.PopMarker();
       }
+      if (loopToCatchBreaks != null) {
+        loopStack.RemoveAt(loopStack.Count - 1);  // pop
+      }
+
       return isGhost;
     }
 
@@ -1795,25 +1831,33 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     void ResolveBlockStatement(BlockStmt blockStmt, bool specContextOnly, Method method)
     {
       Contract.Requires(blockStmt != null);
       Contract.Requires(method != null);
-      int labelsToPop = 0;
+
       foreach (Statement ss in blockStmt.Body) {
-        if (ss is LabelStmt) {
-          LabelStmt ls = (LabelStmt)ss;
-          labeledStatements.PushMarker();
-          bool b = labeledStatements.Push(ls.Label, ls);
-          Contract.Assert(b);  // since we just pushed a marker, we expect the Push to succeed
-          labelsToPop++;
-        } else {
-          ResolveStatement(ss, specContextOnly, method);
-          for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
+        labeledStatements.PushMarker();
+        // push labels
+        for (var lnode = ss.Labels; lnode != null; lnode = lnode.Next) {
+          Contract.Assert(lnode.Label != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+          var prev = labeledStatements.Find(lnode.Label);
+          if (prev == ss) {
+            Error(lnode.Tok, "duplicate label");
+          } else if (prev != null) {
+            Error(lnode.Tok, "label shadows an enclosing label");
+          } else {
+            bool b = labeledStatements.Push(lnode.Label, ss);
+            Contract.Assert(b);  // since we just checked for duplicates, we expect the Push to succeed
+            if (lnode == ss.Labels) {  // add it only once
+              inSpecOnlyContext.Add(ss, specContextOnly);
+            }
+          }
         }
+        ResolveStatement(ss, specContextOnly, method);
+        labeledStatements.PopMarker();
       }
-      for (; 0 < labelsToPop; labelsToPop--) { labeledStatements.PopMarker(); }
     }
 
     Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContextOnly, Method method) {
@@ -2544,25 +2588,43 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr.Type != null);  // this check approximates the requirement that "expr" be resolved
 
       if (expr is IdentifierExpr) {
-        IdentifierExpr e = (IdentifierExpr)expr;
+        var e = (IdentifierExpr)expr;
         if (e.Var != null && e.Var.IsGhost) {
           Error(expr, "ghost variables are allowed only in specification contexts");
           return;
         }
 
       } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr e = (FieldSelectExpr)expr;
+        var e = (FieldSelectExpr)expr;
         if (e.Field != null && e.Field.IsGhost) {
           Error(expr, "ghost fields are allowed only in specification contexts");
           return;
         }
 
       } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
+        var e = (FunctionCallExpr)expr;
         if (e.Function != null && e.Function.IsGhost) {
           Error(expr, "function calls are allowed only in specification contexts (consider declaring the function a 'function method')");
           return;
         }
+        // function is okay, so check all NON-ghost arguments
+        CheckIsNonGhost(e.Receiver);
+        for (int i = 0; i < e.Function.Formals.Count; i++) {
+          if (!e.Function.Formals[i].IsGhost) {
+            CheckIsNonGhost(e.Args[i]);
+          }
+        }
+        return;
+
+      } else if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
+        // check all NON-ghost arguments
+        for (int i = 0; i < e.Ctor.Formals.Count; i++) {
+          if (!e.Ctor.Formals[i].IsGhost) {
+            CheckIsNonGhost(e.Arguments[i]);
+          }
+        }
+        return;
 
       } else if (expr is OldExpr) {
         Error(expr, "old expressions are allowed only in specification and ghost contexts");
@@ -2577,7 +2639,7 @@ namespace Microsoft.Dafny {
         return;
 
       } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
+        var e = (BinaryExpr)expr;
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.RankGt:
           case BinaryExpr.ResolvedOpcode.RankLt:
@@ -2588,7 +2650,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is QuantifierExpr) {
-        QuantifierExpr e = (QuantifierExpr)expr;
+        var e = (QuantifierExpr)expr;
         if (e.MissingBounds != null) {
           foreach (var bv in e.MissingBounds) {
             Error(expr, "quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
@@ -3454,7 +3516,7 @@ namespace Microsoft.Dafny {
         return Contract.Exists( me.Cases,mc=> UsesSpecFeatures(mc.Body));
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        return UsesSpecFeatures(e.ResolvedExpression);
+        return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

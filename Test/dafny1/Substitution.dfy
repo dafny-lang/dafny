@@ -99,7 +99,7 @@ static ghost method TheoremSeq(e: Expression, v: int, val: int)
   }
 }
 
-static ghost method LemmaSeq(ghost parent: Expression, ghost q: seq<Expression>, v: int, val: int)
+static ghost method LemmaSeq(parent: Expression, q: seq<Expression>, v: int, val: int)
   requires (forall a :: a in q ==> a < parent);
   ensures |SubstSeq(parent, q, v, val)| == |q|;
   ensures (forall k :: 0 <= k && k < |q| ==>

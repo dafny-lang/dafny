@@ -434,7 +434,7 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  Formals<true, true, ins>
+  Formals<true, !mmod.IsGhost, ins>
   [ "returns"
     Formals<false, true, outs>
   ]
@@ -579,7 +579,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   { Attribute<ref attrs> }
   Ident<out id> 
   [ GenericParameters<typeArgs> ]
-  Formals<true, false, formals>
+  Formals<true, isFunctionMethod, formals>
   ":"
   Type<out returnType>
   ( ";"
@@ -710,6 +710,7 @@ OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
      IToken bodyStart, bodyEnd;
+     int breakCount;
   .)
   /* This list does not contain BlockStmt, see comment above in Stmt production. */
   ( BlockStmt<out s, out bodyStart, out bodyEnd>
@@ -725,10 +726,14 @@ OneStmt<out Statement/*!*/ s>
   | MatchStmt<out s>
   | ForeachStmt<out s>
   | "label"                            (. x = t; .)
-    Ident<out id> ":"                  (. s = new LabelStmt(x, id.val); .)
-  | "break"                            (. x = t; .)
-    [ Ident<out id>                    (. label = id.val; .)
-    ] ";"                              (. s = new BreakStmt(x, label); .)
+    Ident<out id> ":"
+    OneStmt<out s>                     (. s.Labels = new LabelNode(x, id.val, s.Labels); .)
+  | "break"                            (. x = t; breakCount = 1; label = null; .)
+    ( Ident<out id>                    (. label = id.val; .)
+    | { "break"                        (. breakCount++; .)
+      }
+    )
+    ";"                                (. s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); .)
   | "return"                           (. x = t; .)
     ";"                                (. s = new ReturnStmt(x); .)
   )
@@ -751,6 +756,7 @@ UpdateStmt<out Statement/*!*/ s>
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
     ";"
+  | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
   (. s = new UpdateStmt(x, lhss, rhss); .)
   .

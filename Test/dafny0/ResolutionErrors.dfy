@@ -87,3 +87,170 @@ method TestNameResolution1() {
   var e := Eleanor;
   assert Tuv(e, this.Eleanor) == 10;
 }
+
+// --------------- ghost tests -------------------------------------
+
+datatype GhostDt =
+  Nil(ghost extraInfo: int) |
+  Cons(data: int, tail: GhostDt, ghost moreInfo: int);
+
+class GhostTests {
+  method M(dt: GhostDt) returns (r: int) {
+    ghost var g := 5;
+    r := g;  // error: RHS is ghost, LHS is not
+    r := F(18, g);  // error: RHS is a ghost and will not be available at run time
+    r := G(20, g);  // it's fine to pass a ghost as a parameter to a non-ghost, because
+                    // only the ghost goes away during compilation
+    r := N(22, g);  // ditto
+    r := N(g, 22);  // error: passing in 'g' as non-ghost parameter
+    r := P(24, 22);  // error: 'P' is ghost, but its result is assigned to a non-ghost
+
+    match (dt) {
+      case Nil(gg) =>
+      case Cons(dd, tt, gg) =>
+        r := G(dd, dd);  // fine
+        r := G(dd, gg);  // fine
+        r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
+    }
+    var dd;
+    dd := GhostDt.Nil(g);  // fine
+    dd := GhostDt.Cons(g, dt, 2);  // error: cannot pass 'g' as non-ghost parameter
+    ghost var dtg := GhostDt.Cons(g, dt, 2);  // fine, since result is ghost
+  }
+  function F(x: int, y: int): int {
+    y
+  }
+  function method G(x: int, ghost y: int): int {
+    y  // error: cannot return a ghost from a non-ghost function
+  }
+  function method H(dt: GhostDt): int {
+    match dt
+    case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
+    case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
+  }
+  method N(x: int, ghost y: int) returns (r: int) {
+    r := x;
+  }
+  ghost method P(x: int, y: int) returns (r: int) {
+    ghost var g := 5;
+    r := y;  // allowed, since the entire method is ghost
+    r := r + g;  // fine, for the same reason
+    r := N(20, 20);  // error: call to non-ghost method from ghost method is not okay
+  }
+  ghost method NiceTry()
+    ensures false;
+  {
+    while (true)
+      decreases *;  // error:  not allowed in ghost context
+    {
+    }
+  }
+  ghost method BreaksAreFineHere(t: int)
+  {
+    var n := 0;
+    ghost var k := 0;
+    while (true)
+      invariant n <= 112;
+      decreases 112 - n;
+    {
+      label MyStructure: {
+        if (k % 17 == 0) { break MyStructure; }  // this is fine, because it's a ghost method
+        k := k + 1;
+      }
+      label MyOtherStructure:
+      if (k % 17 == 0) {
+        break MyOtherStructure;
+      } else {
+        k := k + 1;
+      }
+
+      if (n == 112) {
+        break;
+      } else if (n == t) {
+        return;
+      }
+      n := n + 1;
+    }
+  }
+  method BreakMayNotBeFineHere(ghost t: int)
+  {
+    var n := 0;
+    ghost var k := 0;
+    var p := 0;
+    while (true)
+      invariant n <= 112;
+      decreases 112 - n;
+    {
+      label MyStructure: {
+        if (k % 17 == 0) { break MyStructure; }  // error: break from ghost to non-ghost point
+        k := k + 1;
+      }
+      label MyOtherStructure:
+      if (k % 17 == 0) {
+        break MyOtherStructure;  // this break is fine
+      } else {
+        k := k + 1;
+      }
+
+      var dontKnow;
+      if (n == 112) {
+        ghost var m := 0;
+        label LoopLabel0:
+        label LoopLabel1:
+        while (m < 200) {
+          if (m % 103 == 0) {
+            if {
+              case true => break;  // fine, since this breaks out of the enclosing ghost loop
+              case true => break LoopLabel0;  // fine
+              case true => break LoopLabel1;  // fine
+            }
+          } else if (m % 101 == 0) {
+            break break;  // error: break out of non-ghost loop from ghost context
+          }
+          m := m + 3;
+        }
+        break;
+      } else if (dontKnow == 708) {
+        var q := 0;
+        while (q < 1) {
+          label IfNest:
+          if (p == 67) {
+            break break;  // fine, since this is not a ghost context
+          } else if (*) {
+            break break break;  // error: tries to break out of more loop levels than there are
+          } else if (*) {
+            break break;  // fine, since this is not a ghost context
+          } else if (k == 67) {
+            break break;  // error, because this is a ghost context
+          }
+          q := q + 1;
+        }
+      } else if (n == t) {
+        return;  // error: this is a ghost context trying to return from a non-ghost method
+      }
+      n := n + 1;
+      p := p + 1;
+    }
+  }
+}
+
+method DuplicateLabels(n: int) {
+  var x;
+  if (n < 7) {
+    label DuplicateLabel: x := x + 1;
+  } else {
+    label DuplicateLabel: x := x + 1;
+  }
+  label DuplicateLabel: x := x + 1;
+  label DuplicateLabel: {
+    label AnotherLabel:
+    label DuplicateLabel:  // error: duplicate label
+    label OneMoreTime:
+    x := x + 1;
+  }
+  label DuplicateLabel:
+  label DuplicateLabel:  // error: duplicate label
+  x := x + 1;
+  label DuplicateLabel: x := x + 1;
+
+}
