@@ -10,19 +10,19 @@ class SumOfCubes {
     requires 0 <= n && n <= m;
     ensures r == SumEmUp(n, m);
   {
-    call a := SocuFromZero(m);
-    call b := SocuFromZero(n);
+    var a := SocuFromZero(m);
+    var b := SocuFromZero(n);
     r := a - b;
-    call Lemma0(n, m);
+    Lemma0(n, m);
   }
 
   static method SocuFromZero(k: int) returns (r: int)
     requires 0 <= k;
     ensures r == SumEmUp(0, k);
   {
-    call g := Gauss(k);
+    var g := Gauss(k);
     r := g * g;
-    call Lemma1(k);
+    Lemma1(k);
   }
 
   ghost static method Lemma0(n: int, m: int)
@@ -36,9 +36,9 @@ class SumOfCubes {
     {
       k := k + 1;
     }
-    call Lemma3(0, n);
-    call Lemma3(n, k);
-    call Lemma3(0, k);
+    Lemma3(0, n);
+    Lemma3(n, k);
+    Lemma3(0, k);
   }
 
   static function GSum(k: int): int
@@ -52,7 +52,7 @@ class SumOfCubes {
     ensures r == GSum(k);
   {
     r := k * (k - 1) / 2;
-    call Lemma2(k);
+    Lemma2(k);
   }
 
   ghost static method Lemma1(k: int)
@@ -64,10 +64,10 @@ class SumOfCubes {
       invariant i <= k;
       invariant SumEmDown(0, i) == GSum(i) * GSum(i);
     {
-      call Lemma2(i);
+      Lemma2(i);
       i := i + 1;
     }
-    call Lemma3(0, k);
+    Lemma3(0, k);
   }
 
   ghost static method Lemma2(k: int)

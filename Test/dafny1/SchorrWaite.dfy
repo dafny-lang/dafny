@@ -10,6 +10,8 @@ class Node {
   ghost var pathFromRoot: Path;
 }
 
+datatype Path = Empty | Extend(Path, Node);
+
 class Main {
   method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S;
@@ -26,7 +28,7 @@ class Main {
                 n.childrenVisited == old(n.childrenVisited) &&
                 n.children == old(n.children));
   {
-    call RecursiveMarkWorker(root, S, {});
+    RecursiveMarkWorker(root, S, {});
   }
 
   method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set<Node>)
@@ -67,7 +69,7 @@ class Main {
       {
         var c := root.children[i];
         if (c != null) {
-          call RecursiveMarkWorker(c, S, stackNodes + {root});
+          RecursiveMarkWorker(c, S, stackNodes + {root});
         }
         i := i + 1;
       }
@@ -182,7 +184,7 @@ class Main {
   {
     var t := root;
     var p: Node := null;  // parent of t in original graph
-    ghost var path := #Path.Empty;
+    ghost var path := Path.Empty;
     t.marked := true;
     t.pathFromRoot := path;
     ghost var stackNodes := [];
@@ -256,7 +258,7 @@ class Main {
         t.children := t.children[..t.childrenVisited] + [p] + t.children[t.childrenVisited + 1..];
         p := t;
         stackNodes := stackNodes + [t];
-        path := #Path.Extend(path, t);
+        path := Path.Extend(path, t);
         t := newT;
         t.marked := true;
         t.pathFromRoot := path;
@@ -264,9 +266,4 @@ class Main {
       }
     }
   }
-}
-
-datatype Path {
-  Empty;
-  Extend(Path, Node);
 }

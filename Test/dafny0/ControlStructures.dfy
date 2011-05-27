@@ -9,7 +9,7 @@ method M0(d: D)
 }
 
 method M1(d: D)
-  requires d != #D.Blue;
+  requires d != D.Blue;
 {
   match (d) {  // error: missing case: Purple
     case Green =>
@@ -18,7 +18,7 @@ method M1(d: D)
 }
 
 method M2(d: D)
-  requires d != #D.Blue && d != #D.Purple;
+  requires d != D.Blue && d != D.Purple;
 {
   match (d) {
     case Green =>
@@ -27,9 +27,9 @@ method M2(d: D)
 }
 
 method M3(d: D)
-  requires d == #D.Green;
+  requires d == D.Green;
 {
-  if (d != #D.Green) {
+  if (d != D.Green) {
     match (d) {
       // nothing here
     }
@@ -37,9 +37,9 @@ method M3(d: D)
 }
 
 method M4(d: D)
-  requires d == #D.Green || d == #D.Red;
+  requires d == D.Green || d == D.Red;
 {
-  if (d != #D.Green) {
+  if (d != D.Green) {
     match (d) {  // error: missing case Red
       // nothing here
     }
@@ -56,7 +56,7 @@ function F0(d: D): int
 
 function F1(d: D, x: int): int
   requires x < 100;
-  requires d == #D.Red ==> x == 200;  // (an impossibility, given the first precondition, so d != Red)
+  requires d == D.Red ==> x == 200;  // (an impossibility, given the first precondition, so d != Red)
 {
   match (d)
   case Purple => 80
@@ -134,4 +134,109 @@ method B(x: int) returns (r: int)
     case 0 < r =>
       r := r - 1;
   }
+}
+
+// --------------- breaks ---------------
+
+method TheBreaker_AllGood(M: int, N: int, O: int)
+{
+  var a, b, c, d, e;
+  var i := 0;
+  while (i < M)
+  {
+    var j := 0;
+    label InnerHasLabel:
+    while (j < N)
+    {
+      var u := 2000;
+      label MyLabelBlock:
+      label MyLabelBlockAgain:
+      if (*) {
+        a := 15; break;
+      } else if (*) {
+        b := 12; break break;
+      } else if (*) {
+        c := 21; break InnerHasLabel;
+      } else if (*) {
+        while (u < 10000) {
+          u := u + 3;
+          if (*) { u := 1998; break MyLabelBlock; }
+          if (*) { u := 1998; break MyLabelBlockAgain; }
+        }
+        assert 10000 <= u;
+        u := 1998;
+      } else {
+        u := u - 2;
+      }
+      assert u == 1998;
+      var k := 0;
+      while
+        decreases O - k;
+      {
+        case k < O && k % 2 == 0 =>
+          d := 187; break;
+        case k < O =>
+          if (*) { e := 4; break InnerHasLabel; }
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
+      }
+      assert O <= k || d == 187 || e == 7;
+      j := j + 1;
+    }
+    assert N <= j || a == 15 || c == 21 || e == 4;
+    i := i + 1;
+  }
+  assert M <= i || b == 12 || e == 37;
+}
+
+method TheBreaker_SomeBad(M: int, N: int, O: int)
+{
+  var a, b, c, d, e;
+  var i := 0;
+  while (i < M)
+  {
+    var j := 0;
+    label InnerHasLabel:
+    while (j < N)
+    {
+      var u := 2000;
+      label MyLabelBlock:
+      label MyLabelBlockAgain:
+      if (*) {
+        a := 15; break;
+      } else if (*) {
+        b := 12; break break;
+      } else if (*) {
+        c := 21; break InnerHasLabel;
+      } else if (*) {
+        while (u < 10000) {
+          u := u + 3;
+          if (*) { u := 1998; break MyLabelBlock; }
+          if (*) { u := 1998; break MyLabelBlockAgain; }
+        }
+        assert u < 2000;  // error (and no way to get past this assert statement)
+      } else {
+        u := u - 2;
+      }
+      assert u == 1998;
+      var k := 0;
+      while
+        decreases O - k;
+      {
+        case k < O && k % 2 == 0 =>
+          d := 187; break;
+        case k < O =>
+          if (*) { e := 4; break InnerHasLabel; }
+          if (*) { e := 7; break; }
+          if (*) { e := 37; break break break; }
+          k := k + 1;
+      }
+      assert O <= k || e == 7;  // error: d == 187
+      j := j + 1;
+    }
+    assert N <= j || c == 21 || e == 4;  // error: a == 15
+    i := i + 1;
+  }
+  assert M <= i || b == 12;  // error: e == 37
 }

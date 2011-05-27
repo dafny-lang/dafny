@@ -506,7 +506,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(me != null);
       Contract.Requires(layerOffset == 0 || layerOffset == 1);
 
-      IVariable formal = ((IdentifierExpr)me.Source).Var;  // correctness of casts follows from what resolution checks
+      IVariable formal = ((IdentifierExpr)me.Source.Resolved).Var;  // correctness of casts follows from what resolution checks
       foreach (MatchCaseExpr mc in me.Cases) {
         Contract.Assert(mc.Ctor != null);  // the field is filled in by resolution
         Specialization s = new Specialization(formal, mc, prev);
@@ -1546,6 +1546,9 @@ namespace Microsoft.Dafny {
         total = BplAnd(total, Bpl.Expr.Imp(test, IsTotal(e.Thn, etran)));
         total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), IsTotal(e.Els, etran)));
         return total;
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return IsTotal(e.ResolvedExpression, etran);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1676,6 +1679,9 @@ namespace Microsoft.Dafny {
         total = BplAnd(total, Bpl.Expr.Imp(test, CanCallAssumption(e.Thn, etran)));
         total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), CanCallAssumption(e.Els, etran)));
         return total;
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return CanCallAssumption(e.ResolvedExpression, etran);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1878,7 +1884,7 @@ namespace Microsoft.Dafny {
         Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
-          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
+          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
           ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
@@ -2010,7 +2016,7 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
         foreach (BoundVar bv in e.BoundVars) {
-          VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost, null);
+          VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
           ie.Var = local;  ie.Type = ie.Var.Type;  // resolve ie here
@@ -2083,7 +2089,11 @@ namespace Microsoft.Dafny {
         }
         builder.Add(ifCmd);
         result = null;
-        
+
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -2889,7 +2899,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(currentMethod != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
-
      
       return TrStmt2StmtList(new Bpl.StmtListBuilder(), block, locals, etran);
     }
@@ -2902,7 +2911,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(currentMethod != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
-
       
       TrStmt(block, builder, locals, etran);
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
@@ -2936,12 +2944,6 @@ namespace Microsoft.Dafny {
         AssumeStmt s = (AssumeStmt)stmt;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
-      } else if (stmt is UseStmt) {
-        AddComment(builder, stmt, "use statement");
-        UseStmt s = (UseStmt)stmt;
-        // Skip the definedness check.  This makes the 'use' statement easier to use and it has no executable analog anyhow
-        // TrStmt_CheckWellformed(s.Expr, builder, locals, etran);
-        builder.Add(new Bpl.AssumeCmd(stmt.Tok, (s.EvalInOld ? etran.Old : etran).TrUseExpr(s.FunctionCallExpr)));
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
         PrintStmt s = (PrintStmt)stmt;
@@ -2951,19 +2953,17 @@ namespace Microsoft.Dafny {
           }
         }
         
-      } else if (stmt is LabelStmt) {
-        AddComment(builder, stmt, "label statement");  // TODO: ouch, comments probably mess up what the label labels in the Boogie program
-        builder.AddLabelCmd(((LabelStmt)stmt).Label);
       } else if (stmt is BreakStmt) {
         AddComment(builder, stmt, "break statement");
-        builder.Add(new Bpl.BreakCmd(stmt.Tok, ((BreakStmt)stmt).TargetLabel));  // TODO: handle name clashes of labels
+        var s = (BreakStmt)stmt;
+        builder.Add(new GotoCmd(s.Tok, new StringSeq("after_" + s.TargetStmt.Labels.UniqueId)));
       } else if (stmt is ReturnStmt) {
         AddComment(builder, stmt, "return statement");
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is AssignStmt) {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;
-        TrAssignment(stmt.Tok, s.Lhs, s.Rhs, builder, locals, etran);
+        TrAssignment(stmt.Tok, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
       } else if (stmt is VarDecl) {
         AddComment(builder, stmt, "var-declaration statement");
         VarDecl s = (VarDecl)stmt;
@@ -2971,19 +2971,16 @@ namespace Microsoft.Dafny {
         Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.UniqueName, varType), s.Type, etran);
         Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.UniqueName, varType, wh));
         locals.Add(var);
-        if (s.Rhs != null) {
-          IdentifierExpr ide = new IdentifierExpr(stmt.Tok, var.Name);  // allocate an expression for the assignment LHS...
-          ide.Var = s;  ide.Type = s.Type;  // ... and resolve it right here
-          TrAssignment(stmt.Tok, ide, s.Rhs, builder, locals, etran);
-        }
         
       } else if (stmt is CallStmt) {
-        CallStmt s = (CallStmt)stmt;
-        TrCallStmt(s, builder, locals, etran, null);
+        TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
         
       } else if (stmt is BlockStmt) {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {
           TrStmt(ss, builder, locals, etran);
+          if (ss.Labels != null) {
+            builder.AddLabelCmd("after_" + ss.Labels.UniqueId);
+          }
         }
       } else if (stmt is IfStmt) {
         AddComment(builder, stmt, "if statement");
@@ -3106,16 +3103,9 @@ namespace Microsoft.Dafny {
             Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, eIsTotal));
             builder.Add(AssertNS(ps.Expr.tok, q, "assume condition must be well defined"));  // totality check
           } else {
-            Contract.Assert(ps is UseStmt);
-            // no totality check (see UseStmt case above)
+            Contract.Assert(false);
           }
-          Bpl.Expr enchilada;  // the whole enchilada
-          if (ps is UseStmt) {
-            UseStmt us = (UseStmt)ps;
-            enchilada = (us.EvalInOld ? etran.Old : etran).TrUseExpr(us.FunctionCallExpr);
-          } else {
-            enchilada = etran.TrExpr(ps.Expr);
-          }
+          Bpl.Expr enchilada = etran.TrExpr(ps.Expr);  // the whole enchilada
           Bpl.Expr qEnchilada = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, enchilada));
           builder.Add(new Bpl.AssumeCmd(ps.Expr.tok, qEnchilada));
         }
@@ -3222,6 +3212,13 @@ namespace Microsoft.Dafny {
         Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
         builder.Add(ifCmd);
 
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        // TODO: Update statements should perform multiple assignments in parallel!
+        foreach (var ss in s.ResolvedStatements) {
+          TrStmt(ss, builder, locals, etran);
+        }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -3248,7 +3245,7 @@ namespace Microsoft.Dafny {
       locals.Add(preLoopHeapVar);
       Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
-      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));  // TODO: does this screw up labeled breaks for this loop?
+      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
       List<Bpl.Expr> initDecr = null;
       if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
@@ -3421,9 +3418,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       Expression receiver = actualReceiver == null ? s.Receiver : new BoogieWrapper(actualReceiver);
-      foreach (VarDecl local in s.NewVars) {
-        TrStmt(local, builder, locals, etran);
-      }
       AddComment(builder, s, actualReceiver == null ? "call statement" : "init call statement");
       Bpl.ExprSeq ins = new Bpl.ExprSeq();
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
@@ -3438,7 +3432,7 @@ namespace Microsoft.Dafny {
       Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < s.Method.Ins.Count; i++) {
         Formal p = s.Method.Ins[i];
-        VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost, null);
+        VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -3895,6 +3889,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
+      Contract.Requires(!(lhs is ConcreteSyntaxExpression));
       Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
@@ -4635,7 +4630,11 @@ namespace Microsoft.Dafny {
           Bpl.Expr thn = TrExpr(e.Thn);
           Bpl.Expr els = TrExpr(e.Els);
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new ExprSeq(g, thn, els));
-           
+
+        } else if (expr is ConcreteSyntaxExpression) {
+          var e = (ConcreteSyntaxExpression)expr;
+          return TrExpr(e.ResolvedExpression);
+
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
@@ -4717,30 +4716,6 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.And(
           Bpl.Expr.Lt(len0, len1),
           translator.FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
-      }
-
-      public Bpl.Expr TrUseExpr(FunctionCallExpr e)
-       {
-        Contract.Requires(e != null); Contract.Requires(e.Function != null && e.Type != null);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-        Function fn = e.Function;
-        Bpl.ExprSeq args = new Bpl.ExprSeq();
-        args.Add(HeapExpr);
-        if (!fn.IsStatic) {
-          args.Add(TrExpr(e.Receiver));
-        }
-        foreach (Expression ee in e.Args) {
-          args.Add(TrExpr(ee));
-        }
-        Bpl.Expr f0 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, fn.FullName, translator.TrType(e.Type))), args);
-        Bpl.Expr f1;
-        if (fn.IsRecursive && !fn.IsUnlimited) {
-          f1 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, FunctionName(fn, 0), translator.TrType(e.Type))), args);
-        } else {
-          f1 = f0;
-        }
-        return Bpl.Expr.Eq(f0, f1);
       }
 
       public Bpl.Expr CondApplyBox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
@@ -5300,6 +5275,10 @@ namespace Microsoft.Dafny {
           return true;
         }
 
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return TrSplitExpr(e.ResolvedExpression, splits, expandFunctions, etran);
+
       } else if (expr is BinaryExpr) {
         var bin = (BinaryExpr)expr;
         if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
@@ -5664,6 +5643,9 @@ namespace Microsoft.Dafny {
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, null) ||  // test is not "elevated"
           VarOccursInArgumentToRecursiveFunction(e.Thn, n, p) ||           // but the two branches are
           VarOccursInArgumentToRecursiveFunction(e.Els, n, p);
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.ResolvedExpression, n, p);
       } else if (expr is BoxingCastExpr) {
         var e = (BoxingCastExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
@@ -5857,6 +5839,10 @@ namespace Microsoft.Dafny {
         if (test != e.Test || thn != e.Thn || els != e.Els) {
           newExpr = new ITEExpr(expr.tok, test, thn, els);
         }
+
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return Substitute(e.ResolvedExpression, receiverReplacement, substMap);
       }
       
       if (newExpr == null) {

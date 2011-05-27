@@ -22,10 +22,10 @@ class MyClass<T, U> {
       } else {
         this.x := x + 0;
       }
-      call t, u, v := M(true, lotsaObjects);
+      t, u, v := M(true, lotsaObjects);
       var to: MyClass<T,U>;
-      call to, u, v := M(true, lotsaObjects);
-      call to, u, v := to.M(true, lotsaObjects);
+      to, u, v := this.M(true, lotsaObjects);
+      to, u, v := to.M(true, lotsaObjects);
       assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
     }
   }
@@ -46,16 +46,9 @@ class MyClass<T, U> {
   }
 }
 
-datatype List<T> {
-  Nil;
-  Cons(T, List<T>);
-}
+datatype List<T> = Nil | Cons(T, List<T>);
 
-datatype WildData {
-  Something;
-  JustAboutAnything<G, H>(G, myName: set<H>, int, WildData);
-  More(List<int>);
-}
+datatype WildData = Something | JustAboutAnything(bool, myName: set<int>, int, WildData) | More(List<int>);
 
 class C {
   var w: WildData;
@@ -65,32 +58,31 @@ class C {
 Dafny program verifier finished with 0 verified, 0 errors
 
 -------------------- TypeTests.dfy --------------------
-TypeTests.dfy(95,9): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(84,9): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, got D)
 TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, got int)
-TypeTests.dfy(11,4): Error: incorrect type of method in-parameter 0 (expected int, got bool)
-TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 0 (expected int, got C)
-TypeTests.dfy(12,4): Error: incorrect type of method out-parameter 1 (expected C, got int)
-TypeTests.dfy(20,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Nothing' can be constructed
-TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-TypeTests.dfy(55,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-TypeTests.dfy(64,6): Error: Duplicate local-variable name: z
-TypeTests.dfy(66,6): Error: Duplicate local-variable name: x
-TypeTests.dfy(69,8): Error: Duplicate local-variable name: x
-TypeTests.dfy(72,6): Error: Duplicate local-variable name: y
-TypeTests.dfy(79,17): Error: member F in class C does not refer to a method
-TypeTests.dfy(80,17): Error: a method called as an initialization method must not have any result arguments
-TypeTests.dfy(89,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
-TypeTests.dfy(90,2): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
-TypeTests.dfy(96,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(97,6): Error: sorry, cannot instantiate 'array' type with a subrange type
-TypeTests.dfy(98,6): Error: sorry, cannot instantiate 'array' type with a subrange type
-22 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(11,15): Error: incorrect type of method in-parameter 0 (expected int, got bool)
+TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 0 (expected int, got C)
+TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 1 (expected C, got int)
+TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
+TypeTests.dfy(44,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+TypeTests.dfy(53,6): Error: Duplicate local-variable name: z
+TypeTests.dfy(55,6): Error: Duplicate local-variable name: x
+TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
+TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
+TypeTests.dfy(68,17): Error: member F in class C does not refer to a method
+TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
+TypeTests.dfy(78,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
+TypeTests.dfy(79,2): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
+TypeTests.dfy(85,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(86,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(87,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+21 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
-NatTypes.dfy(7,10): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(7,5): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
 NatTypes.dfy(31,5): Error: value assigned to a nat must be non-negative
@@ -114,16 +106,16 @@ NatTypes.dfy(54,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(71,16): Error: assertion violation
+NatTypes.dfy(68,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(89,9): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(86,16): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(104,45): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(101,45): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
@@ -160,11 +152,11 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(129,7): Error: call may violate caller's modifies clause
+SmallTests.dfy(129,9): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(131,7): Error: call may violate caller's modifies clause
+SmallTests.dfy(131,9): Error: call may violate caller's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -192,14 +184,14 @@ Execution trace:
     (0,0): anon6
     (0,0): anon14_Then
     (0,0): anon11
-SmallTests.dfy(272,24): Error BP5002: A precondition for this call might not hold.
-SmallTests.dfy(250,30): Related location: This is the precondition that might not hold.
+SmallTests.dfy(271,24): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(249,30): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(267,19): anon3_Else
+    SmallTests.dfy(266,19): anon3_Else
     (0,0): anon2
-SmallTests.dfy(307,3): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(301,11): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(306,3): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(300,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
@@ -379,7 +371,7 @@ Execution trace:
 Dafny program verifier finished with 23 verified, 34 errors
 
 -------------------- FunctionSpecifications.dfy --------------------
-FunctionSpecifications.dfy(31,13): Error: possible violation of function postcondition
+FunctionSpecifications.dfy(28,13): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon10_Else
     (0,0): anon11_Else
@@ -387,13 +379,13 @@ Execution trace:
     (0,0): anon13_Else
     (0,0): anon7
     (0,0): anon9
-FunctionSpecifications.dfy(40,24): Error: possible violation of function postcondition
+FunctionSpecifications.dfy(37,24): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon12_Else
     (0,0): anon15_Else
     (0,0): anon16_Then
     (0,0): anon11
-FunctionSpecifications.dfy(53,11): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(50,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
@@ -402,11 +394,57 @@ Execution trace:
 Dafny program verifier finished with 3 verified, 3 errors
 
 -------------------- ResolutionErrors.dfy --------------------
+ResolutionErrors.dfy(39,13): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(100,9): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(101,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(105,11): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(106,9): Error: actual out-parameter 0 is required to be a ghost variable
+ResolutionErrors.dfy(113,15): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(117,23): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(124,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(128,21): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(129,35): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(138,9): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(144,16): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(185,27): Error: ghost-context break statement is not allowed to break out of non-ghost structure
+ResolutionErrors.dfy(208,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(220,12): Error: trying to break out of more loop levels than there are enclosing loops
+ResolutionErrors.dfy(224,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(229,8): Error: return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(23,12): Error: sequence/array selection requires a sequence or array (got array3<T>)
 ResolutionErrors.dfy(24,11): Error: array selection requires an array4 (got array<T>)
-4 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(45,14): Error: a field must be selected via an object, not just a class name
+ResolutionErrors.dfy(46,7): Error: unresolved identifier: F
+ResolutionErrors.dfy(47,14): Error: an instance function must be selected via an object, not just a class name
+ResolutionErrors.dfy(47,7): Error: call to instance function requires an instance
+ResolutionErrors.dfy(48,7): Error: unresolved identifier: G
+ResolutionErrors.dfy(50,7): Error: unresolved identifier: M
+ResolutionErrors.dfy(51,7): Error: call to instance method requires an instance
+ResolutionErrors.dfy(52,7): Error: unresolved identifier: N
+ResolutionErrors.dfy(55,8): Error: non-function expression is called with parameters
+ResolutionErrors.dfy(56,14): Error: member z does not exist in class Global
+ResolutionErrors.dfy(75,12): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
+ResolutionErrors.dfy(80,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors.dfy(81,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors.dfy(83,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors.dfy(85,12): Error: wrong number of arguments to datatype constructor Abc (found 2, expected 1)
+ResolutionErrors.dfy(247,4): Error: label shadows an enclosing label
+ResolutionErrors.dfy(252,2): Error: duplicate label
+38 resolution/type errors detected in ResolutionErrors.dfy
+
+-------------------- ParseErrors.dfy --------------------
+ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
+ParseErrors.dfy(6,37): error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(7,38): error: this operator chain cannot continue with an ascending operator
+ParseErrors.dfy(12,24): error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(14,18): error: this operator cannot be part of a chain
+ParseErrors.dfy(15,18): error: this operator cannot be part of a chain
+ParseErrors.dfy(16,19): error: this operator cannot be part of a chain
+ParseErrors.dfy(17,18): error: this operator cannot be part of a chain
+ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
+9 parse errors detected in ParseErrors.dfy
 
 -------------------- Array.dfy --------------------
 Array.dfy(10,12): Error: assignment may update an array element not in the enclosing method's modifies clause
@@ -498,11 +536,11 @@ Dafny program verifier finished with 7 verified, 1 error
 Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
 Modules0.dfy(13,7): Error: module T named among imports does not exist
 Modules0.dfy(24,7): Error: import graph contains a cycle: H -> I -> J -> G
-Modules0.dfy(51,6): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
-Modules0.dfy(62,6): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
-Modules0.dfy(72,6): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
-Modules0.dfy(91,4): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
-Modules0.dfy(116,16): Error: ghost variables are allowed only in specification contexts
+Modules0.dfy(51,8): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
+Modules0.dfy(62,9): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
+Modules0.dfy(72,9): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
+Modules0.dfy(91,6): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
+Modules0.dfy(116,11): Error: ghost variables are allowed only in specification contexts
 Modules0.dfy(130,11): Error: old expressions are allowed only in specification and ghost contexts
 Modules0.dfy(131,11): Error: fresh expressions are allowed only in specification and ghost contexts
 Modules0.dfy(132,11): Error: allocated expressions are allowed only in specification and ghost contexts
@@ -511,10 +549,10 @@ Modules0.dfy(187,12): Error: match source expression 'l' has already been used a
 13 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
-Modules1.dfy(55,3): Error: decreases expression must be bounded below by 0
+Modules1.dfy(52,3): Error: decreases expression must be bounded below by 0
 Execution trace:
     (0,0): anon0
-Modules1.dfy(61,3): Error: failure to decrease termination measure
+Modules1.dfy(58,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
@@ -539,6 +577,22 @@ Execution trace:
     (0,0): anon8
 
 Dafny program verifier finished with 6 verified, 1 error
+
+-------------------- Basics.dfy --------------------
+Basics.dfy(66,42): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    Basics.dfy(66,72): anon16_Else
+    (0,0): anon8
+    Basics.dfy(66,82): anon17_Else
+    (0,0): anon10
+    Basics.dfy(66,95): anon18_Else
+    (0,0): anon12
+
+Dafny program verifier finished with 8 verified, 1 error
 
 -------------------- ControlStructures.dfy --------------------
 ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
@@ -577,102 +631,177 @@ ControlStructures.dfy(72,3): Error: alternative cases fail to cover all possibil
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
+ControlStructures.dfy(218,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    ControlStructures.dfy(197,3): anon62_LoopHead
+    (0,0): anon62_LoopBody
+    ControlStructures.dfy(197,3): anon63_Else
+    (0,0): anon3
+    ControlStructures.dfy(197,3): anon64_Else
+    (0,0): anon5
+    ControlStructures.dfy(201,5): anon65_LoopHead
+    (0,0): anon65_LoopBody
+    ControlStructures.dfy(201,5): anon66_Else
+    (0,0): anon8
+    ControlStructures.dfy(201,5): anon67_Else
+    (0,0): anon10
+    (0,0): anon71_Then
+    ControlStructures.dfy(213,9): anon72_LoopHead
+    (0,0): anon72_LoopBody
+    ControlStructures.dfy(213,9): anon73_Else
+    (0,0): anon20
+    (0,0): anon74_Then
+    (0,0): anon29
+ControlStructures.dfy(235,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    ControlStructures.dfy(197,3): anon62_LoopHead
+    (0,0): anon62_LoopBody
+    ControlStructures.dfy(197,3): anon63_Else
+    (0,0): anon3
+    ControlStructures.dfy(197,3): anon64_Else
+    (0,0): anon5
+    ControlStructures.dfy(201,5): anon65_LoopHead
+    (0,0): anon65_LoopBody
+    ControlStructures.dfy(201,5): anon66_Else
+    (0,0): anon8
+    ControlStructures.dfy(201,5): anon67_Else
+    (0,0): anon10
+    (0,0): anon71_Then
+    ControlStructures.dfy(213,9): anon72_LoopHead
+    (0,0): anon72_LoopBody
+    ControlStructures.dfy(213,9): anon73_Else
+    (0,0): anon20
+    ControlStructures.dfy(213,9): anon74_Else
+    (0,0): anon22
+    (0,0): anon75_Then
+    (0,0): after_4
+    ControlStructures.dfy(224,7): anon77_LoopHead
+    (0,0): anon77_LoopBody
+    ControlStructures.dfy(224,7): anon78_Else
+    (0,0): anon33
+    ControlStructures.dfy(224,7): anon79_Else
+    (0,0): anon35
+    (0,0): anon81_Then
+    (0,0): anon38
+    (0,0): after_9
+    (0,0): anon86_Then
+    (0,0): anon53
+ControlStructures.dfy(238,30): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    ControlStructures.dfy(197,3): anon62_LoopHead
+    (0,0): anon62_LoopBody
+    ControlStructures.dfy(197,3): anon63_Else
+    (0,0): anon3
+    ControlStructures.dfy(197,3): anon64_Else
+    (0,0): anon5
+    ControlStructures.dfy(201,5): anon65_LoopHead
+    (0,0): anon65_LoopBody
+    ControlStructures.dfy(201,5): anon66_Else
+    (0,0): anon8
+    ControlStructures.dfy(201,5): anon67_Else
+    (0,0): anon10
+    (0,0): anon68_Then
+    (0,0): after_5
+    (0,0): anon87_Then
+    (0,0): anon88_Then
+    (0,0): anon58
+ControlStructures.dfy(241,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    ControlStructures.dfy(197,3): anon62_LoopHead
+    (0,0): anon62_LoopBody
+    ControlStructures.dfy(197,3): anon63_Else
+    (0,0): anon3
+    ControlStructures.dfy(197,3): anon64_Else
+    (0,0): anon5
+    ControlStructures.dfy(201,5): anon65_LoopHead
+    (0,0): anon65_LoopBody
+    ControlStructures.dfy(201,5): anon66_Else
+    (0,0): anon8
+    ControlStructures.dfy(201,5): anon67_Else
+    (0,0): anon10
+    (0,0): anon71_Then
+    ControlStructures.dfy(213,9): anon72_LoopHead
+    (0,0): anon72_LoopBody
+    ControlStructures.dfy(213,9): anon73_Else
+    (0,0): anon20
+    ControlStructures.dfy(213,9): anon74_Else
+    (0,0): anon22
+    (0,0): anon75_Then
+    (0,0): after_4
+    ControlStructures.dfy(224,7): anon77_LoopHead
+    (0,0): anon77_LoopBody
+    ControlStructures.dfy(224,7): anon78_Else
+    (0,0): anon33
+    ControlStructures.dfy(224,7): anon79_Else
+    (0,0): anon35
+    (0,0): anon82_Then
+    (0,0): anon85_Then
+    (0,0): after_8
+    (0,0): anon89_Then
+    (0,0): anon61
 
-Dafny program verifier finished with 15 verified, 6 errors
+Dafny program verifier finished with 18 verified, 10 errors
 
 -------------------- Termination.dfy --------------------
-Termination.dfy(102,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(100,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(102,3): anon7_LoopHead
+    Termination.dfy(100,3): anon7_LoopHead
     (0,0): anon7_LoopBody
-    Termination.dfy(102,3): anon8_Else
+    Termination.dfy(100,3): anon8_Else
     (0,0): anon3
-    Termination.dfy(102,3): anon9_Else
+    Termination.dfy(100,3): anon9_Else
     (0,0): anon5
-Termination.dfy(110,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(108,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(110,3): anon9_LoopHead
+    Termination.dfy(108,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(110,3): anon10_Else
+    Termination.dfy(108,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(110,3): anon12_Else
+    Termination.dfy(108,3): anon12_Else
     (0,0): anon7
-Termination.dfy(119,3): Error: decreases expression might not decrease
+Termination.dfy(117,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(119,3): anon9_LoopHead
+    Termination.dfy(117,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(119,3): anon10_Else
+    Termination.dfy(117,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(119,3): anon12_Else
+    Termination.dfy(117,3): anon12_Else
     (0,0): anon7
-Termination.dfy(120,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
+Termination.dfy(118,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Execution trace:
     (0,0): anon0
-    Termination.dfy(119,3): anon9_LoopHead
+    Termination.dfy(117,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(119,3): anon10_Else
+    Termination.dfy(117,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(119,3): anon12_Else
+    Termination.dfy(117,3): anon12_Else
     (0,0): anon7
-Termination.dfy(248,36): Error: cannot prove termination; try supplying a decreases clause
+Termination.dfy(246,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-Termination.dfy(288,3): Error: decreases expression might not decrease
+Termination.dfy(286,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(288,3): anon10_LoopHead
+    Termination.dfy(286,3): anon10_LoopHead
     (0,0): anon10_LoopBody
-    Termination.dfy(288,3): anon11_Else
-    Termination.dfy(288,3): anon12_Else
+    Termination.dfy(286,3): anon11_Else
+    Termination.dfy(286,3): anon12_Else
     (0,0): anon13_Else
     (0,0): anon8
 
 Dafny program verifier finished with 44 verified, 6 errors
-
--------------------- Use.dfy --------------------
-Use.dfy(16,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(26,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(35,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(54,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(84,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(126,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(151,12): Error: assertion violation
-Use.dfy(143,5): Related location: Related location
-Execution trace:
-    (0,0): anon0
-Use.dfy(160,12): Error: assertion violation
-Use.dfy(143,5): Related location: Related location
-Execution trace:
-    (0,0): anon0
-Use.dfy(169,12): Error: assertion violation
-Use.dfy(143,5): Related location: Related location
-Execution trace:
-    (0,0): anon0
-Use.dfy(213,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-
-Dafny program verifier finished with 39 verified, 10 errors
 
 -------------------- DTypes.dfy --------------------
 DTypes.dfy(15,14): Error: assertion violation
@@ -681,20 +810,20 @@ Execution trace:
 DTypes.dfy(53,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
+DTypes.dfy(117,13): Error: assertion violation
+DTypes.dfy(89,30): Related location: Related location
+Execution trace:
+    (0,0): anon0
 DTypes.dfy(123,13): Error: assertion violation
-DTypes.dfy(94,3): Related location: Related location
+DTypes.dfy(89,20): Related location: Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(129,13): Error: assertion violation
-DTypes.dfy(93,3): Related location: Related location
+DTypes.dfy(133,12): Error: assertion violation
+DTypes.dfy(128,6): Related location: Related location
+DTypes.dfy(89,20): Related location: Related location
 Execution trace:
     (0,0): anon0
-DTypes.dfy(139,12): Error: assertion violation
-DTypes.dfy(134,6): Related location: Related location
-DTypes.dfy(93,3): Related location: Related location
-Execution trace:
-    (0,0): anon0
-DTypes.dfy(160,13): Error: assertion violation
+DTypes.dfy(154,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
@@ -746,7 +875,7 @@ Execution trace:
 Dafny program verifier finished with 33 verified, 5 errors
 
 -------------------- Datatypes.dfy --------------------
-Datatypes.dfy(82,20): Error: assertion violation
+Datatypes.dfy(79,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Else
@@ -760,11 +889,11 @@ Execution trace:
 Dafny program verifier finished with 17 verified, 1 error
 
 -------------------- TypeAntecedents.dfy --------------------
-TypeAntecedents.dfy(34,13): Error: assertion violation
+TypeAntecedents.dfy(32,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
-TypeAntecedents.dfy(60,1): Error BP5003: A postcondition might not hold on this return path.
-TypeAntecedents.dfy(59,15): Related location: This is the postcondition that might not hold.
+TypeAntecedents.dfy(55,1): Error BP5003: A postcondition might not hold on this return path.
+TypeAntecedents.dfy(54,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
@@ -776,7 +905,7 @@ Execution trace:
     (0,0): anon20_Then
     (0,0): anon21_Then
     (0,0): anon14
-TypeAntecedents.dfy(68,16): Error: assertion violation
+TypeAntecedents.dfy(63,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Else

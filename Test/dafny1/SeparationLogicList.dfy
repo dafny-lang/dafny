@@ -28,7 +28,7 @@ class Node<T> {
       l.next := null;
       S := {l};
     } else {
-      call l, S := Cons(x, null, [], {});
+      l, S := Cons(x, null, [], {});
     }
   }
 
@@ -75,7 +75,7 @@ class ListNode<T> {
       l.Repr := {l};
       l.Contents := [x];
     } else {
-      call l := Cons(x, null);
+      l := Cons(x, null);
     }
   }
 

@@ -22,9 +22,9 @@ class UltraFilter<G> {
   {
     if (M !in f) {
       // instantiate 'g' with the following 'h'
-      call h := H(f, S, M);
-      call Lemma_HIsFilter(h, f, S, M);
-      call Lemma_FHOrdering0(h, f, S, M);
+      var h := H(f, S, M);
+      Lemma_HIsFilter(h, f, S, M);
+      Lemma_FHOrdering0(h, f, S, M);
     }
   }
 
@@ -44,9 +44,9 @@ class UltraFilter<G> {
     // call Lemma_H1(h, f, S, M, *, *);
     assume (forall C, D :: C in h && D in h ==> C * D in h);
 
-    call Lemma_H2(h, f, S, M);
+    Lemma_H2(h, f, S, M);
 
-    call Lemma_H3(h, f, S, M);
+    Lemma_H3(h, f, S, M);
   }
 
   method Lemma_H0(h: set<set<G>>, f: set<set<G>>, S: set<G>, M: set<G>, A: set<G>, B: set<G>)

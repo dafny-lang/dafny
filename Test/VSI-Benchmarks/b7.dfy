@@ -119,33 +119,34 @@ class Client {
   method Main()
   {
     var rd := new Stream;
-    call rd.Open();
+    rd.Open();
     
     var q := new Queue<int>;  
     while (true)
       invariant rd.Valid() && fresh(rd.footprint) && fresh(q);
       decreases |rd.stream|;
     {
-      call eos := rd.AtEndOfStream();
+      var eos := rd.AtEndOfStream();
       if (eos) {
         break;
       }
         
-      call ch := rd.GetChar();  
-      call q.Enqueue(ch);  
+      var ch := rd.GetChar();  
+      q.Enqueue(ch);  
     }
       
-    call rd.Close();
-    call q,perm := Sort(q);
+    rd.Close();
+    var perm;
+    q,perm := Sort(q);
       
-    var wr:= new Stream;
-    call wr.Create();
+    var wr := new Stream;
+    wr.Create();
     while (0 < |q.contents|)
       invariant wr.Valid() && fresh(wr.footprint) && fresh(q) && q !in wr.footprint;
     {
-      call ch := q.Dequeue();  
-      call wr.PutChar(ch);    
+      var ch := q.Dequeue();  
+      wr.PutChar(ch);    
     }
-    call wr.Close();
+    wr.Close();
   }
 }

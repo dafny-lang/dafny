@@ -707,6 +707,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Ctors));
+      Contract.Invariant(1 <= Ctors.Count);
     }
 
     public DatatypeCtor DefaultCtor;  // set during resolution
@@ -719,34 +720,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Invariant(1 <= ctors.Count);
       Ctors = ctors;
-
     }
   }
 
   public class DatatypeCtor : Declaration, TypeParameter.ParentType {
-    public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly List<Formal/*!*/>/*!*/ Formals;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(cce.NonNullElements(TypeArgs));
       Contract.Invariant(cce.NonNullElements(Formals));
     }
 
     // TODO: One could imagine having a precondition on datatype constructors
     public DatatypeDecl EnclosingDatatype;  // filled in during resolution
 
-    public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
-      [Captured] List<Formal/*!*/>/*!*/ formals,
-                        Attributes attributes)
+    public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Formal/*!*/>/*!*/ formals, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(formals));
-      this.TypeArgs = typeArgs;
       this.Formals = formals;
-
     }
 
     public string FullName {
@@ -760,12 +754,14 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class MemberDecl : Declaration {
+    public readonly bool IsStatic;
     public ClassDecl EnclosingClass;  // filled in during resolution
 
-    public MemberDecl(IToken tok, string name, Attributes attributes)
+    public MemberDecl(IToken tok, string name, bool isStatic, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
+      IsStatic = isStatic;
     }
     /// <summary>
     /// Returns className+"."+memberName.  Available only after resolution.
@@ -797,7 +793,7 @@ namespace Microsoft.Dafny {
     }
 
     public Field(IToken tok, string name, bool isGhost, bool isMutable, Type type, Attributes attributes)
-      : base(tok, name, attributes) {
+      : base(tok, name, false, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -832,13 +828,10 @@ namespace Microsoft.Dafny {
 
 
     public CouplingInvariant(List<IToken/*!*/>/*!*/ toks, Expression/*!*/ expr, Attributes attributes)
-      : base(toks[0], "_coupling_invariant" + getNames(toks), attributes) {
+      : base(toks[0], "_coupling_invariant" + getNames(toks), false, attributes) {
       Contract.Requires(toks.Count > 0);
       Expr = expr;
       Toks = toks;
-
-
-
     }
 
     private static string getNames(List<IToken> toks) {
@@ -909,9 +902,6 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
     }
-
-
-
   }
 
   public abstract class NonglobalVariable : IVariable {
@@ -1018,7 +1008,6 @@ namespace Microsoft.Dafny {
   }
 
   public class Function : MemberDecl, TypeParameter.ParentType {
-    public readonly bool IsStatic;
     public readonly bool IsGhost;  // functions are "ghost" by default; a non-ghost function is called a "function method"
     public readonly bool IsUnlimited;
     public bool IsRecursive;  // filled in during resolution
@@ -1045,7 +1034,7 @@ namespace Microsoft.Dafny {
     public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                     [Captured] List<Formal/*!*/>/*!*/ formals, Type/*!*/ resultType, List<Expression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ reads,
                     List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases, Expression body, Attributes attributes)
-      : base(tok, name, attributes) {
+      : base(tok, name, isStatic, attributes) {
 
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1056,7 +1045,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(reads));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(cce.NonNullElements(decreases));
-      this.IsStatic = isStatic;
       this.IsGhost = isGhost;
       this.IsUnlimited = isUnlimited;
       this.TypeArgs = typeArgs;
@@ -1072,7 +1060,6 @@ namespace Microsoft.Dafny {
   }
 
   public class Method : MemberDecl, TypeParameter.ParentType {
-    public readonly bool IsStatic;
     public readonly bool IsGhost;
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly List<Formal/*!*/>/*!*/ Ins;
@@ -1103,7 +1090,7 @@ namespace Microsoft.Dafny {
                   [Captured] List<Expression/*!*/>/*!*/ decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes)
-      : base(tok, name, attributes) {
+      : base(tok, name, isStatic, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1113,7 +1100,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(mod));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(cce.NonNullElements(decreases));
-      this.IsStatic = isStatic;
       this.IsGhost = isGhost;
       this.TypeArgs = typeArgs;
       this.Ins = ins;
@@ -1156,6 +1142,8 @@ namespace Microsoft.Dafny {
 
   public abstract class Statement {
     public readonly IToken Tok;
+    public LabelNode Labels;  // mutable during resolution
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
@@ -1168,7 +1156,25 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class PredicateStmt : Statement {
+  public class LabelNode
+  {
+    public readonly IToken Tok;
+    public readonly string Label;
+    public readonly int UniqueId;
+    public readonly LabelNode Next;
+    static int nodes = 0;
+
+    public LabelNode(IToken tok, string label, LabelNode next) {
+      Contract.Requires(tok != null);
+      Tok = tok;
+      Label = label;
+      Next = next;
+      UniqueId = nodes++;
+    }
+  }
+
+  public abstract class PredicateStmt : Statement
+  {
     [Peer]
     public readonly Expression Expr;
     [ContractInvariantMethod]
@@ -1209,49 +1215,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class UseStmt : PredicateStmt {
-    [Captured]
-    public UseStmt(IToken/*!*/ tok, Expression/*!*/ expr)
-      : base(tok, expr) {
-      Contract.Requires(tok != null);
-      Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
-
-    }
-    [Peer]
-    private FunctionCallExpr fce;
-    /// <summary>
-    /// This method assumes the statement has been successfully resolved.
-    /// </summary>
-    //[Pure(false)]
-    public FunctionCallExpr FunctionCallExpr {
-      get {
-        Contract.Ensures(Contract.Result<FunctionCallExpr>() != null);
-
-        if (fce == null) {
-          Expression expr = Expr;
-          while (true) {
-            cce.LoopInvariant(cce.Owner.Same(this, expr));
-
-            if (expr is OldExpr) {
-              expr = ((OldExpr)expr).E;
-            } else {
-              break;
-            }
-          }
-          Contract.Assume(expr is FunctionCallExpr);
-          fce = (FunctionCallExpr)expr;
-        }
-        return fce;
-      }
-    }
-    public bool EvalInOld {
-      get {
-        return Expr is OldExpr;
-      }
-    }
-  }
-
   public class PrintStmt : Statement {
     public readonly List<Attributes.Argument/*!*/>/*!*/ Args;
     [ContractInvariantMethod]
@@ -1268,31 +1231,25 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LabelStmt : Statement {
-    public readonly string Label;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Label != null);
-    }
-
-    public LabelStmt(IToken/*!*/ tok, string/*!*/ label)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(label != null);
-      this.Label = label;
-
-    }
-  }
-
   public class BreakStmt : Statement {
     public readonly string TargetLabel;
+    public readonly int BreakCount;
     public Statement TargetStmt;  // filled in during resolution
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(TargetLabel == null || 1 <= BreakCount);
+    }
 
     public BreakStmt(IToken tok, string targetLabel)
       : base(tok) {
       Contract.Requires(tok != null);
       this.TargetLabel = targetLabel;
-
+    }
+    public BreakStmt(IToken tok, int breakCount)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(1 <= breakCount);
+      this.BreakCount = breakCount;
     }
   }
 
@@ -1300,7 +1257,6 @@ namespace Microsoft.Dafny {
     public ReturnStmt(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);
-
     }
   }
 
@@ -1311,7 +1267,9 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class DeterminedAssignmentRhs : AssignmentRhs {
-    internal DeterminedAssignmentRhs() {
+    public readonly IToken Tok;
+    internal DeterminedAssignmentRhs(IToken tok) {
+      Tok = tok;
     }
   }
 
@@ -1322,7 +1280,9 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Expr != null);
     }
 
-    public ExprRhs(Expression expr) {
+    public ExprRhs(Expression expr)
+      : base(expr.tok)
+    {
       Contract.Requires(expr != null);
       Expr = expr;
     }
@@ -1341,16 +1301,22 @@ namespace Microsoft.Dafny {
       Contract.Invariant(ArrayDimensions == null || InitCall == null);
     }
 
-    public TypeRhs(Type type) {
+    public TypeRhs(IToken tok, Type type)
+      : base(tok)
+    {
       Contract.Requires(type != null);
       EType = type;
     }
-    public TypeRhs(Type type, CallStmt initCall) {
+    public TypeRhs(IToken tok, Type type, CallStmt initCall)
+      : base(tok)
+    {
       Contract.Requires(type != null);
       EType = type;
       InitCall = initCall;
     }
-    public TypeRhs(Type type, List<Expression> arrayDimensions) {
+    public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions)
+      : base(tok)
+    {
       Contract.Requires(type != null);
       Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
       EType = type;
@@ -1370,8 +1336,94 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class CallRhs : DeterminedAssignmentRhs
+  {
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Receiver != null);
+      Contract.Invariant(MethodName != null);
+      Contract.Invariant(cce.NonNullElements(Args));
+    }
+
+    public readonly Expression/*!*/ Receiver;
+    public readonly string/*!*/ MethodName;
+    public readonly List<Expression/*!*/>/*!*/ Args;
+    public Method Method;  // filled in by resolution
+
+    public CallRhs(IToken tok, Expression/*!*/ receiver, string/*!*/ methodName, List<Expression/*!*/>/*!*/ args)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(methodName != null);
+      Contract.Requires(cce.NonNullElements(args));
+
+      this.Receiver = receiver;
+      this.MethodName = methodName;
+      this.Args = args;
+    }
+    public override bool CanAffectPreviouslyKnownExpressions {
+      get {
+        foreach (var mod in Method.Mod) {
+          if (!(mod.E is ThisExpr)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+  }
+
   public class HavocRhs : AssignmentRhs {
     public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
+  }
+
+  public abstract class ConcreteSyntaxStatement : Statement
+  {
+    public List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    public ConcreteSyntaxStatement(IToken tok)
+      : base(tok) {
+    }
+  }
+
+  public class VarDeclStmt : ConcreteSyntaxStatement
+  {
+    public readonly List<VarDecl> Lhss;
+    public readonly UpdateStmt Update;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(cce.NonNullElements(Lhss));
+    }
+
+    public VarDeclStmt(IToken tok, List<VarDecl> lhss, UpdateStmt update)
+      : base(tok)
+    {
+      Contract.Requires(lhss != null);
+
+      Lhss = lhss;
+      Update = update;
+    }
+  }
+
+  public class UpdateStmt : ConcreteSyntaxStatement
+  {
+    public readonly List<Expression> Lhss;
+    public readonly List<DeterminedAssignmentRhs> Rhss;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(cce.NonNullElements(Lhss));
+      Contract.Invariant(cce.NonNullElements(Rhss));
+    }
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<DeterminedAssignmentRhs> rhss)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(cce.NonNullElements(rhss));
+      Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
+      Lhss = lhss;
+      Rhss = rhss;
+    }
   }
 
   public class AssignStmt : Statement {
@@ -1383,6 +1435,15 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
+    public AssignStmt(IToken tok, Expression lhs, DeterminedAssignmentRhs rhs)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      this.Lhs = lhs;
+      this.Rhs = rhs;
+    }
+#if OLD_STUFF
     public AssignStmt(IToken tok, Expression lhs, Expression rhs)
       : base(tok) {  // ordinary assignment statement
       Contract.Requires(tok != null);
@@ -1408,6 +1469,7 @@ namespace Microsoft.Dafny {
       this.Lhs = lhs;
       this.Rhs = new TypeRhs(type, arrayDimensions);
     }
+#endif
     public AssignStmt(IToken tok, Expression lhs)
       : base(tok) {  // havoc
       Contract.Requires(tok != null);
@@ -1422,7 +1484,18 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(name != null);
-      Contract.Invariant(OptionalType != null || Rhs != null);
+      Contract.Invariant(OptionalType != null);
+    }
+
+    public VarDecl(IToken tok, string name, Type type, bool isGhost)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);  // can be a proxy, though
+
+      this.name = name;
+      this.OptionalType = type;
+      this.IsGhost = isGhost;
     }
 
     public string/*!*/ Name {
@@ -1469,32 +1542,6 @@ namespace Microsoft.Dafny {
         return base.IsGhost;
       }
     }
-
-    public readonly DeterminedAssignmentRhs Rhs;
-
-    public VarDecl(IToken tok, string name, Type type, bool isGhost, DeterminedAssignmentRhs rhs)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(type != null || rhs != null);
-
-      this.name = name;
-      this.OptionalType = type;
-      this.IsGhost = isGhost;
-      this.Rhs = rhs;
-
-    }
-  }
-
-  public class AutoVarDecl : VarDecl {
-    public readonly int Index;
-    public AutoVarDecl(IToken tok, string name, Type type, int index)
-      : base(tok, name, type, false, null) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Index = index;
-
-    }
     /// <summary>
     /// This method retrospectively makes the VarDecl a ghost.  It is to be used only during resolution.
     /// </summary>
@@ -1508,34 +1555,29 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Receiver != null);
       Contract.Invariant(MethodName != null);
-      Contract.Invariant(cce.NonNullElements(NewVars));
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
-    public readonly List<AutoVarDecl/*!*/>/*!*/ NewVars;
     public readonly List<IdentifierExpr/*!*/>/*!*/ Lhs;
     public readonly Expression/*!*/ Receiver;
     public readonly string/*!*/ MethodName;
     public readonly List<Expression/*!*/>/*!*/ Args;
     public Method Method;  // filled in by resolution
 
-    public CallStmt(IToken tok, List<AutoVarDecl/*!*/>/*!*/ newVars, List<IdentifierExpr/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
+    public CallStmt(IToken tok, List<IdentifierExpr/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
       string/*!*/ methodName, List<Expression/*!*/>/*!*/ args)
       : base(tok) {
       Contract.Requires(tok != null);
-      Contract.Requires(cce.NonNullElements(newVars));
       Contract.Requires(cce.NonNullElements(lhs));
       Contract.Requires(receiver != null);
       Contract.Requires(methodName != null);
       Contract.Requires(cce.NonNullElements(args));
 
-      this.NewVars = newVars;
       this.Lhs = lhs;
       this.Receiver = receiver;
       this.MethodName = methodName;
       this.Args = args;
-
     }
   }
 
@@ -1673,32 +1715,31 @@ namespace Microsoft.Dafny {
     public readonly Expression/*!*/ Collection;
     public readonly Expression/*!*/ Range;
     public readonly List<PredicateStmt/*!*/>/*!*/ BodyPrefix;
-    public readonly AssignStmt/*!*/ BodyAssign;
+    public readonly Statement GivenBody;  // used only until resolution; afterwards, use BodyAssign
+    public AssignStmt/*!*/ BodyAssign;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(BoundVar != null);
       Contract.Invariant(Collection != null);
       Contract.Invariant(Range != null);
       Contract.Invariant(cce.NonNullElements(BodyPrefix));
-      Contract.Invariant(BodyAssign != null);
+      Contract.Invariant(GivenBody != null);
     }
 
-
     public ForeachStmt(IToken tok, BoundVar boundVar, Expression collection, Expression range,
-    List<PredicateStmt/*!*/>/*!*/ bodyPrefix, AssignStmt bodyAssign)
+      List<PredicateStmt/*!*/>/*!*/ bodyPrefix, Statement givenBody)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVar != null);
       Contract.Requires(collection != null);
       Contract.Requires(range != null);
       Contract.Requires(cce.NonNullElements(bodyPrefix));
-      Contract.Requires(bodyAssign != null);
+      Contract.Requires(givenBody != null);
       this.BoundVar = boundVar;
       this.Collection = collection;
       this.Range = range;
       this.BodyPrefix = bodyPrefix;
-      this.BodyAssign = bodyAssign;
-
+      this.GivenBody = givenBody;
     }
   }
 
@@ -1795,6 +1836,19 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
     }
 
+    public Expression Resolved {
+      get {
+        Contract.Requires(type != null);  // should be called only on resolved expressions; this approximates that precondition
+        Expression r = this;
+        while (true) {
+          var rr = r as ConcreteSyntaxExpression;
+          if (rr == null) { break; }
+          r = rr.ResolvedExpression;
+        }
+        return r;
+      }
+    }
+
     protected Type type;
     public Type Type {  // filled in during resolution
       [Verify(false)]  // TODO: how do we allow Type.get to modify type and still be [Pure]?
@@ -1836,8 +1890,30 @@ namespace Microsoft.Dafny {
       this.tok = tok;
     }
 
+    /// <summary>
+    /// Returns the non-null subexpressions of the Expression.
+    /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
+    }
+  }
+
+  /// <summary>
+  /// Instances of this class are introduced during resolution to indicate that a static method or function has
+  /// been invoked without specifying a receiver (that is, by just giving the name of the enclosing class).
+  /// </summary>
+  public class StaticReceiverExpr : LiteralExpr
+  {
+    public StaticReceiverExpr(IToken tok, ClassDecl cl)
+      : base(tok)  // constructs a LiteralExpr representing the 'null' literal
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(cl != null);
+      var typeArgs = new List<Type>();
+      foreach (var ta in cl.TypeArgs) {
+        typeArgs.Add(new InferredTypeProxy());
+      }
+      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
     }
   }
 
@@ -1899,7 +1975,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
     }
 
-
     public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression/*!*/>/*!*/ arguments)
       : base(tok) {
       Contract.Requires(cce.NonNullElements(arguments));
@@ -1946,6 +2021,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Name = name;
     }
+  }
+
+  /// <summary>
+  /// If an "AutoGhostIdentifierExpr" is used as the out-parameter of a ghost method or
+  /// a method with a ghost parameter, resolution will change the .Var's .IsGhost to true
+  /// automatically.  This class is intended to be used only as a communicate between the
+  /// parser and parts of the resolver.
+  /// </summary>
+  public class AutoGhostIdentifierExpr : IdentifierExpr
+  {
+    public AutoGhostIdentifierExpr(IToken tok, string name)
+      : base(tok, name) { }
   }
 
   public abstract class DisplayExpression : Expression {
@@ -2047,7 +2134,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Array != null);
-      Contract.Invariant(Indices != null && cce.NonNullElements(Indices));
+      Contract.Invariant(cce.NonNullElements(Indices));
       Contract.Invariant(1 <= Indices.Count);
     }
 
@@ -2055,7 +2142,7 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(array != null);
-      Contract.Requires(indices == null && cce.NonNullElements(indices) && 1 <= indices.Count);
+      Contract.Requires(cce.NonNullElements(indices) && 1 <= indices.Count);
 
       Array = array;
       Indices = indices;
@@ -2414,6 +2501,8 @@ namespace Microsoft.Dafny {
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
+    public List<BoundVar> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found 
+    // invariant Bounds == null || MissingBounds == null;
 
     public ComprehensionExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression/*!*/ term, Attributes attrs)
       : base(tok) {
@@ -2707,13 +2796,76 @@ namespace Microsoft.Dafny {
     public readonly string FieldName;
     public Field Field;  // filled in during resolution (but is null if FieldName is)
 
-
     public FrameExpression(Expression e, string fieldName) {
       Contract.Requires(e != null);
       Contract.Requires(!(e is WildcardExpr) || fieldName == null);
 
       E = e;
       FieldName = fieldName;
+    }
+  }
+
+  /// <summary>
+  /// This class represents a piece of concrete syntax in the parse tree.  During resolution,
+  /// it gets "replaced" by the expression in "ResolvedExpression".
+  /// </summary>
+  public abstract class ConcreteSyntaxExpression : Expression
+  {
+    public Expression ResolvedExpression;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+    public ConcreteSyntaxExpression(IToken tok)
+      : base(tok) {
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression != null) {
+          yield return ResolvedExpression;
+        }
+      }
+    }
+  }
+
+  public class ParensExpression : ConcreteSyntaxExpression
+  {
+    public readonly Expression E;
+    public ParensExpression(IToken tok, Expression e)
+      : base(tok) {
+      E = e;
+    }
+  }
+
+  public class ChainingExpression : ConcreteSyntaxExpression
+  {
+    public readonly List<Expression> Operands;
+    public readonly List<BinaryExpr.Opcode> Operators;
+    public readonly Expression E;
+    public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, Expression desugaring)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(operands != null);
+      Contract.Requires(operators != null);
+      Contract.Requires(desugaring != null);
+      Contract.Requires(operators.Count == operators.Count + 1);
+
+      Operands = operands;
+      Operators = operators;
+      E = desugaring;
+    }
+  }
+
+  public class IdentifierSequence : ConcreteSyntaxExpression
+  {
+    public readonly List<IToken> Tokens;
+    public readonly IToken OpenParen;
+    public readonly List<Expression> Arguments;
+    public IdentifierSequence(List<IToken> tokens, IToken openParen, List<Expression> args)
+      : base(tokens[0]) {
+      Contract.Requires(tokens != null && 1 <= tokens.Count);
+      /* "args" is null to indicate the absence of a parenthesized suffix */
+      Contract.Requires(args == null || openParen != null);
+
+      Tokens = tokens;
+      OpenParen = openParen;
+      Arguments = args;
     }
   }
 }

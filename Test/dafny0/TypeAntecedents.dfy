@@ -1,20 +1,18 @@
 // -------- This is an example of what was once logically (although not trigger-ly) unsound ---
 
-datatype Wrapper<T> {
-  Wrap(T);
-}
-datatype Unit { It; }
-datatype Color { Yellow; Blue; }
+datatype Wrapper<T> = Wrap(T);
+datatype Unit = It;
+datatype Color = Yellow | Blue;
 
 function F(a: Wrapper<Unit>): bool
-  ensures a == #Wrapper.Wrap(#Unit.It);
+  ensures a == Wrapper.Wrap(Unit.It);
 {
   match a
   case Wrap(u) => G(u)
 }
 
 function G(u: Unit): bool
-  ensures u == #Unit.It;
+  ensures u == Unit.It;
 {
   match u
   case It => true
@@ -23,19 +21,19 @@ function G(u: Unit): bool
 method BadLemma(c0: Color, c1: Color)
   ensures c0 == c1;
 {
-  var w0 := #Wrapper.Wrap(c0);
-  var w1 := #Wrapper.Wrap(c1);
+  var w0 := Wrapper.Wrap(c0);
+  var w1 := Wrapper.Wrap(c1);
 
   // Manually, add the following assertions in Boogie.  (These would
   // be ill-typed in Dafny.)
-  //     assert _default.F($Heap, this, w0#6);
-  //     assert _default.F($Heap, this, w1#7);
+  //     assert _default.F($Heap, this, w#06);
+  //     assert _default.F($Heap, this, w#17);
 
   assert w0 == w1;  // this would be bad news (it should be reported as an error)
 }
 
 method Main() {
-  call BadLemma(#Color.Yellow, #Color.Blue);
+  BadLemma(Color.Yellow, Color.Blue);
   assert false;  // this shows how things can really go wrong if BadLemma verified successfully
 }
 
@@ -49,10 +47,7 @@ class MyClass {
   function H(): int { 5 }
 }
 
-datatype List {
-  Nil;
-  Cons(MyClass, List);
-}
+datatype List =  Nil | Cons(MyClass, List);
 
 method M(list: List, S: set<MyClass>) returns (ret: int)
   modifies S;
@@ -68,7 +63,7 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
         assert false;  // error
       }
   }
-  call k := N();
+  var k := N();
   assert k.H() == 5;
   ghost var l := NF();
   assert l != null ==> l.H() == 5;
@@ -82,9 +77,9 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
   // note, the definedness problem in the next line sits inside an unreachable branch
   assert (forall t: MyClass :: t != null ==> (if t.H() == 5 then true else 10 / 0 == 3));
 
-  assert TakesADatatype(#List.Nil) == 12;
-  assert TakesADatatype(#List.Cons(null, #List.Nil)) == 12;
-  assert AlsoTakesADatatype(#GenData.Pair(false, true)) == 17;
+  assert TakesADatatype(List.Nil) == 12;
+  assert TakesADatatype(List.Cons(null, List.Nil)) == 12;
+  assert AlsoTakesADatatype(GenData.Pair(false, true)) == 17;
 }
 
 method N() returns (k: MyClass)
@@ -97,8 +92,6 @@ function NF(): MyClass;
 
 function TakesADatatype(a: List): int { 12 }
 
-datatype GenData<T> {
-  Pair(T, T);
-}
+datatype GenData<T> = Pair(T, T);
 
 function AlsoTakesADatatype<U>(p: GenData<U>): int { 17 }

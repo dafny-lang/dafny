@@ -74,13 +74,10 @@ class Node { }
 class CP<T,U> {
 }
 
-datatype Data {
-  Lemon;
-  Kiwi(int);
-}
+datatype Data = Lemon | Kiwi(int);
 
 function G(d: Data): int
-  requires d != #Data.Lemon;
+  requires d != Data.Lemon;
 {
   match d
   case Lemon => G(d)
@@ -89,10 +86,7 @@ function G(d: Data): int
 
 // -------- some things about induction ---------------------------------
 
-datatype Tree<T> {
-  Leaf(T);
-  Branch(Tree<T>, Tree<T>);
-}
+datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>);
 
 class DatatypeInduction<T> {
   function LeafCount<G>(tree: Tree<G>): int
@@ -144,19 +138,19 @@ class DatatypeInduction<T> {
   method IntegerInduction_Succeeds(a: array<int>)
     requires a != null;
     requires a.Length == 0 || a[0] == 0;
-    requires (forall j :: 1 <= j && j < a.Length ==> a[j] == a[j-1]+2*j-1);
+    requires forall j :: 1 <= j && j < a.Length ==> a[j] == a[j-1]+2*j-1;
   {
     // The following assertion can be proved by induction:
-    assert (forall n {:induction} :: 0 <= n && n < a.Length ==> a[n] == n*n);
+    assert forall n {:induction} :: 0 <= n && n < a.Length ==> a[n] == n*n;
   }
 
   method IntegerInduction_Fails(a: array<int>)
     requires a != null;
     requires a.Length == 0 || a[0] == 0;
-    requires (forall j :: 1 <= j && j < a.Length ==> a[j] == a[j-1]+2*j-1);
+    requires forall j :: 1 <= j && j < a.Length ==> a[j] == a[j-1]+2*j-1;
   {
     // ...but the induction heuristics don't recognize the situation as one where
     // applying induction would be profitable:
-    assert (forall n :: 0 <= n && n < a.Length ==> a[n] == n*n);  // error reported
+    assert forall n :: 0 <= n && n < a.Length ==> a[n] == n*n;  // error reported
   }
 }

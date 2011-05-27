@@ -32,7 +32,7 @@ class IntSet {
     if (root == null) {
       present := false;
     } else {
-      call present := root.Find(x);
+      present := root.Find(x);
     }
   }
 
@@ -42,7 +42,7 @@ class IntSet {
     ensures Valid() && fresh(Repr - old(Repr));
     ensures Contents == old(Contents) + {x};
   { 
-    call t := InsertHelper(x, root);
+    var t := InsertHelper(x, root);
     root := t;
     Contents := root.Contents;
     Repr := root.Repr + {this};
@@ -64,12 +64,12 @@ class IntSet {
     } else {
       if (x < n.data) {
         assert n.right == null || n.right.Valid();
-        call t := InsertHelper(x, n.left);
+        var t := InsertHelper(x, n.left);
         n.left := t;
         n.Repr := n.Repr + n.left.Repr;
       } else {
         assert n.left == null || n.left.Valid();
-        call t := InsertHelper(x, n.right);
+        var t := InsertHelper(x, n.right);
         n.right := t;
         n.Repr := n.Repr + n.right.Repr;
       }
@@ -85,7 +85,7 @@ class IntSet {
     ensures Contents == old(Contents) - {x};
   {
     if (root != null) {
-      call newRoot := root.Remove(x);
+      var newRoot := root.Remove(x);
       root := newRoot;
       if (root == null) {
         Contents := {};
@@ -152,9 +152,9 @@ class Node {
     if (x == data) {
       present := true;
     } else if (left != null && x < data) {
-      call present := left.Find(x);
+      present := left.Find(x);
     } else if (right != null && data < x) {
-      call present := right.Find(x);
+      present := right.Find(x);
     } else {
       present := false;
     }
@@ -171,12 +171,12 @@ class Node {
   {
     node := this;
     if (left != null && x < data) {
-      call t := left.Remove(x);
+      var t := left.Remove(x);
       left := t;
       Contents := Contents - {x};
       if (left != null) { Repr := Repr + left.Repr; }
     } else if (right != null && data < x) {
-      call t := right.Remove(x);
+      var t := right.Remove(x);
       right := t;
       Contents := Contents - {x};
       if (right != null) { Repr := Repr + right.Repr; }
@@ -189,7 +189,7 @@ class Node {
         node := left;
       } else {
         // rotate
-        call min, r := right.RemoveMin();
+        var min, r := right.RemoveMin();
         data := min;  right := r;
         Contents := Contents - {x};
         if (right != null) { Repr := Repr + right.Repr; }
@@ -211,7 +211,8 @@ class Node {
       min := data;
       node := right;
     } else {
-      call min, t := left.RemoveMin();
+      var t;
+      min, t := left.RemoveMin();
       left := t;
       node := this;
       Contents := Contents - {min};
@@ -225,9 +226,9 @@ class Main {
   {
     var s := new IntSet.Init();
 
-    call s.Insert(12);
-    call s.Insert(24);
-    call present := s.Find(x);
+    s.Insert(12);
+    s.Insert(24);
+    var present := s.Find(x);
     assert present <==> x == 12 || x == 24;
   }
 
@@ -235,8 +236,8 @@ class Main {
     requires s != null && s.Valid();
     modifies s.Repr;
   {
-    call s.Insert(x);
-    call s.Insert(24);
+    s.Insert(x);
+    s.Insert(24);
     assert old(s.Contents) - {x,24} == s.Contents - {x,24};
   }
 }

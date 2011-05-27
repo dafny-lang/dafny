@@ -152,16 +152,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
-      if (dt.Ctors.Count == 0) {
-        wr.WriteLine(" { }");
-      } else {
-        wr.WriteLine(" {");
-        int ind = indent + IndentAmount;
-        foreach (DatatypeCtor ctor in dt.Ctors) {
-          PrintCtor(ctor, ind);
+      wr.Write(" = ");
+      string sep = "";
+      foreach (DatatypeCtor ctor in dt.Ctors) {
+        wr.Write(sep);
+        PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
+        if (ctor.Formals.Count != 0) {
+          PrintFormals(ctor.Formals);
         }
-        Indent(indent);  wr.WriteLine("}");
+        sep = " | ";
       }
+      wr.WriteLine(";");
     }
     
     public void PrintAttributes(Attributes a) {
@@ -243,16 +244,6 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("}");
       }
-    }
-    
-    public void PrintCtor(DatatypeCtor ctor, int indent) {
-      Contract.Requires(ctor != null);
-      Indent(indent);
-      PrintClassMethodHelper("", ctor.Attributes, ctor.Name, ctor.TypeArgs);
-      if (ctor.Formals.Count != 0) {
-        PrintFormals(ctor.Formals);
-      }
-      wr.WriteLine(";");
     }
     
     // ----------------------------- PrintMethod -----------------------------
@@ -396,6 +387,13 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
+      for (LabelNode label = stmt.Labels; label != null; label = label.Next) {
+        if (label.Label != null) {
+          wr.WriteLine("label {0}:", label.Label);
+          Indent(indent);
+        }
+      }
+        
       if (stmt is AssertStmt) {
         wr.Write("assert ");
         PrintExpression(((AssertStmt)stmt).Expr);
@@ -406,26 +404,23 @@ namespace Microsoft.Dafny {
         PrintExpression(((AssumeStmt)stmt).Expr);
         wr.Write(";");
         
-      } else if (stmt is UseStmt) {
-        wr.Write("use ");
-        PrintExpression(((UseStmt)stmt).Expr);
-        wr.Write(";");
-        
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");
         PrintAttributeArgs(s.Args);
         wr.Write(";");
         
-      } else if (stmt is LabelStmt) {
-        wr.Write("label {0}:", ((LabelStmt)stmt).Label);
-        
       } else if (stmt is BreakStmt) {
         BreakStmt s = (BreakStmt)stmt;
-        if (s.TargetLabel == null) {
-          wr.Write("break;");
-        } else {
+        if (s.TargetLabel != null) {
           wr.Write("break {0};", s.TargetLabel);
+        } else {
+          string sep = "";
+          for (int i = 0; i < s.BreakCount; i++) {
+            wr.Write("{0}break", sep);
+            sep = " ";
+          }
+          wr.Write(";");
         }
         
       } else if (stmt is ReturnStmt) {
@@ -449,13 +444,7 @@ namespace Microsoft.Dafny {
           wr.Write("ghost ");
         }
         wr.Write("var {0}", s.Name);
-        if (s.OptionalType != null) {
-          PrintType(": ", s.OptionalType);
-        }
-        if (s.Rhs != null) {
-          wr.Write(" := ");
-          PrintDeterminedRhs(s.Rhs);
-        }
+        PrintType(": ", s.OptionalType);
         wr.Write(";");
       
       } else if (stmt is CallStmt) {
@@ -470,7 +459,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write(" := ");
         }
-        if (!(s.Receiver is ThisExpr)) {
+        if (!(s.Receiver is ImplicitThisExpr)) {
           PrintExpr(s.Receiver, 0x70, false, false, -1);
           wr.Write(".");
         }
@@ -554,7 +543,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
         }
         Indent(ind);
-        PrintStatement(s.BodyAssign, ind);
+        PrintStatement(s.GivenBody, ind);
         wr.WriteLine();
         Indent(indent);
         wr.Write("}");
@@ -584,8 +573,49 @@ namespace Microsoft.Dafny {
           }
         }
         Indent(indent);
-        wr.WriteLine("}");
-        
+        wr.Write("}");
+
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        string sep = "";
+        foreach (var lhs in s.Lhss) {
+          wr.Write(sep);
+          PrintExpression(lhs);
+          sep = ", ";
+        }
+        if (s.Lhss.Count != 0) {
+          sep = " := ";
+        }
+        foreach (var rhs in s.Rhss) {
+          wr.Write(sep);
+          PrintDeterminedRhs(rhs);
+          sep = ", ";
+        }
+        wr.Write(";");
+
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        if (s.Lhss[0].IsGhost) {
+          wr.Write("ghost ");
+        }
+        wr.Write("var ");
+        string sep = "";
+        foreach (var lhs in s.Lhss) {
+          wr.Write("{0}{1}", sep, lhs.Name);
+          PrintType(": ", lhs.OptionalType);
+          sep = ", ";
+        }
+        if (s.Update != null) {
+          wr.Write(" := ");
+          sep = "";
+          foreach (var rhs in s.Update.Rhss) {
+            wr.Write(sep);
+            PrintDeterminedRhs(rhs);
+            sep = ", ";
+          }
+        }
+        wr.Write(";");
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -829,12 +859,12 @@ namespace Microsoft.Dafny {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
-        bool parensNeeded = !(e.Receiver is ThisExpr) &&
+        bool parensNeeded = !(e.Receiver is ImplicitThisExpr) &&
           opBindingStrength < contextBindingStrength ||
           (fragileContext && opBindingStrength == contextBindingStrength);
         
         if (parensNeeded) { wr.Write("("); }
-        if (!(e.Receiver is ThisExpr)) {
+        if (!(e.Receiver is ImplicitThisExpr)) {
           PrintExpr(e.Receiver, opBindingStrength, false, false, -1);
           wr.Write(".");
         }
@@ -949,7 +979,25 @@ namespace Microsoft.Dafny {
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
         }
         if (parensNeeded) { wr.Write(")"); }
-      
+
+      } else if (expr is ChainingExpression) {
+        var e = (ChainingExpression)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x30;
+        int opBS = opBindingStrength & 0xF8;
+        int ctxtBS = contextBindingStrength & 0xF8;
+        bool parensNeeded = opBS < ctxtBS ||
+          (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+
+        if (parensNeeded) { wr.Write("("); }
+        PrintExpr(e.Operands[0], opBindingStrength, true, false, -1);
+        for (int i = 0; i < e.Operators.Count; i++) {
+          string op = BinaryExpr.OpcodeString(e.Operators[i]);
+          wr.Write(" {0} ", op);
+          PrintExpr(e.Operands[i+1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), -1);
+        }
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         bool parensNeeded = !isRightmost;
@@ -1015,6 +1063,24 @@ namespace Microsoft.Dafny {
         wr.Write(" else ");
         PrintExpression(ite.Els);
         if (parensNeeded) { wr.Write(")"); }
+        
+      } else if (expr is ParensExpression) {
+        var e = (ParensExpression)expr;
+        // printing of parentheses is done optimally, not according to the parentheses in the given program
+        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, indent);
+
+      } else if (expr is IdentifierSequence) {
+        var e = (IdentifierSequence)expr;
+        string sep = "";
+        foreach (var id in e.Tokens) {
+          wr.Write("{0}{1}", sep, id.val);
+          sep = ".";
+        }
+        if (e.Arguments != null) {
+          wr.Write("(");
+          PrintExpressionList(e.Arguments);
+          wr.Write(")");
+        }
         
       } else if (expr is MatchExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr

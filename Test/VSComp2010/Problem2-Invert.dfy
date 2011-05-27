@@ -61,11 +61,11 @@ method Main()
   a[8] := 5;
   a[9] := 6;
   var b := new int[10];
-  call M(10, a, b);
+  M(10, a, b);
   print "a:\n";
-  call PrintArray(a);
+  PrintArray(a);
   print "b:\n";
-  call PrintArray(b);
+  PrintArray(b);
 }
 
 method PrintArray(a: array<int>)

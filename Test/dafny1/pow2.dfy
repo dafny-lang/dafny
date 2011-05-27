@@ -36,7 +36,7 @@ ghost method Lemma(n: int)
   ensures pow2_slow(n) == Square(pow2_slow(n/2));
 {
   if (n != 0) {
-    call Lemma(n-2);
+    Lemma(n-2);
   }
 }
 
@@ -46,9 +46,9 @@ ghost method Theorem(n: int)
 {
   if (n == 0) {
   } else if (IsEven(n)) {
-    call Lemma(n);
-    call Theorem(n/2);
+    Lemma(n);
+    Theorem(n/2);
   } else {
-    call Theorem(n-1);
+    Theorem(n-1);
   }
 }
