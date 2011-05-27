@@ -707,6 +707,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Ctors));
+      Contract.Invariant(1 <= Ctors.Count);
     }
 
     public DatatypeCtor DefaultCtor;  // set during resolution
@@ -719,8 +720,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Invariant(1 <= ctors.Count);
       Ctors = ctors;
-
     }
   }
 

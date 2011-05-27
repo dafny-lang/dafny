@@ -1,13 +1,9 @@
-datatype List {
-  Nil;
-  Cons(Expr, List);
-}
+datatype List = Nil | Cons(Expr, List);
 
-datatype Expr {
-  Const(int);
-  Var(int);
+datatype Expr =
+  Const(int) |
+  Var(int) |
   Nary(int, List);
-}
 
 static function Subst(e: Expr, v: int, val: int): Expr
 {
@@ -48,11 +44,10 @@ static ghost method Lemma(l: List, v: int, val: int)
 
 // -------------------------------
 
-datatype Expression {
-  Const(int);
-  Var(int);
+datatype Expression =
+  Const(int) |
+  Var(int) |
   Nary(int, seq<Expression>);
-}
 
 static function Substitute(e: Expression, v: int, val: int): Expression
   decreases e;

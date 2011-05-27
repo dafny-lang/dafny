@@ -1,7 +1,4 @@
-datatype List<T> {
-  Nil;
-  Cons(T, List<T>);
-}
+datatype List<T> = Nil | Cons(T, List<T>);
 
 class Node {
   var data: int;

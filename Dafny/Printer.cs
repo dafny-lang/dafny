@@ -152,16 +152,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
-      if (dt.Ctors.Count == 0) {
-        wr.WriteLine(" { }");
-      } else {
-        wr.WriteLine(" {");
-        int ind = indent + IndentAmount;
-        foreach (DatatypeCtor ctor in dt.Ctors) {
-          PrintCtor(ctor, ind);
+      wr.Write(" = ");
+      string sep = "";
+      foreach (DatatypeCtor ctor in dt.Ctors) {
+        wr.Write(sep);
+        PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
+        if (ctor.Formals.Count != 0) {
+          PrintFormals(ctor.Formals);
         }
-        Indent(indent);  wr.WriteLine("}");
+        sep = " | ";
       }
+      wr.WriteLine(";");
     }
     
     public void PrintAttributes(Attributes a) {
@@ -243,16 +244,6 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.WriteLine("}");
       }
-    }
-    
-    public void PrintCtor(DatatypeCtor ctor, int indent) {
-      Contract.Requires(ctor != null);
-      Indent(indent);
-      PrintClassMethodHelper("", ctor.Attributes, ctor.Name, new List<TypeParameter>());
-      if (ctor.Formals.Count != 0) {
-        PrintFormals(ctor.Formals);
-      }
-      wr.WriteLine(";");
     }
     
     // ----------------------------- PrintMethod -----------------------------

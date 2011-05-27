@@ -10,6 +10,8 @@ class Node {
   ghost var pathFromRoot: Path;
 }
 
+datatype Path = Empty | Extend(Path, Node);
+
 class Main {
   method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S;
@@ -264,9 +266,4 @@ class Main {
       }
     }
   }
-}
-
-datatype Path {
-  Empty;
-  Extend(Path, Node);
 }

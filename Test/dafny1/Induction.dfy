@@ -136,10 +136,7 @@ class IntegerInduction {
   }
 }
 
-datatype Tree<T> {
-  Leaf(T);
-  Branch(Tree<T>, Tree<T>);
-}
+datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>);
 
 class DatatypeInduction<T> {
   function LeafCount<T>(tree: Tree<T>): int

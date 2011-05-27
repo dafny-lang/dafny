@@ -267,16 +267,10 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  (
-    "{"                                      (. bodyStart = t; .)
-    { DatatypeMemberDecl<ctors> ";" }
-    "}"
-  | 
-    "="                                      (. bodyStart = t; .)
-    DatatypeMemberDecl<ctors>
-    { "|" DatatypeMemberDecl<ctors> }
-    ";"
-  )
+  "="                                      (. bodyStart = t; .)
+  DatatypeMemberDecl<ctors>
+  { "|" DatatypeMemberDecl<ctors> }
+  ";"
   (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;

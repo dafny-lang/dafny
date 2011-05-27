@@ -259,9 +259,9 @@ public class Scanner {
 		start[97] = 10; 
 		start[123] = 17; 
 		start[125] = 18; 
-		start[59] = 19; 
 		start[61] = 57; 
 		start[124] = 58; 
+		start[59] = 19; 
 		start[44] = 20; 
 		start[58] = 59; 
 		start[60] = 60; 
@@ -645,7 +645,7 @@ public class Scanner {
 			case 18:
 				{t.kind = 8; break;}
 			case 19:
-				{t.kind = 15; break;}
+				{t.kind = 17; break;}
 			case 20:
 				{t.kind = 19; break;}
 			case 21:
@@ -724,14 +724,14 @@ public class Scanner {
 			case 56:
 				{t.kind = 103; break;}
 			case 57:
-				recEnd = pos; recKind = 16;
+				recEnd = pos; recKind = 15;
 				if (ch == '>') {AddCh(); goto case 25;}
 				else if (ch == '=') {AddCh(); goto case 64;}
-				else {t.kind = 16; break;}
+				else {t.kind = 15; break;}
 			case 58:
-				recEnd = pos; recKind = 17;
+				recEnd = pos; recKind = 16;
 				if (ch == '|') {AddCh(); goto case 37;}
-				else {t.kind = 17; break;}
+				else {t.kind = 16; break;}
 			case 59:
 				recEnd = pos; recKind = 22;
 				if (ch == '=') {AddCh(); goto case 26;}

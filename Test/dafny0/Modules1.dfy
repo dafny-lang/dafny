@@ -5,10 +5,7 @@ module A imports B {
       decreases 5, 4, 3;
     { z.G() }  // fine; this goes to a different module
   }
-  datatype Y {
-    Cons(int, Y);
-    Empty;
-  }
+  datatype Y = Cons(int, Y) | Empty;
 }
 
 class C {

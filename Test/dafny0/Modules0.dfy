@@ -138,7 +138,7 @@ method SpecialFunctions()
 
 // ---------------------- illegal match expressions ---------------
 
-datatype Tree { Nil; Cons(int, Tree, Tree); }
+datatype Tree = Nil | Cons(int, Tree, Tree);
 
 function NestedMatch0(tree: Tree): int
 {

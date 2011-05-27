@@ -227,11 +227,10 @@ class AllocatedTests {
   }
 }
 
-datatype Lindgren {
-  Pippi(Node);
-  Longstocking(seq<object>, Lindgren);
+datatype Lindgren =
+  Pippi(Node) |
+  Longstocking(seq<object>, Lindgren) |
   HerrNilsson;
-}
 
 // --------------------------------------------------
 

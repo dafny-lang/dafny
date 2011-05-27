@@ -92,10 +92,7 @@ class Termination {
     ensures a == List.Cons(val, b);
 }
 
-datatype List<T> {
-  Nil;
-  Cons(T, List<T>);
-}
+datatype List<T> = Nil | Cons(T, List<T>);
 
 method FailureToProveTermination0(N: int)
 {

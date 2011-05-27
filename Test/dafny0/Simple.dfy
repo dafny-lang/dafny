@@ -39,16 +39,12 @@ class MyClass<T,U> {
 
 // some datatype stuff:
 
-datatype List<T> {
-  Nil;
-  Cons(T, List<T>);
-}
+datatype List<T> = Nil | Cons(T, List<T>);
 
-datatype WildData {
-  Something();
-  JustAboutAnything(bool, myName: set<int>, int, WildData);
+datatype WildData =
+  Something() |
+  JustAboutAnything(bool, myName: set<int>, int, WildData) |
   More(List<int>);
-}
 
 class C {
   var w: WildData;
