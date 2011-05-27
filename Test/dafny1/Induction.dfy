@@ -156,6 +156,19 @@ class DatatypeInduction<T> {
   }
 
   // see also Test/dafny0/DTypes.dfy for more variations of this example
+
+  function OccurrenceCount<T>(tree: Tree<T>, x: T): int
+  {
+    match tree
+    case Leaf(t) => if x == t then 1 else 0
+    case Branch(left, right) => OccurrenceCount(left, x) + OccurrenceCount(right, x)
+  }
+  method RegressionTest(tree: Tree<T>)
+    // the translation of the following line once crashed Dafny
+    requires forall y :: 0 <= OccurrenceCount(tree, y);
+  {
+  }
+
 }
 
 // ----------------------- Induction and case splits -----------------

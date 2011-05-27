@@ -5555,7 +5555,7 @@ namespace Microsoft.Dafny {
       // consider automatically applying induction
       var inductionVariables = new List<BoundVar>();
       foreach (var n in e.BoundVars) {
-        if (VarOccursInArgumentToRecursiveFunction(e.LogicalBody(), n, null)) {
+        if (!n.Type.IsTypeParameter && VarOccursInArgumentToRecursiveFunction(e.LogicalBody(), n, null)) {
           if (CommandLineOptions.Clo.Trace) {
             Console.Write("Applying automatic induction on variable '{0}' of: ", n.Name);
             new Printer(Console.Out).PrintExpression(e);
