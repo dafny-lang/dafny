@@ -172,9 +172,26 @@ namespace Demo
                             //string result = reader.ReadToEnd();
                             //Console.Write(result);
 
-                            for (string line = reader.ReadLine(); !String.IsNullOrEmpty(line); line = reader.ReadLine()) {
+                            for (string line = reader.ReadLine(); line != null; line = reader.ReadLine()) {
                               // the lines of interest have the form "filename(line,col): some_error_label: error_message"
                               // where "some_error_label" is "Error" or "syntax error" or "Error BP5003" or "Related location"
+                                if (line.Equals("")) continue;
+                                if (line.StartsWith("Dafny program verifier finished with") && line.Contains("time out"))
+                                {
+                                    try
+                                    {
+                                        AddErrorBecauseOfToolProblems(req, "Verification timed out.");
+                                    }
+                                    catch (System.FormatException)
+                                    {
+                                        continue;
+                                    }
+                                    catch (System.OverflowException)
+                                    {
+                                        continue;
+                                    }
+                                    continue;
+                                }
                               string message;
                               int n = line.IndexOf("): ", 2);  // we start at 2, to avoid problems with "C:\..."
                               if (n == -1) {
