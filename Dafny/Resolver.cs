@@ -1128,20 +1128,7 @@ namespace Microsoft.Dafny {
     public void ResolveStatement(Statement stmt, bool specContextOnly, Method method) {
       Contract.Requires(stmt != null);
       Contract.Requires(method != null);
-      if (stmt is UseStmt) {
-        UseStmt s = (UseStmt)stmt;
-        s.IsGhost = true;
-        ResolveExpression(s.Expr, true);
-        Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
-        Expression expr = s.Expr;
-        while (true) {
-          if (expr is OldExpr) {
-            expr = ((OldExpr)expr).E;
-          } else {
-            break;
-          }
-        }
-      } else if (stmt is PredicateStmt) {
+      if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
         s.IsGhost = true;
         ResolveExpression(s.Expr, true);

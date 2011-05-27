@@ -413,11 +413,6 @@ namespace Microsoft.Dafny {
         PrintExpression(((AssumeStmt)stmt).Expr);
         wr.Write(";");
         
-      } else if (stmt is UseStmt) {
-        wr.Write("use ");
-        PrintExpression(((UseStmt)stmt).Expr);
-        wr.Write(";");
-        
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");

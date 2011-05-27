@@ -1214,51 +1214,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class UseStmt : PredicateStmt {
-    [Captured]
-    public UseStmt(IToken/*!*/ tok, Expression/*!*/ expr)
-      : base(tok, expr) {
-      Contract.Requires(tok != null);
-      Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
-
-    }
-    [Peer]
-    private FunctionCallExpr fce;
-    /// <summary>
-    /// This method assumes the statement has been successfully resolved.
-    /// </summary>
-    //[Pure(false)]
-    public FunctionCallExpr FunctionCallExpr {
-      get {
-        Contract.Ensures(Contract.Result<FunctionCallExpr>() != null);
-
-        if (fce == null) {
-          Expression expr = Expr;
-          while (true) {
-            cce.LoopInvariant(cce.Owner.Same(this, expr));
-
-            if (expr is OldExpr) {
-              expr = ((OldExpr)expr).E;
-            } else if (expr is ConcreteSyntaxExpression) {
-              expr = ((ConcreteSyntaxExpression)expr).ResolvedExpression;
-            } else {
-              break;
-            }
-          }
-          Contract.Assume(expr is FunctionCallExpr);
-          fce = (FunctionCallExpr)expr;
-        }
-        return fce;
-      }
-    }
-    public bool EvalInOld {
-      get {
-        return Expr is OldExpr;
-      }
-    }
-  }
-
   public class PrintStmt : Statement {
     public readonly List<Attributes.Argument/*!*/>/*!*/ Args;
     [ContractInvariantMethod]

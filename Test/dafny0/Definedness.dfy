@@ -180,12 +180,12 @@ class StatementTwoShoes {
   method V(s: set<StatementTwoShoes>, a: int, b: int)
     modifies s;
   {
-    use G(12 / b);  // fine, because there are no welldefinedness checks on use statements
+
     foreach (m in s | m.x < 200)  // s may contain null, but the foreach excludes null
     {
       assume 0 <= m.x;
       assert m.x < 1000;
-      use G(5 / m.x);  // fine, because there are no welldefinedness checks on use statements
+
       m.x := m.x + 1;
     }
     foreach (m in s + {F(a)})  // error: collection expression may not be well defined (fn precondition)

@@ -811,43 +811,6 @@ Execution trace:
 
 Dafny program verifier finished with 44 verified, 6 errors
 
--------------------- Use.dfy --------------------
-Use.dfy(16,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(26,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(35,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(54,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(84,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(126,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Use.dfy(151,12): Error: assertion violation
-Use.dfy(143,5): Related location: Related location
-Execution trace:
-    (0,0): anon0
-Use.dfy(160,12): Error: assertion violation
-Use.dfy(143,5): Related location: Related location
-Execution trace:
-    (0,0): anon0
-Use.dfy(169,12): Error: assertion violation
-Use.dfy(143,5): Related location: Related location
-Execution trace:
-    (0,0): anon0
-Use.dfy(213,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-
-Dafny program verifier finished with 39 verified, 10 errors
-
 -------------------- DTypes.dfy --------------------
 DTypes.dfy(15,14): Error: assertion violation
 Execution trace:

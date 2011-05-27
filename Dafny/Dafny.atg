@@ -716,7 +716,6 @@ OneStmt<out Statement/*!*/ s>
   ( BlockStmt<out s, out bodyStart, out bodyEnd>
   | AssertStmt<out s>
   | AssumeStmt<out s>
-  | UseStmt<out s>
   | PrintStmt<out s>
   | UpdateStmt<out s>
   | HavocStmt<out s>
@@ -985,7 +984,6 @@ ForeachStmt<out Statement/*!*/ s>
   "{"
     { AssertStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     | AssumeStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
-    | UseStmt<out s>                           (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     }
     ( UpdateStmt<out s>                        (. bodyAssign = s; .)
     | HavocStmt<out s>                         (. bodyAssign = s; .)
@@ -1008,12 +1006,6 @@ AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
   "assume"                                     (. x = t; .)
   Expression<out e> ";"                        (. s = new AssumeStmt(x, e); .)
-  .
-
-UseStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
-  "use"                                        (. x = t; .)
-  Expression<out e> ";"                        (. s = new UseStmt(x, e); .)
   .
 
 PrintStmt<out Statement/*!*/ s>

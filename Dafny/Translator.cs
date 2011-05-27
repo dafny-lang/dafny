@@ -2944,12 +2944,6 @@ namespace Microsoft.Dafny {
         AssumeStmt s = (AssumeStmt)stmt;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
         builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
-      } else if (stmt is UseStmt) {
-        AddComment(builder, stmt, "use statement");
-        UseStmt s = (UseStmt)stmt;
-        // Skip the definedness check.  This makes the 'use' statement easier to use and it has no executable analog anyhow
-        // TrStmt_CheckWellformed(s.Expr, builder, locals, etran);
-        builder.Add(new Bpl.AssumeCmd(stmt.Tok, (s.EvalInOld ? etran.Old : etran).TrUseExpr(s.FunctionCallExpr)));
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
         PrintStmt s = (PrintStmt)stmt;
@@ -3109,16 +3103,9 @@ namespace Microsoft.Dafny {
             Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, eIsTotal));
             builder.Add(AssertNS(ps.Expr.tok, q, "assume condition must be well defined"));  // totality check
           } else {
-            Contract.Assert(ps is UseStmt);
-            // no totality check (see UseStmt case above)
+            Contract.Assert(false);
           }
-          Bpl.Expr enchilada;  // the whole enchilada
-          if (ps is UseStmt) {
-            UseStmt us = (UseStmt)ps;
-            enchilada = (us.EvalInOld ? etran.Old : etran).TrUseExpr(us.FunctionCallExpr);
-          } else {
-            enchilada = etran.TrExpr(ps.Expr);
-          }
+          Bpl.Expr enchilada = etran.TrExpr(ps.Expr);  // the whole enchilada
           Bpl.Expr qEnchilada = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, enchilada));
           builder.Add(new Bpl.AssumeCmd(ps.Expr.tok, qEnchilada));
         }
@@ -4729,30 +4716,6 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.And(
           Bpl.Expr.Lt(len0, len1),
           translator.FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
-      }
-
-      public Bpl.Expr TrUseExpr(FunctionCallExpr e)
-       {
-        Contract.Requires(e != null); Contract.Requires(e.Function != null && e.Type != null);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-        Function fn = e.Function;
-        Bpl.ExprSeq args = new Bpl.ExprSeq();
-        args.Add(HeapExpr);
-        if (!fn.IsStatic) {
-          args.Add(TrExpr(e.Receiver));
-        }
-        foreach (Expression ee in e.Args) {
-          args.Add(TrExpr(ee));
-        }
-        Bpl.Expr f0 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, fn.FullName, translator.TrType(e.Type))), args);
-        Bpl.Expr f1;
-        if (fn.IsRecursive && !fn.IsUnlimited) {
-          f1 = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(e.tok, FunctionName(fn, 0), translator.TrType(e.Type))), args);
-        } else {
-          f1 = f0;
-        }
-        return Bpl.Expr.Eq(f0, f1);
       }
 
       public Bpl.Expr CondApplyBox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
