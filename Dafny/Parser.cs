@@ -1552,14 +1552,79 @@ List<Expression/*!*/>/*!*/ decreases) {
 		} else SynErr(132);
 	}
 
-	void RelationalExpression(out Expression/*!*/ e0) {
-		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; 
+	void RelationalExpression(out Expression/*!*/ e) {
+		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+		IToken x, firstOpTok = null;  Expression e0, e1;  BinaryExpr.Opcode op;
+		List<Expression> chain = null;
+		List<BinaryExpr.Opcode> ops = null;
+		int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
+		               // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
+		               // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
+		               // 3 ("illegal")     indicates illegal chain
+		bool hasSeenNeq = false;
+		
 		Term(out e0);
+		e = e0; 
 		if (StartOf(15)) {
 			RelOp(out x, out op);
+			firstOpTok = x; 
 			Term(out e1);
-			e0 = new BinaryExpr(x, op, e0, e1); 
+			e = new BinaryExpr(x, op, e0, e1); 
+			while (StartOf(15)) {
+				if (chain == null) {
+				 chain = new List<Expression>();
+				 ops = new List<BinaryExpr.Opcode>();
+				 chain.Add(e0);  ops.Add(op);  chain.Add(e1);
+				 switch (op) {
+				   case BinaryExpr.Opcode.Eq:
+				     kind = 0;  break;
+				   case BinaryExpr.Opcode.Neq:
+				     kind = 0;  hasSeenNeq = true;  break;
+				   case BinaryExpr.Opcode.Lt:
+				   case BinaryExpr.Opcode.Le:
+				     kind = 1;  break;
+				   case BinaryExpr.Opcode.Gt:
+				   case BinaryExpr.Opcode.Ge:
+				     kind = 2;  break;
+				   default:
+				     kind = 3;  break;
+				 }
+				}
+				e0 = e1;
+				
+				RelOp(out x, out op);
+				switch (op) {
+				 case BinaryExpr.Opcode.Eq:
+				   if (kind == 3) { SemErr(x, "chaining not allowed from the previous operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Neq:
+				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
+				   hasSeenNeq = true;  break;
+				 case BinaryExpr.Opcode.Lt:
+				 case BinaryExpr.Opcode.Le:
+				   if (kind == 0) { kind = 1; }
+				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Gt:
+				 case BinaryExpr.Opcode.Ge:
+				   if (kind == 0) { kind = 2; }
+				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
+				   break;
+				 default:
+				   SemErr(x, "this operator cannot be part of a chain");
+				   kind = 3;  break;
+				}
+				
+				Term(out e1);
+				ops.Add(op); chain.Add(e1);
+				e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+				
+			}
 		}
+		if (chain != null) {
+		 e = new ChainingExpression(firstOpTok, chain, ops, e);
+		}
+		
 	}
 
 	void AndOp() {

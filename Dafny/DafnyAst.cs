@@ -2877,6 +2877,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ChainingExpression : ConcreteSyntaxExpression
+  {
+    public readonly List<Expression> Operands;
+    public readonly List<BinaryExpr.Opcode> Operators;
+    public readonly Expression E;
+    public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, Expression desugaring)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(operands != null);
+      Contract.Requires(operators != null);
+      Contract.Requires(desugaring != null);
+      Contract.Requires(operators.Count == operators.Count + 1);
+
+      Operands = operands;
+      Operators = operators;
+      E = desugaring;
+    }
+  }
+
   public class IdentifierSequence : ConcreteSyntaxExpression
   {
     public readonly List<IToken> Tokens;

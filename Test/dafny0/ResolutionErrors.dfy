@@ -252,5 +252,4 @@ method DuplicateLabels(n: int) {
   label DuplicateLabel:  // error: duplicate label
   x := x + 1;
   label DuplicateLabel: x := x + 1;
-
 }

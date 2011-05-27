@@ -42,3 +42,26 @@ method TestCalls(k: nat) {
 //    assert r == s;  // error: G(k) and G(k+k) are different
   }
 }
+
+// ---------- chaining operators ------------------------------------
+
+function UpTruth(j: int, k: int): bool
+  requires 10 <= j < 180 < 220 <= k;
+{
+  0 < 2 <= 2 < j != 200 < k < k + 1
+}
+
+function DownTruth(j: int, k: int): bool
+  requires k >= 220 > 180 > j >= 10;
+{
+  k + 1 > k > 200 != j > 2 >= 2 > 0
+}
+
+method ChallengeTruth(j: int, k: int)
+  requires 80 <= j < 150 && 250 <= k < 1000;
+{
+  assert UpTruth(j, k);
+  assert DownTruth(j, k);
+  // but this is not equally true:
+  assert j <= j + k != k + j + 1 < k+k+j <=/*this is the error*/ j+j+k < k+k+j+j == 2*k + 2*j == 2*(k+j);
+}

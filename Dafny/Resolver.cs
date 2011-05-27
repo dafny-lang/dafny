@@ -2026,6 +2026,12 @@ namespace Microsoft.Dafny {
         e.ResolvedExpression = e.E;
         e.Type = e.E.Type;
 
+      } else if (expr is ChainingExpression) {
+        var e = (ChainingExpression)expr;
+        ResolveExpression(e.E, twoState);
+        e.ResolvedExpression = e.E;
+        e.Type = e.E.Type;
+
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
         ResolveIdentifierSequence(e, twoState, false);

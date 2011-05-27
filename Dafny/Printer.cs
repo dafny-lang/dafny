@@ -993,7 +993,25 @@ namespace Microsoft.Dafny {
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
         }
         if (parensNeeded) { wr.Write(")"); }
-      
+
+      } else if (expr is ChainingExpression) {
+        var e = (ChainingExpression)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x30;
+        int opBS = opBindingStrength & 0xF8;
+        int ctxtBS = contextBindingStrength & 0xF8;
+        bool parensNeeded = opBS < ctxtBS ||
+          (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+
+        if (parensNeeded) { wr.Write("("); }
+        PrintExpr(e.Operands[0], opBindingStrength, true, false, -1);
+        for (int i = 0; i < e.Operators.Count; i++) {
+          string op = BinaryExpr.OpcodeString(e.Operators[i]);
+          wr.Write(" {0} ", op);
+          PrintExpr(e.Operands[i+1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), -1);
+        }
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         bool parensNeeded = !isRightmost;
