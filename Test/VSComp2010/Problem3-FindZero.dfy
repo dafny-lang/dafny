@@ -82,11 +82,11 @@ static method Search(ll: Node) returns (r: int)
 method Main()
 {
   var list: Node := null;
-  call list := list.Cons(0, list);
-  call list := list.Cons(5, list);
-  call list := list.Cons(0, list);
-  call list := list.Cons(8, list);
-  call r := Search(list);
+  list := list.Cons(0, list);
+  list := list.Cons(5, list);
+  list := list.Cons(0, list);
+  list := list.Cons(8, list);
+  var r := Search(list);
   print "Search returns ", r, "\n";
   assert r == 1;
 }

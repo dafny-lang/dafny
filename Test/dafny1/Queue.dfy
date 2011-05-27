@@ -48,9 +48,9 @@ class Queue<T> {
     ensures Valid() && fresh(footprint - old(footprint));
     ensures contents == old(contents)[1..] + old(contents)[..1];
   {
-    call t := Front();
-    call Dequeue();
-    call Enqueue(t);
+    var t := Front();
+    Dequeue();
+    Enqueue(t);
   }
 
   method RotateAny()
@@ -62,9 +62,9 @@ class Queue<T> {
     ensures (exists i :: 0 <= i && i <= |contents| &&
               contents == old(contents)[i..] + old(contents)[..i]);
   {
-    call t := Front();
-    call Dequeue();
-    call Enqueue(t);
+    var t := Front();
+    Dequeue();
+    Enqueue(t);
   }
 
   method IsEmpty() returns (isEmpty: bool)
@@ -152,18 +152,18 @@ class Main<U> {
     var q0 := new Queue<T>.Init();
     var q1 := new Queue<T>.Init();
 
-    call q0.Enqueue(t);
-    call q0.Enqueue(u);
+    q0.Enqueue(t);
+    q0.Enqueue(u);
 
-    call q1.Enqueue(v);
+    q1.Enqueue(v);
 
     assert |q0.contents| == 2;
 
-    call w := q0.Front();
+    var w := q0.Front();
     assert w == t;
-    call q0.Dequeue();
+    q0.Dequeue();
 
-    call w := q0.Front();
+    w := q0.Front();
     assert w == u;
 
     assert |q0.contents| == 1;
@@ -179,18 +179,18 @@ class Main<U> {
     ensures fresh(q0.footprint - old(q0.footprint));
     ensures fresh(q1.footprint - old(q1.footprint));
   {
-    call q0.Enqueue(t);
-    call q0.Enqueue(u);
+    q0.Enqueue(t);
+    q0.Enqueue(u);
 
-    call q1.Enqueue(v);
+    q1.Enqueue(v);
 
     assert |q0.contents| == 2;
 
-    call w := q0.Front();
+    var w := q0.Front();
     assert w == t;
-    call q0.Dequeue();
+    q0.Dequeue();
 
-    call w := q0.Front();
+    w := q0.Front();
     assert w == u;
 
     assert |q0.contents| == 1;

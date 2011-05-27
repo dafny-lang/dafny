@@ -58,10 +58,10 @@ class Ackermann {
     if (m == 0) {
       r := n + 1;
     } else if (n == 0) {
-      call r := ComputeAck(m - 1, 1);
+      r := ComputeAck(m - 1, 1);
     } else {
-      call s := ComputeAck(m, n - 1);
-      call r := ComputeAck(m - 1, s);
+      var s := ComputeAck(m, n - 1);
+      r := ComputeAck(m - 1, s);
     }
   }
 }

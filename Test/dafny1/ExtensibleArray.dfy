@@ -57,7 +57,7 @@ class ExtensibleArray<T> {
     if (M <= i) {
       t := elements[i - M];
     } else {
-      call arr := more.Get(i / 256);
+      var arr := more.Get(i / 256);
       t := arr[i % 256];
     }
   }
@@ -72,7 +72,7 @@ class ExtensibleArray<T> {
     if (M <= i) {
       elements[i - M] := t;
     } else {
-      call arr := more.Get(i / 256);
+      var arr := more.Get(i / 256);
       arr[i % 256] := t;
     }
     Contents := Contents[i := t];
@@ -94,7 +94,7 @@ class ExtensibleArray<T> {
         Repr := Repr + {more} + more.Repr;
       }
       // "elements" is full, so move it into "more" and allocate a new array
-      call more.Append(elements);
+      more.Append(elements);
       Repr := Repr + more.Repr;
       M := M + 256;
       elements := new T[256];
@@ -113,14 +113,14 @@ method Main() {
     invariant a.Valid() && fresh(a.Repr);
     invariant |a.Contents| == n;
   {
-    call a.Append(n);
+    a.Append(n);
     n := n + 1;
   }
-  call k := a.Get(570); print k, "\n";
-  call k := a.Get(0); print k, "\n";
-  call k := a.Get(1000); print k, "\n";
-  call a.Set(1000, 23);
-  call k := a.Get(0); print k, "\n";
-  call k := a.Get(1000); print k, "\n";
-  call k := a.Get(66000); print k, "\n";
+  var k := a.Get(570); print k, "\n";
+  k := a.Get(0); print k, "\n";
+  k := a.Get(1000); print k, "\n";
+  a.Set(1000, 23);
+  k := a.Get(0); print k, "\n";
+  k := a.Get(1000); print k, "\n";
+  k := a.Get(66000); print k, "\n";
 }

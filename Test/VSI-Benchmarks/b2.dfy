@@ -38,13 +38,13 @@ method Main() {
   a[2] := -2;
   a[3] := 0;
   a[4] := 25;
-  call TestSearch(a, 4);
-  call TestSearch(a, -8);
-  call TestSearch(a, -2);
-  call TestSearch(a, 0);
-  call TestSearch(a, 23);
-  call TestSearch(a, 25);
-  call TestSearch(a, 27);
+  TestSearch(a, 4);
+  TestSearch(a, -8);
+  TestSearch(a, -2);
+  TestSearch(a, 0);
+  TestSearch(a, 23);
+  TestSearch(a, 25);
+  TestSearch(a, 27);
 }
 
 method TestSearch(a: array<int>, key: int)
@@ -52,6 +52,6 @@ method TestSearch(a: array<int>, key: int)
   requires (forall i, j :: 0 <= i && i < j && j < a.Length ==> a[i] <= a[j]);
 {
   var b := new Benchmark2;
-  call r := b.BinarySearch(a, key);
+  var r := b.BinarySearch(a, key);
   print "Looking for key=", key, ", result=", r, "\n";
 }

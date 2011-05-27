@@ -24,8 +24,8 @@ class IntegerInduction {
     ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
   {
     if (n != 0) {
-      call Theorem0(n-1);
-      call Lemma(n-1);
+      Theorem0(n-1);
+      Lemma(n-1);
     }
   }
 
@@ -33,7 +33,7 @@ class IntegerInduction {
     requires 0 <= n;
     ensures 2 * Gauss(n) == n*(n+1);
   {
-    if (n != 0) { call Lemma(n-1); }
+    if (n != 0) { Lemma(n-1); }
   }
 
   // Here is another proof.  It states the lemma as part of the theorem, and
@@ -45,7 +45,7 @@ class IntegerInduction {
     ensures 2 * Gauss(n) == n*(n+1);
   {
     if (n != 0) {
-      call Theorem1(n-1);
+      Theorem1(n-1);
     }
   }
 
@@ -64,7 +64,7 @@ class IntegerInduction {
     ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
   {
     if (n != 0) {
-      call Theorem2(n-1);
+      Theorem2(n-1);
 
       assert (forall m :: 0 <= m ==> 2 * Gauss(m) == m*(m+1));
     }
@@ -84,7 +84,7 @@ class IntegerInduction {
     ensures SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n);
   {
     if (n != 0) {
-      call Theorem3(n-1);
+      Theorem3(n-1);
     }
   }
 
@@ -112,7 +112,7 @@ class IntegerInduction {
     if (*) {
       assert (forall m :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m));
     } else {
-      call Theorem4();
+      Theorem4();
     }
   }
 
@@ -136,10 +136,7 @@ class IntegerInduction {
   }
 }
 
-datatype Tree<T> {
-  Leaf(T);
-  Branch(Tree<T>, Tree<T>);
-}
+datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>);
 
 class DatatypeInduction<T> {
   function LeafCount<T>(tree: Tree<T>): int
@@ -182,7 +179,7 @@ function FooD(n: nat, d: D): int
 {
   match d
   case Nothing =>
-    if n == 0 then 10 else FooD(n-1, #D.Something(d))
+    if n == 0 then 10 else FooD(n-1, D.Something(d))
   case Something(next) =>
     if n < 100 then n + 12 else FooD(n-13, next)
 }

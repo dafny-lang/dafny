@@ -107,14 +107,14 @@ class Client
   method Main()
   {
     var c := new Collection<int>.Init();
-    call c.Add(33);
-    call c.Add(45);
-    call c.Add(78);
+    c.Add(33);
+    c.Add(45);
+    c.Add(78);
     
     var s := [];
     
-    call iter := c.GetIterator();
-    call b := iter.MoveNext();
+    var iter := c.GetIterator();
+    var b := iter.MoveNext();
     
     while (b)
       invariant iter.Valid() && b == iter.HasCurrent() && fresh(iter.footprint);
@@ -123,13 +123,13 @@ class Client
       invariant iter.c == c;
       decreases |c.elements| - iter.pos;
     {   
-      call x := iter.GetCurrent();
+      var x := iter.GetCurrent();
       s := s + [x];
-      call b := iter.MoveNext();
+      b := iter.MoveNext();
     }
     
     assert s == c.elements; //verifies that the iterator returns the correct things
-    call c.Add(100);
+    c.Add(100);
   }
   
 }

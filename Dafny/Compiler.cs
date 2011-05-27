@@ -186,15 +186,10 @@ namespace Microsoft.Dafny {
         // }
         Indent(indent);
         wr.Write("public class {0}", DtCtorName(ctor));
-        if (dt.TypeArgs.Count != 0 || ctor.TypeArgs.Count != 0) {
+        if (dt.TypeArgs.Count != 0) {
           wr.Write("<");
-          string sep = "";
           if (dt.TypeArgs.Count != 0) {
             wr.Write("{0}", TypeParameters(dt.TypeArgs));
-            sep = ",";
-          }
-          if (ctor.TypeArgs.Count != 0) {
-            wr.Write("{0}{1}", sep, TypeParameters(ctor.TypeArgs));
           }
           wr.Write(">");
         }
@@ -614,14 +609,9 @@ namespace Microsoft.Dafny {
           wr.WriteLine(");");
         }
       } else if (stmt is BreakStmt) {
-        BreakStmt s = (BreakStmt)stmt;
+        var s = (BreakStmt)stmt;
         Indent(indent);
-        if (s.TargetLabel == null) {
-          // use the scoping rules of C#
-          wr.WriteLine("break;");
-        } else {
-          wr.WriteLine("goto after_{0};", s.TargetLabel);
-        }
+        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.UniqueId);
       } else if (stmt is ReturnStmt) {
         Indent(indent);
         wr.WriteLine("return;");
@@ -845,6 +835,13 @@ namespace Microsoft.Dafny {
           Indent(indent); wr.WriteLine("}");
         }
 
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        // TODO: Update statements should perform multiple assignments in parallel!
+        foreach (var ss in s.ResolvedStatements) {
+          TrStmt(ss, indent);
+        }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -852,10 +849,6 @@ namespace Microsoft.Dafny {
 
     void TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
       Contract.Requires(s != null);
-
-      foreach (VarDecl local in s.NewVars) {
-        TrVarDecl(local, false, indent);
-      }
 
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
       Indent(indent);
@@ -929,29 +922,11 @@ namespace Microsoft.Dafny {
     }
     
     void TrStmtList(List<Statement/*!*/>/*!*/ stmts, int indent) {Contract.Requires(cce.NonNullElements(stmts));
-      List<string/*!*/> currentLabels = null;
       foreach (Statement ss in stmts) {
-        if (ss is LabelStmt) {
-          LabelStmt s = (LabelStmt)ss;
-          if (currentLabels == null) {
-            currentLabels = new List<string>();
-          }
-          currentLabels.Add(s.Label);
-        } else {
-          TrStmt(ss, indent + IndentAmount);
-          SpillLabels(currentLabels, indent);
-          currentLabels = null;
-        }
-      }
-      SpillLabels(currentLabels, indent);
-    }
-
-    void SpillLabels(List<string> labels, int indent) {
-      Contract.Requires(cce.NonNullElements(labels));
-      if (labels != null) {
-        foreach (string label in labels) {
-          Indent(indent);
-          wr.WriteLine("after_{0}: ;", label);
+        TrStmt(ss, indent + IndentAmount);
+        if (ss.Labels != null) {
+          Indent(indent);  // labels are not indented as much as the statements
+          wr.WriteLine("after_{0}: ;", ss.Labels.UniqueId);
         }
       }
     }
@@ -965,15 +940,7 @@ namespace Microsoft.Dafny {
 
       Indent(indent);
       wr.Write("{0} @{1}", TypeName(s.Type), s.Name);
-      if (s.Rhs != null) {
-        wr.Write(" = ");
-        TrAssignmentRhs(s.Rhs);
-        wr.WriteLine(";");
-        var tRhs = s.Rhs as TypeRhs;
-        if (tRhs != null && tRhs.InitCall != null) {
-          TrCallStmt(tRhs.InitCall, s.Name, indent);
-        }
-      } else if (alwaysInitialize) {
+      if (alwaysInitialize) {
         // produce a default value
         wr.WriteLine(" = {0};", DefaultValue(s.Type));
       } else {
@@ -1444,7 +1411,11 @@ namespace Microsoft.Dafny {
         wr.Write(") : (");
         TrExpr(e.Els);
         wr.Write(")");
-         
+
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        TrExpr(e.ResolvedExpression);
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

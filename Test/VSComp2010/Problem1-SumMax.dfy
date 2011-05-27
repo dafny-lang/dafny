@@ -38,6 +38,6 @@ method Main()
   a[7] := 1;
   a[8] := 10;
   a[9] := 6;
-  call s, m := M(10, a);
+  var s, m := M(10, a);
   print "N = ", a.Length, "  sum = ", s, "  max = ", m, "\n";
 }

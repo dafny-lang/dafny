@@ -46,8 +46,8 @@ class AmortizedQueue<T> {
       front := f;
       rear := r;
     } else {
-      call rr := r.Reverse();
-      call ff := f.Concat(rr);
+      var rr := r.Reverse();
+      var ff := f.Concat(rr);
       front := ff;
 
       rear := new LinkedList<T>.Init();
@@ -75,7 +75,7 @@ class AmortizedQueue<T> {
     requires Valid();
     ensures r != null && r.Valid() && r.List == List + [item];
   {
-    call rr := rear.Cons(item);
+    var rr := rear.Cons(item);
     r := new AmortizedQueue<T>.InitFromPieces(front, rr);
   }
 }
@@ -133,8 +133,8 @@ class LinkedList<T> {
     if (length == 0) {
       r := end;
     } else {
-      call c := tail.Concat(end);
-      call r := c.Cons(head);
+      var c := tail.Concat(end);
+      r := c.Cons(head);
     }
   }
 
@@ -148,10 +148,10 @@ class LinkedList<T> {
     if (length == 0) {
       r := this;
     } else {
-      call r := tail.Reverse();
+      r := tail.Reverse();
       var e := new LinkedList<T>.Init();
-      call e := e.Cons(head);
-      call r := r.Concat(e);
+      e := e.Cons(head);
+      r := r.Concat(e);
     }
   }
 

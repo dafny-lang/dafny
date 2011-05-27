@@ -16,14 +16,14 @@ function method Id(x: int): int { x }  // for triggering
 method Main()
 {
   var q := set i,j | 0 <= i && i < 10 && 0 <= j && j < 3 :: i+j;
-  call PrintSet(q);
+  PrintSet(q);
   q := set b: bool | true :: if b then 3 else 7;
-  call PrintSet(q);
+  PrintSet(q);
   var m := set k | k in q :: 2*k;
-  call PrintSet(m);
-  call PrintSet(set k | k in q && k % 2 == 0);
+  PrintSet(m);
+  PrintSet(set k | k in q && k % 2 == 0);
   var sq := [30, 40, 20];
-  call PrintSet(set k, i | k in sq && 0 <= i && i < k && i % 7 == 0 :: k + i);
+  PrintSet(set k, i | k in sq && 0 <= i && i < k && i % 7 == 0 :: k + i);
   var bb := forall k, i | k in sq && 0 <= i && i < k && i % 7 == 0 :: k + i == 17;
 }
 

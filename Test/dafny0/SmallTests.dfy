@@ -109,11 +109,11 @@ class Modifies {
   method B(p: Modifies)
     modifies this;
   {
-    call A(this);
+    A(this);
     if (p == this) {
-      call p.A(p);
+      p.A(p);
     }
-    call A(p);  // error: may violate modifies clause
+    A(p);  // error: may violate modifies clause
   }
 
   method C(b: bool)
@@ -126,9 +126,9 @@ class Modifies {
     requires p != null;
   {
     if (y == 3) {
-      call p.C(true);  // error: may violate modifies clause
+      p.C(true);  // error: may violate modifies clause
     } else {
-      call p.C(false);  // error: may violation modifies clause (the check is done without regard
+      p.C(false);  // error: may violation modifies clause (the check is done without regard
                         // for the postcondition, which also makes sense, since there may, in
                         // principle, be other fields of the object that are not constrained by the
                         // postcondition)
@@ -138,7 +138,7 @@ class Modifies {
   method E()
     modifies this;
   {
-    call A(null);  // allowed
+    A(null);  // allowed
   }
 
   method F(s: set<Modifies>)
@@ -164,7 +164,7 @@ class Modifies {
       foreach (m in s) {
         m.x := m.x + 1;
       }
-      call F(s);
+      F(s);
     }
     foreach (m in s) {
       assert m.x < m.x + 10;  // nothing wrong with asserting something
@@ -211,27 +211,26 @@ class AllocatedTests {
     assert allocated(6);
     assert allocated(6);
     assert allocated(null);
-    assert allocated(#Lindgren.HerrNilsson);
+    assert allocated(Lindgren.HerrNilsson);
 
     match (d) {
       case Pippi(n) => assert allocated(n);
       case Longstocking(q, dd) => assert allocated(q); assert allocated(dd);
       case HerrNilsson => assert old(allocated(d));
     }
-    var ls := #Lindgren.Longstocking([], d);
+    var ls := Lindgren.Longstocking([], d);
     assert allocated(ls);
     assert old(allocated(ls));
 
-    assert old(allocated(#Lindgren.Longstocking([r], d)));
-    assert old(allocated(#Lindgren.Longstocking([n], d)));  // error, because n was not allocated initially
+    assert old(allocated(Lindgren.Longstocking([r], d)));
+    assert old(allocated(Lindgren.Longstocking([n], d)));  // error, because n was not allocated initially
   }
 }
 
-datatype Lindgren {
-  Pippi(Node);
-  Longstocking(seq<object>, Lindgren);
+datatype Lindgren =
+  Pippi(Node) |
+  Longstocking(seq<object>, Lindgren) |
   HerrNilsson;
-}
 
 // --------------------------------------------------
 

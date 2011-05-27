@@ -28,8 +28,8 @@ class Termination {
   }
 
   method Lex() {
-    call x := Update();
-    call y := Update();
+    var x := Update();
+    var y := Update();
     while (!(x == 0 && y == 0))
       invariant 0 <= x && 0 <= y;
       decreases x, y;
@@ -38,7 +38,7 @@ class Termination {
         y := y - 1;
       } else {
         x := x - 1;
-        call y := Update();
+        y := Update();
       }
     }
   }
@@ -79,22 +79,20 @@ class Termination {
 
   method Q<T>(list: List<T>) {
     var l := list;
-    while (l != #List.Nil)
+    while (l != List.Nil)
       decreases l;
     {
-      call x, l := Traverse(l);
+      var x;
+      x, l := Traverse(l);
     }
   }
 
   method Traverse<T>(a: List<T>) returns (val: T, b: List<T>);
-    requires a != #List.Nil;
-    ensures a == #List.Cons(val, b);
+    requires a != List.Nil;
+    ensures a == List.Cons(val, b);
 }
 
-datatype List<T> {
-  Nil;
-  Cons(T, List<T>);
-}
+datatype List<T> = Nil | Cons(T, List<T>);
 
 method FailureToProveTermination0(N: int)
 {
@@ -204,7 +202,7 @@ method OuterOld(a: int)
   decreases a, true;
 {
   count := count + 1;
-  call InnerOld(a, count);
+  InnerOld(a, count);
 }
 
 method InnerOld(a: int, b: int)
@@ -213,9 +211,9 @@ method InnerOld(a: int, b: int)
 {
   count := count + 1;
   if (b == 0 && 1 <= a) {
-    call OuterOld(a - 1);
+    OuterOld(a - 1);
   } else if (1 <= b) {
-    call InnerOld(a, b - 1);
+    InnerOld(a, b - 1);
   }
 }
 
@@ -225,7 +223,7 @@ method Outer(a: int)
   modifies this;
 {
   count := count + 1;
-  call Inner(a, count);
+  Inner(a, count);
 }
 
 method Inner(a: int, b: int)
@@ -233,9 +231,9 @@ method Inner(a: int, b: int)
 {
   count := count + 1;
   if (b == 0 && 1 <= a) {
-    call Outer(a - 1);
+    Outer(a - 1);
   } else if (1 <= b) {
-    call Inner(a, b - 1);
+    Inner(a, b - 1);
   }
 }
 
@@ -245,7 +243,7 @@ function Zipper0<T>(a: List<T>, b: List<T>): List<T>
 {
   match a
   case Nil => b
-  case Cons(x, c) => #List.Cons(x, Zipper0(b, c))  // error: cannot prove termination
+  case Cons(x, c) => List.Cons(x, Zipper0(b, c))  // error: cannot prove termination
 }
 
 function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
@@ -253,7 +251,7 @@ function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
 {
   match a
   case Nil => b
-  case Cons(x, c) => #List.Cons(x, Zipper1(b, c, !k))
+  case Cons(x, c) => List.Cons(x, Zipper1(b, c, !k))
 }
 
 function Zipper2<T>(a: List<T>, b: List<T>): List<T>
@@ -262,7 +260,7 @@ function Zipper2<T>(a: List<T>, b: List<T>): List<T>
 {
   match a
   case Nil => b
-  case Cons(x, c) => #List.Cons(x, Zipper2(b, c))
+  case Cons(x, c) => List.Cons(x, Zipper2(b, c))
 }
 
 // -------------------------- test translation of while (*) -----------------
