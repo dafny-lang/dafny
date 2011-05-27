@@ -209,7 +209,7 @@ Execution trace:
     (0,0): anon15
     (0,0): anon25_Else
 
-Dafny program verifier finished with 41 verified, 14 errors
+Dafny program verifier finished with 43 verified, 14 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero

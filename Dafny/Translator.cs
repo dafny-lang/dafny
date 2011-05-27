@@ -3070,7 +3070,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr Si = FunctionCall(stmt.Tok, BuiltinFunction.SeqIndex, predef.BoxType, S, i);
           Bpl.Trigger tr = new Bpl.Trigger(stmt.Tok, true, new Bpl.ExprSeq(Si));
           // TODO: in the next line, the == should be replaced by something that understands extensionality, for sets and sequences
-          oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, o)));
+          var boxO = etran.BoxIfNecessary(stmt.Tok, o, ((SeqType)s.Collection.Type).Arg);
+          oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, boxO)));
         }
         oInS = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS);
         
