@@ -511,7 +511,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		Formals(true, !mmod.IsGhost, ins);
 		if (la.kind == 26) {
 			Get();
-			Formals(false, true, outs);
+			Formals(false, !mmod.IsGhost, outs);
 		}
 		if (la.kind == 17) {
 			Get();
@@ -604,13 +604,13 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		EquivExpression(out e);
 	}
 
-	void GIdentType(bool allowGhost, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost) {
+	void GIdentType(bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost) {
 		Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
 		Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
 		isGhost = false; 
 		if (la.kind == 11) {
 			Get();
-			if (allowGhost) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } 
+			if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } 
 		}
 		IdentType(out id, out ty);
 	}
@@ -723,15 +723,15 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		}
 	}
 
-	void Formals(bool incoming, bool allowGhosts, List<Formal/*!*/>/*!*/ formals) {
+	void Formals(bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals) {
 		Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; 
 		Expect(32);
 		if (la.kind == 1 || la.kind == 11) {
-			GIdentType(allowGhosts, out id, out ty, out isGhost);
+			GIdentType(allowGhostKeyword, out id, out ty, out isGhost);
 			formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); 
 			while (la.kind == 19) {
 				Get();
-				GIdentType(allowGhosts, out id, out ty, out isGhost);
+				GIdentType(allowGhostKeyword, out id, out ty, out isGhost);
 				formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); 
 			}
 		}

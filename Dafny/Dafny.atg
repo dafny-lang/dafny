@@ -328,12 +328,12 @@ CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   .
 
 
-GIdentType<bool allowGhost, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
-/* isGhost always returns as false if allowGhost is false */
+GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
+/* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      isGhost = false; .)
-  [ "ghost"                    (. if (allowGhost) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
+  [ "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   ]
   IdentType<out id, out ty>
   .
@@ -430,7 +430,7 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
   [ GenericParameters<typeArgs> ]
   Formals<true, !mmod.IsGhost, ins>
   [ "returns"
-    Formals<false, true, outs>
+    Formals<false, !mmod.IsGhost, outs>
   ]
 
   ( ";" { MethodSpec<req, mod, ens, dec> }
@@ -464,12 +464,12 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
   )
   .
 
-Formals<.bool incoming, bool allowGhosts, List<Formal/*!*/>/*!*/ formals.> 
+Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.> 
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; .)
   "("
   [
-    GIdentType<allowGhosts, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
-    { "," GIdentType<allowGhosts, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
+    GIdentType<allowGhostKeyword, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
+    { "," GIdentType<allowGhostKeyword, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
     }
   ]
   ")"
