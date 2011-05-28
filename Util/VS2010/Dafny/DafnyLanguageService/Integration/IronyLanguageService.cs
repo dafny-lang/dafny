@@ -176,21 +176,25 @@ namespace Demo
                               // the lines of interest have the form "filename(line,col): some_error_label: error_message"
                               // where "some_error_label" is "Error" or "syntax error" or "Error BP5003" or "Related location"
                                 if (line.Equals("")) continue;
-                                if (line.StartsWith("Dafny program verifier finished with") && line.Contains("time out"))
+                                if (line.StartsWith("Dafny program verifier finished with"))
                                 {
-                                    try
+                                    if (line.Contains("time out"))
                                     {
                                         AddErrorBecauseOfToolProblems(req, "Verification timed out.");
                                     }
-                                    catch (System.FormatException)
+                                    else
                                     {
-                                        continue;
+                                        if (!line.Contains("inconclusive") && !line.Contains("out of memory"))
+                                        {
+                                            if (line.Contains(" 0 errors"))
+                                                AddMessage(req, "Verification successful.");
+                                        }
+                                        else
+                                        {
+                                            AddErrorBecauseOfToolProblems(req, "Internal verification fault.");
+                                        }
                                     }
-                                    catch (System.OverflowException)
-                                    {
-                                        continue;
-                                    }
-                                    continue;
+                                    break;
                                 }
                               string message;
                               int n = line.IndexOf("): ", 2);  // we start at 2, to avoid problems with "C:\..."
@@ -271,12 +275,21 @@ namespace Demo
             return new AuthoringScope(source.ParseResult);
         }
 
-        private static void AddErrorBecauseOfToolProblems(ParseRequest req, string msg) {
-          TextSpan span = new TextSpan();
-          span.iStartLine = span.iEndLine = 1;
-          span.iStartIndex = 1;
-          span.iEndIndex = 2;
-          req.Sink.AddError(req.FileName, msg, span, Severity.Error);
+        private static void AddErrorBecauseOfToolProblems(ParseRequest req, string msg)
+        {
+            TextSpan span = new TextSpan();
+            span.iStartLine = span.iEndLine = 0;
+            span.iStartIndex = 0;
+            span.iEndIndex = 0;
+            req.Sink.AddError(req.FileName, msg, span, Severity.Error);
+        }
+        private static void AddMessage(ParseRequest req, string msg)
+        {
+            TextSpan span = new TextSpan();
+            span.iStartLine = span.iEndLine = 0;
+            span.iStartIndex = 0;
+            span.iEndIndex = 1;
+            req.Sink.AddError(req.FileName, msg, span, Severity.Hint);
         }
 
         /// <summary>
