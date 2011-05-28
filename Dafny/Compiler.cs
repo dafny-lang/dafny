@@ -211,7 +211,7 @@ namespace Microsoft.Dafny {
 
         Indent(ind);
         wr.Write("public {0}(", DtCtorName(ctor));
-        WriteFormals(ctor.Formals);
+        WriteFormals("", ctor.Formals);
         wr.WriteLine(") {");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
@@ -297,11 +297,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine("}");
     }
     
-    void WriteFormals(List<Formal/*!*/>/*!*/ formals)
+    void WriteFormals(string sep, List<Formal/*!*/>/*!*/ formals)
     {
+      Contract.Requires(sep != null);
       Contract.Requires(cce.NonNullElements(formals));
       int i = 0;
-      string sep = "";
       foreach (Formal arg in formals) {
         if (!arg.IsGhost) {
           string name = FormalName(arg, i);
@@ -349,7 +349,7 @@ namespace Microsoft.Dafny {
               wr.Write("<{0}>", TypeParameters(f.TypeArgs));
             }
             wr.Write("(");
-            WriteFormals(f.Formals);
+            WriteFormals("", f.Formals);
             wr.WriteLine(") {");
             if (f.Body is MatchExpr) {
               MatchExpr me = (MatchExpr)f.Body;
@@ -402,11 +402,8 @@ namespace Microsoft.Dafny {
               wr.Write("<{0}>", TypeParameters(m.TypeArgs));
             }
             wr.Write("(");
-            WriteFormals(m.Ins);
-            if (m.Ins.Count != 0 && m.Outs.Count != 0) {
-              wr.Write(", ");
-            }
-            WriteFormals(m.Outs);
+            WriteFormals("", m.Ins);
+            WriteFormals(", ", m.Outs);
             wr.WriteLine(")");
             Indent(indent);  wr.WriteLine("{");
             foreach (Formal p in m.Outs) {
