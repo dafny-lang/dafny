@@ -1993,6 +1993,10 @@ namespace Microsoft.Dafny {
       ResolveExpression(expr, twoState, null);
     }
 
+    /// <summary>
+    /// "matchVarContext" says which variables are allowed to be used as the source expression in a "match" expression; 
+    /// if null, no "match" expression will be allowed.
+    /// </summary>
     void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext) {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
@@ -2009,7 +2013,7 @@ namespace Microsoft.Dafny {
 
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
-        ResolveExpression(e.E, twoState);
+        ResolveExpression(e.E, twoState, matchVarContext);  // allow "match" expressions inside e.E if the parenthetic expression had been allowed to be a "match" expression
         e.ResolvedExpression = e.E;
         e.Type = e.E.Type;
 
@@ -2464,6 +2468,10 @@ namespace Microsoft.Dafny {
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         Contract.Assert(!twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
+        if (matchVarContext == null) {
+          Error(me, "'match' expressions are not supported in this context");
+          matchVarContext = new List<IVariable>();
+        }
         ResolveExpression(me.Source, twoState);
         Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType sourceType = null;

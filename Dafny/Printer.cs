@@ -712,7 +712,7 @@ namespace Microsoft.Dafny {
             }
             wr.Write(")");
           }
-          bool parensNeeded = !isLastCase && mc.Body is MatchExpr;
+          bool parensNeeded = !isLastCase && mc.Body.Resolved is MatchExpr;
           if (parensNeeded) {
             wr.WriteLine(" => (");
           } else {
@@ -721,6 +721,8 @@ namespace Microsoft.Dafny {
           PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, parensNeeded || (isLastCase && endWithCloseParen));
           i++;
         }
+      } else if (expr is ParensExpression) {
+        PrintExtendedExpr((ParensExpression)expr, indent, isRightmost, endWithCloseParen);
       } else {
         PrintExpression(expr, indent);
         wr.WriteLine(endWithCloseParen ? ")" : "");

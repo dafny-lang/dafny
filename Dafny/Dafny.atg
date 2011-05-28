@@ -635,52 +635,10 @@ FrameExpression<out FrameExpression/*!*/ fe>
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   "{"                         (. bodyStart = t; .)
-  ( MatchExpression<out e>
-  | Expression<out e>
-  )
+  Expression<out e>
   "}"                         (. bodyEnd = t; .)
   .
   
-MatchExpression<out Expression/*!*/ e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
-     List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
-  .)
-  "match"                     (. x = t; .)
-  Expression<out e>
-  /* Note: The following gives rise to a '"case" is start & successor of deletable structure' error,
-     but it's okay, because we want this closer match expression to bind as much as possible--use
-     parens around it to limit its scope. */
-  { CaseExpression<out c>     (. cases.Add(c); .)
-  }
-  (. e = new MatchExpr(x, e, cases); .)
-  .
-
-CaseExpression<out MatchCaseExpr/*!*/ c>
-= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id, arg;
-     List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
-     Expression/*!*/ body;
-  .)
-  "case"                      (. x = t; .)
-  Ident<out id>
-  [ "("
-    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
-    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
-    }
-  ")" ]
-  "=>"
-  MatchOrExpr<out body>       (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
-  .
-
-/* Note, '(' is start of more than one alternative in MatchOrExpr, but the first intentionally hides
-   the third alternative in this regard, in order to also allow match expressions to be parenthesized. */
-MatchOrExpr<out Expression/*!*/ e>
-= (. e = dummyExpr; .)
-  ( "(" MatchOrExpr<out e> ")"
-  | MatchExpression<out e>
-  | Expression<out e>
-  )
-  .
-
 /*------------------------------------------------------------------------*/
 
 BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
@@ -1190,6 +1148,7 @@ UnaryExpression<out Expression/*!*/ e>
   | EndlessExpression<out e>     /* these have no further suffix */
   | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
+  | DisplayExpr<out e>
   | ConstAtomExpression<out e>
     { Suffix<ref e> }
   )
@@ -1214,7 +1173,7 @@ NegOp = "!" | '\u00ac'.
  */
 ConstAtomExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x;  BigInteger n;  List<Expression/*!*/>/*!*/ elements;
+     IToken/*!*/ x;  BigInteger n;
      e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
@@ -1231,15 +1190,23 @@ ConstAtomExpression<out Expression/*!*/ e>
   | "|"                                        (. x = t; .)
       Expression<out e>                        (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
     "|"
-  | "{"                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
+  | "("                                        (. x = t; .)
+      Expression<out e>                        (. e = new ParensExpression(x, e); .)
+    ")"
+  )
+  .
+
+DisplayExpr<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken/*!*/ x;  List<Expression/*!*/>/*!*/ elements;
+     e = dummyExpr;
+  .)
+  ( "{"                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements); .)
     "}"
   | "["                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
     "]"
-  | "("                                        (. x = t; .)
-      Expression<out e>                        (. e = new ParensExpression(x, e); .)
-    ")"
   )
   .
 
@@ -1252,11 +1219,41 @@ EndlessExpression<out Expression e>
     Expression<out e>
     "then" Expression<out e0>
     "else" Expression<out e1>                  (. e = new ITEExpr(x, e, e0, e1); .)
+  | MatchExpression<out e>
   | QuantifierGuts<out e>
   | ComprehensionExpr<out e>
   )
   .
 
+MatchExpression<out Expression/*!*/ e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
+     List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
+  .)
+  "match"                     (. x = t; .)
+  Expression<out e>
+  /* Note: The following gives rise to a '"case" is start & successor of deletable structure' error,
+     but it's okay, because we want this closer match expression to bind as much as possible--use
+     parens around it to limit its scope. */
+  { CaseExpression<out c>     (. cases.Add(c); .)
+  }
+  (. e = new MatchExpr(x, e, cases); .)
+  .
+
+CaseExpression<out MatchCaseExpr/*!*/ c>
+= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id, arg;
+     List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
+     Expression/*!*/ body;
+  .)
+  "case"                      (. x = t; .)
+  Ident<out id>
+  [ "("
+    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
+    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
+    }
+  ")" ]
+  "=>"
+  Expression<out body>       (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
+  .
 
 /*------------------------------------------------------------------------*/
 
