@@ -1,6 +1,6 @@
 class Global {
   static function G(x: int): int { x+x }
-  static method N(x: int) returns (ghost r: int)
+  static method N(ghost x: int) returns (ghost r: int)
     ensures r == Global.G(x);
   {
     if {
@@ -23,8 +23,8 @@ method TestCalls(k: nat) {
   ghost var r: int;
   ghost var s := Global.G(k);
 
-//  r := Global.N(k);
-//  assert r == s;
+  r := Global.N(k);
+  assert r == s;
 
   r := g.N(k);
   assert r == s;
@@ -35,11 +35,11 @@ method TestCalls(k: nat) {
   r := g.N(k);
   assert r == s;
 
-//  r := Global.N(r);
+  r := Global.N(r);
   if (k == 0) {
     assert r == s;
   } else {
-//    assert r == s;  // error: G(k) and G(k+k) are different
+    assert r == s;  // error: G(k) and G(k+k) are different
   }
 }
 

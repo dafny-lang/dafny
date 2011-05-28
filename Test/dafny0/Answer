@@ -579,6 +579,10 @@ Execution trace:
 Dafny program verifier finished with 6 verified, 1 error
 
 -------------------- Basics.dfy --------------------
+Basics.dfy(42,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 Basics.dfy(66,42): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -592,7 +596,7 @@ Execution trace:
     Basics.dfy(66,95): anon18_Else
     (0,0): anon12
 
-Dafny program verifier finished with 8 verified, 1 error
+Dafny program verifier finished with 7 verified, 2 errors
 
 -------------------- ControlStructures.dfy --------------------
 ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
