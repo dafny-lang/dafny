@@ -308,7 +308,7 @@ method QuantifierRange2<T>(a: seq<T>, x: T, y: T, N: int)
   }
 }
 
-// ----------------------- tests that involve sequences of boxed booleans --------
+// ----------------------- tests that involve sequences of boxes --------
 
 ghost method M(zeros: seq<bool>, Z: bool)
   requires 1 <= |zeros| && Z == false;
@@ -316,4 +316,17 @@ ghost method M(zeros: seq<bool>, Z: bool)
 {
   var x := [Z];
   assert zeros[0..1] == [Z];
+}
+
+class SomeType
+{
+  var x: int;
+  method DoIt(stack: seq<SomeType>)
+    modifies stack;
+  {
+    // the following line once gave rise to a crash in the translation
+    foreach (n in stack) {
+      n.x := 10;
+    }
+  }
 }
