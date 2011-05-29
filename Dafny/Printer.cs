@@ -428,14 +428,9 @@ namespace Microsoft.Dafny {
         
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
-        if (s.Rhs is HavocRhs) {
-          wr.Write("havoc ");
-          PrintExpression(s.Lhs);
-        } else {
-          PrintExpression(s.Lhs);
-          wr.Write(" := ");
-          PrintDeterminedRhs((DeterminedAssignmentRhs)s.Rhs);
-        }
+        PrintExpression(s.Lhs);
+        wr.Write(" := ");
+        PrintRhs(s.Rhs);
         wr.Write(";");
         
       } else if (stmt is VarDecl) {
@@ -588,7 +583,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var rhs in s.Rhss) {
           wr.Write(sep);
-          PrintDeterminedRhs(rhs);
+          PrintRhs(rhs);
           sep = ", ";
         }
         wr.Write(";");
@@ -610,7 +605,7 @@ namespace Microsoft.Dafny {
           sep = "";
           foreach (var rhs in s.Update.Rhss) {
             wr.Write(sep);
-            PrintDeterminedRhs(rhs);
+            PrintRhs(rhs);
             sep = ", ";
           }
         }
@@ -636,10 +631,12 @@ namespace Microsoft.Dafny {
       }
     }
     
-    void PrintDeterminedRhs(DeterminedAssignmentRhs rhs) {
+    void PrintRhs(AssignmentRhs rhs) {
       Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
         PrintExpression(((ExprRhs)rhs).Expr);
+      } else if (rhs is HavocRhs) {
+        wr.Write("*");
       } else if (rhs is TypeRhs) {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");

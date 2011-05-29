@@ -75,7 +75,7 @@ TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
 TypeTests.dfy(68,17): Error: member F in class C does not refer to a method
 TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
 TypeTests.dfy(78,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
-TypeTests.dfy(79,2): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
+TypeTests.dfy(79,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
 TypeTests.dfy(85,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(86,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 TypeTests.dfy(87,8): Error: sorry, cannot instantiate 'array' type with a subrange type

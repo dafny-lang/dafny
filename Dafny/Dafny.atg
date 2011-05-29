@@ -682,7 +682,6 @@ OneStmt<out Statement/*!*/ s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
   | UpdateStmt<out s>
-  | HavocStmt<out s>
   | VarDeclStatement<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
@@ -704,8 +703,8 @@ OneStmt<out Statement/*!*/ s>
 
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
-     List<DeterminedAssignmentRhs> rhss = new List<DeterminedAssignmentRhs>();
-     Expression e;  DeterminedAssignmentRhs r;
+     List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+     Expression e;  AssignmentRhs r;
      Expression lhs0;
      IToken x;
   .)
@@ -724,7 +723,7 @@ UpdateStmt<out Statement/*!*/ s>
   (. s = new UpdateStmt(x, lhss, rhss); .)
   .
 
-Rhs<out DeterminedAssignmentRhs r, Expression receiverForInitCall>
+Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 = (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
      List<Expression> ee = null;
      Type ty = null;
@@ -751,10 +750,12 @@ Rhs<out DeterminedAssignmentRhs r, Expression receiverForInitCall>
          r = new TypeRhs(newToken, ty, initCall);
        }
     .)
-
+    
   /* One day, the choose expression should be treated just as a special case of a method call. */
   | "choose"                           (. x = t; .)
     Expression<out e>                  (. r = new ExprRhs(new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e)); .)
+
+  | "*"                                (. r = new HavocRhs(t); .)
 
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
@@ -763,9 +764,9 @@ Rhs<out DeterminedAssignmentRhs r, Expression receiverForInitCall>
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
      VarDecl/*!*/ d;
-     DeterminedAssignmentRhs r;  Expression lhs0;
+     AssignmentRhs r;  Expression lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
-     List<DeterminedAssignmentRhs> rhss = new List<DeterminedAssignmentRhs>();
+     List<AssignmentRhs> rhss = new List<AssignmentRhs>();
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
@@ -792,12 +793,6 @@ VarDeclStatement<.out Statement/*!*/ s.>
      }
      s = new VarDeclStmt(x, lhss, update);
   .)
-  .
-
-HavocStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ lhs; .)
-  "havoc"                              (. x = t; .)
-  Lhs<out lhs> ";"                     (. s = new AssignStmt(x, lhs); .)
   .
 
 IfStmt<out Statement/*!*/ ifStmt>
@@ -949,9 +944,7 @@ ForeachStmt<out Statement/*!*/ s>
     { AssertStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     | AssumeStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
     }
-    ( UpdateStmt<out s>                        (. bodyAssign = s; .)
-    | HavocStmt<out s>                         (. bodyAssign = s; .)
-    )
+    UpdateStmt<out s>                          (. bodyAssign = s; .)
   "}"                                          (. if (bodyAssign != null) {
                                                     s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign);
                                                   } else {

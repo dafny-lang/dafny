@@ -1281,19 +1281,15 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class AssignmentRhs {
-    internal AssignmentRhs() {
+    public readonly IToken Tok;
+    internal AssignmentRhs(IToken tok) {
+      Tok = tok;
     }
     public abstract bool CanAffectPreviouslyKnownExpressions { get; }
   }
 
-  public abstract class DeterminedAssignmentRhs : AssignmentRhs {
-    public readonly IToken Tok;
-    internal DeterminedAssignmentRhs(IToken tok) {
-      Tok = tok;
-    }
-  }
-
-  public class ExprRhs : DeterminedAssignmentRhs {
+  public class ExprRhs : AssignmentRhs
+  {
     public readonly Expression Expr;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1309,7 +1305,8 @@ namespace Microsoft.Dafny {
     public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   }
 
-  public class TypeRhs : DeterminedAssignmentRhs {
+  public class TypeRhs : AssignmentRhs
+  {
     public readonly Type EType;
     public readonly List<Expression> ArrayDimensions;
     public readonly CallStmt InitCall;  // may be null (and is definitely null for arrays)
@@ -1356,7 +1353,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CallRhs : DeterminedAssignmentRhs
+  public class CallRhs : AssignmentRhs
   {
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1395,6 +1392,10 @@ namespace Microsoft.Dafny {
   }
 
   public class HavocRhs : AssignmentRhs {
+    public HavocRhs(IToken tok)
+      : base(tok)
+    {
+    }
     public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   }
 
@@ -1428,13 +1429,13 @@ namespace Microsoft.Dafny {
   public class UpdateStmt : ConcreteSyntaxStatement
   {
     public readonly List<Expression> Lhss;
-    public readonly List<DeterminedAssignmentRhs> Rhss;
+    public readonly List<AssignmentRhs> Rhss;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
       Contract.Invariant(cce.NonNullElements(Rhss));
     }
-    public UpdateStmt(IToken tok, List<Expression> lhss, List<DeterminedAssignmentRhs> rhss)
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -1455,20 +1456,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignStmt(IToken tok, Expression lhs, DeterminedAssignmentRhs rhs)
+    public AssignStmt(IToken tok, Expression lhs, AssignmentRhs rhs)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
       this.Lhs = lhs;
       this.Rhs = rhs;
-    }
-    public AssignStmt(IToken tok, Expression lhs)
-      : base(tok) {  // havoc
-      Contract.Requires(tok != null);
-      Contract.Requires(lhs != null);
-      this.Lhs = lhs;
-      this.Rhs = new HavocRhs();
     }
   }
 

@@ -1201,6 +1201,8 @@ namespace Microsoft.Dafny {
           if (rhs is TypeRhs) {
             ResolveTypeRhs((TypeRhs)rhs, stmt, specContextOnly, method);
             isEffectful = true;
+          } else if (rhs is HavocRhs) {
+            isEffectful = false;
           } else {
             var er = (ExprRhs)rhs;
             if (er.Expr is IdentifierSequence) {

@@ -7,7 +7,7 @@ class C {
   {
     x := new C;
     x := new C.Init();
-    havoc x;
+    x := *;
     x := choose S;
 
     // test evaluation order
@@ -35,11 +35,11 @@ class C {
     if (a != null && 10 <= a.Length) {
       a[2] := new C;
       a[4..8] := null;
-      havoc a[3];
+      a[3] := *;
     }
     if (b != null && 10 <= b.Length0 && 20 <= b.Length1) {
       b[2,14] := new C;
-      havoc b[3,11];
+      b[3,11] := *;
     }
   }
 

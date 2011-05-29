@@ -151,7 +151,7 @@ class StatementTwoShoes {
     while (20 / k == 5 && j < 100)  // error: guard may not be well defined (div by zero)
       decreases 100 - j;
     {
-      havoc k;
+      k := *;
       j := j + 1;
     }
   }
