@@ -186,13 +186,18 @@ namespace Microsoft.Dafny {
           Dictionary<string, MemberDecl> members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
+          bool hasConstructor = false;
           foreach (MemberDecl m in cl.Members) {
             if (members.ContainsKey(m.Name)) {
               Error(m, "Duplicate member name: {0}", m.Name);
             } else {
               members.Add(m.Name, m);
             }
+            if (m is Constructor) {
+              hasConstructor = true;
+            }
           }
+          cl.HasConstructor = hasConstructor;
 
         } else {
           DatatypeDecl dt = (DatatypeDecl)d;
@@ -1716,6 +1721,9 @@ namespace Microsoft.Dafny {
       } else {
         callee = (Method)member;
         s.Method = callee;
+        if (!isInitCall && callee is Constructor) {
+          Error(s, "a constructor is only allowed to be called when an object is being allocated");
+        }
         s.IsGhost = callee.IsGhost;
         if (specContextOnly && !callee.IsGhost) {
           Error(s, "only ghost methods can be called from this context");
@@ -1858,8 +1866,21 @@ namespace Microsoft.Dafny {
         if (rr.ArrayDimensions == null) {
           if (!rr.EType.IsRefType) {
             Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
-          } else if (rr.InitCall != null) {
-            ResolveCallStmt(rr.InitCall, specContextOnly, method, rr.EType);
+          } else {
+            bool callsConstructor = false;
+            if (rr.InitCall != null) {
+              ResolveCallStmt(rr.InitCall, specContextOnly, method, rr.EType);
+              if (rr.InitCall.Method is Constructor) {
+                callsConstructor = true;
+              }
+            }
+            if (!callsConstructor && rr.EType is UserDefinedType) {
+              var udt = (UserDefinedType)rr.EType;
+              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guarantted by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+              if (cl.HasConstructor) {
+                Error(stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
+              }
+            }
           }
           rr.Type = rr.EType;
         } else {

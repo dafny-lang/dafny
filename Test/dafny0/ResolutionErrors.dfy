@@ -253,3 +253,30 @@ method DuplicateLabels(n: int) {
   x := x + 1;
   label DuplicateLabel: x := x + 1;
 }
+
+// --------------- constructors -------------------------------------
+
+class ClassWithConstructor {
+  var y: int;
+  method NotTheOne() { }
+  constructor InitA() { }
+  constructor InitB() modifies this; { y := 20; }
+}
+
+class ClassWithoutConstructor {
+  method Init() modifies this; { }
+}
+
+method ConstructorTests()
+{
+  var o := new object;  // fine: does not have any constructors
+
+  o := new ClassWithoutConstructor;  // fine: don't need to call anything particular method
+  o := new ClassWithoutConstructor.Init();  // this is also fine
+
+  var c := new ClassWithConstructor.InitA();
+  c := new ClassWithConstructor;  // error: must call a constructor
+  c := new ClassWithConstructor.NotTheOne();  // error: must call a constructor, not an arbitrary method
+  c := new ClassWithConstructor.InitB();
+  c.InitB();  // error: not allowed to call constructors except during allocation
+}

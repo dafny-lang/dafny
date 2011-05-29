@@ -416,20 +416,30 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
      List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Statement/*!*/ bb;  BlockStmt body = null;
+     bool isConstructor = false;
      bool isRefinement = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
   ( "method"
+  | "constructor"                                           (. isConstructor = true; .)
   | "refines"                                               (. isRefinement = true; .)
   )
   (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
+     if (isConstructor) {
+       if (mmod.IsGhost) {
+         SemErr(t, "constructors cannot be declared 'ghost'");
+       }
+       if (mmod.IsStatic) {
+         SemErr(t, "constructors cannot be declared 'static'");
+       }
+     }
   .)
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
   Formals<true, !mmod.IsGhost, ins>
-  [ "returns"
+  [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
     Formals<false, !mmod.IsGhost, outs>
   ]
 
@@ -439,7 +449,9 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
   
   (. if (isRefinement)
        m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
-     else 
+     else if (isConstructor)
+       m = new Constructor(id, id.val, typeArgs, ins, req, mod, ens, dec, body, attrs);
+     else
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;

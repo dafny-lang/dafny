@@ -630,6 +630,7 @@ namespace Microsoft.Dafny {
 
   public class ClassDecl : TopLevelDecl {
     public readonly List<MemberDecl/*!*/>/*!*/ Members;
+    public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
@@ -1055,7 +1056,6 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
-
     }
   }
 
@@ -1079,7 +1079,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Ens));
       Contract.Invariant(cce.NonNullElements(Decreases));
     }
-
 
     public Method(IToken tok, string name,
                   bool isStatic, bool isGhost,
@@ -1109,11 +1108,33 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
-
     }
   }
 
-  public class MethodRefinement : Method {
+  public class Constructor : Method
+  {
+    public Constructor(IToken tok, string name,
+                  [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
+                  [Captured] List<Formal/*!*/>/*!*/ ins,
+                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] List<FrameExpression/*!*/>/*!*/ mod,
+                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
+                  [Captured] List<Expression/*!*/>/*!*/ decreases,
+                  [Captured] BlockStmt body,
+                  Attributes attributes)
+      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ins));
+      Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(cce.NonNullElements(mod));
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(cce.NonNullElements(decreases));
+    }
+  }
+
+  public class MethodRefinement : Method
+  {
     public Method Refined; // filled in during resolution
     public MethodRefinement(IToken/*!*/ tok, string/*!*/ name,
                   bool isStatic, bool isGhost,
@@ -1134,7 +1155,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(mod));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(cce.NonNullElements(decreases));
-
     }
   }
 
@@ -1443,33 +1463,6 @@ namespace Microsoft.Dafny {
       this.Lhs = lhs;
       this.Rhs = rhs;
     }
-#if OLD_STUFF
-    public AssignStmt(IToken tok, Expression lhs, Expression rhs)
-      : base(tok) {  // ordinary assignment statement
-      Contract.Requires(tok != null);
-      Contract.Requires(lhs != null);
-      Contract.Requires(rhs != null);
-      this.Lhs = lhs;
-      this.Rhs = new ExprRhs(rhs);
-    }
-    public AssignStmt(IToken tok, Expression lhs, Type type, CallStmt initCall)
-      : base(tok) {  // alloc statement
-      Contract.Requires(tok != null);
-      Contract.Requires(lhs != null);
-      Contract.Requires(type != null);
-      this.Lhs = lhs;
-      this.Rhs = new TypeRhs(type, initCall);
-    }
-    public AssignStmt(IToken tok, Expression lhs, Type type, List<Expression> arrayDimensions)
-      : base(tok) {  // array alloc statement
-      Contract.Requires(tok != null);
-      Contract.Requires(lhs != null);
-      Contract.Requires(type != null);
-      Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
-      this.Lhs = lhs;
-      this.Rhs = new TypeRhs(type, arrayDimensions);
-    }
-#endif
     public AssignStmt(IToken tok, Expression lhs)
       : base(tok) {  // havoc
       Contract.Requires(tok != null);

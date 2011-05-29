@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
     public void PrintMethod(Method method, int indent) {
       Contract.Requires(method != null);
       Indent(indent);
-      string k = method is MethodRefinement ? "refines" : "method";
+      string k = method is MethodRefinement ? "refines" : method is Constructor ? "constructor" : "method";
       if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
