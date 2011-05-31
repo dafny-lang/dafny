@@ -1229,7 +1229,7 @@ namespace Microsoft.Dafny {
           }
         }
         // check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
-        Dictionary<string, object> lhsNameSet = new Dictionary<string, object>();
+        var lhsNameSet = new Dictionary<string, object>();
         foreach (var lhs in s.Lhss) {
           var ie = lhs.Resolved as IdentifierExpr;
           if (ie != null) {
@@ -1704,6 +1704,10 @@ namespace Microsoft.Dafny {
       return isGhost;
     }
 
+    /// <summary>
+    /// Resolves the given call statement.
+    /// Assumes all LHSs have already been resolved.
+    /// </summary>
     void ResolveCallStmt(CallStmt s, bool specContextOnly, Method method, Type receiverType) {
       Contract.Requires(s != null);
       Contract.Requires(method != null);
@@ -1735,15 +1739,9 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // resolve left-hand side
-      Dictionary<string, object> lhsNameSet = new Dictionary<string, object>();
-      foreach (IdentifierExpr lhs in s.Lhs) {
-        ResolveExpression(lhs, true);
-        if (lhsNameSet.ContainsKey(lhs.Name)) {
-          Error(s, "Duplicate variable in left-hand side of call statement: {0}", lhs.Name);
-        } else {
-          lhsNameSet.Add(lhs.Name, null);
-        }
+      // resolve left-hand sides
+      foreach (var lhs in s.Lhs) {
+        Contract.Assume(lhs.Type != null);  // a sanity check that LHSs have already been resolved
       }
       // resolve arguments
       if (!s.IsGhost) {

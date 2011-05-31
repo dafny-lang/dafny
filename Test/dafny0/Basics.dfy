@@ -71,6 +71,20 @@ method ChallengeTruth(j: int, k: int)
 class Multi {
   var x: int;
   var y: int;
+  var next: Multi;
+  method Mutate(z: int) returns (m: Multi)
+    requires 0 <= z;
+    modifies this;
+    ensures y == old(y);
+  {
+    x := x + z;
+  }
+  method IncX() returns (oldX: int)
+    modifies this;
+    ensures x == old(x) + 1 && oldX == old(x);
+  {
+    x, oldX := x + 1, x;
+  }
 }
 
 method TestMulti(m: Multi, p: Multi)
@@ -117,4 +131,43 @@ method TestBoxAssignment<T>(x: MyBoxyClass<int>, y: MyBoxyClass<T>, t: T)
   x.f := 15;
   // all together now:
   y.f, x.f := t, 15;  // error: duplicate assignment (if T==int and x==y)
+  var k: int := x.f;
+}
+
+method TestCallsWithFancyLhss(m: Multi)
+  requires m != null && m.next != null;
+  modifies m, m.next;
+{
+  m.x := 10;
+  var p := m.next;
+  m.next.next := m.Mutate(m.x);  // fine
+  if (*) {
+    assert m.next == old(m.next);  // error: the call to Mutate may have changed m.next
+  }
+  m.next.next := m.Mutate(20);  // error: LHS may not be well defined (m.next may be null)
+  m.x, m.next := 12, p;
+  m.x, m.y := SwapEm(m.x, m.y);
+  assert m.y == 12;
+  if (*) {
+    m.x, m.x := SwapEm(m.x, m.y);  // error: duplicate among LHSs
+  }
+  m.x := 30;
+  var xx := m.IncX();
+  assert xx == 30;
+  m.y := m.IncX();
+  assert m.y == 31 && m.x == 32;
+  m.x := m.IncX();
+  assert m.x == 32;
+  xx := m.IncX();
+  if (*) {
+    assert xx == 33;  // error: xx will in fact be 32
+  } else {
+    assert xx == 32;  // see!
+  }
+}
+
+method SwapEm(a: int, b: int) returns (x: int, y: int)
+  ensures x == b && y == a;
+{
+  x, y := b, a;
 }

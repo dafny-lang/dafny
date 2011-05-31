@@ -2567,7 +2567,7 @@ namespace Microsoft.Dafny {
       
       // assign input formals of m (except "this")
       for (int i = 0; i < m.Ins.Count; i++) {        
-        Bpl.LocalVariable arg = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, m.Ins[i].UniqueName,  TrType(m.Ins[i].Type)));
+        Bpl.LocalVariable arg = new Bpl.LocalVariable(m.tok, new Bpl.TypedIdent(m.tok, m.Ins[i].UniqueName, TrType(m.Ins[i].Type)));
         localVariables.Add(arg);
         Bpl.Variable var = inParams[i+1];
         Contract.Assert(var != null);
@@ -3023,6 +3023,7 @@ namespace Microsoft.Dafny {
         locals.Add(var);
         
       } else if (stmt is CallStmt) {
+        AddComment(builder, stmt, "call statement");
         TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
         
       } else if (stmt is BlockStmt) {
@@ -3462,16 +3463,54 @@ namespace Microsoft.Dafny {
     }
 
     void TrCallStmt(CallStmt s, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran, Bpl.Expr actualReceiver) {
-      Contract.Requires(s != null);
+      List<AssignToLhs> lhsBuilders;
+      List<Bpl.IdentifierExpr> bLhss;
+      ProcessLhss(s.Lhs, true, builder, locals, etran, out lhsBuilders, out bLhss);
+      Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
+      Contract.Assert(s.Lhs.Count == bLhss.Count);
+      var lhsTypes = new List<Type>();
+      for (int i = 0; i < s.Lhs.Count; i++) {
+        var lhs = s.Lhs[i];
+        lhsTypes.Add(lhs.Type);
+        if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
+          // create temporary local and assign it to bLhss[i]
+          string nm = "$rhs#" + otherTmpVarCount;
+          otherTmpVarCount++;
+          var ty = TrType(lhs.Type);
+          Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), lhs.Type, etran);
+          Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
+          locals.Add(var);
+          bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
+        }
+      }
+      ProcessCallStmt(s.Tok, s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
+      for (int i = 0; i < lhsBuilders.Count; i++) {
+        lhsBuilders[i](bLhss[i], builder, etran);
+      }
+      builder.Add(CaptureState(s.Tok));
+    }
+
+    void ProcessCallStmt(IToken tok,
+      Expression dafnyReceiver, Bpl.Expr bReceiver,
+      Method method, List<Expression> Args,
+      List<Bpl.IdentifierExpr> Lhss, List<Type> LhsTypes,
+      Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+
+      Contract.Requires(tok != null);
+      Contract.Requires((dafnyReceiver == null) != (bReceiver == null));
+      Contract.Requires(method != null);
+      Contract.Requires(cce.NonNullElements(Args));
+      Contract.Requires(cce.NonNullElements(Lhss));
+      Contract.Requires(cce.NonNullElements(LhsTypes));
+      Contract.Requires(method.Outs.Count == Lhss.Count);
+      Contract.Requires(method.Outs.Count == LhsTypes.Count);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-
-      Expression receiver = actualReceiver == null ? s.Receiver : new BoogieWrapper(actualReceiver);
-      AddComment(builder, s, actualReceiver == null ? "call statement" : "init call statement");
+      
+      Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver);
       Bpl.ExprSeq ins = new Bpl.ExprSeq();
-      Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
-      if (!s.Method.IsStatic) {
+      if (!method.IsStatic) {
         ins.Add(etran.TrExpr(receiver));
       }
 
@@ -3480,8 +3519,8 @@ namespace Microsoft.Dafny {
       // store the actual parameters.
       // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
       Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-      for (int i = 0; i < s.Method.Ins.Count; i++) {
-        Formal p = s.Method.Ins[i];
+      for (int i = 0; i < method.Ins.Count; i++) {
+        Formal p = method.Ins[i];
         VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
@@ -3489,55 +3528,56 @@ namespace Microsoft.Dafny {
         substMap.Add(p, ie);
         locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
 
-        Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-        Expression actual = s.Args[i];
+        Bpl.IdentifierExpr param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+        Expression actual = Args[i];
         TrStmt_CheckWellformed(actual, builder, locals, etran, true);
         var bActual = etran.TrExpr(actual);
         CheckSubrange(actual.tok, bActual, p.Type, builder);
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, etran.CondApplyBox(s.Tok, bActual, cce.NonNull(actual.Type), s.Method.Ins[i].Type));
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, param, etran.CondApplyBox(actual.tok, bActual, cce.NonNull(actual.Type), method.Ins[i].Type));
         builder.Add(cmd);
-        ins.Add(lhs);
+        ins.Add(param);
       }
-      // Also create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
+
+      // Check modifies clause
+      CheckFrameSubset(tok, method.Mod, receiver, substMap, etran, builder, "call may violate caller's modifies clause", null);
+
+      // Check termination
+      ModuleDecl module = cce.NonNull(method.EnclosingClass).Module;
+      if (module == cce.NonNull(currentMethod.EnclosingClass).Module) {
+        if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
+          bool contextDecrInferred, calleeDecrInferred;
+          List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
+          List<Expression> calleeDecreases = MethodDecreasesWithDefault(method, out calleeDecrInferred);
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred);
+        }
+      }
+
+      // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
       Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
-      List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>(s.Lhs.Count);
-      for (int i = 0; i < s.Lhs.Count; i++) {
-        Expression e = s.Lhs[i];
-        if (ExpressionTranslator.ModeledAsBoxType(s.Method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(cce.NonNull(e.Type))) {
+      List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>();
+      for (int i = 0; i < Lhss.Count; i++) {
+        var bLhs = Lhss[i];
+        if (ExpressionTranslator.ModeledAsBoxType(method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(LhsTypes[i])) {
           // we need an Unbox
-          Bpl.LocalVariable var = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
           otherTmpVarCount++;
           locals.Add(var);
-          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(s.Tok, var.Name, predef.BoxType);
+          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
           tmpOuts.Add(varIdE);
           outs.Add(varIdE);
         } else {
           tmpOuts.Add(null);
-          outs.Add(etran.TrExpr(e));
-        }
-      }
-
-      // Check modifies clause
-      CheckFrameSubset(s.Tok, s.Method.Mod, receiver, substMap, etran, builder, "call may violate caller's modifies clause", null);
-
-      // Check termination
-      ModuleDecl module = cce.NonNull(s.Method.EnclosingClass).Module;
-      if (module == cce.NonNull(currentMethod.EnclosingClass).Module) {
-        if (module.CallGraph.GetSCCRepresentative(s.Method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
-          bool contextDecrInferred, calleeDecrInferred;
-          List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
-          List<Expression> calleeDecreases = MethodDecreasesWithDefault(s.Method, out calleeDecrInferred);
-          CheckCallTermination(s.Tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred);
+          outs.Add(bLhs);
         }
       }
 
       // Make the call
-      Bpl.CallCmd call = new Bpl.CallCmd(s.Tok, s.Method.FullName, ins, outs);
+      Bpl.CallCmd call = new Bpl.CallCmd(tok, method.FullName, ins, outs);
       builder.Add(call);
-      for (int i = 0; i < s.Lhs.Count; i++) {
+      // Unbox results as needed
+      for (int i = 0; i < Lhss.Count; i++) {
+        Bpl.IdentifierExpr bLhs = Lhss[i];
         Bpl.IdentifierExpr tmpVarIdE = tmpOuts[i];
-        var e = (IdentifierExpr)s.Lhs[i];  // TODO: make this work also for non-IdentifierExpr LHSs!
-        Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(e);  // TODO: is this cast always justified?
         if (tmpVarIdE != null) {
           // Instead of an assignment:
           //    e := UnBox(tmpVar);
@@ -3545,13 +3585,12 @@ namespace Microsoft.Dafny {
           //    havoc e; assume e == UnBox(tmpVar);
           // because that will reap the benefits of e's where clause, so that some additional type information will be known about
           // the out-parameter.
-          Bpl.Cmd cmd = new Bpl.HavocCmd(s.Tok, new IdentifierExprSeq(lhs));
+          Bpl.Cmd cmd = new Bpl.HavocCmd(bLhs.tok, new IdentifierExprSeq(bLhs));
           builder.Add(cmd);
-          cmd = new Bpl.AssumeCmd(s.Tok, Bpl.Expr.Eq(lhs, FunctionCall(s.Tok, BuiltinFunction.Unbox, TrType(cce.NonNull(e.Type)), tmpVarIdE)));
+          cmd = new Bpl.AssumeCmd(bLhs.tok, Bpl.Expr.Eq(bLhs, FunctionCall(bLhs.tok, BuiltinFunction.Unbox, TrType(LhsTypes[i]), tmpVarIdE)));
           builder.Add(cmd);
         }
       }
-      builder.Add(CaptureState(s.Tok));
     }
     
     static Expression CreateIntLiteral(IToken tok, int n)
@@ -4006,11 +4045,11 @@ namespace Microsoft.Dafny {
     /// builds code that checks that the LHSs are well-defined, denote different locations,
     /// and are allowed by the enclosing modifies clause.
     /// </summary>
-    List<AssignToLhs> ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions,
+    void ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions,
       Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran,
       out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss) {
+
       Contract.Requires(cce.NonNullElements(lhss));
-      // Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);
@@ -4132,7 +4171,6 @@ namespace Microsoft.Dafny {
 
         i++;
       }
-      return lhsBuilders;
     }
 
     /// <summary>
@@ -4228,6 +4266,7 @@ namespace Microsoft.Dafny {
         // assume $IsGoodHeap($Heap);
         builder.Add(AssumeGoodHeap(tok, etran));
         if (tRhs.InitCall != null) {
+          AddComment(builder, tRhs.InitCall, "init call statement");
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
         }
         // bLhs := $nw;
