@@ -297,7 +297,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("}");
     }
     
-    void WriteFormals(string sep, List<Formal/*!*/>/*!*/ formals)
+    int WriteFormals(string sep, List<Formal/*!*/>/*!*/ formals)
     {
       Contract.Requires(sep != null);
       Contract.Requires(cce.NonNullElements(formals));
@@ -310,6 +310,7 @@ namespace Microsoft.Dafny {
           i++;
         }
       }
+      return i;  // the number of formals written
     }
     
     string FormalName(Formal formal, int i) {
@@ -364,8 +365,8 @@ namespace Microsoft.Dafny {
               wr.Write("<{0}>", TypeParameters(m.TypeArgs));
             }
             wr.Write("(");
-            WriteFormals("", m.Ins);
-            WriteFormals(", ", m.Outs);
+            int nIns = WriteFormals("", m.Ins);
+            WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
             wr.WriteLine(")");
             Indent(indent);  wr.WriteLine("{");
             foreach (Formal p in m.Outs) {
@@ -976,7 +977,7 @@ namespace Microsoft.Dafny {
           tmpVarCount++;
           outTmps.Add(target);
           Indent(indent);
-          wr.WriteLine("{0} {1};", TypeName(p.Type), target);
+          wr.WriteLine("{0} {1};", TypeName(s.Lhs[i].Type), target);
         }
       }
 
@@ -1008,12 +1009,13 @@ namespace Microsoft.Dafny {
 
       // assign to the actual LHSs
       int j = 0;
-      for (int i = 0; i < s.Method.Outs.Count; i++, j++) {
+      for (int i = 0; i < s.Method.Outs.Count; i++) {
         Formal p = s.Method.Outs[i];
         if (!p.IsGhost) {
           Indent(indent);
           TrExpr(s.Lhs[i]);
-          wr.Write(" = {0};", outTmps[j]);
+          wr.WriteLine(" = {0};", outTmps[j]);
+          j++;
         }
       }
       Contract.Assert(j == outTmps.Count);
