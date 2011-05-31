@@ -24,9 +24,7 @@ method MirrorImage<T>(m: array2<T>)
       invariant (forall i,j :: a+1 <= i && i < m.Length0 && 0 <= j && j < m.Length1 ==>
                   m[i,j] == old(m[i,j]));
     {
-      var tmp := m[a, m.Length1-1-b];
-      m[a, m.Length1-1-b] := m[a, b];
-      m[a, b] := tmp;
+      m[a, m.Length1-1-b], m[a, b] := m[a, b], m[a, m.Length1-1-b];
       b := b + 1;
     }
     a := a + 1;
@@ -50,7 +48,7 @@ method Flip<T>(m: array2<T>)
     decreases N-a, N-b;
   {
     if (b < N) {
-      var tmp := m[a,b];  m[a,b] := m[b,a];  m[b,a] := tmp;
+      m[a,b], m[b,a] := m[b,a], m[a,b];
       b := b + 1;
     } else {
       a := a + 1;  b := a;

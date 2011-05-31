@@ -62,7 +62,7 @@ class PriorityQueue {
       if (a[i/2] <= a[i]) {
         return;
       }
-      var tmp := a[i];  a[i] := a[i/2];  a[i/2] := tmp;
+      a[i/2], a[i] := a[i], a[i/2];
       i := i / 2;
     }
   }
@@ -104,7 +104,7 @@ class PriorityQueue {
       if (a[i] <= a[smallestChild]) {
         return;
       }
-      var tmp := a[i];  a[i] := a[smallestChild];  a[smallestChild] := tmp;
+      a[smallestChild], a[i] := a[i], a[smallestChild];
       i := smallestChild;
       assert 1 <= i/2/2 ==> a[i/2/2] <= a[i];
     }
@@ -175,7 +175,7 @@ class PriorityQueue_Alternative {
       if (a[i/2] <= a[i]) {
         return;
       }
-      var tmp := a[i];  a[i] := a[i/2];  a[i/2] := tmp;
+      a[i/2], a[i] := a[i], a[i/2];
       i := i / 2;
     }
   }
@@ -213,7 +213,7 @@ class PriorityQueue_Alternative {
       if (a[i] <= a[smallestChild]) {
         return;
       }
-      var tmp := a[i];  a[i] := a[smallestChild];  a[smallestChild] := tmp;
+      a[smallestChild], a[i] := a[i], a[smallestChild];
       i := smallestChild;
       assert 1 <= i/2/2 ==> a[i/2/2] <= a[i];
     }

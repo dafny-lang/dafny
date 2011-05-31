@@ -806,7 +806,7 @@ namespace Microsoft.Dafny {
           } else {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
-        } else if (t.ResolvedClass == null) {  // this test is becausee 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
+        } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d;
           if (!classes.TryGetValue(t.Name, out d)) {
             Error(t.tok, "Undeclared top-level type or type parameter: {0}", t.Name);
@@ -1186,10 +1186,15 @@ namespace Microsoft.Dafny {
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         int prevErrorCount = ErrorCount;
-        // First, resolve all LHS's and expression-looking RHS's.  When resolving these, allow ghosts for now, but enforce restrictions later.
+        // First, resolve all LHS's and expression-looking RHS's.
+        SeqSelectExpr arrayRangeLhs = null;
         foreach (var lhs in s.Lhss) {
           if (lhs is SeqSelectExpr) {
-            ResolveSeqSelectExpr((SeqSelectExpr)lhs, true, true);
+            var sse = (SeqSelectExpr)lhs;
+            ResolveSeqSelectExpr(sse, true, true);
+            if (arrayRangeLhs == null && !sse.SelectOne) {
+              arrayRangeLhs = sse;
+            }
           } else {
             ResolveExpression(lhs, true);
           }
@@ -1199,8 +1204,9 @@ namespace Microsoft.Dafny {
         foreach (var rhs in s.Rhss) {
           bool isEffectful;
           if (rhs is TypeRhs) {
-            ResolveTypeRhs((TypeRhs)rhs, stmt, specContextOnly, method);
-            isEffectful = true;
+            var tr = (TypeRhs)rhs;
+            ResolveTypeRhs(tr, stmt, specContextOnly, method);
+            isEffectful = tr.InitCall != null;
           } else if (rhs is HavocRhs) {
             isEffectful = false;
           } else {
@@ -1228,7 +1234,7 @@ namespace Microsoft.Dafny {
           var ie = lhs.Resolved as IdentifierExpr;
           if (ie != null) {
             if (lhsNameSet.ContainsKey(ie.Name)) {
-              Error(s, "Duplicate variable in left-hand side of call statement: {0}", ie.Name);
+              Error(s, "Duplicate variable in left-hand side of {1} statement: {0}", ie.Name, callRhs != null ? "call" : "assignment");
             } else {
               lhsNameSet.Add(ie.Name, null);
             }
@@ -1242,19 +1248,21 @@ namespace Microsoft.Dafny {
             Error(s, "expected method call, found expression");
           } else  if (s.Lhss.Count != s.Rhss.Count) {
             Error(s, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
+          } else if (arrayRangeLhs != null && s.Lhss.Count != 1) {
+            Error(arrayRangeLhs, "array-range may not be used as LHS of multi-assignment; use separate assignment statements for each array-range assignment");
           } else if (ErrorCount == prevErrorCount) {
+            // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
             for (int i = 0; i < s.Lhss.Count; i++) {
               var a = new AssignStmt(s.Tok, s.Lhss[i].Resolved, s.Rhss[i]);
               s.ResolvedStatements.Add(a);
-            }
-            if (s.Lhss.Count != 1) {
-              Error(s, "multi-assignments not yet supported");  // TODO
             }
           }
         } else {
           // if there was an effectful RHS, that must be the only RHS
           if (s.Rhss.Count != 1) {
             Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+          } else if (arrayRangeLhs != null) {
+            Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
           } else if (callRhs == null) {
             // must be a single TypeRhs
             if (s.Lhss.Count != 1) {
@@ -1267,16 +1275,11 @@ namespace Microsoft.Dafny {
           } else {
             // a call statement
             if (ErrorCount == prevErrorCount) {
-              var idLhss = new List<IdentifierExpr>();
+              var resolvedLhss = new List<Expression>();
               foreach (var ll in s.Lhss) {
-                var ie = ll.Resolved as IdentifierExpr;  // TODO: the CallStmt should handle all LHS's, not just identifier expressions
-                if (ie == null) {
-                  Error(ll, "actual out-parameters of calls must be variables, not fields");
-                } else {
-                  idLhss.Add(ie);
-                }
+                resolvedLhss.Add(ll.Resolved);
               }
-              var a = new CallStmt(callRhs.Tok, idLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+              var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
               s.ResolvedStatements.Add(a);
             }
           }
@@ -1799,13 +1802,29 @@ namespace Microsoft.Dafny {
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
           Type st = SubstType(callee.Outs[i].Type, subst);
-          IdentifierExpr lhs = s.Lhs[i];
+          var lhs = s.Lhs[i];
           if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
             Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
-          } else if (!specContextOnly && !cce.NonNull(lhs.Var).IsGhost && (s.IsGhost || callee.Outs[i].IsGhost)) {
-            if (lhs is AutoGhostIdentifierExpr && lhs.Var is VarDecl) {
-              ((VarDecl)lhs.Var).MakeGhost();
+          } else if (!specContextOnly && (s.IsGhost || callee.Outs[i].IsGhost)) {
+            // LHS must denote a ghost
+            lhs = lhs.Resolved;
+            if (lhs is IdentifierExpr) {
+              var ll = (IdentifierExpr)lhs;
+              if (!ll.Var.IsGhost) {
+                if (ll is AutoGhostIdentifierExpr && ll.Var is VarDecl) {
+                  // the variable was actually declared in this statement, so auto-declare it as ghost
+                  ((VarDecl)ll.Var).MakeGhost();
+                } else {
+                  Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+                }
+              }
+            } else if (lhs is FieldSelectExpr) {
+              var ll = (FieldSelectExpr)lhs;
+              if (!ll.Field.IsGhost) {
+                Error(s, "actual out-parameter {0} is required to be a ghost field", i);
+              }
             } else {
+              // this is an array update, and arrays are always non-ghost
               Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
             }
           }

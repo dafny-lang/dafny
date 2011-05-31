@@ -1546,13 +1546,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
-    public readonly List<IdentifierExpr/*!*/>/*!*/ Lhs;
+    public readonly List<Expression/*!*/>/*!*/ Lhs;
     public readonly Expression/*!*/ Receiver;
     public readonly string/*!*/ MethodName;
     public readonly List<Expression/*!*/>/*!*/ Args;
     public Method Method;  // filled in by resolution
 
-    public CallStmt(IToken tok, List<IdentifierExpr/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
+    public CallStmt(IToken tok, List<Expression/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
       string/*!*/ methodName, List<Expression/*!*/>/*!*/ args)
       : base(tok) {
       Contract.Requires(tok != null);

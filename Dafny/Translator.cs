@@ -914,19 +914,19 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns an expression whose value is the same as "expr", but that is guaranteed to preserve the its value passed
-    /// the evaluation of "rhs".  If necessary, a new local variable called "name" with type "ty" is added to "locals" and
+    /// the evaluation of other expressions.  If necessary, a new local variable called "name" with type "ty" is added to "locals" and
     /// assigned in "builder" to be used to hold the value of "expr".  It is assumed that all requests for a given "name"
     /// have the same type "ty" and that these variables can be shared.
+    /// As an optimization, if "otherExprsCanAffectPreviouslyKnownExpressions" is "false", then "expr" itself is returned.
     /// </summary>
-    Bpl.Expr SaveInTemp(Bpl.Expr expr, AssignmentRhs rhs, string name, Bpl.Type ty, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals) {
+    Bpl.Expr SaveInTemp(Bpl.Expr expr, bool otherExprsCanAffectPreviouslyKnownExpressions, string name, Bpl.Type ty, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals) {
       Contract.Requires(expr != null);
-      Contract.Requires(rhs != null);
       Contract.Requires(name != null);
       Contract.Requires(ty != null);
       Contract.Requires(locals != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (rhs.CanAffectPreviouslyKnownExpressions) {
+      if (otherExprsCanAffectPreviouslyKnownExpressions) {
         var save = GetTmpVar_IdExpr(expr.tok, name, ty, locals);
         builder.Add(Bpl.Cmd.SimpleAssign(expr.tok, save, expr));
         return save;
@@ -2963,10 +2963,57 @@ namespace Microsoft.Dafny {
       } else if (stmt is ReturnStmt) {
         AddComment(builder, stmt, "return statement");
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
+        // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
+        var resolved = s.ResolvedStatements;
+        if (resolved.Count == 1) {
+          TrStmt(resolved[0], builder, locals, etran);
+        } else {
+          AddComment(builder, s, "update statement");
+          var lhss = new List<Expression>();
+          foreach (var lhs in s.Lhss) {
+            lhss.Add(lhs.Resolved);
+          }
+          bool rhssCanAffectPreviouslyKnownExpressions = !s.Rhss.TrueForAll(rhs => !rhs.CanAffectPreviouslyKnownExpressions);
+          List<AssignToLhs> lhsBuilder;
+          List<Bpl.IdentifierExpr> bLhss;
+          ProcessLhss(lhss, rhssCanAffectPreviouslyKnownExpressions, builder, locals, etran, out lhsBuilder, out bLhss);
+          ProcessRhss(lhsBuilder, bLhss, lhss, s.Rhss, builder, locals, etran);
+          builder.Add(CaptureState(s.Tok));
+        }
+
       } else if (stmt is AssignStmt) {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;
-        TrAssignment(stmt.Tok, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
+        var sel = s.Lhs.Resolved as SeqSelectExpr;
+        if (sel != null && !sel.SelectOne) {
+          // check LHS for definedness
+          TrStmt_CheckWellformed(sel, builder, locals, etran, true);
+          // array-range assignment
+          var obj = etran.TrExpr(sel.Seq);
+          Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
+          Bpl.Expr high = sel.E1 == null ? ArrayLength(s.Tok, obj, 1, 0) : etran.TrExpr(sel.E1);
+          // check frame:
+          // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
+          Bpl.Variable iVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$i", Bpl.Type.Int));
+          Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(s.Tok, iVar);
+          Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Le(low, ie), Bpl.Expr.Lt(ie, high));
+          Bpl.Expr fieldName = FunctionCall(s.Tok, BuiltinFunction.IndexField, null, ie);
+          Bpl.Expr cons = Bpl.Expr.SelectTok(s.Tok, etran.TheFrame(s.Tok), obj, fieldName);
+          Bpl.Expr q = new Bpl.ForallExpr(s.Tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(ante, cons));
+          builder.Add(Assert(s.Tok, q, "assignment may update an array element not in the enclosing method's modifies clause"));
+          // compute the RHS
+          Bpl.Expr bRhs = TrAssignmentRhs(s.Tok, null, null, s.Rhs, sel.Type, builder, locals, etran);
+          // do the update:  call UpdateArrayRange(arr, low, high, rhs);
+          builder.Add(new Bpl.CallCmd(s.Tok, "UpdateArrayRange",
+            new Bpl.ExprSeq(obj, low, high, bRhs),
+            new Bpl.IdentifierExprSeq()));
+          builder.Add(CaptureState(s.Tok));
+        } else {
+          TrAssignment(stmt.Tok, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
+        }
       } else if (stmt is VarDecl) {
         AddComment(builder, stmt, "var-declaration statement");
         VarDecl s = (VarDecl)stmt;
@@ -3218,7 +3265,6 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
-        // TODO: Update statements should perform multiple assignments in parallel!
         foreach (var ss in s.ResolvedStatements) {
           TrStmt(ss, builder, locals, etran);
         }
@@ -3490,7 +3536,7 @@ namespace Microsoft.Dafny {
       builder.Add(call);
       for (int i = 0; i < s.Lhs.Count; i++) {
         Bpl.IdentifierExpr tmpVarIdE = tmpOuts[i];
-        IdentifierExpr e = s.Lhs[i];
+        var e = (IdentifierExpr)s.Lhs[i];  // TODO: make this work also for non-IdentifierExpr LHSs!
         Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(e);  // TODO: is this cast always justified?
         if (tmpVarIdE != null) {
           // Instead of an assignment:
@@ -3888,96 +3934,205 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrAssignment(IToken tok, Expression lhs, AssignmentRhs rhs, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals,
-                      ExpressionTranslator etran)
+    void TrAssignment(IToken tok, Expression lhs, AssignmentRhs rhs,
+      Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran)
     {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(!(lhs is ConcreteSyntaxExpression));
+      Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are handled elsewhere
       Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
-      TrStmt_CheckWellformed(lhs, builder, locals, etran, true);
+      List<AssignToLhs> lhsBuilder;
+      List<Bpl.IdentifierExpr> bLhss;
+      var lhss = new List<Expression>() { lhs.Resolved };
+      ProcessLhss(lhss, rhs.CanAffectPreviouslyKnownExpressions, builder, locals, etran,
+        out lhsBuilder, out bLhss);
+      Contract.Assert(lhsBuilder.Count == 1 && bLhss.Count == 1);  // guaranteed by postcondition of ProcessLhss
 
-      if (lhs is IdentifierExpr) {
-        var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
-        TrAssignmentRhs(tok, bLhs, lhs.Type, rhs, lhs.Type, builder, locals, etran);
+      var rhss = new List<AssignmentRhs>() { rhs };
+      ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
+    }
 
-      } else if (lhs is FieldSelectExpr) {
-        var fse = (FieldSelectExpr)lhs;
-        Contract.Assert(fse.Field != null);
-        var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhs, "$obj", predef.RefType, builder, locals);
-        // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
-        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
+    void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,
+      List<Expression> lhss, List<AssignmentRhs> rhss,
+      Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      Contract.Requires(lhsBuilder != null);
+      Contract.Requires(bLhss != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(cce.NonNullElements(rhss));
+      Contract.Requires(builder != null);
+      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
 
-        Bpl.Expr bRhs = TrAssignmentRhs(tok, null, fse.Field.Type, rhs, lhs.Type, builder, locals, etran);
+      var finalRhss = new List<Bpl.IdentifierExpr>();
+      for (int i = 0; i < lhss.Count; i++) {
+        var lhs = lhss[i];
+        // the following assumes are part of the precondition, really
+        Contract.Assume(!(lhs is ConcreteSyntaxExpression));
+        Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are handled elsewhere
 
-        var h = (Bpl.IdentifierExpr)etran.HeapExpr;  // TODO: is this cast always justified?
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fse.Field)), bRhs));
-        builder.Add(cmd);
-        // assume $IsGoodHeap($Heap);
-        builder.Add(AssumeGoodHeap(tok, etran));
+        Type lhsType = null;
+        if (lhs is IdentifierExpr) {
+          lhsType = lhs.Type;
+        } else if (lhs is FieldSelectExpr) {
+          var fse = (FieldSelectExpr)lhs;
+          lhsType = fse.Field.Type;
+        }
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], lhs.Type, builder, locals, etran);
+        if (bRhs != bLhss[i]) {
+          finalRhss.Add(bRhs);
+        } else {
+          // assignment has already been done by by TrAssignmentRhs
+          finalRhss.Add(null);
+        }
+      }
+      for (int i = 0; i < lhss.Count; i++) {
+        if (finalRhss[i] != null) {
+          lhsBuilder[i](finalRhss[i], builder, etran);
+        }
+      }
+    }
 
-      } else if (lhs is SeqSelectExpr) {
-        SeqSelectExpr sel = (SeqSelectExpr)lhs;
-        Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
-        if (sel.SelectOne) {
+    delegate void AssignToLhs(Bpl.Expr rhs, Bpl.StmtListBuilder builder, ExpressionTranslator etran);
+
+    /// <summary>
+    /// Creates a list of protected Boogie LHSs for the given Dafny LHSs.  Along the way,
+    /// builds code that checks that the LHSs are well-defined, denote different locations,
+    /// and are allowed by the enclosing modifies clause.
+    /// </summary>
+    List<AssignToLhs> ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions,
+      Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran,
+      out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss) {
+      Contract.Requires(cce.NonNullElements(lhss));
+      // Contract.Requires(rhs != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+      Contract.Ensures(Contract.ValueAtReturn(out lhsBuilders).Count == lhss.Count);
+      Contract.Ensures(Contract.ValueAtReturn(out lhsBuilders).Count == Contract.ValueAtReturn(out bLhss).Count);
+
+      rhsCanAffectPreviouslyKnownExpressions = rhsCanAffectPreviouslyKnownExpressions || lhss.Count != 1;
+
+      // for each Dafny LHS, build a protected Boogie LHS for the eventual assignment
+      lhsBuilders = new List<AssignToLhs>();
+      bLhss = new List<Bpl.IdentifierExpr>();
+      var prevObj = new Bpl.Expr[lhss.Count];
+      var prevIndex = new Bpl.Expr[lhss.Count];
+      int i = 0;
+      foreach (var lhs in lhss) {
+        Contract.Assume(!(lhs is ConcreteSyntaxExpression));
+        IToken tok = lhs.tok;
+        TrStmt_CheckWellformed(lhs, builder, locals, etran, true);
+
+        if (lhs is IdentifierExpr) {
+          var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
+          // Note, the resolver checks for duplicate IdentifierExpr's in LHSs
+          bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
+            builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+          });
+
+        } else if (lhs is FieldSelectExpr) {
+          var fse = (FieldSelectExpr)lhs;
+          Contract.Assert(fse.Field != null);
+          var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
+            "$obj" + i, predef.RefType, builder, locals);
+          prevObj[i] = obj;
+          // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
+
+          // check that this LHS is not the same as any previous LHSs
+          for (int j = 0; j < i; j++) {
+            var prev = lhss[j] as FieldSelectExpr;
+            if (prev != null && prev.Field == fse.Field) {
+              builder.Add(Assert(tok, Bpl.Expr.Neq(prevObj[j], obj), string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
+            }
+          }
+
+          bLhss.Add(null);
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
+            var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fse.Field)), rhs));
+            builder.Add(cmd);
+            // assume $IsGoodHeap($Heap);
+            builder.Add(AssumeGoodHeap(tok, et));
+          });
+
+        } else if (lhs is SeqSelectExpr) {
+          SeqSelectExpr sel = (SeqSelectExpr)lhs;
+          Contract.Assert(sel.SelectOne);  // array-range assignments are handled elsewhere, see precondition
+          Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
           Contract.Assert(sel.E0 != null);
-          var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhs, "$obj", predef.RefType, builder, locals);
-          var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0)), rhs, "$index", predef.FieldName(tok, predef.BoxType), builder, locals);
+          var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhsCanAffectPreviouslyKnownExpressions,
+            "$obj" + i, predef.RefType, builder, locals);
+          var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0)), rhsCanAffectPreviouslyKnownExpressions,
+            "$index" + i, predef.FieldName(tok, predef.BoxType), builder, locals);
+          prevObj[i] = obj;
+          prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
 
-          Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, lhs.Type, builder, locals, etran);
+          // check that this LHS is not the same as any previous LHSs
+          for (int j = 0; j < i; j++) {
+            var prev = lhss[j] as SeqSelectExpr;
+            if (prev != null) {
+              builder.Add(Assert(tok,
+                Bpl.Expr.Or(Bpl.Expr.Neq(prevObj[j], obj), Bpl.Expr.Neq(prevIndex[j], fieldName)),
+                string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
+            }
+          }
 
-          var h = (Bpl.IdentifierExpr)etran.HeapExpr;  // TODO: is this cast always justified?
-          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, bRhs));
-          builder.Add(cmd);
-          // assume $IsGoodHeap($Heap);
-          builder.Add(AssumeGoodHeap(tok, etran));
+          bLhss.Add(null);
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
+            var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
+            builder.Add(cmd);
+            // assume $IsGoodHeap($Heap);
+            builder.Add(AssumeGoodHeap(tok, et));
+          });
 
         } else {
-          var obj = etran.TrExpr(sel.Seq);
-          Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
-          Bpl.Expr high = sel.E1 == null ? ArrayLength(tok, obj, 1, 0) : etran.TrExpr(sel.E1);
-          // check frame:
-          // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
-          Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
-          Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(tok, iVar);
-          Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Le(low, ie), Bpl.Expr.Lt(ie, high));
-          Bpl.Expr fieldName = FunctionCall(tok, BuiltinFunction.IndexField, null, ie);
-          Bpl.Expr cons = Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName);
-          Bpl.Expr q = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(ante, cons));
-          builder.Add(Assert(tok, q, "assignment may update an array element not in the enclosing method's modifies clause"));
-          // compute the RHS
-          Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, lhs.Type, builder, locals, etran);
-          // do the update:  call UpdateArrayRange(arr, low, high, rhs);
-          builder.Add(new Bpl.CallCmd(tok, "UpdateArrayRange",
-            new Bpl.ExprSeq(obj, low, high, bRhs),
-            new Bpl.IdentifierExprSeq()));
+          MultiSelectExpr mse = (MultiSelectExpr)lhs;
+          Contract.Assert(mse.Array.Type != null && mse.Array.Type.IsArrayType);
+
+          var obj = SaveInTemp(etran.TrExpr(mse.Array), rhsCanAffectPreviouslyKnownExpressions,
+            "$obj" + i, predef.RefType, builder, locals);
+          var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.tok, mse.Indices), rhsCanAffectPreviouslyKnownExpressions, 
+            "$index" + i, predef.FieldName(mse.tok, predef.BoxType), builder, locals);
+          prevObj[i] = obj;
+          prevIndex[i] = fieldName;
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
+
+          // check that this LHS is not the same as any previous LHSs
+          for (int j = 0; j < i; j++) {
+            var prev = lhss[j] as SeqSelectExpr;
+            if (prev != null) {
+              builder.Add(Assert(tok,
+                Bpl.Expr.Or(Bpl.Expr.Neq(prevObj[j], obj), Bpl.Expr.Neq(prevIndex[j], fieldName)),
+                string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
+            }
+          }
+
+          bLhss.Add(null);
+          lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
+            var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
+            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
+            builder.Add(cmd);
+            // assume $IsGoodHeap($Heap);
+            builder.Add(AssumeGoodHeap(tok, etran));
+          });
         }
 
-      } else {
-        MultiSelectExpr mse = (MultiSelectExpr)lhs;
-        Contract.Assert(mse.Array.Type != null && mse.Array.Type.IsArrayType);
-
-        var obj = SaveInTemp(etran.TrExpr(mse.Array), rhs, "$obj", predef.RefType, builder, locals);
-        var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.tok, mse.Indices), rhs, "$index", predef.FieldName(mse.tok, predef.BoxType), builder, locals);
-        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
-
-        Bpl.Expr bRhs = TrAssignmentRhs(tok, null, null, rhs, lhs.Type, builder, locals, etran);
-
-        var h = (Bpl.IdentifierExpr)etran.HeapExpr;  // TODO: is this cast always justified?
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, bRhs));
-        builder.Add(cmd);
-        // assume $IsGoodHeap($Heap);
-        builder.Add(AssumeGoodHeap(tok, etran));
+        i++;
       }
-
-      builder.Add(CaptureState(tok));
+      return lhsBuilders;
     }
 
     /// <summary>
@@ -3990,6 +4145,7 @@ namespace Microsoft.Dafny {
                                        Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(rhs != null);
+      Contract.Requires(!(rhs is CallRhs));  // calls are handled in a different translation method
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
       Contract.Requires(etran != null);

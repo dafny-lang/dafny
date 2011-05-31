@@ -1309,7 +1309,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 						Expressions(args);
 					}
 					Expect(34);
-					initCall = new CallStmt(x, new List<IdentifierExpr>(),
+					initCall = new CallStmt(x, new List<Expression>(),
 					                       receiverForInitCall, x.val, args); 
 				}
 			}

@@ -96,8 +96,7 @@ method DutchFlag(A: array<int>, N: int, l: int, r: int) returns (result: int)
   var pv := A[l];
   var i := l;
   var j := r-1;
-  // swap A[l] and A[j]
-  var tmp := A[l]; A[l] := A[j]; A[j] := tmp;
+  A[l], A[j] := A[j], A[l];
 
   while (i < j)
     invariant l <= i && i <= j && j < r;
@@ -110,11 +109,9 @@ method DutchFlag(A: array<int>, N: int, l: int, r: int) returns (result: int)
       case pv <= A[j-1] =>
         j := j - 1;
       case A[j-1] < pv && pv < A[i] =>
-        // swap A[j-1] and A[i]
-        tmp := A[i]; A[i] := A[j-1]; A[j-1] := tmp;
+        A[j-1], A[i] := A[i], A[j-1];
         assert A[i] < pv && pv < A[j-1];
-        i := i + 1;
-        j := j - 1;
+        i, j := i + 1, j - 1;
     }
   }
   result := i;

@@ -741,7 +741,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
     | "." Ident<out x>
       "("                              (. args = new List<Expression/*!*/>(); .)
         [ Expressions<args> ]
-      ")"                              (. initCall = new CallStmt(x, new List<IdentifierExpr>(),
+      ")"                              (. initCall = new CallStmt(x, new List<Expression>(),
                                                                   receiverForInitCall, x.val, args); .)
     ]
     (. if (ee != null) {
