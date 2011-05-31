@@ -618,6 +618,49 @@ namespace Microsoft.Dafny {
       } else if (stmt is ReturnStmt) {
         Indent(indent);
         wr.WriteLine("return;");
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        var resolved = s.ResolvedStatements;
+        if (resolved.Count == 1) {
+          TrStmt(resolved[0], indent);
+        } else {
+          // multi-assignment
+          Contract.Assert(s.Lhss.Count == resolved.Count);
+          Contract.Assert(s.Rhss.Count == resolved.Count);
+          var lvalues = new List<string>();
+          int i = 0;
+          foreach (var lhs in s.Lhss) {
+            if (!resolved[i].IsGhost) {
+              lvalues.Add(CreateLvalue(lhs, indent));
+            }
+            i++;
+          }
+          int N = i;
+          var rhss = new List<string>();
+          i = 0;
+          foreach (var rhs in s.Rhss) {
+            if (!resolved[i].IsGhost) {
+              if (rhs is HavocRhs) {
+                rhss.Add(null);
+              } else {
+                string target = "_rhs" + tmpVarCount;
+                tmpVarCount++;
+                rhss.Add(target);
+                TrRhs("var " + target, null, rhs, indent);
+              }
+            }
+            i++;
+          }
+          Contract.Assert(lvalues.Count == N);
+          Contract.Assert(rhss.Count == N);
+          for (i = 0; i < N; i++) {
+            if (rhss[i] != null) {
+              Indent(indent);
+              wr.WriteLine("{0} = {1};", lvalues[i], rhss[i]);
+            }
+          }
+        }
+
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         if (s.Lhs is SeqSelectExpr && !((SeqSelectExpr)s.Lhs).SelectOne) {
@@ -662,25 +705,7 @@ namespace Microsoft.Dafny {
           }
 
         } else {
-          var tRhs = s.Rhs as TypeRhs;
-          if (tRhs != null && tRhs.InitCall != null) {
-            string nw = "_nw" + tmpVarCount;
-            tmpVarCount++;
-            Indent(indent);
-            wr.Write("var {0} = ", nw);
-            TrAssignmentRhs(s.Rhs);
-            wr.WriteLine(";");
-            TrCallStmt(tRhs.InitCall, nw, indent);
-            Indent(indent);
-            TrExpr(s.Lhs);
-            wr.WriteLine(" = {0};", nw);
-          } else if (!(s.Rhs is HavocRhs)) {
-            Indent(indent);
-            TrExpr(s.Lhs);
-            wr.Write(" = ");
-            TrAssignmentRhs(s.Rhs);
-            wr.WriteLine(";");
-          }
+          TrRhs(null, s.Lhs, s.Rhs, indent);
         }
         
       } else if (stmt is VarDecl) {
@@ -842,7 +867,6 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
-        // TODO: Update statements should perform multiple assignments in parallel!
         foreach (var ss in s.ResolvedStatements) {
           TrStmt(ss, indent);
         }
@@ -852,10 +876,110 @@ namespace Microsoft.Dafny {
       }
     }
 
+    string CreateLvalue(Expression lhs, int indent) {
+      lhs = lhs.Resolved;
+      if (lhs is IdentifierExpr) {
+        var ll = (IdentifierExpr)lhs;
+        return "@" + ll.Var.Name;
+      } else if (lhs is FieldSelectExpr) {
+        var ll = (FieldSelectExpr)lhs;
+        string obj = "_obj" + tmpVarCount;
+        tmpVarCount++;
+        Indent(indent);
+        wr.Write("var {0} = ", obj);
+        TrExpr(ll.Obj);
+        wr.WriteLine(";");
+        return string.Format("{0}.@{1}", obj, ll.Field.Name);
+      } else if (lhs is SeqSelectExpr) {
+        var ll = (SeqSelectExpr)lhs;
+        string arr = "_arr" + tmpVarCount;
+        string index = "_index" + tmpVarCount;
+        tmpVarCount++;
+        Indent(indent);
+        wr.Write("var {0} = ", arr);
+        TrExpr(ll.Seq);
+        wr.WriteLine(";");
+        Indent(indent);
+        wr.Write("var {0} = ", index);
+        TrExpr(ll.E0);
+        wr.WriteLine(";");
+        return string.Format("{0}[(int){1}]", arr, index);
+      } else {
+        var ll = (MultiSelectExpr)lhs;
+        string arr = "_arr" + tmpVarCount;
+        Indent(indent);
+        wr.Write("var {0} = ", arr);
+        TrExpr(ll.Array);
+        wr.WriteLine(";");
+        string fullString = arr + "[";
+        string sep = "";
+        int i = 0;
+        foreach (var idx in ll.Indices) {
+          string index = "_index" + i + "_" + tmpVarCount;
+          Indent(indent);
+          wr.Write("var {0} = ", index);
+          TrExpr(idx);
+          wr.WriteLine(";");
+          fullString += sep + "(int)" + index;
+          sep = ", ";
+          i++;
+        }
+        tmpVarCount++;
+        return fullString + "]";
+      }
+    }
+
+    void TrRhs(string target, Expression targetExpr, AssignmentRhs rhs, int indent) {
+      Contract.Requires((target == null) != (targetExpr == null));
+      var tRhs = rhs as TypeRhs;
+      if (tRhs != null && tRhs.InitCall != null) {
+        string nw = "_nw" + tmpVarCount;
+        tmpVarCount++;
+        Indent(indent);
+        wr.Write("var {0} = ", nw);
+        TrAssignmentRhs(rhs);
+        wr.WriteLine(";");
+        TrCallStmt(tRhs.InitCall, nw, indent);
+        Indent(indent);
+        if (target != null) {
+          wr.Write(target);
+        } else {
+          TrExpr(targetExpr);
+        }
+        wr.WriteLine(" = {0};", nw);
+      } else if (!(rhs is HavocRhs)) {
+        Indent(indent);
+        if (target != null) {
+          wr.Write(target);
+        } else {
+          TrExpr(targetExpr);
+        }
+        wr.Write(" = ", target);
+        TrAssignmentRhs(rhs);
+        wr.WriteLine(";");
+      }
+    }
+
     void TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
       Contract.Requires(s != null);
-
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
+
+      var lvalues = new List<string>();
+      foreach (var lhs in s.Lhs) {
+        lvalues.Add(CreateLvalue(lhs, indent));
+      }
+      var outTmps = new List<string>();
+      for (int i = 0; i < s.Method.Outs.Count; i++) {
+        Formal p = s.Method.Outs[i];
+        if (!p.IsGhost) {
+          string target = "_out" + tmpVarCount;
+          tmpVarCount++;
+          outTmps.Add(target);
+          Indent(indent);
+          wr.WriteLine("{0} {1};", TypeName(p.Type), target);
+        }
+      }
+
       Indent(indent);
       if (receiverReplacement != null) {
         wr.Write("@" + receiverReplacement);
@@ -875,16 +999,24 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
       }
-      for (int i = 0; i < s.Method.Outs.Count; i++) {
+
+      foreach (var outTmp in outTmps) {
+        wr.Write("{0}out {1}", sep, outTmp);
+        sep = ", ";
+      }
+      wr.WriteLine(");");
+
+      // assign to the actual LHSs
+      int j = 0;
+      for (int i = 0; i < s.Method.Outs.Count; i++, j++) {
         Formal p = s.Method.Outs[i];
         if (!p.IsGhost) {
-          wr.Write("{0}out ", sep);
+          Indent(indent);
           TrExpr(s.Lhs[i]);
-          sep = ", ";
+          wr.Write(" = {0};", outTmps[j]);
         }
       }
-
-      wr.WriteLine(");");
+      Contract.Assert(j == outTmps.Count);
     }
     
     int tmpVarCount = 0;
