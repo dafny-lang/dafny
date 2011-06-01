@@ -347,6 +347,7 @@ var $Heap: HeapType where $IsGoodHeap($Heap);
 
 function $HeapSucc(HeapType, HeapType): bool;
 axiom (forall<alpha> h: HeapType, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
+  $IsGoodHeap(update(h, r, f, x)) ==>
   $HeapSucc(h, update(h, r, f, x)));
 axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
