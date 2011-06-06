@@ -47,7 +47,8 @@ namespace Microsoft.Dafny {
     readonly BuiltIns builtIns;
     readonly Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes = new Dictionary<string/*!*/,TopLevelDecl/*!*/>();
     readonly Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>();
-    readonly Dictionary<DatatypeDecl/*!*/,Dictionary<string/*!*/,DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/,Dictionary<string/*!*/,DatatypeCtor/*!*/>/*!*/>();
+    readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ datatypeMembers = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
+    readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>();
     readonly Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ importGraph = new Graph<ModuleDecl/*!*/>();
 
@@ -205,12 +206,25 @@ namespace Microsoft.Dafny {
           // register the names of the constructors
           Dictionary<string,DatatypeCtor> ctors = new Dictionary<string,DatatypeCtor>();
           datatypeCtors.Add(dt, ctors);
+          // ... and of the other members
+          Dictionary<string, MemberDecl> members = new Dictionary<string, MemberDecl>();
+          datatypeMembers.Add(dt, members);
         
           foreach (DatatypeCtor ctor in dt.Ctors) {
-            if (ctors.ContainsKey(ctor.Name)) {
+            if (ctor.Name.EndsWith("?")) {
+              Error(ctor, "a datatype constructor name is not allowed to end with '?'");
+            } else  if (ctors.ContainsKey(ctor.Name)) {
               Error(ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
             } else {
               ctors.Add(ctor.Name, ctor);
+
+              // create and add the query "method" (field, really)
+              string queryName = ctor.Name + "?";
+              var query = new SpecialField(ctor.tok, queryName, "_" + ctor.Name, "", "", false, false, Type.Bool, null);
+              query.EnclosingClass = dt;  // resolve here
+              members.Add(queryName, query);
+              ctor.QueryField = query;
+                
               // also register the constructor name globally
               Tuple<DatatypeCtor, bool> pair;
               if (allDatatypeCtors.TryGetValue(ctor.Name, out pair)) {
@@ -220,6 +234,22 @@ namespace Microsoft.Dafny {
                 // add new
                 allDatatypeCtors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
               }
+            }
+          }
+          // add deconstructors now (that is, after the query methods have been added)
+          foreach (DatatypeCtor ctor in dt.Ctors) {
+            foreach (var formal in ctor.Formals) {
+              SpecialField dtor = null;
+              if (formal.HasName) {
+                if (members.ContainsKey(formal.Name)) {
+                  Error(ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
+                } else {
+                  dtor = new SpecialField(formal.tok, formal.Name, "dtor_" + formal.Name, "", "", false, false, formal.Type, null);
+                  dtor.EnclosingClass = dt;  // resolve here
+                  members.Add(formal.Name, dtor);
+                }
+              }
+              ctor.Destructors.Add(dtor);
             }
           }
         }
@@ -671,12 +701,13 @@ namespace Microsoft.Dafny {
       } else if (UserDefinedType.DenotesClass(t) != null) {
         // fine type
         if (fe.FieldName != null) {
-          UserDefinedType ctype;
-          MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out ctype);
+          NonProxyType nptype;
+          MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out nptype);
+          UserDefinedType ctype = (UserDefinedType)nptype;  // correctness of cast follows from the DenotesClass test above
           if (member == null) {
             // error has already been reported by ResolveMember
           } else if (!(member is Field)) {
-            Error(fe.E, "member {0} in class {1} does not refer to a field", fe.FieldName, cce.NonNull(ctype).Name);
+            Error(fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, cce.NonNull(ctype).Name);
           } else {
             Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
             fe.Field = (Field)member;
@@ -765,19 +796,11 @@ namespace Microsoft.Dafny {
       scope.PopMarker();  // for the in-parameters
     }
     
-    /// <summary>
-    /// Assumes type parameters have already been pushed
-    /// </summary>
     void ResolveCtorSignature(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
-      scope.PushMarker();
       foreach (Formal p in ctor.Formals) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
         ResolveType(p.tok, p.Type);
       }
-      scope.PopMarker();
     }
 
     public void ResolveType(IToken tok, Type type) {
@@ -1615,7 +1638,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
               mc.Ctor = ctor;
               if (ctor.Formals.Count != mc.Arguments.Count) {
-                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Arguments.Count, ctor.Formals.Count);
+                Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
               }
               if (memberNamesUsed.ContainsKey(mc.Id)) {
                 Error(mc.tok, "member {0} appears in more than one case", mc.Id);
@@ -1720,13 +1743,13 @@ namespace Microsoft.Dafny {
         receiverType = s.Receiver.Type;
       }
       // resolve the method name
-      UserDefinedType ctype;
-      MemberDecl member = ResolveMember(s.Tok, receiverType, s.MethodName, out ctype);
+      NonProxyType nptype;
+      MemberDecl member = ResolveMember(s.Tok, receiverType, s.MethodName, out nptype);
       Method callee = null;
       if (member == null) {
         // error has already been reported by ResolveMember
       } else if (!(member is Method)) {
-        Error(s, "member {0} in class {1} does not refer to a method", s.MethodName, cce.NonNull(ctype).Name);
+        Error(s, "member {0} in type {1} does not refer to a method", s.MethodName, nptype);
       } else {
         callee = (Method)member;
         s.Method = callee;
@@ -1768,7 +1791,7 @@ namespace Microsoft.Dafny {
           Error(s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
         }
       } else {
-        Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember above
+        Contract.Assert(nptype != null);  // follows from postcondition of ResolveMember above
         if (isInitCall) {
           if (callee.IsStatic) {
             Error(s.Tok, "a method called as an initialization method must not be 'static'");
@@ -1783,6 +1806,9 @@ namespace Microsoft.Dafny {
             Error(s.Receiver, "call to instance method requires an instance");
           }
         }
+#if !NO_WORK_TO_BE_DONE
+        UserDefinedType ctype = (UserDefinedType)nptype;  // TODO: get rid of this statement, make this code handle any non-proxy type
+#endif
         // build the type substitution map
         Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
         for (int i = 0; i < ctype.TypeArgs.Count; i++) {
@@ -1921,27 +1947,48 @@ namespace Microsoft.Dafny {
       return rr.Type;
     }
 
-    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out UserDefinedType ctype)
+    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype)
     {
       Contract.Requires(tok != null);
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
-      Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out ctype) != null && ctype.ResolvedClass != null);
-    
-      ctype = UserDefinedType.DenotesClass(receiverType);
-      if (ctype == null) {
-        Error(tok, "receiver (of type {0}) must be of a class type", receiverType);
-      } else {
-        Contract.Assert(ctype.ResolvedClass is ClassDecl);  // follows from postcondition of DenotesClass
-        Contract.Assert(ctype.TypeArgs.Count == ctype.ResolvedClass.TypeArgs.Count);  // follows from the fact that ctype was resolved
+      Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out nptype) != null);
+
+      nptype = null;  // prepare for the worst
+      receiverType = receiverType.Normalize();
+      if (receiverType is TypeProxy) {
+        Error(tok, "type of the receiver is not fully determined at this program point", receiverType);
+        return null;
+      }
+      Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
+
+      UserDefinedType ctype = UserDefinedType.DenotesClass(receiverType);
+      if (ctype != null) {
+        ClassDecl cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
+        Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
-        if (!classMembers[(ClassDecl)ctype.ResolvedClass].TryGetValue(memberName, out member)) {
+        if (!classMembers[cd].TryGetValue(memberName, out member)) {
           Error(tok, "member {0} does not exist in class {1}", memberName, ctype.Name);
+          return null;
         } else {
-          return cce.NonNull(member);
+          nptype = ctype;
+          return member;
         }
       }
-      ctype = null;
+
+      DatatypeDecl dtd = receiverType.AsDatatype;
+      if (dtd != null) {
+        MemberDecl member;
+        if (!datatypeMembers[dtd].TryGetValue(memberName, out member)) {
+          Error(tok, "member {0} does not exist in datatype {1}", memberName, dtd.Name);
+          return null;
+        } else {
+          nptype = (UserDefinedType)receiverType;
+          return member;
+        }
+      }
+
+      Error(tok, "type {0} does not have a member {1}", receiverType, memberName);
       return null;
     }
 
@@ -2025,7 +2072,18 @@ namespace Microsoft.Dafny {
       }
       return new UserDefinedType(tok, cl.Name, cl, args);
     }
-    
+
+    /// <summary>
+    /// Requires "member" to be declared in a class.
+    /// </summary>
+    public static UserDefinedType GetReceiverType(IToken tok, MemberDecl member) {
+      Contract.Requires(tok != null);
+      Contract.Requires(member != null);
+      Contract.Ensures(Contract.Result<UserDefinedType>() != null);
+
+      return GetThisType(tok, (ClassDecl)member.EnclosingClass);
+    }
+
     /// <summary>
     /// "twoState" implies that "old" and "fresh" expressions are allowed
     /// </summary>
@@ -2157,15 +2215,18 @@ namespace Microsoft.Dafny {
         }
         
       } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr e = (FieldSelectExpr)expr;
+        var e = (FieldSelectExpr)expr;
         ResolveExpression(e.Obj, twoState);
         Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
-        UserDefinedType ctype;
-        MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.FieldName, out ctype);
+        NonProxyType nptype;
+        MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.FieldName, out nptype);
+#if !NO_WORK_TO_BE_DONE
+        UserDefinedType ctype = (UserDefinedType)nptype;
+#endif
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (!(member is Field)) {
-          Error(expr, "member {0} in class {1} does not refer to a field", e.FieldName, cce.NonNull(ctype).Name);
+          Error(expr, "member {0} in type {1} does not refer to a field", e.FieldName, cce.NonNull(ctype).Name);
         } else {
           Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           e.Field = (Field)member;
@@ -2713,15 +2774,18 @@ namespace Microsoft.Dafny {
     CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, bool allowMethodCall) {
       ResolveReceiver(e.Receiver, twoState);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
-      UserDefinedType ctype;
-      MemberDecl member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out ctype);
+      NonProxyType nptype;
+      MemberDecl member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out nptype);
+#if !NO_WORK_TO_BE_DONE
+      UserDefinedType ctype = (UserDefinedType)nptype;
+#endif
       if (member == null) {
         // error has already been reported by ResolveMember
       } else if (allowMethodCall && member is Method) {
         // it's a method
         return new CallRhs(e.tok, e.Receiver, e.Name, e.Args);
       } else if (!(member is Function)) {
-        Error(e, "member {0} in class {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);
+        Error(e, "member {0} in type {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);
       } else {
         Function function = (Function)member;
         e.Function = function;
