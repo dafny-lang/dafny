@@ -4028,6 +4028,7 @@ namespace Microsoft.Dafny {
 
       var rhss = new List<AssignmentRhs>() { rhs };
       ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
+      builder.Add(CaptureState(tok));
     }
 
     void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,
