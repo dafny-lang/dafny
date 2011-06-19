@@ -30,6 +30,7 @@ rule tokenize = parse
 | "invariant"    { INVARIANT }
 | "returns"      { RETURNS }
 | "requires"     { REQUIRES }
+| "ensures"      { ENSURES }
 | "forall"       { FORALL }
 // Operators
 | "."      { DOT }

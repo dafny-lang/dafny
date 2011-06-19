@@ -1,4 +1,5 @@
 ﻿namespace Ast
+
 open System
 open System.Numerics
 
@@ -32,8 +33,9 @@ type Signature =
 
 type Member =
   | Field of VarDecl
-  | Constructor of string * Signature * Expr * Stmt list
-  | Method of string * Signature * Expr * Stmt list
+  | Constructor of string * Signature * Expr * Expr
+  | Method of string * Signature * Expr * Expr
+  | Invariant of Expr list
 
 type TopLevelDecl =
   | Class of string * string list * Member list

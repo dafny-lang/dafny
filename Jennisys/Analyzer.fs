@@ -1,7 +1,9 @@
 ﻿module Analyzer
 
 open Ast
+open AstUtils
 open Printer
+open TypeChecker
 
 let rec PrintType ty =
   match ty with
@@ -73,29 +75,81 @@ let rec PrintStmt stmt indent =
 and PrintStmtList stmts indent =
   stmts |> List.iter (fun s -> PrintStmt s indent)
 
-let GenerateCode methodName signature pre stmts inv assumeInvInitially =
+let GenerateCode methodName signature pre post inv assumeInvInitially =
   printfn "  method %s()" methodName
   printfn "    modifies this;"
   printfn "  {"
   if assumeInvInitially then
     // assume invariant
-    printf "    assume " ; PrintExpr 0 inv ; printfn ";"
+    printfn "    assume Valid();"
   else ()
   // print signature as local variables
   match signature with
     | Sig(ins,outs) ->
         List.concat [ins; outs] |> List.iter (fun vd -> printf "    var " ; PrintVarDecl vd ; printfn ";")
   // assume preconditions
+  printfn "    // assume precondition"
   printf "    assume " ; PrintExpr 0 pre ; printfn ";"
-  // do statements
-  stmts |> List.iter (fun s -> PrintStmt s 4)
-  // assume invariant
-  printf "    assume " ; PrintExpr 0 inv ; printfn ";"
+  // assume invariant and postcondition
+  printfn "    // assume invariant and postcondition"
+  printfn "    assume Valid();"
+  printf "    assume " ; PrintExpr 0 post ; printfn ";"
   // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
+  printfn "    // assert false to search for a model satisfying the assumed constraints"
   printfn "    assert false;"
-  printfn "}"
+  printfn "  }"
 
-let AnalyzeComponent c =
+let GetFieldValidExpr name = 
+  BinaryImplies (BinaryNeq (IdLiteral(name)) (IdLiteral("null"))) (Dot(IdLiteral(name), "Valid()"))
+
+let GetFieldsForValidExpr (allFields: VarDecl list) prog =
+  allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
+                                     | _                                   -> false)
+
+let GenFieldsValidExprList (allFields: VarDecl list) prog =
+  let fields = GetFieldsForValidExpr allFields prog
+  fields |> List.map (function Var(name, _) -> GetFieldValidExpr name)
+
+let AnalyzeComponent (prog: Program) c =
+  match c with
+  | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
+      let aVars = Fields members
+      let allVars = List.concat [aVars ; cVars];
+      // Now print it as a Dafny program
+      printf "class %s" name
+      match typeParams with
+        | [] -> ()
+        | _ -> printf "<" ; typeParams |> PrintSep ", " (fun tp -> printf "%s" tp) ; printf ">"
+      printfn " {"
+      // the fields: original abstract fields plus two more copies thereof, plus and concrete fields
+      allVars |> List.iter (function Var(nm,None) -> printfn "  var %s;" nm | Var(nm,Some(tp)) -> printf "  var %s: " nm ; PrintType tp ; printfn ";")
+      printfn ""
+      // generate the Valid function
+      let invMembers = members |> List.filter (function Invariant(_) -> true | _ -> false)
+      let clsInvs = invMembers |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
+      let allInvs = inv :: clsInvs
+      let fieldsValid = GenFieldsValidExprList allVars prog
+      printfn "  function Valid(): bool"
+      printfn "    reads *;"
+      printfn "  {"
+      let dummy = List.concat [fieldsValid ; allInvs] |> List.fold (fun acc (e: Expr) -> 
+                                                                      if acc = "" then
+                                                                        printf "    " ; PrintExpr 0 e ; "nonempty"
+                                                                      else
+                                                                        printfn " &&" ; printf "    " ; PrintExpr 0 e; "nonempty") ""
+      printfn ""
+      printfn "  }"; printfn ""
+
+      // generate constructors and methods
+      members |> List.iter (function
+        | Constructor(methodName,signature,pre,post) -> GenerateCode methodName signature pre post inv false ; printfn ""
+        | Method(methodName,signature,pre,post)      -> GenerateCode methodName signature pre post inv true  ; printfn ""
+        | _ -> ())
+      // the end of the class
+      printfn "}" ; printfn ""
+  | _ -> assert false  // unexpected case
+
+let AnalyzeComponent_rustan c =
   match c with
   | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
       let aVars = Fields members
@@ -131,4 +185,4 @@ let AnalyzeComponent c =
 let Analyze prog =
   match prog with
   | Program(components) ->
-      components |> List.iter AnalyzeComponent
+      components |> List.iter (AnalyzeComponent prog)

@@ -2,6 +2,7 @@
 // Learn more about F# at http://fsharp.net
 // Original project template by Jomo Fisher based on work of Brian McNamara, Don Syme and Matt Valerio
 // This posting is provided "AS IS" with no warranties, and confers no rights.
+module Main
 
 open System
 open System.IO
@@ -13,7 +14,6 @@ open Parser
 open Printer
 open TypeChecker
 open Analyzer
-
 
 let readAndProcess tracing analyzing (filename: string) =
     try
