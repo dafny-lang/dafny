@@ -3,40 +3,8 @@
 open Ast
 open AstUtils
 open Printer
+open DafnyPrinter
 open TypeChecker
-
-let rec PrintType ty =
-  match ty with
-  | NamedType(id) -> printf "%s" id
-  | InstantiatedType(id,arg) -> printf "%s<" id ; PrintType arg ; printf ">"
-
-let rec PrintExpr ctx expr =
-  match expr with
-  | IntLiteral(n) -> printf "%O" n
-  | IdLiteral(id) -> printf "%s" id
-  | Star -> assert false // I hope this won't happen
-  | Dot(e,id) -> PrintExpr 100 e ; printf ".%s" id
-  | UnaryExpr(op,e) -> printf "%s" op ; PrintExpr 90 e
-  | BinaryExpr(strength,op,e0,e1) ->
-      let op =
-        match op with
-          | "=" -> "=="
-          | "div" -> "/"
-          | "mod" -> "%"
-          | _ -> op
-      let needParens = strength <= ctx
-      if needParens then printf "(" else ()
-      PrintExpr strength e0 ; printf " %s " op ; PrintExpr strength e1
-      if needParens then printf ")" else ()
-  | SelectExpr(e,i) -> PrintExpr 100 e ; printf "[" ; PrintExpr 0 i ; printf "]"
-  | UpdateExpr(e,i,v) -> PrintExpr 100 e ; printf "[" ; PrintExpr 0 i ; printf " := " ; PrintExpr 0 v ; printf "]"
-  | SequenceExpr(ee) -> printf "[" ; ee |> PrintSep ", " (PrintExpr 0) ; printf "]"
-  | SeqLength(e) -> printf "|" ; PrintExpr 0 e ; printf "|"
-  | ForallExpr(vv,e) ->
-      let needParens = true
-      if needParens then printf "(" else ()
-      printf "forall " ; vv |> PrintSep ", " PrintVarDecl ; printf " :: " ; PrintExpr 0 e
-      if needParens then printf ")" else ()
 
 let VarsAreDifferent aa bb =
   printf "false"
@@ -44,6 +12,14 @@ let VarsAreDifferent aa bb =
 
 let Fields members =
   members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
+
+let Methods prog = 
+  match prog with
+  | Program(components) ->
+      components |> List.fold (fun acc comp -> 
+        match comp with
+        | Component(Class(_,_,members), Model(_,_,_,_,_), _) -> List.concat [acc ; members]            
+        | _ -> acc) []
 
 let Rename suffix vars =
   vars |> List.map (function Var(nm,tp) -> nm, Var(nm + suffix, tp))
@@ -65,124 +41,127 @@ let rec Substitute substMap = function
   | ForallExpr(vv,e) -> ForallExpr(vv, Substitute substMap e)
   | expr -> expr
 
-let rec PrintStmt stmt indent =
-  match stmt with
-  | Block(stmts) ->
-      Indent indent ; printfn "{"
-      PrintStmtList stmts (indent + 2)
-      Indent indent ; printfn "}"
-  | Assign(lhs,rhs) -> Indent indent ; PrintExpr 0 lhs ; printf " := " ; PrintExpr 0 rhs ; printfn ";"
-and PrintStmtList stmts indent =
-  stmts |> List.iter (fun s -> PrintStmt s indent)
-
-let GenerateCode methodName signature pre post inv assumeInvInitially =
-  printfn "  method %s()" methodName
-  printfn "    modifies this;"
-  printfn "  {"
-  if assumeInvInitially then
-    // assume invariant
-    printfn "    assume Valid();"
-  else ()
+let GenerateMethodCode methodName signature pre post assumeInvInitially =
+  "  method " + methodName + "()" + newline +
+  "    modifies this;" + newline +
+  "  {" + newline + 
+  (if assumeInvInitially then "    assume Valid();" else "") +
   // print signature as local variables
-  match signature with
+  (match signature with
     | Sig(ins,outs) ->
-        List.concat [ins; outs] |> List.iter (fun vd -> printf "    var " ; PrintVarDecl vd ; printfn ";")
+        List.concat [ins; outs] |> List.fold (fun acc vd -> acc + (sprintf "    var %s;" (PrintVarDecl vd)) + newline) "") +
   // assume preconditions
-  printfn "    // assume precondition"
-  printf "    assume " ; PrintExpr 0 pre ; printfn ";"
+  "    // assume precondition" + newline +
+  "    assume " + (PrintExpr 0 pre) + ";" + newline + 
   // assume invariant and postcondition
-  printfn "    // assume invariant and postcondition"
-  printfn "    assume Valid();"
-  printf "    assume " ; PrintExpr 0 post ; printfn ";"
+  "    // assume invariant and postcondition" + newline + 
+  "    assume Valid();" + newline +
+  "    assume " + (PrintExpr 0 post) + ";" + newline +
   // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
-  printfn "    // assert false to search for a model satisfying the assumed constraints"
-  printfn "    assert false;"
-  printfn "  }"
+  "    // assert false to search for a model satisfying the assumed constraints" + newline + 
+  "    assert false;" + newline + 
+  "  }" + newline                                      
 
-let GetFieldValidExpr name = 
+let GetFieldValidExpr (name: string) : Expr = 
   BinaryImplies (BinaryNeq (IdLiteral(name)) (IdLiteral("null"))) (Dot(IdLiteral(name), "Valid()"))
 
-let GetFieldsForValidExpr (allFields: VarDecl list) prog =
+let GetFieldsForValidExpr (allFields: VarDecl list) prog : VarDecl list =
   allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
                                      | _                                   -> false)
 
-let GenFieldsValidExprList (allFields: VarDecl list) prog =
+let GetFieldsValidExprList (allFields: VarDecl list) prog : Expr list =
   let fields = GetFieldsForValidExpr allFields prog
   fields |> List.map (function Var(name, _) -> GetFieldValidExpr name)
 
-let AnalyzeComponent (prog: Program) c =
-  match c with
-  | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
-      let aVars = Fields members
-      let allVars = List.concat [aVars ; cVars];
-      // Now print it as a Dafny program
-      printf "class %s" name
-      match typeParams with
-        | [] -> ()
-        | _ -> printf "<" ; typeParams |> PrintSep ", " (fun tp -> printf "%s" tp) ; printf ">"
-      printfn " {"
-      // the fields: original abstract fields plus two more copies thereof, plus and concrete fields
-      allVars |> List.iter (function Var(nm,None) -> printfn "  var %s;" nm | Var(nm,Some(tp)) -> printf "  var %s: " nm ; PrintType tp ; printfn ";")
-      printfn ""
-      // generate the Valid function
-      let invMembers = members |> List.filter (function Invariant(_) -> true | _ -> false)
-      let clsInvs = invMembers |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
-      let allInvs = inv :: clsInvs
-      let fieldsValid = GenFieldsValidExprList allVars prog
-      printfn "  function Valid(): bool"
-      printfn "    reads *;"
-      printfn "  {"
-      let dummy = List.concat [fieldsValid ; allInvs] |> List.fold (fun acc (e: Expr) -> 
-                                                                      if acc = "" then
-                                                                        printf "    " ; PrintExpr 0 e ; "nonempty"
-                                                                      else
-                                                                        printfn " &&" ; printf "    " ; PrintExpr 0 e; "nonempty") ""
-      printfn ""
-      printfn "  }"; printfn ""
+let GenValidFunctionCode clsMembers modelInv vars prog : string = 
+  let invMembers = clsMembers |> List.filter (function Invariant(_) -> true | _ -> false)
+  let clsInvs = invMembers |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
+  let allInvs = modelInv :: clsInvs
+  let fieldsValid = GetFieldsValidExprList vars prog
+  let idt = "    "
+  let invsStr = List.concat [fieldsValid ; allInvs] |> List.fold (fun acc (e: Expr) -> 
+                                                                  if acc = "" then
+                                                                    sprintf "%s%s" idt (PrintExpr 0 e)
+                                                                  else
+                                                                    acc + " &&" + newline + sprintf "%s%s" idt (PrintExpr 0 e)) ""
+  "  function Valid(): bool" + newline +
+  "    reads *;" + newline +
+  "  {" + newline + 
+  invsStr + newline +
+  "  }" + newline
 
-      // generate constructors and methods
-      members |> List.iter (function
-        | Constructor(methodName,signature,pre,post) -> GenerateCode methodName signature pre post inv false ; printfn ""
-        | Method(methodName,signature,pre,post)      -> GenerateCode methodName signature pre post inv true  ; printfn ""
-        | _ -> ())
-      // the end of the class
-      printfn "}" ; printfn ""
-  | _ -> assert false  // unexpected case
+let AnalyzeMethod prog mthd : string =
+  match prog with
+  | Program(components) -> components |> List.fold (fun acc comp -> 
+      match comp with  
+      | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
+        let aVars = Fields members
+        let allVars = List.concat [aVars ; cVars];
+        // Now print it as a Dafny program
+        acc + 
+        (sprintf "class %s%s {" name (PrintTypeParams typeParams)) + newline +       
+        // the fields: original abstract fields plus concrete fields
+        (sprintf "%s" (PrintFields allVars 2)) + newline +                           
+        // generate the Valid function
+        (sprintf "%s" (GenValidFunctionCode members inv allVars prog)) + newline +
+        // generate code for the given method
+        (if List.exists (fun a -> a = mthd) members then
+           match mthd with 
+           | Constructor(methodName,signature,pre,post) -> (GenerateMethodCode methodName signature pre post false) + newline
+           | Method(methodName,signature,pre,post)      -> (GenerateMethodCode methodName signature pre post true) + newline
+           | _ -> ""
+         else
+           "") +
+        // the end of the class
+        "}" + newline + newline
+      | _ -> assert false; "") ""
 
-let AnalyzeComponent_rustan c =
-  match c with
-  | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
-      let aVars = Fields members
-      let aVars0 = Rename "0" aVars
-      let aVars1 = Rename "1" aVars
-      let allVars = List.concat [aVars; List.map (fun (a,b) -> b) aVars0; List.map (fun (a,b) -> b) aVars1; cVars]
-      let inv0 = Substitute (Map.ofList aVars0) inv
-      let inv1 = Substitute (Map.ofList aVars1) inv
-      // Now print it as a Dafny program
-      printf "class %s" name
-      match typeParams with
-        | [] -> ()
-        | _ -> printf "<" ; typeParams |> PrintSep ", " (fun tp -> printf "%s" tp) ; printf ">"
-      printfn " {"
-      // the fields: original abstract fields plus two more copies thereof, plus and concrete fields
-      allVars |> List.iter (function Var(nm,None) -> printfn "  var %s;" nm | Var(nm,Some(tp)) -> printf "  var %s: " nm ; PrintType tp ; printfn ";")
-      // the method
-      printfn "  method %s_checkInjective() {" name
-      printf "    assume " ; VarsAreDifferent aVars0 aVars1 ; printfn ";"
-      printf "    assume " ; PrintExpr 0 inv0 ; printfn ";"
-      printf "    assume " ; PrintExpr 0 inv1 ; printfn ";"
-      printfn "    assert false;" // {:msg "Two abstract states map to the same concrete state"}
-      printfn "  }"
-      // generate code
-      members |> List.iter (function
-        | Constructor(methodName,signature,pre,stmts) -> GenerateCode methodName signature pre stmts inv false
-        | Method(methodName,signature,pre,stmts) -> GenerateCode methodName signature pre stmts inv true
-        | _ -> ())
-      // the end of the class
-      printfn "}"
-  | _ -> assert false  // unexpected case
+let scratchFileName = "scratch.dfy"
 
 let Analyze prog =
-  match prog with
-  | Program(components) ->
-      components |> List.iter (AnalyzeComponent prog)
+  let methods = Methods prog
+
+  // synthesize constructors
+  methods |> List.iter (fun m -> 
+    match m with
+    | Constructor(methodName,signature,pre,post) -> 
+        use file = System.IO.File.CreateText(scratchFileName)
+        let code = AnalyzeMethod prog m
+        printfn "printing code for method %s:\r\n%s" methodName code
+        printfn "-------------------------"
+        fprintf file "%s" code
+    | _ -> ())
+
+
+//let AnalyzeComponent_rustan c =
+//  match c with
+//  | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
+//      let aVars = Fields members
+//      let aVars0 = Rename "0" aVars
+//      let aVars1 = Rename "1" aVars
+//      let allVars = List.concat [aVars; List.map (fun (a,b) -> b) aVars0; List.map (fun (a,b) -> b) aVars1; cVars]
+//      let inv0 = Substitute (Map.ofList aVars0) inv
+//      let inv1 = Substitute (Map.ofList aVars1) inv
+//      // Now print it as a Dafny program
+//      printf "class %s" name
+//      match typeParams with
+//        | [] -> ()
+//        | _  -> printf "<%s>"  (typeParams |> PrintSep ", " (fun tp -> tp))
+//      printfn " {"
+//      // the fields: original abstract fields plus two more copies thereof, plus and concrete fields
+//      allVars |> List.iter (function Var(nm,None) -> printfn "  var %s;" nm | Var(nm,Some(tp)) -> printfn "  var %s: %s;" nm (PrintType tp))
+//      // the method
+//      printfn "  method %s_checkInjective() {" name
+//      printf "    assume " ; (VarsAreDifferent aVars0 aVars1) ; printfn ";"
+//      printfn "    assume %s;" (PrintExpr 0 inv0)
+//      printfn "    assume %s;" (PrintExpr 0 inv1)
+//      printfn "    assert false;" // {:msg "Two abstract states map to the same concrete state"}
+//      printfn "  }"
+//      // generate code
+//      members |> List.iter (function
+//        | Constructor(methodName,signature,pre,stmts) -> printf "%s" (GenerateCode methodName signature pre stmts inv false)
+//        | Method(methodName,signature,pre,stmts) -> printf "%s" (GenerateCode methodName signature pre stmts inv true)
+//        | _ -> ())
+//      // the end of the class
+//      printfn "}"
+//  | _ -> assert false  // unexpected case

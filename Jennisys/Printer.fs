@@ -2,112 +2,109 @@
 
 open Ast
 
+let newline = System.Environment.NewLine // "\r\n"
+
 let rec PrintSep sep f list =
   match list with
-  | [] -> ()
+  | [] -> ""
   | [a] -> f a
-  | a :: more -> f a ; printf "%s" sep ; PrintSep sep f more
+  | a :: more -> (f a) + sep + (PrintSep sep f more)
   
 let rec PrintType ty =
   match ty with
-  | NamedType(id) -> printf "%s" id
-  | InstantiatedType(id,arg) -> printf "%s[" id ; PrintType arg ; printf "]"
+  | NamedType(id) -> id
+  | InstantiatedType(id,arg) -> sprintf "%s[%s]" id (PrintType arg)
 
 let PrintVarDecl vd =
   match vd with
-  | Var(id,None) -> printf "%s" id
-  | Var(id,Some(ty)) -> printf "%s: " id ; PrintType ty
+  | Var(id,None) -> id
+  | Var(id,Some(ty)) -> sprintf "%s: %s" id (PrintType ty)
 
 let rec PrintExpr ctx expr =
   match expr with
-  | IntLiteral(n) -> printf "%O" n
-  | IdLiteral(id) -> printf "%s" id
-  | Star -> printf "*"
-  | Dot(e,id) -> PrintExpr 100 e ; printf ".%s" id
-  | UnaryExpr(op,e) -> printf "%s" op ; PrintExpr 90 e
+  | IntLiteral(n)     -> sprintf "%O" n
+  | IdLiteral(id)     -> id
+  | Star              -> "*"
+  | Dot(e,id)         -> sprintf "%s.%s" (PrintExpr 100 e) id
+  | UnaryExpr(op,e)   -> sprintf "%s%s" op (PrintExpr 90 e)
   | BinaryExpr(strength,op,e0,e1) ->
       let needParens = strength <= ctx
-      if needParens then printf "(" else ()
-      PrintExpr strength e0 ; printf " %s " op ; PrintExpr strength e1
-      if needParens then printf ")" else ()
-  | SelectExpr(e,i) -> PrintExpr 100 e ; printf "[" ; PrintExpr 0 i ; printf "]"
-  | UpdateExpr(e,i,v) -> PrintExpr 100 e ; printf "[" ; PrintExpr 0 i ; printf " := " ; PrintExpr 0 v ; printf "]"
-  | SequenceExpr(ee) -> printf "[" ; ee |> PrintSep ", " (PrintExpr 0) ; printf "]"
-  | SeqLength(e) -> printf "|" ; PrintExpr 0 e ; printf "|"
-  | ForallExpr(vv,e) ->
+      let openParen = if needParens then "(" else ""
+      let closeParen = if needParens then ")" else ""
+      sprintf "%s%s %s %s%s" openParen (PrintExpr strength e0) op (PrintExpr strength e1) closeParen
+  | SelectExpr(e,i)   -> sprintf "%s[%s]" (PrintExpr 100 e) (PrintExpr 0 i) 
+  | UpdateExpr(e,i,v) -> sprintf "%s[%s := %s]" (PrintExpr 100 e) (PrintExpr 0 i) (PrintExpr 0 v)
+  | SequenceExpr(ee)  -> sprintf "[%s]" (ee |> PrintSep ", " (PrintExpr 0))
+  | SeqLength(e)      -> sprintf "|%s|" (PrintExpr 0 e)
+  | ForallExpr(vv,e)  ->
       let needParens = ctx <> 0
-      if needParens then printf "(" else ()
-      printf "forall " ; vv |> PrintSep ", " PrintVarDecl ; printf " :: " ; PrintExpr 0 e
-      if needParens then printf ")" else ()
+      let openParen = if needParens then "(" else ""
+      let closeParen = if needParens then ")" else ""
+      sprintf "%sforall %s :: %s%s" openParen (vv |> PrintSep ", " PrintVarDecl) (PrintExpr 0 e) closeParen
 
 let PrintSig signature =
   match signature with
   | Sig(ins, outs) ->
-      printf "("
-      ins |> PrintSep ", " PrintVarDecl
-      printf ")"
-      if outs <> [] then
-        printf " returns ("
-        outs |> PrintSep ", " PrintVarDecl
-        printf ")"
-      else ()
+      let returnClause = 
+        if outs <> [] then sprintf " returns (%s)" (outs |> PrintSep ", " PrintVarDecl)
+        else ""
+      sprintf "(%s)%s" (ins |> PrintSep ", " PrintVarDecl) returnClause
 
 let rec ForeachConjunct f expr =
   match expr with
-  | IdLiteral("true") -> ()
-  | BinaryExpr(_,"&&",e0,e1) -> ForeachConjunct f e0 ; ForeachConjunct f e1
+  | IdLiteral("true") -> ""
+  | BinaryExpr(_,"&&",e0,e1) -> (ForeachConjunct f e0) + (ForeachConjunct f e1)
   | _ -> f expr
 
 let rec Indent i =
-  if i = 0 then () else printf " " ; Indent (i-1)
+  if i = 0 then "" else " " + (Indent (i-1))
 
 let rec PrintStmt stmt indent =
+  let idt = (Indent indent)
   match stmt with
   | Block(stmts) ->
-      Indent indent ; printfn "{"
-      PrintStmtList stmts (indent + 2)
-      Indent indent ; printfn "}"
-  | Assign(lhs,rhs) -> Indent indent ; PrintExpr 0 lhs ; printf " := " ; PrintExpr 0 rhs ; printfn ""
+      idt + "{" + newline +
+      (PrintStmtList stmts (indent + 2)) +
+      idt + "}" + newline
+  | Assign(lhs,rhs) -> sprintf "%s%s := %s%s" idt (PrintExpr 0 lhs) (PrintExpr 0 rhs) newline
 and PrintStmtList stmts indent =
-  stmts |> List.iter (fun s -> PrintStmt s indent)
+  stmts |> List.fold (fun acc s -> acc + (PrintStmt s indent)) ""
 
 let PrintRoutine signature pre body =
-  PrintSig signature
-  printfn ""
-  pre |> ForeachConjunct (fun e -> printf "    requires " ; PrintExpr 0 e ; printfn "")
-  PrintExpr 0 body  //  PrintStmtList body 4
-
+  let preStr = pre |> ForeachConjunct (fun e -> sprintf "    requires %s%s" (PrintExpr 0 e) newline)
+  sprintf "%s%s%s%s" (PrintSig signature) newline preStr (PrintExpr 0 body)  
+  
 let PrintMember m =
   match m with
-  | Field(vd) -> printf "  var " ; PrintVarDecl vd ; printfn ""
-  | Constructor(id,signature,pre,body) -> printf "  constructor %s" id ; PrintRoutine signature pre body
-  | Method(id,signature,pre,body) -> printf "  method %s" id ; PrintRoutine signature pre body
+  | Field(vd) -> sprintf "  var %s%s" (PrintVarDecl vd) newline 
+  | Constructor(id,signature,pre,body) -> sprintf "  constructor %s%s" id (PrintRoutine signature pre body)
+  | Method(id,signature,pre,body) -> sprintf "  method %s%s" id (PrintRoutine signature pre body)
+  | Invariant(_) -> ""  // invariants are handled separately
       
 let PrintTopLevelDeclHeader kind id typeParams =
-  printf "%s %s" kind id
-  match typeParams with
-    | [] -> ()
-    | _ -> printf "[" ; typeParams |> PrintSep ", " (fun tp -> printf "%s" tp) ; printf "]"
-  printfn " {"
-
+  let typeParamStr = 
+    match typeParams with
+    | [] -> ""
+    | _ -> sprintf "[%s]" (typeParams |> PrintSep ", " (fun tp -> tp))
+  sprintf "%s %s%s {%s" kind id typeParamStr newline
+  
 let PrintDecl d =
   match d with
   | Class(id,typeParams,members) ->
-      PrintTopLevelDeclHeader "class" id typeParams
-      List.iter PrintMember members
-      printfn "}"
+      sprintf "%s%s}%s" (PrintTopLevelDeclHeader "class" id typeParams)
+                        (List.fold (fun acc m -> acc + (PrintMember m)) "" members)
+                        newline
   | Model(id,typeParams,vars,frame,inv) ->
-      PrintTopLevelDeclHeader "model" id typeParams
-      vars |> List.iter (fun vd -> printf "  var " ; PrintVarDecl vd ; printfn "")
-      printfn "  frame"
-      frame |> List.iter (fun fr -> printf "    " ; PrintExpr 0 fr ; printfn "")
-      printfn "  invariant"
-      inv |> ForeachConjunct (fun e -> printf "    " ; PrintExpr 0 e ; printfn "")
-      printfn "}"
+      (PrintTopLevelDeclHeader "model" id typeParams) + 
+      (vars |> List.fold (fun acc vd -> acc + "  var " + (PrintVarDecl vd) + newline) "") +
+      "  frame" + newline +
+      (frame |> List.fold (fun acc fr -> acc + "    " + (PrintExpr 0 fr) + newline) "") +
+      "  invariant" + newline + 
+      (inv |> ForeachConjunct (fun e -> "    " + (PrintExpr 0 e) + newline)) +
+      "}" + newline
   | Code(id,typeParams) ->
-      PrintTopLevelDeclHeader "code" id typeParams
-      printfn "}"
+      (PrintTopLevelDeclHeader "code" id typeParams) + "}" + newline
 
 let Print prog =
   match prog with
-  | SProgram(decls) -> List.iter PrintDecl decls
+  | SProgram(decls) -> List.fold (fun acc d -> acc + (PrintDecl d)) "" decls

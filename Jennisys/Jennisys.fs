@@ -31,7 +31,7 @@ let readAndProcess tracing analyzing (filename: string) =
             // print the given Jennisys program
             if tracing then
                 printfn "---------- Given Jennisys program ----------"
-                Print sprog
+                printfn "%s" (Print sprog)
             else ()
             match TypeCheck sprog with
               | None -> ()  // errors have already been reported
