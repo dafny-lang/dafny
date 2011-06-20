@@ -280,3 +280,21 @@ method ConstructorTests()
   c := new ClassWithConstructor.InitB();
   c.InitB();  // error: not allowed to call constructors except during allocation
 }
+
+// ------------------- datatype destructors ---------------------------------------
+
+datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List);
+
+method DatatypeDestructors(d: DTD_List) {
+  if {
+    case d.DTD_Nil? =>
+      assert d == DTD_Nil;
+    case d.DTD_Cons? =>
+      var hd := d.Car;
+      var tl := d.Cdr;
+      assert hd == d.Cdr;  // type error
+      assert tl == d.Car;  // type error
+      assert d.DTD_Cons? == d.Car;  // type error
+      assert d == DTD_Cons(hd, tl);
+  }
+}

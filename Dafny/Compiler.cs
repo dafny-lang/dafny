@@ -243,6 +243,12 @@ namespace Microsoft.Dafny {
       //     return other is Dt<T> && _D.Equals(((Dt<T>)other)._D);
       //   }
       //   public override int GetHashCode() { return _D.GetHashCode(); }
+      //
+      //   public bool _Ctor0 { get { return _D is Dt_Ctor0; } }
+      //   ...
+      //
+      //   public T0 dtor_Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
+      //   ...
       // }
       string DtT = dt.Name;
       if (dt.TypeArgs.Count != 0) {
@@ -292,7 +298,25 @@ namespace Microsoft.Dafny {
 
       Indent(ind);
       wr.WriteLine("public override int GetHashCode() { return _D.GetHashCode(); }");
-      
+
+      // query properties
+      foreach (var ctor in dt.Ctors) {
+        //   public bool _Ctor0 { get { return _D is Dt_Ctor0; } }
+        Indent(ind);
+        wr.WriteLine("public bool _{0} {{ get {{ return _D is {1}_{0}; }} }}", ctor.Name, DtT);
+      }
+
+      // destructors
+      foreach (var ctor in dt.Ctors) {
+        foreach (var arg in ctor.Formals) {
+          if (arg.HasName) {
+            //   public T0 @Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
+            Indent(ind);
+            wr.WriteLine("public {0} dtor_{1} {{ get {{ return (({2}_{3})_D).@{1}; }} }}", TypeName(arg.Type), arg.Name, DtT, ctor.Name);
+          }
+        }
+      }
+
       Indent(indent);
       wr.WriteLine("}");
     }
@@ -317,7 +341,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(formal != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return formal.Name.StartsWith("#") ? "a" + i : formal.Name;
+      return formal.HasName ? formal.Name : "_a" + i;
     }
     
     string DtCtorName(DatatypeCtor ctor) {
@@ -386,14 +410,14 @@ namespace Microsoft.Dafny {
             if (m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0) {
               Indent(indent);
               wr.WriteLine("public static void Main(string[] args) {");
-              ClassDecl cl = cce.NonNull(m.EnclosingClass);
+              Contract.Assert(m.EnclosingClass == c);
               Indent(indent + IndentAmount);
-              wr.Write("@{0} b = new @{0}", cl.Name);
-              if (cl.TypeArgs.Count != 0) {
+              wr.Write("@{0} b = new @{0}", c.Name);
+              if (c.TypeArgs.Count != 0) {
                 // instantiate every parameter, it doesn't particularly matter how
                 wr.Write("<");
                 string sep = "";
-                for (int i = 0; i < cl.TypeArgs.Count; i++) {
+                for (int i = 0; i < c.TypeArgs.Count; i++) {
                   wr.Write("{0}int", sep);
                   sep = ", ";
                 }
@@ -1188,14 +1212,10 @@ namespace Microsoft.Dafny {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         SpecialField sf = e.Field as SpecialField;
         if (sf != null) {
-          if (sf.Type is IntType) {
-            wr.Write("new BigInteger(");
-          }
+          wr.Write(sf.PreString);
           TrParenExpr(e.Obj);
           wr.Write(".{0}", sf.CompiledName);
-          if (sf.Type is IntType) {
-            wr.Write(")");
-          }
+          wr.Write(sf.PostString);
         } else {
           TrParenExpr(e.Obj);
           wr.Write(".@{0}", e.Field.Name);

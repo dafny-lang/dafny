@@ -325,6 +325,28 @@ namespace Microsoft.Dafny {
           q = new Bpl.ForallExpr(ctor.tok, bvs, q);
         }
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+        // Add:  axiom (forall d: DatatypeType :: dt.ctor?(d) ==> (exists params :: d == #dt.ctor(params));
+        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+        var dBv = new Bpl.BoundVariable(ctor.tok, new Bpl.TypedIdent(ctor.tok, "d", predef.DatatypeType));
+        var dId = new Bpl.IdentifierExpr(ctor.tok, dBv.Name, predef.DatatypeType);
+        q = Bpl.Expr.Eq(dId, lhs);
+        if (bvs.Length != 0) {
+          q = new Bpl.ExistsExpr(ctor.tok, bvs, q);
+        }
+        var queryFunctionName = string.Format("{0}.{1}?", ctor.EnclosingDatatype.Name, ctor.Name);
+        q = Bpl.Expr.Imp(FunctionCall(ctor.tok, queryFunctionName, Bpl.Type.Bool, dId), q);
+        q = new Bpl.ForallExpr(ctor.tok, new VariableSeq(dBv), q);
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+
+        // Add:  function dt.ctor?(d: DatatypeType): bool { DatatypeCtorId(d) == ##dt.ctor }
+        var d = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, "d", predef.DatatypeType), true);
+        var res = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+        fn = new Bpl.Function(ctor.tok, queryFunctionName, new VariableSeq(d), res);
+        fieldFunctions.Add(ctor.QueryField, fn);
+        lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, new Bpl.IdentifierExpr(ctor.tok, d.Name, predef.DatatypeType));
+        fn.Body = Bpl.Expr.Eq(lhs, new Bpl.IdentifierExpr(ctor.tok, cid));  // this uses the "cid" defined for the previous axiom
+        sink.TopLevelDeclarations.Add(fn);
 
         // Add:  axiom (forall params, h: HeapType :: 
         //                 { DtAlloc(#dt.ctor(params), h) }
@@ -358,7 +380,12 @@ namespace Microsoft.Dafny {
           argTypes = new Bpl.VariableSeq();
           argTypes.Add(new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), true));
           resType = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)), false);
-          fn = new Bpl.Function(ctor.tok, "#" + ctor.FullName + "#" + i, argTypes, resType);
+          string nm = arg.HasName ? string.Format("{0}.{1}", ctor.EnclosingDatatype.Name, arg.Name) : "#" + ctor.FullName + "#" + i;
+          fn = new Bpl.Function(ctor.tok, nm, argTypes, resType);
+          var sf = ctor.Destructors[i];
+          if (sf != null) {
+            fieldFunctions.Add(sf, fn);
+          }
           sink.TopLevelDeclarations.Add(fn);
           // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
           CreateBoundVariables(ctor.Formals, out bvs, out args);
@@ -644,7 +671,7 @@ namespace Microsoft.Dafny {
         bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         args.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetThisType(f.tok, cce.NonNull(f.EnclosingClass));
+        Type thisType = Resolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(bvThisIdExpr, predef.Null),
           etran.GoodRef(f.tok, bvThisIdExpr, thisType));
@@ -1156,7 +1183,7 @@ namespace Microsoft.Dafny {
         f0args.Add(th);
         f1args.Add(th);
 
-        Type thisType = Resolver.GetThisType(f.tok, cce.NonNull(f.EnclosingClass));
+        Type thisType = Resolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(Bpl.Expr.Neq(th, predef.Null),
           Bpl.Expr.And(etran0.GoodRef(f.tok, th, thisType), etran1.GoodRef(f.tok, th, thisType)));
         wellFormed = Bpl.Expr.And(wellFormed, wh);
@@ -1265,7 +1292,7 @@ namespace Microsoft.Dafny {
       if (!f.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetThisType(f.tok, f.EnclosingClass)));
+          etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetReceiverType(f.tok, f)));
         Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
         inParams.Add(thVar);
       }
@@ -1407,7 +1434,11 @@ namespace Microsoft.Dafny {
         if (e.Obj is ThisExpr) {
           return Bpl.Expr.True;
         } else {
-          return Bpl.Expr.And(IsTotal(e.Obj, etran), Bpl.Expr.Neq(etran.TrExpr(e.Obj), predef.Null));
+          var t = IsTotal(e.Obj, etran);
+          if (e.Obj.Type.IsRefType) {
+            t = BplAnd(t, Bpl.Expr.Neq(etran.TrExpr(e.Obj), predef.Null));
+          }
+          return t;
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -1820,7 +1851,9 @@ namespace Microsoft.Dafny {
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         CheckWellformed(e.Obj, options, locals, builder, etran);
-        CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
+        if (e.Obj.Type.IsRefType) {
+          CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
+        }
         if (options.DoReadsChecks && e.Field.IsMutable) {
           builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field", options.AssertKv));
         }
@@ -2363,7 +2396,8 @@ namespace Microsoft.Dafny {
         // function f(Ref): ty;
         Bpl.Type ty = TrType(f.Type);
         Bpl.VariableSeq args = new Bpl.VariableSeq();
-        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType), true));
+        Bpl.Type receiverType = f.EnclosingClass is ClassDecl ? predef.RefType : predef.DatatypeType;
+        args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", receiverType), true));
         Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, ty), false);
         ff = new Bpl.Function(f.tok, f.FullName, args, result);
         fieldFunctions.Add(f, ff);
@@ -2440,7 +2474,7 @@ namespace Microsoft.Dafny {
       if (!m.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetThisType(m.tok, m.EnclosingClass)));
+          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetReceiverType(m.tok, m)));
         Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
         inParams.Add(thVar);
       }
@@ -2528,7 +2562,7 @@ namespace Microsoft.Dafny {
       // create "that" for m
       Bpl.Expr wh = Bpl.Expr.And(
         Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, that, predef.RefType), predef.Null),
-        etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, that, predef.RefType), Resolver.GetThisType(m.tok, m.EnclosingClass)));
+        etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, that, predef.RefType), Resolver.GetReceiverType(m.tok, m)));
       Bpl.Formal thatVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, that, predef.RefType, wh), true);
       proc.InParams.Add(thatVar);
       
@@ -2788,7 +2822,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
      
       while (true) {
         TypeProxy tp = type as TypeProxy;
@@ -3995,6 +4028,7 @@ namespace Microsoft.Dafny {
 
       var rhss = new List<AssignmentRhs>() { rhs };
       ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
+      builder.Add(CaptureState(tok));
     }
 
     void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,

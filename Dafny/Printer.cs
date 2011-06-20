@@ -310,7 +310,7 @@ namespace Microsoft.Dafny {
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
-      if (!f.Name.StartsWith("#")) {
+      if (f.HasName) {
         wr.Write("{0}: ", f.Name);
       }
       PrintType(f.Type);

@@ -72,7 +72,7 @@ TypeTests.dfy(53,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(55,6): Error: Duplicate local-variable name: x
 TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
-TypeTests.dfy(68,17): Error: member F in class C does not refer to a method
+TypeTests.dfy(68,17): Error: member F in type C does not refer to a method
 TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
 TypeTests.dfy(78,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
 TypeTests.dfy(79,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
@@ -435,7 +435,10 @@ ResolutionErrors.dfy(252,2): Error: duplicate label
 ResolutionErrors.dfy(278,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(279,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(281,4): Error: a constructor is only allowed to be called when an object is being allocated
-41 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(295,16): Error: arguments must have the same type (got int and DTD_List)
+ResolutionErrors.dfy(296,16): Error: arguments must have the same type (got DTD_List and int)
+ResolutionErrors.dfy(297,25): Error: arguments must have the same type (got bool and int)
+44 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -943,8 +946,17 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon24_Else
     (0,0): anon25_Then
+Datatypes.dfy(167,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+Datatypes.dfy(169,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+    (0,0): anon5_Then
 
-Dafny program verifier finished with 17 verified, 1 error
+Dafny program verifier finished with 26 verified, 3 errors
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation

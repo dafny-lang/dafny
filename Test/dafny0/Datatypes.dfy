@@ -134,3 +134,62 @@ class NestedMatchExpr {
     }
   }
 }
+
+// ------------------- datatype destructors ---------------------------------------
+
+datatype XList = XNil | XCons(Car: int, Cdr: XList);
+
+method Destructors0(d: XList) {
+  Lemma_AllCases(d);
+  if {
+    case d.XNil? =>
+      assert d == XNil;
+    case d.XCons? =>
+      var hd := d.Car;
+      var tl := d.Cdr;
+      assert d == XCons(hd, tl);
+  }
+}
+
+method Destructors1(d: XList) {
+  match (d) {
+    case XNil =>
+      assert d.XNil?;
+    case XCons(hd,tl) =>
+      assert d.XCons?;
+  }
+}
+
+method Destructors2(d: XList) {
+  // this method gets it backwards
+  match (d) {
+    case XNil =>
+      assert d.XCons?;  // error
+    case XCons(hd,tl) =>
+      assert d.XNil?;  // error
+  }
+}
+
+ghost method Lemma_AllCases(d: XList)
+  ensures d.XNil? || d.XCons?;
+{
+  match (d) {
+    case XNil =>
+    case XCons(hd,tl) =>
+  }
+}
+
+method InjectivityTests(d: XList)
+  requires d != XNil;
+{
+  match (d) {
+    case XCons(a,b) =>
+      match (d) {
+        case XCons(x,y) =>
+          assert a == x && b == y;
+      }
+      assert a == d.Car;
+      assert b == d.Cdr;
+      assert d == XCons(d.Car, d.Cdr);
+  }
+}

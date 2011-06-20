@@ -60,7 +60,7 @@ namespace Microsoft.Dafny {
         for (int d = 0; d < dims; d++) {
           string name = dims == 1 ? "Length" : "Length" + d;
           string compiledName = dims == 1 ? "Length" : "GetLength(" + d + ")";
-          Field len = new SpecialField(Token.NoToken, name, compiledName, false, false, Type.Int, null);
+          Field len = new SpecialField(Token.NoToken, name, compiledName, "new BigInteger(", ")", false, false, Type.Int, null);
           len.EnclosingClass = arrayClass;  // resolve here
           arrayClass.Members.Add(len);
         }
@@ -136,6 +136,23 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Return the most constrained version of "this".
+    /// </summary>
+    /// <returns></returns>
+    public Type Normalize() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Type type = this;
+      while (true) {
+        TypeProxy pt = type as TypeProxy;
+        if (pt != null && pt.T != null) {
+          type = pt.T;
+        } else {
+          return type;
+        }
+      }
+    }
+
     public bool IsSubrangeType {
       get { return this is NatType; }
     }
@@ -185,7 +202,15 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class BasicType : Type {
+  /// <summary>
+  /// A NonProxy type is a fully constrained type.  It may contain members.
+  /// </summary>
+  public abstract class NonProxyType : Type
+  {
+  }
+
+  public abstract class BasicType : NonProxyType
+  {
   }
 
   public class BoolType : BasicType {
@@ -218,7 +243,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class CollectionType : Type {
+  public abstract class CollectionType : NonProxyType
+  {
     public readonly Type Arg;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -256,7 +282,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class UserDefinedType : Type {
+  public class UserDefinedType : NonProxyType
+  {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -315,16 +342,7 @@ namespace Microsoft.Dafny {
     public static UserDefinedType DenotesClass(Type/*!*/ type) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() == null || Contract.Result<UserDefinedType>().ResolvedClass is ClassDecl);
-      while (true) {
-        cce.LoopInvariant(cce.IsPeerConsistent(type));
-        TypeProxy pt = type as TypeProxy;
-        if (pt != null && pt.T != null) {
-          type = pt.T;
-          Contract.Assume(cce.IsPeerConsistent(type));
-        } else {
-          break;
-        }
-      }
+      type = type.Normalize();
       UserDefinedType ct = type as UserDefinedType;
       if (ct != null && ct.ResolvedClass is ClassDecl) {
         return ct;
@@ -731,10 +749,16 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Formals));
+      Contract.Invariant(Destructors != null);
+      Contract.Invariant(
+        Destructors.Count == 0 || // this is until resolution
+        Destructors.Count == Formals.Count);  // after resolution
     }
 
     // TODO: One could imagine having a precondition on datatype constructors
     public DatatypeDecl EnclosingDatatype;  // filled in during resolution
+    public SpecialField QueryField;  // filled in during resolution
+    public List<SpecialField/*may be null*/> Destructors = new List<SpecialField/*may be null*/>();  // contents filled in during resolution
 
     public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Formal/*!*/>/*!*/ formals, Attributes attributes)
       : base(tok, name, attributes) {
@@ -756,7 +780,7 @@ namespace Microsoft.Dafny {
 
   public abstract class MemberDecl : Declaration {
     public readonly bool IsStatic;
-    public ClassDecl EnclosingClass;  // filled in during resolution
+    public TopLevelDecl EnclosingClass;  // filled in during resolution
 
     public MemberDecl(IToken tok, string name, bool isStatic, Attributes attributes)
       : base(tok, name, attributes) {
@@ -807,9 +831,20 @@ namespace Microsoft.Dafny {
   public class SpecialField : Field
   {
     public readonly string CompiledName;
-    public SpecialField(IToken tok, string name, string compiledName, bool isGhost, bool isMutable, Type type, Attributes attributes)
+    public readonly string PreString;
+    public readonly string PostString;
+    public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool isGhost, bool isMutable, Type type, Attributes attributes)
       : base(tok, name, isGhost, isMutable, type, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(compiledName != null);
+      Contract.Requires(preString != null);
+      Contract.Requires(postString != null);
+      Contract.Requires(type != null);
+
       CompiledName = compiledName;
+      PreString = preString;
+      PostString = postString;
     }
   }
 
@@ -934,19 +969,7 @@ namespace Microsoft.Dafny {
     public Type/*!*/ Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
-
-        Contract.Assume(cce.IsPeerConsistent(type));
-        while (true) {
-          cce.LoopInvariant(cce.IsPeerConsistent(type));
-
-          TypeProxy t = type as TypeProxy;
-          if (t != null && t.T != null) {
-            type = t.T;
-            Contract.Assume(cce.IsPeerConsistent(type));
-          } else {
-            return type;
-          }
-        }
+        return type.Normalize();
       }
     }
     public abstract bool IsMutable {
@@ -989,7 +1012,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       InParam = inParam;
+    }
 
+    public bool HasName {
+      get {
+        return !Name.StartsWith("#");
+      }
     }
   }
 
@@ -1506,17 +1534,7 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Type>() != null);
 
         Contract.Assume(type != null);  /* we assume object has been resolved */
-        Contract.Assume(cce.IsPeerConsistent(type));
-        while (true) {
-          cce.LoopInvariant(type != null && cce.IsPeerConsistent(type));
-          TypeProxy t = type as TypeProxy;
-          if (t != null && t.T != null) {
-            type = t.T;
-            Contract.Assume(cce.IsPeerConsistent(type));
-          } else {
-            return type;
-          }
-        }
+        return type.Normalize();
       }
     }
     public bool IsMutable {
@@ -1842,31 +1860,15 @@ namespace Microsoft.Dafny {
       [Additive]  // validity of proper subclasses is not required
       get {
         Contract.Ensures(type != null || Contract.Result<Type>() == null);  // useful in conjunction with postcondition of constructor
-        while (true) {
-          TypeProxy t = type as TypeProxy;
-          if (t != null && t.T != null) {
-            type = t.T;
-          } else {
-            Contract.Assume(type == null || cce.IsPeerConsistent(type));
-            return type;
-          }
-        }
+        return type == null ? null : type.Normalize();
       }
       [NoDefaultContract]  // no particular validity of 'this' is required, except that it not be committed
       set {
         Contract.Requires(cce.IsValid(this));
         Contract.Requires(Type == null);  // set it only once
-        Contract.Requires(value != null && cce.IsPeerConsistent(value));
+        Contract.Requires(value != null);
         //modifies type;
-        type = value;
-        while (true) {
-          TypeProxy t = type as TypeProxy;
-          if (t != null && t.T != null) {
-            type = t.T;
-          } else {
-            return;
-          }
-        }
+        type = value.Normalize();
       }
     }
 
