@@ -240,7 +240,6 @@ namespace DafnyLanguage
                 case "bool":
                 case "break":
                 case "by":
-                case "call":
                 case "case":
                 case "choose":
                 case "class":
@@ -288,7 +287,6 @@ namespace DafnyLanguage
                 case "this":
                 case "true":
                 case "unlimited":
-                case "use":
                 case "var":
                 case "while":
                 #endregion

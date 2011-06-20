@@ -19,8 +19,8 @@ namespace Demo
           "class", "ghost", "static", "var", "method", "constructor", "datatype",
           "assert", "assume", "new", "this", "object", "refines", "replaces", "by",
           "unlimited", "module", "imports",
-          "call", "if", "then", "else", "while", "invariant",
-          "break", "label", "return", "foreach", "havoc", "print", "use",
+          "if", "then", "else", "while", "invariant",
+          "break", "label", "return", "foreach", "havoc", "print",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
           "bool", "nat", "int", "false", "true", "null",
           "function", "free",
@@ -242,34 +242,12 @@ namespace Demo
                         | blockStatement
                         | expression + Semi
                         | "break" + Semi
-                        | "continue" + Semi
-                        | "return" + expression + Semi
                         | QualifiedName + ":=" + Rhs
 
                         | "var" + localVarStmt
 
-                        | "call" + identList + ":=" + FunctionExpression + Semi
-                        | "call" + FunctionExpression + Semi
                         | "assert" + expression + Semi
                         | "assume" + expression + Semi
-                        | "unshare" + expression + Semi
-                        | "acquire" + expression + Semi
-                        | "release" + expression + Semi
-                        | "downgrade" + expression + Semi
-                        | "free" + expression + Semi
-                        | "fold" + expression + Semi
-                        | "unfold" + expression + Semi
-                        | "reorder" + expression + installBounds + Semi
-                        | "reorder" + expression + Semi
-                        | "share" + expression + installBounds + Semi
-                        | "share" + expression + Semi
-                        | "fork" + identList + ":=" + FunctionExpression + Semi
-                        | "fork" + FunctionExpression + Semi
-                        | "join" + identList + ":=" + expression + Semi
-                        | "join" + expression + Semi
-                        | "send" + expression + Semi
-                        | "receive" + identList + ":=" + expression + Semi
-                        | "receive" + expression + Semi
 
                         ;
         Statements.Rule = MakeStarRule(Statements, null, Statement);
@@ -300,7 +278,6 @@ namespace Demo
           | "unlimited"
           | "module"
           | "imports"
-          | "call"
           | "if"
           | "then"
           | "else"
@@ -312,7 +289,6 @@ namespace Demo
           | "foreach"
           | "havoc"
           | "print"
-          | "use"
           | "returns"
           | "requires"
           | "ensures"
