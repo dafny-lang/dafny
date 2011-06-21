@@ -4013,7 +4013,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (type is BoolType) {
+      if (type.Normalize() is BoolType) {
         return FunctionCall(box.tok, BuiltinFunction.IsCanonicalBoolBox, null, box);
       } else {
         return Bpl.Expr.True;
