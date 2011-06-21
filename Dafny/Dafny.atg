@@ -472,7 +472,7 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
     ( "requires" Expression<out e> ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures" Expression<out e> ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     )
-  | "decreases" Expressions<decreases> ";"
+  | "decreases" DecreasesList<decreases, false> ";"
   )
   .
 
@@ -608,7 +608,7 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
               }
 	        ] ";"
   | "ensures" Expression<out e> ";"      (. ens.Add(e); .)
-  | "decreases" Expressions<decreases> ";"
+  | "decreases" DecreasesList<decreases, false> ";"
   )
   .
 
@@ -866,17 +866,30 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
      invariants = new List<MaybeFreeExpression/*!*/>();
      decreases = new List<Expression/*!*/>();
   .)
-  {                          (. isFree = false; .)
-     [ "free"                (. isFree = true; .)
-     ]
-     "invariant"
-     Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
-     ";"
-   | "decreases"
-     PossiblyWildExpression<out e>          (. decreases.Add(e); .)
-     { "," PossiblyWildExpression<out e>    (. decreases.Add(e); .)
-     }
-     ";"
+  {                         (. isFree = false; .)
+    [ "free"                (. isFree = true; .)
+    ]
+    "invariant"
+    Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
+    ";"
+  | "decreases" DecreasesList<decreases, true> ";"
+  }
+  .
+
+DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
+= (. Expression/*!*/ e; .)
+  PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
+                                              SemErr(e.tok, "'decreases *' is only allowed on loops");
+                                            } else {
+                                              decreases.Add(e);
+                                            }
+                                         .)
+  { "," PossiblyWildExpression<out e>    (. if (!allowWildcard && e is WildcardExpr) {
+                                              SemErr(e.tok, "'decreases *' is only allowed on loops");
+                                            } else {
+                                              decreases.Add(e);
+                                            }
+                                         .)
   }
   .
 

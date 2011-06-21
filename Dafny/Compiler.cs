@@ -653,36 +653,25 @@ namespace Microsoft.Dafny {
           Contract.Assert(s.Lhss.Count == resolved.Count);
           Contract.Assert(s.Rhss.Count == resolved.Count);
           var lvalues = new List<string>();
-          int i = 0;
-          foreach (var lhs in s.Lhss) {
-            if (!resolved[i].IsGhost) {
-              lvalues.Add(CreateLvalue(lhs, indent));
-            }
-            i++;
-          }
-          int N = i;
           var rhss = new List<string>();
-          i = 0;
-          foreach (var rhs in s.Rhss) {
+          for (int i = 0; i < resolved.Count; i++) {
             if (!resolved[i].IsGhost) {
-              if (rhs is HavocRhs) {
-                rhss.Add(null);
-              } else {
+              var lhs = s.Lhss[i];
+              var rhs = s.Rhss[i];
+              if (!(rhs is HavocRhs)) {
+                lvalues.Add(CreateLvalue(lhs, indent));
+
                 string target = "_rhs" + tmpVarCount;
                 tmpVarCount++;
                 rhss.Add(target);
                 TrRhs("var " + target, null, rhs, indent);
               }
             }
-            i++;
           }
-          Contract.Assert(lvalues.Count == N);
-          Contract.Assert(rhss.Count == N);
-          for (i = 0; i < N; i++) {
-            if (rhss[i] != null) {
-              Indent(indent);
-              wr.WriteLine("{0} = {1};", lvalues[i], rhss[i]);
-            }
+          Contract.Assert(lvalues.Count == rhss.Count);
+          for (int i = 0; i < lvalues.Count; i++) {
+            Indent(indent);
+            wr.WriteLine("{0} = {1};", lvalues[i], rhss[i]);
           }
         }
 

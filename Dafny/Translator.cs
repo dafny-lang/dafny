@@ -2267,6 +2267,20 @@ namespace Microsoft.Dafny {
               singletons = new List<Expression>();
             }
             singletons.Add(e);
+          } else if (e.Type is SeqType) {
+            // e represents a sequence
+            // Add:  set x :: x in e
+            var bv = new BoundVar(e.tok, "_s2s_" + otherTmpVarCount, ((SeqType)e.Type).Arg);
+            otherTmpVarCount++;  // use this counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+            var bvIE = new IdentifierExpr(e.tok, bv.Name);
+            bvIE.Var = bv;  // resolve here
+            bvIE.Type = bv.Type;  // resolve here
+            var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
+            sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
+            sInE.Type = Type.Bool;  // resolve here
+            var s = new SetComprehension(e.tok, new List<BoundVar>() { bv }, sInE, bvIE);
+            s.Type = new SetType(new ObjectType());  // resolve here
+            sets.Add(s);
           } else {
             // e is already a set
             Contract.Assert(e.Type is SetType);
