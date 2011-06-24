@@ -29,6 +29,7 @@ let rec MyFold ee acc =
 %token GETS COLON COLONCOLON COMMA
 %token CLASS MODEL CODE
 %token VAR CONSTRUCTOR METHOD FRAME INVARIANT RETURNS REQUIRES ENSURES FORALL
+%token INTTYPE BOOLTYPE SEQTYPE SETTYPE
 %token EOF
 
 // This is the type of the data produced by a successful reduction of the 'start'
@@ -89,8 +90,8 @@ BlockStmt:
 Member:
     | VAR VarDecl                            { Field($2) }
     | CONSTRUCTOR ID Signature Pre Post      { Constructor($2, $3, $4, $5) }
-	| METHOD ID Signature Pre Post           { Method($2, $3, $4, $5) }
-	| INVARIANT ExprList                     { Invariant($2) }
+    | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5) }
+	  | INVARIANT ExprList                     { Invariant($2) }
 
 FrameMembers:
     |                                        { [], [], IdLiteral("true") }
@@ -113,8 +114,12 @@ VarDecl:
     | ID COLON Type    { Var($1,Some($3)) }
 
 Type:
-    | ID                         { NamedType($1) }
-    | ID LBRACKET Type RBRACKET  { InstantiatedType($1, $3) }
+    | INTTYPE                        { IntType }
+    | BOOLTYPE                       { BoolType }
+    | ID                             { NamedType($1) }
+    | SEQTYPE LBRACKET Type RBRACKET { SeqType($3) }
+    | SETTYPE LBRACKET Type RBRACKET { SetType($3) }
+    | ID LBRACKET Type RBRACKET      { InstantiatedType($1, $3) }
 
 ExprList:
     |                   { [] }

@@ -1,10 +1,10 @@
 class List[T] {
   var list: seq[T]
 
-  constructor Init() 
+  constructor Empty()
     ensures list = []
 
-  constructor Singleton(t)
+  constructor Singleton(t: T)
     ensures list = [t]
 }
 
@@ -25,7 +25,7 @@ class Node[T] {
   invariant
     |list| > 0
 
-  constructor Init(t)
+  constructor Init(t: T)
     ensures list = [t]
 }
 
@@ -37,6 +37,6 @@ model Node[T] {
     data * next
 
   invariant
-    next = null ==> list = [data]
-    next != null ==> list = [data] + next.list
+    next = null <==> list = [data]
+    next != null ==> list = [data] + next.list 
 } 

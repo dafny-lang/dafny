@@ -2,24 +2,17 @@
 
 open Ast
 open AstUtils
+open DafnyModelUtils
+open PipelineUtils
 open Printer
 open DafnyPrinter
 open TypeChecker
 
+open Microsoft.Boogie
+                    
 let VarsAreDifferent aa bb =
   printf "false"
   List.iter2 (fun (_,Var(a,_)) (_,Var(b,_)) -> printf " || %s != %s" a b) aa bb
-
-let Fields members =
-  members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
-
-let Methods prog = 
-  match prog with
-  | Program(components) ->
-      components |> List.fold (fun acc comp -> 
-        match comp with
-        | Component(Class(_,_,members), Model(_,_,_,_,_), _) -> List.concat [acc ; members]            
-        | _ -> acc) []
 
 let Rename suffix vars =
   vars |> List.map (function Var(nm,tp) -> nm, Var(nm + suffix, tp))
@@ -79,18 +72,31 @@ let GenValidFunctionCode clsMembers modelInv vars prog : string =
   let allInvs = modelInv :: clsInvs
   let fieldsValid = GetFieldsValidExprList vars prog
   let idt = "    "
-  let invsStr = List.concat [fieldsValid ; allInvs] |> List.fold (fun acc (e: Expr) -> 
-                                                                  if acc = "" then
-                                                                    sprintf "%s%s" idt (PrintExpr 0 e)
-                                                                  else
-                                                                    acc + " &&" + newline + sprintf "%s%s" idt (PrintExpr 0 e)) ""
+  let invsStr = List.concat [allInvs ; fieldsValid] |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
+                                                    |> List.fold (fun acc (e: Expr) -> 
+                                                                    if acc = "" then
+                                                                      sprintf "%s(%s)" idt (PrintExpr 0 e)
+                                                                    else
+                                                                      acc + " &&" + newline + sprintf "%s(%s)" idt (PrintExpr 0 e)) ""
+  // TODO: don't hardcode decr vars!!!
+  let decrVars = if List.choose (function Var(n,_) -> Some(n)) vars |> List.exists (fun n -> n = "next") then
+                   ["list"]
+                 else
+                   []
   "  function Valid(): bool" + newline +
   "    reads *;" + newline +
+  (if List.isEmpty decrVars then "" else sprintf "    decreases %s;%s" (PrintSep ", " (fun a -> a) decrVars) newline) +
   "  {" + newline + 
   invsStr + newline +
   "  }" + newline
 
-let AnalyzeMethod prog mthd : string =
+let GetAnalyzeConstrCode mthd =
+  match mthd with 
+  | Constructor(methodName,signature,pre,post) -> (GenerateMethodCode methodName signature pre post false) + newline
+  | Method(methodName,signature,pre,post)      -> (GenerateMethodCode methodName signature pre post true) + newline
+  | _ -> ""
+
+let AnalyzeMethod prog mthd mthdCodeFunc: string =
   match prog with
   | Program(components) -> components |> List.fold (fun acc comp -> 
       match comp with  
@@ -101,35 +107,52 @@ let AnalyzeMethod prog mthd : string =
         acc + 
         (sprintf "class %s%s {" name (PrintTypeParams typeParams)) + newline +       
         // the fields: original abstract fields plus concrete fields
-        (sprintf "%s" (PrintFields allVars 2)) + newline +                           
+        (sprintf "%s" (PrintFields aVars 2 true)) + newline +     
+        (sprintf "%s" (PrintFields cVars 2 false)) + newline +                           
         // generate the Valid function
         (sprintf "%s" (GenValidFunctionCode members inv allVars prog)) + newline +
         // generate code for the given method
         (if List.exists (fun a -> a = mthd) members then
-           match mthd with 
-           | Constructor(methodName,signature,pre,post) -> (GenerateMethodCode methodName signature pre post false) + newline
-           | Method(methodName,signature,pre,post)      -> (GenerateMethodCode methodName signature pre post true) + newline
-           | _ -> ""
+           mthdCodeFunc mthd
          else
            "") +
         // the end of the class
         "}" + newline + newline
       | _ -> assert false; "") ""
 
-let scratchFileName = "scratch.dfy"
+let PrintImplCode (heap, env, ctx) =
+  
+  ()  
 
 let Analyze prog =
-  let methods = Methods prog
-
+  let models = ref null
+  let methods = Methods prog     
   // synthesize constructors
-  methods |> List.iter (fun m -> 
+  methods |> List.iter (fun (comp, m) -> 
     match m with
     | Constructor(methodName,signature,pre,post) -> 
-        use file = System.IO.File.CreateText(scratchFileName)
-        let code = AnalyzeMethod prog m
-        printfn "printing code for method %s:\r\n%s" methodName code
-        printfn "-------------------------"
+        use file = System.IO.File.CreateText(dafnyScratchFile)
+        file.AutoFlush <- true
+        let code = AnalyzeMethod prog m GetAnalyzeConstrCode
+        printfn "analyzing constructor %s" methodName 
+//        printfn "%s" code
+//        printfn "-------------------------"
         fprintf file "%s" code
+        file.Close()
+        RunDafny dafnyScratchFile dafnyModelFile
+        use modelFile = System.IO.File.OpenText(dafnyModelFile)
+        
+        let models = Microsoft.Boogie.Model.ParseModels modelFile
+        if models.Count = 0 then
+          printfn "spec for method %s.%s is inconsistent (no valid solution exists)" (GetClassName comp) methodName
+        else 
+          assert (models.Count = 1) // TODO
+          let model = models.[0]
+
+          let (heap,env,ctx) = ReadFieldValuesFromModel model prog comp m 
+          PrintImplCode (heap, env, ctx) |> ignore
+          printfn "done with %s" methodName
+          System.Environment.Exit(1)
     | _ -> ())
 
 

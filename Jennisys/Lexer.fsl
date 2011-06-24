@@ -32,6 +32,11 @@ rule tokenize = parse
 | "requires"     { REQUIRES }
 | "ensures"      { ENSURES }
 | "forall"       { FORALL }
+// Types
+| "int"          { INTTYPE }
+| "bool"         { BOOLTYPE }
+| "seq"          { SEQTYPE }
+| "set"          { SETTYPE }
 // Operators
 | "."      { DOT }
 | "+"      { PLUS }

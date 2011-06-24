@@ -3,10 +3,22 @@
 open System
 open System.Numerics
 
-
 type Type =
+  | IntType
+  | BoolType
+  | SetType of Type (* type parameter *)
+  | SeqType of Type (* type parameter *)
   | NamedType of string
-  | InstantiatedType of string * Type
+  | InstantiatedType of string * Type (* type parameter *)
+
+type Const = 
+  | IntConst   of int
+  | BoolConst  of bool
+  | SetConst   of Set<Const>
+  | SeqConst   of (Const option) list
+  | ThisConst  of (* loc id *) string * Type option
+  | NewObj     of (* loc id *) string * Type option
+  | Unresolved of (* loc id *) string 
 
 type VarDecl =
   | Var of string * Type option
@@ -50,3 +62,4 @@ type Component =
 
 type Program =
   | Program of Component list
+

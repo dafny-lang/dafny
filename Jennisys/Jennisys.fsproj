@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\List.jen</StartArguments>
+    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\List2.jen</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>pdbonly</DebugType>
@@ -42,6 +42,8 @@
     <FsYaccOutputFolder>$(IntermediateOutputPath)</FsYaccOutputFolder>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Utils.fs" />
+    <Compile Include="PipelineUtils.fs" />
     <Compile Include="Ast.fs" />
     <Compile Include="AstUtils.fs" />
     <Compile Include="$(IntermediateOutputPath)\Parser.fs">
@@ -52,6 +54,7 @@
       <Visible>false</Visible>
       <Link>Lexer.fs</Link>
     </Compile>
+    <Compile Include="DafnyModelUtils.fs" />
     <FsYacc Include="Parser.fsy">
       <OtherFlags>--module Parser</OtherFlags>
     </FsYacc>
@@ -73,6 +76,18 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\ModelViewer\ModelViewer.csproj">
+      <Name>ModelViewer</Name>
+      <Project>{a678c6eb-b329-46a9-bbfc-7585f01acd7c}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Source\Model\Model.csproj">
+      <Name>Model</Name>
+      <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

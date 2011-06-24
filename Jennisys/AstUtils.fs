@@ -24,3 +24,41 @@ let BinaryNeq lhs rhs = BinaryExpr(40, "!=", lhs, rhs)
 
 let TrueLiteral = IdLiteral("true")
 let FalseLiteral = IdLiteral("false")
+
+// --- search functions ---
+                                               
+let Fields members =
+  members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
+
+let Methods prog = 
+  match prog with
+  | Program(components) ->
+      components |> List.fold (fun acc comp -> 
+        match comp with
+        | Component(Class(_,_,members),_,_) -> List.concat [acc ; members |> List.choose (fun m -> Some(comp, m))]            
+        | _ -> acc) []
+
+let AllFields c = 
+  match c with
+  | Component(Class(_,_,members), Model(_,_,cVars,_,_), _) ->
+      let aVars = Fields members
+      List.concat [aVars ; cVars]
+  | _ -> []
+
+let GetClassName comp =
+  match comp with
+  | Component(Class(name,_,_),_,_) -> name
+  | _ -> failwith ("unrecognized component: " + comp.ToString())
+
+let FindComponent (prog: Program) clsName = 
+  match prog with
+  | Program(comps) -> comps |> List.filter (function Component(Class(name,_,_),_,_) when name = clsName -> true | _ -> false)
+                            |> Utils.ListToOption
+
+let FindVar (prog: Program) clsName fldName =
+  let copt = FindComponent prog clsName
+  match copt with
+  | Some(comp) -> 
+      AllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
+                     |> Utils.ListToOption
+  | None -> None

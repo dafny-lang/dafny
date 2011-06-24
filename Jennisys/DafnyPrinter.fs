@@ -5,7 +5,11 @@ open Printer
 
 let rec PrintType ty =
   match ty with
-  | NamedType(id) -> id
+  | IntType                  -> "int"
+  | BoolType                 -> "bool"
+  | NamedType(id)            -> id
+  | SeqType(t)               -> sprintf "seq<%s>" (PrintType t)
+  | SetType(t)               -> sprintf "set<%s>" (PrintType t)
   | InstantiatedType(id,arg) -> sprintf "%s<%s>" id (PrintType arg) 
 
 let rec PrintExpr ctx expr =
@@ -41,7 +45,8 @@ let PrintTypeParams typeParams =
   | [] -> ""
   | _ -> sprintf "<%s>" (typeParams |> PrintSep ", " (fun tp -> tp))
 
-let PrintFields vars indent = 
+let PrintFields vars indent ghost = 
+  let ghostStr = if ghost then "ghost " else ""
   vars |> List.fold (fun acc v -> match v with 
-                                  | Var(nm,None)     -> acc + (sprintf "%svar %s;%s" (Indent indent) nm newline)
-                                  | Var(nm,Some(tp)) -> acc + (sprintf "%svar %s: %s;%s" (Indent indent) nm (PrintType tp) newline)) ""
+                                  | Var(nm,None)     -> acc + (sprintf "%s%svar %s;%s" (Indent indent) ghostStr nm newline)
+                                  | Var(nm,Some(tp)) -> acc + (sprintf "%s%svar %s: %s;%s" (Indent indent) ghostStr nm (PrintType tp) newline)) ""

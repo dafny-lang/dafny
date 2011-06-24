@@ -61,4 +61,7 @@ let rec start n (args: string []) tracing analyzing filename =
     readAndProcess tracing analyzing filename
 
 let args = Environment.GetCommandLineArgs()
-start 1 args false true null
+try 
+  start 1 args false true null
+with 
+| _ as e -> printfn "%s" e.StackTrace

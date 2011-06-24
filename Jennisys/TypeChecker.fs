@@ -24,6 +24,7 @@ let IsUserType prog tpo =
         let tpname = match tp with
                        | NamedType(tname) -> tname
                        | InstantiatedType(tname, _) -> tname
+                       | _ -> ""
         match prog with
          | Program(components) -> components |> List.filter (function Component(Class(name,_,_),_,_) when name = tpname -> true
                                                                       | _                                               -> false) |> List.isEmpty |> not

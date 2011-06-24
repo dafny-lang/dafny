@@ -12,7 +12,11 @@ let rec PrintSep sep f list =
   
 let rec PrintType ty =
   match ty with
-  | NamedType(id) -> id
+  | IntType                  -> "int"
+  | BoolType                 -> "bool"
+  | NamedType(id)            -> id
+  | SeqType(t)               -> sprintf "seq[%s]" (PrintType t)
+  | SetType(t)               -> sprintf "set[%s]" (PrintType t)
   | InstantiatedType(id,arg) -> sprintf "%s[%s]" id (PrintType arg)
 
 let PrintVarDecl vd =
@@ -50,11 +54,14 @@ let PrintSig signature =
         else ""
       sprintf "(%s)%s" (ins |> PrintSep ", " PrintVarDecl) returnClause
 
-let rec ForeachConjunct f expr =
+let rec SplitIntoConjunts expr = 
   match expr with
-  | IdLiteral("true") -> ""
-  | BinaryExpr(_,"&&",e0,e1) -> (ForeachConjunct f e0) + (ForeachConjunct f e1)
-  | _ -> f expr
+  | IdLiteral("true") -> []
+  | BinaryExpr(_,"&&",e0,e1) -> List.concat [SplitIntoConjunts e0 ; SplitIntoConjunts e1]
+  | _ -> [expr]
+
+let rec ForeachConjunct f expr =
+  SplitIntoConjunts expr |> List.fold (fun acc e -> acc + (f e)) ""
 
 let rec Indent i =
   if i = 0 then "" else " " + (Indent (i-1))
