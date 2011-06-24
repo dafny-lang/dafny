@@ -27,8 +27,14 @@ let FalseLiteral = IdLiteral("false")
 
 // --- search functions ---
                                                
-let Fields members =
+let FilterFieldMembers members =
   members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
+
+let FilterConstructorMembers members = 
+  members |> List.choose (function Constructor(_,_,_,_) as m -> Some(m) | _ -> None)
+
+let FilterMethodMembers members = 
+  members |> List.choose (function Method(_,_,_,_) as m -> Some(m) | _ -> None)
 
 let Methods prog = 
   match prog with
@@ -41,7 +47,7 @@ let Methods prog =
 let AllFields c = 
   match c with
   | Component(Class(_,_,members), Model(_,_,cVars,_,_), _) ->
-      let aVars = Fields members
+      let aVars = FilterFieldMembers members
       List.concat [aVars ; cVars]
   | _ -> []
 

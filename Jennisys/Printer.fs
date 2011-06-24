@@ -4,12 +4,33 @@ open Ast
 
 let newline = System.Environment.NewLine // "\r\n"
 
+let PrintGenSym name =
+  sprintf "gensym%s" name
+
 let rec PrintSep sep f list =
   match list with
   | [] -> ""
   | [a] -> f a
   | a :: more -> (f a) + sep + (PrintSep sep f more)
   
+let rec PrintConst cst = 
+  match cst with 
+  | IntConst(v)        -> sprintf "%d" v
+  | BoolConst(b)       -> sprintf "%b" b
+  | SetConst(cset)     -> cset.ToString() //TODO: this won't work
+  | SeqConst(cseq)     -> 
+      let seqCont = cseq |> List.fold (fun acc cOpt ->
+                                         let sep = if acc = "" then "" else ", "
+                                         match cOpt with 
+                                         | Some(c) -> acc + sep + (PrintConst c)
+                                         | None -> acc + sep + "null"
+                                      ) ""
+      sprintf "[%s]" seqCont
+  | NullConst          -> "null"
+  | ThisConst(_,_)     -> "this"
+  | NewObj(name,_)     -> PrintGenSym name
+  | Unresolved(name)   -> sprintf "Unresolved(%s)" name
+
 let rec PrintType ty =
   match ty with
   | IntType                  -> "int"
@@ -23,6 +44,10 @@ let PrintVarDecl vd =
   match vd with
   | Var(id,None) -> id
   | Var(id,Some(ty)) -> sprintf "%s: %s" id (PrintType ty)
+
+let PrintVarName vd =
+  match vd with
+  | Var(id,_) -> id
 
 let rec PrintExpr ctx expr =
   match expr with

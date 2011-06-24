@@ -14,8 +14,9 @@ type Type =
 type Const = 
   | IntConst   of int
   | BoolConst  of bool
-  | SetConst   of Set<Const>
+  | SetConst   of Set<Const option>
   | SeqConst   of (Const option) list
+  | NullConst
   | ThisConst  of (* loc id *) string * Type option
   | NewObj     of (* loc id *) string * Type option
   | Unresolved of (* loc id *) string 

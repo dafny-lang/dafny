@@ -2,11 +2,11 @@
 
 open Ast
 open AstUtils
+open CodeGen
 open DafnyModelUtils
 open PipelineUtils
 open Printer
 open DafnyPrinter
-open TypeChecker
 
 open Microsoft.Boogie
                     
@@ -34,7 +34,7 @@ let rec Substitute substMap = function
   | ForallExpr(vv,e) -> ForallExpr(vv, Substitute substMap e)
   | expr -> expr
 
-let GenerateMethodCode methodName signature pre post assumeInvInitially =
+let GenMethodAnalysisCode methodName signature pre post assumeInvInitially =
   "  method " + methodName + "()" + newline +
   "    modifies this;" + newline +
   "  {" + newline + 
@@ -53,108 +53,55 @@ let GenerateMethodCode methodName signature pre post assumeInvInitially =
   // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
   "    // assert false to search for a model satisfying the assumed constraints" + newline + 
   "    assert false;" + newline + 
-  "  }" + newline                                      
-
-let GetFieldValidExpr (name: string) : Expr = 
-  BinaryImplies (BinaryNeq (IdLiteral(name)) (IdLiteral("null"))) (Dot(IdLiteral(name), "Valid()"))
-
-let GetFieldsForValidExpr (allFields: VarDecl list) prog : VarDecl list =
-  allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
-                                     | _                                   -> false)
-
-let GetFieldsValidExprList (allFields: VarDecl list) prog : Expr list =
-  let fields = GetFieldsForValidExpr allFields prog
-  fields |> List.map (function Var(name, _) -> GetFieldValidExpr name)
-
-let GenValidFunctionCode clsMembers modelInv vars prog : string = 
-  let invMembers = clsMembers |> List.filter (function Invariant(_) -> true | _ -> false)
-  let clsInvs = invMembers |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
-  let allInvs = modelInv :: clsInvs
-  let fieldsValid = GetFieldsValidExprList vars prog
-  let idt = "    "
-  let invsStr = List.concat [allInvs ; fieldsValid] |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
-                                                    |> List.fold (fun acc (e: Expr) -> 
-                                                                    if acc = "" then
-                                                                      sprintf "%s(%s)" idt (PrintExpr 0 e)
-                                                                    else
-                                                                      acc + " &&" + newline + sprintf "%s(%s)" idt (PrintExpr 0 e)) ""
-  // TODO: don't hardcode decr vars!!!
-  let decrVars = if List.choose (function Var(n,_) -> Some(n)) vars |> List.exists (fun n -> n = "next") then
-                   ["list"]
-                 else
-                   []
-  "  function Valid(): bool" + newline +
-  "    reads *;" + newline +
-  (if List.isEmpty decrVars then "" else sprintf "    decreases %s;%s" (PrintSep ", " (fun a -> a) decrVars) newline) +
-  "  {" + newline + 
-  invsStr + newline +
-  "  }" + newline
-
-let GetAnalyzeConstrCode mthd =
-  match mthd with 
-  | Constructor(methodName,signature,pre,post) -> (GenerateMethodCode methodName signature pre post false) + newline
-  | Method(methodName,signature,pre,post)      -> (GenerateMethodCode methodName signature pre post true) + newline
+  "  }" + newline  
+             
+let MethodAnalysisPrinter onlyForThisCompMethod comp mthd = 
+  match onlyForThisCompMethod with
+  | (c,m) when c = comp && m = mthd -> 
+    match m with 
+    | Constructor(methodName, sign, pre, post) -> (GenMethodAnalysisCode methodName sign pre post false) + newline
+    | _ -> ""
   | _ -> ""
 
-let AnalyzeMethod prog mthd mthdCodeFunc: string =
-  match prog with
-  | Program(components) -> components |> List.fold (fun acc comp -> 
-      match comp with  
-      | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
-        let aVars = Fields members
-        let allVars = List.concat [aVars ; cVars];
-        // Now print it as a Dafny program
-        acc + 
-        (sprintf "class %s%s {" name (PrintTypeParams typeParams)) + newline +       
-        // the fields: original abstract fields plus concrete fields
-        (sprintf "%s" (PrintFields aVars 2 true)) + newline +     
-        (sprintf "%s" (PrintFields cVars 2 false)) + newline +                           
-        // generate the Valid function
-        (sprintf "%s" (GenValidFunctionCode members inv allVars prog)) + newline +
-        // generate code for the given method
-        (if List.exists (fun a -> a = mthd) members then
-           mthdCodeFunc mthd
-         else
-           "") +
-        // the end of the class
-        "}" + newline + newline
-      | _ -> assert false; "") ""
 
-let PrintImplCode (heap, env, ctx) =
-  
-  ()  
+
+let AnalyzeConstructor prog comp methodName signature pre post =
+  let m = Constructor(methodName, signature, pre, post)
+  use file = System.IO.File.CreateText(dafnyScratchFile)
+  file.AutoFlush <- true
+  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m))
+  printfn "analyzing constructor %s" methodName 
+  fprintf file "%s" code
+  file.Close()
+  RunDafny dafnyScratchFile dafnyModelFile
+  use modelFile = System.IO.File.OpenText(dafnyModelFile)
+        
+  let models = Microsoft.Boogie.Model.ParseModels modelFile
+  if models.Count = 0 then
+    printfn "spec for method %s.%s is inconsistent (no valid solution exists)" (GetClassName comp) methodName
+    failwith "inconsistent spec"      // TODO: instead of failing, just continue
+  else 
+    if models.Count > 1 then failwith "why did we get more than one model for a single constructor analysis???"
+    let model = models.[0]
+    ReadFieldValuesFromModel model prog comp m 
+
+let rec AnalyzeMethods prog methods = 
+  match methods with
+  | (comp,m) :: rest -> 
+      match m with
+      | Constructor(methodName,signature,pre,post) -> 
+          let (heap,env,ctx) = AnalyzeConstructor prog comp methodName signature pre post
+          AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
+      | _ -> AnalyzeMethods prog rest
+  | [] -> Map.empty
 
 let Analyze prog =
-  let models = ref null
-  let methods = Methods prog     
-  // synthesize constructors
-  methods |> List.iter (fun (comp, m) -> 
-    match m with
-    | Constructor(methodName,signature,pre,post) -> 
-        use file = System.IO.File.CreateText(dafnyScratchFile)
-        file.AutoFlush <- true
-        let code = AnalyzeMethod prog m GetAnalyzeConstrCode
-        printfn "analyzing constructor %s" methodName 
-//        printfn "%s" code
-//        printfn "-------------------------"
-        fprintf file "%s" code
-        file.Close()
-        RunDafny dafnyScratchFile dafnyModelFile
-        use modelFile = System.IO.File.OpenText(dafnyModelFile)
-        
-        let models = Microsoft.Boogie.Model.ParseModels modelFile
-        if models.Count = 0 then
-          printfn "spec for method %s.%s is inconsistent (no valid solution exists)" (GetClassName comp) methodName
-        else 
-          assert (models.Count = 1) // TODO
-          let model = models.[0]
-
-          let (heap,env,ctx) = ReadFieldValuesFromModel model prog comp m 
-          PrintImplCode (heap, env, ctx) |> ignore
-          printfn "done with %s" methodName
-          System.Environment.Exit(1)
-    | _ -> ())
-
+  let solutions = AnalyzeMethods prog (Methods prog)
+  use file = System.IO.File.CreateText(dafnySynthFile)
+  file.AutoFlush <- true
+  let synthCode = PrintImplCode prog solutions
+  fprintfn file "%s" synthCode
+  ()
 
 //let AnalyzeComponent_rustan c =
 //  match c with

@@ -18,6 +18,13 @@ let SeqToOption seq =
   else
     Some(Seq.nth 0 seq)
 
+let SetToOption set = 
+  assert (Set.count set <= 1)
+  if (Set.isEmpty set) then
+    None
+  else 
+    Some(set |> Set.toList |> List.head)
+
 let rec GenList n =
   if n = 0 then
     []

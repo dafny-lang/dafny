@@ -64,4 +64,4 @@ let args = Environment.GetCommandLineArgs()
 try 
   start 1 args false true null
 with 
-| _ as e -> printfn "%s" e.StackTrace
+| e -> printfn "%s" e.StackTrace

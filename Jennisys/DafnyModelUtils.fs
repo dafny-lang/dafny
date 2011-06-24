@@ -79,7 +79,18 @@ let AddConstr c1 c2 ctx =
     ctx
   else
     match c1, c2 with
-    | Unresolved(_), _ | _, Unresolved(_) -> Set.add (Set.ofList [c1; c2]) ctx
+    | Unresolved(_), _ | _, Unresolved(_) -> 
+        // find partitions
+        let s1Opt = ctx |> Set.filter (fun ss -> Set.contains c1 ss) |> Utils.SetToOption
+        let s2Opt = ctx |> Set.filter (fun ss -> Set.contains c2 ss) |> Utils.SetToOption
+        match s1Opt, s2Opt with
+        // both already exist --> so just merge them
+        | Some(s1), Some(s2) -> ctx |> Set.remove s1 |> Set.remove s2 |> Set.add (Set.union s1 s2)
+        // exactly one already exists --> add to existing
+        | Some(s1), None -> ctx |> Set.remove s1 |> Set.add (Set.add c2 s1)
+        | None, Some(s2) -> ctx |> Set.remove s2 |> Set.add (Set.add c1 s2)
+        // neither exists --> create a new one
+        | None, None -> ctx |> Set.add (Set.ofList [c1; c2])
     | _ -> failwith ("trying to add an equality constraint between two constants: " + c1.ToString() + ", and " + c2.ToString())
                                            
 let rec UpdateContext lst1 lst2 ctx = 
@@ -114,12 +125,14 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         let clsName = if dotIdx = -1 then "" else fldFullName.Substring(0, dotIdx)
                         let refVal = ft.Result
                         let refObj = Unresolved(GetRefName ref)
-                        let fldVar = FindVar prog clsName fldName
-                        let fldType = match fldVar with 
-                                      | Some(Var(_,t)) -> t
-                                      | _              -> None
-                        let fldVal = ConvertValue model refVal
-                        acc |> Map.add (refObj, fldVar) fldVal
+                        let fldVarOpt = FindVar prog clsName fldName
+                        match fldVarOpt with
+                        | Some(fldVar) ->
+                            let fldType = match fldVar with 
+                                          | Var(_,t) -> t
+                            let fldVal = ConvertValue model refVal
+                            acc |> Map.add (refObj, fldVar) fldVal
+                        | None -> acc
                       ) Map.empty
 
 let rec ReadSeqLen (model: Microsoft.Boogie.Model) (len_tuples: Model.FuncTuple list) (envMap,ctx) =
@@ -167,9 +180,17 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
                |> ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
                |> ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
 
-let ReadSet (model: Microsoft.Boogie.Model) envMap =
-  envMap
 
+let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
+  (envMap,ctx)
+
+let ReadNull (model: Microsoft.Boogie.Model) (envMap,ctx) = 
+  let f_null = model.MkFunc("null", 0)
+  assert (f_null.AppCount = 1)
+  let e = (f_null.Apps |> Seq.nth 0).Result
+  let newEnv = envMap |> Map.add (GetLoc e) NullConst
+  (newEnv,ctx)
+  
 let ReadEnv (model: Microsoft.Boogie.Model) = 
   let f_dtype = model.MkFunc("dtype", 1)
   let refs = f_dtype.Apps |> Seq.choose (fun ft -> Some(ft.Args.[0]))
@@ -179,11 +200,12 @@ let ReadEnv (model: Microsoft.Boogie.Model) =
                                            let loc = Unresolved(locName)
                                            let locType = GetType ft.Result
                                            let value = match elemName with
-                                                       | Some(n) when n.StartsWith("this") -> ThisConst(locName, locType)
-                                                       | _                                 -> NewObj(locName, locType)
+                                                       | Some(n) when n.StartsWith("this") -> ThisConst(locName.Replace("*", ""), locType)
+                                                       | _                                 -> NewObj(locName.Replace("*", ""), locType)
                                            acc |> Map.add loc value
                                         ) Map.empty
-  (envMap, Set.ofList([])) |> ReadSeq model 
+  (envMap, Set.ofList([])) |> ReadNull model
+                           |> ReadSeq model 
                            |> ReadSet model
 
 let ReadFieldValuesFromModel (model: Microsoft.Boogie.Model) prog comp meth =

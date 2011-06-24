@@ -3,6 +3,7 @@
 let dafnyScratchFile = @"c:\tmp\jennisys-scratch.dfy"
 let dafnyModelFile = @"c:\tmp\jennisys-scratch.model"
 let dafnyOutFile = @"c:\tmp\jennisys-scratch.out"
+let dafnySynthFile = @"c:\tmp\jennisys-synth.dfy"
 
 let RunDafny inputFile modelFile =
   async {
