@@ -59,11 +59,11 @@ let rec Resolve cst (env,ctx) =
               | _ -> failwith ("failed to resolve " + cst.ToString())
           | _ -> failwith ("failed to resolve " + cst.ToString())
   | SeqConst(cseq) -> 
-      let resolvedLst = cseq |> List.fold (fun acc cOpt ->
-                                             match cOpt with
-                                             | Some(c) -> Some(Resolve c (env,ctx)) :: acc 
-                                             | None -> cOpt :: acc
-                                          ) []
+      let resolvedLst = cseq |> List.rev |> List.fold (fun acc cOpt ->
+                                                         match cOpt with
+                                                         | Some(c) -> Some(Resolve c (env,ctx)) :: acc 
+                                                         | None -> cOpt :: acc
+                                                      ) []
       SeqConst(resolvedLst)
   | SetConst(cset) ->
       let resolvedSet = cset |> Set.fold (fun acc cOpt ->

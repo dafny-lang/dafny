@@ -62,9 +62,7 @@ let MethodAnalysisPrinter onlyForThisCompMethod comp mthd =
     | Constructor(methodName, sign, pre, post) -> (GenMethodAnalysisCode methodName sign pre post false) + newline
     | _ -> ""
   | _ -> ""
-
-
-
+                           
 let AnalyzeConstructor prog comp methodName signature pre post =
   let m = Constructor(methodName, signature, pre, post)
   use file = System.IO.File.CreateText(dafnyScratchFile)
@@ -79,19 +77,21 @@ let AnalyzeConstructor prog comp methodName signature pre post =
   let models = Microsoft.Boogie.Model.ParseModels modelFile
   if models.Count = 0 then
     printfn "spec for method %s.%s is inconsistent (no valid solution exists)" (GetClassName comp) methodName
-    failwith "inconsistent spec"      // TODO: instead of failing, just continue
+    None //failwith "inconsistent spec"      // TODO: instead of failing, just continue
   else 
     if models.Count > 1 then failwith "why did we get more than one model for a single constructor analysis???"
     let model = models.[0]
-    ReadFieldValuesFromModel model prog comp m 
+    Some(ReadFieldValuesFromModel model prog comp m)
 
 let rec AnalyzeMethods prog methods = 
   match methods with
   | (comp,m) :: rest -> 
       match m with
       | Constructor(methodName,signature,pre,post) -> 
-          let (heap,env,ctx) = AnalyzeConstructor prog comp methodName signature pre post
-          AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
+          let solOpt = AnalyzeConstructor prog comp methodName signature pre post
+          match solOpt with
+          | Some(heap,env,ctx) -> AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
+          | None -> AnalyzeMethods prog rest
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 

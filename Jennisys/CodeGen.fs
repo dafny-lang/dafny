@@ -114,6 +114,6 @@ let PrintImplCode prog solutions =
   PrintDafnyCodeSkeleton prog (fun comp mthd ->
                                  let mthdBody = match Map.tryFind (comp,mthd) solutions with
                                                 | Some(heap,env,ctx) -> PrintHeapCreationCode (heap,env,ctx) 4
-                                                | _ -> "//unable to synthesize"
+                                                | _ -> "    //unable to synthesize" + newline
                                  (GenConstructorCode mthd mthdBody) + newline
                               )
