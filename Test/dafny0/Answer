@@ -147,16 +147,16 @@ Execution trace:
     SmallTests.dfy(81,5): anon9_LoopHead
     (0,0): anon9_LoopBody
     (0,0): anon10_Then
-SmallTests.dfy(116,5): Error: call may violate caller's modifies clause
+SmallTests.dfy(116,5): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(129,9): Error: call may violate caller's modifies clause
+SmallTests.dfy(129,9): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(131,9): Error: call may violate caller's modifies clause
+SmallTests.dfy(131,9): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -453,7 +453,7 @@ ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
 9 parse errors detected in ParseErrors.dfy
 
 -------------------- Array.dfy --------------------
-Array.dfy(10,8): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(10,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
@@ -468,13 +468,13 @@ Execution trace:
 Array.dfy(48,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Array.dfy(56,8): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(56,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(63,8): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(63,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
@@ -493,10 +493,10 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(131,6): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(131,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(138,6): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(138,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 
@@ -632,7 +632,7 @@ Basics.dfy(147,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3
-Basics.dfy(147,10): Error: assignment may update an object not in the enclosing method's modifies clause
+Basics.dfy(147,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3
