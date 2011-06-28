@@ -507,6 +507,10 @@ namespace Microsoft.Dafny {
 
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintSpecLine("decreases", s.Decreases, indent + IndentAmount);
+        if (s.Mod != null)
+        {
+            PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
+        }
         Indent(indent);
         PrintStatement(s.Body, indent);
 

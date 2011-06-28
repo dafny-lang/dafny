@@ -1512,6 +1512,11 @@ namespace Microsoft.Dafny {
           }
           // any type is fine
         }
+        if(s.Mod != null) {
+          foreach (FrameExpression fe in s.Mod) {
+            ResolveFrameExpression(fe, "modifies");
+          }
+        }
         s.IsGhost = bodyMustBeSpecOnly;
         loopStack.Add(s);  // push
         if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map

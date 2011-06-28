@@ -1661,11 +1661,12 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Invariants;
     public readonly List<Expression/*!*/>/*!*/ Decreases;
     public readonly List<FrameExpression/*!*/>/*!*/ Mod;
+    public readonly bool explictModifies;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Invariants));
       Contract.Invariant(cce.NonNullElements(Decreases));
-      Contract.Invariant(cce.NonNullElements(Mod));
+      Contract.Invariant(Mod == null || cce.NonNullElements(Mod));
     }
     public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/>/*!*/ mod)
     : base(tok) 
@@ -1673,7 +1674,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(invariants));
       Contract.Requires(cce.NonNullElements(decreases));
-      Contract.Requires(cce.NonNullElements(mod));
+      Contract.Requires(mod == null || cce.NonNullElements(mod));
 
       this.Invariants = invariants;
       this.Decreases = decreases;
@@ -1691,7 +1692,7 @@ namespace Microsoft.Dafny {
     }
 
     public WhileStmt(IToken tok, Expression guard,
-                     List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/>/*!*/ mod,
+                     List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/> mod,
                      Statement/*!*/ body)
       : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
@@ -1709,7 +1710,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Alternatives != null);
     }
     public AlternativeLoopStmt(IToken tok,
-                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/>/*!*/ mod,
+                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/> mod,
                                List<GuardedAlternative> alternatives)
       : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);

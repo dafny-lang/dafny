@@ -1189,7 +1189,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		Expression guard;
 		List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
 		List<Expression/*!*/> decreases = new List<Expression/*!*/>();
-		List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
+		List<FrameExpression/*!*/> mod = null;
 		Statement/*!*/ body;
 		IToken bodyStart, bodyEnd;
 		List<GuardedAlternative> alternatives;
@@ -1393,7 +1393,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		bool isFree;  Expression/*!*/ e; FrameExpression/*!*/ fe;
 		invariants = new List<MaybeFreeExpression/*!*/>();
 		decreases = new List<Expression/*!*/>();
-		mod = new List<FrameExpression/*!*/>();
+		mod = null;
 		
 		while (StartOf(13)) {
 			if (la.kind == 29 || la.kind == 59) {
@@ -1412,6 +1412,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 				Expect(17);
 			} else {
 				Get();
+				mod = mod ?? new List<FrameExpression>(); 
 				if (StartOf(8)) {
 					FrameExpression(out fe);
 					mod.Add(fe); 
