@@ -330,3 +330,19 @@ class SomeType
     }
   }
 }
+
+// ----------------------- tests of some theory axioms --------
+
+method TestSequences0()
+{
+  var s := [0, 2, 4];
+  if (*) {
+    assert 4 in s;
+    assert 0 in s;
+    assert 1 !in s;
+  } else {
+    assert 2 in s;
+    assert exists n :: n in s && -3 <= n && n < 2;
+  }
+  assert 7 in s;  // error
+}
