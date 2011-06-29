@@ -1065,7 +1065,6 @@ namespace Microsoft.Dafny {
       return CaptureState(tok, null);
     }
     
-      //^^^ this caputres the frame, it looks like.
     void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, Bpl.StmtListBuilder/*!*/ builder, Bpl.VariableSeq/*!*/ localVariables, string name){
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(frameClause));
@@ -2799,9 +2798,6 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    /// ^^^ this appears to say that the heap has not changed outside the modifies clause.
-    /// the post state would come after a while loop, and the pre state before. also, S0 would be the 
-    /// same as S1 for while loops.
     Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
      {
       Contract.Requires(tok != null);
@@ -2855,7 +2851,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr preHeapOF = ExpressionTranslator.ReadHeap(tok, etranPre.HeapExpr, o, f);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
-      //^^^
+
       consequent = Bpl.Expr.Or(consequent, Bpl.Expr.SelectTok(tok, etranMod.TheFrame(tok), o, f));
 
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
@@ -3148,14 +3144,14 @@ namespace Microsoft.Dafny {
         var elseCase = Assert(s.Tok, Bpl.Expr.False, "alternative cases fail to cover all possibilties");
         TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran);
 
-      } else if (stmt is WhileStmt) { //^^^ While statement, needs checks.
+      } else if (stmt is WhileStmt) {
         AddComment(builder, stmt, "while statement");
         var s = (WhileStmt)stmt;
         TrLoop(s, s.Guard,
           delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) { TrStmt(s.Body, bld, locals, e); },
           builder, locals, etran);
 
-      } else if (stmt is AlternativeLoopStmt) { // ^^^ same thing.
+      } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
         var tru = new LiteralExpr(s.Tok, true);
@@ -3356,7 +3352,6 @@ namespace Microsoft.Dafny {
 
     delegate void BodyTranslator(Bpl.StmtListBuilder builder, ExpressionTranslator etran);
 
-    // ^^^ this needs to be updated to insert the appropriate checks, generate frame variables, etc.
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator bodyTr,
                 Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
       Contract.Requires(s != null);
@@ -3444,7 +3439,7 @@ namespace Microsoft.Dafny {
               invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
           }
       }
-      //^^^ add a free invariant which says that the heap hasn't changed outside of the modifies clause.
+      // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
       invariants.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
       
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
@@ -3479,11 +3474,11 @@ namespace Microsoft.Dafny {
       // termination checking
       if (Contract.Exists(theDecreases, e => e is WildcardExpr)) {
         // omit termination checking for this loop
-        bodyTr(loopBodyBuilder, updatedFrameEtran);//^^^ !! this needs to be the translator with the captured frame.
+        bodyTr(loopBodyBuilder, updatedFrameEtran);
       } else {
         List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr" + loopId + "$");
         // time for the actual loop body
-        bodyTr(loopBodyBuilder, updatedFrameEtran);//^^^ !! this needs to be the translator with the captured frame.
+        bodyTr(loopBodyBuilder, updatedFrameEtran);
         // check definedness of decreases expressions
         List<IToken> toks = new List<IToken>();
         List<Type> types = new List<Type>();
@@ -4181,7 +4176,6 @@ namespace Microsoft.Dafny {
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
           prevObj[i] = obj;
-          // ^^^ this is where LHS are checked.
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
 
@@ -4213,7 +4207,6 @@ namespace Microsoft.Dafny {
             "$index" + i, predef.FieldName(tok, predef.BoxType), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
-            // ^^^ this may not need to be changed.
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
@@ -4486,7 +4479,7 @@ namespace Microsoft.Dafny {
           this.This = "this";
           this.layerOffset = layerOffset;
       }
-      //^^^ this needs to be checked.
+
       public ExpressionTranslator(ExpressionTranslator etran, string modifiesFrame)
       {
           Contract.Requires(etran != null);
