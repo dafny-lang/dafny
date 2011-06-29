@@ -1302,9 +1302,13 @@ namespace Microsoft.Dafny {
   }
 
   public class ReturnStmt : Statement {
-    public ReturnStmt(IToken tok)
+    public List<AssignmentRhs> rhss;
+    public UpdateStmt hiddenUpdate;
+    public ReturnStmt(IToken tok, List<AssignmentRhs> rhss)
       : base(tok) {
       Contract.Requires(tok != null);
+      this.rhss = rhss;
+      hiddenUpdate = null;
     }
   }
 
@@ -1407,6 +1411,7 @@ namespace Microsoft.Dafny {
       this.MethodName = methodName;
       this.Args = args;
     }
+    // TODO: Investigate this. For an initialization, this is true. But for existing objects, this is not true.
     public override bool CanAffectPreviouslyKnownExpressions {
       get {
         foreach (var mod in Method.Mod) {
@@ -1458,6 +1463,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Expression> Lhss;
     public readonly List<AssignmentRhs> Rhss;
+    public bool secretlyReturnStatment;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
@@ -1472,6 +1478,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Lhss = lhss;
       Rhss = rhss;
+      secretlyReturnStatment = false;
+    }
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool srs)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(cce.NonNullElements(rhss));
+      Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
+      Lhss = lhss;
+      Rhss = rhss;
+      secretlyReturnStatment = srs;
     }
   }
 

@@ -3036,7 +3036,11 @@ namespace Microsoft.Dafny {
         var s = (BreakStmt)stmt;
         builder.Add(new GotoCmd(s.Tok, new StringSeq("after_" + s.TargetStmt.Labels.UniqueId)));
       } else if (stmt is ReturnStmt) {
+        var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
+        if (s.hiddenUpdate != null) {
+          TrStmt(s.hiddenUpdate, builder, locals, etran);
+        }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;

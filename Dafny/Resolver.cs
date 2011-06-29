@@ -1203,9 +1203,41 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ReturnStmt) {
         if (specContextOnly && !method.IsGhost) {
+          // TODO: investigate. This error message is suspicious. It seems that a return statement is only
+          // disallowed from a ghost if or while in a non-ghost method, which is not what this says.
           Error(stmt, "return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
         }
-      
+        ReturnStmt s = (ReturnStmt) stmt;
+        if (s.rhss != null) {
+          if (method.Outs.Count != s.rhss.Count)
+            Error(s, "number of return parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, method.Outs.Count);
+          else {
+            // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
+            List<Expression> formals = new List<Expression>();
+            foreach (Formal f in method.Outs) {
+              IdentifierExpr ident = new IdentifierExpr(f.tok, f.Name);
+              ident.Var = f;
+              ident.Type = ident.Var.Type;
+              Contract.Assert(f.Type != null);
+              formals.Add(ident);
+            }
+            s.hiddenUpdate = new UpdateStmt(s.Tok, formals, s.rhss, true);
+            int prevErrorCount = ErrorCount;
+            ResolveStatement(s.hiddenUpdate, specContextOnly, method);
+            if (ErrorCount != prevErrorCount) {
+              // success. but we still need to check the RHS is not bad.
+              foreach (AssignmentRhs rhs in s.hiddenUpdate.Rhss) {
+                if (rhs.CanAffectPreviouslyKnownExpressions) {
+                  Error(rhs.Tok, "cannot have effectful parameter in return statement.");
+                  break; // only report one error
+                }
+              }
+            } // else we have failure.
+          }
+        }
+        else {// this is a regular return statement.
+          s.hiddenUpdate = null;
+        }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         int prevErrorCount = ErrorCount;

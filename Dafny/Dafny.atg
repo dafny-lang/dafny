@@ -26,7 +26,7 @@ static BuiltIns theBuiltIns;
 
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
-static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken);
+static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument("dummyAttrArg");
 static int anonymousIds = 0;
 
@@ -696,11 +696,24 @@ OneStmt<out Statement/*!*/ s>
       }
     )
     ";"                                (. s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); .)
-  | "return"                           (. x = t; .)
-    ";"                                (. s = new ReturnStmt(x); .)
+  | ReturnStmt<out s>
   )
   .
 
+ReturnStmt<out Statement/*!*/ s>
+= (.
+   IToken returnTok = null;
+   List<AssignmentRhs> rhss = null;
+   AssignmentRhs r;
+   .)
+  "return"                           (. returnTok = t; .)
+  [
+	  Rhs<out r, null>               (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
+      { "," Rhs<out r, null>         (. rhss.Add(r); .)
+        }
+  ]
+  ";"                                (. s = new ReturnStmt(returnTok, rhss); .)
+  .
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
