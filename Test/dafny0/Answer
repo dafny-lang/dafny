@@ -147,16 +147,16 @@ Execution trace:
     SmallTests.dfy(81,5): anon9_LoopHead
     (0,0): anon9_LoopBody
     (0,0): anon10_Then
-SmallTests.dfy(116,5): Error: call may violate caller's modifies clause
+SmallTests.dfy(116,5): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
-SmallTests.dfy(129,9): Error: call may violate caller's modifies clause
+SmallTests.dfy(129,9): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-SmallTests.dfy(131,9): Error: call may violate caller's modifies clause
+SmallTests.dfy(131,9): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -458,7 +458,7 @@ ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
 9 parse errors detected in ParseErrors.dfy
 
 -------------------- Array.dfy --------------------
-Array.dfy(10,8): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(10,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
@@ -473,13 +473,13 @@ Execution trace:
 Array.dfy(48,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Array.dfy(56,8): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(56,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(63,8): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(63,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
@@ -498,10 +498,10 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(131,6): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(131,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(138,6): Error: assignment may update an array element not in the enclosing method's modifies clause
+Array.dfy(138,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 
@@ -637,7 +637,7 @@ Basics.dfy(147,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3
-Basics.dfy(147,10): Error: assignment may update an object not in the enclosing method's modifies clause
+Basics.dfy(147,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3
@@ -1005,3 +1005,88 @@ RefinementErrors.dfy(42,9): Error: Refined class has a member with the same name
 RefinementErrors.dfy(12,10): Error: Refinement methods can only be declared in refinement classes: M
 RefinementErrors.dfy(34,10): Error: Different number of output variables
 6 resolution/type errors detected in RefinementErrors.dfy
+
+-------------------- LoopModifies.dfy --------------------
+LoopModifies.dfy(6,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+LoopModifies.dfy(17,8): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(14,4): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    LoopModifies.dfy(14,4): anon10_Else
+    (0,0): anon5
+    LoopModifies.dfy(14,4): anon12_Else
+    (0,0): anon7
+LoopModifies.dfy(46,8): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(42,4): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    LoopModifies.dfy(42,4): anon10_Else
+    (0,0): anon5
+    LoopModifies.dfy(42,4): anon12_Else
+    (0,0): anon7
+LoopModifies.dfy(61,8): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(57,4): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    LoopModifies.dfy(57,4): anon10_Else
+    (0,0): anon5
+    LoopModifies.dfy(57,4): anon12_Else
+    (0,0): anon7
+LoopModifies.dfy(74,4): Error: loop modifies clause may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+LoopModifies.dfy(98,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(90,4): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    LoopModifies.dfy(90,4): anon10_Else
+    (0,0): anon5
+    LoopModifies.dfy(90,4): anon12_Else
+    (0,0): anon7
+LoopModifies.dfy(146,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(134,4): anon17_LoopHead
+    (0,0): anon17_LoopBody
+    LoopModifies.dfy(134,4): anon18_Else
+    (0,0): anon5
+    LoopModifies.dfy(134,4): anon20_Else
+    (0,0): anon7
+    LoopModifies.dfy(139,7): anon21_LoopHead
+    (0,0): anon21_LoopBody
+    LoopModifies.dfy(139,7): anon22_Else
+    (0,0): anon12
+    LoopModifies.dfy(139,7): anon24_Else
+    (0,0): anon14
+LoopModifies.dfy(197,10): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(193,4): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    LoopModifies.dfy(193,4): anon10_Else
+    (0,0): anon5
+    LoopModifies.dfy(193,4): anon12_Else
+    (0,0): anon7
+LoopModifies.dfy(260,10): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    LoopModifies.dfy(248,4): anon17_LoopHead
+    (0,0): anon17_LoopBody
+    LoopModifies.dfy(248,4): anon18_Else
+    (0,0): anon5
+    LoopModifies.dfy(248,4): anon20_Else
+    (0,0): anon7
+    LoopModifies.dfy(256,7): anon21_LoopHead
+    (0,0): anon21_LoopBody
+    LoopModifies.dfy(256,7): anon22_Else
+    (0,0): anon12
+    LoopModifies.dfy(256,7): anon24_Else
+    (0,0): anon14
+
+Dafny program verifier finished with 21 verified, 9 errors

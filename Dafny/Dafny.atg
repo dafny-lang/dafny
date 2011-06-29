@@ -843,6 +843,7 @@ WhileStmt<out Statement/*!*/ stmt>
      Expression guard;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
+     List<FrameExpression/*!*/> mod = null;
      Statement/*!*/ body;
      IToken bodyStart, bodyEnd;
      List<GuardedAlternative> alternatives;
@@ -851,20 +852,21 @@ WhileStmt<out Statement/*!*/ stmt>
   "while"                    (. x = t; .)
   (
     Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    LoopSpec<out invariants, out decreases>
+    LoopSpec<out invariants, out decreases, out mod>
     BlockStmt<out body, out bodyStart, out bodyEnd>
-    (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
+    (. stmt = new WhileStmt(x, guard, invariants, decreases, mod, body); .)
   |
-    LoopSpec<out invariants, out decreases>
+    LoopSpec<out invariants, out decreases, out mod>
     AlternativeBlock<out alternatives>
-    (. stmt = new AlternativeLoopStmt(x, invariants, decreases, alternatives); .)
+    (. stmt = new AlternativeLoopStmt(x, invariants, decreases, mod, alternatives); .)
   )
   .
 
-LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases.>
-= (. bool isFree;  Expression/*!*/ e;
+LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod.>
+= (. bool isFree;  Expression/*!*/ e; FrameExpression/*!*/ fe;
      invariants = new List<MaybeFreeExpression/*!*/>();
      decreases = new List<Expression/*!*/>();
+     mod = null;
   .)
   {                         (. isFree = false; .)
     [ "free"                (. isFree = true; .)
@@ -873,6 +875,11 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
     Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
     ";"
   | "decreases" DecreasesList<decreases, true> ";"
+  | "modifies" (. mod = mod ?? new List<FrameExpression>(); .)
+               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+                 }
+               ] ";"
   }
   .
 

@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny {
         // play havoc with the heap according to the modifies clause
         builder.Add(new Bpl.HavocCmd(m.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
         // assume the usual two-state boilerplate information
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, currentMethod, etran.Old, etran)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, currentMethod.Mod, etran.Old, etran, etran.Old)) {
           if (tri.IsFree) {
             builder.Add(new Bpl.AssumeCmd(m.tok, tri.Expr));
           }
@@ -1049,7 +1049,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
     
       // set up the information used to verify the method's modifies clause
-      DefineFrame(m.tok, m.Mod, builder, localVariables);
+      DefineFrame(m.tok, m.Mod, builder, localVariables, null);
     }
 
     Bpl.Cmd CaptureState(IToken tok, string/*?*/ additionalInfo) {
@@ -1065,7 +1065,7 @@ namespace Microsoft.Dafny {
       return CaptureState(tok, null);
     }
     
-    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, Bpl.StmtListBuilder/*!*/ builder, Bpl.VariableSeq/*!*/ localVariables){
+    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, Bpl.StmtListBuilder/*!*/ builder, Bpl.VariableSeq/*!*/ localVariables, string name){
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(frameClause));
       Contract.Requires(builder != null);
@@ -1074,9 +1074,9 @@ namespace Microsoft.Dafny {
     
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, tok);
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the name and type of the $_Frame variable
+      Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type of the $_Frame variable
       Contract.Assert(theFrame.Type != null);  // follows from the postcondition of TheFrame
-      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, theFrame.Name, theFrame.Type));
+      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? theFrame.Name, theFrame.Type));
       localVariables.Add(frame);
       // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
@@ -1099,14 +1099,14 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(calleeFrame));
-      Contract.Requires(receiverReplacement != null);
-      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(etran != null);
       Contract.Requires(builder != null);
       Contract.Requires(errorMessage != null);
       Contract.Requires(predef != null);
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in calleeFrame ==> $_Frame[o,f]);
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
@@ -1230,7 +1230,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(cce.NonNullElements(rw));
-      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(predef != null);
       Contract.Requires((receiverReplacement == null) == (substMap == null));
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -1241,8 +1241,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr disjunction = null;
       foreach (FrameExpression rwComponent in rw) {
         Expression e = rwComponent.E;
-        if (substMap != null) {
-          Contract.Assert(receiverReplacement != null);
+        if (receiverReplacement != null) {
+          Contract.Assert(substMap != null);
           e = Substitute(e, receiverReplacement, substMap);
         }
         Bpl.Expr disjunct;
@@ -1355,7 +1355,7 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
-        DefineFrame(f.tok, f.Reads, bodyCheckBuilder, locals);
+        DefineFrame(f.tok, f.Reads, bodyCheckBuilder, locals, null);
         CheckWellformedWithResult(f.Body, new WFOptions(f, null, true), funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
 
         // check that postconditions hold
@@ -2539,7 +2539,7 @@ namespace Microsoft.Dafny {
           }
           comment = null;
         }
-        if (!skipEnsures) foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m, etran.Old, etran)) {
+        if (!skipEnsures) foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
       }
@@ -2766,15 +2766,15 @@ namespace Microsoft.Dafny {
     
     /// <summary>
     /// There are 3 states of interest when generating two-state boilerplate:
-    ///  S0. the beginning of the method, which is where the modifies clause is interpreted
+    ///  S0. the beginning of the method or loop, which is where the modifies clause is interpreted
     ///  S1. the pre-state of the two-state interval
     ///  S2. the post-state of the two-state interval
-    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
+    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, Method/*!*/ method, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran)
+    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
-      Contract.Requires(method != null);
+      Contract.Requires(modifiesClause != null);
       Contract.Requires(etranPre != null);
       Contract.Requires(etran != null);
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<BoilerplateTriple>>()));
@@ -2782,7 +2782,7 @@ namespace Microsoft.Dafny {
       List<BoilerplateTriple> boilerplate = new List<BoilerplateTriple>();
       
       // the frame condition, which is free since it is checked with every heap update and call
-      boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, method.Mod, etranPre, etran), null, "frame condition"));
+      boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, etranPre, etran, etranMod), null, "frame condition"));
 
       // HeapSucc(S1, S2)
       Bpl.Expr heapSucc = FunctionCall(tok, BuiltinFunction.HeapSucc, null, etranPre.HeapExpr, etran.HeapExpr);
@@ -2792,13 +2792,13 @@ namespace Microsoft.Dafny {
     }
     
     /// <summary>
-    /// There are 3 states of interest when generating a freame condition:
-    ///  S0. the beginning of the method, which is where the modifies clause is interpreted
+    /// There are 3 states of interest when generating a frame condition:
+    ///  S0. the beginning of the method/loop, which is where the modifies clause is interpreted
     ///  S1. the pre-state of the two-state interval
     ///  S2. the post-state of the two-state interval
-    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etran.Old denotes S0.
+    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran)
+    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
      {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -2820,15 +2820,43 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, o, f);
       Bpl.Expr preHeapOF = ExpressionTranslator.ReadHeap(tok, etranPre.HeapExpr, o, f);
-      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.Old.IsAlloced(tok, o));
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranMod.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
       
-      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, f, modifiesClause, etran.Old, null, null));
+      consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, f, modifiesClause, etranMod, null, null));
       
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
       return new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, Bpl.Expr.Imp(ante, consequent));
     }
-    
+    Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IToken/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(etranPre != null);
+      Contract.Requires(predef != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      // generate:
+      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
+      //      o != null && old($Heap)[o,alloc] ==>
+      //        $Heap[o,f] == PreHeap[o,f] ||
+      //        $_Frame[o,f])
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+
+      Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, o, f);
+      Bpl.Expr preHeapOF = ExpressionTranslator.ReadHeap(tok, etranPre.HeapExpr, o, f);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
+      Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
+
+      consequent = Bpl.Expr.Or(consequent, Bpl.Expr.SelectTok(tok, etranMod.TheFrame(tok), o, f));
+
+      Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
+      return new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, Bpl.Expr.Imp(ante, consequent));
+    }    
     // ----- Type ---------------------------------------------------------------------------------
     
     Bpl.Type TrType(Type type)
@@ -3120,7 +3148,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "while statement");
         var s = (WhileStmt)stmt;
         TrLoop(s, s.Guard,
-          delegate(Bpl.StmtListBuilder bld) { TrStmt(s.Body, bld, locals, etran); },
+          delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) { TrStmt(s.Body, bld, locals, e); },
           builder, locals, etran);
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -3129,7 +3157,7 @@ namespace Microsoft.Dafny {
         var tru = new LiteralExpr(s.Tok, true);
         tru.Type = Type.Bool;  // resolve here
         TrLoop(s, tru,
-          delegate(Bpl.StmtListBuilder bld) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, etran); },
+          delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e); },
           builder, locals, etran);
 
       } else if (stmt is ForeachStmt) {
@@ -3322,7 +3350,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    delegate void BodyTranslator(Bpl.StmtListBuilder builder);
+    delegate void BodyTranslator(Bpl.StmtListBuilder builder, ExpressionTranslator etran);
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator bodyTr,
                 Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
@@ -3343,6 +3371,17 @@ namespace Microsoft.Dafny {
       locals.Add(preLoopHeapVar);
       Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
+      ExpressionTranslator updatedFrameEtran;
+      string loopFrameName = "#_Frame#" + loopId;
+      if(s.Mod != null)
+        updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
+      else
+        updatedFrameEtran = etran;
+
+      if (s.Mod != null) { // check that the modifies is a strict subset
+          CheckFrameSubset(s.Tok, s.Mod, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
+          DefineFrame(s.Tok, s.Mod, builder, locals, loopFrameName);
+      }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
       List<Bpl.Expr> initDecr = null;
@@ -3390,14 +3429,19 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
       // include boilerplate invariants
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, currentMethod, etranPreLoop, etran)) {
-        if (tri.IsFree) {
-          invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
-        } else {
-          Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-          invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
-        }
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, currentMethod.Mod, etranPreLoop, etran, etran.Old))
+      {
+          if (tri.IsFree) {
+              invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
+          }
+          else {
+              Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
+              invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
+          }
       }
+      // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
+      invariants.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+      
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
       if (initDecr != null) {
         List<IToken> toks = new List<IToken>();
@@ -3430,11 +3474,11 @@ namespace Microsoft.Dafny {
       // termination checking
       if (Contract.Exists(theDecreases, e => e is WildcardExpr)) {
         // omit termination checking for this loop
-        bodyTr(loopBodyBuilder);
+        bodyTr(loopBodyBuilder, updatedFrameEtran);
       } else {
         List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr" + loopId + "$");
         // time for the actual loop body
-        bodyTr(loopBodyBuilder);
+        bodyTr(loopBodyBuilder, updatedFrameEtran);
         // check definedness of decreases expressions
         List<IToken> toks = new List<IToken>();
         List<Type> types = new List<Type>();
@@ -3585,8 +3629,8 @@ namespace Microsoft.Dafny {
         ins.Add(param);
       }
 
-      // Check modifies clause
-      CheckFrameSubset(tok, method.Mod, receiver, substMap, etran, builder, "call may violate caller's modifies clause", null);
+      // Check modifies clause of a subcall is a subset of the current frame.
+      CheckFrameSubset(tok, method.Mod, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
 
       // Check termination
       ModuleDecl module = cce.NonNull(method.EnclosingClass).Module;
@@ -4133,7 +4177,7 @@ namespace Microsoft.Dafny {
             "$obj" + i, predef.RefType, builder, locals);
           prevObj[i] = obj;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing method's modifies clause"));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
 
           // check that this LHS is not the same as any previous LHSs
           for (int j = 0; j < i; j++) {
@@ -4164,7 +4208,7 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
           // check that this LHS is not the same as any previous LHSs
           for (int j = 0; j < i; j++) {
@@ -4195,7 +4239,7 @@ namespace Microsoft.Dafny {
             "$index" + i, predef.FieldName(mse.tok, predef.BoxType), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing method's modifies clause"));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
           // check that this LHS is not the same as any previous LHSs
           for (int j = 0; j < i; j++) {
@@ -4376,6 +4420,7 @@ namespace Microsoft.Dafny {
       public readonly PredefinedDecls predef;
       public readonly Translator translator;
       public readonly string This;
+      public readonly string modifiesFrame = "$_Frame"; // the name of the context's frame variable.
       readonly Function applyLimited_CurrentFunction;
       readonly int layerOffset = 0;
       public int Statistics_FunctionCount = 0;
@@ -4420,18 +4465,34 @@ namespace Microsoft.Dafny {
         this.HeapExpr = heap;
         this.This = thisVar;
       }
-      
-      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Function applyLimited_CurrentFunction, int layerOffset) {
-        Contract.Requires(translator != null);
-        Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
-        Contract.Requires(applyLimited_CurrentFunction != null);
-        this.translator = translator;
-        this.predef = predef;
-        this.HeapExpr = heap;
-        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
-        this.This = "this";
-        this.layerOffset = layerOffset;
+
+      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Function applyLimited_CurrentFunction, int layerOffset)
+      {
+          Contract.Requires(translator != null);
+          Contract.Requires(predef != null);
+          Contract.Requires(heap != null);
+          Contract.Requires(applyLimited_CurrentFunction != null);
+          this.translator = translator;
+          this.predef = predef;
+          this.HeapExpr = heap;
+          this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
+          this.This = "this";
+          this.layerOffset = layerOffset;
+      }
+
+      public ExpressionTranslator(ExpressionTranslator etran, string modifiesFrame)
+      {
+          Contract.Requires(etran != null);
+          Contract.Requires(modifiesFrame != null);
+          this.translator = etran.translator;
+          this.HeapExpr = etran.HeapExpr;
+          this.predef = etran.predef;
+          this.This = etran.This;
+          this.applyLimited_CurrentFunction = etran.applyLimited_CurrentFunction;
+          this.layerOffset = etran.layerOffset;
+          this.Statistics_FunctionCount = etran.Statistics_FunctionCount;
+          this.oldEtran = etran.oldEtran;
+          this.modifiesFrame = modifiesFrame;
       }
 
       ExpressionTranslator oldEtran;
@@ -4476,7 +4537,7 @@ namespace Microsoft.Dafny {
         Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "beta");
         Bpl.Type fieldAlpha = predef.FieldName(tok, alpha);
         Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.TypeSeq(predef.RefType, fieldAlpha), Bpl.Type.Bool);
-        return new Bpl.IdentifierExpr(tok, "$_Frame", ty);
+        return new Bpl.IdentifierExpr(tok, this.modifiesFrame ?? "$_Frame", ty);
       }
 
       public Bpl.IdentifierExpr Tick() {
@@ -5941,11 +6002,12 @@ namespace Microsoft.Dafny {
 
     static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(expr != null);
+      Contract.Requires(receiverReplacement != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
       Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
-      
+
       if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
@@ -6103,8 +6165,10 @@ namespace Microsoft.Dafny {
     static List<Expression/*!*/>/*!*/ SubstituteExprList(List<Expression/*!*/>/*!*/ elist,
                                                  Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(cce.NonNullElements(elist));
-      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires((receiverReplacement == null) == (substMap == null));
+      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<Expression>>()));
+      
       List<Expression> newElist = null;  // initialized lazily
       for (int i = 0; i < elist.Count; i++)
       {cce.LoopInvariant(  newElist == null || newElist.Count == i);
