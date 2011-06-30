@@ -7,7 +7,7 @@ class N
       modifies this, n;
    {
       n.i := 1;
-	  i := 1;
+      i := 1;
    }
    method safe(n: N)
       requires n != null;
@@ -27,16 +27,16 @@ method testing1() returns (s: int)
    ensures s == 3;
 {
    var n := new N;
-   return m(3, n); // methods disallowed.
+   return m(3, n); // ERROR: methods disallowed.
 }
 method testing2() returns (s: int, b: int)
    ensures s == 3;
 {
    var n := new N;
-   return m(3, n), 2; // methods disallowed.
+   return m(3, n), 2; // ERROR: methods disallowed.
 }
 
 method testing3() returns (n: N)
 {
-   return new N.newN(n); // disallowed, as newN() modifies n
+   return new N.newN(n); // ERROR: disallowed, as newN() modifies n
 }

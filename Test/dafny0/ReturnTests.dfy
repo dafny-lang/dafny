@@ -7,7 +7,7 @@ class N
       modifies this, n;
    {
       n.i := 1;
-	  i := 1;
+      i := 1;
    }
    method safe(n: N)
       requires n != null;

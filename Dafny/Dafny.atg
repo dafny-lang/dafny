@@ -606,7 +606,7 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
   | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
               { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
               }
-	        ] ";"
+            ] ";"
   | "ensures" Expression<out e> ";"      (. ens.Add(e); .)
   | "decreases" DecreasesList<decreases, false> ";"
   )
@@ -708,7 +708,7 @@ ReturnStmt<out Statement/*!*/ s>
    .)
   "return"                           (. returnTok = t; .)
   [
-	  Rhs<out r, null>               (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
+      Rhs<out r, null>               (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
       { "," Rhs<out r, null>         (. rhss.Add(r); .)
         }
   ]
