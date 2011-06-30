@@ -1341,7 +1341,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Type EType;
     public readonly List<Expression> ArrayDimensions;
-    public readonly CallStmt InitCall;  // may be null (and is definitely null for arrays)
+    public CallStmt InitCall;  // may be null (and is definitely null for arrays)
     public Type Type;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1576,14 +1576,14 @@ namespace Microsoft.Dafny {
   public class CallStmt : Statement {
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Receiver != null);
+      //Contract.Invariant(Receiver != null);
       Contract.Invariant(MethodName != null);
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
     public readonly List<Expression/*!*/>/*!*/ Lhs;
-    public readonly Expression/*!*/ Receiver;
+    public Expression/*!*/ Receiver;
     public readonly string/*!*/ MethodName;
     public readonly List<Expression/*!*/>/*!*/ Args;
     public Method Method;  // filled in by resolution
@@ -1593,7 +1593,6 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhs));
-      Contract.Requires(receiver != null);
       Contract.Requires(methodName != null);
       Contract.Requires(cce.NonNullElements(args));
 
