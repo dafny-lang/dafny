@@ -200,8 +200,13 @@ Execution trace:
     (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
+SmallTests.dfy(347,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon7
 
-Dafny program verifier finished with 43 verified, 14 errors
+Dafny program verifier finished with 44 verified, 15 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero

@@ -137,11 +137,16 @@ axiom (forall<T> s0: Seq T, s1: Seq T, x: T ::
   { Seq#Contains(Seq#Append(s0, s1), x) }
   Seq#Contains(Seq#Append(s0, s1), x) <==>
     Seq#Contains(s0, x) || Seq#Contains(s1, x));
-axiom (forall<T> s: Seq T, i: int, v: T, len: int, x: T ::
-  { Seq#Contains(Seq#Build(s, i, v, len), x) }
-  Seq#Contains(Seq#Build(s, i, v, len), x) <==>
-    (0 <= i && i < len && x == v)  ||  
-    (exists j: int :: { Seq#Index(s,j) } 0 <= j && j < Seq#Length(s) && j < len && j!=i && Seq#Index(s,j) == x));
+axiom (forall<T> i: int, v: T, len: int, x: T ::
+  { Seq#Contains(Seq#Build(Seq#Empty(), i, v, len), x) }
+  0 <= i && i < len ==>
+  (Seq#Contains(Seq#Build(Seq#Empty(), i, v, len), x) <==> x == v));
+axiom (forall<T> s: Seq T, i0: int, v0: T, len0: int, i1: int, v1: T, len1: int, x: T ::
+  { Seq#Contains(Seq#Build(Seq#Build(s, i0, v0, len0), i1, v1, len1), x) }
+  0 <= i0 && i0 < len0 && len0 <= i1 && i1 < len1 ==>
+  (Seq#Contains(Seq#Build(Seq#Build(s, i0, v0, len0), i1, v1, len1), x) <==>
+     v1 == x ||
+     Seq#Contains(Seq#Build(s, i0, v0, len0), x)));
 axiom (forall<T> s: Seq T, n: int, x: T ::
   { Seq#Contains(Seq#Take(s, n), x) }
   Seq#Contains(Seq#Take(s, n), x) <==>
