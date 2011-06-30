@@ -1463,7 +1463,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Expression> Lhss;
     public readonly List<AssignmentRhs> Rhss;
-    public bool secretlyReturnStatment;
+    public readonly bool CanMutateKnownState;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
@@ -1478,9 +1478,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Lhss = lhss;
       Rhss = rhss;
-      secretlyReturnStatment = false;
+      CanMutateKnownState = false;
     }
-    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool srs)
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -1489,7 +1489,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Lhss = lhss;
       Rhss = rhss;
-      secretlyReturnStatment = srs;
+      CanMutateKnownState = mutate;
     }
   }
 
@@ -1678,7 +1678,6 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Invariants;
     public readonly List<Expression/*!*/>/*!*/ Decreases;
     public readonly List<FrameExpression/*!*/>/*!*/ Mod;
-    public readonly bool explictModifies;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Invariants));

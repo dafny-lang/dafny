@@ -1315,7 +1315,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          if (s.secretlyReturnStatment) {
+          if (s.CanMutateKnownState) {
             if (1 < s.Rhss.Count)
               Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
             else { // it might be ok, if it is a TypeExpr
