@@ -1212,27 +1212,28 @@ namespace Microsoft.Dafny {
           if (method.Outs.Count != s.rhss.Count)
             Error(s, "number of return parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, method.Outs.Count);
           else {
+            Contract.Assert(s.rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
             List<Expression> formals = new List<Expression>();
+            int i = 0;
             foreach (Formal f in method.Outs) {
               IdentifierExpr ident = new IdentifierExpr(f.tok, f.Name);
               ident.Var = f;
               ident.Type = ident.Var.Type;
               Contract.Assert(f.Type != null);
               formals.Add(ident);
-            }
-            s.hiddenUpdate = new UpdateStmt(s.Tok, formals, s.rhss, true);
-            int prevErrorCount = ErrorCount;
-            ResolveStatement(s.hiddenUpdate, specContextOnly, method);
-            if (ErrorCount != prevErrorCount) {
-              // success. but we still need to check the RHS is not bad.
-              foreach (AssignmentRhs rhs in s.hiddenUpdate.Rhss) {
-                if (rhs.CanAffectPreviouslyKnownExpressions) {
-                  Error(rhs.Tok, "cannot have effectful parameter in return statement.");
-                  break; // only report one error
+              // link the reciever parameter properly:
+              if (s.rhss[i] is TypeRhs) {
+                var r = (TypeRhs)s.rhss[i];
+                if (r.InitCall != null) {
+                  r.InitCall.Receiver = ident;
                 }
               }
-            } // else we have failure.
+              i++;
+            }
+            s.hiddenUpdate = new UpdateStmt(s.Tok, formals, s.rhss, true);
+            ResolveStatement(s.hiddenUpdate, specContextOnly, method);
+            // resolving the update statement will check for return statement specifics.
           }
         }
         else {// this is a regular return statement.
@@ -1256,6 +1257,7 @@ namespace Microsoft.Dafny {
         }
         IToken firstEffectfulRhs = null;
         CallRhs callRhs = null;
+        // Resolve RHSs
         foreach (var rhs in s.Rhss) {
           bool isEffectful;
           if (rhs is TypeRhs) {
@@ -1313,29 +1315,50 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          // if there was an effectful RHS, that must be the only RHS
-          if (s.Rhss.Count != 1) {
-            Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
-          } else if (arrayRangeLhs != null) {
-            Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
-          } else if (callRhs == null) {
-            // must be a single TypeRhs
-            if (s.Lhss.Count != 1) {
-              Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-              Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
-            } else if (ErrorCount == prevErrorCount) {
-              var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, s.Rhss[0]);
-              s.ResolvedStatements.Add(a);
-            }
-          } else {
-            // a call statement
-            if (ErrorCount == prevErrorCount) {
-              var resolvedLhss = new List<Expression>();
-              foreach (var ll in s.Lhss) {
-                resolvedLhss.Add(ll.Resolved);
+          if (s.secretlyReturnStatment) {
+            if (1 < s.Rhss.Count)
+              Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
+            else { // it might be ok, if it is a TypeExpr
+              Contract.Assert(s.Rhss.Count == 1);
+              if (callRhs != null) {
+                Error(callRhs.Tok, "cannot have method call in return statement.");
               }
-              var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
-              s.ResolvedStatements.Add(a);
+              else {
+                // we have a TypeExpr
+                Contract.Assert(s.Rhss[0] is TypeRhs);
+                var tr = (TypeRhs)s.Rhss[0];
+                Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
+                if (tr.CanAffectPreviouslyKnownExpressions) {
+                  Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
+                }
+              }
+            }
+          }
+          else {
+            // if there was an effectful RHS, that must be the only RHS
+            if (s.Rhss.Count != 1) {
+              Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+            } else if (arrayRangeLhs != null) {
+              Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
+            } else if (callRhs == null) {
+              // must be a single TypeRhs
+              if (s.Lhss.Count != 1) {
+                Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+                Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
+              } else if (ErrorCount == prevErrorCount) {
+                var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, s.Rhss[0]);
+                s.ResolvedStatements.Add(a);
+              }
+            } else {
+              // a call statement
+              if (ErrorCount == prevErrorCount) {
+                var resolvedLhss = new List<Expression>();
+                foreach (var ll in s.Lhss) {
+                  resolvedLhss.Add(ll.Resolved);
+                }
+                var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+                s.ResolvedStatements.Add(a);
+              }
             }
           }
         }
@@ -1343,7 +1366,7 @@ namespace Microsoft.Dafny {
         foreach (var a in s.ResolvedStatements) {
           ResolveStatement(a, specContextOnly, method);
         }
-
+        // end of UpdateStmt
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var vd in s.Lhss) {
