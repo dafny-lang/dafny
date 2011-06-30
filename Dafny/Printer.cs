@@ -424,7 +424,17 @@ namespace Microsoft.Dafny {
         }
         
       } else if (stmt is ReturnStmt) {
-        wr.Write("return;");
+        var s = (ReturnStmt) stmt;
+        wr.Write("return");
+        if (s.rhss != null) {
+          var sep = " ";
+          foreach (var rhs in s.rhss) {
+            wr.Write(sep);
+            PrintRhs(rhs);
+            sep = ", ";
+          }
+        }
+          wr.Write(";");
         
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
