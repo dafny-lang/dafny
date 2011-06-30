@@ -166,24 +166,14 @@ namespace Microsoft.Boogie
           PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
-              if (CommandLineOptions.Clo.Compile && errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0) {
-                string targetFilename = "out.cs";
-                using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
-                  Dafny.Compiler compiler = new Dafny.Compiler(target);
-                  compiler.Compile(dafnyProgram);
-                  WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-                  if (compiler.ErrorCount == 0) {
-                    Console.WriteLine("Compiled program written to {0}", targetFilename);
-                  } else {
-                    Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
-                  }
-                }
-              } else {
-                WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-              }
+              WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
+              if ((CommandLineOptions.Clo.Compile && errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0) || CommandLineOptions.Clo.ForceCompile)
+                CompileDafnyProgram(dafnyProgram);
               break;
             case PipelineOutcome.Done:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
+              if (CommandLineOptions.Clo.ForceCompile)
+                CompileDafnyProgram(dafnyProgram);
               break;
             default:
               // error has already been reported to user
@@ -192,7 +182,21 @@ namespace Microsoft.Boogie
         }
       }
     }
-    
+
+    private static void CompileDafnyProgram(Dafny.Program dafnyProgram)
+    {
+      string targetFilename = "out.cs";
+      using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
+        Dafny.Compiler compiler = new Dafny.Compiler(target);
+        compiler.Compile(dafnyProgram);
+        if (compiler.ErrorCount == 0) {
+          Console.WriteLine("Compiled program written to {0}", targetFilename);
+        }
+        else {
+          Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
+        }
+      }
+    }
     
     static void PrintBplFile (string filename, Program program, bool allowPrintDesugaring)
     {
