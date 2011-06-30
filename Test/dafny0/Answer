@@ -1040,7 +1040,7 @@ Execution trace:
 LoopModifies.dfy(74,4): Error: loop modifies clause may violate context's modifies clause
 Execution trace:
     (0,0): anon0
-LoopModifies.dfy(98,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+LoopModifies.dfy(98,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     LoopModifies.dfy(90,4): anon9_LoopHead
@@ -1049,7 +1049,7 @@ Execution trace:
     (0,0): anon5
     LoopModifies.dfy(90,4): anon12_Else
     (0,0): anon7
-LoopModifies.dfy(146,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+LoopModifies.dfy(146,11): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     LoopModifies.dfy(134,4): anon17_LoopHead
@@ -1073,23 +1073,23 @@ Execution trace:
     (0,0): anon5
     LoopModifies.dfy(193,4): anon12_Else
     (0,0): anon7
-LoopModifies.dfy(260,10): Error: assignment may update an array element not in the enclosing context's modifies clause
+LoopModifies.dfy(285,13): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-    LoopModifies.dfy(248,4): anon17_LoopHead
+    LoopModifies.dfy(273,4): anon17_LoopHead
     (0,0): anon17_LoopBody
-    LoopModifies.dfy(248,4): anon18_Else
+    LoopModifies.dfy(273,4): anon18_Else
     (0,0): anon5
-    LoopModifies.dfy(248,4): anon20_Else
+    LoopModifies.dfy(273,4): anon20_Else
     (0,0): anon7
-    LoopModifies.dfy(256,7): anon21_LoopHead
+    LoopModifies.dfy(281,7): anon21_LoopHead
     (0,0): anon21_LoopBody
-    LoopModifies.dfy(256,7): anon22_Else
+    LoopModifies.dfy(281,7): anon22_Else
     (0,0): anon12
-    LoopModifies.dfy(256,7): anon24_Else
+    LoopModifies.dfy(281,7): anon24_Else
     (0,0): anon14
 
-Dafny program verifier finished with 21 verified, 9 errors
+Dafny program verifier finished with 23 verified, 9 errors
 
 -------------------- ReturnErrors.dfy --------------------
 ReturnErrors.dfy(30,10): Error: cannot have method call in return statement.

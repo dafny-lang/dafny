@@ -3,7 +3,7 @@
 method Testing1(a: array<int>)
    requires a != null && a.Length > 0;
 {
-   a[0] := 0;
+   a[0] := 0; // ERROR
 }
 
 // array inside while loop, without explict modifies clause:
@@ -14,8 +14,8 @@ method Testing2(a: array<int>)
    while(i < 10) 
       invariant 0 <= i <= 10;
    {
-      a[0] := i;
-	  i := i + 1;
+      a[0] := i; // ERROR
+      i := i + 1;
    }
 }
 
@@ -30,7 +30,7 @@ method Testing2A(a: array<int>)
    {
       // now there is no problem.
       a[0] := i;
-	  i := i + 1;
+      i := i + 1;
    }
 }
 
@@ -41,10 +41,10 @@ method Testing3(a: array<int>)
    var i := 0;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies;
+      modifies;
    {
-      a[0] := i;
-	  i := i + 1;
+      a[0] := i; // ERROR
+      i := i + 1;
    }
 }
 
@@ -56,10 +56,10 @@ method Testing4(a: array<int>)
    var i := 0;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies;
+      modifies;
    {
-      a[0] := i;
-	  i := i + 1;
+      a[0] := i; // ERROR
+      i := i + 1;
    }
    // should be ok.
    a[0] := 1;
@@ -71,12 +71,12 @@ method Testing5(a: array<int>)
    modifies;
 {
    var i := 0;
-   while(i < 10) 
+   while(i < 10) // ERROR
       invariant 0 <= i <= 10;
-	  modifies a;
+      modifies a;
    {
       a[0] := i;
-	  i := i + 1;
+      i := i + 1;
    }
 }
 
@@ -89,14 +89,14 @@ method Testing6(a: array<int>, b: array<int>)
    var i := 0;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies a;
+      modifies a;
    {
       // cool.
       a[0] := i;
 
-	  // not cool.
-	  b[0] := i;
-	  i := i + 1;
+      // not cool.
+      b[0] := i; // ERROR
+      i := i + 1;
    }
 }
 
@@ -111,11 +111,11 @@ method Testing7(a: array<int>, b: array<int>)
    b[0] := 4;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies a;
+      modifies a;
    {
       // still good.
       a[0] := i;
-	  i := i + 1;
+      i := i + 1;
    }
    // this is new, and good:
    assert b[0] == 4;
@@ -133,20 +133,20 @@ method Testing8(a: array<int>, b: array<int>, c: array<int>)
    b[0] := 4;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies a, b;
+      modifies a, b;
    {
       var j := 0;
       while(j < 10) 
          invariant 0 <= j <= 10;
-	     modifies a;
+         modifies a;
       {
-	     // happy:
+         // happy:
          a[0] := j;
-		 // not happy:
-		 b[0] := i;
-	     j := j + 1;
+         // not happy:
+         b[0] := i; // ERROR
+         j := j + 1;
       }
-	  i := i + 1;
+      i := i + 1;
    }
    c[0] := 1;
 }
@@ -163,19 +163,19 @@ method Testing9(a: array<int>, b: array<int>, c: array<int>)
    b[0] := 4;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies a, b;
+      modifies a, b;
    {
       var j := 0;
       b[0] := i;
       while(j < 10) 
          invariant 0 <= j <= 10;
-	     modifies a;
+         modifies a;
       {
          a[0] := j;
-	     j := j + 1;
+         j := j + 1;
       }
-	  assert b[0] == i;
-	  i := i + 1;
+      assert b[0] == i;
+      i := i + 1;
    }
    c[0] := 1;
 }
@@ -192,10 +192,10 @@ method Testing10(a: array<int>)
    arr[0] := 1; // good, even though not in method modifies.
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies a;
+      modifies a;
    {
-      arr[0] := 1; // bad.
-	  i := i + 1;
+      arr[0] := 1; // ERROR
+      i := i + 1;
    }
 }
 
@@ -211,7 +211,32 @@ method Testing10a(a: array<int>)
       invariant 0 <= i <= 10;
    {
       arr[0] := 1; // no modifies, so allowed to touch arr.
-	  i := i + 1;
+      i := i + 1;
+   }
+}
+
+
+// loop inherits modifies clause of enclosing loop, not method.
+method Testing10b(a: array<int>, b: array<int>)
+   requires a != null && a.Length > 0;
+   requires b != null && b.Length > 0;
+   requires a != b;
+   modifies a,b;
+{
+   b[0] := 4;
+   var j := 0;
+   while (j < 10)
+      modifies a;
+   {
+      var i := 1;
+      while (i < 10)
+      // note: no explicit modifies clause
+      {
+         a[0] := 1;
+		 i := i + 1;
+      }
+      assert b[0] == 4; // should be fine.
+	  j := j + 1;
    }
 }
 
@@ -222,20 +247,20 @@ method Testing11()
    var arr := new int[1];
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies;
+      modifies;
    {
       arr := new int[1];
-	  arr[0] := 1;
+      arr[0] := 1;
       var j := 0;
       while(j < 10) 
          invariant 0 <= j <= 10;
-	     modifies;
+         modifies;
       {
-	     // can't touch arr in here.
-	     j := j + 1;
+         // can't touch arr in here.
+         j := j + 1;
       }
-	  arr[0] := 2;
-	  i := i + 1;
+      arr[0] := 2;
+      i := i + 1;
    }
 }
 
@@ -247,20 +272,20 @@ method Testing11a(a: array<int>)
    var i := 0;
    while(i < 10) 
       invariant 0 <= i <= 10;
-	  modifies a;
+      modifies a;
    {
       var arr := new int[1];
-	  arr[0] := 1; // can modify arr, even though it
-	               // is not in modifies because it is fresh.
+      arr[0] := 1; // can modify arr, even though it
+                   // is not in modifies because it is fresh.
       var j := 0;
       while(j < 10) 
          invariant 0 <= j <= 10;
-		 modifies a;
+         modifies a;
       {
-	     arr[0] := 3; // can't touch arr, as allocated before modifies captured.
-	     j := j + 1;
+         arr[0] := 3; // ERROR: can't touch arr, as allocated before modifies captured.
+         j := j + 1;
       }
-	  i := i + 1;
+      i := i + 1;
    }
 }
 
@@ -279,15 +304,15 @@ method Testing12(a: Elem, b: Elem, c: Elem)
    var S := {a, b, c};
    // S "captured" here for purposes of modifies clause.
    while(S != {})
-	  modifies S;
-	  decreases S;
+      modifies S;
+      decreases S;
    {
       var j := choose S;
-	  // these still good, even though S shrinks to not include them.
-	  a.i := i;
-	  b.i := i;
-	  c.i := i;
-	  S := S - {j};
-	  i := i + 1;
+      // these still good, even though S shrinks to not include them.
+      a.i := i;
+      b.i := i;
+      c.i := i;
+      S := S - {j};
+      i := i + 1;
    }
 }
