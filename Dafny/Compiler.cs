@@ -642,9 +642,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.UniqueId);
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
-        Indent(indent);
-        TrStmt(s.hiddenUpdate, indent);
-        wr.WriteLine("return;");
+        if (s.hiddenUpdate != null)
+          TrStmt(s.hiddenUpdate, indent);
+        Indent(indent); wr.WriteLine("return;");
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         var resolved = s.ResolvedStatements;
