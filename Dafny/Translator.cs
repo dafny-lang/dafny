@@ -2517,19 +2517,20 @@ namespace Microsoft.Dafny {
       if (!wellformednessProc) {
         string comment = "user-defined preconditions";
         foreach (MaybeFreeExpression p in m.Req) {
-          if (p.IsFree) {
+          if (p.IsFree && !CommandLineOptions.Clo.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
             foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
               req.Add(Requires(s.E.tok, s.IsFree, s.E, null, null));
+              // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
             }
           }
           comment = null;
         }
         comment = "user-defined postconditions";
         if (!skipEnsures) foreach (MaybeFreeExpression p in m.Ens) {
-          if (p.IsFree) {
+          if (p.IsFree && !CommandLineOptions.Clo.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
@@ -3001,27 +3002,31 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       Contract.Requires(currentMethod != null && predef != null);
-      if (stmt is AssertStmt) {
-        AddComment(builder, stmt, "assert statement");
-        AssertStmt s = (AssertStmt)stmt;
-        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        bool splitHappened;
-        var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
-        if (!splitHappened) {
-          builder.Add(Assert(s.Expr.tok, etran.TrExpr(s.Expr), "assertion violation"));
-        } else {
-          foreach (var split in ss) {
-            if (!split.IsFree) {
-              builder.Add(AssertNS(split.E.tok, split.E, "assertion violation"));
-            }
+      if (stmt is PredicateStmt) {
+        if (stmt is AssertStmt || CommandLineOptions.Clo.DisallowSoundnessCheating) {
+          AddComment(builder, stmt, "assert statement");
+          PredicateStmt s = (PredicateStmt)stmt;
+          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+          bool splitHappened;
+          var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
+          if (!splitHappened) {
+            builder.Add(Assert(s.Expr.tok, etran.TrExpr(s.Expr), "assertion violation"));
           }
+          else {
+            foreach (var split in ss) {
+              if (!split.IsFree) {
+                builder.Add(AssertNS(split.E.tok, split.E, "assertion violation"));
+              }
+            }
+            builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+          }
+        }
+        else if (stmt is AssumeStmt) {
+          AddComment(builder, stmt, "assume statement");
+          AssumeStmt s = (AssumeStmt)stmt;
+          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
           builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
         }
-      } else if (stmt is AssumeStmt) {
-        AddComment(builder, stmt, "assume statement");
-        AssumeStmt s = (AssumeStmt)stmt;
-        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
         PrintStmt s = (PrintStmt)stmt;
@@ -3030,7 +3035,7 @@ namespace Microsoft.Dafny {
             TrStmt_CheckWellformed(arg.E, builder, locals, etran, false);
           }
         }
-        
+         
       } else if (stmt is BreakStmt) {
         AddComment(builder, stmt, "break statement");
         var s = (BreakStmt)stmt;
@@ -3100,11 +3105,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.UniqueName, varType), s.Type, etran);
         Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.UniqueName, varType, wh));
         locals.Add(var);
-        
+
       } else if (stmt is CallStmt) {
         AddComment(builder, stmt, "call statement");
         TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
-        
+
       } else if (stmt is BlockStmt) {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {
           TrStmt(ss, builder, locals, etran);
@@ -3201,7 +3206,7 @@ namespace Microsoft.Dafny {
           oInS = new Bpl.ExistsExpr(stmt.Tok, new Bpl.VariableSeq(iVar), tr, Bpl.Expr.And(range, Bpl.Expr.Eq(Si, boxO)));
         }
         oInS = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), oInS);
-        
+
         // range
         Bpl.Expr qr = new Bpl.ForallExpr(s.Range.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, IsTotal(s.Range, etran)));
         builder.Add(AssertNS(s.Range.tok, qr, "range expression must be well defined"));
@@ -3209,7 +3214,7 @@ namespace Microsoft.Dafny {
 
         // sequence of asserts and assumes and uses
         foreach (PredicateStmt ps in s.BodyPrefix) {
-          if (ps is AssertStmt) {
+          if (ps is AssertStmt || CommandLineOptions.Clo.DisallowSoundnessCheating) {
             Bpl.Expr q = new Bpl.ForallExpr(ps.Expr.tok, new Bpl.VariableSeq(oVar), Bpl.Expr.Imp(oInS, IsTotal(ps.Expr, etran)));
             builder.Add(AssertNS(ps.Expr.tok, q, "assert condition must be well defined"));  // totality check
             bool splitHappened;
@@ -3249,7 +3254,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr qqq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), bbb);
           builder.Add(AssertNS(rhsExpr.Expr.tok, qqq, "RHS of assignment must be well defined"));  // totality check
         }
-              
+        
         // Here comes:  assert (forall o: ref :: o != null && o in S && Range(o) ==> $_Frame[o,F]);
         Bpl.Expr body = Bpl.Expr.Imp(oInS, Bpl.Expr.Select(etran.TheFrame(stmt.Tok), o, GetField((FieldSelectExpr)s.BodyAssign.Lhs)));
         Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.VariableSeq(oVar), body);
@@ -3407,7 +3412,7 @@ namespace Microsoft.Dafny {
         invDefinednessBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
         invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
-        if (loopInv.IsFree) {
+        if (loopInv.IsFree && !CommandLineOptions.Clo.DisallowSoundnessCheating) {
           invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
         } else {
           bool splitHappened;
