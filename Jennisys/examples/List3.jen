@@ -23,7 +23,7 @@ model IntList {
     root = null  ==> |list| = 0
     root != null ==> (|list| = |root.succ| + 1 && 
                       list[0] = root.data && 
-                      (forall i :: (0 < i && i < |root.succ| && root.succ[i] != null) ==> list[i+1] = root.succ[i].data))
+                      (forall i :: (0 < i && i < |root.succ|) ==> (root.succ[i] != null && list[i+1] = root.succ[i].data)))
 }
 
 class IntNode {
@@ -33,6 +33,13 @@ class IntNode {
   constructor Zero()
     ensures data = 0
     ensures succ = []
+
+  constructor OneTwo()
+    ensures data = 1
+    ensures |succ| = 1 && succ[0] != null && succ[0].data = 1
+
+  invariant
+    !(null in succ)
 }
 
 model IntNode {

@@ -120,13 +120,16 @@ let PrintHeapCreationCode (heap,env,ctx) indent =
 
 let GenConstructorCode mthd body =
   printfn "Printing code for method %s." (GetMethodName mthd)
+  let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
+      let preExpr = BinaryAnd validExpr pre
+      let postExpr = BinaryAnd validExpr post
+      let PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + newline +
-      "    requires " + (PrintExpr 0 pre) + ";" + newline +
-      "    ensures " + (PrintExpr 0 post) + ";" + newline + 
-      "    ensures Valid(); " + newline +
+      (PrintPrePost "    requires " preExpr) + newline +
+      (PrintPrePost "    ensures " postExpr) + newline +
       "  {" + newline + 
       body + 
       "  }" + newline
@@ -134,10 +137,10 @@ let GenConstructorCode mthd body =
 
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
-  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-  let m = FindMethod c "OneTwo" |> Utils.ExtractOption
-  [c, m]
-  //FilterMembers prog FilterConstructorMembers
+//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
+//  let m = FindMethod c "OneTwo" |> Utils.ExtractOption
+//  [c, m]
+  FilterMembers prog FilterConstructorMembers
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions =
