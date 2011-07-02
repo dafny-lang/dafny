@@ -89,8 +89,8 @@ BlockStmt:
 
 Member:
     | VAR VarDecl                            { Field($2) }
-    | CONSTRUCTOR ID Signature Pre Post      { Constructor($2, $3, $4, $5) }
-    | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5) }
+    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, $4, $5, true) }
+    | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5, false) }
 	  | INVARIANT ExprList                     { Invariant($2) }
 
 FrameMembers:

@@ -4,6 +4,11 @@
 // ----------- collection util funcs ---------
 // -------------------------------------------
 
+let ExtractOption x = 
+  match x with
+  | Some(a) -> a
+  | None -> failwith "can't extract anything from a None"
+
 let ListToOption lst = 
   assert (List.length lst <= 1)
   if List.isEmpty lst then
@@ -30,6 +35,9 @@ let rec GenList n =
     []
   else
     None :: (GenList (n-1))
+
+let ListContains elem lst = 
+  lst |> List.exists (fun e -> e = elem)
 
 let rec ListSkip cnt lst = 
   if cnt = 0 then

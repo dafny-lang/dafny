@@ -46,8 +46,7 @@ type Signature =
 
 type Member =
   | Field of VarDecl
-  | Constructor of string * Signature * Expr * Expr
-  | Method of string * Signature * Expr * Expr
+  | Method of (* name *) string * Signature * (* pre *) Expr * (* post *) Expr * (* isConstructor *) bool
   | Invariant of Expr list
 
 type TopLevelDecl =

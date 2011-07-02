@@ -160,25 +160,42 @@ let rec ReadSeqIndex (model: Microsoft.Boogie.Model) (idx_tuples: Model.FuncTupl
 let rec ReadSeqBuild (model: Microsoft.Boogie.Model) (bld_tuples: Model.FuncTuple list) (envMap,ctx) = 
   match bld_tuples with
   | ft :: rest -> 
-      let srcLstKey = GetLoc ft.Args.[0]
-      let dstLstKey = GetLoc ft.Result
-      let oldLst = GetSeqFromEnv envMap srcLstKey
+      let srcLstLoc = GetLoc ft.Args.[0]
+      let dstLstLoc = GetLoc ft.Result
+      let oldLst = GetSeqFromEnv envMap srcLstLoc
       let idx = GetInt ft.Args.[1]
       let lstElemVal = UnboxIfNeeded model ft.Args.[2]
-      let dstLst = GetSeqFromEnv envMap dstLstKey
+      let dstLst = GetSeqFromEnv envMap dstLstLoc
       let newLst = Utils.ListBuild oldLst idx (Some(lstElemVal)) dstLst
       let newCtx = UpdateContext dstLst newLst ctx
-      let newEnv = envMap |> Map.add dstLstKey (SeqConst(newLst))
+      let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
       ReadSeqBuild model rest (newEnv,newCtx)
+  | _ -> (envMap,ctx)
+
+let rec ReadSeqAppend (model: Microsoft.Boogie.Model) (app_tuples: Model.FuncTuple list) (envMap,ctx) = 
+  match app_tuples with
+  | ft :: rest -> 
+      let srcLst1Loc = GetLoc ft.Args.[0]
+      let srcLst2Loc = GetLoc ft.Args.[1]
+      let dstLstLoc = GetLoc ft.Result
+      let oldLst1 = GetSeqFromEnv envMap srcLst1Loc
+      let oldLst2 = GetSeqFromEnv envMap srcLst2Loc
+      let dstLst = GetSeqFromEnv envMap dstLstLoc
+      let newLst = List.append oldLst1 oldLst2
+      let newCtx = UpdateContext dstLst newLst ctx
+      let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
+      ReadSeqAppend model rest (newEnv,newCtx)
   | _ -> (envMap,ctx)
 
 let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
   let f_seq_len = model.MkFunc("Seq#Length", 1)
-  let f_seq_bld = model.MkFunc("Seq#Build", 4)
   let f_seq_idx = model.MkFunc("Seq#Index", 2)
+  let f_seq_bld = model.MkFunc("Seq#Build", 4)
+  let f_seq_app = model.MkFunc("Seq#Append", 2)
   (envMap,ctx) |> ReadSeqLen model (List.ofSeq f_seq_len.Apps)
                |> ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
                |> ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
+               |> ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
 
 
 let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =

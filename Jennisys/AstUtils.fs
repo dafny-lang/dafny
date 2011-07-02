@@ -31,17 +31,17 @@ let FilterFieldMembers members =
   members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
 
 let FilterConstructorMembers members = 
-  members |> List.choose (function Constructor(_,_,_,_) as m -> Some(m) | _ -> None)
+  members |> List.choose (function Method(_,_,_,_, true) as m -> Some(m) | _ -> None)
 
 let FilterMethodMembers members = 
-  members |> List.choose (function Method(_,_,_,_) as m -> Some(m) | _ -> None)
+  members |> List.choose (function Method(_,_,_,_,_) as m -> Some(m) | _ -> None)
 
-let Methods prog = 
+let FilterMembers prog filter = 
   match prog with
   | Program(components) ->
       components |> List.fold (fun acc comp -> 
         match comp with
-        | Component(Class(_,_,members),_,_) -> List.concat [acc ; members |> List.choose (fun m -> Some(comp, m))]            
+        | Component(Class(_,_,members),_,_) -> List.concat [acc ; members |> filter |> List.choose (fun m -> Some(comp, m))]            
         | _ -> acc) []
 
 let AllFields c = 
@@ -50,16 +50,30 @@ let AllFields c =
       let aVars = FilterFieldMembers members
       List.concat [aVars ; cVars]
   | _ -> []
-
+                
 let GetClassName comp =
   match comp with
   | Component(Class(name,_,_),_,_) -> name
+  | _ -> failwith ("unrecognized component: " + comp.ToString())
+
+let GetMethodName mthd = 
+  match mthd with
+  | Method(name,_,_,_,_) -> name
+  | _ -> failwith ("not a method: " + mthd.ToString())
+
+let GetMembers comp =
+  match comp with
+  | Component(Class(_,_,members),_,_) -> members
   | _ -> failwith ("unrecognized component: " + comp.ToString())
 
 let FindComponent (prog: Program) clsName = 
   match prog with
   | Program(comps) -> comps |> List.filter (function Component(Class(name,_,_),_,_) when name = clsName -> true | _ -> false)
                             |> Utils.ListToOption
+
+let FindMethod comp methodName =
+  GetMembers comp |> FilterMethodMembers |> List.filter (function Method(name,_,_,_,_) when name = methodName -> true | _ -> false)
+                                         |> Utils.ListToOption
 
 let FindVar (prog: Program) clsName fldName =
   let copt = FindComponent prog clsName

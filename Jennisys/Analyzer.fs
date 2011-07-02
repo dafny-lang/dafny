@@ -59,12 +59,12 @@ let MethodAnalysisPrinter onlyForThisCompMethod comp mthd =
   match onlyForThisCompMethod with
   | (c,m) when c = comp && m = mthd -> 
     match m with 
-    | Constructor(methodName, sign, pre, post) -> (GenMethodAnalysisCode methodName sign pre post false) + newline
+    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode methodName sign pre post false) + newline
     | _ -> ""
   | _ -> ""
                            
 let AnalyzeConstructor prog comp methodName signature pre post =
-  let m = Constructor(methodName, signature, pre, post)
+  let m = Method(methodName, signature, pre, post, true)
   use file = System.IO.File.CreateText(dafnyScratchFile)
   file.AutoFlush <- true
   let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m))
@@ -83,11 +83,11 @@ let AnalyzeConstructor prog comp methodName signature pre post =
     let model = models.[0]
     Some(ReadFieldValuesFromModel model prog comp m)
 
-let rec AnalyzeMethods prog methods = 
-  match methods with
+let rec AnalyzeMethods prog members = 
+  match members with
   | (comp,m) :: rest -> 
       match m with
-      | Constructor(methodName,signature,pre,post) -> 
+      | Method(methodName,signature,pre,post,true) -> 
           let solOpt = AnalyzeConstructor prog comp methodName signature pre post
           match solOpt with
           | Some(heap,env,ctx) -> AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
@@ -96,7 +96,7 @@ let rec AnalyzeMethods prog methods =
   | [] -> Map.empty
 
 let Analyze prog =
-  let solutions = AnalyzeMethods prog (Methods prog)
+  let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
   use file = System.IO.File.CreateText(dafnySynthFile)
   file.AutoFlush <- true
   let synthCode = PrintImplCode prog solutions

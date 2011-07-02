@@ -7,39 +7,61 @@ open Printer
 open TypeChecker
 open DafnyPrinter
 
-let GetFieldValidExpr (name: string) : Expr = 
-  BinaryImplies (BinaryNeq (IdLiteral(name)) (IdLiteral("null"))) (Dot(IdLiteral(name), "Valid()"))
+let numLoopUnrolls = 2
 
-let GetFieldsForValidExpr (allFields: VarDecl list) prog : VarDecl list =
+let rec GetUnrolledFieldValidExpr fldExpr fldName validFunName numUnrolls : Expr = 
+  if numUnrolls = 0 then
+    TrueLiteral
+  else
+    BinaryImplies (BinaryNeq fldExpr (IdLiteral("null")))
+                  (BinaryAnd (Dot(fldExpr, validFunName))
+                             (GetUnrolledFieldValidExpr (Dot(fldExpr, fldName)) fldName validFunName (numUnrolls-1)))
+
+let GetFieldValidExpr fldName validFunName numUnrolls : Expr = 
+  GetUnrolledFieldValidExpr (IdLiteral(fldName)) fldName validFunName numUnrolls
+  //BinaryImplies (BinaryNeq (IdLiteral(fldName)) (IdLiteral("null"))) (Dot(IdLiteral(fldName), validFunName))
+
+let GetFieldsForValidExpr allFields prog : VarDecl list =
   allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
                                      | _                                   -> false)
 
-let GetFieldsValidExprList (allFields: VarDecl list) prog : Expr list =
+let GetFieldsValidExprList clsName allFields prog : Expr list =
   let fields = GetFieldsForValidExpr allFields prog
-  fields |> List.map (function Var(name, _) -> GetFieldValidExpr name)
+  fields |> List.map (function Var(name, t) -> 
+                                 let validFunName, numUnrolls = 
+                                   match t with
+                                   | Some(ty) when clsName = (PrintType ty) -> "Valid_self()", numLoopUnrolls
+                                   | _ -> "Valid()", 1
+                                 GetFieldValidExpr name validFunName numUnrolls
+                     )
 
-let PrintValidFunctionCode clsMembers modelInv vars prog : string = 
+let PrintValidFunctionCode clsName clsMembers modelInv vars prog : string = 
   let invMembers = clsMembers |> List.filter (function Invariant(_) -> true | _ -> false)
   let clsInvs = invMembers |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
   let allInvs = modelInv :: clsInvs
-  let fieldsValid = GetFieldsValidExprList vars prog
+  let fieldsValid = GetFieldsValidExprList clsName vars prog
   let idt = "    "
-  let invsStr = List.concat [allInvs ; fieldsValid] |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
-                                                    |> List.fold (fun acc (e: Expr) -> 
-                                                                    if acc = "" then
-                                                                      sprintf "%s(%s)" idt (PrintExpr 0 e)
-                                                                    else
-                                                                      acc + " &&" + newline + sprintf "%s(%s)" idt (PrintExpr 0 e)) ""
+  let PrintInvs invs = 
+    invs |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
+         |> PrintSep (" &&" + newline) (fun e -> sprintf "%s(%s)" idt (PrintExpr 0 e))
+         |> fun s -> if s = "" then (idt + "true") else s
   // TODO: don't hardcode decr vars!!!
-  let decrVars = if List.choose (function Var(n,_) -> Some(n)) vars |> List.exists (fun n -> n = "next") then
-                   ["list"]
-                 else
-                   []
+//  let decrVars = if List.choose (function Var(n,_) -> Some(n)) vars |> List.exists (fun n -> n = "next") then
+//                   ["list"]
+//                 else
+//                   []
+//  (if List.isEmpty decrVars then "" else sprintf "    decreases %s;%s" (PrintSep ", " (fun a -> a) decrVars) newline) +
+  "  function Valid_self(): bool" + newline +
+  "    reads *;" + newline +
+  "  {" + newline + 
+  (PrintInvs allInvs) + newline +
+  "  }" + newline +
+  newline +
   "  function Valid(): bool" + newline +
   "    reads *;" + newline +
-  (if List.isEmpty decrVars then "" else sprintf "    decreases %s;%s" (PrintSep ", " (fun a -> a) decrVars) newline) +
   "  {" + newline + 
-  invsStr + newline +
+  "    this.Valid_self() &&" + newline +
+  (PrintInvs fieldsValid) + newline +
   "  }" + newline
 
 let PrintDafnyCodeSkeleton prog methodPrinterFunc: string =
@@ -57,7 +79,7 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc: string =
         (sprintf "%s" (PrintFields aVars 2 true)) + newline +     
         (sprintf "%s" (PrintFields cVars 2 false)) + newline +                           
         // generate the Valid function
-        (sprintf "%s" (PrintValidFunctionCode members inv allVars prog)) + newline +
+        (sprintf "%s" (PrintValidFunctionCode name members inv allVars prog)) + newline +
         // call the method printer function on all methods of this component
         (compMethods |> List.fold (fun acc m -> acc + (methodPrinterFunc comp m)) "") +
         // the end of the class
@@ -97,8 +119,9 @@ let PrintHeapCreationCode (heap,env,ctx) indent =
   (PrintVarAssignments (heap,env,ctx) indent)
 
 let GenConstructorCode mthd body =
+  printfn "Printing code for method %s." (GetMethodName mthd)
   match mthd with
-  | Constructor(methodName, sign, pre, post) -> 
+  | Method(methodName, sign, pre, post, _) -> 
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + newline +
       "    requires " + (PrintExpr 0 pre) + ";" + newline +
@@ -109,11 +132,22 @@ let GenConstructorCode mthd body =
       "  }" + newline
   | _ -> ""
 
+// NOTE: insert here coto to say which methods to analyze
+let GetMethodsToAnalyze prog =
+  let c = FindComponent prog "IntList" |> Utils.ExtractOption
+  let m = FindMethod c "OneTwo" |> Utils.ExtractOption
+  [c, m]
+  //FilterMembers prog FilterConstructorMembers
+
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions =
+  let methods = GetMethodsToAnalyze prog
   PrintDafnyCodeSkeleton prog (fun comp mthd ->
-                                 let mthdBody = match Map.tryFind (comp,mthd) solutions with
-                                                | Some(heap,env,ctx) -> PrintHeapCreationCode (heap,env,ctx) 4
-                                                | _ -> "    //unable to synthesize" + newline
-                                 (GenConstructorCode mthd mthdBody) + newline
+                                 if Utils.ListContains (comp,mthd) methods  then
+                                   let mthdBody = match Map.tryFind (comp,mthd) solutions with
+                                                  | Some(heap,env,ctx) -> PrintHeapCreationCode (heap,env,ctx) 4
+                                                  | _ -> "    //unable to synthesize" + newline
+                                   (GenConstructorCode mthd mthdBody) + newline
+                                 else
+                                   ""
                               )

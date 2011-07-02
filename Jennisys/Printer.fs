@@ -109,8 +109,8 @@ let PrintRoutine signature pre body =
 let PrintMember m =
   match m with
   | Field(vd) -> sprintf "  var %s%s" (PrintVarDecl vd) newline 
-  | Constructor(id,signature,pre,body) -> sprintf "  constructor %s%s" id (PrintRoutine signature pre body)
-  | Method(id,signature,pre,body) -> sprintf "  method %s%s" id (PrintRoutine signature pre body)
+  | Method(id,signature,pre,body,true) -> sprintf "  constructor %s%s" id (PrintRoutine signature pre body)
+  | Method(id,signature,pre,body,false) -> sprintf "  method %s%s" id (PrintRoutine signature pre body)
   | Invariant(_) -> ""  // invariants are handled separately
       
 let PrintTopLevelDeclHeader kind id typeParams =
