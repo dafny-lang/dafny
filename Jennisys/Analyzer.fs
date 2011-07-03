@@ -5,6 +5,7 @@ open AstUtils
 open CodeGen
 open DafnyModelUtils
 open PipelineUtils
+open Options
 open Printer
 open DafnyPrinter
 
@@ -34,11 +35,10 @@ let rec Substitute substMap = function
   | ForallExpr(vv,e) -> ForallExpr(vv, Substitute substMap e)
   | expr -> expr
 
-let GenMethodAnalysisCode methodName signature pre post assumeInvInitially =
+let GenMethodAnalysisCode comp methodName signature pre post =
   "  method " + methodName + "()" + newline +
   "    modifies this;" + newline +
   "  {" + newline + 
-  (if assumeInvInitially then "    assume Valid();" else "") +
   // print signature as local variables
   (match signature with
     | Sig(ins,outs) ->
@@ -50,45 +50,81 @@ let GenMethodAnalysisCode methodName signature pre post assumeInvInitially =
   "    // assume invariant and postcondition" + newline + 
   "    assume Valid();" + newline +
   "    assume " + (PrintExpr 0 post) + ";" + newline +
+  // inline the user defined invariant because assuming Valid() doesn't always work
+  "    // assume user defined invariant again because assuming Valid() doesn't always work" +
+  (GetInvariantsAsList comp |> PrintSep newline (fun e -> "    assume " + (PrintExpr 0 e) + ";")) + newline +
   // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
   "    // assert false to search for a model satisfying the assumed constraints" + newline + 
   "    assert false;" + newline + 
-  "  }" + newline  
+  "  }" + newline
              
 let MethodAnalysisPrinter onlyForThisCompMethod comp mthd = 
   match onlyForThisCompMethod with
   | (c,m) when c = comp && m = mthd -> 
     match m with 
-    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode methodName sign pre post false) + newline
+    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode comp methodName sign pre post) + newline
     | _ -> ""
   | _ -> ""
+
+let VerifySolution (heap,env,ctx) prog comp mthd =
+  // print the solution to file and try to verify it with Dafny
+  let solution = Map.empty |> Map.add (comp,mthd) (heap,env,ctx)
+  let code = PrintImplCode prog solution (fun p -> [comp,mthd])
+  use file = System.IO.File.CreateText(dafnyVerifyFile)
+  file.AutoFlush <- true  
+  fprintfn file "%s" code
+  file.Close()
+  // run Dafny
+  RunDafny dafnyVerifyFile dafnyVerifyModelFile
+  // read models from the model file
+  use modelFile = System.IO.File.OpenText(dafnyVerifyModelFile)
+  let models = Microsoft.Boogie.Model.ParseModels modelFile
+  // if there are no models, verification was successful
+  models.Count = 0
                            
-let AnalyzeConstructor prog comp methodName signature pre post =
-  let m = Method(methodName, signature, pre, post, true)
+let AnalyzeConstructor prog comp m =
+  let methodName = GetMethodName m
+  // generate Dafny code for analysis first
+  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m))
+  printfn "  [*] analyzing constructor %s" methodName 
+  printf  "       - searching for a solution       ..."
   use file = System.IO.File.CreateText(dafnyScratchFile)
   file.AutoFlush <- true
-  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m))
-  printfn "analyzing constructor %s" methodName 
   fprintf file "%s" code
   file.Close()
+  // run Dafny
   RunDafny dafnyScratchFile dafnyModelFile
-  use modelFile = System.IO.File.OpenText(dafnyModelFile)
-        
+  // read models
+  use modelFile = System.IO.File.OpenText(dafnyModelFile)        
   let models = Microsoft.Boogie.Model.ParseModels modelFile
   if models.Count = 0 then
-    printfn "spec for method %s.%s is inconsistent (no valid solution exists)" (GetClassName comp) methodName
-    None //failwith "inconsistent spec"      // TODO: instead of failing, just continue
+    // no models means that the "assert false" was verified, which means that the spec is inconsistent
+    printfn " !!! SPEC IS INCONSISTENT !!!"
+    None
   else 
-    if models.Count > 1 then failwith "why did we get more than one model for a single constructor analysis???"
+    if models.Count > 1 then 
+      printfn " FAILED "
+      failwith "internal error (more than one model for a single constructor analysis)"
+    printfn " OK "
     let model = models.[0]
-    Some(ReadFieldValuesFromModel model prog comp m)
+    let heap,env,ctx = ReadFieldValuesFromModel model prog comp m
+    if _opt_verifySolutions then
+      printf "       - verifying synthesized solution ..."
+      if VerifySolution (heap,env,ctx) prog comp m then
+        printfn " OK"
+        Some(heap,env,ctx)
+      else 
+        printfn " NOT VERIFIED"
+        Some(heap,env,ctx)
+    else
+      Some(heap,env,ctx)
 
 let rec AnalyzeMethods prog members = 
   match members with
   | (comp,m) :: rest -> 
       match m with
-      | Method(methodName,signature,pre,post,true) -> 
-          let solOpt = AnalyzeConstructor prog comp methodName signature pre post
+      | Method(_,_,_,_,true) -> 
+          let solOpt = AnalyzeConstructor prog comp m
           match solOpt with
           | Some(heap,env,ctx) -> AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
           | None -> AnalyzeMethods prog rest
@@ -99,7 +135,8 @@ let Analyze prog =
   let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
   use file = System.IO.File.CreateText(dafnySynthFile)
   file.AutoFlush <- true
-  let synthCode = PrintImplCode prog solutions
+  printfn "Printing synthesized code"
+  let synthCode = PrintImplCode prog solutions GetMethodsToAnalyze
   fprintfn file "%s" synthCode
   ()
 

@@ -35,10 +35,10 @@ let GetFieldsValidExprList clsName allFields prog : Expr list =
                                  GetFieldValidExpr name validFunName numUnrolls
                      )
 
-let PrintValidFunctionCode clsName clsMembers modelInv vars prog : string = 
-  let invMembers = clsMembers |> List.filter (function Invariant(_) -> true | _ -> false)
-  let clsInvs = invMembers |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
-  let allInvs = modelInv :: clsInvs
+let PrintValidFunctionCode comp prog : string = 
+  let clsName = GetClassName comp
+  let vars = GetAllFields comp
+  let allInvs = GetInvariantsAsList comp
   let fieldsValid = GetFieldsValidExprList clsName vars prog
   let idt = "    "
   let PrintInvs invs = 
@@ -68,7 +68,7 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc: string =
   match prog with
   | Program(components) -> components |> List.fold (fun acc comp -> 
       match comp with  
-      | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) ->
+      | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) as comp ->
         let aVars = FilterFieldMembers members
         let allVars = List.concat [aVars ; cVars];
         let compMethods = FilterConstructorMembers members
@@ -79,7 +79,7 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc: string =
         (sprintf "%s" (PrintFields aVars 2 true)) + newline +     
         (sprintf "%s" (PrintFields cVars 2 false)) + newline +                           
         // generate the Valid function
-        (sprintf "%s" (PrintValidFunctionCode name members inv allVars prog)) + newline +
+        (sprintf "%s" (PrintValidFunctionCode comp prog)) + newline +
         // call the method printer function on all methods of this component
         (compMethods |> List.fold (fun acc m -> acc + (methodPrinterFunc comp m)) "") +
         // the end of the class
@@ -119,7 +119,6 @@ let PrintHeapCreationCode (heap,env,ctx) indent =
   (PrintVarAssignments (heap,env,ctx) indent)
 
 let GenConstructorCode mthd body =
-  printfn "Printing code for method %s." (GetMethodName mthd)
   let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
@@ -143,8 +142,8 @@ let GetMethodsToAnalyze prog =
   FilterMembers prog FilterConstructorMembers
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
-let PrintImplCode prog solutions =
-  let methods = GetMethodsToAnalyze prog
+let PrintImplCode prog solutions methodsToPrintFunc =
+  let methods = methodsToPrintFunc prog
   PrintDafnyCodeSkeleton prog (fun comp mthd ->
                                  if Utils.ListContains (comp,mthd) methods  then
                                    let mthdBody = match Map.tryFind (comp,mthd) solutions with

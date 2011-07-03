@@ -25,6 +25,15 @@ let BinaryNeq lhs rhs = BinaryExpr(40, "!=", lhs, rhs)
 let TrueLiteral = IdLiteral("true")
 let FalseLiteral = IdLiteral("false")
 
+let rec SplitIntoConjunts expr = 
+  match expr with
+  | IdLiteral("true") -> []
+  | BinaryExpr(_,"&&",e0,e1) -> List.concat [SplitIntoConjunts e0 ; SplitIntoConjunts e1]
+  | _ -> [expr]
+
+let rec ForeachConjunct f expr =
+  SplitIntoConjunts expr |> List.fold (fun acc e -> acc + (f e)) ""
+
 // --- search functions ---
                                                
 let FilterFieldMembers members =
@@ -44,13 +53,13 @@ let FilterMembers prog filter =
         | Component(Class(_,_,members),_,_) -> List.concat [acc ; members |> filter |> List.choose (fun m -> Some(comp, m))]            
         | _ -> acc) []
 
-let AllFields c = 
-  match c with
+let GetAllFields comp = 
+  match comp with
   | Component(Class(_,_,members), Model(_,_,cVars,_,_), _) ->
       let aVars = FilterFieldMembers members
       List.concat [aVars ; cVars]
   | _ -> []
-                
+                              
 let GetClassName comp =
   match comp with
   | Component(Class(name,_,_),_,_) -> name
@@ -60,6 +69,13 @@ let GetMethodName mthd =
   match mthd with
   | Method(name,_,_,_,_) -> name
   | _ -> failwith ("not a method: " + mthd.ToString())
+
+let GetInvariantsAsList comp = 
+  match comp with
+  | Component(Class(_,_,members), Model(_,_,_,_,inv), _) -> 
+      let clsInvs = members |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
+      List.append (SplitIntoConjunts inv) clsInvs
+  | _ -> failwith ("unexpected kinf of component: %s" + comp.ToString())
 
 let GetMembers comp =
   match comp with
@@ -79,6 +95,6 @@ let FindVar (prog: Program) clsName fldName =
   let copt = FindComponent prog clsName
   match copt with
   | Some(comp) -> 
-      AllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
-                     |> Utils.ListToOption
+      GetAllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
+                        |> Utils.ListToOption
   | None -> None

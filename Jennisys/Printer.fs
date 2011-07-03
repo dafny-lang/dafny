@@ -1,6 +1,7 @@
 ﻿module Printer
 
 open Ast
+open AstUtils
 
 let newline = System.Environment.NewLine // "\r\n"
 
@@ -78,15 +79,6 @@ let PrintSig signature =
         if outs <> [] then sprintf " returns (%s)" (outs |> PrintSep ", " PrintVarDecl)
         else ""
       sprintf "(%s)%s" (ins |> PrintSep ", " PrintVarDecl) returnClause
-
-let rec SplitIntoConjunts expr = 
-  match expr with
-  | IdLiteral("true") -> []
-  | BinaryExpr(_,"&&",e0,e1) -> List.concat [SplitIntoConjunts e0 ; SplitIntoConjunts e1]
-  | _ -> [expr]
-
-let rec ForeachConjunct f expr =
-  SplitIntoConjunts expr |> List.fold (fun acc e -> acc + (f e)) ""
 
 let rec Indent i =
   if i = 0 then "" else " " + (Indent (i-1))

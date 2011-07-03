@@ -8,9 +8,7 @@ class IntList {
     ensures list = [2]
 
   constructor OneTwo()
-    ensures |list| = 2
-    ensures list[0] = 1
-    ensures list[1] = 2
+    ensures list = [1] + [2]
 }
 
 model IntList {

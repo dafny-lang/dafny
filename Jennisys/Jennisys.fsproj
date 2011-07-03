@@ -42,6 +42,7 @@
     <FsYaccOutputFolder>$(IntermediateOutputPath)</FsYaccOutputFolder>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Options.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="PipelineUtils.fs" />
     <Compile Include="Ast.fs" />

@@ -51,7 +51,7 @@ type Member =
 
 type TopLevelDecl =
   | Class of string * string list * Member list
-  | Model of string * string list * VarDecl list * Expr list * Expr
+  | Model of string * string list * VarDecl list * (* frame *) Expr list * (* invariant *) Expr
   | Code of string * string list
 
 type SyntacticProgram =

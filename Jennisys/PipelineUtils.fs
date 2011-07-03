@@ -1,7 +1,9 @@
 ﻿module PipelineUtils
   
 let dafnyScratchFile = @"c:\tmp\jennisys-scratch.dfy"
-let dafnyModelFile = @"c:\tmp\jennisys-scratch.model"
+let dafnyVerifyFile = @"c:\tmp\jennisys-verify.dfy"
+let dafnyModelFile = @"c:\tmp\jennisys-scratch.bvd"
+let dafnyVerifyModelFile = @"c:\tmp\jennisys-verify.bvd"
 let dafnyOutFile = @"c:\tmp\jennisys-scratch.out"
 let dafnySynthFile = @"c:\tmp\jennisys-synth.dfy"
 
