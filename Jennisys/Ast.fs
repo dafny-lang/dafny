@@ -1,4 +1,9 @@
-﻿namespace Ast
+﻿/// The AST of a Jennisy program
+///
+/// author: Rustan Leino (leino@microsoft.com)
+/// author: Aleksandar Milicevic (t-alekm@microsoft.com)
+
+namespace Ast
 
 open System
 open System.Numerics

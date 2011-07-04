@@ -137,7 +137,7 @@ let GenConstructorCode mthd body =
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
 //  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-//  let m = FindMethod c "OneTwo" |> Utils.ExtractOption
+//  let m = FindMethod c "Singleton" |> Utils.ExtractOption
 //  [c, m]
   FilterMembers prog FilterConstructorMembers
 

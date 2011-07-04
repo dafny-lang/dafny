@@ -1,4 +1,9 @@
-﻿module PipelineUtils
+﻿/// Utility functions for executing shell commands and 
+/// running Dafny in particular
+///
+/// author: Aleksandar Milicevic (t-alekm@microsoft.com)
+
+module PipelineUtils
   
 let dafnyScratchFile = @"c:\tmp\jennisys-scratch.dfy"
 let dafnyVerifyFile = @"c:\tmp\jennisys-verify.dfy"

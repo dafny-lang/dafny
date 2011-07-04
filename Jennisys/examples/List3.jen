@@ -9,6 +9,15 @@ class IntList {
 
   constructor OneTwo()
     ensures list = [1] + [2] 
+
+  constructor Singleton(p: int)
+    ensures list = [p]
+
+  constructor TwoConsecutive(p: int)
+    ensures list = [p] + [p+1]
+
+  constructor Double(p: int, q: int)
+    ensures list = [p] + [q]
 }
 
 model IntList {

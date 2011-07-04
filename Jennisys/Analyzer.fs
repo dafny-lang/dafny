@@ -43,15 +43,12 @@ let GenMethodAnalysisCode comp methodName signature pre post =
   (match signature with
     | Sig(ins,outs) ->
         List.concat [ins; outs] |> List.fold (fun acc vd -> acc + (sprintf "    var %s;" (PrintVarDecl vd)) + newline) "") +
-  // assume preconditions
   "    // assume precondition" + newline +
   "    assume " + (PrintExpr 0 pre) + ";" + newline + 
-  // assume invariant and postcondition
   "    // assume invariant and postcondition" + newline + 
   "    assume Valid();" + newline +
   "    assume " + (PrintExpr 0 post) + ";" + newline +
-  // inline the user defined invariant because assuming Valid() doesn't always work
-  "    // assume user defined invariant again because assuming Valid() doesn't always work" +
+  "    // assume user defined invariant again because assuming Valid() doesn't always work" + newline +
   (GetInvariantsAsList comp |> PrintSep newline (fun e -> "    assume " + (PrintExpr 0 e) + ";")) + newline +
   // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
   "    // assert false to search for a model satisfying the assumed constraints" + newline + 
@@ -66,6 +63,7 @@ let MethodAnalysisPrinter onlyForThisCompMethod comp mthd =
     | _ -> ""
   | _ -> ""
 
+/// Returns whether the code synthesized for the given method can be verified with Dafny
 let VerifySolution (heap,env,ctx) prog comp mthd =
   // print the solution to file and try to verify it with Dafny
   let solution = Map.empty |> Map.add (comp,mthd) (heap,env,ctx)
