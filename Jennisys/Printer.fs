@@ -14,24 +14,6 @@ let rec PrintSep sep f list =
   | [a] -> f a
   | a :: more -> (f a) + sep + (PrintSep sep f more)
   
-let rec PrintConst cst = 
-  match cst with 
-  | IntConst(v)        -> sprintf "%d" v
-  | BoolConst(b)       -> sprintf "%b" b
-  | SetConst(cset)     -> cset.ToString() //TODO: this won't work
-  | SeqConst(cseq)     -> 
-      let seqCont = cseq |> List.fold (fun acc cOpt ->
-                                         let sep = if acc = "" then "" else ", "
-                                         match cOpt with 
-                                         | Some(c) -> acc + sep + (PrintConst c)
-                                         | None -> acc + sep + "null"
-                                      ) ""
-      sprintf "[%s]" seqCont
-  | NullConst          -> "null"
-  | ThisConst(_,_)     -> "this"
-  | NewObj(name,_)     -> PrintGenSym name
-  | Unresolved(name)   -> sprintf "Unresolved(%s)" name
-
 let rec PrintType ty =
   match ty with
   | IntType                  -> "int"
@@ -132,3 +114,23 @@ let PrintDecl d =
 let Print prog =
   match prog with
   | SProgram(decls) -> List.fold (fun acc d -> acc + (PrintDecl d)) "" decls
+
+let rec PrintConst cst = 
+  match cst with 
+  | IntConst(v)        -> sprintf "%d" v
+  | BoolConst(b)       -> sprintf "%b" b
+  | SetConst(cset)     -> cset.ToString() //TODO: this won't work
+  | SeqConst(cseq)     -> 
+      let seqCont = cseq |> List.fold (fun acc cOpt ->
+                                         let sep = if acc = "" then "" else ", "
+                                         match cOpt with 
+                                         | Some(c) -> acc + sep + (PrintConst c)
+                                         | None -> acc + sep + "null"
+                                      ) ""
+      sprintf "[%s]" seqCont
+  | NullConst          -> "null"
+  | ThisConst(_,_)     -> "this"
+  | NewObj(name,_)     -> PrintGenSym name
+  | ExprConst(e)       -> PrintExpr 0 e
+  | VarConst(name)     -> name
+  | Unresolved(name)   -> sprintf "Unresolved(%s)" name

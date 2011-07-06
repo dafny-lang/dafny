@@ -6,7 +6,7 @@ open AstUtils
 let rec MyFold ee acc =
   match ee with
     | [] -> acc
-    | x::rest -> BinaryAnd x (MyFold rest acc)
+    | x::rest -> BinaryAnd (Desugar x) (MyFold rest acc)
 
 %}
 
@@ -16,7 +16,7 @@ let rec MyFold ee acc =
 // These are the terminal tokens of the grammar along with the types of
 // the data carried by each token:
 %token <string> ID
-%token <System.Numerics.BigInteger> INTEGER
+%token <int> INTEGER
 %token DOT
 %token NOT
 %token STAR DIV MOD
@@ -89,9 +89,9 @@ BlockStmt:
 
 Member:
     | VAR VarDecl                            { Field($2) }
-    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, $4, $5, true) }
-    | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5, false) }
-	  | INVARIANT ExprList                     { Invariant($2) }
+    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, (Desugar $4), (Desugar $5), true) }
+    | METHOD ID Signature Pre Post           { Method($2, $3, (Desugar $4), (Desugar $5), false) }
+	  | INVARIANT ExprList                     { Invariant(DesugarLst $2) }
 
 FrameMembers:
     |                                        { [], [], IdLiteral("true") }

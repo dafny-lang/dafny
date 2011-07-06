@@ -56,6 +56,7 @@
       <Link>Lexer.fs</Link>
     </Compile>
     <Compile Include="DafnyModelUtils.fs" />
+    <Compile Include="EnvUtils.fs" />
     <FsYacc Include="Parser.fsy">
       <OtherFlags>--module Parser</OtherFlags>
     </FsYacc>
@@ -63,8 +64,10 @@
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>
     <Compile Include="Printer.fs" />
+    <Compile Include="Logger.fs" />
     <Compile Include="DafnyPrinter.fs" />
     <Compile Include="TypeChecker.fs" />
+    <Compile Include="Resolver.fs" />
     <Compile Include="CodeGen.fs" />
     <Compile Include="Analyzer.fs" />
     <Compile Include="Jennisys.fs" />

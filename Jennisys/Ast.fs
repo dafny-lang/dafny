@@ -16,21 +16,11 @@ type Type =
   | NamedType of string
   | InstantiatedType of string * Type (* type parameter *)
 
-type Const = 
-  | IntConst   of int
-  | BoolConst  of bool
-  | SetConst   of Set<Const option>
-  | SeqConst   of (Const option) list
-  | NullConst
-  | ThisConst  of (* loc id *) string * Type option
-  | NewObj     of (* loc id *) string * Type option
-  | Unresolved of (* loc id *) string 
-
 type VarDecl =
   | Var of string * Type option
 
 type Expr =
-  | IntLiteral of BigInteger
+  | IntLiteral of int
   | IdLiteral of string
   | Star
   | Dot of Expr * string
@@ -47,7 +37,7 @@ type Stmt =
   | Assign of Expr * Expr
 
 type Signature =
-  | Sig of VarDecl list * VarDecl list
+  | Sig of (* ins *) VarDecl list * (* outs *) VarDecl list
 
 type Member =
   | Field of VarDecl
@@ -68,3 +58,14 @@ type Component =
 type Program =
   | Program of Component list
 
+type Const = 
+  | IntConst   of int
+  | BoolConst  of bool
+  | SetConst   of Set<Const option>
+  | SeqConst   of (Const option) list
+  | NullConst
+  | ThisConst  of (* loc id *) string * Type option
+  | NewObj     of (* loc id *) string * Type option
+  | ExprConst  of Expr
+  | VarConst   of (* varName *) string
+  | Unresolved of (* loc id *) string 

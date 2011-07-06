@@ -19,6 +19,9 @@ open Utils
 
 open Microsoft.Boogie
                 
+/// special object ref constant that will hold method argument values
+let argsObjRefConst = Unresolved("*0") 
+
 let GetElemFullName (elem: Model.Element) = 
   elem.Names |> Seq.filter (fun ft -> ft.Func.Arity = 0)
              |> Seq.choose (fun ft -> Some(ft.Func.Name))
@@ -135,6 +138,21 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         | None -> acc
                       ) Map.empty
 
+let rec ReadArgValues (model: Microsoft.Boogie.Model) args = 
+  match args with 
+  | Var(name,_) as v :: rest -> 
+      let farg = model.Functions |> Seq.filter (fun f -> f.Arity = 0 && f.Name.StartsWith(name + "#")) |> Utils.SeqToOption
+      match farg with
+      | Some(func) -> 
+          let refObj = argsObjRefConst
+          let fldVar = v
+          assert (Seq.length func.Apps = 1)
+          let ft = Seq.head func.Apps
+          let fldVal = ConvertValue model (ft.Result)
+          ReadArgValues model rest |> Map.add (VarConst(name)) fldVal
+      | None -> failwith ("cannot find corresponding function for parameter " + name)
+  | [] -> Map.empty
+
 let rec ReadSeqLen (model: Microsoft.Boogie.Model) (len_tuples: Model.FuncTuple list) (envMap,ctx) =
   match len_tuples with
   | ft :: rest -> 
@@ -227,5 +245,6 @@ let ReadEnv (model: Microsoft.Boogie.Model) =
 
 let ReadFieldValuesFromModel (model: Microsoft.Boogie.Model) prog comp meth =
   let heap = ReadHeap model prog
-  let env,ctx = ReadEnv model
+  let env0,ctx = ReadEnv model
+  let env = env0 |> Utils.MapAddAll (ReadArgValues model (GetMethodArgs meth))
   heap,env,ctx

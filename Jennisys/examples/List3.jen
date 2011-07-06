@@ -45,6 +45,13 @@ class IntNode {
     ensures data = 1
     ensures |succ| = 1 && succ[0] != null && succ[0].data = 2
 
+  constructor Init(p: int)
+    ensures data = p
+
+  constructor InitInc(p: int)
+    ensures data = p + 1
+
+    
   invariant
     !(null in succ)
 }

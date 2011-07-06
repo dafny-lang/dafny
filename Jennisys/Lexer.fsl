@@ -70,7 +70,7 @@ rule tokenize = parse
 | "::"     { COLONCOLON }
 | ","      { COMMA }
 // Numberic constants
-| digit+        { INTEGER (System.Numerics.BigInteger.Parse(lexeme lexbuf)) }
+| digit+        { INTEGER (System.Convert.ToInt32(lexeme lexbuf)) }
 // identifiers
 | idchar+       { ID (LexBuffer<char>.LexemeString lexbuf) }
 // EOF

@@ -7,7 +7,9 @@ open DafnyModelUtils
 open PipelineUtils
 open Options
 open Printer
+open Resolver
 open DafnyPrinter
+open Utils
 
 open Microsoft.Boogie
                     
@@ -35,7 +37,7 @@ let rec Substitute substMap = function
   | ForallExpr(vv,e) -> ForallExpr(vv, Substitute substMap e)
   | expr -> expr
 
-let GenMethodAnalysisCode comp methodName signature pre post =
+let GenMethodAnalysisCode comp methodName signature pre post assertion =
   "  method " + methodName + "()" + newline +
   "    modifies this;" + newline +
   "  {" + newline + 
@@ -52,71 +54,181 @@ let GenMethodAnalysisCode comp methodName signature pre post =
   (GetInvariantsAsList comp |> PrintSep newline (fun e -> "    assume " + (PrintExpr 0 e) + ";")) + newline +
   // if the following assert fails, the model hints at what code to generate; if the verification succeeds, an implementation would be infeasible
   "    // assert false to search for a model satisfying the assumed constraints" + newline + 
-  "    assert false;" + newline + 
+  "    assert " + (PrintExpr 0 assertion) + ";" + newline + 
   "  }" + newline
              
-let MethodAnalysisPrinter onlyForThisCompMethod comp mthd = 
+let MethodAnalysisPrinter onlyForThisCompMethod assertion comp mthd = 
   match onlyForThisCompMethod with
   | (c,m) when c = comp && m = mthd -> 
     match m with 
-    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode comp methodName sign pre post) + newline
+    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode comp methodName sign pre post assertion) + newline
     | _ -> ""
   | _ -> ""
 
+let rec IsArgsOnly args expr = 
+  match expr with
+  | IdLiteral(id) -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
+  | UnaryExpr(_,e) -> IsArgsOnly args e
+  | BinaryExpr(_,_,e1,e2) -> (IsArgsOnly args e1) && (IsArgsOnly args e2)
+  | Dot(e,_) -> IsArgsOnly args e
+  | SelectExpr(e1, e2) -> (IsArgsOnly args e1) && (IsArgsOnly args e2)
+  | UpdateExpr(e1, e2, e3) -> (IsArgsOnly args e1) && (IsArgsOnly args e2) && (IsArgsOnly args e3)
+  | SequenceExpr(exprs) -> exprs |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
+  | SeqLength(e) -> IsArgsOnly args e
+  | ForallExpr(vars,e) -> IsArgsOnly (List.concat [args; vars]) e
+  | IntLiteral(_) -> true
+  | Star -> true
+
+let rec GetUnifications expr args (heap,env,ctx) = 
+  match expr with
+  | IntLiteral(_)
+  | IdLiteral(_)
+  | Star         
+  | Dot(_)
+  | SelectExpr(_)   // TODO: handle select expr
+  | UpdateExpr(_)   // TODO: handle update expr
+  | SequenceExpr(_) 
+  | SeqLength(_)    
+  | ForallExpr(_)   // TODO: handle forall expr
+  | UnaryExpr(_)   -> Set.empty
+  | BinaryExpr(strength,op,e0,e1) ->
+      if op = "=" then
+        let v0 = Eval e0 (heap,env,ctx)
+        let v1 = Eval e1 (heap,env,ctx)
+        let argsOnly0 = IsArgsOnly args e0
+        let argsOnly1 = IsArgsOnly args e1
+        match v0,argsOnly1,argsOnly0,v1 with
+        | Some(c0),true,_,_ -> 
+               Logger.DebugLine ("      - adding unification " + (PrintConst c0) + " <--> " + (PrintExpr 0 e1));
+               Set.ofList [c0, e1]
+        | _,_,true,Some(c1) -> 
+               Logger.DebugLine ("      - adding unification " + (PrintConst c1) + " <--> " + (PrintExpr 0 e0));
+               Set.ofList [c1, e0]
+        | _ -> Logger.WarnLine ("      - [WARN] couldn't unify anything from " + (PrintExpr 0 expr));
+               Set.empty
+      else 
+        GetUnifications e0 args (heap,env,ctx) |> Set.union (GetUnifications e1 args (heap,env,ctx))
+
+let rec GetArgValueUnifications args env = 
+  match args with
+  | Var(name,_) :: rest -> 
+      match Map.tryFind (VarConst(name)) env with
+      | Some(c) -> Set.ofList [c, IdLiteral(name)] |> Set.union (GetArgValueUnifications rest env)
+      | None -> failwith ("couldn't find value for argument " + name)
+  | [] -> Set.empty
+
+let rec _GetObjRefExpr o (heap,env,ctx) visited = 
+  if Set.contains o visited then 
+    None
+  else 
+    let newVisited = Set.add o visited
+    let refName = PrintObjRefName o (env,ctx)
+    match refName with
+    | Exact "this" _ -> Some(IdLiteral(refName))
+    | _ -> 
+        let rec __fff lst = 
+          match lst with
+          | ((o,Var(fldName,_)),l) :: rest -> 
+              match _GetObjRefExpr o (heap,env,ctx) newVisited with
+              | Some(expr) -> Some(Dot(expr, fldName))
+              | None -> __fff rest
+          | [] -> None
+        let backPointers = heap |> Map.filter (fun (_,_) l -> l = o) |> Map.toList
+        __fff backPointers      
+
+let GetObjRefExpr o (heap,env,ctx) = 
+  _GetObjRefExpr o (heap,env,ctx) (Set.empty)
+
+let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) = 
+  match unifs with
+  | (c,e) :: rest -> 
+      let restHeap,env,ctx = UpdateHeapEnv prog comp mthd rest (heap,env,ctx)
+      let newHeap = restHeap |> Map.fold (fun acc (o,f) l ->
+                                            let value = Resolve l (env,ctx)
+                                            if value = c then
+                                              let objRefExpr = GetObjRefExpr o (heap,env,ctx) |> Utils.ExtractOptionMsg ("Couldn't find a path from this to " + (PrintObjRefName o (env,ctx)))
+                                              let fldName = PrintVarName f                             
+                                              let assertionExpr = BinaryEq (Dot(objRefExpr, fldName)) e
+                                              // check if the assertion follows and if so update the env
+                                              let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,mthd) assertionExpr)
+                                              Logger.Debug("        - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
+                                              let ok = CheckDafnyProgram code "unif"
+                                              if ok then
+                                                Logger.DebugLine " HOLDS"
+                                                // change the value to expression
+                                                acc |> Map.add (o,f) (ExprConst(e))
+                                              else
+                                                Logger.DebugLine " DOESN'T HOLDS"
+                                                // don't change the value
+                                                acc |> Map.add (o,f) l
+                                            else
+                                              // leave it as is
+                                              acc |> Map.add (o,f) l) restHeap
+      (newHeap,env,ctx)
+  | [] -> (heap,env,ctx)
+
+let GeneralizeSolution prog comp mthd (heap,env,ctx) =
+  match mthd with
+  | Method(mName,Sig(ins, outs),pre,post,_) -> 
+      let args = List.concat [ins; outs]
+      match args with 
+      | [] -> (heap,env,ctx)
+      | _  -> 
+          let unifs = GetUnifications (BinaryAnd pre post) args (heap,env,ctx)
+                    |> Set.union (GetArgValueUnifications args env)
+          UpdateHeapEnv prog comp mthd (Set.toList unifs) (heap,env,ctx)
+  | _ -> failwith ("not a method: " + mthd.ToString())
+
+//  ====================================================================================
 /// Returns whether the code synthesized for the given method can be verified with Dafny
-let VerifySolution (heap,env,ctx) prog comp mthd =
+//  ====================================================================================
+let VerifySolution prog comp mthd (heap,env,ctx) =
   // print the solution to file and try to verify it with Dafny
   let solution = Map.empty |> Map.add (comp,mthd) (heap,env,ctx)
   let code = PrintImplCode prog solution (fun p -> [comp,mthd])
-  use file = System.IO.File.CreateText(dafnyVerifyFile)
-  file.AutoFlush <- true  
-  fprintfn file "%s" code
-  file.Close()
-  // run Dafny
-  RunDafny dafnyVerifyFile dafnyVerifyModelFile
-  // read models from the model file
-  use modelFile = System.IO.File.OpenText(dafnyVerifyModelFile)
-  let models = Microsoft.Boogie.Model.ParseModels modelFile
-  // if there are no models, verification was successful
-  models.Count = 0
-                           
+  CheckDafnyProgram code dafnyVerifySuffix
+   
+//  ============================================================================
+/// Attempts to synthesize the initialization code for the given constructor "m"
+///
+/// Returns a (heap,env,ctx) tuple
+//  ============================================================================                           
 let AnalyzeConstructor prog comp m =
   let methodName = GetMethodName m
   // generate Dafny code for analysis first
-  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m))
-  printfn "  [*] analyzing constructor %s" methodName 
-  printf  "       - searching for a solution       ..."
-  use file = System.IO.File.CreateText(dafnyScratchFile)
-  file.AutoFlush <- true
-  fprintf file "%s" code
-  file.Close()
-  // run Dafny
-  RunDafny dafnyScratchFile dafnyModelFile
-  // read models
-  use modelFile = System.IO.File.OpenText(dafnyModelFile)        
-  let models = Microsoft.Boogie.Model.ParseModels modelFile
+  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m) FalseLiteral)
+  Logger.InfoLine ("  [*] analyzing constructor " + methodName + (PrintSig (GetMethodSig m)))
+  Logger.Info      "      - searching for a solution       ..."
+  let models = RunDafnyProgram code dafnyScratchSuffix   
   if models.Count = 0 then
     // no models means that the "assert false" was verified, which means that the spec is inconsistent
-    printfn " !!! SPEC IS INCONSISTENT !!!"
+    Logger.WarnLine " !!! SPEC IS INCONSISTENT !!!"
     None
   else 
     if models.Count > 1 then 
-      printfn " FAILED "
+      Logger.WarnLine " FAILED "
       failwith "internal error (more than one model for a single constructor analysis)"
-    printfn " OK "
+    Logger.InfoLine " OK "
     let model = models.[0]
     let heap,env,ctx = ReadFieldValuesFromModel model prog comp m
+                       |> GeneralizeSolution prog comp m
     if _opt_verifySolutions then
-      printf "       - verifying synthesized solution ..."
-      if VerifySolution (heap,env,ctx) prog comp m then
-        printfn " OK"
+      Logger.Info "      - verifying synthesized solution ..."
+      if VerifySolution prog comp m (heap,env,ctx) then
+        Logger.InfoLine " OK"
         Some(heap,env,ctx)
       else 
-        printfn " NOT VERIFIED"
+        Logger.InfoLine " NOT VERIFIED"
         Some(heap,env,ctx)
     else
       Some(heap,env,ctx)
 
+// ============================================================================
+/// Goes through a given list of methods of the given program and attempts to 
+/// synthesize code for each one of them.
+///
+/// Returns a map from (component * method) |--> (heap,env,ctx)
+// ============================================================================
 let rec AnalyzeMethods prog members = 
   match members with
   | (comp,m) :: rest -> 
@@ -133,7 +245,7 @@ let Analyze prog =
   let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
   use file = System.IO.File.CreateText(dafnySynthFile)
   file.AutoFlush <- true
-  printfn "Printing synthesized code"
+  Logger.InfoLine "Printing synthesized code"
   let synthCode = PrintImplCode prog solutions GetMethodsToAnalyze
   fprintfn file "%s" synthCode
   ()

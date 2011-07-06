@@ -4,6 +4,7 @@ open Ast
 open AstUtils
 open Utils
 open Printer   
+open Resolver
 open TypeChecker
 open DafnyPrinter
 
@@ -136,10 +137,10 @@ let GenConstructorCode mthd body =
 
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
-//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-//  let m = FindMethod c "Singleton" |> Utils.ExtractOption
-//  [c, m]
-  FilterMembers prog FilterConstructorMembers
+  let c = FindComponent prog "IntList" |> Utils.ExtractOption
+  let m = FindMethod c "Double" |> Utils.ExtractOption
+  [c, m]
+//  FilterMembers prog FilterConstructorMembers
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =
