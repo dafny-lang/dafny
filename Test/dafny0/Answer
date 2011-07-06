@@ -450,12 +450,11 @@ ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
 ParseErrors.dfy(6,37): error: this operator chain cannot continue with a descending operator
 ParseErrors.dfy(7,38): error: this operator chain cannot continue with an ascending operator
 ParseErrors.dfy(12,24): error: this operator chain cannot continue with a descending operator
-ParseErrors.dfy(14,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(15,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(16,19): error: this operator cannot be part of a chain
 ParseErrors.dfy(17,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
-9 parse errors detected in ParseErrors.dfy
+8 parse errors detected in ParseErrors.dfy
 
 -------------------- Array.dfy --------------------
 Array.dfy(10,8): Error: assignment may update an array element not in the enclosing context's modifies clause
@@ -1100,3 +1099,7 @@ ReturnErrors.dfy(41,10): Error: can only have initialization methods which modif
 -------------------- ReturnTests.dfy --------------------
 
 Dafny program verifier finished with 16 verified, 0 errors
+
+-------------------- ChainingDisjointTests.dfy --------------------
+
+Dafny program verifier finished with 6 verified, 0 errors
