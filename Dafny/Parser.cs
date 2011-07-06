@@ -1552,13 +1552,14 @@ List<Expression/*!*/>/*!*/ decreases) {
 
 	void RelationalExpression(out Expression/*!*/ e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-		IToken x, firstOpTok = null;  Expression e0, e1;  BinaryExpr.Opcode op;
+		IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
 		List<Expression> chain = null;
 		List<BinaryExpr.Opcode> ops = null;
 		int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
 		               // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
 		               // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
 		               // 3 ("illegal")     indicates illegal chain
+		               // 4 ("disjoint")    indicates chain of disjoint set operators
 		bool hasSeenNeq = false;
 		
 		Term(out e0);
@@ -1567,7 +1568,10 @@ List<Expression/*!*/>/*!*/ decreases) {
 			RelOp(out x, out op);
 			firstOpTok = x; 
 			Term(out e1);
-			e = new BinaryExpr(x, op, e0, e1); 
+			e = new BinaryExpr(x, op, e0, e1);
+			if (op == BinaryExpr.Opcode.Disjoint)
+			acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+			
 			while (StartOf(16)) {
 				if (chain == null) {
 				 chain = new List<Expression>();
@@ -1584,6 +1588,8 @@ List<Expression/*!*/>/*!*/ decreases) {
 				   case BinaryExpr.Opcode.Gt:
 				   case BinaryExpr.Opcode.Ge:
 				     kind = 2;  break;
+				   case BinaryExpr.Opcode.Disjoint:
+				     kind = 4;  break;
 				   default:
 				     kind = 3;  break;
 				 }
@@ -1593,30 +1599,40 @@ List<Expression/*!*/>/*!*/ decreases) {
 				RelOp(out x, out op);
 				switch (op) {
 				 case BinaryExpr.Opcode.Eq:
-				   if (kind == 3) { SemErr(x, "chaining not allowed from the previous operator"); }
+				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); }
 				   break;
 				 case BinaryExpr.Opcode.Neq:
 				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
-				   hasSeenNeq = true;  break;
-				 case BinaryExpr.Opcode.Lt:
-				 case BinaryExpr.Opcode.Le:
-				   if (kind == 0) { kind = 1; }
-				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
-				   break;
-				 case BinaryExpr.Opcode.Gt:
-				 case BinaryExpr.Opcode.Ge:
-				   if (kind == 0) { kind = 2; }
-				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
-				   break;
-				 default:
-				   SemErr(x, "this operator cannot be part of a chain");
-				   kind = 3;  break;
-				}
-				
+				if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
+				                              hasSeenNeq = true;  break;
+				                            case BinaryExpr.Opcode.Lt:
+				                            case BinaryExpr.Opcode.Le:
+				                              if (kind == 0) { kind = 1; }
+				                              else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
+				                              break;
+				                            case BinaryExpr.Opcode.Gt:
+				                            case BinaryExpr.Opcode.Ge:
+				                              if (kind == 0) { kind = 2; }
+				                              else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
+				                              break;
+				                            case BinaryExpr.Opcode.Disjoint:
+				                              if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
+				break;
+				                            default:
+				                              SemErr(x, "this operator cannot be part of a chain");
+				                              kind = 3;  break;
+				                          }
+				                       
 				Term(out e1);
 				ops.Add(op); chain.Add(e1);
-				e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
-				
+				if (op == BinaryExpr.Opcode.Disjoint)
+				{
+				  e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
+				acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
+				    }
+				 else
+				   e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+				                         
 			}
 		}
 		if (chain != null) {
