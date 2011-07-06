@@ -1,11 +1,12 @@
 ﻿%{
 
 open Ast
+open AstUtils
 
 let rec MyFold ee acc =
   match ee with
     | [] -> acc
-    | x::rest -> BinaryExpr(30,"&&",x, MyFold rest acc)
+    | x::rest -> BinaryAnd (Desugar x) (MyFold rest acc)
 
 %}
 
@@ -15,7 +16,7 @@ let rec MyFold ee acc =
 // These are the terminal tokens of the grammar along with the types of
 // the data carried by each token:
 %token <string> ID
-%token <System.Numerics.BigInteger> INTEGER
+%token <int> INTEGER
 %token DOT
 %token NOT
 %token STAR DIV MOD
@@ -27,7 +28,8 @@ let rec MyFold ee acc =
 %token LPAREN RPAREN LBRACKET RBRACKET LCURLY RCURLY VERTBAR
 %token GETS COLON COLONCOLON COMMA
 %token CLASS MODEL CODE
-%token VAR CONSTRUCTOR METHOD FRAME INVARIANT RETURNS REQUIRES FORALL
+%token VAR CONSTRUCTOR METHOD FRAME INVARIANT RETURNS REQUIRES ENSURES FORALL
+%token INTTYPE BOOLTYPE SEQTYPE SETTYPE
 %token EOF
 
 // This is the type of the data produced by a successful reduction of the 'start'
@@ -68,7 +70,11 @@ Signature:
 
 Pre:
     |                           { IdLiteral "true" }
-    | REQUIRES Expr Pre         { BinaryExpr(30,"&&", $2, $3) }
+    | REQUIRES Expr Pre         { BinaryAnd $2 $3 }
+
+Post: 
+    |                           { IdLiteral "true" }
+	| ENSURES Expr Post         { BinaryAnd $2 $3 }
 
 StmtList:
     |                    { [] }
@@ -83,8 +89,9 @@ BlockStmt:
 
 Member:
     | VAR VarDecl                            { Field($2) }
-    | CONSTRUCTOR ID Signature Pre StmtList  { Constructor($2, $3, $4, $5) }
-    | METHOD ID Signature Pre StmtList       { Method($2, $3, $4, $5) }
+    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, (Desugar $4), (Desugar $5), true) }
+    | METHOD ID Signature Pre Post           { Method($2, $3, (Desugar $4), (Desugar $5), false) }
+	  | INVARIANT ExprList                     { Invariant(DesugarLst $2) }
 
 FrameMembers:
     |                                        { [], [], IdLiteral("true") }
@@ -107,8 +114,12 @@ VarDecl:
     | ID COLON Type    { Var($1,Some($3)) }
 
 Type:
-    | ID                         { NamedType($1) }
-    | ID LBRACKET Type RBRACKET  { InstantiatedType($1, $3) }
+    | INTTYPE                        { IntType }
+    | BOOLTYPE                       { BoolType }
+    | ID                             { NamedType($1) }
+    | SEQTYPE LBRACKET Type RBRACKET { SeqType($3) }
+    | SETTYPE LBRACKET Type RBRACKET { SetType($3) }
+    | ID LBRACKET Type RBRACKET      { InstantiatedType($1, $3) }
 
 ExprList:
     |                   { [] }
@@ -128,14 +139,14 @@ Expr20:
 
 Expr30:
     | Expr40               { $1 }
-    | Expr40 AND Expr30and { BinaryExpr(30,"&&",$1,$3) }
-    | Expr40 OR Expr30or   { BinaryExpr(30,"||",$1,$3) }
+    | Expr40 AND Expr30and { BinaryAnd $1 $3 }
+    | Expr40 OR Expr30or   { BinaryOr  $1 $3 }
 Expr30and:
     | Expr40               { $1 }
-    | Expr40 AND Expr30and { BinaryExpr(30,"&&",$1,$3) }
+    | Expr40 AND Expr30and { BinaryAnd $1 $3 }
 Expr30or:
     | Expr40               { $1 }
-    | Expr40 AND Expr30or  { BinaryExpr(30,"||",$1,$3) }
+    | Expr40 AND Expr30or  { BinaryOr $1 $3 }
 
 Expr40:
     | Expr50                { $1 }

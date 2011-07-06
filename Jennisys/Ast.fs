@@ -1,17 +1,26 @@
-﻿namespace Ast
+﻿/// The AST of a Jennisy program
+///
+/// author: Rustan Leino (leino@microsoft.com)
+/// author: Aleksandar Milicevic (t-alekm@microsoft.com)
+
+namespace Ast
+
 open System
 open System.Numerics
 
-
 type Type =
+  | IntType
+  | BoolType
+  | SetType of Type (* type parameter *)
+  | SeqType of Type (* type parameter *)
   | NamedType of string
-  | InstantiatedType of string * Type
+  | InstantiatedType of string * Type (* type parameter *)
 
 type VarDecl =
   | Var of string * Type option
 
 type Expr =
-  | IntLiteral of BigInteger
+  | IntLiteral of int
   | IdLiteral of string
   | Star
   | Dot of Expr * string
@@ -28,16 +37,16 @@ type Stmt =
   | Assign of Expr * Expr
 
 type Signature =
-  | Sig of VarDecl list * VarDecl list
+  | Sig of (* ins *) VarDecl list * (* outs *) VarDecl list
 
 type Member =
   | Field of VarDecl
-  | Constructor of string * Signature * Expr * Stmt list
-  | Method of string * Signature * Expr * Stmt list
+  | Method of (* name *) string * Signature * (* pre *) Expr * (* post *) Expr * (* isConstructor *) bool
+  | Invariant of Expr list
 
 type TopLevelDecl =
   | Class of string * string list * Member list
-  | Model of string * string list * VarDecl list * Expr list * Expr
+  | Model of string * string list * VarDecl list * (* frame *) Expr list * (* invariant *) Expr
   | Code of string * string list
 
 type SyntacticProgram =
@@ -48,3 +57,15 @@ type Component =
 
 type Program =
   | Program of Component list
+
+type Const = 
+  | IntConst   of int
+  | BoolConst  of bool
+  | SetConst   of Set<Const option>
+  | SeqConst   of (Const option) list
+  | NullConst
+  | ThisConst  of (* loc id *) string * Type option
+  | NewObj     of (* loc id *) string * Type option
+  | ExprConst  of Expr
+  | VarConst   of (* varName *) string
+  | Unresolved of (* loc id *) string 

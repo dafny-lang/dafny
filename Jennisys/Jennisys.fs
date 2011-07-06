@@ -2,6 +2,7 @@
 // Learn more about F# at http://fsharp.net
 // Original project template by Jomo Fisher based on work of Brian McNamara, Don Syme and Matt Valerio
 // This posting is provided "AS IS" with no warranties, and confers no rights.
+module Main
 
 open System
 open System.IO
@@ -13,7 +14,6 @@ open Parser
 open Printer
 open TypeChecker
 open Analyzer
-
 
 let readAndProcess tracing analyzing (filename: string) =
     try
@@ -31,7 +31,7 @@ let readAndProcess tracing analyzing (filename: string) =
             // print the given Jennisys program
             if tracing then
                 printfn "---------- Given Jennisys program ----------"
-                Print sprog
+                printfn "%s" (Print sprog)
             else ()
             match TypeCheck sprog with
               | None -> ()  // errors have already been reported
@@ -61,4 +61,7 @@ let rec start n (args: string []) tracing analyzing filename =
     readAndProcess tracing analyzing filename
 
 let args = Environment.GetCommandLineArgs()
-start 1 args false true null
+try 
+  start 1 args false true null
+with 
+  | Failure(msg) as e -> printfn "WHYYYYYYYYYYYYYYY: %s" msg; printfn "%s" e.StackTrace

@@ -30,7 +30,13 @@ rule tokenize = parse
 | "invariant"    { INVARIANT }
 | "returns"      { RETURNS }
 | "requires"     { REQUIRES }
+| "ensures"      { ENSURES }
 | "forall"       { FORALL }
+// Types
+| "int"          { INTTYPE }
+| "bool"         { BOOLTYPE }
+| "seq"          { SEQTYPE }
+| "set"          { SETTYPE }
 // Operators
 | "."      { DOT }
 | "+"      { PLUS }
@@ -64,7 +70,7 @@ rule tokenize = parse
 | "::"     { COLONCOLON }
 | ","      { COMMA }
 // Numberic constants
-| digit+        { INTEGER (System.Numerics.BigInteger.Parse(lexeme lexbuf)) }
+| digit+        { INTEGER (System.Convert.ToInt32(lexeme lexbuf)) }
 // identifiers
 | idchar+       { ID (LexBuffer<char>.LexemeString lexbuf) }
 // EOF

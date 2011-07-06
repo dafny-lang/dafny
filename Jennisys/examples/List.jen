@@ -1,0 +1,42 @@
+class List[T] {
+  var list: seq[T]
+
+  constructor Empty()
+    ensures list = []
+
+  constructor Singleton(t: T)
+    ensures list = [t]
+}
+
+model List[T] {
+  var root: Node[T]
+
+  frame
+    root * root.list[*]
+
+  invariant
+    (root = null) ==> (|list| = 0)
+    root != null ==> list = root.list
+}
+
+class Node[T] {
+  var list: seq[T]
+
+  invariant
+    |list| > 0
+
+  constructor Init(t: T)
+    ensures list = [t]
+}
+
+model Node[T] {
+  var data: T
+  var next: Node[T]
+
+  frame 
+    data * next
+
+  invariant
+    next = null <==> list = [data]
+    next != null ==> list = [data] + next.list 
+} 

@@ -1,0 +1,71 @@
+class IntList {
+  var list: seq[int]
+
+  constructor Empty()
+    ensures list = []
+
+  constructor SingletonTwo()
+    ensures list = [2]
+
+  constructor OneTwo()
+    ensures list = [1] + [2] 
+
+  constructor Singleton(p: int)
+    ensures list = [p]
+
+  constructor TwoConsecutive(p: int)
+    ensures list = [p] + [p+1]
+
+  constructor Double(p: int, q: int)
+    ensures list = [p] + [q]
+
+  constructor Sum(p: int, q: int)
+    ensures list = [p + q]
+}
+
+model IntList {
+  var root: IntNode
+
+  frame
+    root * root.list[*]
+
+  invariant
+    root = null  ==> |list| = 0
+    root != null ==> (|list| = |root.succ| + 1 && 
+                      list[0] = root.data && 
+                      (forall i:int :: (0 <= i && i < |root.succ|) ==> (root.succ[i] != null && list[i+1] = root.succ[i].data)))
+}
+
+class IntNode {
+  var succ: seq[IntNode]
+  var data: int
+
+  constructor Zero()
+    ensures data = 0
+    ensures succ = []
+
+  constructor OneTwo()
+    ensures data = 1
+    ensures |succ| = 1 && succ[0] != null && succ[0].data = 2
+
+  constructor Init(p: int)
+    ensures data = p
+
+  constructor InitInc(p: int)
+    ensures data = p + 1
+
+    
+  invariant
+    !(null in succ)
+}
+
+model IntNode {
+  var next: IntNode
+
+  frame 
+    data * next
+
+  invariant
+    next = null  ==> |succ| = 0
+    next != null ==> (succ = [next] + next.succ)
+} 
