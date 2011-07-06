@@ -18,7 +18,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             Comprehensions.dfy Basics.dfy ControlStructures.dfy
             Termination.dfy DTypes.dfy
             TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy SplitExpr.dfy
-            Refinement.dfy RefinementErrors.dfy) do (
+            Refinement.dfy RefinementErrors.dfy LoopModifies.dfy
+            ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 %* %%f

@@ -26,7 +26,7 @@ static BuiltIns theBuiltIns;
 
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
-static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken);
+static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument("dummyAttrArg");
 static int anonymousIds = 0;
 
@@ -472,7 +472,7 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
     ( "requires" Expression<out e> ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures" Expression<out e> ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     )
-  | "decreases" Expressions<decreases> ";"
+  | "decreases" DecreasesList<decreases, false> ";"
   )
   .
 
@@ -606,9 +606,9 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
   | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
               { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
               }
-	        ] ";"
+            ] ";"
   | "ensures" Expression<out e> ";"      (. ens.Add(e); .)
-  | "decreases" Expressions<decreases> ";"
+  | "decreases" DecreasesList<decreases, false> ";"
   )
   .
 
@@ -696,11 +696,24 @@ OneStmt<out Statement/*!*/ s>
       }
     )
     ";"                                (. s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); .)
-  | "return"                           (. x = t; .)
-    ";"                                (. s = new ReturnStmt(x); .)
+  | ReturnStmt<out s>
   )
   .
 
+ReturnStmt<out Statement/*!*/ s>
+= (.
+   IToken returnTok = null;
+   List<AssignmentRhs> rhss = null;
+   AssignmentRhs r;
+   .)
+  "return"                           (. returnTok = t; .)
+  [
+      Rhs<out r, null>               (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
+      { "," Rhs<out r, null>         (. rhss.Add(r); .)
+        }
+  ]
+  ";"                                (. s = new ReturnStmt(returnTok, rhss); .)
+  .
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
@@ -843,6 +856,7 @@ WhileStmt<out Statement/*!*/ stmt>
      Expression guard;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
+     List<FrameExpression/*!*/> mod = null;
      Statement/*!*/ body;
      IToken bodyStart, bodyEnd;
      List<GuardedAlternative> alternatives;
@@ -851,32 +865,51 @@ WhileStmt<out Statement/*!*/ stmt>
   "while"                    (. x = t; .)
   (
     Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    LoopSpec<out invariants, out decreases>
+    LoopSpec<out invariants, out decreases, out mod>
     BlockStmt<out body, out bodyStart, out bodyEnd>
-    (. stmt = new WhileStmt(x, guard, invariants, decreases, body); .)
+    (. stmt = new WhileStmt(x, guard, invariants, decreases, mod, body); .)
   |
-    LoopSpec<out invariants, out decreases>
+    LoopSpec<out invariants, out decreases, out mod>
     AlternativeBlock<out alternatives>
-    (. stmt = new AlternativeLoopStmt(x, invariants, decreases, alternatives); .)
+    (. stmt = new AlternativeLoopStmt(x, invariants, decreases, mod, alternatives); .)
   )
   .
 
-LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases.>
-= (. bool isFree;  Expression/*!*/ e;
+LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod.>
+= (. bool isFree;  Expression/*!*/ e; FrameExpression/*!*/ fe;
      invariants = new List<MaybeFreeExpression/*!*/>();
      decreases = new List<Expression/*!*/>();
+     mod = null;
   .)
-  {                          (. isFree = false; .)
-     [ "free"                (. isFree = true; .)
-     ]
-     "invariant"
-     Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
-     ";"
-   | "decreases"
-     PossiblyWildExpression<out e>          (. decreases.Add(e); .)
-     { "," PossiblyWildExpression<out e>    (. decreases.Add(e); .)
-     }
-     ";"
+  {                         (. isFree = false; .)
+    [ "free"                (. isFree = true; .)
+    ]
+    "invariant"
+    Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
+    ";"
+  | "decreases" DecreasesList<decreases, true> ";"
+  | "modifies" (. mod = mod ?? new List<FrameExpression>(); .)
+               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+                 }
+               ] ";"
+  }
+  .
+
+DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
+= (. Expression/*!*/ e; .)
+  PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
+                                              SemErr(e.tok, "'decreases *' is only allowed on loops");
+                                            } else {
+                                              decreases.Add(e);
+                                            }
+                                         .)
+  { "," PossiblyWildExpression<out e>    (. if (!allowWildcard && e is WildcardExpr) {
+                                              SemErr(e.tok, "'decreases *' is only allowed on loops");
+                                            } else {
+                                              decreases.Add(e);
+                                            }
+                                         .)
   }
   .
 
@@ -1027,18 +1060,22 @@ OrOp = "||" | '\u2228'.
 /*------------------------------------------------------------------------*/
 RelationalExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken x, firstOpTok = null;  Expression e0, e1;  BinaryExpr.Opcode op;
+     IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
      List<Expression> chain = null;
      List<BinaryExpr.Opcode> ops = null;
      int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
                     // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
                     // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
                     // 3 ("illegal")     indicates illegal chain
+                    // 4 ("disjoint")    indicates chain of disjoint set operators
      bool hasSeenNeq = false;
   .)
   Term<out e0>                     (. e = e0; .)
   [ RelOp<out x, out op>           (. firstOpTok = x; .)
-    Term<out e1>                   (. e = new BinaryExpr(x, op, e0, e1); .)
+    Term<out e1>                   (. e = new BinaryExpr(x, op, e0, e1);
+                                      if (op == BinaryExpr.Opcode.Disjoint)
+                                        acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+                                   .)
     {                              (. if (chain == null) {
                                         chain = new List<Expression>();
                                         ops = new List<BinaryExpr.Opcode>();
@@ -1054,6 +1091,8 @@ RelationalExpression<out Expression/*!*/ e>
                                           case BinaryExpr.Opcode.Gt:
                                           case BinaryExpr.Opcode.Ge:
                                             kind = 2;  break;
+                                          case BinaryExpr.Opcode.Disjoint:
+                                            kind = 4;  break;
                                           default:
                                             kind = 3;  break;
                                         }
@@ -1062,10 +1101,11 @@ RelationalExpression<out Expression/*!*/ e>
                                    .)
       RelOp<out x, out op>         (. switch (op) {
                                         case BinaryExpr.Opcode.Eq:
-                                          if (kind == 3) { SemErr(x, "chaining not allowed from the previous operator"); }
+                                          if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); }
                                           break;
                                         case BinaryExpr.Opcode.Neq:
                                           if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
+                                          if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
                                           hasSeenNeq = true;  break;
                                         case BinaryExpr.Opcode.Lt:
                                         case BinaryExpr.Opcode.Le:
@@ -1077,13 +1117,21 @@ RelationalExpression<out Expression/*!*/ e>
                                           if (kind == 0) { kind = 2; }
                                           else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
                                           break;
+                                        case BinaryExpr.Opcode.Disjoint:
+                                          if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
+                                          break;
                                         default:
                                           SemErr(x, "this operator cannot be part of a chain");
                                           kind = 3;  break;
                                       }
                                    .)
       Term<out e1>                 (. ops.Add(op); chain.Add(e1);
-                                      e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+                                      if (op == BinaryExpr.Opcode.Disjoint) {
+                                        e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
+                                        acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
+                                      }
+                                      else
+                                        e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
                                    .)
     }
   ]

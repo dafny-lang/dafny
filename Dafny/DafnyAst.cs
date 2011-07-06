@@ -1302,9 +1302,13 @@ namespace Microsoft.Dafny {
   }
 
   public class ReturnStmt : Statement {
-    public ReturnStmt(IToken tok)
+    public List<AssignmentRhs> rhss;
+    public UpdateStmt hiddenUpdate;
+    public ReturnStmt(IToken tok, List<AssignmentRhs> rhss)
       : base(tok) {
       Contract.Requires(tok != null);
+      this.rhss = rhss;
+      hiddenUpdate = null;
     }
   }
 
@@ -1337,7 +1341,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Type EType;
     public readonly List<Expression> ArrayDimensions;
-    public readonly CallStmt InitCall;  // may be null (and is definitely null for arrays)
+    public CallStmt InitCall;  // may be null (and is definitely null for arrays)
     public Type Type;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1407,6 +1411,7 @@ namespace Microsoft.Dafny {
       this.MethodName = methodName;
       this.Args = args;
     }
+    // TODO: Investigate this. For an initialization, this is true. But for existing objects, this is not true.
     public override bool CanAffectPreviouslyKnownExpressions {
       get {
         foreach (var mod in Method.Mod) {
@@ -1458,6 +1463,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Expression> Lhss;
     public readonly List<AssignmentRhs> Rhss;
+    public readonly bool CanMutateKnownState;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
@@ -1472,6 +1478,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Lhss = lhss;
       Rhss = rhss;
+      CanMutateKnownState = false;
+    }
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(cce.NonNullElements(rhss));
+      Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
+      Lhss = lhss;
+      Rhss = rhss;
+      CanMutateKnownState = mutate;
     }
   }
 
@@ -1558,14 +1576,14 @@ namespace Microsoft.Dafny {
   public class CallStmt : Statement {
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Receiver != null);
+      //Contract.Invariant(Receiver != null);
       Contract.Invariant(MethodName != null);
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
     }
 
     public readonly List<Expression/*!*/>/*!*/ Lhs;
-    public readonly Expression/*!*/ Receiver;
+    public Expression/*!*/ Receiver;
     public readonly string/*!*/ MethodName;
     public readonly List<Expression/*!*/>/*!*/ Args;
     public Method Method;  // filled in by resolution
@@ -1575,7 +1593,6 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhs));
-      Contract.Requires(receiver != null);
       Contract.Requires(methodName != null);
       Contract.Requires(cce.NonNullElements(args));
 
@@ -1660,20 +1677,24 @@ namespace Microsoft.Dafny {
   {
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Invariants;
     public readonly List<Expression/*!*/>/*!*/ Decreases;
+    public readonly List<FrameExpression/*!*/>/*!*/ Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Invariants));
       Contract.Invariant(cce.NonNullElements(Decreases));
+      Contract.Invariant(Mod == null || cce.NonNullElements(Mod));
     }
-    public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases)
+    public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/>/*!*/ mod)
     : base(tok) 
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(invariants));
       Contract.Requires(cce.NonNullElements(decreases));
+      Contract.Requires(mod == null || cce.NonNullElements(mod));
 
       this.Invariants = invariants;
       this.Decreases = decreases;
+      this.Mod = mod;
     }
   }
 
@@ -1687,9 +1708,9 @@ namespace Microsoft.Dafny {
     }
 
     public WhileStmt(IToken tok, Expression guard,
-                     List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases,
+                     List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/> mod,
                      Statement/*!*/ body)
-      : base(tok, invariants, decreases) {
+      : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(body != null);
       this.Guard = guard;
@@ -1705,9 +1726,9 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Alternatives != null);
     }
     public AlternativeLoopStmt(IToken tok,
-                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases,
+                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/> mod,
                                List<GuardedAlternative> alternatives)
-      : base(tok, invariants, decreases) {
+      : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;

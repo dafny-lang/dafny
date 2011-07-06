@@ -424,7 +424,17 @@ namespace Microsoft.Dafny {
         }
         
       } else if (stmt is ReturnStmt) {
-        wr.Write("return;");
+        var s = (ReturnStmt) stmt;
+        wr.Write("return");
+        if (s.rhss != null) {
+          var sep = " ";
+          foreach (var rhs in s.rhss) {
+            wr.Write(sep);
+            PrintRhs(rhs);
+            sep = ", ";
+          }
+        }
+          wr.Write(";");
         
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
@@ -507,6 +517,10 @@ namespace Microsoft.Dafny {
 
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintSpecLine("decreases", s.Decreases, indent + IndentAmount);
+        if (s.Mod != null)
+        {
+            PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
+        }
         Indent(indent);
         PrintStatement(s.Body, indent);
 

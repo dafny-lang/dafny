@@ -11,7 +11,7 @@ method TestChaining0(j: int, k: int, m: int)
 method TestChaining1<T>(s: set<T>, t: set<T>, u: set<T>, x: T, SuperSet: set<set<T>>)
   requires s <= t <= u >= s+u;  // error: cannot mix <= and >=
   ensures s <= u;
-  ensures s !! t !! u;  // error: !! is not chaining (but it would be nice if it were)
+  ensures s !! t !! u; // valid, means pairwise disjoint
   ensures x in s in SuperSet;  // error: 'in' is not chaining
   ensures x !in s in SuperSet;  // error: 'in' is not chaining
   ensures x in s !in SuperSet;  // error: 'in' is not chaining
