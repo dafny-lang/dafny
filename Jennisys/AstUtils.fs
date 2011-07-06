@@ -27,15 +27,120 @@ let rec VisitExpr visitorFunc expr acc =
 
 exception EvalFailed 
 
-//TODO: stuff might be missing
-let rec EvalToConst expr = 
+let rec EvalSym expr = 
   match expr with
   | IntLiteral(n) -> IntConst(n)
   | IdLiteral(id) -> VarConst(id)
   | Dot(e, str) -> 
-      match EvalToConst e with
+      match EvalSym e with
       | VarConst(lhsName) -> VarConst(lhsName + "." + str)
-      | _ -> raise EvalFailed
+      | _ -> ExprConst(expr)
+  | SeqLength(e) -> 
+      match EvalSym e with
+      | SeqConst(clist) -> IntConst(List.length clist)
+      | _ -> ExprConst(expr)
+  | SequenceExpr(elist) -> 
+      let clist = elist |> List.fold (fun acc e -> EvalSym e :: acc) [] |> List.rev |> Utils.ConvertToOptionList
+      SeqConst(clist)
+  | SelectExpr(lst, idx) ->
+      match EvalSym lst, EvalSym idx with
+      | SeqConst(clist), IntConst(n) -> clist.[n] |> Utils.ExtractOption
+      | _ -> ExprConst(expr)
+  | UpdateExpr(lst,idx,v) ->
+      match EvalSym lst, EvalSym idx, EvalSym v with
+      | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n (Some(c)) clist)
+      | _ -> ExprConst(expr)
+  | BinaryExpr(_,op,e1,e2) ->
+      match op with
+      | Exact "=" _ ->
+          match EvalSym e1, EvalSym e2 with
+          | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 = b2)
+          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 = n2)
+          | VarConst(v1), VarConst(v2)   -> BoolConst(v1 = v2)
+          | _ -> ExprConst(expr)
+      | Exact "!=" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | BoolConst(b1), BoolConst(b2) -> BoolConst(not (b1 = b2))
+          | IntConst(n1), IntConst(n2)   -> BoolConst(not (n1 = n2))
+          | VarConst(v1), VarConst(v2)   -> BoolConst(not (v1 = v2))
+          | _ -> ExprConst(expr)
+      | Exact "<" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 < n2)
+          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) < (Set.count s2))
+          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) < (List.length s2))
+          | _ -> ExprConst(expr)
+      | Exact "<=" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 <= n2)
+          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) <= (Set.count s2))
+          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) <= (List.length s2))
+          | _ -> ExprConst(expr)
+      | Exact ">" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 > n2)
+          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) > (Set.count s2))
+          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) > (List.length s2))
+          | _ -> ExprConst(expr)
+      | Exact ">=" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 >= n2)
+          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) >= (Set.count s2))
+          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) >= (List.length s2))
+          | _ -> ExprConst(expr)
+      | Exact "in" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | _ as c, SetConst(s)   -> BoolConst(Set.contains (Some(c)) s)
+          | _ as c, SeqConst(s)   -> BoolConst(Utils.ListContains (Some(c)) s)
+          | _ -> ExprConst(expr)
+      | Exact "!in" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | _ as c, SetConst(s)   -> BoolConst(not (Set.contains (Some(c)) s))
+          | _ as c, SeqConst(s)   -> BoolConst(not (Utils.ListContains (Some(c)) s))
+          | _ -> ExprConst(expr)
+      | Exact "+" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
+          | SeqConst(l1), SeqConst(l2) -> SeqConst(List.append l1 l2)
+          | SetConst(s1), SetConst(s2) -> SetConst(Set.union s1 s2)
+          | _ -> ExprConst(expr)
+      | Exact "-" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
+          | SetConst(s1), SetConst(s2) -> SetConst(Set.difference s1 s2)
+          | _ -> ExprConst(expr)
+      | Exact "*" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2) -> IntConst(n1 * n2)
+          | _ -> ExprConst(expr)
+      | Exact "div" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2) -> IntConst(n1 / n2)
+          | _ -> ExprConst(expr)
+      | Exact "mod" _ -> 
+          match EvalSym e1, EvalSym e2 with
+          | IntConst(n1), IntConst(n2) -> IntConst(n1 % n2)
+          | _ -> ExprConst(expr)
+      | _ -> ExprConst(expr)
+  | UnaryExpr(op, e) ->
+      match op with
+      | Exact "!" _ -> 
+          match EvalSym e with
+          | BoolConst(b) -> BoolConst(not b)
+          | _ -> ExprConst(expr)
+      | Exact "-" _ -> 
+          match EvalSym e with
+          | IntConst(n) -> IntConst(-n)
+          | _ -> ExprConst(expr)
+      | _ -> ExprConst(expr)
+  | _ -> ExprConst(expr)
+
+//TODO: stuff might be missing
+let rec EvalToConst expr = 
+  match expr with
+  | IntLiteral(n) -> IntConst(n)
+  | IdLiteral(id) -> raise EvalFailed //VarConst(id)
+  | Dot(e, str)   -> raise EvalFailed
   | SeqLength(e) -> 
       match EvalToConst e with
       | SeqConst(clist) -> IntConst(List.length clist)
@@ -186,6 +291,13 @@ let FilterFieldMembers members =
 let FilterConstructorMembers members = 
   members |> List.choose (function Method(_,_,_,_, true) as m -> Some(m) | _ -> None)
 
+//  =============================================================
+/// Out of all "members" returns only those that are 
+/// constructors and have at least one input parameter
+//  =============================================================
+let FilterConstructorMembersWithParams members = 
+  members |> List.choose (function Method(_,Sig(ins,outs),_,_, true) as m when not (List.isEmpty ins) -> Some(m) | _ -> None)
+
 //  ==========================================================
 /// Out of all "members" returns only those that are "Method"s
 //  ==========================================================
@@ -228,6 +340,12 @@ let GetMethodName mthd =
   match mthd with
   | Method(name,_,_,_,_) -> name
   | _ -> failwith ("not a method: " + mthd.ToString())
+
+//  ===========================================================
+/// Returns full name of a method (= <class_name>.<method_name>
+//  ===========================================================
+let GetMethodFullName comp mthd = 
+  (GetClassName comp) + "." + (GetMethodName mthd)
 
 //  =============================
 /// Returns signature of a method
@@ -305,7 +423,7 @@ let rec Desugar expr =
   | SelectExpr(_) 
   | SeqLength(_)           -> expr
   | UpdateExpr(_)          -> expr //TODO
-  | SequenceExpr(exs)      -> expr //TODO: 
+  | SequenceExpr(exs)      -> expr //TODO
   | ForallExpr(v,e)        -> ForallExpr(v, Desugar e)
   | UnaryExpr(op,e)        -> UnaryExpr(op, Desugar e)
   | BinaryExpr(p,op,e1,e2) -> 
@@ -313,7 +431,7 @@ let rec Desugar expr =
       try
         match op with
         | Exact "=" _ ->           
-            match EvalToConst e1, EvalToConst e2 with
+            match EvalSym e1, EvalSym e2 with
             | VarConst(v), SeqConst(clist)
             | SeqConst(clist), VarConst(v) -> 
                 let rec __fff lst cnt = 

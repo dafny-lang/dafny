@@ -18,6 +18,9 @@ class IntList {
 
   constructor Double(p: int, q: int)
     ensures list = [p] + [q]
+
+  constructor Sum(p: int, q: int)
+    ensures list = [p + q]
 }
 
 model IntList {

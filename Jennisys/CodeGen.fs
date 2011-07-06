@@ -137,10 +137,14 @@ let GenConstructorCode mthd body =
 
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
-  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-  let m = FindMethod c "Double" |> Utils.ExtractOption
-  [c, m]
-//  FilterMembers prog FilterConstructorMembers
+  (* exactly one *)
+//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
+//  let m = FindMethod c "Sum" |> Utils.ExtractOption
+//  [c, m]
+  (* all *)
+  FilterMembers prog FilterConstructorMembers 
+  (* only with parameters *)
+//  FilterMembers prog FilterConstructorMembersWithParams 
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =

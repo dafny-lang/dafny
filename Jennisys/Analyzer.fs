@@ -104,7 +104,7 @@ let rec GetUnifications expr args (heap,env,ctx) =
         | _,_,true,Some(c1) -> 
                Logger.DebugLine ("      - adding unification " + (PrintConst c1) + " <--> " + (PrintExpr 0 e0));
                Set.ofList [c1, e0]
-        | _ -> Logger.WarnLine ("      - [WARN] couldn't unify anything from " + (PrintExpr 0 expr));
+        | _ -> Logger.TraceLine ("      - couldn't unify anything from " + (PrintExpr 0 expr));
                Set.empty
       else 
         GetUnifications e0 args (heap,env,ctx) |> Set.union (GetUnifications e1 args (heap,env,ctx))
@@ -113,7 +113,9 @@ let rec GetArgValueUnifications args env =
   match args with
   | Var(name,_) :: rest -> 
       match Map.tryFind (VarConst(name)) env with
-      | Some(c) -> Set.ofList [c, IdLiteral(name)] |> Set.union (GetArgValueUnifications rest env)
+      | Some(c) ->
+          Logger.DebugLine ("      - adding unification " + (PrintConst c) + " <--> " + name);
+          Set.ofList [c, IdLiteral(name)] |> Set.union (GetArgValueUnifications rest env)
       | None -> failwith ("couldn't find value for argument " + name)
   | [] -> Set.empty
 
@@ -152,7 +154,7 @@ let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) =
                                               // check if the assertion follows and if so update the env
                                               let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,mthd) assertionExpr)
                                               Logger.Debug("        - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
-                                              let ok = CheckDafnyProgram code "unif"
+                                              let ok = CheckDafnyProgram code ("unif_" + (GetMethodFullName comp mthd))
                                               if ok then
                                                 Logger.DebugLine " HOLDS"
                                                 // change the value to expression
@@ -161,9 +163,14 @@ let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) =
                                                 Logger.DebugLine " DOESN'T HOLDS"
                                                 // don't change the value
                                                 acc |> Map.add (o,f) l
-                                            else
-                                              // leave it as is
-                                              acc |> Map.add (o,f) l) restHeap
+                                            else 
+                                              // see if it's a list, then try to match its elements
+                                              match value with
+                                              | SeqConst(clist) -> acc |> Map.add (o,f) l //TODO!!
+                                              | _ -> 
+                                                  // leave it as is
+                                                  acc |> Map.add (o,f) l
+                                         ) restHeap
       (newHeap,env,ctx)
   | [] -> (heap,env,ctx)
 
@@ -199,7 +206,7 @@ let AnalyzeConstructor prog comp m =
   let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m) FalseLiteral)
   Logger.InfoLine ("  [*] analyzing constructor " + methodName + (PrintSig (GetMethodSig m)))
   Logger.Info      "      - searching for a solution       ..."
-  let models = RunDafnyProgram code dafnyScratchSuffix   
+  let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
   if models.Count = 0 then
     // no models means that the "assert false" was verified, which means that the spec is inconsistent
     Logger.WarnLine " !!! SPEC IS INCONSISTENT !!!"
@@ -213,15 +220,18 @@ let AnalyzeConstructor prog comp m =
     let heap,env,ctx = ReadFieldValuesFromModel model prog comp m
                        |> GeneralizeSolution prog comp m
     if _opt_verifySolutions then
-      Logger.Info "      - verifying synthesized solution ..."
-      if VerifySolution prog comp m (heap,env,ctx) then
-        Logger.InfoLine " OK"
+      Logger.InfoLine "      - verifying synthesized solution ... "
+      let verified = VerifySolution prog comp m (heap,env,ctx)
+      Logger.Info "      "      
+      if verified then
+        Logger.InfoLine "~~~ VERIFIED ~~~"
         Some(heap,env,ctx)
       else 
-        Logger.InfoLine " NOT VERIFIED"
+        Logger.InfoLine "!!! NOT VERIFIED !!!"
         Some(heap,env,ctx)
     else
       Some(heap,env,ctx)
+  
 
 // ============================================================================
 /// Goes through a given list of methods of the given program and attempts to 
@@ -235,6 +245,7 @@ let rec AnalyzeMethods prog members =
       match m with
       | Method(_,_,_,_,true) -> 
           let solOpt = AnalyzeConstructor prog comp m
+          Logger.InfoLine ""
           match solOpt with
           | Some(heap,env,ctx) -> AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
           | None -> AnalyzeMethods prog rest

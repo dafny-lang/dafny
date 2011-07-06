@@ -53,6 +53,12 @@ let rec EvalUnresolved expr (heap,env,ctx) =
       | ((_,_),x) :: [] -> x
       | _ :: _ -> failwithf "can't evaluate expression deterministically: %s.%s resolves to multiple locations." (PrintConst discr) str
       | [] -> failwithf "can't find value for %s.%s" (PrintConst discr) str
+  | SelectExpr(lst, idx) ->
+      let lstC = Resolve (EvalUnresolved lst (heap,env,ctx)) (env,ctx)
+      let idxC = EvalUnresolved idx (heap,env,ctx)
+      match lstC, idxC with
+      | SeqConst(clist), IntConst(n) -> clist.[n] |> Utils.ExtractOption
+      | _ -> failwith "can't eval SelectExpr"
   | _ -> failwith "NOT IMPLEMENTED YET" //TODO finish this!
 //  | Star         
 //  | SelectExpr(_)   
@@ -63,6 +69,7 @@ let rec EvalUnresolved expr (heap,env,ctx) =
 //  | UnaryExpr(_)   
 //  | BinaryExpr(_)
 
+// TODO: can this be implemented on top of the existing AstUtils.EvalSym??  We must!
 let Eval expr (heap,env,ctx) = 
   try 
     let unresolvedConst = EvalUnresolved expr (heap,env,ctx)
