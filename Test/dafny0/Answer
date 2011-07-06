@@ -1103,3 +1103,8 @@ Dafny program verifier finished with 16 verified, 0 errors
 -------------------- ChainingDisjointTests.dfy --------------------
 
 Dafny program verifier finished with 6 verified, 0 errors
+
+-------------------- CallStmtTests.dfy --------------------
+CallStmtTests.dfy(4,3): Error: LHS of assignment must denote a mutable variable
+CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost variable
+2 resolution/type errors detected in CallStmtTests.dfy

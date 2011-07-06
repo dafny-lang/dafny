@@ -1806,7 +1806,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Resolves the given call statement.
-    /// Assumes all LHSs have already been resolved.
+    /// Assumes all LHSs have already been resolved (and checked for mutability).
     /// </summary>
     void ResolveCallStmt(CallStmt s, bool specContextOnly, Method method, Type receiverType) {
       Contract.Requires(s != null);
@@ -1906,27 +1906,41 @@ namespace Microsoft.Dafny {
           var lhs = s.Lhs[i];
           if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
             Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
-          } else if (!specContextOnly && (s.IsGhost || callee.Outs[i].IsGhost)) {
-            // LHS must denote a ghost
-            lhs = lhs.Resolved;
-            if (lhs is IdentifierExpr) {
-              var ll = (IdentifierExpr)lhs;
-              if (!ll.Var.IsGhost) {
-                if (ll is AutoGhostIdentifierExpr && ll.Var is VarDecl) {
-                  // the variable was actually declared in this statement, so auto-declare it as ghost
-                  ((VarDecl)ll.Var).MakeGhost();
-                } else {
-                  Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+          } else {
+            var resolvedLhs = lhs.Resolved;
+            if (!specContextOnly && (s.IsGhost || callee.Outs[i].IsGhost)) {
+              // LHS must denote a ghost
+              if (resolvedLhs is IdentifierExpr) {
+                var ll = (IdentifierExpr)resolvedLhs;
+                if (!ll.Var.IsGhost) {
+                  if (ll is AutoGhostIdentifierExpr && ll.Var is VarDecl) {
+                    // the variable was actually declared in this statement, so auto-declare it as ghost
+                    ((VarDecl)ll.Var).MakeGhost();
+                  } else {
+                    Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+                  }
                 }
+              } else if (resolvedLhs is FieldSelectExpr) {
+                var ll = (FieldSelectExpr)resolvedLhs;
+                if (!ll.Field.IsGhost) {
+                  Error(s, "actual out-parameter {0} is required to be a ghost field", i);
+                }
+              } else {
+                // this is an array update, and arrays are always non-ghost
+                Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
               }
-            } else if (lhs is FieldSelectExpr) {
-              var ll = (FieldSelectExpr)lhs;
-              if (!ll.Field.IsGhost) {
-                Error(s, "actual out-parameter {0} is required to be a ghost field", i);
+            }
+            // LHS must denote a mutable field.
+            if (resolvedLhs is IdentifierExpr) {
+              var ll = (IdentifierExpr)resolvedLhs;
+              if (!ll.Var.IsMutable) {
+                Error(resolvedLhs, "LHS of assignment must denote a mutable variable");
               }
-            } else {
-              // this is an array update, and arrays are always non-ghost
-              Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
+            } else if (resolvedLhs is FieldSelectExpr) {
+              var ll = (FieldSelectExpr)resolvedLhs;
+              if (!ll.Field.IsMutable) {
+                Error(resolvedLhs, "LHS of assignment must denote a mutable field");
+              }
             }
           }
         }
