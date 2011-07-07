@@ -5,14 +5,15 @@ open Printer
 open EnvUtils
 
 // resolving values
+exception ConstResolveFailed of string
  
-let rec Resolve cst (env,ctx) =
+let rec ResolveCont cst (env,ctx) failResolver =
   match cst with
   | Unresolved(_) as u -> 
       // see if it is in the env map first
       let envVal = Map.tryFind cst env
       match envVal with
-      | Some(c) -> Resolve c (env,ctx)
+      | Some(c) -> ResolveCont c (env,ctx) failResolver
       | None -> 
           // not found in the env map --> check the equality sets
           let eq = ctx |> Set.filter (fun eqSet -> Set.contains u eqSet)
@@ -23,23 +24,23 @@ let rec Resolve cst (env,ctx) =
                                |> Utils.SetToOption
               match cOpt with 
               | Some(c) -> c
-              | _ -> failwith ("failed to resolve " + cst.ToString())
-          | _ -> failwith ("failed to resolve " + cst.ToString())
+              | _ -> failResolver cst (env,ctx)
+          | _ -> failResolver cst (env,ctx)
   | SeqConst(cseq) -> 
-      let resolvedLst = cseq |> List.rev |> List.fold (fun acc cOpt ->
-                                                         match cOpt with
-                                                         | Some(c) -> Some(Resolve c (env,ctx)) :: acc 
-                                                         | None -> cOpt :: acc
-                                                      ) []
+      let resolvedLst = cseq |> List.rev |> List.fold (fun acc c -> ResolveCont c (env,ctx) failResolver :: acc) []
       SeqConst(resolvedLst)
   | SetConst(cset) ->
-      let resolvedSet = cset |> Set.fold (fun acc cOpt ->
-                                            match cOpt with
-                                            | Some(c) -> acc |> Set.add (Some(Resolve c (env,ctx)))
-                                            | None -> acc |> Set.add(cOpt)
-                                          ) Set.empty
+      let resolvedSet = cset |> Set.fold (fun acc c -> acc |> Set.add (ResolveCont c (env,ctx) failResolver)) Set.empty
       SetConst(resolvedSet)
   | _ -> cst
+
+let TryResolve cst (env,ctx) = 
+  ResolveCont cst (env,ctx) (fun c (e,x) -> c)
+
+let Resolve cst (env,ctx) =
+  ResolveCont cst (env,ctx) (fun c (e,x) -> raise (ConstResolveFailed("failed to resolve " + c.ToString())))
+
+
 
 let rec EvalUnresolved expr (heap,env,ctx) = 
   match expr with
@@ -57,7 +58,7 @@ let rec EvalUnresolved expr (heap,env,ctx) =
       let lstC = Resolve (EvalUnresolved lst (heap,env,ctx)) (env,ctx)
       let idxC = EvalUnresolved idx (heap,env,ctx)
       match lstC, idxC with
-      | SeqConst(clist), IntConst(n) -> clist.[n] |> Utils.ExtractOption
+      | SeqConst(clist), IntConst(n) -> clist.[n]
       | _ -> failwith "can't eval SelectExpr"
   | _ -> failwith "NOT IMPLEMENTED YET" //TODO finish this!
 //  | Star         
@@ -73,6 +74,6 @@ let rec EvalUnresolved expr (heap,env,ctx) =
 let Eval expr (heap,env,ctx) = 
   try 
     let unresolvedConst = EvalUnresolved expr (heap,env,ctx)
-    Some(Resolve unresolvedConst (env,ctx))
+    Some(TryResolve unresolvedConst (env,ctx))
   with
     ex -> None

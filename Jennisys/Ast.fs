@@ -13,8 +13,8 @@ type Type =
   | BoolType
   | SetType of Type (* type parameter *)
   | SeqType of Type (* type parameter *)
-  | NamedType of string
-  | InstantiatedType of string * Type (* type parameter *)
+  | NamedType of string * string list (* type parameters *)  
+  | InstantiatedType of string * Type list (* type parameters *)
 
 type VarDecl =
   | Var of string * Type option
@@ -61,9 +61,10 @@ type Program =
 type Const = 
   | IntConst   of int
   | BoolConst  of bool
-  | SetConst   of Set<Const option>
-  | SeqConst   of (Const option) list
+  | SetConst   of Set<Const>
+  | SeqConst   of Const list
   | NullConst
+  | NoneConst
   | ThisConst  of (* loc id *) string * Type option
   | NewObj     of (* loc id *) string * Type option
   | ExprConst  of Expr

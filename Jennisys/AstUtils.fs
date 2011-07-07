@@ -40,15 +40,15 @@ let rec EvalSym expr =
       | SeqConst(clist) -> IntConst(List.length clist)
       | _ -> ExprConst(expr)
   | SequenceExpr(elist) -> 
-      let clist = elist |> List.fold (fun acc e -> EvalSym e :: acc) [] |> List.rev |> Utils.ConvertToOptionList
+      let clist = elist |> List.fold (fun acc e -> EvalSym e :: acc) [] |> List.rev
       SeqConst(clist)
   | SelectExpr(lst, idx) ->
       match EvalSym lst, EvalSym idx with
-      | SeqConst(clist), IntConst(n) -> clist.[n] |> Utils.ExtractOption
+      | SeqConst(clist), IntConst(n) -> clist.[n] 
       | _ -> ExprConst(expr)
   | UpdateExpr(lst,idx,v) ->
       match EvalSym lst, EvalSym idx, EvalSym v with
-      | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n (Some(c)) clist)
+      | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n (c) clist)
       | _ -> ExprConst(expr)
   | BinaryExpr(_,op,e1,e2) ->
       match op with
@@ -90,13 +90,13 @@ let rec EvalSym expr =
           | _ -> ExprConst(expr)
       | Exact "in" _ -> 
           match EvalSym e1, EvalSym e2 with
-          | _ as c, SetConst(s)   -> BoolConst(Set.contains (Some(c)) s)
-          | _ as c, SeqConst(s)   -> BoolConst(Utils.ListContains (Some(c)) s)
+          | _ as c, SetConst(s)   -> BoolConst(Set.contains c s)
+          | _ as c, SeqConst(s)   -> BoolConst(Utils.ListContains c s)
           | _ -> ExprConst(expr)
       | Exact "!in" _ -> 
           match EvalSym e1, EvalSym e2 with
-          | _ as c, SetConst(s)   -> BoolConst(not (Set.contains (Some(c)) s))
-          | _ as c, SeqConst(s)   -> BoolConst(not (Utils.ListContains (Some(c)) s))
+          | _ as c, SetConst(s)   -> BoolConst(not (Set.contains c s))
+          | _ as c, SeqConst(s)   -> BoolConst(not (Utils.ListContains c s))
           | _ -> ExprConst(expr)
       | Exact "+" _ -> 
           match EvalSym e1, EvalSym e2 with
@@ -146,15 +146,15 @@ let rec EvalToConst expr =
       | SeqConst(clist) -> IntConst(List.length clist)
       | _ -> raise EvalFailed
   | SequenceExpr(elist) -> 
-      let clist = elist |> List.fold (fun acc e -> EvalToConst e :: acc) [] |> List.rev |> Utils.ConvertToOptionList
+      let clist = elist |> List.fold (fun acc e -> EvalToConst e :: acc) [] |> List.rev 
       SeqConst(clist)
   | SelectExpr(lst, idx) ->
       match EvalToConst lst, EvalToConst idx with
-      | SeqConst(clist), IntConst(n) -> clist.[n] |> Utils.ExtractOption
+      | SeqConst(clist), IntConst(n) -> clist.[n] 
       | _ -> raise EvalFailed
   | UpdateExpr(lst,idx,v) ->
       match EvalToConst lst, EvalToConst idx, EvalToConst v with
-      | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n (Some(c)) clist)
+      | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n c clist)
       | _ -> raise EvalFailed
   | BinaryExpr(_,op,e1,e2) ->
       match op with
@@ -207,7 +207,7 @@ let rec Const2Expr c =
   | IntConst(n) -> IntLiteral(n)
   | BoolConst(b) -> if b then IntLiteral(1) else IntLiteral(0) //?? BoolLiteral(b)
   | SeqConst(clist) -> 
-      let expList = clist |> List.fold (fun acc c -> Const2Expr (Utils.ExtractOption c) :: acc) [] |> List.rev
+      let expList = clist |> List.fold (fun acc c -> Const2Expr c :: acc) [] |> List.rev
       SequenceExpr(expList)
   | ThisConst(_) -> IdLiteral("this")
   | VarConst(v) -> IdLiteral(v)
@@ -333,6 +333,11 @@ let GetClassName comp =
   | Component(Class(name,_,_),_,_) -> name
   | _ -> failwith ("unrecognized component: " + comp.ToString())
 
+let GetClassType comp = 
+  match comp with
+  | Component(Class(name,typeParams,_),_,_) -> NamedType(name, typeParams)
+  | _ -> failwith ("unrecognized component: " + comp.ToString())
+
 //  ========================
 /// Returns name of a method
 //  ========================
@@ -355,6 +360,11 @@ let GetMethodSig mthd =
   | Method(_,sgn,_,_,_) -> sgn
   | _ -> failwith ("not a method: " + mthd.ToString())
 
+let GetMethodPrePost mthd = 
+  match mthd with
+  | Method(_,_,pre,post,_) -> pre,post
+  | _ -> failwith ("not a method: " + mthd.ToString())
+
 //  =========================================================
 /// Returns all arguments of a method (both input and output)
 //  =========================================================
@@ -362,6 +372,15 @@ let GetMethodArgs mthd =
   match mthd with
   | Method(_,Sig(ins, outs),_,_,_) -> List.concat [ins; outs]
   | _ -> failwith ("not a method: " + mthd.ToString())
+
+let rec GetTypeShortName ty =
+  match ty with
+  | IntType -> "int"
+  | BoolType -> "bool"
+  | SetType(_) -> "set"
+  | SeqType(_) -> "seq"
+  | NamedType(n,_) -> n
+  | InstantiatedType(n,_) -> n
 
 //  ==============================================================
 /// Returns all invariants of a component as a list of expressions
@@ -436,13 +455,13 @@ let rec Desugar expr =
             | SeqConst(clist), VarConst(v) -> 
                 let rec __fff lst cnt = 
                   match lst with
-                  | fs :: rest -> BinaryEq (SelectExpr(IdLiteral(v), IntLiteral(cnt))) (Const2Expr (Utils.ExtractOption clist.[cnt])) :: __fff rest (cnt+1)
+                  | fs :: rest -> BinaryEq (SelectExpr(IdLiteral(v), IntLiteral(cnt))) (Const2Expr clist.[cnt]) :: __fff rest (cnt+1)
                   | [] -> []
                 __fff clist 0 |> List.fold (fun acc e -> BinaryAnd acc e) be
             | SeqConst(cl1), SeqConst(cl2) -> 
                 let rec __fff lst1 lst2 cnt = 
                   match lst1, lst2 with
-                  | fs1 :: rest1, fs2 :: rest2 -> BinaryEq (Const2Expr (Utils.ExtractOption cl1.[cnt])) (Const2Expr (Utils.ExtractOption cl2.[cnt])) :: __fff rest1 rest2 (cnt+1)
+                  | fs1 :: rest1, fs2 :: rest2 -> BinaryEq (Const2Expr cl1.[cnt]) (Const2Expr cl2.[cnt]) :: __fff rest1 rest2 (cnt+1)
                   | [], [] -> []
                   | _ -> failwith "Lists are of different sizes"
                 __fff cl1 cl2 0 |> List.fold (fun acc e -> BinaryAnd acc e) be

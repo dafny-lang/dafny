@@ -6,7 +6,7 @@ open AstUtils
 let rec MyFold ee acc =
   match ee with
     | [] -> acc
-    | x::rest -> BinaryAnd (Desugar x) (MyFold rest acc)
+    | x::rest -> BinaryAnd x (MyFold rest acc)
 
 %}
 
@@ -89,9 +89,9 @@ BlockStmt:
 
 Member:
     | VAR VarDecl                            { Field($2) }
-    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, (Desugar $4), (Desugar $5), true) }
-    | METHOD ID Signature Pre Post           { Method($2, $3, (Desugar $4), (Desugar $5), false) }
-	  | INVARIANT ExprList                     { Invariant(DesugarLst $2) }
+    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, $4, $5, true) }
+    | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5, false) }
+	  | INVARIANT ExprList                     { Invariant($2) }
 
 FrameMembers:
     |                                        { [], [], IdLiteral("true") }
@@ -116,10 +116,10 @@ VarDecl:
 Type:
     | INTTYPE                        { IntType }
     | BOOLTYPE                       { BoolType }
-    | ID                             { NamedType($1) }
+    | ID                             { NamedType($1, []) }
     | SEQTYPE LBRACKET Type RBRACKET { SeqType($3) }
     | SETTYPE LBRACKET Type RBRACKET { SetType($3) }
-    | ID LBRACKET Type RBRACKET      { InstantiatedType($1, $3) }
+    | ID LBRACKET Type RBRACKET      { InstantiatedType($1, [$3]) }
 
 ExprList:
     |                   { [] }

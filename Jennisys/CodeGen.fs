@@ -20,7 +20,6 @@ let rec GetUnrolledFieldValidExpr fldExpr fldName validFunName numUnrolls : Expr
 
 let GetFieldValidExpr fldName validFunName numUnrolls : Expr = 
   GetUnrolledFieldValidExpr (IdLiteral(fldName)) fldName validFunName numUnrolls
-  //BinaryImplies (BinaryNeq (IdLiteral(fldName)) (IdLiteral("null"))) (Dot(IdLiteral(fldName), validFunName))
 
 let GetFieldsForValidExpr allFields prog : VarDecl list =
   allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
@@ -31,21 +30,22 @@ let GetFieldsValidExprList clsName allFields prog : Expr list =
   fields |> List.map (function Var(name, t) -> 
                                  let validFunName, numUnrolls = 
                                    match t with
-                                   | Some(ty) when clsName = (PrintType ty) -> "Valid_self()", numLoopUnrolls
+                                   | Some(ty) when clsName = (GetTypeShortName ty) -> "Valid_self()", numLoopUnrolls
                                    | _ -> "Valid()", 1
                                  GetFieldValidExpr name validFunName numUnrolls
                      )
 
 let PrintValidFunctionCode comp prog : string = 
-  let clsName = GetClassName comp
-  let vars = GetAllFields comp
-  let allInvs = GetInvariantsAsList comp
-  let fieldsValid = GetFieldsValidExprList clsName vars prog
   let idt = "    "
-  let PrintInvs invs = 
+  let __PrintInvs invs = 
     invs |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
          |> PrintSep (" &&" + newline) (fun e -> sprintf "%s(%s)" idt (PrintExpr 0 e))
          |> fun s -> if s = "" then (idt + "true") else s
+  let clsName = GetClassName comp
+  let vars = GetAllFields comp
+  let allInvs = GetInvariantsAsList comp |> DesugarLst
+  let fieldsValid = GetFieldsValidExprList clsName vars prog
+                                                                
   // TODO: don't hardcode decr vars!!!
 //  let decrVars = if List.choose (function Var(n,_) -> Some(n)) vars |> List.exists (fun n -> n = "next") then
 //                   ["list"]
@@ -55,14 +55,14 @@ let PrintValidFunctionCode comp prog : string =
   "  function Valid_self(): bool" + newline +
   "    reads *;" + newline +
   "  {" + newline + 
-  (PrintInvs allInvs) + newline +
+  (__PrintInvs allInvs) + newline +
   "  }" + newline +
   newline +
   "  function Valid(): bool" + newline +
   "    reads *;" + newline +
   "  {" + newline + 
   "    this.Valid_self() &&" + newline +
-  (PrintInvs fieldsValid) + newline +
+  (__PrintInvs fieldsValid) + newline +
   "  }" + newline
 
 let PrintDafnyCodeSkeleton prog methodPrinterFunc: string =
@@ -123,13 +123,13 @@ let GenConstructorCode mthd body =
   let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
-      let preExpr = BinaryAnd validExpr pre
+      let __PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
+      let preExpr = pre 
       let postExpr = BinaryAnd validExpr post
-      let PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + newline +
-      (PrintPrePost "    requires " preExpr) + newline +
-      (PrintPrePost "    ensures " postExpr) + newline +
+      (__PrintPrePost "    requires " preExpr) + newline +
+      (__PrintPrePost "    ensures " postExpr) + newline +
       "  {" + newline + 
       body + 
       "  }" + newline
@@ -138,8 +138,8 @@ let GenConstructorCode mthd body =
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
   (* exactly one *)
-//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-//  let m = FindMethod c "Sum" |> Utils.ExtractOption
+//  let c = FindComponent prog "List" |> Utils.ExtractOption
+//  let m = FindMethod c "Double" |> Utils.ExtractOption
 //  [c, m]
   (* all *)
   FilterMembers prog FilterConstructorMembers 

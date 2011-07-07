@@ -37,7 +37,12 @@ let rec Substitute substMap = function
   | ForallExpr(vv,e) -> ForallExpr(vv, Substitute substMap e)
   | expr -> expr
 
-let GenMethodAnalysisCode comp methodName signature pre post assertion =
+let GenMethodAnalysisCode comp m assertion =
+  let methodName = GetMethodName m
+  let signature = GetMethodSig m 
+  let ppre,ppost = GetMethodPrePost m 
+  let pre = Desugar ppre
+  let post = Desugar ppost
   "  method " + methodName + "()" + newline +
   "    modifies this;" + newline +
   "  {" + newline + 
@@ -61,7 +66,7 @@ let MethodAnalysisPrinter onlyForThisCompMethod assertion comp mthd =
   match onlyForThisCompMethod with
   | (c,m) when c = comp && m = mthd -> 
     match m with 
-    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode comp methodName sign pre post assertion) + newline
+    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode comp m assertion) + newline
     | _ -> ""
   | _ -> ""
 
@@ -142,20 +147,23 @@ let GetObjRefExpr o (heap,env,ctx) =
   _GetObjRefExpr o (heap,env,ctx) (Set.empty)
 
 let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) = 
+  let __CheckUnif o f e idx =
+    let objRefExpr = GetObjRefExpr o (heap,env,ctx) |> Utils.ExtractOptionMsg ("Couldn't find a path from this to " + (PrintObjRefName o (env,ctx)))
+    let fldName = PrintVarName f                             
+    let lhs = Dot(objRefExpr, fldName) |> Utils.IfDo1 (not (idx = -1)) (fun e -> SelectExpr(e, IntLiteral(idx)))
+    let assertionExpr = BinaryEq lhs e 
+    // check if the assertion follows and if so update the env
+    let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,mthd) assertionExpr)
+    Logger.Debug("        - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
+    CheckDafnyProgram code ("unif_" + (GetMethodFullName comp mthd))
+
   match unifs with
   | (c,e) :: rest -> 
       let restHeap,env,ctx = UpdateHeapEnv prog comp mthd rest (heap,env,ctx)
       let newHeap = restHeap |> Map.fold (fun acc (o,f) l ->
-                                            let value = Resolve l (env,ctx)
+                                            let value = TryResolve l (env,ctx)
                                             if value = c then
-                                              let objRefExpr = GetObjRefExpr o (heap,env,ctx) |> Utils.ExtractOptionMsg ("Couldn't find a path from this to " + (PrintObjRefName o (env,ctx)))
-                                              let fldName = PrintVarName f                             
-                                              let assertionExpr = BinaryEq (Dot(objRefExpr, fldName)) e
-                                              // check if the assertion follows and if so update the env
-                                              let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,mthd) assertionExpr)
-                                              Logger.Debug("        - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
-                                              let ok = CheckDafnyProgram code ("unif_" + (GetMethodFullName comp mthd))
-                                              if ok then
+                                              if __CheckUnif o f e -1 then
                                                 Logger.DebugLine " HOLDS"
                                                 // change the value to expression
                                                 acc |> Map.add (o,f) (ExprConst(e))
@@ -164,11 +172,24 @@ let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) =
                                                 // don't change the value
                                                 acc |> Map.add (o,f) l
                                             else 
-                                              // see if it's a list, then try to match its elements
+                                              // see if it's a list, then try to match its elements, otherwise leave it as is
                                               match value with
-                                              | SeqConst(clist) -> acc |> Map.add (o,f) l //TODO!!
+                                              | SeqConst(clist) -> 
+                                                  let rec __UnifyOverLst lst cnt =
+                                                    match lst with
+                                                    | lstElem :: rest when lstElem = c ->
+                                                        if __CheckUnif o f e cnt then
+                                                          Logger.DebugLine " HOLDS"
+                                                          ExprConst(e) :: __UnifyOverLst rest (cnt+1)
+                                                        else 
+                                                          Logger.DebugLine " DOESN'T HOLDS"
+                                                          lstElem :: __UnifyOverLst rest (cnt+1)
+                                                    | lstElem :: rest ->
+                                                        lstElem :: __UnifyOverLst rest (cnt+1)
+                                                    | [] -> []
+                                                  let newLstConst = __UnifyOverLst clist 0
+                                                  acc |> Map.add (o,f) (SeqConst(newLstConst))
                                               | _ -> 
-                                                  // leave it as is
                                                   acc |> Map.add (o,f) l
                                          ) restHeap
       (newHeap,env,ctx)
@@ -181,7 +202,7 @@ let GeneralizeSolution prog comp mthd (heap,env,ctx) =
       match args with 
       | [] -> (heap,env,ctx)
       | _  -> 
-          let unifs = GetUnifications (BinaryAnd pre post) args (heap,env,ctx)
+          let unifs = GetUnifications (BinaryAnd pre post |> Desugar) args (heap,env,ctx)    //TODO: we shouldn't use desugar here, but in UpdateHeapEnv
                     |> Set.union (GetArgValueUnifications args env)
           UpdateHeapEnv prog comp mthd (Set.toList unifs) (heap,env,ctx)
   | _ -> failwith ("not a method: " + mthd.ToString())
@@ -252,9 +273,10 @@ let rec AnalyzeMethods prog members =
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 
-let Analyze prog =
+let Analyze prog filename =
   let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
-  use file = System.IO.File.CreateText(dafnySynthFile)
+  let progName = System.IO.Path.GetFileNameWithoutExtension(filename)
+  use file = System.IO.File.CreateText(dafnySynthFileNameTemplate.Replace("###", progName))
   file.AutoFlush <- true
   Logger.InfoLine "Printing synthesized code"
   let synthCode = PrintImplCode prog solutions GetMethodsToAnalyze

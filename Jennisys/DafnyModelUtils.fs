@@ -60,12 +60,15 @@ let GetBool (elem: Model.Element) =
   | :? Model.Boolean as bval -> bval.Value
   | _ -> failwith ("not a bool element: " + elem.ToString())
 
-let GetType (e: Model.Element) = 
+let GetType (e: Model.Element) prog = 
   let fNameOpt = GetElemFullName e
   match fNameOpt with
   | Some(fname) -> match fname with
                    | Exact "intType" _       -> Some(IntType)
-                   | Prefix "class." clsName -> Some(NamedType(clsName))
+                   | Prefix "class." clsName -> 
+                       match FindComponent prog clsName with
+                       | Some(comp) -> Some(GetClassType comp)
+                       | None -> None
                    | _ -> None
   | None -> None
 
@@ -100,8 +103,8 @@ let rec UpdateContext lst1 lst2 ctx =
   match lst1, lst2 with
   | fs1 :: rest1, fs2 :: rest2 -> 
       match fs1, fs2 with 
-      | Some(c1), Some(c2) -> UpdateContext rest1 rest2 (AddConstr c1 c2 ctx)
-      | _ -> UpdateContext rest1 rest2 ctx
+      | NoneConst,_ | _,NoneConst -> UpdateContext rest1 rest2 ctx
+      | _ -> UpdateContext rest1 rest2 (AddConstr fs1 fs2 ctx)
   | [], [] -> ctx
   | _ -> failwith "lists are not of the same length"   
 
@@ -157,7 +160,7 @@ let rec ReadSeqLen (model: Microsoft.Boogie.Model) (len_tuples: Model.FuncTuple 
   match len_tuples with
   | ft :: rest -> 
       let len = GetInt ft.Result
-      let emptyList = Utils.GenList len
+      let emptyList = Utils.GenList len NoneConst
       let newMap = envMap |> Map.add (GetLoc ft.Args.[0]) (SeqConst(emptyList))
       ReadSeqLen model rest (newMap,ctx)
   | _ -> (envMap,ctx)
@@ -169,7 +172,7 @@ let rec ReadSeqIndex (model: Microsoft.Boogie.Model) (idx_tuples: Model.FuncTupl
       let oldLst = GetSeqFromEnv envMap srcLstKey
       let idx = GetInt ft.Args.[1]
       let lstElem = UnboxIfNeeded model ft.Result
-      let newLst = Utils.ListSet idx (Some(lstElem)) oldLst
+      let newLst = Utils.ListSet idx lstElem oldLst
       let newCtx = UpdateContext oldLst newLst ctx
       let newEnv = envMap |> Map.add srcLstKey (SeqConst(newLst))
       ReadSeqIndex model rest (newEnv,newCtx)
@@ -184,7 +187,7 @@ let rec ReadSeqBuild (model: Microsoft.Boogie.Model) (bld_tuples: Model.FuncTupl
       let idx = GetInt ft.Args.[1]
       let lstElemVal = UnboxIfNeeded model ft.Args.[2]
       let dstLst = GetSeqFromEnv envMap dstLstLoc
-      let newLst = Utils.ListBuild oldLst idx (Some(lstElemVal)) dstLst
+      let newLst = Utils.ListBuild oldLst idx lstElemVal dstLst
       let newCtx = UpdateContext dstLst newLst ctx
       let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
       ReadSeqBuild model rest (newEnv,newCtx)
@@ -226,14 +229,14 @@ let ReadNull (model: Microsoft.Boogie.Model) (envMap,ctx) =
   let newEnv = envMap |> Map.add (GetLoc e) NullConst
   (newEnv,ctx)
   
-let ReadEnv (model: Microsoft.Boogie.Model) = 
+let ReadEnv (model: Microsoft.Boogie.Model) prog = 
   let f_dtype = model.MkFunc("dtype", 1)
   let refs = f_dtype.Apps |> Seq.choose (fun ft -> Some(ft.Args.[0]))
   let envMap = f_dtype.Apps |> Seq.fold (fun acc ft -> 
                                            let locName = GetRefName ft.Args.[0]
                                            let elemName = GetElemFullName ft.Args.[0]
                                            let loc = Unresolved(locName)
-                                           let locType = GetType ft.Result
+                                           let locType = GetType ft.Result prog
                                            let value = match elemName with
                                                        | Some(n) when n.StartsWith("this") -> ThisConst(locName.Replace("*", ""), locType)
                                                        | _                                 -> NewObj(locName.Replace("*", ""), locType)
@@ -245,6 +248,6 @@ let ReadEnv (model: Microsoft.Boogie.Model) =
 
 let ReadFieldValuesFromModel (model: Microsoft.Boogie.Model) prog comp meth =
   let heap = ReadHeap model prog
-  let env0,ctx = ReadEnv model
+  let env0,ctx = ReadEnv model prog
   let env = env0 |> Utils.MapAddAll (ReadArgValues model (GetMethodArgs meth))
   heap,env,ctx

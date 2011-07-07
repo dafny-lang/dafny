@@ -16,12 +16,12 @@ let rec PrintSep sep f list =
   
 let rec PrintType ty =
   match ty with
-  | IntType                  -> "int"
-  | BoolType                 -> "bool"
-  | NamedType(id)            -> id
-  | SeqType(t)               -> sprintf "seq[%s]" (PrintType t)
-  | SetType(t)               -> sprintf "set[%s]" (PrintType t)
-  | InstantiatedType(id,arg) -> sprintf "%s[%s]" id (PrintType arg)
+  | IntType                   -> "int"
+  | BoolType                  -> "bool"
+  | NamedType(id, args)       -> if List.isEmpty args then id else (PrintSep ", " (fun s -> s) args)
+  | SeqType(t)                -> sprintf "seq[%s]" (PrintType t)
+  | SetType(t)                -> sprintf "set[%s]" (PrintType t)
+  | InstantiatedType(id,args) -> sprintf "%s[%s]" id (PrintSep ", " (fun a -> PrintType a) args)
 
 let PrintVarDecl vd =
   match vd with
@@ -121,14 +121,13 @@ let rec PrintConst cst =
   | BoolConst(b)       -> sprintf "%b" b
   | SetConst(cset)     -> cset.ToString() //TODO: this won't work
   | SeqConst(cseq)     -> 
-      let seqCont = cseq |> List.fold (fun acc cOpt ->
+      let seqCont = cseq |> List.fold (fun acc c ->
                                          let sep = if acc = "" then "" else ", "
-                                         match cOpt with 
-                                         | Some(c) -> acc + sep + (PrintConst c)
-                                         | None -> acc + sep + "null"
+                                         acc + sep + (PrintConst c)                                         
                                       ) ""
       sprintf "[%s]" seqCont
   | NullConst          -> "null"
+  | NoneConst          -> "<none>"
   | ThisConst(_,_)     -> "this"
   | NewObj(name,_)     -> PrintGenSym name
   | ExprConst(e)       -> PrintExpr 0 e

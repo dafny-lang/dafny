@@ -8,7 +8,7 @@ module PipelineUtils
 let dafnyScratchSuffix = "scratch"
 let dafnyVerifySuffix = "verify"
 let dafnyUnifSuffix = "unif"
-let dafnySynthFile = @"c:\tmp\jennisys-synth.dfy"
+let dafnySynthFileNameTemplate = @"c:\tmp\jennisys-synth_###.dfy"
 
 let CreateEmptyModelFile modelFile = 
   use mfile = System.IO.File.CreateText(modelFile)
@@ -24,6 +24,7 @@ let RunDafny inputFile modelFile =
     use proc = new System.Diagnostics.Process()
     proc.StartInfo.FileName  <- @"c:\tmp\StartDafny-jen.bat"
     proc.StartInfo.Arguments <- "/mv:" + modelFile + " " + inputFile
+    proc.StartInfo.WindowStyle <- System.Diagnostics.ProcessWindowStyle.Hidden
     assert proc.Start()
     proc.WaitForExit() 
   } |> Async.RunSynchronously

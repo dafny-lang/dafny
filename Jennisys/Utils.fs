@@ -77,17 +77,17 @@ let SetToOption set =
   else 
     Some(set |> Set.toList |> List.head)
 
-//  ===============================================================
+//  ============================================================
 /// requires: n >= 0
-/// ensures:  |ret| = n && forall i :: 0 <= i < n ==> ret[i] = None
-//  ===============================================================
-let rec GenList n =
+/// ensures:  |ret| = n && forall i :: 0 <= i < n ==> ret[i] = e
+//  ============================================================
+let rec GenList n e =
   if n < 0 then 
     failwith "n must be positive"
   if n = 0 then
     []
   else
-    None :: (GenList (n-1))
+    e :: (GenList (n-1) e)
 
 //  ==========================
 /// ensures: ret = elem in lst
@@ -170,4 +170,20 @@ let (|Exact|_|) (p:string) (s:string) =
     Some(s)
   else
     None
+
+// -------------------------------------------
+// ----------------- random ------------------
+// -------------------------------------------
+
+let IfDo1 cond func1 a =
+  if cond then
+    func1 a
+  else 
+    a
+
+let IfDo2 cond func2 (a1,a2) =
+  if cond then
+    func2 a1 a2
+  else
+    a1,a2 
 

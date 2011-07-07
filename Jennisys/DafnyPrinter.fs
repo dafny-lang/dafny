@@ -5,12 +5,12 @@ open Printer
 
 let rec PrintType ty =
   match ty with
-  | IntType                  -> "int"
-  | BoolType                 -> "bool"
-  | NamedType(id)            -> id
-  | SeqType(t)               -> sprintf "seq<%s>" (PrintType t)
-  | SetType(t)               -> sprintf "set<%s>" (PrintType t)
-  | InstantiatedType(id,arg) -> sprintf "%s<%s>" id (PrintType arg) 
+  | IntType                   -> "int"
+  | BoolType                  -> "bool"
+  | SeqType(t)                -> sprintf "seq<%s>" (PrintType t)
+  | SetType(t)                -> sprintf "set<%s>" (PrintType t)
+  | NamedType(id,args)        -> if List.isEmpty args then id else sprintf "%s<%s>" id (PrintSep ", " (fun s -> s) args)
+  | InstantiatedType(id,args) -> sprintf "%s<%s>" id (PrintSep ", " (fun t -> PrintType t) args)
 
 let rec PrintExpr ctx expr =
   match expr with

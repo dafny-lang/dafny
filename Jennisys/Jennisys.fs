@@ -38,18 +38,20 @@ let readAndProcess tracing analyzing (filename: string) =
               | Some(prog) ->
                   if analyzing then
                     // output a Dafny program with the constraints to be solved
-                    Analyze prog
+                    Analyze prog filename
                   else ()
             // that's it
             if tracing then printfn "----------" else ()
         with
-        | ex ->
-            let pos = lexbuf.EndPos
-            printfn "%s(%d,%d): %s" pos.FileName pos.Line pos.Column ex.Message
+          | ex ->
+              let pos = lexbuf.EndPos
+              printfn "%s(%d,%d): %s" pos.FileName pos.Line pos.Column ex.Message
+              printfn "%s" (ex.StackTrace.ToString())
 
     with
      | ex ->
         printfn "Unhandled Exception: %s" ex.Message
+        printfn "%s" (ex.StackTrace.ToString())
 
 let rec start n (args: string []) tracing analyzing filename =
   if n < args.Length then
