@@ -101,7 +101,7 @@ let PrintAllocNewObjects (heap,env,ctx) indent =
                   ) ""
 
 let PrintObjRefName o (env,ctx) = 
-  match Resolve o (env,ctx) with
+  match Resolve (env,ctx) o with
   | ThisConst(_,_) -> "this";
   | NewObj(name, _) -> PrintGenSym name
   | _ -> failwith ("unresolved object ref: " + o.ToString())
@@ -111,7 +111,7 @@ let PrintVarAssignments (heap,env,ctx) indent =
   heap |> Map.fold (fun acc (o,f) l ->
                       let objRef = PrintObjRefName o (env,ctx)
                       let fldName = PrintVarName f
-                      let value = Resolve l (env,ctx) |> PrintConst
+                      let value = Resolve (env,ctx) l |> PrintConst
                       acc + (sprintf "%s%s.%s := %s;" idt objRef fldName value) + newline
                    ) ""
 
@@ -138,8 +138,8 @@ let GenConstructorCode mthd body =
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
   (* exactly one *)
-//  let c = FindComponent prog "List" |> Utils.ExtractOption
-//  let m = FindMethod c "Double" |> Utils.ExtractOption
+//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
+//  let m = FindMethod c "Singleton" |> Utils.ExtractOption
 //  [c, m]
   (* all *)
   FilterMembers prog FilterConstructorMembers 

@@ -1,7 +1,9 @@
-﻿/// Utility functions for executing shell commands and 
-/// running Dafny in particular
+﻿//  ####################################################################
+///   Utility functions for executing shell commands and 
+///   running Dafny in particular
 ///
-/// author: Aleksandar Milicevic (t-alekm@microsoft.com)
+///   author: Aleksandar Milicevic (t-alekm@microsoft.com)
+//  ####################################################################
 
 module PipelineUtils
   

@@ -1,6 +1,8 @@
-﻿/// Various utility functions
+﻿//  ####################################################################
+///   Various utility functions
 ///
-/// author: Aleksandar Milicevic (t-alekm@microsoft.com)
+///   author: Aleksandar Milicevic (t-alekm@microsoft.com)
+//  ####################################################################
 
 module Utils
 
@@ -24,20 +26,22 @@ let ExtractOptionMsg msg x =
 let ExtractOption x = 
   ExtractOptionMsg "can't extract anything from a None" x
 
-//  =============================
-/// requres: List.length lst <= 1
+//  ==========================================================
+/// requres: List.length lst <= 1, otherwise fails with errMsg
 /// ensures: if |lst| = 0 then
 ///            ret = None
 ///          else
 ///            ret = Some(lst[0])
-//  =============================
-let ListToOption lst = 
+//  ==========================================================
+let ListToOptionMsg  lst errMsg = 
   if List.length lst > 1 then
-    failwith "given list contains more than one element"
+    failwith errMsg
   if List.isEmpty lst then
     None
   else
     Some(lst.[0])
+
+let ListToOption lst = ListToOptionMsg lst "given list contains more than one element"
 
 //  =============================================================
 /// ensures: forall i :: 0 <= i < |lst| ==> ret[i] = Some(lst[i])
@@ -47,35 +51,39 @@ let rec ConvertToOptionList lst =
   | fs :: rest -> Some(fs) :: ConvertToOptionList rest
   | [] -> []
 
-//  =============================
-/// requres: Seq.length seq <= 1
+//  =========================================================
+/// requres: Seq.length seq <= 1, otherwise fails with errMsg
 /// ensures: if |seq| = 0 then
 ///            ret = None
 ///          else
 ///            ret = Some(seq[0])
-//  =============================
-let SeqToOption seq = 
+//  =========================================================
+let SeqToOptionMsg seq errMsg = 
   if Seq.length seq > 1 then
-    failwith "given seq contains more than one element"
+    failwith errMsg
   if Seq.isEmpty seq then
     None
   else
     Some(Seq.nth 0 seq)
 
-//  =============================
-/// requires: Set.count set <= 1
+let SeqToOption seq = SeqToOptionMsg seq "given seq contains more than one element"
+
+//  =========================================================
+/// requires: Set.count set <= 1, otherwise fails with errMsg
 /// ensures: if |set| = 0 then
 ///            ret = None
 ///          else
 ///            ret = Some(set[0])
-//  =============================
-let SetToOption set = 
+//  =========================================================
+let SetToOptionMsg set errMsg = 
   if Set.count set > 1 then
-    failwith "give set contains more than one value"
+    failwith errMsg
   if (Set.isEmpty set) then
     None
   else 
     Some(set |> Set.toList |> List.head)
+
+let SetToOption set = SetToOptionMsg set "give set contains more than one value"
 
 //  ============================================================
 /// requires: n >= 0
@@ -186,4 +194,3 @@ let IfDo2 cond func2 (a1,a2) =
     func2 a1 a2
   else
     a1,a2 
-

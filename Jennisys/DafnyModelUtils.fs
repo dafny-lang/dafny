@@ -1,4 +1,10 @@
-﻿module DafnyModelUtils
+﻿//  #########################################################################
+///   Utilities for reading/building models from Boogie Visual Debugger files
+///
+///   author: Aleksandar Milicevic (t-alekm@microsoft.com)
+//  #########################################################################
+
+module DafnyModelUtils
 
 (*
    The heap maps objects and fields to locations.
@@ -18,10 +24,7 @@ open AstUtils
 open Utils
 
 open Microsoft.Boogie
-                
-/// special object ref constant that will hold method argument values
-let argsObjRefConst = Unresolved("*0") 
-
+                                         
 let GetElemFullName (elem: Model.Element) = 
   elem.Names |> Seq.filter (fun ft -> ft.Func.Arity = 0)
              |> Seq.choose (fun ft -> Some(ft.Func.Name))
@@ -141,87 +144,109 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         | None -> acc
                       ) Map.empty
 
+//  ====================================================================
+/// Reads values that were assigned to given arguments. Those values
+/// can be in functions with the same name as the argument name appended
+/// with an "#" and some number after it.
+//  ====================================================================
 let rec ReadArgValues (model: Microsoft.Boogie.Model) args = 
   match args with 
   | Var(name,_) as v :: rest -> 
       let farg = model.Functions |> Seq.filter (fun f -> f.Arity = 0 && f.Name.StartsWith(name + "#")) |> Utils.SeqToOption
       match farg with
       | Some(func) -> 
-          let refObj = argsObjRefConst
           let fldVar = v
           assert (Seq.length func.Apps = 1)
           let ft = Seq.head func.Apps
           let fldVal = ConvertValue model (ft.Result)
-          ReadArgValues model rest |> Map.add (VarConst(name)) fldVal
+          ReadArgValues model rest |> Map.add (Unresolved(name)) fldVal
       | None -> failwith ("cannot find corresponding function for parameter " + name)
   | [] -> Map.empty
 
-let rec ReadSeqLen (model: Microsoft.Boogie.Model) (len_tuples: Model.FuncTuple list) (envMap,ctx) =
-  match len_tuples with
-  | ft :: rest -> 
-      let len = GetInt ft.Result
-      let emptyList = Utils.GenList len NoneConst
-      let newMap = envMap |> Map.add (GetLoc ft.Args.[0]) (SeqConst(emptyList))
-      ReadSeqLen model rest (newMap,ctx)
-  | _ -> (envMap,ctx)
-
-let rec ReadSeqIndex (model: Microsoft.Boogie.Model) (idx_tuples: Model.FuncTuple list) (envMap,ctx) = 
-  match idx_tuples with
-  | ft :: rest -> 
-      let srcLstKey = GetLoc ft.Args.[0]
-      let oldLst = GetSeqFromEnv envMap srcLstKey
-      let idx = GetInt ft.Args.[1]
-      let lstElem = UnboxIfNeeded model ft.Result
-      let newLst = Utils.ListSet idx lstElem oldLst
-      let newCtx = UpdateContext oldLst newLst ctx
-      let newEnv = envMap |> Map.add srcLstKey (SeqConst(newLst))
-      ReadSeqIndex model rest (newEnv,newCtx)
-  | _ -> (envMap,ctx)
-
-let rec ReadSeqBuild (model: Microsoft.Boogie.Model) (bld_tuples: Model.FuncTuple list) (envMap,ctx) = 
-  match bld_tuples with
-  | ft :: rest -> 
-      let srcLstLoc = GetLoc ft.Args.[0]
-      let dstLstLoc = GetLoc ft.Result
-      let oldLst = GetSeqFromEnv envMap srcLstLoc
-      let idx = GetInt ft.Args.[1]
-      let lstElemVal = UnboxIfNeeded model ft.Args.[2]
-      let dstLst = GetSeqFromEnv envMap dstLstLoc
-      let newLst = Utils.ListBuild oldLst idx lstElemVal dstLst
-      let newCtx = UpdateContext dstLst newLst ctx
-      let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
-      ReadSeqBuild model rest (newEnv,newCtx)
-  | _ -> (envMap,ctx)
-
-let rec ReadSeqAppend (model: Microsoft.Boogie.Model) (app_tuples: Model.FuncTuple list) (envMap,ctx) = 
-  match app_tuples with
-  | ft :: rest -> 
-      let srcLst1Loc = GetLoc ft.Args.[0]
-      let srcLst2Loc = GetLoc ft.Args.[1]
-      let dstLstLoc = GetLoc ft.Result
-      let oldLst1 = GetSeqFromEnv envMap srcLst1Loc
-      let oldLst2 = GetSeqFromEnv envMap srcLst2Loc
-      let dstLst = GetSeqFromEnv envMap dstLstLoc
-      let newLst = List.append oldLst1 oldLst2
-      let newCtx = UpdateContext dstLst newLst ctx
-      let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
-      ReadSeqAppend model rest (newEnv,newCtx)
-  | _ -> (envMap,ctx)
-
+//  ==============================================================
+/// Reads stuff about sequences from a given model and ads it to 
+/// the given "envMap" map and a "ctx" set. The relevant stuff is
+/// fetched from the following functions:
+///   Seq#Length, Seq#Index, Seq#Build, Seq#Append
+//  ==============================================================
 let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
+  // reads stuff from Seq#Length
+  let rec __ReadSeqLen (model: Microsoft.Boogie.Model) (len_tuples: Model.FuncTuple list) (envMap,ctx) =
+    match len_tuples with
+    | ft :: rest -> 
+        let len = GetInt ft.Result
+        let emptyList = Utils.GenList len NoneConst
+        let newMap = envMap |> Map.add (GetLoc ft.Args.[0]) (SeqConst(emptyList))
+        __ReadSeqLen model rest (newMap,ctx)
+    | _ -> (envMap,ctx)
+
+  // reads stuff from Seq#Index
+  let rec __ReadSeqIndex (model: Microsoft.Boogie.Model) (idx_tuples: Model.FuncTuple list) (envMap,ctx) = 
+    match idx_tuples with
+    | ft :: rest -> 
+        let srcLstKey = GetLoc ft.Args.[0]
+        let oldLst = GetSeqFromEnv envMap srcLstKey
+        let idx = GetInt ft.Args.[1]
+        let lstElem = UnboxIfNeeded model ft.Result
+        let newLst = Utils.ListSet idx lstElem oldLst
+        let newCtx = UpdateContext oldLst newLst ctx
+        let newEnv = envMap |> Map.add srcLstKey (SeqConst(newLst))
+        __ReadSeqIndex model rest (newEnv,newCtx)
+    | _ -> (envMap,ctx)
+
+  // reads stuff from Seq#Build
+  let rec __ReadSeqBuild (model: Microsoft.Boogie.Model) (bld_tuples: Model.FuncTuple list) (envMap,ctx) = 
+    match bld_tuples with
+    | ft :: rest -> 
+        let srcLstLoc = GetLoc ft.Args.[0]
+        let dstLstLoc = GetLoc ft.Result
+        let oldLst = GetSeqFromEnv envMap srcLstLoc
+        let idx = GetInt ft.Args.[1]
+        let lstElemVal = UnboxIfNeeded model ft.Args.[2]
+        let dstLst = GetSeqFromEnv envMap dstLstLoc
+        let newLst = Utils.ListBuild oldLst idx lstElemVal dstLst
+        let newCtx = UpdateContext dstLst newLst ctx
+        let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
+        __ReadSeqBuild model rest (newEnv,newCtx)
+    | _ -> (envMap,ctx)
+
+  // reads stuff from Seq#Append
+  let rec __ReadSeqAppend (model: Microsoft.Boogie.Model) (app_tuples: Model.FuncTuple list) (envMap,ctx) = 
+    match app_tuples with
+    | ft :: rest -> 
+        let srcLst1Loc = GetLoc ft.Args.[0]
+        let srcLst2Loc = GetLoc ft.Args.[1]
+        let dstLstLoc = GetLoc ft.Result
+        let oldLst1 = GetSeqFromEnv envMap srcLst1Loc
+        let oldLst2 = GetSeqFromEnv envMap srcLst2Loc
+        let dstLst = GetSeqFromEnv envMap dstLstLoc
+        let newLst = List.append oldLst1 oldLst2
+        let newCtx = UpdateContext dstLst newLst ctx
+        let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
+        __ReadSeqAppend model rest (newEnv,newCtx)
+    | _ -> (envMap,ctx)  
+
   let f_seq_len = model.MkFunc("Seq#Length", 1)
   let f_seq_idx = model.MkFunc("Seq#Index", 2)
   let f_seq_bld = model.MkFunc("Seq#Build", 4)
   let f_seq_app = model.MkFunc("Seq#Append", 2)
-  (envMap,ctx) |> ReadSeqLen model (List.ofSeq f_seq_len.Apps)
-               |> ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
-               |> ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
-               |> ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
+  (envMap,ctx) |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
+               |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
+               |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
+               |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
 
 
+//  =====================================================
+/// Reads stuff about sets from a given model and adds it 
+/// to the given "envMap" map and "ctx" set. (TODO)
+//  =====================================================
 let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
   (envMap,ctx)
 
+//  ======================================================
+/// Reads staff about the null constant from a given model 
+/// and adds it to the given "envMap" map and "ctx" set. 
+//  ======================================================
 let ReadNull (model: Microsoft.Boogie.Model) (envMap,ctx) = 
   let f_null = model.MkFunc("null", 0)
   assert (f_null.AppCount = 1)
@@ -229,6 +254,12 @@ let ReadNull (model: Microsoft.Boogie.Model) (envMap,ctx) =
   let newEnv = envMap |> Map.add (GetLoc e) NullConst
   (newEnv,ctx)
   
+//  ============================================================================================
+/// Reads the evinronment map and the context set.
+///
+/// It starts by reading the model for the "dtype" function to discover all objects on the heap, 
+/// and then proceeds by reading stuff about the null constant, about sequences, and about sets.
+//  ============================================================================================
 let ReadEnv (model: Microsoft.Boogie.Model) prog = 
   let f_dtype = model.MkFunc("dtype", 1)
   let refs = f_dtype.Apps |> Seq.choose (fun ft -> Some(ft.Args.[0]))

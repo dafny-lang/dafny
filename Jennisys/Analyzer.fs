@@ -71,7 +71,9 @@ let MethodAnalysisPrinter onlyForThisCompMethod assertion comp mthd =
   | _ -> ""
 
 let rec IsArgsOnly args expr = 
-  match expr with
+  match expr with                                                
+  | IntLiteral(_) -> true
+  | BoolLiteral(_) -> true
   | IdLiteral(id) -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
   | UnaryExpr(_,e) -> IsArgsOnly args e
   | BinaryExpr(_,_,e1,e2) -> (IsArgsOnly args e1) && (IsArgsOnly args e2)
@@ -81,12 +83,12 @@ let rec IsArgsOnly args expr =
   | SequenceExpr(exprs) -> exprs |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
   | SeqLength(e) -> IsArgsOnly args e
   | ForallExpr(vars,e) -> IsArgsOnly (List.concat [args; vars]) e
-  | IntLiteral(_) -> true
   | Star -> true
 
 let rec GetUnifications expr args (heap,env,ctx) = 
   match expr with
   | IntLiteral(_)
+  | BoolLiteral(_)
   | IdLiteral(_)
   | Star         
   | Dot(_)
@@ -98,8 +100,8 @@ let rec GetUnifications expr args (heap,env,ctx) =
   | UnaryExpr(_)   -> Set.empty
   | BinaryExpr(strength,op,e0,e1) ->
       if op = "=" then
-        let v0 = Eval e0 (heap,env,ctx)
-        let v1 = Eval e1 (heap,env,ctx)
+        let v0 = Eval (heap,env,ctx) e0
+        let v1 = Eval (heap,env,ctx) e1
         let argsOnly0 = IsArgsOnly args e0
         let argsOnly1 = IsArgsOnly args e1
         match v0,argsOnly1,argsOnly0,v1 with
@@ -117,7 +119,7 @@ let rec GetUnifications expr args (heap,env,ctx) =
 let rec GetArgValueUnifications args env = 
   match args with
   | Var(name,_) :: rest -> 
-      match Map.tryFind (VarConst(name)) env with
+      match Map.tryFind (Unresolved(name)) env with
       | Some(c) ->
           Logger.DebugLine ("      - adding unification " + (PrintConst c) + " <--> " + name);
           Set.ofList [c, IdLiteral(name)] |> Set.union (GetArgValueUnifications rest env)
@@ -161,7 +163,7 @@ let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) =
   | (c,e) :: rest -> 
       let restHeap,env,ctx = UpdateHeapEnv prog comp mthd rest (heap,env,ctx)
       let newHeap = restHeap |> Map.fold (fun acc (o,f) l ->
-                                            let value = TryResolve l (env,ctx)
+                                            let value = TryResolve (env,ctx) l
                                             if value = c then
                                               if __CheckUnif o f e -1 then
                                                 Logger.DebugLine " HOLDS"

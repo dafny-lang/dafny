@@ -34,7 +34,8 @@ let PrintVarName vd =
 
 let rec PrintExpr ctx expr =
   match expr with
-  | IntLiteral(n)     -> sprintf "%O" n
+  | IntLiteral(n)     -> sprintf "%d" n
+  | BoolLiteral(b)    -> sprintf "%b" b
   | IdLiteral(id)     -> id
   | Star              -> "*"
   | Dot(e,id)         -> sprintf "%s.%s" (PrintExpr 100 e) id
@@ -131,5 +132,4 @@ let rec PrintConst cst =
   | ThisConst(_,_)     -> "this"
   | NewObj(name,_)     -> PrintGenSym name
   | ExprConst(e)       -> PrintExpr 0 e
-  | VarConst(name)     -> name
   | Unresolved(name)   -> sprintf "Unresolved(%s)" name
