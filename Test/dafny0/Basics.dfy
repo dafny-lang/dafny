@@ -171,3 +171,17 @@ method SwapEm(a: int, b: int) returns (x: int, y: int)
 {
   x, y := b, a;
 }
+
+function method abs(a:int): int
+{
+   if a <= 0 then -a else a
+}
+// test of verifier using euclidean division.
+method EuclideanTest(a: int, b: int)
+   requires b != 0;
+{
+   var q, r := a / b, a % b;
+   assert 0 <= r < abs(b);
+   assert a == b * q + r;
+   assert (a/b) * b + a % b == a;
+}
