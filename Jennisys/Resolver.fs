@@ -1,19 +1,33 @@
-﻿module Resolver
+﻿//  ####################################################################
+///   Utilities for resolving the "Unresolved" constants with respect to 
+///   a given context (heap/env/ctx)
+///
+///   author: Aleksandar Milicevic (t-alekm@microsoft.com)
+//  ####################################################################
+
+module Resolver
 
 open Ast
+open AstUtils 
 open Printer
 open EnvUtils
 
 // resolving values
 exception ConstResolveFailed of string
  
-let rec ResolveCont cst (env,ctx) failResolver =
+//  ================================================================
+/// Resolves a given Const (cst) with respect to a given env/ctx. 
+///
+/// If unable to resolve, it just delegates the task to the
+/// failResolver function
+//  ================================================================
+let rec ResolveCont (env,ctx) failResolver cst =
   match cst with
   | Unresolved(_) as u -> 
       // see if it is in the env map first
       let envVal = Map.tryFind cst env
       match envVal with
-      | Some(c) -> ResolveCont c (env,ctx) failResolver
+      | Some(c) -> ResolveCont (env,ctx) failResolver c
       | None -> 
           // not found in the env map --> check the equality sets
           let eq = ctx |> Set.filter (fun eqSet -> Set.contains u eqSet)
@@ -27,53 +41,50 @@ let rec ResolveCont cst (env,ctx) failResolver =
               | _ -> failResolver cst (env,ctx)
           | _ -> failResolver cst (env,ctx)
   | SeqConst(cseq) -> 
-      let resolvedLst = cseq |> List.rev |> List.fold (fun acc c -> ResolveCont c (env,ctx) failResolver :: acc) []
+      let resolvedLst = cseq |> List.rev |> List.fold (fun acc c -> ResolveCont (env,ctx) failResolver c :: acc) []
       SeqConst(resolvedLst)
   | SetConst(cset) ->
-      let resolvedSet = cset |> Set.fold (fun acc c -> acc |> Set.add (ResolveCont c (env,ctx) failResolver)) Set.empty
+      let resolvedSet = cset |> Set.fold (fun acc c -> acc |> Set.add (ResolveCont (env,ctx) failResolver c)) Set.empty
       SetConst(resolvedSet)
   | _ -> cst
 
-let TryResolve cst (env,ctx) = 
-  ResolveCont cst (env,ctx) (fun c (e,x) -> c)
+//  =====================================================================
+/// Tries to resolve a given Const (cst) with respect to a given env/ctx. 
+///
+/// If unable to resolve, just returns the original Unresolved const.
+//  =====================================================================
+let TryResolve (env,ctx) cst = 
+  ResolveCont (env,ctx) (fun c (e,x) -> c) cst
 
-let Resolve cst (env,ctx) =
-  ResolveCont cst (env,ctx) (fun c (e,x) -> raise (ConstResolveFailed("failed to resolve " + c.ToString())))
-
-
-
-let rec EvalUnresolved expr (heap,env,ctx) = 
-  match expr with
-  | IntLiteral(n) -> IntConst(n)
-  | IdLiteral(id) when id = "this" -> GetThisLoc env
-  | IdLiteral(id) -> EvalUnresolved (Dot(IdLiteral("this"), id)) (heap,env,ctx)
-  | Dot(e, str) -> 
-      let discr = EvalUnresolved e (heap,env,ctx)
-      let h2 = Map.filter (fun (loc,Var(fldName,_)) v -> loc = discr && fldName = str) heap |> Map.toList
-      match h2 with
-      | ((_,_),x) :: [] -> x
-      | _ :: _ -> failwithf "can't evaluate expression deterministically: %s.%s resolves to multiple locations." (PrintConst discr) str
-      | [] -> failwithf "can't find value for %s.%s" (PrintConst discr) str
-  | SelectExpr(lst, idx) ->
-      let lstC = Resolve (EvalUnresolved lst (heap,env,ctx)) (env,ctx)
-      let idxC = EvalUnresolved idx (heap,env,ctx)
-      match lstC, idxC with
-      | SeqConst(clist), IntConst(n) -> clist.[n]
-      | _ -> failwith "can't eval SelectExpr"
-  | _ -> failwith "NOT IMPLEMENTED YET" //TODO finish this!
-//  | Star         
-//  | SelectExpr(_)   
-//  | UpdateExpr(_)   
-//  | SequenceExpr(_) 
-//  | SeqLength(_)    
-//  | ForallExpr(_)   
-//  | UnaryExpr(_)   
-//  | BinaryExpr(_)
-
-// TODO: can this be implemented on top of the existing AstUtils.EvalSym??  We must!
-let Eval expr (heap,env,ctx) = 
+//  ==============================================================
+/// Resolves a given Const (cst) with respect to a given env/ctx. 
+///
+/// If unable to resolve, raises a ConstResolveFailed exception
+//  ==============================================================
+let Resolve (env,ctx) cst =
+  ResolveCont (env,ctx) (fun c (e,x) -> raise (ConstResolveFailed("failed to resolve " + c.ToString()))) cst
+   
+//  =================================================================
+/// Evaluates a given expression with respect to a given heap/env/ctx       
+//  =================================================================
+let Eval (heap,env,ctx) expr = 
+  let rec __EvalResolver expr = 
+    match expr with
+    | IdLiteral(id) when id = "this" -> GetThisLoc env
+    | IdLiteral(id) ->
+        match TryResolve (env,ctx) (Unresolved(id)) with 
+        | Unresolved(_) -> __EvalResolver (Dot(IdLiteral("this"), id))
+        | _ as c -> c
+    | Dot(e, str) -> 
+        let discr = __EvalResolver e
+        let h2 = Map.filter (fun (loc,Var(fldName,_)) v -> loc = discr && fldName = str) heap |> Map.toList
+        match h2 with
+        | ((_,_),x) :: [] -> x
+        | _ :: _ -> failwithf "can't evaluate expression deterministically: %s.%s resolves to multiple locations." (PrintConst discr) str
+        | [] -> failwithf "can't find value for %s.%s" (PrintConst discr) str
+    | _ -> failwith "NOT IMPLEMENTED YET"
   try 
-    let unresolvedConst = EvalUnresolved expr (heap,env,ctx)
-    Some(TryResolve unresolvedConst (env,ctx))
+    let unresolvedConst = EvalSym (fun e -> __EvalResolver e |> Resolve (env,ctx)) expr
+    Some(TryResolve (env,ctx) unresolvedConst)
   with
     ex -> None
