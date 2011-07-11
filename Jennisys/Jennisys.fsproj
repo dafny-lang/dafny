@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\List2.jen</StartArguments>
+    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\Set.jen /method:Set.sum</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>pdbonly</DebugType>
@@ -42,8 +42,8 @@
     <FsYaccOutputFolder>$(IntermediateOutputPath)</FsYaccOutputFolder>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Options.fs" />
     <Compile Include="Utils.fs" />
+    <Compile Include="Options.fs" />
     <Compile Include="PipelineUtils.fs" />
     <Compile Include="Ast.fs" />
     <Compile Include="AstUtils.fs" />
@@ -64,8 +64,8 @@
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>
     <Compile Include="Printer.fs" />
-    <Compile Include="Logger.fs" />
     <Compile Include="DafnyPrinter.fs" />
+    <Compile Include="Logger.fs" />
     <Compile Include="TypeChecker.fs" />
     <Compile Include="Resolver.fs" />
     <Compile Include="CodeGen.fs" />

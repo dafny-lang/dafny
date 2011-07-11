@@ -71,7 +71,10 @@ let Eval (heap,env,ctx) expr =
   let rec __EvalResolver expr = 
     match expr with
     | IdLiteral(id) when id = "this" -> GetThisLoc env
-    | IdLiteral(id) -> __EvalResolver (Dot(IdLiteral("this"), id))
+    | IdLiteral(id) ->
+        match TryResolve (env,ctx) (Unresolved(id)) with 
+        | Unresolved(_) -> __EvalResolver (Dot(IdLiteral("this"), id))
+        | _ as c -> c
     | Dot(e, str) -> 
         let discr = __EvalResolver e
         let h2 = Map.filter (fun (loc,Var(fldName,_)) v -> loc = discr && fldName = str) heap |> Map.toList

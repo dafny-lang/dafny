@@ -111,7 +111,7 @@ let PrintVarAssignments (heap,env,ctx) indent =
   heap |> Map.fold (fun acc (o,f) l ->
                       let objRef = PrintObjRefName o (env,ctx)
                       let fldName = PrintVarName f
-                      let value = Resolve (env,ctx) l |> PrintConst
+                      let value = TryResolve (env,ctx) l |> PrintConst
                       acc + (sprintf "%s%s.%s := %s;" idt objRef fldName value) + newline
                    ) ""
 
@@ -137,14 +137,21 @@ let GenConstructorCode mthd body =
 
 // NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
-  (* exactly one *)
-//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-//  let m = FindMethod c "Singleton" |> Utils.ExtractOption
-//  [c, m]
-  (* all *)
-  FilterMembers prog FilterConstructorMembers 
-  (* only with parameters *)
-//  FilterMembers prog FilterConstructorMembersWithParams 
+  let m = Options.CONFIG.methodToSynth;
+  if m = "*" then
+    (* all *)
+    FilterMembers prog FilterConstructorMembers   
+  elif m = "paramsOnly" then
+    (* only with parameters *)
+    FilterMembers prog FilterConstructorMembersWithParams 
+  else
+    (* exactly one *)
+    let compName = m.Substring(0, m.LastIndexOf("."))
+    let methName = m.Substring(m.LastIndexOf(".") + 1)
+    let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
+    let m = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
+    [c, m]            
+  
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =

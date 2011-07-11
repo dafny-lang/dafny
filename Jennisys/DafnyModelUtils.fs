@@ -67,7 +67,7 @@ let GetType (e: Model.Element) prog =
   let fNameOpt = GetElemFullName e
   match fNameOpt with
   | Some(fname) -> match fname with
-                   | Exact "intType" _       -> Some(IntType)
+                   | "intType"               -> Some(IntType)
                    | Prefix "class." clsName -> 
                        match FindComponent prog clsName with
                        | Some(comp) -> Some(GetClassType comp)
@@ -78,10 +78,16 @@ let GetType (e: Model.Element) prog =
 let GetLoc (e: Model.Element) =
   Unresolved(GetRefName e)
 
-let GetSeqFromEnv env key = 
+let FindSeqInEnv env key =
   match Map.find key env with
   | SeqConst(lst) -> lst
   | _ as x-> failwith ("not a SeqConst but: " + x.ToString())
+
+let TryFindSetInEnv env key = 
+  match Map.tryFind key env with
+  | Some(SetConst(s)) -> Some(s)
+  | Some(x) -> failwith ("not a SetConst but: " + x.ToString())
+  | None -> None
                                    
 let AddConstr c1 c2 ctx = 
   if c1 = c2 then
@@ -185,7 +191,7 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
     match idx_tuples with
     | ft :: rest -> 
         let srcLstKey = GetLoc ft.Args.[0]
-        let oldLst = GetSeqFromEnv envMap srcLstKey
+        let oldLst = FindSeqInEnv envMap srcLstKey
         let idx = GetInt ft.Args.[1]
         let lstElem = UnboxIfNeeded model ft.Result
         let newLst = Utils.ListSet idx lstElem oldLst
@@ -200,10 +206,10 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
     | ft :: rest -> 
         let srcLstLoc = GetLoc ft.Args.[0]
         let dstLstLoc = GetLoc ft.Result
-        let oldLst = GetSeqFromEnv envMap srcLstLoc
+        let oldLst = FindSeqInEnv envMap srcLstLoc
         let idx = GetInt ft.Args.[1]
         let lstElemVal = UnboxIfNeeded model ft.Args.[2]
-        let dstLst = GetSeqFromEnv envMap dstLstLoc
+        let dstLst = FindSeqInEnv envMap dstLstLoc
         let newLst = Utils.ListBuild oldLst idx lstElemVal dstLst
         let newCtx = UpdateContext dstLst newLst ctx
         let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
@@ -217,9 +223,9 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
         let srcLst1Loc = GetLoc ft.Args.[0]
         let srcLst2Loc = GetLoc ft.Args.[1]
         let dstLstLoc = GetLoc ft.Result
-        let oldLst1 = GetSeqFromEnv envMap srcLst1Loc
-        let oldLst2 = GetSeqFromEnv envMap srcLst2Loc
-        let dstLst = GetSeqFromEnv envMap dstLstLoc
+        let oldLst1 = FindSeqInEnv envMap srcLst1Loc
+        let oldLst2 = FindSeqInEnv envMap srcLst2Loc
+        let dstLst = FindSeqInEnv envMap dstLstLoc
         let newLst = List.append oldLst1 oldLst2
         let newCtx = UpdateContext dstLst newLst ctx
         let newEnv = envMap |> Map.add dstLstLoc (SeqConst(newLst))
@@ -238,10 +244,102 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
 
 //  =====================================================
 /// Reads stuff about sets from a given model and adds it 
-/// to the given "envMap" map and "ctx" set. (TODO)
+/// to the given "envMap" map and "ctx" set.
 //  =====================================================
 let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
-  (envMap,ctx)
+  // reads stuff from Set#Empty
+  let rec __ReadSetEmpty (empty_tuples: Model.FuncTuple list) (envMap,ctx) =
+    match empty_tuples with
+    | ft :: rest -> 
+        let newMap = envMap |> Map.add (GetLoc ft.Result) (SetConst(Set.empty))
+        __ReadSetEmpty rest (newMap,ctx)
+    | [] -> (envMap,ctx)
+
+  // reads stuff from [2]
+  let __ReadSetMembership (set_tuples: Model.FuncTuple list) (env,ctx) = 
+    match set_tuples with
+    | ft :: rest when GetBool ft.Result -> 
+        let srcSetKey = GetLoc ft.Args.[0]
+        let srcSet = match TryFindSetInEnv env srcSetKey with
+                     | Some(s) -> s
+                     | None -> Set.empty
+        let elem = UnboxIfNeeded model ft.Args.[1]
+        let newEnv = env |> Map.add srcSetKey (SetConst(Set.add elem srcSet))
+        (newEnv,ctx)
+    | _ -> (env,ctx)
+
+  let t_set_empty = Seq.toList (model.MkFunc("Set#Empty", 1).Apps)    
+  let t_set = Seq.toList (model.MkFunc("[2]", 2).Apps)
+  (envMap,ctx) |> __ReadSetEmpty t_set_empty
+               |> __ReadSetMembership t_set
+
+(* More complicated way which now doesn't seem to be necessary *)
+//let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
+//  // reads stuff from Set#Empty
+//  let rec __ReadSetEmpty (empty_tuples: Model.FuncTuple list) (envMap,ctx) =
+//    match empty_tuples with
+//    | ft :: rest -> 
+//        let newMap = envMap |> Map.add (GetLoc ft.Result) (SetConst(Set.empty))
+//        __ReadSetEmpty rest (newMap,ctx)
+//    | [] -> (envMap,ctx)
+//
+//  // reads stuff from Set#UnionOne and Set#Union
+//  let rec __ReadSetUnions (envMap,ctx) = 
+//    // this one goes through a given list of "UnionOne" tuples, updates 
+//    // the env for those set that it was able to resolve, and returns a 
+//    // list of tuples for which it wasn't able to resolve sets
+//    let rec ___RSU1 (tuples: Model.FuncTuple list) env unprocessed =
+//      match tuples with
+//      | ft :: rest -> 
+//          let srcSetKey = GetLoc ft.Args.[0]
+//          match TryFindSetInEnv env srcSetKey with
+//          | Some(oldSet) ->
+//              let elem = UnboxIfNeeded model ft.Args.[1]
+//              let newSet = Set.add elem oldSet
+//              // update contex?
+//              let newEnv = env |> Map.add (GetLoc ft.Result) (SetConst(newSet))
+//              ___RSU1 rest newEnv unprocessed
+//          | None -> ___RSU1 rest env (ft :: unprocessed)          
+//      | [] -> (env,unprocessed)
+//    // this one goes through a given list of "Union" tuples, updates 
+//    // the env for those set that it was able to resolve, and returns a 
+//    // list of tuples for which it wasn't able to resolve sets
+//    let rec ___RSU (tuples: Model.FuncTuple list) env unprocessed =
+//      match tuples with
+//      | ft :: rest -> 
+//          let set1Key = GetLoc ft.Args.[0]
+//          let set2Key = GetLoc ft.Args.[1]
+//          match TryFindSetInEnv env set1Key, TryFindSetInEnv env set2Key with
+//          | Some(oldSet1), Some(oldSet2) ->
+//              let newSet = Set.union oldSet1 oldSet2
+//              // update contex?
+//              let newEnv = env |> Map.add (GetLoc ft.Result) (SetConst(newSet))
+//              ___RSU rest newEnv unprocessed
+//          | _ -> ___RSU rest env (ft :: unprocessed)          
+//      | [] -> (env,unprocessed)
+//    // this one keeps looping as loong as the list of unprocessed tuples
+//    // is decreasing, it ends when if falls down to 0, or fails if 
+//    // the list stops decreasing
+//    let rec ___RSU_until_fixpoint u1tuples utuples env =      
+//      let newEnv1,unprocessed1 = ___RSU1 u1tuples env []
+//      let newEnv2,unprocessed2 = ___RSU utuples newEnv1 []
+//      let oldLen = (List.length u1tuples) + (List.length utuples)
+//      let totalUnprocLen = (List.length unprocessed1) + (List.length unprocessed2)
+//      if totalUnprocLen = 0 then
+//        newEnv2
+//      elif totalUnprocLen < oldLen then
+//        ___RSU_until_fixpoint unprocessed1 unprocessed2 newEnv2
+//      else
+//        failwith "cannot resolve all sets in Set#UnionOne/Set#Union"
+//    // finally, just invoke the fixpoint function for UnionOne and Union tuples
+//    let t_union_one = Seq.toList (model.MkFunc("Set#UnionOne", 2).Apps)
+//    let t_union = Seq.toList (model.MkFunc("Set#Union", 2).Apps)
+//    let newEnv = ___RSU_until_fixpoint t_union_one t_union envMap
+//    (newEnv,ctx)
+//
+//  let f_set_empty = model.MkFunc("Set#Empty", 1)    
+//  (envMap,ctx) |> __ReadSetEmpty (List.ofSeq f_set_empty.Apps)
+//               |> __ReadSetUnions
 
 //  ======================================================
 /// Reads staff about the null constant from a given model 

@@ -1,0 +1,53 @@
+class Set {
+  var elems: set[int]
+
+  constructor Empty()
+    ensures elems = {}
+
+  constructor Singleton(t: int)
+    ensures elems = {t}
+
+  constructor Sum(p: int, q: int)
+    ensures elems = {p + q}
+
+  constructor Double(p: int, q: int)
+    requires p != q
+    ensures elems = {p q}
+}
+
+model Set {
+  var root: SetNode
+
+  frame
+    root * root.elems[*]
+
+  invariant
+    root = null ==> elems = {}
+    root != null ==> elems = root.elems
+}
+
+class SetNode {
+  var elems: set[int]
+
+  constructor Init(t: int)
+    ensures elems = {t}
+
+  constructor Double(p: int, q: int)
+    requires p != q
+    ensures elems = {p q}
+}
+
+model SetNode {
+  var data: int
+  var left: SetNode
+  var right: SetNode
+
+  frame 
+    data * left * right
+
+  invariant
+    left = null && right = null ==> elems = {data}
+    elems = {data} + (left != null ? left.elems : {}) + (right != null ? right.elems : {})
+    left != null  ==> forall e :: e in left.elems ==> e < data
+    right != null ==> forall e :: e in right.elems ==> e > data
+} 

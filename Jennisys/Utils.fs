@@ -11,6 +11,28 @@ module Utils
 // -------------------------------------------
 
 //  =====================================
+/// ensures: ret = b ? Some(b) : None
+//  =====================================
+let BoolToOption b =
+  if b then
+    Some(b)
+  else
+    None
+
+//  =====================================
+/// ensures: ret = (opt == Some(_))
+//  =====================================
+let IsSomeOption opt = 
+  match opt with
+  | Some(_) -> true
+  | None -> false
+
+//  =====================================
+/// ensures: ret = (opt == None)
+//  =====================================
+let IsNoneOption opt = IsSomeOption opt |> not
+
+//  =====================================
 /// requres: x = Some(a) or failswith msg
 /// ensures: ret = a
 //  =====================================
@@ -172,15 +194,9 @@ let (|Prefix|_|) (p:string) (s:string) =
     Some(s.Substring(p.Length))
   else
     None
-
-let (|Exact|_|) (p:string) (s:string) =
-  if s = p then
-    Some(s)
-  else
-    None
-
+                 
 // -------------------------------------------
-// ----------------- random ------------------
+// --------------- workflow ------------------
 // -------------------------------------------
 
 let IfDo1 cond func1 a =
@@ -194,3 +210,16 @@ let IfDo2 cond func2 (a1,a2) =
     func2 a1 a2
   else
     a1,a2 
+
+type CascadingBuilder<'a>(failVal: 'a) = 
+  member this.Bind(v, f) =
+    match v with
+    | Some(x) -> f x
+    | None -> failVal
+  member this.Return(v) = v
+
+// -------------------------------------------
+// --------------- random --------------------
+// -------------------------------------------
+
+let Iden x = x

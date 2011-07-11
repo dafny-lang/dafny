@@ -29,10 +29,12 @@ type Expr =
   | Dot of Expr * string
   | UnaryExpr of string * Expr
   | BinaryExpr of int * string * Expr * Expr
+  | IteExpr of (* cond *) Expr * (* thenExpr *) Expr * (* elseExpr *) Expr
   | SelectExpr of Expr * Expr
   | UpdateExpr of Expr * Expr * Expr
   | SequenceExpr of Expr list
   | SeqLength of Expr
+  | SetExpr of Expr list
   | ForallExpr of VarDecl list * Expr
 
 type Stmt =

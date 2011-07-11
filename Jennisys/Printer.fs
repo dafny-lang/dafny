@@ -45,10 +45,12 @@ let rec PrintExpr ctx expr =
       let openParen = if needParens then "(" else ""
       let closeParen = if needParens then ")" else ""
       sprintf "%s%s %s %s%s" openParen (PrintExpr strength e0) op (PrintExpr strength e1) closeParen
+  | IteExpr(c,e1,e2)  -> sprintf "%s ? %s : %s" (PrintExpr 25 c) (PrintExpr 25 e1) (PrintExpr 25 e2)
   | SelectExpr(e,i)   -> sprintf "%s[%s]" (PrintExpr 100 e) (PrintExpr 0 i) 
   | UpdateExpr(e,i,v) -> sprintf "%s[%s := %s]" (PrintExpr 100 e) (PrintExpr 0 i) (PrintExpr 0 v)
-  | SequenceExpr(ee)  -> sprintf "[%s]" (ee |> PrintSep ", " (PrintExpr 0))
+  | SequenceExpr(ee)  -> sprintf "[%s]" (ee |> PrintSep " " (PrintExpr 0))
   | SeqLength(e)      -> sprintf "|%s|" (PrintExpr 0 e)
+  | SetExpr(ee)       -> sprintf "{%s}" (ee |> PrintSep " " (PrintExpr 0))
   | ForallExpr(vv,e)  ->
       let needParens = ctx <> 0
       let openParen = if needParens then "(" else ""
@@ -120,7 +122,7 @@ let rec PrintConst cst =
   match cst with 
   | IntConst(v)        -> sprintf "%d" v
   | BoolConst(b)       -> sprintf "%b" b
-  | SetConst(cset)     -> cset.ToString() //TODO: this won't work
+  | SetConst(cset)     -> sprintf "{%s}" (PrintSep ", " (fun c -> PrintConst c) (Set.toList cset))
   | SeqConst(cseq)     -> 
       let seqCont = cseq |> List.fold (fun acc c ->
                                          let sep = if acc = "" then "" else ", "

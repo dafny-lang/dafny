@@ -16,15 +16,16 @@ let rec VisitExpr visitorFunc expr acc =
   | IntLiteral(_)
   | BoolLiteral(_)
   | IdLiteral(_)
-  | Star                   -> acc |> visitorFunc expr
-  | Dot(e, _)              -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | SelectExpr(e1, e2)     -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
-  | UpdateExpr(e1, e2, e3) -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2 |> VisitExpr visitorFunc e3
-  | SequenceExpr(exs)      -> exs |> List.fold (fun acc2 e -> acc2 |> VisitExpr visitorFunc e) (visitorFunc expr acc)
-  | SeqLength(e)           -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | ForallExpr(_,e)        -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | UnaryExpr(_,e)         -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | BinaryExpr(_,_,e1,e2)  -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
+  | Star                             -> acc |> visitorFunc expr
+  | Dot(e, _)                        -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
+  | SelectExpr(e1, e2)               -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
+  | UpdateExpr(e1, e2, e3)           -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2 |> VisitExpr visitorFunc e3
+  | SequenceExpr(exs) | SetExpr(exs) -> exs |> List.fold (fun acc2 e -> acc2 |> VisitExpr visitorFunc e) (visitorFunc expr acc)
+  | SeqLength(e)                     -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
+  | ForallExpr(_,e)                  -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
+  | UnaryExpr(_,e)                   -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
+  | BinaryExpr(_,_,e1,e2)            -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
+  | IteExpr(c,e1,e2)                 -> acc |> visitorFunc expr |> VisitExpr visitorFunc c |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
 
 // ------------------------------- End Visitor Stuff -------------------------------------------
 
@@ -53,83 +54,83 @@ let rec EvalSym resolverFunc expr =
       | _ -> resolverFunc expr
   | BinaryExpr(_,op,e1,e2) ->
       match op with
-      | Exact "=" _ ->
+      | "=" ->
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 = b2)
           | IntConst(n1), IntConst(n2)   -> BoolConst(n1 = n2)
           | ExprConst(e1), ExprConst(e2)   -> BoolConst(e1 = e2)
           | _ -> resolverFunc expr
-      | Exact "!=" _ -> 
+      | "!=" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | BoolConst(b1), BoolConst(b2) -> BoolConst(not (b1 = b2))
           | IntConst(n1), IntConst(n2)   -> BoolConst(not (n1 = n2))
           | ExprConst(e1), ExprConst(e2)   -> BoolConst(not (e1 = e2))
           | _ -> resolverFunc expr
-      | Exact "<" _ -> 
+      | "<" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2)   -> BoolConst(n1 < n2)
           | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) < (Set.count s2))
           | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) < (List.length s2))
           | _ -> resolverFunc expr
-      | Exact "<=" _ -> 
+      | "<=" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2)   -> BoolConst(n1 <= n2)
           | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) <= (Set.count s2))
           | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) <= (List.length s2))
           | _ -> resolverFunc expr
-      | Exact ">" _ -> 
+      | ">" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2)   -> BoolConst(n1 > n2)
           | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) > (Set.count s2))
           | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) > (List.length s2))
           | _ -> resolverFunc expr
-      | Exact ">=" _ -> 
+      | ">=" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2)   -> BoolConst(n1 >= n2)
           | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) >= (Set.count s2))
           | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) >= (List.length s2))
           | _ -> resolverFunc expr
-      | Exact "in" _ -> 
+      | "in" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | _ as c, SetConst(s)   -> BoolConst(Set.contains c s)
           | _ as c, SeqConst(s)   -> BoolConst(Utils.ListContains c s)
           | _ -> resolverFunc expr
-      | Exact "!in" _ -> 
+      | "!in" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | _ as c, SetConst(s)   -> BoolConst(not (Set.contains c s))
           | _ as c, SeqConst(s)   -> BoolConst(not (Utils.ListContains c s))
           | _ -> resolverFunc expr
-      | Exact "+" _ -> 
+      | "+" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
           | SeqConst(l1), SeqConst(l2) -> SeqConst(List.append l1 l2)
           | SetConst(s1), SetConst(s2) -> SetConst(Set.union s1 s2)
-          | _ -> resolverFunc expr
-      | Exact "-" _ -> 
+          | q,w -> resolverFunc expr
+      | "-" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
           | SetConst(s1), SetConst(s2) -> SetConst(Set.difference s1 s2)
           | _ -> resolverFunc expr
-      | Exact "*" _ -> 
+      | "*" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2) -> IntConst(n1 * n2)
           | _ -> resolverFunc expr
-      | Exact "div" _ -> 
+      | "div" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2) -> IntConst(n1 / n2)
           | _ -> resolverFunc expr
-      | Exact "mod" _ -> 
+      | "mod" -> 
           match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
           | IntConst(n1), IntConst(n2) -> IntConst(n1 % n2)
           | _ -> resolverFunc expr
       | _ -> resolverFunc expr
   | UnaryExpr(op, e) ->
       match op with
-      | Exact "!" _ -> 
+      | "!" -> 
           match EvalSym resolverFunc e with
           | BoolConst(b) -> BoolConst(not b)
           | _ -> resolverFunc expr
-      | Exact "-" _ -> 
+      | "-" -> 
           match EvalSym resolverFunc e with
           | IntConst(n) -> IntConst(-n)
           | _ -> resolverFunc expr
@@ -179,15 +180,17 @@ let BinaryOr (lhs: Expr) (rhs: Expr) =
 //  ===================================================================================
 let BinaryImplies lhs rhs = BinaryExpr(20, "==>", lhs, rhs)
 
-//  =================================================
-/// Returns a binary NEQ of the two given expressions
-//  =================================================
+//  =======================================================
+/// Constructors for binary EQ/NEQ of two given expressions
+//  =======================================================
 let BinaryNeq lhs rhs = BinaryExpr(40, "!=", lhs, rhs)
-
-//  =================================================
-/// Returns a binary EQ of the two given expressions
-//  =================================================
 let BinaryEq lhs rhs = BinaryExpr(40, "=", lhs, rhs)
+
+//  =======================================================
+/// Constructors for binary IN/!IN of two given expressions
+//  =======================================================
+let BinaryIn lhs rhs = BinaryExpr(40, "in", lhs, rhs)
+let BinaryNotIn lhs rhs = BinaryExpr(40, "!in", lhs, rhs)
 
 //  =====================
 /// Returns TRUE literal
@@ -378,16 +381,18 @@ let rec Desugar expr =
   | Star                   
   | Dot(_)                 
   | SelectExpr(_) 
-  | SeqLength(_)           -> expr
-  | UpdateExpr(_)          -> expr //TODO
-  | SequenceExpr(exs)      -> expr //TODO
+  | SeqLength(_)           
+  | UpdateExpr(_)     
+  | SetExpr(_)     
+  | SequenceExpr(_)        -> expr 
   | ForallExpr(v,e)        -> ForallExpr(v, Desugar e)
   | UnaryExpr(op,e)        -> UnaryExpr(op, Desugar e)
+  | IteExpr(c,e1,e2)       -> IteExpr(c, Desugar e1, Desugar e2)
   | BinaryExpr(p,op,e1,e2) -> 
       let be = BinaryExpr(p, op, Desugar e1, Desugar e2)
       try
         match op with
-        | Exact "=" _ ->           
+        | "=" ->           
             match EvalSym DefaultResolver e1, EvalSym DefaultResolver e2 with
             | SeqConst(cl1), SeqConst(cl2) -> 
                 let rec __fff lst1 lst2 cnt = 
