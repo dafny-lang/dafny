@@ -256,7 +256,7 @@ namespace Microsoft.Dafny {
       this.Arg = arg;
     }
   }
-
+  
   public class SetType : CollectionType {
     public SetType(Type arg) : base(arg) {
       Contract.Requires(arg != null);
@@ -266,6 +266,19 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
       return "set<" + base.Arg + ">";
+    }
+  }
+
+  public class MultiSetType : CollectionType
+  {
+    public MultiSetType(Type arg) : base(arg) {
+      Contract.Requires(arg != null);
+    }
+    [Pure]
+    public override string ToString() {
+      Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(cce.IsPeerConsistent(Arg));
+      return "multiset<" + base.Arg + ">";
     }
   }
 
@@ -487,9 +500,9 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for either:
-  ///     int or set or seq
+  ///     int or set or multiset or seq
   /// if AllowSeq, or:
-  ///     int or set
+  ///     int or set or multiset
   /// if !AllowSeq.
   /// </summary>  
   public class OperationTypeProxy : RestrictedTypeProxy {
@@ -2062,10 +2075,17 @@ namespace Microsoft.Dafny {
       get { return Elements; }
     }
   }
-
+  
   public class SetDisplayExpr : DisplayExpression {
     public SetDisplayExpr(IToken tok, List<Expression/*!*/>/*!*/ elements)
       : base(tok, elements) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(elements));
+    }
+  }
+
+  public class MultiSetDisplayExpr : DisplayExpression {
+    public MultiSetDisplayExpr(IToken tok, List<Expression/*!*/>/*!*/ elements) : base(tok, elements) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(elements));
     }
@@ -2378,6 +2398,19 @@ namespace Microsoft.Dafny {
       Union,
       Intersection,
       SetDifference,
+      // multi-sets
+      MultiSetEq,
+      MultiSetNeq,
+      MultiSubset,
+      MultiSuperset,
+      ProperMultiSubset,
+      ProperMultiSuperset,
+      MultiSetDisjoint,
+      InMultiSet,
+      NotInMultiSet,
+      MultiSetUnion,
+      MultiSetIntersection,
+      MultiSetDifference,
       // sequences
       SeqEq,
       SeqNeq,
