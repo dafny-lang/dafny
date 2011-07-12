@@ -6,6 +6,9 @@ class List[T] {
 
   constructor Singleton(t: T)
     ensures list = [t]
+
+  constructor Double(p: T, q: T)
+    ensures list = [p q]
 }
 
 model List[T] {
@@ -27,6 +30,9 @@ class Node[T] {
 
   constructor Init(t: T)
     ensures list = [t]
+
+  constructor Double(p: T, q: T)
+    ensures list = [p q]
 }
 
 model Node[T] {

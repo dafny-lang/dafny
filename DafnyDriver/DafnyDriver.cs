@@ -34,23 +34,27 @@ namespace Microsoft.Boogie
     // ------------------------------------------------------------------------
     // Main
     
-    public static void Main (string[] args) 
+    public static int Main (string[] args) 
     {Contract.Requires(cce.NonNullElements(args));
       //assert forall{int i in (0:args.Length); args[i] != null};
+      ExitValue exitValue = ExitValue.VERIFIED;
       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
       if (CommandLineOptions.Clo.Parse(args) != 1)
       {
+        exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
         ErrorWriteLine("*** Error: No input files were specified.");
+        exitValue = ExitValue.PREPROCESSING_ERROR; 
         goto END;
       }
       if (CommandLineOptions.Clo.XmlSink != null) {
         string errMsg = CommandLineOptions.Clo.XmlSink.Open();
         if (errMsg != null) {
           ErrorWriteLine("*** Error: " + errMsg);
+          exitValue = ExitValue.PREPROCESSING_ERROR; 
           goto END;
         }
       }
@@ -76,11 +80,12 @@ namespace Microsoft.Boogie
         {
             ErrorWriteLine("*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy).", file,
                 extension == null ? "" : extension);
+            exitValue = ExitValue.PREPROCESSING_ERROR;
             goto END;
         }
       }
       CommandLineOptions.Clo.RunningBoogieOnSsc = false;
-      ProcessFiles(CommandLineOptions.Clo.Files);
+      exitValue = ProcessFiles(CommandLineOptions.Clo.Files);
 
       END:
         if (CommandLineOptions.Clo.XmlSink != null) {
@@ -91,6 +96,7 @@ namespace Microsoft.Boogie
           Console.WriteLine("Press Enter to exit.");
           Console.ReadLine();
         }
+        return (int)exitValue;        
     }
 
     public static void ErrorWriteLine(string s) {Contract.Requires(s != null);
@@ -136,14 +142,16 @@ namespace Microsoft.Boogie
 
     enum FileType { Unknown, Cil, Bpl, Dafny };
 
-    static void ProcessFiles (List<string/*!*/>/*!*/ fileNames)
+    static ExitValue ProcessFiles (List<string/*!*/>/*!*/ fileNames)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
+      ExitValue exitValue = ExitValue.VERIFIED;
       using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
         Dafny.Program dafnyProgram;
         string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
         string err = Dafny.Main.ParseCheck(fileNames, programName, out dafnyProgram);
         if (err != null) {
+          exitValue = ExitValue.DAFNY_ERROR;
           ErrorWriteLine(err);
         } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
           Dafny.Translator translator = new Dafny.Translator();
@@ -164,10 +172,11 @@ namespace Microsoft.Boogie
 
           int errorCount, verified, inconclusives, timeOuts, outOfMemories;
           PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
+          bool allOk = errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0;
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-              if ((CommandLineOptions.Clo.Compile && errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0) || CommandLineOptions.Clo.ForceCompile)
+              if ((CommandLineOptions.Clo.Compile && allOk) || CommandLineOptions.Clo.ForceCompile)
                 CompileDafnyProgram(dafnyProgram);
               break;
             case PipelineOutcome.Done:
@@ -179,8 +188,10 @@ namespace Microsoft.Boogie
               // error has already been reported to user
               break;
           }
+          exitValue = allOk ? ExitValue.VERIFIED : ExitValue.NOT_VERIFIED;
         }
       }
+      return exitValue;
     }
 
     private static void CompileDafnyProgram(Dafny.Program dafnyProgram)
@@ -373,7 +384,8 @@ namespace Microsoft.Boogie
 
 
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
-    
+    enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
+
     /// <summary>
     /// Resolves and type checks the given Boogie program.  Any errors are reported to the
     /// console.  Returns:

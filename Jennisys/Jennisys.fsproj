@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\List3.jen</StartArguments>
+    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\Set.jen /method:Set.Double</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>pdbonly</DebugType>
@@ -42,8 +42,8 @@
     <FsYaccOutputFolder>$(IntermediateOutputPath)</FsYaccOutputFolder>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Options.fs" />
     <Compile Include="Utils.fs" />
+    <Compile Include="Options.fs" />
     <Compile Include="PipelineUtils.fs" />
     <Compile Include="Ast.fs" />
     <Compile Include="AstUtils.fs" />
@@ -64,8 +64,8 @@
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>
     <Compile Include="Printer.fs" />
-    <Compile Include="Logger.fs" />
     <Compile Include="DafnyPrinter.fs" />
+    <Compile Include="Logger.fs" />
     <Compile Include="TypeChecker.fs" />
     <Compile Include="Resolver.fs" />
     <Compile Include="CodeGen.fs" />
@@ -83,17 +83,21 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Source\ModelViewer\ModelViewer.csproj">
-      <Name>ModelViewer</Name>
-      <Project>{a678c6eb-b329-46a9-bbfc-7585f01acd7c}</Project>
-      <Private>True</Private>
-    </ProjectReference>
     <ProjectReference Include="..\..\Source\Model\Model.csproj">
       <Name>Model</Name>
       <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
+  <!--
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\Model\Model.csproj">
+      <Name>Model</Name>
+      <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+  -->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -1,12 +1,36 @@
-﻿/// Various utility functions
+﻿//  ####################################################################
+///   Various utility functions
 ///
-/// author: Aleksandar Milicevic (t-alekm@microsoft.com)
+///   author: Aleksandar Milicevic (t-alekm@microsoft.com)
+//  ####################################################################
 
 module Utils
 
 // -------------------------------------------
 // ----------- collection util funcs ---------
 // -------------------------------------------
+
+//  =====================================
+/// ensures: ret = b ? Some(b) : None
+//  =====================================
+let BoolToOption b =
+  if b then
+    Some(b)
+  else
+    None
+
+//  =====================================
+/// ensures: ret = (opt == Some(_))
+//  =====================================
+let IsSomeOption opt = 
+  match opt with
+  | Some(_) -> true
+  | None -> false
+
+//  =====================================
+/// ensures: ret = (opt == None)
+//  =====================================
+let IsNoneOption opt = IsSomeOption opt |> not
 
 //  =====================================
 /// requres: x = Some(a) or failswith msg
@@ -24,20 +48,22 @@ let ExtractOptionMsg msg x =
 let ExtractOption x = 
   ExtractOptionMsg "can't extract anything from a None" x
 
-//  =============================
-/// requres: List.length lst <= 1
+//  ==========================================================
+/// requres: List.length lst <= 1, otherwise fails with errMsg
 /// ensures: if |lst| = 0 then
 ///            ret = None
 ///          else
 ///            ret = Some(lst[0])
-//  =============================
-let ListToOption lst = 
+//  ==========================================================
+let ListToOptionMsg  lst errMsg = 
   if List.length lst > 1 then
-    failwith "given list contains more than one element"
+    failwith errMsg
   if List.isEmpty lst then
     None
   else
     Some(lst.[0])
+
+let ListToOption lst = ListToOptionMsg lst "given list contains more than one element"
 
 //  =============================================================
 /// ensures: forall i :: 0 <= i < |lst| ==> ret[i] = Some(lst[i])
@@ -47,47 +73,51 @@ let rec ConvertToOptionList lst =
   | fs :: rest -> Some(fs) :: ConvertToOptionList rest
   | [] -> []
 
-//  =============================
-/// requres: Seq.length seq <= 1
+//  =========================================================
+/// requres: Seq.length seq <= 1, otherwise fails with errMsg
 /// ensures: if |seq| = 0 then
 ///            ret = None
 ///          else
 ///            ret = Some(seq[0])
-//  =============================
-let SeqToOption seq = 
+//  =========================================================
+let SeqToOptionMsg seq errMsg = 
   if Seq.length seq > 1 then
-    failwith "given seq contains more than one element"
+    failwith errMsg
   if Seq.isEmpty seq then
     None
   else
     Some(Seq.nth 0 seq)
 
-//  =============================
-/// requires: Set.count set <= 1
+let SeqToOption seq = SeqToOptionMsg seq "given seq contains more than one element"
+
+//  =========================================================
+/// requires: Set.count set <= 1, otherwise fails with errMsg
 /// ensures: if |set| = 0 then
 ///            ret = None
 ///          else
 ///            ret = Some(set[0])
-//  =============================
-let SetToOption set = 
+//  =========================================================
+let SetToOptionMsg set errMsg = 
   if Set.count set > 1 then
-    failwith "give set contains more than one value"
+    failwith errMsg
   if (Set.isEmpty set) then
     None
   else 
     Some(set |> Set.toList |> List.head)
 
-//  ===============================================================
+let SetToOption set = SetToOptionMsg set "give set contains more than one value"
+
+//  ============================================================
 /// requires: n >= 0
-/// ensures:  |ret| = n && forall i :: 0 <= i < n ==> ret[i] = None
-//  ===============================================================
-let rec GenList n =
+/// ensures:  |ret| = n && forall i :: 0 <= i < n ==> ret[i] = e
+//  ============================================================
+let rec GenList n e =
   if n < 0 then 
     failwith "n must be positive"
   if n = 0 then
     []
   else
-    None :: (GenList (n-1))
+    e :: (GenList (n-1) e)
 
 //  ==========================
 /// ensures: ret = elem in lst
@@ -164,10 +194,32 @@ let (|Prefix|_|) (p:string) (s:string) =
     Some(s.Substring(p.Length))
   else
     None
+                 
+// -------------------------------------------
+// --------------- workflow ------------------
+// -------------------------------------------
 
-let (|Exact|_|) (p:string) (s:string) =
-  if s = p then
-    Some(s)
+let IfDo1 cond func1 a =
+  if cond then
+    func1 a
+  else 
+    a
+
+let IfDo2 cond func2 (a1,a2) =
+  if cond then
+    func2 a1 a2
   else
-    None
+    a1,a2 
 
+type CascadingBuilder<'a>(failVal: 'a) = 
+  member this.Bind(v, f) =
+    match v with
+    | Some(x) -> f x
+    | None -> failVal
+  member this.Return(v) = v
+
+// -------------------------------------------
+// --------------- random --------------------
+// -------------------------------------------
+
+let Iden x = x

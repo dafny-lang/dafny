@@ -20,7 +20,6 @@ let rec GetUnrolledFieldValidExpr fldExpr fldName validFunName numUnrolls : Expr
 
 let GetFieldValidExpr fldName validFunName numUnrolls : Expr = 
   GetUnrolledFieldValidExpr (IdLiteral(fldName)) fldName validFunName numUnrolls
-  //BinaryImplies (BinaryNeq (IdLiteral(fldName)) (IdLiteral("null"))) (Dot(IdLiteral(fldName), validFunName))
 
 let GetFieldsForValidExpr allFields prog : VarDecl list =
   allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
@@ -31,21 +30,22 @@ let GetFieldsValidExprList clsName allFields prog : Expr list =
   fields |> List.map (function Var(name, t) -> 
                                  let validFunName, numUnrolls = 
                                    match t with
-                                   | Some(ty) when clsName = (PrintType ty) -> "Valid_self()", numLoopUnrolls
+                                   | Some(ty) when clsName = (GetTypeShortName ty) -> "Valid_self()", numLoopUnrolls
                                    | _ -> "Valid()", 1
                                  GetFieldValidExpr name validFunName numUnrolls
                      )
 
 let PrintValidFunctionCode comp prog : string = 
-  let clsName = GetClassName comp
-  let vars = GetAllFields comp
-  let allInvs = GetInvariantsAsList comp
-  let fieldsValid = GetFieldsValidExprList clsName vars prog
   let idt = "    "
-  let PrintInvs invs = 
+  let __PrintInvs invs = 
     invs |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
          |> PrintSep (" &&" + newline) (fun e -> sprintf "%s(%s)" idt (PrintExpr 0 e))
          |> fun s -> if s = "" then (idt + "true") else s
+  let clsName = GetClassName comp
+  let vars = GetAllFields comp
+  let allInvs = GetInvariantsAsList comp |> DesugarLst
+  let fieldsValid = GetFieldsValidExprList clsName vars prog
+                                                                
   // TODO: don't hardcode decr vars!!!
 //  let decrVars = if List.choose (function Var(n,_) -> Some(n)) vars |> List.exists (fun n -> n = "next") then
 //                   ["list"]
@@ -55,14 +55,14 @@ let PrintValidFunctionCode comp prog : string =
   "  function Valid_self(): bool" + newline +
   "    reads *;" + newline +
   "  {" + newline + 
-  (PrintInvs allInvs) + newline +
+  (__PrintInvs allInvs) + newline +
   "  }" + newline +
   newline +
   "  function Valid(): bool" + newline +
   "    reads *;" + newline +
   "  {" + newline + 
   "    this.Valid_self() &&" + newline +
-  (PrintInvs fieldsValid) + newline +
+  (__PrintInvs fieldsValid) + newline +
   "  }" + newline
 
 let PrintDafnyCodeSkeleton prog methodPrinterFunc: string =
@@ -101,17 +101,22 @@ let PrintAllocNewObjects (heap,env,ctx) indent =
                   ) ""
 
 let PrintObjRefName o (env,ctx) = 
-  match Resolve o (env,ctx) with
+  match Resolve (env,ctx) o with
   | ThisConst(_,_) -> "this";
   | NewObj(name, _) -> PrintGenSym name
   | _ -> failwith ("unresolved object ref: " + o.ToString())
+
+let CheckUnresolved c =
+  match c with 
+  | Unresolved(_) -> Logger.WarnLine "!!! There are some unresolved constants in the output file !!!"; c 
+  | _ -> c
 
 let PrintVarAssignments (heap,env,ctx) indent = 
   let idt = Indent indent
   heap |> Map.fold (fun acc (o,f) l ->
                       let objRef = PrintObjRefName o (env,ctx)
                       let fldName = PrintVarName f
-                      let value = Resolve l (env,ctx) |> PrintConst
+                      let value = TryResolve (env,ctx) l |> CheckUnresolved |> PrintConst
                       acc + (sprintf "%s%s.%s := %s;" idt objRef fldName value) + newline
                    ) ""
 
@@ -123,28 +128,45 @@ let GenConstructorCode mthd body =
   let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
-      let preExpr = BinaryAnd validExpr pre
+      let __PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
+      let preExpr = pre 
       let postExpr = BinaryAnd validExpr post
-      let PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + newline +
-      (PrintPrePost "    requires " preExpr) + newline +
-      (PrintPrePost "    ensures " postExpr) + newline +
+      (__PrintPrePost "    requires " preExpr) + newline +
+      (__PrintPrePost "    ensures " postExpr) + newline +
       "  {" + newline + 
       body + 
       "  }" + newline
   | _ -> ""
 
-// NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
-  (* exactly one *)
-//  let c = FindComponent prog "IntList" |> Utils.ExtractOption
-//  let m = FindMethod c "Sum" |> Utils.ExtractOption
-//  [c, m]
-  (* all *)
-  FilterMembers prog FilterConstructorMembers 
-  (* only with parameters *)
-//  FilterMembers prog FilterConstructorMembersWithParams 
+  let mOpt = Options.CONFIG.methodToSynth;
+  if mOpt = "*" then
+    (* all *)
+    FilterMembers prog FilterConstructorMembers   
+  elif mOpt = "paramsOnly" then
+    (* only with parameters *)
+    FilterMembers prog FilterConstructorMembersWithParams 
+  else
+    let allMethods,neg = 
+      if mOpt.StartsWith("~") then
+        mOpt.Substring(1), true
+      else
+        mOpt, false
+    (* exactly one *)
+    let methods = allMethods.Split([|','|])
+    let lst = methods |> Array.fold (fun acc m -> 
+                                       let compName = m.Substring(0, m.LastIndexOf("."))
+                                       let methName = m.Substring(m.LastIndexOf(".") + 1)
+                                       let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
+                                       let mthd = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
+                                       (c,mthd) :: acc
+                                    ) []
+    if neg then
+      FilterMembers prog FilterConstructorMembers |> List.filter (fun e -> not (Utils.ListContains e lst))
+    else
+      lst
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =

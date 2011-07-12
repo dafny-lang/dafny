@@ -69,6 +69,7 @@ rule tokenize = parse
 | ":"      { COLON }
 | "::"     { COLONCOLON }
 | ","      { COMMA }
+| "?"      { QMARK }
 // Numberic constants
 | digit+        { INTEGER (System.Convert.ToInt32(lexeme lexbuf)) }
 // identifiers

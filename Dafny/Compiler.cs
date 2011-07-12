@@ -1375,10 +1375,19 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Mul:
             opString = "*";  break;
           case BinaryExpr.ResolvedOpcode.Div:
-            opString = "/";  break;
+            wr.Write("Dafny.Helpers.EuclideanDivision(");
+            TrParenExpr(e.E0);
+            wr.Write(", ");
+            TrExpr(e.E1);
+            wr.Write(")");
+            break;
           case BinaryExpr.ResolvedOpcode.Mod:
-            opString = "%";  break;
-
+            wr.Write("Dafny.Helpers.EuclideanModulus(");
+            TrParenExpr(e.E0);
+            wr.Write(", ");
+            TrExpr(e.E1);
+            wr.Write(")");
+            break;
           case BinaryExpr.ResolvedOpcode.SetEq:
           case BinaryExpr.ResolvedOpcode.SeqEq:
             callString = "Equals";  break;
