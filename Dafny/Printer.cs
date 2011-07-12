@@ -788,9 +788,10 @@ namespace Microsoft.Dafny {
         
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
-        wr.Write(e is SetDisplayExpr ? "{" : "[");
+        if (e is MultiSetDisplayExpr) wr.Write("multi");
+        wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "{" : "[");
         PrintExpressionList(e.Elements);
-        wr.Write(e is SetDisplayExpr ? "}" : "]");
+        wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "}" : "]");
         
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;

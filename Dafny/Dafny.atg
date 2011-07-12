@@ -518,6 +518,12 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        }
                                        ty = new SetType(gt[0]);
                                     .)
+  | "multiset"                      (. tok = t;  gt = new List<Type/*!*/>(); .)
+    GenericInstantiation<gt>        (. if (gt.Count != 1) {
+                                         SemErr("multiset type expects exactly one type argument");
+                                       }
+                                       ty = new MultiSetType(gt[0]);
+                                    .)
     
   | "seq"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
@@ -1251,11 +1257,14 @@ ConstAtomExpression<out Expression/*!*/ e>
 
 DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x;  List<Expression/*!*/>/*!*/ elements;
+     IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
      e = dummyExpr;
+     bool isMulti = false;
   .)
-  ( "{"                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
-      [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements); .)
+  ( [ "multi"  (. x = t; isMulti = true; .) ]
+    "{"                                        (. if (!isMulti) x = t;  elements = new List<Expression/*!*/>(); .)
+      [ Expressions<elements> ]                (. if (isMulti) e = new MultiSetDisplayExpr(x, elements);
+	                                                else e = new SetDisplayExpr(x, elements);.)
     "}"
   | "["                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
