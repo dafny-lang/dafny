@@ -1554,6 +1554,9 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         return new Bpl.OldExpr(expr.tok, IsTotal(e.E, etran));
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+        return IsTotal(e.E, etran);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
         return IsTotal(e.E, etran);
@@ -1699,6 +1702,9 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         return new Bpl.OldExpr(expr.tok, CanCallAssumption(e.E, etran));
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+        return CanCallAssumption(e.E, etran);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
         return CanCallAssumption(e.E, etran);
@@ -2034,6 +2040,9 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
+        CheckWellformed(e.E, options, locals, builder, etran.Old);
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran.Old);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
@@ -4057,7 +4066,7 @@ namespace Microsoft.Dafny {
 
       } else if (type is MultiSetType) {
         MultiSetType st = (MultiSetType)type;
-        // (forall t: BoxType :: { x[t] } 0 < x[t] ==> Unbox(t)-has-the-expected-type)
+        // $IsGoodMultiSet(x) && (forall t: BoxType :: { x[t] } 0 < x[t] ==> Unbox(t)-has-the-expected-type)
         Bpl.BoundVariable tVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$t#" + otherTmpVarCount, predef.BoxType));
         otherTmpVarCount++;
         Bpl.Expr t = new Bpl.IdentifierExpr(tok, tVar);
@@ -4067,9 +4076,10 @@ namespace Microsoft.Dafny {
         Bpl.Expr wh = GetWhereClause(tok, unboxT, st.Arg, etran);
         if (wh != null) {
           Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubT));
-          return new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(xSubT, wh));
+          return Bpl.Expr.And(FunctionCall(tok, BuiltinFunction.IsGoodMultiSet, Bpl.Type.Bool, x),
+                              new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(xSubT, wh)));
         }
-
+        return FunctionCall(tok, BuiltinFunction.IsGoodMultiSet, null, x);
       } else if (type is SeqType) {
         SeqType st = (SeqType)type;
         // (forall i: int :: { Seq#Index(x,i) }
@@ -4790,11 +4800,22 @@ namespace Microsoft.Dafny {
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(dtv.tok, dtv.Ctor.FullName, predef.DatatypeType);
           return new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
-            
+
         } else if (expr is OldExpr) {
           OldExpr e = (OldExpr)expr;
           return new Bpl.OldExpr(expr.tok, TrExpr(e.E));
-        
+
+        } else if (expr is MultiSetFormingExpr) {
+          MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+          if (e.E.Type is SetType) {
+            return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetFromSet, translator.TrType(cce.NonNull((SetType)e.E.Type).Arg), TrExpr(e.E));
+          } else if (e.E.Type is SeqType) {
+            return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetFromSeq, translator.TrType(cce.NonNull((SeqType)e.E.Type).Arg), TrExpr(e.E));
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();
+          }
+
+
         } else if (expr is FreshExpr) {
           FreshExpr e = (FreshExpr)expr;
           Bpl.Expr oldHeap = new Bpl.OldExpr(expr.tok, HeapExpr);
@@ -5453,6 +5474,9 @@ namespace Microsoft.Dafny {
       MultiSetEqual,
       MultiSetSubset,
       MultiSetDisjoint,
+      MultiSetFromSet,
+      MultiSetFromSeq,
+      IsGoodMultiSet,
 
       SeqLength,
       SeqEmpty,
@@ -5472,7 +5496,7 @@ namespace Microsoft.Dafny {
       Box,
       Unbox,
       IsCanonicalBoolBox,
-      
+
       IsGoodHeap,
       HeapSucc,
       
@@ -5574,6 +5598,18 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "MultiSet#Disjoint", Bpl.Type.Bool, args);
+        case BuiltinFunction.MultiSetFromSet:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "MultiSet#FromSet", predef.MultiSetType(tok, typeInstantiation), args);
+        case BuiltinFunction.MultiSetFromSeq:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "MultiSet#FromSeq", predef.MultiSetType(tok, typeInstantiation), args);
+        case BuiltinFunction.IsGoodMultiSet:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
         // avoiding this for now
         /*case BuiltinFunction.SetChoose:
           Contract.Assert(args.Length == 2);
@@ -6112,6 +6148,9 @@ namespace Microsoft.Dafny {
         return e.Arguments.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, p));
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
+        return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.E, n, p);
       } else if (expr is FreshExpr) {
         var e = (FreshExpr)expr;

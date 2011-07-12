@@ -2390,7 +2390,7 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         ResolveFunctionCallExpr(e, twoState, false);
-        
+
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         if (!twoState) {
@@ -2398,7 +2398,14 @@ namespace Microsoft.Dafny {
         }
         ResolveExpression(e.E, twoState);
         expr.Type = e.E.Type;
-        
+
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+        ResolveExpression(e.E, twoState);
+        if (!UnifyTypes(e.E.Type, new SetType(new InferredTypeProxy())) && !UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
+          Error(e.tok, "can only form a multiset from a seq or set.");
+        }
+        expr.Type = new MultiSetType(((CollectionType)e.E.Type).Arg);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
         if (!twoState) {

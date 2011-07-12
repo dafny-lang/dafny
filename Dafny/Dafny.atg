@@ -1208,6 +1208,7 @@ UnaryExpression<out Expression/*!*/ e>
   | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
   | DisplayExpr<out e>
+  | MultiSetExpr<out e>
   | ConstAtomExpression<out e>
     { Suffix<ref e> }
   )
@@ -1259,16 +1260,28 @@ DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
      e = dummyExpr;
-     bool isMulti = false;
   .)
-  ( [ "multi"  (. x = t; isMulti = true; .) ]
-    "{"                                        (. if (!isMulti) x = t;  elements = new List<Expression/*!*/>(); .)
-      [ Expressions<elements> ]                (. if (isMulti) e = new MultiSetDisplayExpr(x, elements);
-	                                                else e = new SetDisplayExpr(x, elements);.)
+  ( "{"                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
+      [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements);.)
     "}"
   | "["                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
     "]"
+  )
+  .
+MultiSetExpr<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
+     e = dummyExpr;
+  .)
+  "multiset"                                   (. x = t; .)
+  ( "{"                                        (. elements = new List<Expression/*!*/>(); .)
+      [ Expressions<elements> ]                (. e = new MultiSetDisplayExpr(x, elements);.)
+    "}"
+  | "("                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
+      Expression<out e>                        (. e = new MultiSetFormingExpr(x, e); .)
+    ")"
+  | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
   .
 

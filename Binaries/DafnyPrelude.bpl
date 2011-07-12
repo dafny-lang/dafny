@@ -100,8 +100,10 @@ axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
 
 type MultiSet T = [T]int;
 
-// ints are non-negative
-axiom (forall<T> o: T, ms: MultiSet T :: { ms[o] } 0 <= ms[o] );
+function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
+// ints are non-negative, used after havocing.
+axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) } 
+     $IsGoodMultiSet(ms) <==> (forall o: T :: { ms[o] } 0 <= ms[o]));
 
 function MultiSet#Empty<T>(): MultiSet T;
 axiom (forall<T> o: T :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
@@ -178,14 +180,12 @@ axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Disjoint(a,b) }
 // conversion to a multiset. each element in the original set has duplicity 1.
 function MultiSet#FromSet<T>(Set T): MultiSet T;
 axiom (forall<T> s: Set T, a: T :: { MultiSet#FromSet(s)[a] }
-  MultiSet#FromSet(s)[a] == 0 <==> !s[a] &&
-  MultiSet#FromSet(s)[a] == 1 <==> s[a]);
+  (MultiSet#FromSet(s)[a] == 0 <==> !s[a]) &&
+  (MultiSet#FromSet(s)[a] == 1 <==> s[a]));
 
-// avoiding this for now.
-//function Set#Choose<T>(Set T, TickType): T;
-//axiom (forall<T> a: Set T, tick: TickType :: { Set#Choose(a, tick) }
-//  a != Set#Empty() ==> a[Set#Choose(a, tick)]);
-
+// conversion to a multiset. each element in the original set has duplicity 1.
+function MultiSet#FromSeq<T>(Seq T): MultiSet T;
+// no axioms yet.
 
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------

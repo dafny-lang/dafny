@@ -2275,6 +2275,28 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class MultiSetFormingExpr : Expression
+  {
+    [Peer]
+    public readonly Expression E;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(E != null);
+    }
+
+    [Captured]
+    public MultiSetFormingExpr(IToken tok, Expression expr)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      cce.Owner.AssignSame(this, expr);
+      E = expr;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { yield return E; }
+    }
+  }
   public class FreshExpr : Expression {
     public readonly Expression E;
     [ContractInvariantMethod]
