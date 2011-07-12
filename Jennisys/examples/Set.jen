@@ -46,7 +46,6 @@ model SetNode {
     data * left * right
 
   invariant
-    left = null && right = null ==> elems = {data}
     elems = {data} + (left != null ? left.elems : {}) + (right != null ? right.elems : {})
     left != null  ==> forall e :: e in left.elems ==> e < data
     right != null ==> forall e :: e in right.elems ==> e > data

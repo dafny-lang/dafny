@@ -106,12 +106,17 @@ let PrintObjRefName o (env,ctx) =
   | NewObj(name, _) -> PrintGenSym name
   | _ -> failwith ("unresolved object ref: " + o.ToString())
 
+let CheckUnresolved c =
+  match c with 
+  | Unresolved(_) -> Logger.WarnLine "!!! There are some unresolved constants in the output file !!!"; c 
+  | _ -> c
+
 let PrintVarAssignments (heap,env,ctx) indent = 
   let idt = Indent indent
   heap |> Map.fold (fun acc (o,f) l ->
                       let objRef = PrintObjRefName o (env,ctx)
                       let fldName = PrintVarName f
-                      let value = TryResolve (env,ctx) l |> PrintConst
+                      let value = TryResolve (env,ctx) l |> CheckUnresolved |> PrintConst
                       acc + (sprintf "%s%s.%s := %s;" idt objRef fldName value) + newline
                    ) ""
 
@@ -135,23 +140,33 @@ let GenConstructorCode mthd body =
       "  }" + newline
   | _ -> ""
 
-// NOTE: insert here coto to say which methods to analyze
 let GetMethodsToAnalyze prog =
-  let m = Options.CONFIG.methodToSynth;
-  if m = "*" then
+  let mOpt = Options.CONFIG.methodToSynth;
+  if mOpt = "*" then
     (* all *)
     FilterMembers prog FilterConstructorMembers   
-  elif m = "paramsOnly" then
+  elif mOpt = "paramsOnly" then
     (* only with parameters *)
     FilterMembers prog FilterConstructorMembersWithParams 
   else
+    let allMethods,neg = 
+      if mOpt.StartsWith("~") then
+        mOpt.Substring(1), true
+      else
+        mOpt, false
     (* exactly one *)
-    let compName = m.Substring(0, m.LastIndexOf("."))
-    let methName = m.Substring(m.LastIndexOf(".") + 1)
-    let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
-    let m = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
-    [c, m]            
-  
+    let methods = allMethods.Split([|','|])
+    let lst = methods |> Array.fold (fun acc m -> 
+                                       let compName = m.Substring(0, m.LastIndexOf("."))
+                                       let methName = m.Substring(m.LastIndexOf(".") + 1)
+                                       let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
+                                       let mthd = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
+                                       (c,mthd) :: acc
+                                    ) []
+    if neg then
+      FilterMembers prog FilterConstructorMembers |> List.filter (fun e -> not (Utils.ListContains e lst))
+    else
+      lst
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =

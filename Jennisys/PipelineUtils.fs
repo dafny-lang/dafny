@@ -12,6 +12,8 @@ let dafnyVerifySuffix = "verify"
 let dafnyUnifSuffix = "unif"
 let dafnySynthFileNameTemplate = @"c:\tmp\jennisys-synth_###.dfy"
 
+let mutable lastDafnyExitCode = 0 //TODO: how to avoid this muttable state?
+
 let CreateEmptyModelFile modelFile = 
   use mfile = System.IO.File.CreateText(modelFile)
   fprintf mfile ""
@@ -29,6 +31,7 @@ let RunDafny inputFile modelFile =
     proc.StartInfo.WindowStyle <- System.Diagnostics.ProcessWindowStyle.Hidden
     assert proc.Start()
     proc.WaitForExit() 
+    lastDafnyExitCode <- proc.ExitCode
   } |> Async.RunSynchronously
   
 //  =======================================================
@@ -51,7 +54,6 @@ let RunDafnyProgram dafnyProgram suffix =
 /// Checks whether the given dafny program verifies
 //  =======================================================  
 let CheckDafnyProgram dafnyProgram suffix =
-  // TODO: also check whether Dafny produced any other errors (e.g. compilation errors, etc.)
   let models = RunDafnyProgram dafnyProgram suffix
   // if there are no models, verification was successful
-  models.Count = 0       
+  lastDafnyExitCode = 0 && models.Count = 0       

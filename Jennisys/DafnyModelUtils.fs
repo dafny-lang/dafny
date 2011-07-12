@@ -256,17 +256,20 @@ let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
     | [] -> (envMap,ctx)
 
   // reads stuff from [2]
-  let __ReadSetMembership (set_tuples: Model.FuncTuple list) (env,ctx) = 
+  let rec __ReadSetMembership (set_tuples: Model.FuncTuple list) (env,ctx) = 
     match set_tuples with
-    | ft :: rest when GetBool ft.Result -> 
-        let srcSetKey = GetLoc ft.Args.[0]
-        let srcSet = match TryFindSetInEnv env srcSetKey with
-                     | Some(s) -> s
-                     | None -> Set.empty
-        let elem = UnboxIfNeeded model ft.Args.[1]
-        let newEnv = env |> Map.add srcSetKey (SetConst(Set.add elem srcSet))
-        (newEnv,ctx)
-    | _ -> (env,ctx)
+    | ft :: rest -> 
+        if GetBool ft.Result then
+          let srcSetKey = GetLoc ft.Args.[0]
+          let srcSet = match TryFindSetInEnv env srcSetKey with
+                       | Some(s) -> s
+                       | None -> Set.empty
+          let elem = UnboxIfNeeded model ft.Args.[1]
+          let newEnv = env |> Map.add srcSetKey (SetConst(Set.add elem srcSet))
+          __ReadSetMembership rest (newEnv,ctx)
+        else
+          __ReadSetMembership rest (env,ctx)
+    | [] -> (env,ctx)
 
   let t_set_empty = Seq.toList (model.MkFunc("Set#Empty", 1).Apps)    
   let t_set = Seq.toList (model.MkFunc("[2]", 2).Apps)
