@@ -788,7 +788,7 @@ namespace Microsoft.Dafny {
         
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
-        if (e is MultiSetDisplayExpr) wr.Write("multi");
+        if (e is MultiSetDisplayExpr) wr.Write("multiset");
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "{" : "[");
         PrintExpressionList(e.Elements);
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "}" : "]");
@@ -887,12 +887,17 @@ namespace Microsoft.Dafny {
         PrintExpressionList(e.Args);
         wr.Write(")");
         if (parensNeeded) { wr.Write(")"); }
-      
+
       } else if (expr is OldExpr) {
         wr.Write("old(");
         PrintExpression(((OldExpr)expr).E);
         wr.Write(")");
-      
+
+      } else if (expr is MultiSetFormingExpr) {
+        wr.Write("multiset(");
+        PrintExpression(((MultiSetFormingExpr)expr).E);
+        wr.Write(")");
+
       } else if (expr is FreshExpr) {
         wr.Write("fresh(");
         PrintExpression(((FreshExpr)expr).E);
