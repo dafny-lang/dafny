@@ -1570,7 +1570,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			Term(out e1);
 			e = new BinaryExpr(x, op, e0, e1);
 			if (op == BinaryExpr.Opcode.Disjoint)
-			acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+			  acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
 			
 			while (StartOf(16)) {
 				if (chain == null) {
@@ -1603,36 +1603,35 @@ List<Expression/*!*/>/*!*/ decreases) {
 				   break;
 				 case BinaryExpr.Opcode.Neq:
 				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
-				if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
-				                              hasSeenNeq = true;  break;
-				                            case BinaryExpr.Opcode.Lt:
-				                            case BinaryExpr.Opcode.Le:
-				                              if (kind == 0) { kind = 1; }
-				                              else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
-				                              break;
-				                            case BinaryExpr.Opcode.Gt:
-				                            case BinaryExpr.Opcode.Ge:
-				                              if (kind == 0) { kind = 2; }
-				                              else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
-				                              break;
-				                            case BinaryExpr.Opcode.Disjoint:
-				                              if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
-				break;
-				                            default:
-				                              SemErr(x, "this operator cannot be part of a chain");
-				                              kind = 3;  break;
-				                          }
-				                       
+				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
+				   hasSeenNeq = true;  break;
+				 case BinaryExpr.Opcode.Lt:
+				 case BinaryExpr.Opcode.Le:
+				   if (kind == 0) { kind = 1; }
+				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Gt:
+				 case BinaryExpr.Opcode.Ge:
+				   if (kind == 0) { kind = 2; }
+				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Disjoint:
+				   if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
+				   break;
+				 default:
+				   SemErr(x, "this operator cannot be part of a chain");
+				   kind = 3;  break;
+				}
+				
 				Term(out e1);
 				ops.Add(op); chain.Add(e1);
-				if (op == BinaryExpr.Opcode.Disjoint)
-				{
+				if (op == BinaryExpr.Opcode.Disjoint) {
 				  e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
-				acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
-				    }
-				 else
-				   e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
-				                         
+				  acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
+				}
+				else
+				  e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+				
 			}
 		}
 		if (chain != null) {
@@ -1916,8 +1915,11 @@ List<Expression/*!*/>/*!*/ decreases) {
 				} else SynErr(136);
 			} else if (la.kind == 97) {
 				Get();
-				Expression(out ee);
-				anyDots = true;  e1 = ee; 
+				anyDots = true; 
+				if (StartOf(8)) {
+					Expression(out ee);
+					e1 = ee; 
+				}
 			} else SynErr(137);
 			if (multipleIndices != null) {
 			 e = new MultiSelectExpr(x, e, multipleIndices);
@@ -1930,7 +1932,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			  }
 			  Contract.Assert(anyDots || e0 != null);
 			  if (anyDots) {
-			    Contract.Assert(e0 != null || e1 != null);
+			    //Contract.Assert(e0 != null || e1 != null);
 			    e = new SeqSelectExpr(x, false, e, e0, e1);
 			  } else if (e1 == null) {
 			    Contract.Assert(e0 != null);

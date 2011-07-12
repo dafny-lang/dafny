@@ -4674,6 +4674,7 @@ namespace Microsoft.Dafny {
             if (e0 != null) {
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqDrop, elType, seq, e0);
             }
+            // if e0 == null && e1 == null, then we have the identity operation seq[..];
             return seq;
           }
         

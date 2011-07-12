@@ -1354,7 +1354,9 @@ Suffix<ref Expression/*!*/ e>
                                                .)
           }
         )
-      | ".." Expression<out ee>                (. anyDots = true;  e1 = ee; .)
+      | ".."                                   (. anyDots = true; .)
+	    [ Expression<out ee>                   (. e1 = ee; .)
+	    ]
       )
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
@@ -1367,7 +1369,7 @@ Suffix<ref Expression/*!*/ e>
            }
            Contract.Assert(anyDots || e0 != null);
            if (anyDots) {
-             Contract.Assert(e0 != null || e1 != null);
+             //Contract.Assert(e0 != null || e1 != null);
              e = new SeqSelectExpr(x, false, e, e0, e1);
            } else if (e1 == null) {
              Contract.Assert(e0 != null);

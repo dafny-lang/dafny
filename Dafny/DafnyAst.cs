@@ -2113,7 +2113,6 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
       Contract.Invariant(!SelectOne || E1 == null);
-      Contract.Invariant(E0 != null || E1 != null);
     }
 
     public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1)
@@ -2121,7 +2120,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(seq != null);
       Contract.Requires(!selectOne || e1 == null);
-      Contract.Requires(e0 != null || e1 != null);
 
       SelectOne = selectOne;
       Seq = seq;

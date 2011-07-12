@@ -93,6 +93,9 @@ class A {
     assert y[8] == 30;
     assert y[90] + y[91] + y[0] + 20 == y.Length;
     assert y[93] == 24;  // error (it's 25)
+
+    y[..] := 4; // assign to all elements.
+    assert forall i :: 0 <= i < y.Length ==> y[i] == 4;
   }
 }
 

@@ -487,20 +487,20 @@ Execution trace:
 Array.dfy(95,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Array.dfy(107,6): Error: insufficient reads clause to read array element
+Array.dfy(110,6): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(115,6): Error: insufficient reads clause to read array element
+Array.dfy(118,6): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(131,6): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(134,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(138,6): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(141,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 
