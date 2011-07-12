@@ -330,7 +330,7 @@ let GetInvariantsAsList comp =
   | Component(Class(_,_,members), Model(_,_,_,_,inv), _) -> 
       let clsInvs = members |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
       List.append (SplitIntoConjunts inv) clsInvs
-  | _ -> failwith ("unexpected kinf of component: %s" + comp.ToString())
+  | _ -> failwithf "unexpected kind of component: %O" comp
 
 //  ==================================
 /// Returns variable name

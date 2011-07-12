@@ -153,6 +153,7 @@ let GetUnificationsForMethod comp m (heap,env,ctx) =
 /// path.  It starts from the given object, and follows the backpointers
 /// until it reaches the root ("this")
 //  ========================================================================= 
+let objRef2ExprCache = new System.Collections.Generic.Dictionary<Const, Expr>()
 let GetObjRefExpr o (heap,env,ctx) = 
   let rec __GetObjRefExpr o (heap,env,ctx) visited = 
     if Set.contains o visited then 
@@ -173,7 +174,14 @@ let GetObjRefExpr o (heap,env,ctx) =
           let backPointers = heap |> Map.filter (fun (_,_) l -> l = o) |> Map.toList
           __fff backPointers 
   (* --- function body starts here --- *)
-  __GetObjRefExpr o (heap,env,ctx) (Set.empty)
+  if objRef2ExprCache.ContainsKey(o) then
+    Some(objRef2ExprCache.[o])
+  else
+      let res = __GetObjRefExpr o (heap,env,ctx) (Set.empty)
+      match res with 
+      | Some(e) -> objRef2ExprCache.Add(o, e)
+      | None -> ()
+      res
 
 //  =======================================================
 /// Applies given unifications onto the given heap/env/ctx
@@ -253,6 +261,10 @@ let VerifySolution prog comp mthd (heap,env,ctx) =
 
 let TryInferConditionals prog comp m unifs (heap,env,ctx) = 
   let heap2,env2,ctx2 = ApplyUnifications prog comp m unifs (heap,env,ctx) false
+  // get expressions to evaluate:
+  //   - go through all objects on the heap and assert its invariant
+  //   - add pre and post conditions
+
   Some(heap2,env2,ctx2)
    
 //  ============================================================================
@@ -289,9 +301,38 @@ let AnalyzeConstructor prog comp m =
         Some(heap,env,ctx)
       else 
         Logger.InfoLine "!!! NOT VERIFIED !!!"
+        Logger.InfoLine "Trying to infer conditionals"
         TryInferConditionals prog comp m unifs (heap,env,ctx)
     else
       Some(heap,env,ctx)
+
+let GetMethodsToAnalyze prog =
+  let mOpt = Options.CONFIG.methodToSynth;
+  if mOpt = "*" then
+    (* all *)
+    FilterMembers prog FilterConstructorMembers   
+  elif mOpt = "paramsOnly" then
+    (* only with parameters *)
+    FilterMembers prog FilterConstructorMembersWithParams 
+  else
+    let allMethods,neg = 
+      if mOpt.StartsWith("~") then
+        mOpt.Substring(1), true
+      else
+        mOpt, false
+    (* exactly one *)
+    let methods = allMethods.Split([|','|])
+    let lst = methods |> Array.fold (fun acc m -> 
+                                       let compName = m.Substring(0, m.LastIndexOf("."))
+                                       let methName = m.Substring(m.LastIndexOf(".") + 1)
+                                       let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
+                                       let mthd = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
+                                       (c,mthd) :: acc
+                                    ) []
+    if neg then
+      FilterMembers prog FilterConstructorMembers |> List.filter (fun e -> not (Utils.ListContains e lst))
+    else
+      lst
   
 
 // ============================================================================

@@ -97,7 +97,7 @@ let PrintAllocNewObjects (heap,env,ctx) indent =
       |> Set.fold (fun acc newObjConst ->
                     match newObjConst with
                     | NewObj(name, Some(tp)) -> acc + (sprintf "%svar %s := new %s;%s" idt (PrintGenSym name) (PrintType tp) newline)
-                    | _ -> failwith ("NewObj doesn't have a type: " + newObjConst.ToString())
+                    | _ -> failwithf "NewObj doesn't have a type: %O" newObjConst
                   ) ""
 
 let PrintObjRefName o (env,ctx) = 
@@ -139,34 +139,6 @@ let GenConstructorCode mthd body =
       body + 
       "  }" + newline
   | _ -> ""
-
-let GetMethodsToAnalyze prog =
-  let mOpt = Options.CONFIG.methodToSynth;
-  if mOpt = "*" then
-    (* all *)
-    FilterMembers prog FilterConstructorMembers   
-  elif mOpt = "paramsOnly" then
-    (* only with parameters *)
-    FilterMembers prog FilterConstructorMembersWithParams 
-  else
-    let allMethods,neg = 
-      if mOpt.StartsWith("~") then
-        mOpt.Substring(1), true
-      else
-        mOpt, false
-    (* exactly one *)
-    let methods = allMethods.Split([|','|])
-    let lst = methods |> Array.fold (fun acc m -> 
-                                       let compName = m.Substring(0, m.LastIndexOf("."))
-                                       let methName = m.Substring(m.LastIndexOf(".") + 1)
-                                       let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
-                                       let mthd = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
-                                       (c,mthd) :: acc
-                                    ) []
-    if neg then
-      FilterMembers prog FilterConstructorMembers |> List.filter (fun e -> not (Utils.ListContains e lst))
-    else
-      lst
 
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =
