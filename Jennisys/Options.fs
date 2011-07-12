@@ -12,12 +12,14 @@ type Config = {
    inputFilename: string;
    methodToSynth: string;
    verifySolutions: bool;
+   timeout: int;
 }
 
 let defaultConfig: Config = {
   inputFilename   = "";
   methodToSynth   = "*";
   verifySolutions = true;
+  timeout         = 0;
 }
 
 let mutable CONFIG = defaultConfig
@@ -47,6 +49,24 @@ let ParseCmdLineArgs args =
       else
         let x = __StripSwitches splits.[0]
         (x, "")
+
+  let __CheckNonEmpty value optName =
+    if value = "" then raise (InvalidCmdLineArg("A value for option " + optName + " must not be empty"))
+
+  let __CheckInt value optName =
+    try 
+      System.Int32.Parse value
+    with 
+      | ex -> raise (InvalidCmdLineArg("A value for option " + optName + " must be a boolean"))
+
+  let __CheckBool value optName =
+    if value = "" then
+      true
+    else
+      try 
+        System.Boolean.Parse value
+      with 
+        | ex -> raise (InvalidCmdLineArg("A value for option " + optName + " must be an integer"))
                
   let rec __Parse args cfg =
     match args with
@@ -54,14 +74,29 @@ let ParseCmdLineArgs args =
         let opt,value = __Split fs
         match opt with
         | "method"    -> 
-            if value = "" then raise (InvalidCmdLineArg("Must provide method name"))
+            __CheckNonEmpty value opt
             __Parse rest { cfg with methodToSynth = value }
         | "verifySol" -> 
-            __Parse rest { cfg with verifySolutions = true }
+            let b = __CheckBool value opt
+            __Parse rest { cfg with verifySolutions = b }
+        | "timeout" ->
+            let t = __CheckInt value opt
+            __Parse rest { cfg with timeout = t }
         | "" -> 
             __Parse rest { cfg with inputFilename = value }
         | _ -> 
             raise (InvalidCmdLineOption("Unknown option: " + opt))
-    | [] -> cfg    
+    | [] -> cfg   
+    
+  let __CheckBool value optName =
+    if value = "" then
+      true
+    else
+      try 
+        System.Boolean.Parse value
+      with 
+        | ex -> raise (InvalidCmdLineArg("Option " + optName " must be boolean"))
+
+  (* --- function body starts here --- *)           
   CONFIG <- __Parse args defaultConfig
 

@@ -27,7 +27,7 @@ let RunDafny inputFile modelFile =
   async {
     use proc = new System.Diagnostics.Process()
     proc.StartInfo.FileName  <- @"c:\tmp\StartDafny-jen.bat"
-    proc.StartInfo.Arguments <- "/mv:" + modelFile + " " + inputFile
+    proc.StartInfo.Arguments <- (sprintf "/mv:%s /timeLimit:%d %s" modelFile Options.CONFIG.timeout inputFile)
     proc.StartInfo.WindowStyle <- System.Diagnostics.ProcessWindowStyle.Hidden
     assert proc.Start()
     proc.WaitForExit() 

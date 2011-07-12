@@ -333,6 +333,13 @@ let GetInvariantsAsList comp =
   | _ -> failwith ("unexpected kinf of component: %s" + comp.ToString())
 
 //  ==================================
+/// Returns variable name
+//  ==================================
+let GetVarName var =
+  match var with
+  | Var(name,_) -> name
+
+//  ==================================
 /// Returns all members of a component
 //  ==================================
 let GetMembers comp =
