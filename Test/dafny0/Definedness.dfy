@@ -44,17 +44,17 @@ class SoWellformed {
     c := true;
   }
 
-  method P(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed);
+  method P(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
     requires next != null;
     modifies this;
     ensures next.xyz < 100;  // error: may not be well-defined (if body sets next to null)
 
-  method Q(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed);
+  method Q(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
     requires next != null;
     modifies s;
     ensures next.xyz < 100;  // error: may not be well-defined (if this in s and body sets next to null)
 
-  method R(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed);
+  method R(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
     requires next != null && this !in s;
     modifies s;
     ensures next.xyz < 100;  // fine
@@ -175,7 +175,7 @@ class StatementTwoShoes {
   }
 
   function G(w: int): int { 5 }
-  function method H(x: int): int;
+  function method H(x: int): int
 
   method V(s: set<StatementTwoShoes>, a: int, b: int)
     modifies s;

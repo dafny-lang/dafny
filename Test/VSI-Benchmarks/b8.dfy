@@ -6,13 +6,13 @@
 
 class Queue<T> {
   var contents: seq<T>;
-  method Init();
+  method Init()
     modifies this;
     ensures |contents| == 0;
-  method Enqueue(x: T);
+  method Enqueue(x: T)
     modifies this;
     ensures contents == old(contents) + [x];
-  method Dequeue() returns (x: T);
+  method Dequeue() returns (x: T)
     requires 0 < |contents|;
     modifies this;
     ensures contents == old(contents)[1..] && x == old(contents)[0];
@@ -28,7 +28,7 @@ class Queue<T> {
 
 
 class Glossary {
-  method Sort(q: Queue<Word>) returns (r: Queue<Word>, perm:seq<int>);
+  method Sort(q: Queue<Word>) returns (r: Queue<Word>, perm:seq<int>)
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);
@@ -149,29 +149,29 @@ class Glossary {
   
 class Word
 {
-  function AtMost(w:Word) :bool;
+  function AtMost(w: Word): bool
 }
   
 class ReaderStream {
-  ghost var footprint:set<object>;
-  var isOpen:bool;
+  ghost var footprint: set<object>;
+  var isOpen: bool;
   
-  function Valid():bool
-  reads this, footprint;
+  function Valid(): bool
+    reads this, footprint;
   {
     null !in footprint && this in footprint && isOpen
   }
   
   method Open() //reading
-  modifies this;
-  ensures Valid() && fresh(footprint -{this});
+    modifies this;
+    ensures Valid() && fresh(footprint -{this});
   {
     footprint := {this}; 
     isOpen :=true;
   }
   
-  method GetWord()returns(x:Word)
-    requires Valid() ;
+  method GetWord() returns (x: Word)
+    requires Valid();
     modifies footprint;
     ensures Valid() && fresh(footprint - old(footprint));
   {
@@ -190,8 +190,8 @@ class WriterStream {
   var stream:seq<int>; 
   var isOpen:bool;
   
-  function Valid():bool
-  reads this, footprint;
+  function Valid(): bool
+    reads this, footprint;
   {
     null !in footprint && this in footprint && isOpen
   }

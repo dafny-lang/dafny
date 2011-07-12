@@ -163,7 +163,7 @@ function mapF(xs: List): List
   case Nil => Nil
   case Cons(y, ys) => Cons(HardcodedUninterpretedFunction(y), mapF(ys))
 }
-function HardcodedUninterpretedFunction(n: Nat): Nat;
+function HardcodedUninterpretedFunction(n: Nat): Nat
 
 function takeWhileAlways(hardcodedResultOfP: Bool, xs: List): List
 {
@@ -195,7 +195,7 @@ function filterP(xs: List): List
     then Cons(y, filterP(ys))
     else filterP(ys)
 }
-function HardcodedUninterpretedPredicate(n: Nat): Bool;
+function HardcodedUninterpretedPredicate(n: Nat): Bool
 
 function insort(n: Nat, xs: List): List
 {

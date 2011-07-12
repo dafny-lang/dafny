@@ -29,7 +29,7 @@ class UltraFilter<G> {
   }
 
   // Dafny currently does not have a set comprehension expression, so this method stub will have to do
-  method H(f: set<set<G>>, S: set<G>, M: set<G>) returns (h: set<set<G>>);
+  method H(f: set<set<G>>, S: set<G>, M: set<G>) returns (h: set<set<G>>)
     ensures (forall X :: X in h <==> M + X in f);
 
   method Lemma_HIsFilter(h: set<set<G>>, f: set<set<G>>, S: set<G>, M: set<G>)

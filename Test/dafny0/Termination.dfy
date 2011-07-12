@@ -87,7 +87,7 @@ class Termination {
     }
   }
 
-  method Traverse<T>(a: List<T>) returns (val: T, b: List<T>);
+  method Traverse<T>(a: List<T>) returns (val: T, b: List<T>)
     requires a != List.Nil;
     ensures a == List.Cons(val, b);
 }

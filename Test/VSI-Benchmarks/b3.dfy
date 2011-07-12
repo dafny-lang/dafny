@@ -12,13 +12,13 @@
 
 class Queue<T> {
   var contents: seq<T>;
-  method Init();
+  method Init()
     modifies this;
     ensures |contents| == 0;
-  method Enqueue(x: T);
+  method Enqueue(x: T)
     modifies this;
     ensures contents == old(contents) + [x];
-  method Dequeue() returns (x: T);
+  method Dequeue() returns (x: T)
     requires 0 < |contents|;
     modifies this;
     ensures contents == old(contents)[1..] && x == old(contents)[0];
@@ -33,7 +33,7 @@ class Queue<T> {
 }
 
 class Comparable {
-  function AtMost(c: Comparable): bool;
+  function AtMost(c: Comparable): bool
     reads this, c;
 }
 
@@ -96,7 +96,6 @@ class Benchmark3 {
   }
   
   
-
   method RemoveMin(q: Queue<int>) returns (m: int, k: int) //m is the min, k is m's index in q
     requires q != null && |q.contents| != 0;
     modifies q;
