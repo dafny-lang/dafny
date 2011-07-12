@@ -188,7 +188,7 @@ let GetObjRefExpr o (heap,env,ctx) =
 
 let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) = 
   let __CheckUnif o f e idx =
-    let objRefExpr = GetObjRefExpr o (heap,env,ctx) |> Utils.ExtractOptionMsg ("Couldn't find a path from this to " + (PrintObjRefName o (env,ctx)))
+    let objRefExpr = GetObjRefExpr o (heap,env,ctx) |> Utils.ExtractOptionMsg ("Couldn't find a path from 'this' to " + (PrintObjRefName o (env,ctx)))
     let fldName = PrintVarName f                             
     let lhs = Dot(objRefExpr, fldName)
     let assertionExpr = match f with
@@ -211,7 +211,7 @@ let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) =
                                                 // change the value to expression
                                                 acc |> Map.add (o,f) (ExprConst(e))
                                               else
-                                                Logger.DebugLine " DOESN'T HOLDS"
+                                                Logger.DebugLine " DOESN'T HOLD"
                                                 // don't change the value
                                                 acc |> Map.add (o,f) l
                                             else 
@@ -222,7 +222,7 @@ let rec UpdateHeapEnv prog comp mthd unifs (heap,env,ctx) =
                                                           Logger.DebugLine " HOLDS"
                                                           ExprConst(e) :: __UnifyOverLst rest (cnt+1)
                                                         else 
-                                                          Logger.DebugLine " DOESN'T HOLDS"
+                                                          Logger.DebugLine " DOESN'T HOLD"
                                                           lstElem :: __UnifyOverLst rest (cnt+1)
                                                     | lstElem :: rest ->
                                                         lstElem :: __UnifyOverLst rest (cnt+1)
