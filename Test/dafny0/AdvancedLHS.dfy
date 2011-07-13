@@ -34,7 +34,6 @@ class C {
 
     if (a != null && 10 <= a.Length) {
       a[2] := new C;
-      a[4..8] := null;
       a[3] := *;
     }
     if (b != null && 10 <= b.Length0 && 20 <= b.Length1) {

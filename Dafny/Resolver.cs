@@ -1304,15 +1304,14 @@ namespace Microsoft.Dafny {
           // LHS is fine, provided the "sequence" is really an array
           if (lhsResolvedSuccessfully) {
             Contract.Assert(slhs.Seq.Type != null);
-            Type elementType = new InferredTypeProxy();
-            if (!UnifyTypes(slhs.Seq.Type, builtIns.ArrayType(1, elementType))) {
+            if (!UnifyTypes(slhs.Seq.Type, builtIns.ArrayType(1, new InferredTypeProxy()))) {
               Error(slhs.Seq, "LHS of array assignment must denote an array element (found {0})", slhs.Seq.Type);
             }
             if (specContextOnly) {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
-            if (!slhs.SelectOne && !(s.Rhs is ExprRhs)) {
-              Error(stmt, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
+            if (!slhs.SelectOne) {
+              Error(stmt, "cannot assign to multiple array elements (try a foreach).");
             }
           }
 
@@ -1328,43 +1327,43 @@ namespace Microsoft.Dafny {
         s.IsGhost = lvalueIsGhost;
         Type lhsType = s.Lhs.Type;
         if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-          Contract.Assert(lhsType.IsArrayType);
-          lhsType = UserDefinedType.ArrayElementType(lhsType);
-        }
-        if (s.Rhs is ExprRhs) {
-          ExprRhs rr = (ExprRhs)s.Rhs;
-          ResolveExpression(rr.Expr, true);
-          if (!lvalueIsGhost) {
-            CheckIsNonGhost(rr.Expr);
-          }
-          Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(lhsType, rr.Expr.Type)) {
-            Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
-          }
-        } else if (s.Rhs is TypeRhs) {
-          TypeRhs rr = (TypeRhs)s.Rhs;
-          Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
-          if (!lvalueIsGhost) {
-            if (rr.ArrayDimensions != null) {
-              foreach (var dim in rr.ArrayDimensions) {
-                CheckIsNonGhost(dim);
-              }
-            }
-            if (rr.InitCall != null) {
-              foreach (var arg in rr.InitCall.Args) {
-                CheckIsNonGhost(arg);
-              }
-            }
-          }
-          if (!UnifyTypes(lhsType, t)) {
-            Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
-          }
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
+          Error(stmt, "cannot assign to multiple array elements (try a foreach).");
+          //lhsType = UserDefinedType.ArrayElementType(lhsType);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          if (s.Rhs is ExprRhs) {
+            ExprRhs rr = (ExprRhs)s.Rhs;
+            ResolveExpression(rr.Expr, true);
+            if (!lvalueIsGhost) {
+              CheckIsNonGhost(rr.Expr);
+            }
+            Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
+            if (!UnifyTypes(lhsType, rr.Expr.Type)) {
+              Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
+            }
+          } else if (s.Rhs is TypeRhs) {
+            TypeRhs rr = (TypeRhs)s.Rhs;
+            Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
+            if (!lvalueIsGhost) {
+              if (rr.ArrayDimensions != null) {
+                foreach (var dim in rr.ArrayDimensions) {
+                  CheckIsNonGhost(dim);
+                }
+              }
+              if (rr.InitCall != null) {
+                foreach (var arg in rr.InitCall.Args) {
+                  CheckIsNonGhost(arg);
+                }
+              }
+            }
+            if (!UnifyTypes(lhsType, t)) {
+              Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
+            }
+          } else if (s.Rhs is HavocRhs) {
+            // nothing else to do
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          }
         }
-        
       } else if (stmt is VarDecl) {
         VarDecl s = (VarDecl)stmt;
         if (s.OptionalType != null) {
@@ -2340,7 +2339,7 @@ namespace Microsoft.Dafny {
       
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        ResolveSeqSelectExpr(e, twoState, false);
+        ResolveSeqSelectExpr(e, twoState, true);
 
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
@@ -3554,7 +3553,7 @@ namespace Microsoft.Dafny {
         if (e.SelectOne) {
           e.Type = elementType;
         } else {
-          e.Type = e.Seq.Type;
+          e.Type = new SeqType(elementType);
         }
       }
     }
