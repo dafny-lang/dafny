@@ -39,7 +39,7 @@ type Expr =
   | UpdateExpr of Expr * Expr * Expr
   | SequenceExpr of Expr list
   | SeqLength of Expr
-  | SetExpr of Expr list
+  | SetExpr of Expr list //TODO: maybe this should really be a set instead of a list
   | ForallExpr of VarDecl list * Expr
 
 type Stmt =
@@ -77,6 +77,5 @@ type Const =
   | NoneConst
   | ThisConst  of (* loc id *) string * Type option
   | NewObj     of (* loc id *) string * Type option
-  | VarConst   of (* loc id *) string * Type option
   | ExprConst  of Expr
   | Unresolved of (* loc id *) string 

@@ -97,7 +97,7 @@ let GetUnifications expr args (heap,env,ctx) =
     builder {
       let! argsOnly = IsArgsOnly args e |> Utils.BoolToOption
       let! notAlreadyAdded = Map.tryFind e unifMap |> Utils.IsNoneOption |> Utils.BoolToOption
-      let! v = Eval (heap,env,ctx) e                       
+      let! v = try Some(Eval (heap,env,ctx) true e |> Expr2Const) with ex -> None
       Logger.DebugLine ("      - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v));
       return Map.add e v unifMap
     }
@@ -267,7 +267,7 @@ let TryInferConditionals prog comp m unifs (heap,env,ctx) =
   //   - add pre and post conditions
   //   - go through all objects on the heap and assert its invariant  
   let pre,post = GetMethodPrePost m
-  let prepostExpr = post |> RewriteMethodArgs (GetMethodArgs m) //TODO: do we need the "pre" here as well?
+  let prepostExpr = post //TODO: do we need the "pre" here as well?
   let heapObjs = heap |> Map.fold (fun acc (o,_) _ -> acc |> Set.add o) Set.empty
   let expr = heapObjs |> Set.fold (fun acc o -> 
                                      let receiverOpt = GetObjRefExpr o (heap,env,ctx) 
@@ -283,7 +283,7 @@ let TryInferConditionals prog comp m unifs (heap,env,ctx) =
                                   ) prepostExpr
   expr |> SplitIntoConjunts |> List.iter (fun e -> printfn "%s" (PrintExpr 0 e); printfn "")
   // now evaluate and see what's left
-  let c = Eval (heap,env,ctx) expr
+  let c = Eval (heap2,env2,ctx2) false expr
   Some(heap2,env2,ctx2)
    
 //  ============================================================================

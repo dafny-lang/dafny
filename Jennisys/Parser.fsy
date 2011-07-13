@@ -89,7 +89,7 @@ BlockStmt:
 
 Member:
     | VAR VarDecl                            { Field($2) }
-    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, $4, $5, true) }
+    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, RewriteVars (GetSigVars $3) $4, RewriteVars (GetSigVars $3) $5, true) }
     | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5, false) }
 	  | INVARIANT ExprList                     { Invariant($2) }
 
@@ -188,7 +188,7 @@ Expr100:
   | LBRACKET ExprList RBRACKET               { SequenceExpr($2) }
   | LCURLY ExprList RCURLY                   { SetExpr($2) }
   | VERTBAR Expr VERTBAR                     { SeqLength($2) }
-  | FORALL VarDeclList COLONCOLON Expr       { ForallExpr($2, $4) }
+  | FORALL VarDeclList COLONCOLON Expr       { ForallExpr($2, RewriteVars $2 $4) }
 
 StarExpr:
   | STAR                  { Star }

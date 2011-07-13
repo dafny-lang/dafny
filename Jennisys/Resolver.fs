@@ -67,11 +67,12 @@ let Resolve (env,ctx) cst =
 //  =================================================================
 /// Evaluates a given expression with respect to a given heap/env/ctx       
 //  =================================================================
-let Eval (heap,env,ctx) expr = 
+let Eval (heap,env,ctx) resolveVars expr = 
   let rec __EvalResolver expr = 
     match expr with
-    | VarLiteral(id) -> ExprConst(expr)
+    | VarLiteral(id) when not resolveVars -> ExprConst(expr)
     | IdLiteral("this") -> GetThisLoc env
+    | VarLiteral(id)
     | IdLiteral(id) ->
         match TryResolve (env,ctx) (Unresolved(id)) with 
         | Unresolved(_) -> __EvalResolver (Dot(IdLiteral("this"), id))
@@ -84,8 +85,16 @@ let Eval (heap,env,ctx) expr =
         | _ :: _ -> failwithf "can't evaluate expression deterministically: %s.%s resolves to multiple locations." (PrintConst discr) str
         | [] -> failwithf "can't find value for %s.%s" (PrintConst discr) str
     | _ -> failwith "NOT IMPLEMENTED YET"
-  try 
-    let unresolvedConst = EvalSym (fun e -> __EvalResolver e |> Resolve (env,ctx)) expr
-    Some(TryResolve (env,ctx) unresolvedConst)
-  with
-    ex -> None
+//  try 
+  EvalSym (fun e -> __EvalResolver e |> Resolve (env,ctx) |> Const2Expr) expr
+//                                     ccc |> Const2Expr
+//                                     match ccc with
+//                                     | ExprConst(eee) -> match Eval (heap,env,ctx) eee with
+//                                                         | Some(c) -> c
+//                                                         | None -> ccc
+//                                     | _ -> ccc
+//                                  ) expr
+    
+    //Some(TryResolve (env,ctx) unresolvedConst)
+//  with
+//    ex -> None
