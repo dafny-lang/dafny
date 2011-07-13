@@ -15,17 +15,19 @@ let rec VisitExpr visitorFunc expr acc =
   match expr with
   | IntLiteral(_)
   | BoolLiteral(_)
-  | IdLiteral(_)
+  | VarLiteral(_)
+  | IdLiteral(_)  
   | Star                             -> acc |> visitorFunc expr
-  | Dot(e, _)                        -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | SelectExpr(e1, e2)               -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
-  | UpdateExpr(e1, e2, e3)           -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2 |> VisitExpr visitorFunc e3
-  | SequenceExpr(exs) | SetExpr(exs) -> exs |> List.fold (fun acc2 e -> acc2 |> VisitExpr visitorFunc e) (visitorFunc expr acc)
+  | Dot(e, _)
+  | ForallExpr(_,e)                  
+  | UnaryExpr(_,e)                   
   | SeqLength(e)                     -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | ForallExpr(_,e)                  -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
-  | UnaryExpr(_,e)                   -> acc |> visitorFunc expr |> VisitExpr visitorFunc e
+  | SelectExpr(e1, e2)               
   | BinaryExpr(_,_,e1,e2)            -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
-  | IteExpr(c,e1,e2)                 -> acc |> visitorFunc expr |> VisitExpr visitorFunc c |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2
+  | IteExpr(e1,e2,e3)                 
+  | UpdateExpr(e1,e2,e3)             -> acc |> visitorFunc expr |> VisitExpr visitorFunc e1 |> VisitExpr visitorFunc e2 |> VisitExpr visitorFunc e3
+  | SequenceExpr(exs) | SetExpr(exs) -> exs |> List.fold (fun acc2 e -> acc2 |> VisitExpr visitorFunc e) (visitorFunc expr acc)
+  
 
 // ------------------------------- End Visitor Stuff -------------------------------------------
 
@@ -33,110 +35,155 @@ exception EvalFailed
 
 let DefaultResolver e = ExprConst(e)
 
-let rec EvalSym resolverFunc expr = 
-  match expr with
-  | IntLiteral(n) -> IntConst(n)
-  | IdLiteral(_) | Dot(_) -> resolverFunc expr
-  | SeqLength(e) -> 
-      match EvalSym resolverFunc e with
-      | SeqConst(clist) -> IntConst(List.length clist)
-      | _ -> resolverFunc expr
-  | SequenceExpr(elist) -> 
-      let clist = elist |> List.fold (fun acc e -> EvalSym resolverFunc e :: acc) [] |> List.rev
-      SeqConst(clist)
-  | SelectExpr(lst, idx) ->
-      match EvalSym resolverFunc lst, EvalSym resolverFunc idx with
-      | SeqConst(clist), IntConst(n) -> clist.[n] 
-      | _ -> resolverFunc expr
-  | UpdateExpr(lst,idx,v) ->
-      match EvalSym resolverFunc lst, EvalSym resolverFunc idx, EvalSym resolverFunc v with
-      | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n (c) clist)
-      | _ -> resolverFunc expr
-  | BinaryExpr(_,op,e1,e2) ->
-      match op with
-      | "=" ->
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 = b2)
-          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 = n2)
-          | ExprConst(e1), ExprConst(e2)   -> BoolConst(e1 = e2)
-          | _ -> resolverFunc expr
-      | "!=" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | BoolConst(b1), BoolConst(b2) -> BoolConst(not (b1 = b2))
-          | IntConst(n1), IntConst(n2)   -> BoolConst(not (n1 = n2))
-          | ExprConst(e1), ExprConst(e2)   -> BoolConst(not (e1 = e2))
-          | _ -> resolverFunc expr
-      | "<" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 < n2)
-          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) < (Set.count s2))
-          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) < (List.length s2))
-          | _ -> resolverFunc expr
-      | "<=" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 <= n2)
-          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) <= (Set.count s2))
-          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) <= (List.length s2))
-          | _ -> resolverFunc expr
-      | ">" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 > n2)
-          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) > (Set.count s2))
-          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) > (List.length s2))
-          | _ -> resolverFunc expr
-      | ">=" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2)   -> BoolConst(n1 >= n2)
-          | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) >= (Set.count s2))
-          | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) >= (List.length s2))
-          | _ -> resolverFunc expr
-      | "in" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | _ as c, SetConst(s)   -> BoolConst(Set.contains c s)
-          | _ as c, SeqConst(s)   -> BoolConst(Utils.ListContains c s)
-          | _ -> resolverFunc expr
-      | "!in" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | _ as c, SetConst(s)   -> BoolConst(not (Set.contains c s))
-          | _ as c, SeqConst(s)   -> BoolConst(not (Utils.ListContains c s))
-          | _ -> resolverFunc expr
-      | "+" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
-          | SeqConst(l1), SeqConst(l2) -> SeqConst(List.append l1 l2)
-          | SetConst(s1), SetConst(s2) -> SetConst(Set.union s1 s2)
-          | q,w -> resolverFunc expr
-      | "-" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
-          | SetConst(s1), SetConst(s2) -> SetConst(Set.difference s1 s2)
-          | _ -> resolverFunc expr
-      | "*" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2) -> IntConst(n1 * n2)
-          | _ -> resolverFunc expr
-      | "div" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2) -> IntConst(n1 / n2)
-          | _ -> resolverFunc expr
-      | "mod" -> 
-          match EvalSym resolverFunc e1, EvalSym resolverFunc e2 with
-          | IntConst(n1), IntConst(n2) -> IntConst(n1 % n2)
-          | _ -> resolverFunc expr
-      | _ -> resolverFunc expr
-  | UnaryExpr(op, e) ->
-      match op with
-      | "!" -> 
-          match EvalSym resolverFunc e with
-          | BoolConst(b) -> BoolConst(not b)
-          | _ -> resolverFunc expr
-      | "-" -> 
-          match EvalSym resolverFunc e with
-          | IntConst(n) -> IntConst(-n)
-          | _ -> resolverFunc expr
-      | _ -> resolverFunc expr
-  | _ -> resolverFunc expr
- 
+let EvalSym resolverFunc expr = 
+  let rec __EvalSym ctx expr = 
+    match expr with
+    | IntLiteral(n) -> IntConst(n)
+    | IdLiteral(_) | Dot(_) -> resolverFunc expr
+    | SeqLength(e) -> 
+        match __EvalSym ctx e with
+        | SeqConst(clist) -> IntConst(List.length clist)
+        | _ -> resolverFunc expr
+    | SequenceExpr(elist) -> 
+        let clist = elist |> List.fold (fun acc e -> __EvalSym ctx e :: acc) [] |> List.rev
+        SeqConst(clist)
+    | SetExpr(eset) -> 
+        let cset = eset |> List.fold (fun acc e -> Set.add (__EvalSym ctx e) acc) Set.empty
+        SetConst(cset)
+    | SelectExpr(lst, idx) ->
+        match __EvalSym ctx lst, __EvalSym ctx idx with
+        | SeqConst(clist), IntConst(n) -> clist.[n] 
+        | _ -> resolverFunc expr
+    | UpdateExpr(lst,idx,v) ->
+        match __EvalSym ctx lst, __EvalSym ctx idx, __EvalSym ctx v with
+        | SeqConst(clist), IntConst(n), (_ as c) -> SeqConst(Utils.ListSet n (c) clist)
+        | _ -> resolverFunc expr
+    | IteExpr(c, e1, e2) ->
+       match __EvalSym ctx c with
+       | BoolConst(b) -> if b then __EvalSym ctx e1 else __EvalSym ctx e2
+       | _ -> resolverFunc expr
+    | BinaryExpr(_,op,e1,e2) ->
+        match op with
+        | "=" ->
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 = b2)
+            | IntConst(n1), IntConst(n2)   -> BoolConst(n1 = n2)
+            | ExprConst(e1), ExprConst(e2)   -> BoolConst(e1 = e2)
+            | _ -> resolverFunc expr
+        | "!=" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | BoolConst(b1), BoolConst(b2) -> BoolConst(not (b1 = b2))
+            | IntConst(n1), IntConst(n2)   -> BoolConst(not (n1 = n2))
+            | ExprConst(e1), ExprConst(e2)   -> BoolConst(not (e1 = e2))
+            | _ -> resolverFunc expr
+        | "<" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2)   -> BoolConst(n1 < n2)
+            | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) < (Set.count s2))
+            | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) < (List.length s2))
+            | _ -> resolverFunc expr
+        | "<=" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2)   -> BoolConst(n1 <= n2)
+            | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) <= (Set.count s2))
+            | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) <= (List.length s2))
+            | _ -> resolverFunc expr
+        | ">" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2)   -> BoolConst(n1 > n2)
+            | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) > (Set.count s2))
+            | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) > (List.length s2))
+            | _ -> resolverFunc expr
+        | ">=" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2)   -> BoolConst(n1 >= n2)
+            | SetConst(s1), SetConst(s2)   -> BoolConst((Set.count s1) >= (Set.count s2))
+            | SeqConst(s1), SeqConst(s2)   -> BoolConst((List.length s1) >= (List.length s2))
+            | _ -> resolverFunc expr
+        | "in" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | _ as c, SetConst(s)   -> BoolConst(Set.contains c s)
+            | _ as c, SeqConst(s)   -> BoolConst(Utils.ListContains c s)
+            | _ -> resolverFunc expr
+        | "!in" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | _ as c, SetConst(s)   -> BoolConst(not (Set.contains c s))
+            | _ as c, SeqConst(s)   -> BoolConst(not (Utils.ListContains c s))
+            | _ -> resolverFunc expr
+        | "+" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
+            | SeqConst(l1), SeqConst(l2) -> SeqConst(List.append l1 l2)
+            | SetConst(s1), SetConst(s2) -> SetConst(Set.union s1 s2)
+            | q,w -> resolverFunc expr
+        | "-" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2) -> IntConst(n1 + n2)
+            | SetConst(s1), SetConst(s2) -> SetConst(Set.difference s1 s2)
+            | _ -> resolverFunc expr
+        | "*" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2) -> IntConst(n1 * n2)
+            | _ -> resolverFunc expr
+        | "div" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2) -> IntConst(n1 / n2)
+            | _ -> resolverFunc expr
+        | "mod" -> 
+            match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | IntConst(n1), IntConst(n2) -> IntConst(n1 % n2)
+            | _ -> resolverFunc expr
+        | "&&" -> 
+           match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 && b2)
+            | _ -> resolverFunc expr
+        | "||" -> 
+           match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 || b2)
+            | _ -> resolverFunc expr
+        | "==>" -> 
+           match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | BoolConst(b1), BoolConst(b2) -> BoolConst((not b1) || b2)
+            | _ -> resolverFunc expr
+        | "<==>" -> 
+           match __EvalSym ctx e1, __EvalSym ctx e2 with
+            | BoolConst(b1), BoolConst(b2) -> BoolConst(b1 = b2)
+            | _ -> resolverFunc expr
+        | _ -> resolverFunc expr
+    | UnaryExpr(op, e) ->
+        match op with
+        | "!" -> 
+            match __EvalSym ctx e with
+            | BoolConst(b) -> BoolConst(not b)
+            | _ -> resolverFunc expr
+        | "-" -> 
+            match __EvalSym ctx e with
+            | IntConst(n) -> IntConst(-n)
+            | _ -> resolverFunc expr
+        | _ -> resolverFunc expr
+    | ForallExpr(vars, e) -> 
+        let rec PrintSep sep f list =
+          match list with
+          | [] -> ""
+          | [a] -> f a
+          | a :: more -> (f a) + sep + (PrintSep sep f more)
+        let rec PrintType ty =
+          match ty with
+          | IntType                   -> "int"
+          | BoolType                  -> "bool"
+          | NamedType(id, args)       -> if List.isEmpty args then id else (PrintSep ", " (fun s -> s) args)
+          | SeqType(t)                -> sprintf "seq[%s]" (PrintType t)
+          | SetType(t)                -> sprintf "set[%s]" (PrintType t)
+          | InstantiatedType(id,args) -> sprintf "%s[%s]" id (PrintSep ", " (fun a -> PrintType a) args)
+        let PrintVarDecl vd =
+          match vd with
+          | Var(id,None) -> id
+          | Var(id,Some(ty)) -> sprintf "%s: %s" id (PrintType ty)
+        vars |> List.iter (fun v -> printfn "%s" (PrintVarDecl v))
+        resolverFunc expr
+    | _ -> resolverFunc expr  
+  __EvalSym [] expr 
+
 //  =======================================
 /// Converts a given constant to expression
 //  =======================================
@@ -319,8 +366,7 @@ let rec GetTypeShortName ty =
   | BoolType -> "bool"
   | SetType(_) -> "set"
   | SeqType(_) -> "seq"
-  | NamedType(n,_) -> n
-  | InstantiatedType(n,_) -> n
+  | NamedType(n,_) | InstantiatedType(n,_) -> n
 
 //  ==============================================================
 /// Returns all invariants of a component as a list of expressions
@@ -384,7 +430,8 @@ let rec Desugar expr =
   match expr with
   | IntLiteral(_)          
   | BoolLiteral(_)  
-  | IdLiteral(_)           
+  | IdLiteral(_)   
+  | VarLiteral(_)        
   | Star                   
   | Dot(_)                 
   | SelectExpr(_) 
@@ -425,3 +472,49 @@ let rec DesugarLst exprLst =
   | expr :: rest -> Desugar expr :: DesugarLst rest
   | [] -> []
 
+let ChangeThisReceiver receiver expr = 
+  let rec __ChangeThis locals expr = 
+    match expr with
+    | IntLiteral(_)
+    | BoolLiteral(_)                   
+    | Star                             
+    | VarLiteral(_)
+    | IdLiteral("null")                -> expr
+    | IdLiteral("this")                -> receiver
+    | IdLiteral(id)                    -> if Set.contains id locals then VarLiteral(id) else __ChangeThis locals (Dot(IdLiteral("this"), id))
+    | Dot(e, id)                       -> Dot(__ChangeThis locals e, id)
+    | ForallExpr(vars,e)               -> let newLocals = vars |> List.map (function Var(name,_) -> name) |> Set.ofList |> Set.union locals
+                                          ForallExpr(vars, __ChangeThis newLocals e)   
+    | UnaryExpr(op,e)                  -> UnaryExpr(op, __ChangeThis locals e)
+    | SeqLength(e)                     -> SeqLength(__ChangeThis locals e)
+    | SelectExpr(e1, e2)               -> SelectExpr(__ChangeThis locals e1, __ChangeThis locals e2)
+    | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, __ChangeThis locals e1, __ChangeThis locals e2)
+    | IteExpr(e1,e2,e3)                -> IteExpr(__ChangeThis locals e1, __ChangeThis locals e2, __ChangeThis locals e3) 
+    | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__ChangeThis locals e1, __ChangeThis locals e2, __ChangeThis locals e3) 
+    | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map (__ChangeThis locals))
+    | SetExpr(exs)                     -> SetExpr(exs |> List.map (__ChangeThis locals))
+  (* function body starts here *)
+  __ChangeThis Set.empty expr
+
+let rec Rewrite rewriterFunc expr = 
+  match expr with
+  | IntLiteral(_)
+  | BoolLiteral(_)                   
+  | Star      
+  | VarLiteral(_)                       
+  | IdLiteral(_)                     -> rewriterFunc expr
+  | Dot(e, id)                       -> Dot(rewriterFunc e, id)
+  | ForallExpr(vars,e)               -> ForallExpr(vars, rewriterFunc e)   
+  | UnaryExpr(op,e)                  -> UnaryExpr(op, rewriterFunc e)
+  | SeqLength(e)                     -> SeqLength(rewriterFunc e)
+  | SelectExpr(e1, e2)               -> SelectExpr(rewriterFunc e1, rewriterFunc e2)
+  | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, rewriterFunc e1, rewriterFunc e2)
+  | IteExpr(e1,e2,e3)                -> IteExpr(rewriterFunc e1, rewriterFunc e2, rewriterFunc e3) 
+  | UpdateExpr(e1,e2,e3)             -> UpdateExpr(rewriterFunc e1, rewriterFunc e2, rewriterFunc e3) 
+  | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map rewriterFunc)
+  | SetExpr(exs)                     -> SetExpr(exs |> List.map rewriterFunc)
+
+let RewriteMethodArgs args expr = 
+  let __IdIsArg id = args |> List.exists (function Var(name,_) -> name = id)
+  Rewrite (function IdLiteral(id) when __IdIsArg id -> VarLiteral(id) | _ as e -> e) expr
+              

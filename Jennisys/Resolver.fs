@@ -70,7 +70,8 @@ let Resolve (env,ctx) cst =
 let Eval (heap,env,ctx) expr = 
   let rec __EvalResolver expr = 
     match expr with
-    | IdLiteral(id) when id = "this" -> GetThisLoc env
+    | VarLiteral(id) -> ExprConst(expr)
+    | IdLiteral("this") -> GetThisLoc env
     | IdLiteral(id) ->
         match TryResolve (env,ctx) (Unresolved(id)) with 
         | Unresolved(_) -> __EvalResolver (Dot(IdLiteral("this"), id))

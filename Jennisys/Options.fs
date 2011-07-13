@@ -12,14 +12,16 @@ type Config = {
    inputFilename: string;
    methodToSynth: string;
    verifySolutions: bool;
+   checkUnifications: bool;
    timeout: int;
 }
 
 let defaultConfig: Config = {
-  inputFilename   = "";
-  methodToSynth   = "*";
-  verifySolutions = true;
-  timeout         = 0;
+  inputFilename     = "";
+  methodToSynth     = "*";
+  verifySolutions   = true;
+  checkUnifications = true;
+  timeout           = 0;
 }
 
 let mutable CONFIG = defaultConfig
@@ -79,6 +81,15 @@ let ParseCmdLineArgs args =
         | "verifySol" -> 
             let b = __CheckBool value opt
             __Parse rest { cfg with verifySolutions = b }
+        | "noVerifySol" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with verifySolutions = not b }
+        | "checkUnifs" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with checkUnifications = b }
+        | "noCheckUnifs" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with checkUnifications = not b }
         | "timeout" ->
             let t = __CheckInt value opt
             __Parse rest { cfg with timeout = t }

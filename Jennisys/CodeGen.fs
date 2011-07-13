@@ -150,5 +150,4 @@ let PrintImplCode prog solutions methodsToPrintFunc =
                                                   | _ -> "    //unable to synthesize" + newline
                                    (GenConstructorCode mthd mthdBody) + newline
                                  else
-                                   ""
-                              )
+                                   "")

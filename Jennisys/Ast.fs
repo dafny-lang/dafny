@@ -21,10 +21,15 @@ type Type =
 type VarDecl =
   | Var of string * Type option
 
+(* 
+   the difference between IdLiteral and VarLiteral is that the VarLiteral is more specific, 
+   it always referes to a local variable (either method parameter or quantification variable)  
+ *)
 type Expr =
   | IntLiteral of int
   | BoolLiteral of bool
-  | IdLiteral of string
+  | VarLiteral of string  
+  | IdLiteral of string  
   | Star
   | Dot of Expr * string
   | UnaryExpr of string * Expr
@@ -72,5 +77,6 @@ type Const =
   | NoneConst
   | ThisConst  of (* loc id *) string * Type option
   | NewObj     of (* loc id *) string * Type option
+  | VarConst   of (* loc id *) string * Type option
   | ExprConst  of Expr
   | Unresolved of (* loc id *) string 

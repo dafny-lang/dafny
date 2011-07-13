@@ -16,6 +16,7 @@ let rec PrintExpr ctx expr =
   match expr with
   | IntLiteral(n) -> sprintf "%d" n
   | BoolLiteral(b) -> sprintf "%b" b
+  | VarLiteral(id)
   | IdLiteral(id) -> id
   | Star -> assert false; "" // I hope this won't happen
   | Dot(e,id) -> sprintf "%s.%s" (PrintExpr 100 e) id

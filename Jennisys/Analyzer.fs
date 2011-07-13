@@ -75,6 +75,7 @@ let rec IsArgsOnly args expr =
   | IntLiteral(_)                        -> true
   | BoolLiteral(_)                       -> true
   | Star                                 -> true
+  | VarLiteral(id)
   | IdLiteral(id)                        -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
   | UnaryExpr(_,e)                       -> IsArgsOnly args e
   | BinaryExpr(_,_,e1,e2)                -> (IsArgsOnly args e1) && (IsArgsOnly args e2)
@@ -106,6 +107,7 @@ let GetUnifications expr args (heap,env,ctx) =
     match expr with
     | IntLiteral(_)
     | BoolLiteral(_)
+    | VarLiteral(_)
     | IdLiteral(_)
     | Star                   -> unifs
     | Dot(e, _)
@@ -191,7 +193,7 @@ let GetObjRefExpr o (heap,env,ctx) =
 //  =======================================================
 let rec ApplyUnifications prog comp mthd unifs (heap,env,ctx) conservative = 
   let __CheckUnif o f e idx =
-    if not conservative then 
+    if not conservative || not Options.CONFIG.checkUnifications then 
       true 
     else
       let objRefExpr = GetObjRefExpr o (heap,env,ctx) |> Utils.ExtractOptionMsg ("Couldn't find a path from 'this' to " + (PrintObjRefName o (env,ctx)))
@@ -262,9 +264,26 @@ let VerifySolution prog comp mthd (heap,env,ctx) =
 let TryInferConditionals prog comp m unifs (heap,env,ctx) = 
   let heap2,env2,ctx2 = ApplyUnifications prog comp m unifs (heap,env,ctx) false
   // get expressions to evaluate:
-  //   - go through all objects on the heap and assert its invariant
   //   - add pre and post conditions
-
+  //   - go through all objects on the heap and assert its invariant  
+  let pre,post = GetMethodPrePost m
+  let prepostExpr = post |> RewriteMethodArgs (GetMethodArgs m) //TODO: do we need the "pre" here as well?
+  let heapObjs = heap |> Map.fold (fun acc (o,_) _ -> acc |> Set.add o) Set.empty
+  let expr = heapObjs |> Set.fold (fun acc o -> 
+                                     let receiverOpt = GetObjRefExpr o (heap,env,ctx) 
+                                     let receiver = Utils.ExtractOption receiverOpt
+                                     match Resolve (env,ctx) o with
+                                     | NewObj(_,tOpt) | ThisConst(_,tOpt) ->
+                                         let t = Utils.ExtractOptionMsg "Type missing for heap object" tOpt
+                                         let objComp = FindComponent prog (GetTypeShortName t) |> Utils.ExtractOption
+                                         let objInvs = GetInvariantsAsList objComp
+                                         let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
+                                         objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
+                                     | _ -> failwith "not supposed to happen"
+                                  ) prepostExpr
+  expr |> SplitIntoConjunts |> List.iter (fun e -> printfn "%s" (PrintExpr 0 e); printfn "")
+  // now evaluate and see what's left
+  let c = Eval (heap,env,ctx) expr
   Some(heap2,env2,ctx2)
    
 //  ============================================================================
