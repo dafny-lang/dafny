@@ -2054,7 +2054,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran.Old);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-        CheckWellformed(e.E, options, locals, builder, etran.Old);
+        CheckWellformed(e.E, options, locals, builder, etran);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
