@@ -101,7 +101,7 @@ axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
 type MultiSet T = [T]int;
 
 function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
-// ints are non-negative, used after havocing.
+// ints are non-negative, used after havocing, and for conversion from sequences to multisets.
 axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) } 
      $IsGoodMultiSet(ms) <==> (forall o: T :: { ms[o] } 0 <= ms[o]));
 
@@ -109,9 +109,9 @@ function MultiSet#Empty<T>(): MultiSet T;
 axiom (forall<T> o: T :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
 
 function MultiSet#Singleton<T>(T): MultiSet T;
-axiom (forall<T> r: T :: { MultiSet#Singleton(r) } MultiSet#Singleton(r)[r] == 1);
 axiom (forall<T> r: T, o: T :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton(r)[o] == 1 <==> r == o) &&
                                                             (MultiSet#Singleton(r)[o] == 0 <==> r != o));
+axiom (forall<T> r: T :: { MultiSet#Singleton(r) } MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
 
 function MultiSet#UnionOne<T>(MultiSet T, T): MultiSet T;
 // pure containment axiom (in the original multiset or is the added element)
@@ -131,8 +131,6 @@ function MultiSet#Union<T>(MultiSet T, MultiSet T): MultiSet T;
 // union-ing is the sum of the contents
 axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Union(a,b)[o] }
   MultiSet#Union(a,b)[o] == a[o] + b[o]);
-axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Union(a,b) }
-  MultiSet#Union(a,b) == MultiSet#Union(b,a));
 
 // two containment axioms
 axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Union(a, b), a[y] }
@@ -186,16 +184,29 @@ axiom (forall<T> s: Set T, a: T :: { MultiSet#FromSet(s)[a] }
 
 // conversion to a multiset, from a sequence.
 function MultiSet#FromSeq<T>(Seq T): MultiSet T;
+// conversion produces a good map.
+axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
+// building axiom
 axiom (forall<T> s: Seq T, v: T ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
     MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
   );
-axiom (MultiSet#FromSeq(Seq#Empty(): Seq BoxType) == MultiSet#Empty());
+axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+
+// concatenation axiom
 axiom (forall<T> a: Seq T, b: Seq T ::
   { MultiSet#FromSeq(Seq#Append(a, b)) }
-    MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) &&
-    MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(b), MultiSet#FromSeq(a)));
+    MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) );
 
+// update axiom
+axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
+  { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
+    MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
+	  MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
+  // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
+axiom (forall<T> s: Seq T, x: T :: { MultiSet#FromSeq(s)[x] }
+  (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
+  
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------
 // ---------------------------------------------------------------
@@ -303,9 +314,39 @@ axiom (forall<T> s, t: Seq T ::
   Seq#Drop(Seq#Append(s, t), Seq#Length(s)) == t);
 
 function Seq#FromArray(h: HeapType, a: ref): Seq BoxType;
-axiom (forall h: HeapType, a: ref :: { Seq#Length(Seq#FromArray(h,a)) } Seq#Length(Seq#FromArray(h, a)) == array.Length(a));
+axiom (forall h: HeapType, a: ref ::
+  { Seq#Length(Seq#FromArray(h,a)) }
+    Seq#Length(Seq#FromArray(h, a)) == array.Length(a));
 axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h,a): Seq BoxType }
    (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
+axiom (forall<alpha> h: HeapType, o: ref, f: Field alpha, v: alpha, a: ref ::
+  { Seq#FromArray(update(h, o, f, v), a) }
+    o != a ==> Seq#FromArray(update(h, o, f, v), a) == Seq#FromArray(h, a) );
+axiom (forall h: HeapType, i: int, v: BoxType, a: ref ::
+  { Seq#FromArray(update(h, a, IndexField(i), v), a) }
+    0 <= i && i < array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
+
+// Commutability of Take and Drop with Update.
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Take(Seq#Update(s, i, v), n) }
+    0 <= i && i < n && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Take(Seq#Update(s, i, v), n) }
+    n <= i && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Take(s, n));
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Drop(Seq#Update(s, i, v), n) }
+    0 <= n && n <= i && i < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Drop(Seq#Update(s, i, v), n) }
+    0 <= i && i < n && n < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
+// Extension axiom, triggers only on Takes from arrays.
+axiom (forall h: HeapType, a: ref, n0, n1: int ::
+  { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
+    n0 + 1 == n1 && 0 <= n0 && n1 <= array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field BoxType)) );
+// drop commutes with build.
+axiom (forall<T> s: Seq T, v: T, n: int ::
+  { Seq#Drop(Seq#Build(s, v), n) }
+    0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
 
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
