@@ -13,10 +13,6 @@ open Utils
 
 open Microsoft.Boogie
                     
-let VarsAreDifferent aa bb =
-  printf "false"
-  List.iter2 (fun (_,Var(a,_)) (_,Var(b,_)) -> printf " || %s != %s" a b) aa bb
-
 let Rename suffix vars =
   vars |> List.map (function Var(nm,tp) -> nm, Var(nm + suffix, tp))
 
@@ -75,6 +71,7 @@ let rec IsArgsOnly args expr =
   | IntLiteral(_)                        -> true
   | BoolLiteral(_)                       -> true
   | Star                                 -> true
+  | ObjLiteral(id)                       -> true
   | VarLiteral(id)
   | IdLiteral(id)                        -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
   | UnaryExpr(_,e)                       -> IsArgsOnly args e
@@ -87,6 +84,7 @@ let rec IsArgsOnly args expr =
   | SeqLength(e)                         -> IsArgsOnly args e
   | ForallExpr(vars,e)                   -> IsArgsOnly (List.concat [args; vars]) e
 
+//TODO: unifications should probably by "Expr <--> Expr" instead of "Expr <--> Const"
 let GetUnifications expr args (heap,env,ctx) =
   // - first looks if the give expression talks only about method arguments (args)
   // - then checks if it doesn't already exist in the unification map
@@ -108,6 +106,7 @@ let GetUnifications expr args (heap,env,ctx) =
     | IntLiteral(_)
     | BoolLiteral(_)
     | VarLiteral(_)
+    | ObjLiteral(_)
     | IdLiteral(_)
     | Star                   -> unifs
     | Dot(e, _)
@@ -134,7 +133,7 @@ let GetUnificationsForMethod comp m (heap,env,ctx) =
         match Map.tryFind (Unresolved(name)) env with
         | Some(c) ->
             Logger.DebugLine ("      - adding unification " + (PrintConst c) + " <--> " + name);
-            Map.ofList [IdLiteral(name), c] |> Utils.MapAddAll (GetArgValueUnifications rest env)
+            Map.ofList [VarLiteral(name), c] |> Utils.MapAddAll (GetArgValueUnifications rest env)
         | None -> failwith ("couldn't find value for argument " + name)
     | [] -> Map.empty
   (* --- function body starts here --- *)
@@ -164,7 +163,7 @@ let GetObjRefExpr o (heap,env,ctx) =
       let newVisited = Set.add o visited
       let refName = PrintObjRefName o (env,ctx)
       match refName with
-      | "this" -> Some(IdLiteral(refName))
+      | "this" -> Some(ObjLiteral("this"))
       | _ -> 
           let rec __fff lst = 
             match lst with
@@ -179,11 +178,11 @@ let GetObjRefExpr o (heap,env,ctx) =
   if objRef2ExprCache.ContainsKey(o) then
     Some(objRef2ExprCache.[o])
   else
-      let res = __GetObjRefExpr o (heap,env,ctx) (Set.empty)
-      match res with 
-      | Some(e) -> objRef2ExprCache.Add(o, e)
-      | None -> ()
-      res
+    let res = __GetObjRefExpr o (heap,env,ctx) (Set.empty)
+    match res with 
+    | Some(e) -> objRef2ExprCache.Add(o, e)
+    | None -> ()
+    res
 
 //  =======================================================
 /// Applies given unifications onto the given heap/env/ctx
@@ -264,7 +263,7 @@ let VerifySolution prog comp mthd (heap,env,ctx) =
 let TryInferConditionals prog comp m unifs (heap,env,ctx) = 
   let heap2,env2,ctx2 = ApplyUnifications prog comp m unifs (heap,env,ctx) false
   // get expressions to evaluate:
-  //   - add pre and post conditions
+  //   - add pre and post conditions                                     
   //   - go through all objects on the heap and assert its invariant  
   let pre,post = GetMethodPrePost m
   let prepostExpr = post //TODO: do we need the "pre" here as well?
@@ -284,6 +283,7 @@ let TryInferConditionals prog comp m unifs (heap,env,ctx) =
   expr |> SplitIntoConjunts |> List.iter (fun e -> printfn "%s" (PrintExpr 0 e); printfn "")
   // now evaluate and see what's left
   let c = Eval (heap2,env2,ctx2) false expr
+  printfn "%s" (PrintExpr 0 c)
   Some(heap2,env2,ctx2)
    
 //  ============================================================================

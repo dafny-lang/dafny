@@ -12,7 +12,7 @@ let GetClass name decls =
 let GetModel name decls =
   match decls |> List.tryFind (function Model(n,_,_,_,_) when n = name -> true | _ -> false) with
   | Some(m) -> m
-  | None -> Model(name,[],[],[],IdLiteral("true"))
+  | None -> Model(name,[],[],[],BoolLiteral(true))
 
 let GetCode name decls =
   match decls |> List.tryFind (function Code(n,_) when n = name -> true | _ -> false) with

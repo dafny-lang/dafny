@@ -17,7 +17,6 @@ open TypeChecker
 open Analyzer
 
 let readAndProcess (filename: string) =
-  try
     printfn "// Jennisys, Copyright (c) 2011, Microsoft."
     // lex
     let f = if filename = null then Console.In else new StreamReader(filename) :> TextReader
@@ -26,22 +25,18 @@ let readAndProcess (filename: string) =
                        pos_fname=if filename = null then "stdin" else filename; 
                        pos_cnum=0;
                        pos_lnum=1 }
-    try
+//    try
       // parse
-      let sprog = Parser.start Lexer.tokenize lexbuf
-      match TypeCheck sprog with
-      | None -> ()  // errors have already been reported
-      | Some(prog) ->
-          Analyze prog filename
-    with
-      | ex ->
-          let pos = lexbuf.EndPos
-          printfn "%s(%d,%d): %s" pos.FileName pos.Line pos.Column ex.Message
-          printfn "%s" (ex.StackTrace.ToString())
-  with
-    | ex ->
-        printfn "Unhandled Exception: %s" ex.Message
-        printfn "%s" (ex.StackTrace.ToString())
+    let sprog = Parser.start Lexer.tokenize lexbuf
+    match TypeCheck sprog with
+    | None -> ()  // errors have already been reported
+    | Some(prog) ->
+        Analyze prog filename
+//    with
+//      | ex ->
+//          let pos = lexbuf.EndPos
+//          printfn "%s(%d,%d): %s" pos.FileName pos.Line pos.Column ex.Message
+//          printfn "%O" ex.StackTrace
 
 try 
   let args = Environment.GetCommandLineArgs()

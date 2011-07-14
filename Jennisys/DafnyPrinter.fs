@@ -14,8 +14,9 @@ let rec PrintType ty =
 
 let rec PrintExpr ctx expr =
   match expr with
-  | IntLiteral(n) -> sprintf "%d" n
-  | BoolLiteral(b) -> sprintf "%b" b
+  | IntLiteral(d)     -> sprintf "%d" d
+  | BoolLiteral(b)    -> sprintf "%b" b
+  | ObjLiteral(id)
   | VarLiteral(id)
   | IdLiteral(id) -> id
   | Star -> assert false; "" // I hope this won't happen
@@ -43,6 +44,20 @@ let rec PrintExpr ctx expr =
       let openParen = if needParens then "(" else ""
       let closeParen = if needParens then ")" else ""
       sprintf "%sforall %s :: %s%s" openParen (vv |> PrintSep ", " PrintVarDecl) (PrintExpr 0 e) closeParen
+
+let rec PrintConst cst = 
+  match cst with 
+  | IntConst(v)        -> sprintf "%d" v
+  | BoolConst(b)       -> sprintf "%b" b
+  | VarConst(v)        -> sprintf "%s" v
+  | SetConst(cset)     -> sprintf "{%s}" (PrintSep ", " (fun c -> PrintConst c) (Set.toList cset))
+  | SeqConst(cseq)     -> sprintf "[%s]" (PrintSep ", " (fun c -> PrintConst c) cseq)
+  | NullConst          -> "null"
+  | NoneConst          -> "<none>"
+  | ThisConst(_,_)     -> "this"
+  | ExprConst(e)       -> PrintExpr 0 e
+  | NewObj(name,_)     -> PrintGenSym name
+  | Unresolved(name)   -> sprintf "Unresolved(%s)" name
 
 let PrintTypeParams typeParams = 
   match typeParams with
