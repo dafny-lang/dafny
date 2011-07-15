@@ -400,13 +400,13 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for any type.
-  /// </summary>  
+  /// </summary>
   public class InferredTypeProxy : UnrestrictedTypeProxy {
   }
 
   /// <summary>
   /// This proxy stands for any type, but it originates from an instantiated type parameter.
-  /// </summary>  
+  /// </summary>
   public class ParamTypeProxy : UnrestrictedTypeProxy {
     TypeParameter orig;
     [ContractInvariantMethod]
@@ -432,7 +432,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for any datatype.
-  /// </summary>  
+  /// </summary>
   public class DatatypeProxy : RestrictedTypeProxy {
     public override int OrderID {
       get {
@@ -443,7 +443,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for object or any class/array type.
-  /// </summary>  
+  /// </summary>
   public class ObjectTypeProxy : RestrictedTypeProxy {
     public override int OrderID {
       get {
@@ -491,7 +491,7 @@ namespace Microsoft.Dafny {
   /// if AllowSeq, or:
   ///     int or set
   /// if !AllowSeq.
-  /// </summary>  
+  /// </summary>
   public class OperationTypeProxy : RestrictedTypeProxy {
     public readonly bool AllowSeq;
     public OperationTypeProxy(bool allowSeq) {
@@ -675,7 +675,7 @@ namespace Microsoft.Dafny {
 
   public class ClassRefinementDecl : ClassDecl {
     public readonly IToken/*!*/ RefinedClass;
-    public ClassDecl Refined; // filled in during resolution 
+    public ClassDecl Refined; // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(RefinedClass != null);
@@ -720,7 +720,7 @@ namespace Microsoft.Dafny {
       Dims = dims;
     }
   }
-  
+
   public class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor/*!*/>/*!*/ Ctors;
     [ContractInvariantMethod]
@@ -1685,7 +1685,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Mod == null || cce.NonNullElements(Mod));
     }
     public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/>/*!*/ mod)
-    : base(tok) 
+    : base(tok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(invariants));
@@ -2511,7 +2511,7 @@ namespace Microsoft.Dafny {
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
-    public List<BoundVar> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found 
+    public List<BoundVar> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found
     // invariant Bounds == null || MissingBounds == null;
 
     public ComprehensionExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression/*!*/ term, Attributes attrs)
@@ -2529,7 +2529,7 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (Range != null) { yield return Range; }
-        yield return Term; 
+        yield return Term;
       }
     }
   }

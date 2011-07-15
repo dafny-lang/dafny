@@ -27,21 +27,21 @@ namespace Microsoft.Dafny {
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFileName);
         }
-        if (Bpl.CommandLineOptions.Clo.Trace) 
+        if (Bpl.CommandLineOptions.Clo.Trace)
         {
           Console.WriteLine("Parsing " + dafnyFileName);
         }
 
         int errorCount;
-        try 
+        try
         {
           errorCount = Dafny.Parser.Parse(dafnyFileName, modules, builtIns);
-          if (errorCount != 0) 
+          if (errorCount != 0)
           {
             return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
           }
-        } 
-        catch (IOException e) 
+        }
+        catch (IOException e)
         {
           return string.Format("Error opening file \"{0}\": {1}", dafnyFileName, e.Message);
         }
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      
+
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);

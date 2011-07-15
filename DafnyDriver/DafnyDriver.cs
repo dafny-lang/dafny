@@ -8,7 +8,7 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-namespace Microsoft.Boogie 
+namespace Microsoft.Boogie
 {
   using System;
   using System.IO;
@@ -22,7 +22,7 @@ namespace Microsoft.Boogie
   using VC;
   using AI = Microsoft.AbstractInterpretationFramework;
 
-/* 
+/*
   The following assemblies are referenced because they are needed at runtime, not at compile time:
     BaseTypes
     Provers.Z3
@@ -33,8 +33,8 @@ namespace Microsoft.Boogie
   {
     // ------------------------------------------------------------------------
     // Main
-    
-    public static int Main (string[] args) 
+
+    public static int Main (string[] args)
     {Contract.Requires(cce.NonNullElements(args));
       //assert forall{int i in (0:args.Length); args[i] != null};
       ExitValue exitValue = ExitValue.VERIFIED;
@@ -47,14 +47,14 @@ namespace Microsoft.Boogie
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
         ErrorWriteLine("*** Error: No input files were specified.");
-        exitValue = ExitValue.PREPROCESSING_ERROR; 
+        exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
       if (CommandLineOptions.Clo.XmlSink != null) {
         string errMsg = CommandLineOptions.Clo.XmlSink.Open();
         if (errMsg != null) {
           ErrorWriteLine("*** Error: " + errMsg);
-          exitValue = ExitValue.PREPROCESSING_ERROR; 
+          exitValue = ExitValue.PREPROCESSING_ERROR;
           goto END;
         }
       }
@@ -62,17 +62,17 @@ namespace Microsoft.Boogie
       {
         Console.WriteLine(CommandLineOptions.Clo.Version);
       }
-      if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always) 
+      if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always)
       {
         Console.WriteLine("---Command arguments");
-        foreach (string arg in args) 
+        foreach (string arg in args)
         {Contract.Assert(arg != null);
           Console.WriteLine(arg);
         }
         Console.WriteLine("--------------------");
       }
 
-      foreach (string file in CommandLineOptions.Clo.Files) 
+      foreach (string file in CommandLineOptions.Clo.Files)
       {Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -91,12 +91,12 @@ namespace Microsoft.Boogie
         if (CommandLineOptions.Clo.XmlSink != null) {
           CommandLineOptions.Clo.XmlSink.Close();
         }
-        if (CommandLineOptions.Clo.Wait) 
+        if (CommandLineOptions.Clo.Wait)
         {
           Console.WriteLine("Press Enter to exit.");
           Console.ReadLine();
         }
-        return (int)exitValue;        
+        return (int)exitValue;
     }
 
     public static void ErrorWriteLine(string s) {Contract.Requires(s != null);
@@ -104,7 +104,7 @@ namespace Microsoft.Boogie
         Console.WriteLine(s);
         return;
       }
-      
+
       // split the string up into its first line and the remaining lines
       string remaining = null;
       int i = s.IndexOf('\r');
@@ -115,12 +115,12 @@ namespace Microsoft.Boogie
         }
         s = s.Substring(0, i);
       }
-      
+
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
       Console.WriteLine(s);
       Console.ForegroundColor = col;
-      
+
       if (remaining != null) {
         Console.WriteLine(remaining);
       }
@@ -156,7 +156,7 @@ namespace Microsoft.Boogie
         } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
           Dafny.Translator translator = new Dafny.Translator();
           Program boogieProgram = translator.Translate(dafnyProgram);
-          if (CommandLineOptions.Clo.PrintFile != null) 
+          if (CommandLineOptions.Clo.PrintFile != null)
           {
             PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false);
           }
@@ -208,7 +208,7 @@ namespace Microsoft.Boogie
         }
       }
     }
-    
+
     static void PrintBplFile (string filename, Program program, bool allowPrintDesugaring)
     {
       Contract.Requires(filename != null);
@@ -228,17 +228,17 @@ namespace Microsoft.Boogie
         }
         CommandLineOptions.Clo.PrintDesugarings = oldPrintDesugaring;
     }
-    
-    
+
+
     static bool ProgramHasDebugInfo (Program program)
     {
       Contract.Requires(program != null);
         // We inspect the last declaration because the first comes from the prelude and therefore always has source context.
-        return program.TopLevelDeclarations.Count > 0 && 
+        return program.TopLevelDeclarations.Count > 0 &&
             cce.NonNull(program.TopLevelDeclarations[program.TopLevelDeclarations.Count - 1]).tok.IsValid;
     }
-    
-    
+
+
     /// <summary>
     /// Inform the user about something and proceed with translation normally.
     /// Print newline after the message.
@@ -265,7 +265,7 @@ namespace Microsoft.Boogie
       Console.Out.Flush();
     }
 
-    
+
 
     static void ReportBplError(IToken tok, string message, bool error)
     {
@@ -335,7 +335,7 @@ namespace Microsoft.Boogie
         return program;
       }
     }
-    
+
         /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
     /// The intention is that this Boogie program has been produced by translation from something
@@ -349,14 +349,14 @@ namespace Microsoft.Boogie
     {Contract.Requires(program != null);
     Contract.Requires(bplFileName != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
-    
-      
+
+
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
       PipelineOutcome oc = ResolveAndTypecheck(program, bplFileName);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
-          
+
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
           {
@@ -376,7 +376,7 @@ namespace Microsoft.Boogie
 
         case PipelineOutcome.ResolvedAndTypeChecked:
           return InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
-          
+
         default:
           Contract.Assert(false);throw new cce.UnreachableException();  // unexpected outcome
       }
@@ -409,16 +409,16 @@ namespace Microsoft.Boogie
       }
 
       // ---------- Type check ------------------------------------------------------------
-      
+
       if (CommandLineOptions.Clo.NoTypecheck) { return PipelineOutcome.Done; }
-      
+
       errorCount = program.Typecheck();
       if (errorCount != 0) {
         Console.WriteLine("{0} type checking errors detected in {1}", errorCount, bplFileName);
         return PipelineOutcome.TypeCheckingError;
       }
-    
-      if (CommandLineOptions.Clo.PrintFile != null && CommandLineOptions.Clo.PrintDesugarings) 
+
+      if (CommandLineOptions.Clo.PrintFile != null && CommandLineOptions.Clo.PrintDesugarings)
       {
         // if PrintDesugaring option is engaged, print the file here, after resolution and type checking
         PrintBplFile(CommandLineOptions.Clo.PrintFile, program, true);
@@ -426,7 +426,7 @@ namespace Microsoft.Boogie
 
       return PipelineOutcome.ResolvedAndTypeChecked;
     }
-    
+
     /// <summary>
     /// Given a resolved and type checked Boogie program, infers invariants for the program
     /// and then attempts to verify it.  Returns:
@@ -439,14 +439,14 @@ namespace Microsoft.Boogie
                                            out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {Contract.Requires(program != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
-    
+
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
-  
+
       // ---------- Infer invariants --------------------------------------------------------
-      
+
       // Abstract interpretation -> Always use (at least) intervals, if not specified otherwise (e.g. with the "/noinfer" switch)
       Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
-       
+
       if (CommandLineOptions.Clo.LoopUnrollCount != -1) {
         program.UnrollLoops(CommandLineOptions.Clo.LoopUnrollCount);
       }
@@ -463,9 +463,9 @@ namespace Microsoft.Boogie
       // ---------- Verify ------------------------------------------------------------
 
       if (!CommandLineOptions.Clo.Verify) { return PipelineOutcome.Done; }
-            
+
       #region Verify each implementation
-      
+
 #if ROB_DEBUG
       string now = DateTime.Now.ToString().Replace(' ','-').Replace('/','-').Replace(':','-');
       System.IO.StreamWriter w = new System.IO.StreamWriter(@"\temp\batch_"+now+".bpl");
@@ -482,7 +482,7 @@ namespace Microsoft.Boogie
         } else
         {
           vcgen = new VCGen(program, CommandLineOptions.Clo.SimplifyLogFilePath, CommandLineOptions.Clo.SimplifyLogFileAppend);
-        }         
+        }
       }
       catch (ProverException e)
       {
@@ -648,7 +648,7 @@ namespace Microsoft.Boogie
                                 else
                                 {
                                     // for ErrorTrace == 1 restrict the output;
-                                    // do not print tokens with -17:-4 as their location because they have been 
+                                    // do not print tokens with -17:-4 as their location because they have been
                                     // introduced in the translation and do not give any useful feedback to the user
                                     if (!(CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4))
                                     {
@@ -682,9 +682,9 @@ namespace Microsoft.Boogie
       cce.NonNull(CommandLineOptions.Clo.TheProverFactory).Close();
 
       #endregion
-      
+
       return PipelineOutcome.VerificationCompleted;
     }
-   
+
   }
 }
