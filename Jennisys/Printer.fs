@@ -41,6 +41,7 @@ let rec PrintExpr ctx expr =
   | IdLiteral(id)     -> id
   | Star              -> "*"
   | Dot(e,id)         -> sprintf "%s.%s" (PrintExpr 100 e) id
+  | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e)   -> sprintf "%s%s" op (PrintExpr 90 e)
   | BinaryExpr(strength,op,e0,e1) ->
       let needParens = strength <= ctx
@@ -129,6 +130,20 @@ let PrintDecl d =
       "}" + newline
   | Code(id,typeParams) ->
       (PrintTopLevelDeclHeader "code" id typeParams) + "}" + newline
+
+let PrintMethodSignFull indent m = 
+  let idt = Indent indent
+  let __PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
+  match m with
+  | Method(methodName, sgn, pre, post, isConstr) ->  
+      let mc = if isConstr then "constructor" else "method"
+      let preStr = (__PrintPrePost (idt + "  requires ") pre)
+      let postStr = (__PrintPrePost (idt + "  ensures ") post)
+      idt + mc + " " + methodName + (PrintSig sgn) + newline +
+      preStr + (if preStr = "" then "" else newline) +
+      postStr
+      
+  | _ -> failwithf "not a method: %O" m
 
 let Print prog =
   match prog with

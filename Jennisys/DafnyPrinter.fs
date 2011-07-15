@@ -21,6 +21,7 @@ let rec PrintExpr ctx expr =
   | IdLiteral(id) -> id
   | Star -> assert false; "" // I hope this won't happen
   | Dot(e,id) -> sprintf "%s.%s" (PrintExpr 100 e) id
+  | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e) -> sprintf "%s%s" op (PrintExpr 90 e)
   | BinaryExpr(strength,op,e0,e1) ->
       let op =

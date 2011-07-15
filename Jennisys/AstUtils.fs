@@ -19,6 +19,16 @@ let TrueLiteral = BoolLiteral(true)
 //  =====================
 let FalseLiteral = BoolLiteral(false)
 
+let UnaryNeg sub =
+  match sub with
+  | UnaryExpr("-", s) -> s
+  | _ -> UnaryExpr("-", sub)
+
+let UnaryNot sub =
+  match sub with
+  | UnaryExpr("!", s) -> s
+  | _ -> UnaryExpr("!", sub)
+
 //  =======================================================================
 /// Returns a binary AND of the two given expressions with short-circuiting
 //  =======================================================================
@@ -49,7 +59,7 @@ let BinaryImplies lhs rhs =
   | BoolLiteral(false), _ -> FalseLiteral
   | BoolLiteral(true), _  -> rhs
   | _, BoolLiteral(true)  -> lhs
-  | _, BoolLiteral(false) -> UnaryExpr("!", lhs)
+  | _, BoolLiteral(false) -> UnaryNot(lhs)
   | _ -> BinaryExpr(20, "==>", lhs, rhs)
 
 
@@ -312,6 +322,16 @@ let FindVar (prog: Program) clsName fldName =
                         |> Utils.ListToOption
   | None -> None
 
+let AddPrecondition prog comp m e =
+  match prog, comp, m with
+  | Program(clist), Component(Class(cname, ctypeParams, members), model, code), Method(mn, sgn, pre, post, cstr) ->
+      let newMthd = Method(mn, sgn, BinaryAnd pre e, post, cstr)
+      let newCls = Class(cname, ctypeParams, Utils.ListReplace m newMthd members)
+      let newComp = Component(newCls, model, code)
+      let newProg = Program(Utils.ListReplace comp newComp clist)
+      newProg, newComp, newMthd
+  | _ -> failwithf "Not a method: %O" m
+
 ////////////////////
 
 exception EvalFailed of string
@@ -322,7 +342,23 @@ let DefaultFallbackResolver resolverFunc e =
   match resolverFunc e with
   | Some(e') -> e'
   | None -> e
-                     
+
+let __CheckEqual e1 e2 =
+  match e1, e2 with
+  | BoolLiteral(b1), BoolLiteral(b2) -> Some(b1 = b2)
+  | IntLiteral(n1), IntLiteral(n2)   -> Some(n1 = n2)
+  | ObjLiteral(o1), ObjLiteral(o2)   -> Some(o1 = o2)
+  | SetExpr(elist1), SetExpr(elist2) -> Some(Set.ofList elist1 = Set.ofList elist2)
+  | SequenceExpr(elist1), SequenceExpr(elist2) -> Some(elist1 = elist2)
+  | UnaryExpr("-", sub1), sub2
+  | sub1, UnaryExpr("-", sub2)                 when sub1 = sub2 -> Some(false)
+  | UnaryExpr("-", sub1), UnaryExpr("-", sub2) when sub1 = sub2 -> Some(true)
+  | UnaryExpr("!", sub1), sub2
+  | sub1, UnaryExpr("!", sub2)                 when sub1 = sub2 -> Some(false)
+  | UnaryExpr("!", sub1), UnaryExpr("-", sub2) when sub1 = sub2 -> Some(true)
+  | _ when e1 = e2 -> Some(true)
+  | _ -> None
+
 let rec __EvalSym resolverFunc ctx expr = 
   match expr with
   | IntLiteral(_)  -> expr
@@ -369,23 +405,19 @@ let rec __EvalSym resolverFunc ctx expr =
       let recomposed = lazy (BinaryExpr(p, op, e1'.Force(), e2'.Force()))
       match op with
       | "=" ->
-          match e1'.Force(), e2'.Force() with
-          | BoolLiteral(b1), BoolLiteral(b2) -> BoolLiteral(b1 = b2)
-          | IntLiteral(n1), IntLiteral(n2)   -> BoolLiteral(n1 = n2)
-          | ObjLiteral(o1), ObjLiteral(o2)   -> BoolLiteral(o1 = o2)
-          | SetExpr(elist1), SetExpr(elist2) -> BoolLiteral(Set.ofList elist1 = Set.ofList elist2)
-          | SequenceExpr(elist1), SequenceExpr(elist2) -> BoolLiteral(elist1 = elist2)
-          | _ when e1'.Force() = e2'.Force() -> BoolLiteral(true)
-          | _ -> recomposed.Force()
+          let e1'' = e1'.Force()
+          let e2'' = e2'.Force()
+          let eq = __CheckEqual e1'' e2''
+          match eq with
+          | Some(b) -> BoolLiteral(b)
+          | None -> recomposed.Force()
       | "!=" -> 
-          match e1'.Force(), e2'.Force() with
-          | BoolLiteral(b1), BoolLiteral(b2) -> BoolLiteral(not (b1 = b2))
-          | IntLiteral(n1), IntLiteral(n2)   -> BoolLiteral(not (n1 = n2))
-          | ObjLiteral(o1), ObjLiteral(o2)   -> BoolLiteral(not (o1 = o2))
-          | SetExpr(elist1), SetExpr(elist2) -> BoolLiteral(not (Set.ofList elist1 = Set.ofList elist2))
-          | SequenceExpr(elist1), SequenceExpr(elist2) -> BoolLiteral(not (elist1 = elist2))
-          | _ when e1'.Force() = e2'.Force() -> BoolLiteral(false)
-          | _ -> recomposed.Force()
+          let e1'' = e1'.Force()
+          let e2'' = e2'.Force()
+          let eq = __CheckEqual e1'' e2''
+          match eq with
+          | Some(b) -> BoolLiteral(not b)
+          | None -> recomposed.Force()
       | "<" -> 
           match e1'.Force(), e2'.Force() with
           | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 < n2)
@@ -393,11 +425,16 @@ let rec __EvalSym resolverFunc ctx expr =
           | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) < (List.length s2))
           | _ -> recomposed.Force()
       | "<=" -> 
-          match e1'.Force(), e2'.Force() with
-          | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 <= n2)
-          | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) <= (List.length s2))
-          | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) <= (List.length s2))
-          | _ -> recomposed.Force()
+          let e1'' = e1'.Force()
+          let e2'' = e2'.Force()
+          let eq = __CheckEqual e1'' e2''
+          match eq with
+          | Some(true) -> TrueLiteral
+          | _ -> match e1'', e2'' with
+                 | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 <= n2)
+                 | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) <= (List.length s2))
+                 | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) <= (List.length s2))
+                 | _ -> recomposed.Force()
       | ">" -> 
           match e1'.Force(), e2'.Force() with
           | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 > n2)
@@ -405,11 +442,16 @@ let rec __EvalSym resolverFunc ctx expr =
           | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) > (List.length s2))
           | _ -> recomposed.Force()
       | ">=" -> 
-          match e1'.Force(), e2'.Force() with
-          | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 >= n2)
-          | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) >= (List.length s2))
-          | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) >= (List.length s2))
-          | _ -> recomposed.Force()
+          let e1'' = e1'.Force()
+          let e2'' = e2'.Force()
+          let eq = __CheckEqual e1'' e2''
+          match eq with
+          | Some(true) -> TrueLiteral
+          | _ -> match e1'', e2'' with
+                 | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 >= n2)
+                 | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) >= (List.length s2))
+                 | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) >= (List.length s2))
+                 | _ -> recomposed.Force()
       | "in" -> 
           match e1'.Force(), e2'.Force() with
           | _, SetExpr(s)       
@@ -480,6 +522,8 @@ let rec __EvalSym resolverFunc ctx expr =
       | "<==>" -> 
           match e1'.Force(), e2'.Force() with
           | BoolLiteral(b1), BoolLiteral(b2) -> BoolLiteral(b1 = b2)
+          | x, BoolLiteral(b)
+          | BoolLiteral(b), x -> if b then x else UnaryNot(x)
           | _ -> recomposed.Force()
       | _ -> recomposed.Force()
   | UnaryExpr(op, e) ->

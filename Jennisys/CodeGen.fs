@@ -120,9 +120,27 @@ let PrintVarAssignments (heap,env,ctx) indent =
                       acc + (sprintf "%s%s.%s := %s;" idt objRef fldName value) + newline
                    ) ""
 
-let PrintHeapCreationCode (heap,env,ctx) indent = 
-  (PrintAllocNewObjects (heap,env,ctx) indent) +
-  (PrintVarAssignments (heap,env,ctx) indent)
+let rec PrintHeapCreationCode sol indent =    
+  let idt = Indent indent
+  match sol with
+  | (c, (heap,env,ctx)) :: rest ->
+      if c = TrueLiteral then
+        (PrintAllocNewObjects (heap,env,ctx) indent) +
+        (PrintVarAssignments (heap,env,ctx) indent) +
+        newline + 
+        (PrintHeapCreationCode rest indent) 
+      else
+        if List.length rest > 0 then
+          idt + "if (" + (PrintExpr 0 c) + ") {" + newline +
+          (PrintAllocNewObjects (heap,env,ctx) (indent+2)) +
+          (PrintVarAssignments (heap,env,ctx) (indent+2)) +
+          idt + "} else {" + newline + 
+          (PrintHeapCreationCode rest (indent+2)) +
+          idt + "}" + newline
+        else 
+          (PrintAllocNewObjects (heap,env,ctx) indent) +
+          (PrintVarAssignments (heap,env,ctx) indent)
+  | [] -> ""
 
 let GenConstructorCode mthd body =
   let validExpr = IdLiteral("Valid()");
@@ -146,7 +164,7 @@ let PrintImplCode prog solutions methodsToPrintFunc =
   PrintDafnyCodeSkeleton prog (fun comp mthd ->
                                  if Utils.ListContains (comp,mthd) methods  then
                                    let mthdBody = match Map.tryFind (comp,mthd) solutions with
-                                                  | Some(heap,env,ctx) -> PrintHeapCreationCode (heap,env,ctx) 4
+                                                  | Some(sol) -> PrintHeapCreationCode sol 4
                                                   | _ -> "    //unable to synthesize" + newline
                                    (GenConstructorCode mthd mthdBody) + newline
                                  else
