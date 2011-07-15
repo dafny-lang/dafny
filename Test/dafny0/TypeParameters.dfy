@@ -14,10 +14,13 @@ class C<U> {
   {
     var t := F(3,u) && F(this,u);
     var kz := M(t,u);
-    assert kz && (G() || !G());
+	var a := G();
+    assert kz && (a || !a);
   }
-
-  function G<Y>(): Y
+  method G<Y>() returns (a: Y)
+  {
+    
+  }
 }
 
 class SetTest {
@@ -101,6 +104,9 @@ class CClient {
 
 static function IsCelebrity<Person>(c: Person, people: set<Person>): bool
   requires c == c || c in people;
+{
+  false
+}
 
 method FindCelebrity3(people: set<int>, ghost c: int)
   requires IsCelebrity(c, people);  // once upon a time, this caused the translator to produce bad Boogie
@@ -112,7 +118,9 @@ method FindCelebrity3(people: set<int>, ghost c: int)
 
 static function F(c: int, people: set<int>): bool
   requires IsCelebrity(c, people);
-
+{
+  false
+}
 function RogerThat<G>(g: G): G
 {
   g
@@ -154,7 +162,14 @@ method LoopyRoger(n: int)
 class TyKn_C<T> {
   var x: T;
   function G(): T
+    reads this;
+  {
+     x
+  }
   method M() returns (t: T)
+  {
+
+  }
 }
 
 class TyKn_K {

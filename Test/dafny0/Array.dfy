@@ -73,16 +73,16 @@ class A {
 
   method Q() {
     var a := new int[5];
-    y[0],y[1],y[2],y[3],y[4] := 0,1,2,3,4;
+    a[0],a[1],a[2],a[3],a[4] := 0,1,2,3,4;
 	
-	assert [1,2,3,4] == y[1..];
-	assert [1,2,3,4] == y[1.. y.Length];
-	assert [1] == y[1..2];
-	assert [0,1] == y[..2];
-	assert [0,1] == y[0..2];
-	assert forall i :: 0 <= i <= y.Length ==> [] == y[i..i];
-    assert [0,1,2,3,4] == y[..];
-    assert forall i :: 0 <= i < y.Length ==> y[i] == i;
+	assert [1,2,3,4] == a[1..];
+	assert [1,2,3,4] == a[1.. a.Length];
+	assert [1] == a[1..2];
+	assert [0,1] == a[..2];
+	assert [0,1] == a[0..2];
+	assert forall i :: 0 <= i <= a.Length ==> [] == a[i..i];
+    assert [0,1,2,3,4] == a[..];
+    assert forall i :: 0 <= i < a.Length ==> a[i] == i;
   }
 }
 
