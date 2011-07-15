@@ -483,8 +483,9 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Type ---------------------------------------------------------------------------------
-    
+
     readonly string DafnySetClass = "Dafny.Set";
+    readonly string DafnyMultiSetClass = "Dafny.MultiSet";
     readonly string DafnySeqClass = "Dafny.Sequence";
     
     string TypeName(Type type)
@@ -541,6 +542,12 @@ namespace Microsoft.Dafny {
           Error("compilation of seq<object> is not supported; consider introducing a ghost");
         }
         return DafnySeqClass + "<" + TypeName(argType) + ">";
+      } else if (type is MultiSetType) {
+        Type argType = ((MultiSetType)type).Arg;
+        if (argType is ObjectType) {
+          Error("compilation of seq<object> is not supported; consider introducing a ghost");
+        }
+        return DafnyMultiSetClass + "<" + TypeName(argType) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -607,6 +614,8 @@ namespace Microsoft.Dafny {
         return "default(@" + udt.Name + ")";
       } else if (type is SetType) {
         return DafnySetClass + "<" + TypeName(((SetType)type).Arg) + ">.Empty";
+      } else if (type is MultiSetType) {
+        return DafnyMultiSetClass + "<" + TypeName(((MultiSetType)type).Arg) + ">.Empty";
       } else if (type is SeqType) {
         return DafnySeqClass + "<" + TypeName(((SeqType)type).Arg) + ">.Empty";
       } else {
@@ -1186,11 +1195,17 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
         wr.Write("@" + e.Var.Name);
-      
+
       } else if (expr is SetDisplayExpr) {
         SetDisplayExpr e = (SetDisplayExpr)expr;
         Type elType = cce.NonNull((SetType)e.Type).Arg;
         wr.Write("{0}<{1}>.FromElements", DafnySetClass, TypeName(elType));
+        TrExprList(e.Elements);
+
+      } else if (expr is MultiSetDisplayExpr) {
+        MultiSetDisplayExpr e = (MultiSetDisplayExpr)expr;
+        Type elType = cce.NonNull((MultiSetType)e.Type).Arg;
+        wr.Write("{0}<{1}>.FromElements", DafnyMultiSetClass, TypeName(elType));
         TrExprList(e.Elements);
         
       } else if (expr is SeqDisplayExpr) {
@@ -1214,18 +1229,29 @@ namespace Microsoft.Dafny {
         
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        TrParenExpr(e.Seq);
         Contract.Assert(e.Seq.Type != null);
         if (e.Seq.Type.IsArrayType) {
-          Contract.Assert(e.SelectOne);
-          Contract.Assert(e.E0 != null && e.E1 == null);
-          wr.Write("[(int)");
-          TrParenExpr(e.E0);
-          wr.Write("]");
+          if (e.SelectOne) {
+            Contract.Assert(e.E0 != null && e.E1 == null);
+            TrParenExpr(e.Seq);
+            wr.Write("[(int)");
+            TrParenExpr(e.E0);
+            wr.Write("]");
+          } else {
+            TrParenExpr("Dafny.Helpers.SeqFromArray", e.Seq);
+            if (e.E1 != null) {
+              TrParenExpr(".Take", e.E1);
+            }
+            if (e.E0 != null) {
+              TrParenExpr(".Drop", e.E0);
+            }
+          }
         } else if (e.SelectOne) {
           Contract.Assert(e.E0 != null && e.E1 == null);
+          TrParenExpr(e.Seq);
           TrParenExpr(".Select", e.E0);
         } else {
+          TrParenExpr(e.Seq);
           if (e.E1 != null) {
             TrParenExpr(".Take", e.E1);
           }
@@ -1233,7 +1259,16 @@ namespace Microsoft.Dafny {
             TrParenExpr(".Drop", e.E0);
           }
         }
-      
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+        wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(((CollectionType)e.E.Type).Arg));
+        if (e.E.Type is SeqType) {
+          TrParenExpr(".FromSeq", e.E);
+        } else if (e.E.Type is SetType) {
+          TrParenExpr(".FromSet", e.E);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
+        }
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         TrParenExpr(e.Array);
@@ -1389,29 +1424,37 @@ namespace Microsoft.Dafny {
             wr.Write(")");
             break;
           case BinaryExpr.ResolvedOpcode.SetEq:
+          case BinaryExpr.ResolvedOpcode.MultiSetEq:
           case BinaryExpr.ResolvedOpcode.SeqEq:
             callString = "Equals";  break;
           case BinaryExpr.ResolvedOpcode.SetNeq:
+          case BinaryExpr.ResolvedOpcode.MultiSetNeq:
           case BinaryExpr.ResolvedOpcode.SeqNeq:
             preOpString = "!";  callString = "Equals";  break;
-
           case BinaryExpr.ResolvedOpcode.ProperSubset:
+          case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
             callString = "IsProperSubsetOf";  break;
           case BinaryExpr.ResolvedOpcode.Subset:
+          case BinaryExpr.ResolvedOpcode.MultiSubset:
             callString = "IsSubsetOf";  break;
           case BinaryExpr.ResolvedOpcode.Superset:
+          case BinaryExpr.ResolvedOpcode.MultiSuperset:
             callString = "IsSupersetOf";  break;
           case BinaryExpr.ResolvedOpcode.ProperSuperset:
+          case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
             callString = "IsProperSupersetOf";  break;
           case BinaryExpr.ResolvedOpcode.Disjoint:
+          case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
             callString = "IsDisjointFrom";  break;
           case BinaryExpr.ResolvedOpcode.InSet:
+          case BinaryExpr.ResolvedOpcode.InMultiSet:
             TrParenExpr(e.E1);
             wr.Write(".Contains(");
             TrExpr(e.E0);
             wr.Write(")");
             break;
           case BinaryExpr.ResolvedOpcode.NotInSet:
+          case BinaryExpr.ResolvedOpcode.NotInMultiSet:
             wr.Write("!");
             TrParenExpr(e.E1);
             wr.Write(".Contains(");
@@ -1419,10 +1462,13 @@ namespace Microsoft.Dafny {
             wr.Write(")");
             break;
           case BinaryExpr.ResolvedOpcode.Union:
+          case BinaryExpr.ResolvedOpcode.MultiSetUnion:
             callString = "Union";  break;
           case BinaryExpr.ResolvedOpcode.Intersection:
+          case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
             callString = "Intersect";  break;
           case BinaryExpr.ResolvedOpcode.SetDifference:
+          case BinaryExpr.ResolvedOpcode.MultiSetDifference:
             callString = "Difference";  break;
 
           case BinaryExpr.ResolvedOpcode.ProperPrefix:
