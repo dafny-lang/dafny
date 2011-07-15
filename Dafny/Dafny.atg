@@ -188,7 +188,7 @@ Dafny
                                             theModules.Add(module); .)
   | ClassDecl<defaultModule, out c>      (. defaultModule.TopLevelDecls.Add(c); .)
   | DatatypeDecl<defaultModule, out dt>  (. defaultModule.TopLevelDecls.Add(dt); .)
-  | ClassMemberDecl<membersDefaultClass>
+  | ClassMemberDecl<membersDefaultClass, false>
   }
   (. if (defaultModuleCreatedHere) {
        defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
@@ -225,7 +225,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   [ "refines" Ident<out idRefined>               (. optionalId = idRefined; .)
   ]
   "{"                                            (. bodyStart = t; .)
-  { ClassMemberDecl<members>
+  { ClassMemberDecl<members, true>
   }
   "}"                                      
   (. if (optionalId == null)        
@@ -237,7 +237,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   .)
   .
 
-ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm.>
+ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -248,8 +248,8 @@ ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm.>
   | "unlimited"                            (. mmod.IsUnlimited = true; .)
   }
   ( FieldDecl<mmod, mm>  
-  | FunctionDecl<mmod, out f>              (. mm.Add(f); .)
-  | MethodDecl<mmod, out m>                (. mm.Add(m); .)
+  | FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
+  | MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
   | CouplingInvDecl<mmod, mm> 
   )
   .
@@ -404,7 +404,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 
 /*------------------------------------------------------------------------*/
 
-MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
+MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id;
      Attributes attrs = null;
@@ -422,8 +422,13 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
      IToken bodyEnd = Token.NoToken;
   .)
   ( "method"
-  | "constructor"                                           (. isConstructor = true; .)
-  | "refines"                                               (. isRefinement = true; .)
+  | "constructor"                   (. if (allowConstructor) {
+                                         isConstructor = true;
+                                       } else {
+                                         SemErr(t, "constructors are only allowed in classes");
+                                       }
+                                    .)
+  | "refines"                       (. isRefinement = true; .)
   )
   (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
      if (isConstructor) {
@@ -443,9 +448,9 @@ MethodDecl<MemberModifiers mmod, out Method/*!*/ m>
     Formals<false, !mmod.IsGhost, outs>
   ]
 
-  ( ";" { MethodSpec<req, mod, ens, dec> }
-  | { MethodSpec<req, mod, ens, dec> } BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
-  )
+  { MethodSpec<req, mod, ens, dec> }
+  [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
+  ]
   
   (. if (isRefinement)
        m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
@@ -594,11 +599,9 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   Formals<true, isFunctionMethod, formals>
   ":"
   Type<out returnType>
-  ( ";"
-    { FunctionSpec<reqs, reads, ens, decreases> }
-  | { FunctionSpec<reqs, reads, ens, decreases> }
-    FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
-  )
+  { FunctionSpec<reqs, reads, ens, decreases> }
+  [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
+  ]
   (. f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, decreases, body, attrs);
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;

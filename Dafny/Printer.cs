@@ -230,7 +230,7 @@ namespace Microsoft.Dafny {
       PrintFormals(f.Formals);
       wr.Write(": ");
       PrintType(f.ResultType);
-      wr.WriteLine(f.Body == null ? ";" : "");
+      wr.WriteLine();
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
@@ -277,7 +277,7 @@ namespace Microsoft.Dafny {
         }
         PrintFormals(method.Outs);
       }
-      wr.WriteLine(method.Body == null ? ";" : "");
+      wr.WriteLine();
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);

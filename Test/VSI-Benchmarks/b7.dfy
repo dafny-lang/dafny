@@ -8,13 +8,13 @@
 
 class Queue<T> {
   var contents: seq<T>;
-  method Init();
+  method Init()
     modifies this;
     ensures |contents| == 0;
-  method Enqueue(x: T);
+  method Enqueue(x: T)
     modifies this;
     ensures contents == old(contents) + [x];
-  method Dequeue() returns (x: T);
+  method Dequeue() returns (x: T)
     requires 0 < |contents|;
     modifies this;
     ensures contents == old(contents)[1..] && x == old(contents)[0];
@@ -101,7 +101,7 @@ class Stream {
 
 
 class Client {
-  method Sort(q: Queue<int>) returns (r: Queue<int>, perm:seq<int>);
+  method Sort(q: Queue<int>) returns (r: Queue<int>, perm:seq<int>)
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);

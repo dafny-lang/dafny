@@ -97,21 +97,26 @@ let PrintAllocNewObjects (heap,env,ctx) indent =
       |> Set.fold (fun acc newObjConst ->
                     match newObjConst with
                     | NewObj(name, Some(tp)) -> acc + (sprintf "%svar %s := new %s;%s" idt (PrintGenSym name) (PrintType tp) newline)
-                    | _ -> failwith ("NewObj doesn't have a type: " + newObjConst.ToString())
+                    | _ -> failwithf "NewObj doesn't have a type: %O" newObjConst
                   ) ""
 
 let PrintObjRefName o (env,ctx) = 
-  match Resolve o (env,ctx) with
+  match Resolve (env,ctx) o with
   | ThisConst(_,_) -> "this";
   | NewObj(name, _) -> PrintGenSym name
   | _ -> failwith ("unresolved object ref: " + o.ToString())
+
+let CheckUnresolved c =
+  match c with 
+  | Unresolved(_) -> Logger.WarnLine "!!! There are some unresolved constants in the output file !!!"; c 
+  | _ -> c
 
 let PrintVarAssignments (heap,env,ctx) indent = 
   let idt = Indent indent
   heap |> Map.fold (fun acc (o,f) l ->
                       let objRef = PrintObjRefName o (env,ctx)
                       let fldName = PrintVarName f
-                      let value = Resolve l (env,ctx) |> PrintConst
+                      let value = TryResolve (env,ctx) l |> CheckUnresolved |> PrintConst
                       acc + (sprintf "%s%s.%s := %s;" idt objRef fldName value) + newline
                    ) ""
 
@@ -135,17 +140,6 @@ let GenConstructorCode mthd body =
       "  }" + newline
   | _ -> ""
 
-// NOTE: insert here coto to say which methods to analyze
-let GetMethodsToAnalyze prog =
-  (* exactly one *)
-//  let c = FindComponent prog "List" |> Utils.ExtractOption
-//  let m = FindMethod c "Double" |> Utils.ExtractOption
-//  [c, m]
-  (* all *)
-  FilterMembers prog FilterConstructorMembers 
-  (* only with parameters *)
-//  FilterMembers prog FilterConstructorMembersWithParams 
-
 // solutions: (comp, constructor) |--> (heap, env, ctx) 
 let PrintImplCode prog solutions methodsToPrintFunc =
   let methods = methodsToPrintFunc prog
@@ -156,5 +150,4 @@ let PrintImplCode prog solutions methodsToPrintFunc =
                                                   | _ -> "    //unable to synthesize" + newline
                                    (GenConstructorCode mthd mthdBody) + newline
                                  else
-                                   ""
-                              )
+                                   "")

@@ -17,7 +17,7 @@ class C<U> {
     assert kz && (G() || !G());
   }
 
-  function G<Y>(): Y;
+  function G<Y>(): Y
 }
 
 class SetTest {
@@ -99,7 +99,7 @@ class CClient {
 
 // -------------------------
 
-static function IsCelebrity<Person>(c: Person, people: set<Person>): bool;
+static function IsCelebrity<Person>(c: Person, people: set<Person>): bool
   requires c == c || c in people;
 
 method FindCelebrity3(people: set<int>, ghost c: int)
@@ -110,7 +110,7 @@ method FindCelebrity3(people: set<int>, ghost c: int)
   b := F(c, people);
 }
 
-static function F(c: int, people: set<int>): bool;
+static function F(c: int, people: set<int>): bool
   requires IsCelebrity(c, people);
 
 function RogerThat<G>(g: G): G
@@ -153,8 +153,8 @@ method LoopyRoger(n: int)
 
 class TyKn_C<T> {
   var x: T;
-  function G(): T;
-  method M() returns (t: T);
+  function G(): T
+  method M() returns (t: T)
 }
 
 class TyKn_K {

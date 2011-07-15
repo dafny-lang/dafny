@@ -26,7 +26,7 @@ let rec MyFold ee acc =
 %token IMPLIES
 %token IFF
 %token LPAREN RPAREN LBRACKET RBRACKET LCURLY RCURLY VERTBAR
-%token GETS COLON COLONCOLON COMMA
+%token GETS COLON COLONCOLON COMMA QMARK
 %token CLASS MODEL CODE
 %token VAR CONSTRUCTOR METHOD FRAME INVARIANT RETURNS REQUIRES ENSURES FORALL
 %token INTTYPE BOOLTYPE SEQTYPE SETTYPE
@@ -89,7 +89,7 @@ BlockStmt:
 
 Member:
     | VAR VarDecl                            { Field($2) }
-    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, $4, $5, true) }
+    | CONSTRUCTOR ID Signature Pre Post      { Method($2, $3, RewriteVars (GetSigVars $3) $4, RewriteVars (GetSigVars $3) $5, true) }
     | METHOD ID Signature Pre Post           { Method($2, $3, $4, $5, false) }
 	  | INVARIANT ExprList                     { Invariant($2) }
 
@@ -134,9 +134,12 @@ Expr10:
     | Expr10 IFF Expr20 { BinaryExpr(10,"<==>",$1,$3) }
 
 Expr20:
-    | Expr30                { $1 }
-    | Expr30 IMPLIES Expr20 { BinaryExpr(20,"==>",$1,$3) }
+    | Expr25                { $1 }
+    | Expr25 IMPLIES Expr20 { BinaryExpr(20,"==>",$1,$3) }
 
+Expr25: 
+    | Expr30                { $1 }
+    | Expr30 QMARK Expr25 COLON Expr25 { IteExpr($1,$3,$5) }
 Expr30:
     | Expr40               { $1 }
     | Expr40 AND Expr30and { BinaryAnd $1 $3 }
@@ -183,8 +186,9 @@ Expr100:
   | Expr100 LBRACKET Expr GETS Expr RBRACKET { UpdateExpr($1, $3, $5) }
   | LPAREN Expr RPAREN                       { $2 }
   | LBRACKET ExprList RBRACKET               { SequenceExpr($2) }
+  | LCURLY ExprList RCURLY                   { SetExpr($2) }
   | VERTBAR Expr VERTBAR                     { SeqLength($2) }
-  | FORALL VarDeclList COLONCOLON Expr       { ForallExpr($2, $4) }
+  | FORALL VarDeclList COLONCOLON Expr       { ForallExpr($2, RewriteVars $2 $4) }
 
 StarExpr:
   | STAR                  { Star }
