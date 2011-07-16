@@ -6,7 +6,9 @@ set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set BPLEXE=%BOOGIEDIR%\Boogie.exe
 set CSC=c:/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
 
-for %%f in (b1.dfy b2.dfy b3.dfy b4.dfy b5.dfy b6.dfy b7.dfy b8.dfy) do (
+REM b3, b7 and b8 need reworking to not use body-less functions and methods.
+
+for %%f in (b1.dfy b2.dfy b4.dfy b5.dfy b6.dfy) do (
   echo.
   echo -------------------- %%f --------------------
 
