@@ -24,12 +24,16 @@ type VarDecl =
 (* 
    the difference between IdLiteral and VarLiteral is that the VarLiteral is more specific, 
    it always referes to a local variable (either method parameter or quantification variable)  
+
+   ObjLiteral is a concrete object, so if two ObjLiterals have different names, 
+   they are different objects (as opposed to IdLiterals and VarLiterals, which can alias).
  *)
 type Expr =
   | IntLiteral of int
   | BoolLiteral of bool
   | VarLiteral of string  
-  | IdLiteral of string  
+  | IdLiteral of string 
+  | ObjLiteral of string 
   | Star
   | Dot of Expr * string
   | UnaryExpr of string * Expr
@@ -41,6 +45,19 @@ type Expr =
   | SeqLength of Expr
   | SetExpr of Expr list //TODO: maybe this should really be a set instead of a list
   | ForallExpr of VarDecl list * Expr
+
+type Const = 
+  | IntConst   of int
+  | BoolConst  of bool
+  | SetConst   of Set<Const>
+  | SeqConst   of Const list
+  | NullConst
+  | NoneConst
+  | ThisConst  of (* loc id *) string * Type option
+  | VarConst   of string
+  | NewObj     of (* loc id *) string * Type option
+  | ExprConst  of Expr
+  | Unresolved of (* loc id *) string 
 
 type Stmt =
   | Block of Stmt list
@@ -67,15 +84,3 @@ type Component =
 
 type Program =
   | Program of Component list
-
-type Const = 
-  | IntConst   of int
-  | BoolConst  of bool
-  | SetConst   of Set<Const>
-  | SeqConst   of Const list
-  | NullConst
-  | NoneConst
-  | ThisConst  of (* loc id *) string * Type option
-  | NewObj     of (* loc id *) string * Type option
-  | ExprConst  of Expr
-  | Unresolved of (* loc id *) string 

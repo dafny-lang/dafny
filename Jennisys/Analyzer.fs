@@ -12,11 +12,14 @@ open DafnyPrinter
 open Utils
 
 open Microsoft.Boogie
-                    
-let VarsAreDifferent aa bb =
-  printf "false"
-  List.iter2 (fun (_,Var(a,_)) (_,Var(b,_)) -> printf " || %s != %s" a b) aa bb
 
+type MethodSolution = {
+   pathCond: Expr; 
+   heap : Map<Const * VarDecl, Const>; 
+   env  : Map<Const, Const>; 
+   ctx  : Set<Set<Const>>;
+}
+                    
 let Rename suffix vars =
   vars |> List.map (function Var(nm,tp) -> nm, Var(nm + suffix, tp))
 
@@ -75,6 +78,7 @@ let rec IsArgsOnly args expr =
   | IntLiteral(_)                        -> true
   | BoolLiteral(_)                       -> true
   | Star                                 -> true
+  | ObjLiteral(id)                       -> true
   | VarLiteral(id)
   | IdLiteral(id)                        -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
   | UnaryExpr(_,e)                       -> IsArgsOnly args e
@@ -87,7 +91,9 @@ let rec IsArgsOnly args expr =
   | SeqLength(e)                         -> IsArgsOnly args e
   | ForallExpr(vars,e)                   -> IsArgsOnly (List.concat [args; vars]) e
 
-let GetUnifications expr args (heap,env,ctx) =
+//TODO: unifications should probably by "Expr <--> Expr" instead of "Expr <--> Const"
+let GetUnifications indent expr args (heap,env,ctx) =
+  let idt = Indent indent
   // - first looks if the give expression talks only about method arguments (args)
   // - then checks if it doesn't already exist in the unification map
   // - then it tries to evaluate it to a constant
@@ -98,7 +104,7 @@ let GetUnifications expr args (heap,env,ctx) =
       let! argsOnly = IsArgsOnly args e |> Utils.BoolToOption
       let! notAlreadyAdded = Map.tryFind e unifMap |> Utils.IsNoneOption |> Utils.BoolToOption
       let! v = try Some(Eval (heap,env,ctx) true e |> Expr2Const) with ex -> None
-      Logger.DebugLine ("      - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v));
+      Logger.DebugLine (idt + "    - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v));
       return Map.add e v unifMap
     }
   // just recurses on all expressions
@@ -108,6 +114,7 @@ let GetUnifications expr args (heap,env,ctx) =
     | IntLiteral(_)
     | BoolLiteral(_)
     | VarLiteral(_)
+    | ObjLiteral(_)
     | IdLiteral(_)
     | Star                   -> unifs
     | Dot(e, _)
@@ -127,14 +134,15 @@ let GetUnifications expr args (heap,env,ctx) =
 /// Returns a map (Expr |--> Const) containing unifications
 /// found for the given method and heap/env/ctx
 //  =======================================================
-let GetUnificationsForMethod comp m (heap,env,ctx) =
+let GetUnificationsForMethod indent comp m (heap,env,ctx) =
+  let idt = Indent indent
   let rec GetArgValueUnifications args env = 
     match args with
     | Var(name,_) :: rest -> 
         match Map.tryFind (Unresolved(name)) env with
         | Some(c) ->
-            Logger.DebugLine ("      - adding unification " + (PrintConst c) + " <--> " + name);
-            Map.ofList [IdLiteral(name), c] |> Utils.MapAddAll (GetArgValueUnifications rest env)
+            Logger.DebugLine (idt + "    - adding unification " + (PrintConst c) + " <--> " + name);
+            Map.ofList [VarLiteral(name), c] |> Utils.MapAddAll (GetArgValueUnifications rest env)
         | None -> failwith ("couldn't find value for argument " + name)
     | [] -> Map.empty
   (* --- function body starts here --- *)
@@ -143,7 +151,7 @@ let GetUnificationsForMethod comp m (heap,env,ctx) =
       let args = List.concat [ins; outs]
       match args with 
       | [] -> Map.empty
-      | _  -> GetUnifications (BinaryAnd pre post) args (heap,env,ctx)
+      | _  -> GetUnifications indent (BinaryAnd pre post) args (heap,env,ctx)
               |> Utils.MapAddAll (GetArgValueUnifications args env)
   | _ -> failwith ("not a method: " + m.ToString())
 
@@ -164,7 +172,7 @@ let GetObjRefExpr o (heap,env,ctx) =
       let newVisited = Set.add o visited
       let refName = PrintObjRefName o (env,ctx)
       match refName with
-      | "this" -> Some(IdLiteral(refName))
+      | "this" -> Some(ObjLiteral("this"))
       | _ -> 
           let rec __fff lst = 
             match lst with
@@ -179,11 +187,11 @@ let GetObjRefExpr o (heap,env,ctx) =
   if objRef2ExprCache.ContainsKey(o) then
     Some(objRef2ExprCache.[o])
   else
-      let res = __GetObjRefExpr o (heap,env,ctx) (Set.empty)
-      match res with 
-      | Some(e) -> objRef2ExprCache.Add(o, e)
-      | None -> ()
-      res
+    let res = __GetObjRefExpr o (heap,env,ctx) (Set.empty)
+    match res with 
+    | Some(e) -> objRef2ExprCache.Add(o, e)
+    | None -> ()
+    res
 
 //  =======================================================
 /// Applies given unifications onto the given heap/env/ctx
@@ -191,7 +199,8 @@ let GetObjRefExpr o (heap,env,ctx) =
 /// If "conservative" is true, applies only those that 
 /// can be verified to hold, otherwise applies all of them
 //  =======================================================
-let rec ApplyUnifications prog comp mthd unifs (heap,env,ctx) conservative = 
+let rec ApplyUnifications indent prog comp mthd unifs (heap,env,ctx) conservative = 
+  let idt = Indent indent
   let __CheckUnif o f e idx =
     if not conservative || not Options.CONFIG.checkUnifications then 
       true 
@@ -205,7 +214,7 @@ let rec ApplyUnifications prog comp mthd unifs (heap,env,ctx) conservative =
                           | _                                            -> BinaryEq lhs e 
       // check if the assertion follows and if so update the env
       let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,mthd) assertionExpr)
-      Logger.Debug ("      - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
+      Logger.Debug (idt + "    - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
       let ok = CheckDafnyProgram code ("unif_" + (GetMethodFullName comp mthd))
       if ok then
         Logger.DebugLine " HOLDS"
@@ -215,13 +224,13 @@ let rec ApplyUnifications prog comp mthd unifs (heap,env,ctx) conservative =
   (* --- function body starts here --- *)
   match unifs with
   | (e,c) :: rest -> 
-      let restHeap,env,ctx = ApplyUnifications prog comp mthd rest (heap,env,ctx) conservative
+      let restHeap,env,ctx = ApplyUnifications indent prog comp mthd rest (heap,env,ctx) conservative
       let newHeap = restHeap |> Map.fold (fun acc (o,f) l ->
                                             let value = TryResolve (env,ctx) l
                                             if value = c then
                                               if __CheckUnif o f e -1 then                                                
                                                 // change the value to expression
-                                                Logger.TraceLine (sprintf "      - applied: %s.%s --> %s" (PrintConst o) (GetVarName f) (PrintExpr 0 e) )
+                                                //Logger.TraceLine (sprintf "%s    - applied: %s.%s --> %s" idt (PrintConst o) (GetVarName f) (PrintExpr 0 e) )
                                                 acc |> Map.add (o,f) (ExprConst(e))
                                               else
                                                 // don't change the value unless "conservative = false"
@@ -231,7 +240,7 @@ let rec ApplyUnifications prog comp mthd unifs (heap,env,ctx) conservative =
                                                     match lst with
                                                     | lstElem :: rest when lstElem = c ->
                                                         if __CheckUnif o f e cnt then
-                                                          Logger.TraceLine (sprintf "      - applied: %s.%s[%d] --> %s" (PrintConst o) (GetVarName f) cnt (PrintExpr 0 e) )
+                                                          //Logger.TraceLine (sprintf "%s    - applied: %s.%s[%d] --> %s" idt (PrintConst o) (GetVarName f) cnt (PrintExpr 0 e) )
                                                           ExprConst(e) :: __UnifyOverLst rest (cnt+1)
                                                         else  
                                                           lstElem :: __UnifyOverLst rest (cnt+1)
@@ -255,16 +264,61 @@ let rec ApplyUnifications prog comp mthd unifs (heap,env,ctx) conservative =
 //  ====================================================================================
 /// Returns whether the code synthesized for the given method can be verified with Dafny
 //  ====================================================================================
-let VerifySolution prog comp mthd (heap,env,ctx) =
+let VerifySolution prog comp mthd sol =
   // print the solution to file and try to verify it with Dafny
-  let solution = Map.empty |> Map.add (comp,mthd) (heap,env,ctx)
-  let code = PrintImplCode prog solution (fun p -> [comp,mthd])
+  let solutions = Map.empty |> Map.add (comp,mthd) sol
+  let code = PrintImplCode prog solutions (fun p -> [comp,mthd])
   CheckDafnyProgram code dafnyVerifySuffix
 
-let TryInferConditionals prog comp m unifs (heap,env,ctx) = 
-  let heap2,env2,ctx2 = ApplyUnifications prog comp m unifs (heap,env,ctx) false
+//  ============================================================================
+/// Attempts to synthesize the initialization code for the given constructor "m"
+///
+/// Returns a (heap,env,ctx) tuple
+//  ============================================================================                           
+let rec AnalyzeConstructor indent prog comp m =
+  let idt = Indent indent
+  let methodName = GetMethodName m
+  let pre,post = GetMethodPrePost m
+  // generate Dafny code for analysis first
+  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m) FalseLiteral)
+  Logger.InfoLine (idt + "[*] Analyzing constructor")
+  Logger.InfoLine (idt + "------------------------------------------")
+  Logger.InfoLine (PrintMethodSignFull (indent + 4) m)
+  Logger.InfoLine (idt + "------------------------------------------")
+  Logger.Info     (idt + "    - searching for an instance      ...")
+  let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
+  if models.Count = 0 then
+    // no models means that the "assert false" was verified, which means that the spec is inconsistent
+    Logger.WarnLine (idt + " !!! SPEC IS INCONSISTENT !!!")
+    []
+  else 
+    if models.Count > 1 then 
+      Logger.WarnLine " FAILED "
+      failwith "internal error (more than one model for a single constructor analysis)"
+    Logger.InfoLine " OK "
+    let model = models.[0]
+    let heap,env,ctx = ReadFieldValuesFromModel model prog comp m
+    let unifs = GetUnificationsForMethod indent comp m (heap,env,ctx) |> Map.toList
+    let heap,env,ctx = ApplyUnifications indent prog comp m unifs (heap,env,ctx) true
+    if Options.CONFIG.verifySolutions then
+      Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
+      let sol = [TrueLiteral, (heap,env,ctx)]
+      let verified = VerifySolution prog comp m sol
+      Logger.Info (idt + "    ")
+      if verified then
+        Logger.InfoLine "~~~ VERIFIED ~~~"
+        sol
+      else 
+        Logger.InfoLine "!!! NOT VERIFIED !!!"
+        Logger.InfoLine (idt + "    Strengthening the pre-condition")
+        TryInferConditionals (indent + 4) prog comp m unifs (heap,env,ctx)
+    else
+      [TrueLiteral, (heap,env,ctx)]
+and TryInferConditionals indent prog comp m unifs (heap,env,ctx) = 
+  let idt = Indent indent
+  let heap2,env2,ctx2 = ApplyUnifications indent prog comp m unifs (heap,env,ctx) false
   // get expressions to evaluate:
-  //   - add pre and post conditions
+  //   - add pre and post conditions                                     
   //   - go through all objects on the heap and assert its invariant  
   let pre,post = GetMethodPrePost m
   let prepostExpr = post //TODO: do we need the "pre" here as well?
@@ -281,49 +335,28 @@ let TryInferConditionals prog comp m unifs (heap,env,ctx) =
                                          objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
                                      | _ -> failwith "not supposed to happen"
                                   ) prepostExpr
-  expr |> SplitIntoConjunts |> List.iter (fun e -> printfn "%s" (PrintExpr 0 e); printfn "")
+  //expr |> SplitIntoConjunts |> List.iter (fun e -> printfn "%s" (PrintExpr 0 e); printfn "")
   // now evaluate and see what's left
-  let c = Eval (heap2,env2,ctx2) false expr
-  Some(heap2,env2,ctx2)
-   
-//  ============================================================================
-/// Attempts to synthesize the initialization code for the given constructor "m"
-///
-/// Returns a (heap,env,ctx) tuple
-//  ============================================================================                           
-let AnalyzeConstructor prog comp m =
-  let methodName = GetMethodName m
-  // generate Dafny code for analysis first
-  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m) FalseLiteral)
-  Logger.InfoLine ("  [*] analyzing constructor " + methodName + (PrintSig (GetMethodSig m)))
-  Logger.Info      "      - searching for an instance      ..."
-  let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
-  if models.Count = 0 then
-    // no models means that the "assert false" was verified, which means that the spec is inconsistent
-    Logger.WarnLine " !!! SPEC IS INCONSISTENT !!!"
-    None
-  else 
-    if models.Count > 1 then 
-      Logger.WarnLine " FAILED "
-      failwith "internal error (more than one model for a single constructor analysis)"
-    Logger.InfoLine " OK "
-    let model = models.[0]
-    let heap,env,ctx = ReadFieldValuesFromModel model prog comp m
-    let unifs = GetUnificationsForMethod comp m (heap,env,ctx) |> Map.toList
-    let heap,env,ctx = ApplyUnifications prog comp m unifs (heap,env,ctx) true
-    if Options.CONFIG.verifySolutions then
-      Logger.InfoLine "      - verifying synthesized solution ... "
-      let verified = VerifySolution prog comp m (heap,env,ctx)
-      Logger.Info "      "      
-      if verified then
-        Logger.InfoLine "~~~ VERIFIED ~~~"
-        Some(heap,env,ctx)
-      else 
-        Logger.InfoLine "!!! NOT VERIFIED !!!"
-        Logger.InfoLine "Trying to infer conditionals"
-        TryInferConditionals prog comp m unifs (heap,env,ctx)
+  let newCond = Eval (heap2,env2,ctx2) false expr
+  try
+    if newCond = TrueLiteral then
+      Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
+      []
     else
-      Some(heap,env,ctx)
+      Logger.InfoLine (sprintf "%s    - candidate pre-condition: %s" idt (PrintExpr 0 newCond))
+      let p2,c2,m2 = AddPrecondition prog comp m newCond
+      Logger.Info (idt + "    - verifying partial solution ... ")
+      let sol = [newCond, (heap2,env2,ctx2)]
+      let verified = VerifySolution p2 c2 m2 sol
+      if verified then
+        Logger.InfoLine "VERIFIED"
+        let p3,c3,m3 = AddPrecondition prog comp m (UnaryNot(newCond))
+        sol.[0] :: AnalyzeConstructor (indent + 2) p3 c3 m3
+      else 
+        Logger.InfoLine "NOT VERIFIED"
+        []                     
+  with
+    ex -> raise ex
 
 let GetMethodsToAnalyze prog =
   let mOpt = Options.CONFIG.methodToSynth;
@@ -365,11 +398,9 @@ let rec AnalyzeMethods prog members =
   | (comp,m) :: rest -> 
       match m with
       | Method(_,_,_,_,true) -> 
-          let solOpt = AnalyzeConstructor prog comp m
+          let solOpt = AnalyzeConstructor 2 prog comp m
           Logger.InfoLine ""
-          match solOpt with
-          | Some(heap,env,ctx) -> AnalyzeMethods prog rest |> Map.add (comp,m) (heap,env,ctx)
-          | None -> AnalyzeMethods prog rest
+          AnalyzeMethods prog rest |> Map.add (comp,m) solOpt
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 

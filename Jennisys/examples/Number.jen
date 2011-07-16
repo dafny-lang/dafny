@@ -1,0 +1,40 @@
+class Number { 
+  var num: int
+ 
+  constructor Init(p: int)
+    ensures num = p
+
+  constructor Double(p: int)
+    ensures num = 2*p
+
+  constructor Sum(a: int, b: int)
+    ensures num = a + b
+
+  constructor Min2(a: int, b: int)
+    ensures a < b ==> num = a
+    ensures a >= b ==> num = b
+
+  constructor Min22(a: int, b: int)
+    ensures num in {a b}
+    ensures num <= a && num <= b
+
+  constructor Min3(a: int, b: int, c: int)
+    ensures num in {a b c}
+    ensures num <= a && num <= b && num <= c
+
+ constructor MinSum(a: int, b: int, c: int)
+    ensures num in {a+b a+c b+c}
+    ensures num <= a+b && num <= b+c && num <= a+c
+
+ constructor Min4(a: int, b: int, c: int, d: int)
+    ensures num in {a b c d}
+    ensures num <= a && num <= b && num <= c && num <= d
+
+  constructor Abs(a: int) 
+    ensures a < 0 ==> num = -a
+    ensures a >= 0 ==> num = a
+}
+
+model Number {
+
+}

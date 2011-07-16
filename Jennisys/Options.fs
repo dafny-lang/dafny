@@ -20,7 +20,7 @@ let defaultConfig: Config = {
   inputFilename     = "";
   methodToSynth     = "*";
   verifySolutions   = true;
-  checkUnifications = true;
+  checkUnifications = false;
   timeout           = 0;
 }
 

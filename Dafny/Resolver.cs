@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
     }
 
     bool checkRefinements = true; // used to indicate a cycle in refinements
-      
+
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
       // register modules
@@ -119,15 +119,15 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // resolve top-level declarations of refinements      
-      foreach (ModuleDecl m in prog.Modules) 
-        foreach (TopLevelDecl decl in m.TopLevelDecls) 
+      // resolve top-level declarations of refinements
+      foreach (ModuleDecl m in prog.Modules)
+        foreach (TopLevelDecl decl in m.TopLevelDecls)
           if (decl is ClassRefinementDecl) {
             ClassRefinementDecl rdecl = (ClassRefinementDecl) decl;
             ResolveTopLevelRefinement(rdecl);
             if (rdecl.Refined != null) refines.AddEdge(rdecl, rdecl.Refined);
           }
-      
+
       // attempt finding refinement cycles
       List<TopLevelDecl> refinesCycle = refines.TryFindCycle();
       if (refinesCycle != null) {
@@ -139,8 +139,8 @@ namespace Microsoft.Dafny {
         }
         Error(refinesCycle[0], "Detected a cyclic refinement declaration: {0}", cy);
         checkRefinements = false;
-      } 
-      
+      }
+
       // resolve top-level declarations
       Graph<DatatypeDecl> datatypeDependencies = new Graph<DatatypeDecl>();
       foreach (ModuleDecl m in prog.Modules) {
@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     public void RegisterTopLevelDecls(List<TopLevelDecl> declarations) {
       Contract.Requires(declarations != null);
       foreach (TopLevelDecl d in declarations) {
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
           // ... and of the other members
           Dictionary<string, MemberDecl> members = new Dictionary<string, MemberDecl>();
           datatypeMembers.Add(dt, members);
-        
+
           foreach (DatatypeCtor ctor in dt.Ctors) {
             if (ctor.Name.EndsWith("?")) {
               Error(ctor, "a datatype constructor name is not allowed to end with '?'");
@@ -224,7 +224,7 @@ namespace Microsoft.Dafny {
               query.EnclosingClass = dt;  // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;
-                
+
               // also register the constructor name globally
               Tuple<DatatypeCtor, bool> pair;
               if (allDatatypeCtors.TryGetValue(ctor.Name, out pair)) {
@@ -268,9 +268,9 @@ namespace Microsoft.Dafny {
         }
         decl.Refined = cce.NonNull((ClassDecl) a);
         // TODO: copy over remaining members of a
-      }        
-    }  
-      
+      }
+    }
+
     public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<DatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
@@ -286,7 +286,7 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
     }
-    
+
     public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<DatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
     }
-    
+
     ClassDecl currentClass;
     Function currentFunction;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
@@ -314,7 +314,7 @@ namespace Microsoft.Dafny {
     readonly Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
     readonly List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     readonly Dictionary<Statement, bool> inSpecOnlyContext = new Dictionary<Statement, bool>();  // invariant: domain contain union of the domains of "labeledStatements" and "loopStack"
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
@@ -323,13 +323,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
-    
+
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
           ResolveType(member.tok, ((Field)member).Type);
-          
+
         } else if (member is Function) {
           Function f = (Function)member;
           allTypeParameters.PushMarker();
@@ -343,15 +343,15 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          
+
         } else if (member is CouplingInvariant) {
           CouplingInvariant inv = (CouplingInvariant)member;
-          if (currentClass is ClassRefinementDecl) {      
+          if (currentClass is ClassRefinementDecl) {
             ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;
             if (refined != null) {
               Contract.Assert(classMembers.ContainsKey(refined));
               Dictionary<string,MemberDecl> members = classMembers[refined];
-            
+
               // resolve abstracted fields in the refined class
               List<Field> fields = new List<Field>();
               foreach (IToken tok in inv.Toks) {
@@ -359,29 +359,29 @@ namespace Microsoft.Dafny {
                   Error(tok, "Refined class does not declare a field: {0}", tok.val);
                 else {
                   MemberDecl field = members[tok.val];
-                  if (!(field is Field)) 
+                  if (!(field is Field))
                     Error(tok, "Coupling invariant refers to a non-field member: {0}", tok.val);
                   else if (fields.Contains(cce.NonNull((Field)field)))
                     Error(tok, "Duplicate reference to a field in the refined class: {0}", tok.val);
                   else
                     fields.Add(cce.NonNull((Field)field));
-                }                  
-              }            
+                }
+              }
               inv.Refined = fields;
             }
-            
+
           } else {
             Error(member, "Coupling invariants can only be declared in refinement classes");
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
-        
-        if (currentClass is ClassRefinementDecl) {          
+
+        if (currentClass is ClassRefinementDecl) {
           ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;
           if (refined != null) {
             Contract.Assert(classMembers.ContainsKey(refined));
-          
+
             // there is a member with the same name in refined class if and only if the member is a refined method
             if ((member is MethodRefinement) != (classMembers[refined].ContainsKey(member.Name)))
               Error(member, "Refined class has a member with the same name as in the refinement class: {0}", member.Name);
@@ -399,14 +399,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
-    
+
       ResolveAttributes(cl.Attributes, false);
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         ResolveAttributes(member.Attributes, false);
         if (member is Field) {
           // nothing more to do
-          
+
         } else if (member is Function) {
           Function f = (Function)member;
           allTypeParameters.PushMarker();
@@ -420,13 +420,13 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
-          
+
           // check if signature of the refined method matches the refinement method
           if (member is MethodRefinement) {
             MethodRefinement mf = (MethodRefinement)member;
             if (currentClass is ClassRefinementDecl) {
               // should have already been resolved
-              if (((ClassRefinementDecl)currentClass).Refined != null) { 
+              if (((ClassRefinementDecl)currentClass).Refined != null) {
                 MemberDecl d = classMembers[((ClassRefinementDecl)currentClass).Refined][mf.Name];
                 if (d is Method) {
                   mf.Refined = (Method)d;
@@ -434,18 +434,18 @@ namespace Microsoft.Dafny {
                     Error(mf, "Different number of input variables");
                   if (mf.Outs.Count != mf.Refined.Outs.Count)
                     Error(mf, "Different number of output variables");
-                  if (mf.IsStatic || mf.Refined.IsStatic) 
+                  if (mf.IsStatic || mf.Refined.IsStatic)
                     Error(mf, "Refined methods cannot be static");
                 } else {
                   Error(member, "Refined class has a non-method member with the same name: {0}", member.Name);
-                }            
+                }
               }
             } else {
               Error(member, "Refinement methods can only be declared in refinement classes: {0}", member.Name);
             }
           }
-        
-        } else if (member is CouplingInvariant) {        
+
+        } else if (member is CouplingInvariant) {
           CouplingInvariant inv = (CouplingInvariant)member;
           if (inv.Refined != null) {
             inv.Formals = new List<Formal>();
@@ -460,7 +460,7 @@ namespace Microsoft.Dafny {
             }
             ResolveExpression(inv.Expr, false);
             scope.PopMarker();
-          }                
+          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
@@ -476,13 +476,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(cce.NonNullElements(dependencies));
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        
+
         ctor.EnclosingDatatype = dt;
 
         allTypeParameters.PushMarker();
         ResolveCtorSignature(ctor);
         allTypeParameters.PopMarker();
-        
+
         foreach (Formal p in ctor.Formals) {
           DatatypeDecl dependee = p.Type.AsDatatype;
           if (dependee != null) {
@@ -497,7 +497,7 @@ namespace Microsoft.Dafny {
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
     /// deemed to be rather small, this seems okay.
-    /// </summary>    
+    /// </summary>
     void SccStratosphereCheck(DatatypeDecl startingPoint, Graph<DatatypeDecl/*!*/>/*!*/ dependencies)
     {
       Contract.Requires(startingPoint != null);
@@ -573,7 +573,7 @@ namespace Microsoft.Dafny {
         ResolveAttributeArgs(attrs.Args, twoState);
       }
     }
-        
+
     void ResolveAttributeArgs(List<Attributes.Argument/*!*/>/*!*/ args, bool twoState) {
       Contract.Requires(args != null);
       foreach (Attributes.Argument aa in args) {
@@ -583,7 +583,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-        
+
     void ResolveTriggers(Triggers trigs, bool twoState) {
       // order does not matter for resolution, so resolve them in reverse order
       for (; trigs != null; trigs = trigs.Prev) {
@@ -592,9 +592,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-        
+
     void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
-      
+
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
       // push type arguments of the refined class
@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
         if (refined != null)
           ResolveTypeParameters(refined.TypeArgs, false, refined);
       }
-    
+
       // push non-duplicated type parameter names
       foreach (TypeParameter tp in tparams) {
         Contract.Assert(tp != null);
@@ -616,7 +616,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
@@ -683,7 +683,7 @@ namespace Microsoft.Dafny {
       currentFunction = null;
       scope.PopMarker();
     }
-    
+
     void ResolveFrameExpression(FrameExpression fe, string kind) {
       Contract.Requires(fe != null);
       Contract.Requires(kind != null);
@@ -717,7 +717,7 @@ namespace Microsoft.Dafny {
         Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", kind, fe.E.Type);
       }
     }
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
@@ -740,7 +740,7 @@ namespace Microsoft.Dafny {
       }
       scope.PopMarker();
     }
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
@@ -754,7 +754,7 @@ namespace Microsoft.Dafny {
       foreach (Formal p in m.Ins) {
         scope.Push(p.Name, p);
       }
-      
+
       // Start resolving specification...
       foreach (MaybeFreeExpression e in m.Req) {
         ResolveExpression(e.E, false);
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e, false);
         // any type is fine
       }
-      
+
       // Add out-parameters to a new scope that will also include the outermost-level locals of the body
       // Don't care about any duplication errors among the out-parameters, since they have already been reported
       scope.PushMarker();
@@ -786,16 +786,16 @@ namespace Microsoft.Dafny {
           Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
         }
       }
-      
+
       // Resolve body
       if (m.Body != null) {
         ResolveBlockStatement(m.Body, m.IsGhost, m);
       }
-      
+
       scope.PopMarker();  // for the out-parameters and outermost-level locals
       scope.PopMarker();  // for the in-parameters
     }
-    
+
     void ResolveCtorSignature(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       foreach (Formal p in ctor.Formals) {
@@ -839,18 +839,18 @@ namespace Microsoft.Dafny {
             Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
           }
         }
-      
+
       } else if (type is TypeProxy) {
         TypeProxy t = (TypeProxy)type;
         if (t.T != null) {
           ResolveType(tok, t.T);
         }
-        
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
-    
+
     public bool UnifyTypes(Type a, Type b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
@@ -866,7 +866,7 @@ namespace Microsoft.Dafny {
           a = proxy.T;
         }
       }
-      
+
       while (b is TypeProxy) {
         TypeProxy proxy = (TypeProxy)b;
         if (proxy.T == null) {
@@ -876,7 +876,7 @@ namespace Microsoft.Dafny {
           b = proxy.T;
         }
       }
-      
+
 #if !NO_CHEAP_OBJECT_WORKAROUND
       if (a is ObjectType || b is ObjectType) {  // TODO: remove this temporary hack
         var other = a is ObjectType ? b : a;
@@ -888,7 +888,7 @@ namespace Microsoft.Dafny {
       }
 #endif
       // Now, a and b are non-proxies and stand for the same things as the original a and b, respectively.
-      
+
       if (a is BoolType) {
         return b is BoolType;
       } else if (a is IntType) {
@@ -925,12 +925,12 @@ namespace Microsoft.Dafny {
           // something is wrong; either aa or bb wasn't properly resolved, or they don't unify
           return false;
         }
-        
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
-    
+
     bool AssignProxy(TypeProxy proxy, Type t){
       Contract.Requires(proxy != null);
       Contract.Requires(t != null);
@@ -941,15 +941,15 @@ namespace Microsoft.Dafny {
       if (proxy == t) {
         // they are already in the same equivalence class
         return true;
-      
+
       } else if (proxy is UnrestrictedTypeProxy) {
         // it's fine to redirect proxy to t (done below)
-        
+
       } else if (t is UnrestrictedTypeProxy) {
           // merge proxy and t by redirecting t to proxy, rather than the other way around
           ((TypeProxy)t).T = proxy;
           return true;
-      
+
       } else if (t is RestrictedTypeProxy) {
         // Both proxy and t are restricted type proxies.  To simplify unification, order proxy and t
         // according to their types.
@@ -960,7 +960,7 @@ namespace Microsoft.Dafny {
         } else {
           return AssignRestrictedProxies(r1, r0);
         }
-      
+
       // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
       } else if (proxy is DatatypeProxy) {
         if (t.IsDatatype) {
@@ -968,14 +968,14 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
-      
+
       } else if (proxy is ObjectTypeProxy) {
         if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
           // all is fine, proxy can be redirected to t
         } else {
           return false;
         }
-      
+
       } else if (proxy is ObjectsTypeProxy) {
         if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
           // all is good
@@ -983,7 +983,7 @@ namespace Microsoft.Dafny {
           proxy.T = new CollectionTypeProxy(new ObjectTypeProxy());
           return UnifyTypes(proxy.T, t);
         }
-        
+
       } else if (proxy is CollectionTypeProxy) {
         CollectionTypeProxy collProxy = (CollectionTypeProxy)proxy;
         if (t is CollectionType) {
@@ -993,7 +993,7 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
-      
+
       } else if (proxy is OperationTypeProxy) {
         OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
         if (t is IntType || t is SetType || t is MultiSetType || (opProxy.AllowSeq && t is SeqType)) {
@@ -1016,11 +1016,11 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
-                
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected proxy type
       }
-      
+
       // do the merge, but never infer a subrange type
       if (t is NatType) {
         proxy.T = Type.Int;
@@ -1029,7 +1029,7 @@ namespace Microsoft.Dafny {
       }
       return true;
     }
-    
+
     bool AssignRestrictedProxies(RestrictedTypeProxy a, RestrictedTypeProxy b)
     { Contract.Requires(a != null);
       Contract.Requires(b != null);
@@ -1038,7 +1038,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(a.OrderID <= b.OrderID);
       //modifies a.T, b.T;
       Contract.Ensures(Contract.Result<bool>() || a.T != null || b.T != null);
-    
+
       if (a is DatatypeProxy) {
         if (b is DatatypeProxy) {
           // all is fine
@@ -1064,7 +1064,7 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
-        
+
       } else if (a is ObjectsTypeProxy) {
         if (b is ObjectsTypeProxy) {
           // fine
@@ -1095,7 +1095,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
         }
-          
+
       } else if (a is CollectionTypeProxy) {
         if (b is CollectionTypeProxy) {
           a.T = b;
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
         }
-        
+
       } else if (a is OperationTypeProxy) {
         OperationTypeProxy pa = (OperationTypeProxy)a;
         if (b is OperationTypeProxy) {
@@ -1140,12 +1140,12 @@ namespace Microsoft.Dafny {
             return false;
           }
         }
-        
+
       } else if (a is IndexableTypeProxy) {
         Contract.Assert(b is IndexableTypeProxy);  // else we have unexpected restricted-proxy type
         a.T = b;
         return UnifyTypes(((IndexableTypeProxy)a).Arg, ((IndexableTypeProxy)b).Arg);
-        
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
       }
@@ -1166,14 +1166,14 @@ namespace Microsoft.Dafny {
         if (!UnifyTypes(s.Expr.Type, Type.Bool)) {
           Error(s.Expr, "condition is expected to be of type {0}, but is {1}", Type.Bool, s.Expr.Type);
         }
-      
+
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         ResolveAttributeArgs(s.Args, false);
         if (specContextOnly) {
           Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
         }
-          
+
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -1323,7 +1323,7 @@ namespace Microsoft.Dafny {
         } else {
           Error(stmt, "LHS of assignment must denote a mutable variable or field");
         }
-        
+
         s.IsGhost = lvalueIsGhost;
         Type lhsType = s.Lhs.Type;
         if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
@@ -1378,16 +1378,16 @@ namespace Microsoft.Dafny {
           // a local variable in a specification-only context might as well be ghost
           s.IsGhost = true;
         }
-      
+
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
         ResolveCallStmt(s, specContextOnly, method, null);
-        
+
       } else if (stmt is BlockStmt) {
         scope.PushMarker();
         ResolveBlockStatement((BlockStmt)stmt, specContextOnly, method);
         scope.PopMarker();
-      
+
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         bool branchesAreSpecOnly = specContextOnly;
@@ -1481,20 +1481,20 @@ namespace Microsoft.Dafny {
         if (!UnifyTypes(s.Collection.Type, new CollectionTypeProxy(s.BoundVar.Type))) {
           Error(s.Collection, "The type is expected to be a collection of {0} (instead got {1})", s.BoundVar.Type, s.Collection.Type);
         }
-        
+
         scope.PushMarker();
         bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
         Contract.Assert(b);  // since we just pushed a marker, we expect the Push to succeed
         ResolveType(s.BoundVar.tok, s.BoundVar.Type);
         int prevErrorCount = ErrorCount;
-        
+
         ResolveExpression(s.Range, true);
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Range.Type, Type.Bool)) {
           Error(s.Range, "range condition is expected to be of type {0}, but is {1}", Type.Bool, s.Range.Type);
         }
         bool successfullyResolvedCollectionAndRange = ErrorCount == prevErrorCount;
-        
+
         foreach (PredicateStmt ss in s.BodyPrefix) {
           ResolveStatement(ss, specContextOnly, method);
         }
@@ -1528,7 +1528,7 @@ namespace Microsoft.Dafny {
         }
 
         scope.PopMarker();
-      
+
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         bool bodyIsSpecOnly = specContextOnly;
@@ -1554,14 +1554,14 @@ namespace Microsoft.Dafny {
           Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
           ctors = datatypeCtors[dtd];
           Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-          
+
           // build the type-parameter substitution map for this use of the datatype
           for (int i = 0; i < dtd.TypeArgs.Count; i++) {
             subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
           }
         }
         s.IsGhost = bodyIsSpecOnly;
-        
+
         Dictionary<string,object> memberNamesUsed = new Dictionary<string,object>();  // this is really a set
         foreach (MatchCaseStmt mc in s.Cases) {
           DatatypeCtor ctor = null;
@@ -1616,8 +1616,8 @@ namespace Microsoft.Dafny {
           }
           Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
         }
-        
-        
+
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -2186,7 +2186,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "matchVarContext" says which variables are allowed to be used as the source expression in a "match" expression; 
+    /// "matchVarContext" says which variables are allowed to be used as the source expression in a "match" expression;
     /// if null, no "match" expression will be allowed.
     /// </summary>
     void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext) {
@@ -2197,7 +2197,7 @@ namespace Microsoft.Dafny {
         // expression has already been resovled
         return;
       }
-      
+
       // The following cases will resolve the subexpressions and will attempt to assign a type of expr.  However, if errors occur
       // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
       // of this method will assign proxy type to the expression, which reduces the number of error messages that are produced
@@ -2230,13 +2230,13 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
         }
-        
+
       } else if (expr is ThisExpr) {
         if (!scope.AllowInstance) {
           Error(expr, "'this' is not allowed in a 'static' context");
         }
         expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
-        
+
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
         e.Var = scope.Find(e.Name);
@@ -2245,7 +2245,7 @@ namespace Microsoft.Dafny {
         } else {
           expr.Type = e.Var.Type;
         }
-      
+
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         TopLevelDecl d;
@@ -2266,7 +2266,7 @@ namespace Microsoft.Dafny {
           }
           expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
           ResolveType(expr.tok, expr.Type);
-          
+
           DatatypeCtor ctor;
           if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
             Error(expr.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
@@ -2291,7 +2291,7 @@ namespace Microsoft.Dafny {
             j++;
           }
         }
-        
+
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         Type elementType = new InferredTypeProxy();
@@ -2309,7 +2309,7 @@ namespace Microsoft.Dafny {
         } else {
           expr.Type = new SeqType(elementType);
         }
-        
+
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
         ResolveExpression(e.Obj, twoState);
@@ -2336,7 +2336,7 @@ namespace Microsoft.Dafny {
           }
           e.Type = SubstType(e.Field.Type, subst);
         }
-      
+
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         ResolveSeqSelectExpr(e, twoState, true);
@@ -2385,7 +2385,7 @@ namespace Microsoft.Dafny {
         if (!seqErr) {
           expr.Type = e.Seq.Type;
         }
-        
+
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         ResolveFunctionCallExpr(e, twoState, false);
@@ -2459,7 +2459,7 @@ namespace Microsoft.Dafny {
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }
-        
+
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         ResolveExpression(e.E0, twoState);
@@ -2479,7 +2479,7 @@ namespace Microsoft.Dafny {
             }
             expr.Type = Type.Bool;
             break;
-          
+
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
             if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
@@ -2487,7 +2487,7 @@ namespace Microsoft.Dafny {
             }
             expr.Type = Type.Bool;
             break;
-          
+
           case BinaryExpr.Opcode.Disjoint:
             // TODO: the error messages are backwards from what (ideally) they should be. this is necessary because UnifyTypes can't backtrack.
             if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
@@ -2498,7 +2498,7 @@ namespace Microsoft.Dafny {
             }
             expr.Type = Type.Bool;
             break;
-          
+
           case BinaryExpr.Opcode.Lt:
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add:
@@ -2526,7 +2526,7 @@ namespace Microsoft.Dafny {
               }
             }
             break;
-          
+
           case BinaryExpr.Opcode.Sub:
           case BinaryExpr.Opcode.Mul:
           case BinaryExpr.Opcode.Gt:
@@ -2563,7 +2563,7 @@ namespace Microsoft.Dafny {
             }
             expr.Type = Type.Bool;
             break;
-            
+
           case BinaryExpr.Opcode.Div:
           case BinaryExpr.Opcode.Mod:
             if (!UnifyTypes(e.E0.Type, Type.Int)) {
@@ -2574,12 +2574,12 @@ namespace Microsoft.Dafny {
             }
             expr.Type = Type.Int;
             break;
-          
+
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
         }
         e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
-        
+
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         int prevErrorCount = ErrorCount;
@@ -2652,7 +2652,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
-        
+
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         ResolveExpression(e.Test, twoState);
@@ -2669,7 +2669,7 @@ namespace Microsoft.Dafny {
         } else {
           Error(expr, "the two branches of an if-then-else expression must have the same type (got {0} and {1})", e.Thn.Type, e.Els.Type);
         }
-      
+
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         Contract.Assert(!twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
@@ -2695,7 +2695,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
           ctors = datatypeCtors[dtd];
           Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-          
+
           IdentifierExpr ie = me.Source.Resolved as IdentifierExpr;
           if (ie == null || !(ie.Var is Formal || ie.Var is BoundVar)) {
             Error(me.Source.tok, "match source expression must be a formal parameter of the enclosing function or an enclosing match expression");
@@ -2704,13 +2704,13 @@ namespace Microsoft.Dafny {
           } else {
             goodMatchVariable = ie.Var;
           }
-          
+
           // build the type-parameter substitution map for this use of the datatype
           for (int i = 0; i < dtd.TypeArgs.Count; i++) {
             subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
           }
         }
-        
+
         Dictionary<string,object> memberNamesUsed = new Dictionary<string,object>();  // this is really a set
         expr.Type = new InferredTypeProxy();
         foreach (MatchCaseExpr mc in me.Cases) {
@@ -2773,7 +2773,7 @@ namespace Microsoft.Dafny {
           }
           Contract.Assert(memberNamesUsed.Count + me.MissingCases.Count == dtd.Ctors.Count);
         }
-        
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -3498,13 +3498,13 @@ namespace Microsoft.Dafny {
         return s == null ? new HashSet<IVariable>() : s;
       }
     }
-    
+
     void ResolveReceiver(Expression expr, bool twoState)
     {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
-    
+
       if (expr is ThisExpr) {
         // Allow 'this' here, regardless of scope.AllowInstance.  The caller is responsible for
         // making sure 'this' does not really get used when it's not available.
@@ -3513,7 +3513,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(expr, twoState);
       }
     }
-    
+
     void ResolveSeqSelectExpr(SeqSelectExpr e, bool twoState, bool allowNonUnitArraySelection) {
       Contract.Requires(e != null);
       if (e.Type != null) {
@@ -3557,7 +3557,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     /// <summary>
     /// Note: this method is allowed to be called even if "type" does not make sense for "op", as might be the case if
     /// resolution of the binary expression failed.  If so, an arbitrary resolved opcode is returned.
@@ -3693,7 +3693,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
-    
+
       if (expr is LiteralExpr) {
         return false;
       } else if (expr is ThisExpr) {
@@ -3769,7 +3769,7 @@ namespace Microsoft.Dafny {
     [Rep] readonly List<string> names = new List<string>();  // a null means a marker
     [Rep] readonly List<Thing> things = new List<Thing>();
     [ContractInvariantMethod]
-    void ObjectInvariant() 
+    void ObjectInvariant()
     {
       Contract.Invariant(names != null);
       Contract.Invariant(things != null);
@@ -3778,7 +3778,7 @@ namespace Microsoft.Dafny {
     }
 
     int scopeSizeWhereInstancesWereDisallowed = -1;
-    
+
     public bool AllowInstance {
       get { return scopeSizeWhereInstancesWereDisallowed == -1; }
       set
@@ -3791,7 +3791,7 @@ namespace Microsoft.Dafny {
       names.Add(null);
       things.Add(null);
     }
-    
+
     public void PopMarker() {
       int n = names.Count;
       while (true) {
@@ -3806,7 +3806,7 @@ namespace Microsoft.Dafny {
         scopeSizeWhereInstancesWereDisallowed = -1;
       }
     }
-    
+
     // Pushes name-->thing association and returns "true", if name has not already been pushed since the last marker.
     // If name already has been pushed since the last marker, does nothing and returns "false".
     public bool Push(string name, Thing thing) {
@@ -3820,7 +3820,7 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
-    
+
     Thing Find(string name, bool topScopeOnly) {
       Contract.Requires(name != null);
       for (int n = names.Count; 0 <= --n; ) {
@@ -3836,7 +3836,7 @@ namespace Microsoft.Dafny {
       }
       return null;  // not present
     }
-    
+
     public Thing Find(string name) {
       Contract.Requires(name != null);
       return Find(name, false);

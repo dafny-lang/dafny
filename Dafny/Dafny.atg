@@ -3,39 +3,29 @@
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
 //-----------------------------------------------------------------------------*/
-
 /*---------------------------------------------------------------------------
 // Dafny
 // Rustan Leino, first created 25 January 2008
 //--------------------------------------------------------------------------*/
-
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Boogie;
 using System.IO;
 using System.Text;
-
-
 COMPILER Dafny
-
 /*--------------------------------------------------------------------------*/
-
 static List<ModuleDecl/*!*/> theModules;
 static BuiltIns theBuiltIns;
-
-
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
 static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument("dummyAttrArg");
 static int anonymousIds = 0;
-
 struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
   public bool IsUnlimited;
 }
-
 // helper routine for parsing call statements
 private static Expression/*!*/ ConvertToLocal(Expression/*!*/ e)
 {
@@ -47,7 +37,6 @@ Contract.Ensures(Contract.Result<Expression>() != null);
   }
   return e;  // cannot convert to IdentifierExpr (or is already an IdentifierExpr)
 }
-
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "modules".
@@ -68,7 +57,6 @@ public static int Parse (string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ module
     }
   }
 }
-
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "modules".
@@ -82,7 +70,6 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
   Errors errors = new Errors();
   return Parse(s, filename, modules, builtIns, errors);
 }
-
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "modules".
@@ -108,7 +95,6 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
   theBuiltIns = oldBuiltIns;
   return parser.errors.count;
 }
-
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -116,25 +102,20 @@ CHARACTERS
   posDigit = "123456789".
   special = "'_?\\".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
-
   cr        = '\r'.
   lf        = '\n'.
   tab       = '\t'.
-
   space = ' '.
   quote = '"'.
-
   nondigit = letter + special.
   idchar = nondigit + digit.
   nonquote = letter + digit + space + glyph.
-
   /* exclude the characters in 'array' */
   nondigitMinusA = nondigit - 'a'.
   idcharMinusA = idchar - 'a'.
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
   idcharMinusPosDigit = idchar - posDigit.
-
 /*------------------------------------------------------------------------*/
 TOKENS
   ident =  nondigitMinusA {idchar}            /* if char 0 is not an 'a', then anything else is fine */
@@ -147,23 +128,16 @@ TOKENS
   digits = digit {digit}.
   arrayToken = 'a' 'r' 'r' 'a' 'y' [posDigit {digit}].
   string = quote {nonquote} quote.
-
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
-
 IGNORE cr + lf + tab
-
-
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
-
 Dafny
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt;
      Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
-
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
      ModuleDecl module;
-     
      // to support multiple files, create a default module only if theModules doesn't already contain one
      DefaultModuleDecl defaultModule = null;
      foreach (ModuleDecl mdecl in theModules) {
@@ -206,7 +180,6 @@ Dafny
   .)
   EOF
   .
-
 ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
@@ -227,16 +200,15 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   "{"                                            (. bodyStart = t; .)
   { ClassMemberDecl<members, true>
   }
-  "}"                                      
-  (. if (optionalId == null)        
+  "}"
+  (. if (optionalId == null)
        c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
-     else 
+     else
        c = new ClassRefinementDecl(id, id.val, module, typeArgs, members, attrs, optionalId);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
   .)
   .
-
 ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
@@ -247,13 +219,12 @@ ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
   | "static"                               (. mmod.IsStatic = true; .)
   | "unlimited"                            (. mmod.IsUnlimited = true; .)
   }
-  ( FieldDecl<mmod, mm>  
+  ( FieldDecl<mmod, mm>
   | FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
   | MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
-  | CouplingInvDecl<mmod, mm> 
+  | CouplingInvDecl<mmod, mm>
   )
   .
-
 DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
@@ -276,7 +247,6 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
      dt.BodyEndTok = t;
   .)
   .
-
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
 = (. Contract.Requires(cce.NonNullElements(ctors));
      Attributes attrs = null;
@@ -288,7 +258,6 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   [ FormalsOptionalIds<formals> ]
   (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
-
 FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
@@ -304,7 +273,6 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   }
   ";"
   .
-
 CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
@@ -317,17 +285,15 @@ CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
      if (mmod.IsStatic) { SemErr(t, "coupling invariants cannot be declared 'static'"); }
      if (mmod.IsGhost) { SemErr(t, "coupling invariants cannot be declared 'ghost'"); }
   .)
-  { Attribute<ref attrs> }  
+  { Attribute<ref attrs> }
   Ident<out id>                                     (. ids.Add(id); .)
   { "," Ident<out id>                               (. ids.Add(id); .)
   }
-  "by"    
+  "by"
   Expression<out e>
   ";"
-  (. mm.Add(new CouplingInvariant(ids, e, attrs)); .)  
+  (. mm.Add(new CouplingInvariant(ids, e, attrs)); .)
   .
-
-
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
@@ -337,14 +303,12 @@ GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out boo
   ]
   IdentType<out id, out ty>
   .
-
 IdentType<out IToken/*!*/ id, out Type/*!*/ ty>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
   Ident<out id>
   ":"
   Type<out ty>
   .
-
 LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
 = (. IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
@@ -353,7 +317,6 @@ LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
   ]
   (. var = new VarDecl(id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
   .
-
 IdentTypeOptional<out BoundVar/*!*/ var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
@@ -362,7 +325,6 @@ IdentTypeOptional<out BoundVar/*!*/ var>
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
-
 TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
@@ -389,9 +351,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      }
   .)
   .
-
 /*------------------------------------------------------------------------*/
-
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id; .)
@@ -401,9 +361,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
   }
   ">"
   .
-
 /*------------------------------------------------------------------------*/
-
 MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id;
@@ -447,11 +405,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
     Formals<false, !mmod.IsGhost, outs>
   ]
-
   { MethodSpec<req, mod, ens, dec> }
   [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
   ]
-  
   (. if (isRefinement)
        m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
      else if (isConstructor)
@@ -462,7 +418,6 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      m.BodyEndTok = bodyEnd;
  .)
   .
-
 MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ mod, List<MaybeFreeExpression/*!*/>/*!*/ ens,
            List<Expression/*!*/>/*!*/ decreases.>
 = (. Contract.Requires(cce.NonNullElements(req)); Contract.Requires(cce.NonNullElements(mod)); Contract.Requires(cce.NonNullElements(ens)); Contract.Requires(cce.NonNullElements(decreases));
@@ -480,8 +435,7 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
   | "decreases" DecreasesList<decreases, false> ";"
   )
   .
-
-Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.> 
+Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; .)
   "("
   [
@@ -491,8 +445,7 @@ Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.>
   ]
   ")"
   .
-
-FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.> 
+FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; .)
   "("
   [
@@ -502,14 +455,11 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   ]
   ")"
   .
-
 /*------------------------------------------------------------------------*/
-
 Type<out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; .)
   TypeAndToken<out tok, out ty>
   .
-
 TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null); tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
      List<Type/*!*/>/*!*/ gt;
@@ -529,7 +479,6 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        }
                                        ty = new MultiSetType(gt[0]);
                                     .)
-    
   | "seq"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("seq type expects exactly one type argument");
@@ -539,7 +488,6 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
   | ReferenceType<out tok, out ty>
   )
   .
-
 ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
@@ -560,7 +508,6 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
     [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
   )
   .
-
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
@@ -569,9 +516,7 @@ GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
     }
   ">"
   .
-
 /*------------------------------------------------------------------------*/
-
 FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
      Attributes attrs = null;
@@ -594,7 +539,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   (. if (mmod.IsGhost) { SemErr(t, "functions cannot be declared 'ghost' (they are ghost by default)"); }
   .)
   { Attribute<ref attrs> }
-  Ident<out id> 
+  Ident<out id>
   [ GenericParameters<typeArgs> ]
   Formals<true, isFunctionMethod, formals>
   ":"
@@ -607,7 +552,6 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      f.BodyEndTok = bodyEnd;
   .)
   .
-
 FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
@@ -620,7 +564,6 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
   | "decreases" DecreasesList<decreases, false> ";"
   )
   .
-
 PossiblyWildExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e)!=null);
      e = dummyExpr; .)
@@ -631,7 +574,6 @@ PossiblyWildExpression<out Expression/*!*/ e>
   | Expression<out e>
   )
   .
-
 PossiblyWildFrameExpression<out FrameExpression/*!*/ fe>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); fe = dummyFrameExpr; .)
   /* A reads clause can list a wildcard, which allows the enclosing function to
@@ -644,7 +586,6 @@ PossiblyWildFrameExpression<out FrameExpression/*!*/ fe>
   | FrameExpression<out fe>
   )
   .
-
 FrameExpression<out FrameExpression/*!*/ fe>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; .)
   Expression<out e>
@@ -652,16 +593,13 @@ FrameExpression<out FrameExpression/*!*/ fe>
   ]
   (. fe = new FrameExpression(e, fieldName); .)
   .
-
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   "{"                         (. bodyStart = t; .)
   Expression<out e>
   "}"                         (. bodyEnd = t; .)
   .
-  
 /*------------------------------------------------------------------------*/
-
 BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
@@ -672,13 +610,11 @@ BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, body); .)
   .
-
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
 = (. Statement/*!*/ s;
   .)
   OneStmt<out s>                                (. ss.Add(s); .)
   .
-
 OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
@@ -708,7 +644,6 @@ OneStmt<out Statement/*!*/ s>
   | ReturnStmt<out s>
   )
   .
-
 ReturnStmt<out Statement/*!*/ s>
 = (.
    IToken returnTok = null;
@@ -744,7 +679,6 @@ UpdateStmt<out Statement/*!*/ s>
   )
   (. s = new UpdateStmt(x, lhss, rhss); .)
   .
-
 Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 = (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
      List<Expression> ee = null;
@@ -772,17 +706,13 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
          r = new TypeRhs(newToken, ty, initCall);
        }
     .)
-    
   /* One day, the choose expression should be treated just as a special case of a method call. */
   | "choose"                           (. x = t; .)
     Expression<out e>                  (. r = new ExprRhs(new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e)); .)
-
   | "*"                                (. r = new HavocRhs(t); .)
-
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
   .
-
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
      VarDecl/*!*/ d;
@@ -816,7 +746,6 @@ VarDeclStatement<.out Statement/*!*/ s.>
      s = new VarDeclStmt(x, lhss, update);
   .)
   .
-
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
      Expression guard;
@@ -842,7 +771,6 @@ IfStmt<out Statement/*!*/ ifStmt>
     (. ifStmt = new AlternativeStmt(x, alternatives); .)
   )
   .
-
 AlternativeBlock<.out List<GuardedAlternative> alternatives.>
 = (. alternatives = new List<GuardedAlternative>();
      IToken x;
@@ -859,7 +787,6 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives.>
   }
   "}"
   .
-
 WhileStmt<out Statement/*!*/ stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
      Expression guard;
@@ -883,7 +810,6 @@ WhileStmt<out Statement/*!*/ stmt>
     (. stmt = new AlternativeLoopStmt(x, invariants, decreases, mod, alternatives); .)
   )
   .
-
 LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod.>
 = (. bool isFree;  Expression/*!*/ e; FrameExpression/*!*/ fe;
      invariants = new List<MaybeFreeExpression/*!*/>();
@@ -904,7 +830,6 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
                ] ";"
   }
   .
-
 DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
 = (. Expression/*!*/ e; .)
   PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
@@ -921,7 +846,6 @@ DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
                                          .)
   }
   .
-
 Guard<out Expression e>   /* null represents demonic-choice */
 = (. Expression/*!*/ ee;  e = null; .)
   "("
@@ -930,7 +854,6 @@ Guard<out Expression e>   /* null represents demonic-choice */
   )
   ")"
   .
-
 MatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
@@ -943,7 +866,6 @@ MatchStmt<out Statement/*!*/ s>
   "}"
   (. s = new MatchStmt(x, e, cases); .)
   .
-
 CaseStatement<out MatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x, id, arg;
@@ -961,9 +883,7 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
     { Stmt<body> }
   (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
   .
-
 /*------------------------------------------------------------------------*/
-
 ForeachStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken/*!*/ x, boundVar;
@@ -994,19 +914,16 @@ ForeachStmt<out Statement/*!*/ s>
                                                   }
                                                .)
   .
-
 AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
   "assert"                                     (. x = t; .)
   Expression<out e> ";"                        (. s = new AssertStmt(x, e); .)
   .
-
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
   "assume"                                     (. x = t; .)
   Expression<out e> ";"                        (. s = new AssumeStmt(x, e); .)
   .
-
 PrintStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Attributes.Argument/*!*/ arg;
      List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
@@ -1017,13 +934,11 @@ PrintStmt<out Statement/*!*/ s>
   }
   ";"                                          (. s = new PrintStmt(x, args); .)
   .
-
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>
 =
   EquivExpression<out e>
   .
-
 /*------------------------------------------------------------------------*/
 EquivExpression<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
@@ -1032,9 +947,7 @@ EquivExpression<out Expression/*!*/ e0>
     ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
-
 EquivOp = "<==>" | '\u21d4'.
-
 /*------------------------------------------------------------------------*/
 ImpliesExpression<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
@@ -1043,9 +956,7 @@ ImpliesExpression<out Expression/*!*/ e0>
     ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
   ]
   .
-
 ImpliesOp = "==>" | '\u21d2'.
-
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
@@ -1062,10 +973,8 @@ LogicalExpression<out Expression/*!*/ e0>
     }
   ]
   .
-
 AndOp = "&&" | '\u2227'.
 OrOp = "||" | '\u2228'.
-
 /*------------------------------------------------------------------------*/
 RelationalExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
@@ -1149,7 +1058,6 @@ RelationalExpression<out Expression/*!*/ e>
      }
   .)
   .
-
 RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; .)
   ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
@@ -1166,7 +1074,6 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
   | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   )
   .
-
 /*------------------------------------------------------------------------*/
 Term<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
@@ -1175,14 +1082,12 @@ Term<out Expression/*!*/ e0>
     Factor<out e1>                             (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
-
 AddOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
 =          (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken;  op=BinaryExpr.Opcode.Add/*(dummy)*/; .)
   ( "+"            (. x = t;  op = BinaryExpr.Opcode.Add; .)
   | "-"            (. x = t;  op = BinaryExpr.Opcode.Sub; .)
   )
   .
-
 /*------------------------------------------------------------------------*/
 Factor<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
@@ -1191,7 +1096,6 @@ Factor<out Expression/*!*/ e0>
     UnaryExpression<out e1>                    (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
-
 MulOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; .)
   ( "*"            (. x = t;  op = BinaryExpr.Opcode.Mul; .)
@@ -1199,7 +1103,6 @@ MulOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
   | "%"            (. x = t;  op = BinaryExpr.Opcode.Mod; .)
   )
   .
-
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
@@ -1216,7 +1119,6 @@ UnaryExpression<out Expression/*!*/ e>
     { Suffix<ref e> }
   )
   .
-
 Lhs<out Expression e>
 = (. e = null;  // to please the compiler
   .)
@@ -1227,9 +1129,7 @@ Lhs<out Expression e>
     { Suffix<ref e> }
   )
   .
-
 NegOp = "!" | '\u00ac'.
-
 /* A ConstAtomExpression is never an l-value.  Also, a ConstAtomExpression is never followed by
  * an open paren (but could very well have a suffix that starts with a period or a square bracket).
  * (The "Also..." part may change if expressions in Dafny could yield functions.)
@@ -1258,7 +1158,6 @@ ConstAtomExpression<out Expression/*!*/ e>
     ")"
   )
   .
-
 DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
@@ -1287,7 +1186,6 @@ MultiSetExpr<out Expression e>
   | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
   .
-
 EndlessExpression<out Expression e>
 = (. IToken/*!*/ x;
      Expression e0, e1;
@@ -1302,7 +1200,6 @@ EndlessExpression<out Expression e>
   | ComprehensionExpr<out e>
   )
   .
-
 MatchExpression<out Expression/*!*/ e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
      List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
@@ -1316,7 +1213,6 @@ MatchExpression<out Expression/*!*/ e>
   }
   (. e = new MatchExpr(x, e, cases); .)
   .
-
 CaseExpression<out MatchCaseExpr/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id, arg;
      List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
@@ -1332,9 +1228,7 @@ CaseExpression<out MatchCaseExpr/*!*/ c>
   "=>"
   Expression<out body>       (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
   .
-
 /*------------------------------------------------------------------------*/
-
 DottedIdentifiersAndFunction<out Expression e>
 = (. IToken id;  IToken openParen = null;
      List<Expression> args = null;
@@ -1350,7 +1244,6 @@ DottedIdentifiersAndFunction<out Expression e>
   ]
   (. e = new IdentifierSequence(idents, openParen, args); .)
   .
-
 Suffix<ref Expression/*!*/ e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null); IToken/*!*/ id, x;  List<Expression/*!*/>/*!*/ args;
      Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false;
@@ -1363,7 +1256,6 @@ Suffix<ref Expression/*!*/ e>
         [ Expressions<args> ]
       ")"                                      (. e = new FunctionCallExpr(id, id.val, e, args); .)
     ]                                          (. if (!func) { e = new FieldSelectExpr(id, e, id.val); } .)
-    
   | "["                                        (. x = t; .)
       ( Expression<out ee>                     (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
@@ -1408,9 +1300,7 @@ Suffix<ref Expression/*!*/ e>
     "]"
   )
   .
-
 /*------------------------------------------------------------------------*/
-
 QuantifierGuts<out Expression/*!*/ q>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null); IToken/*!*/ x = Token.NoToken;
      bool univ = false;
@@ -1441,11 +1331,9 @@ QuantifierGuts<out Expression/*!*/ q>
      }
   .)
   .
-
 Forall = "forall" | '\u2200'.
 Exists = "exists" | '\u2203'.
 QSep = "::" | '\u2022'.
-
 ComprehensionExpr<out Expression/*!*/ q>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      IToken/*!*/ x = Token.NoToken;
@@ -1468,22 +1356,18 @@ ComprehensionExpr<out Expression/*!*/ q>
      q = new SetComprehension(x, bvars, range, body);
   .)
   .
-
 Expressions<.List<Expression/*!*/>/*!*/ args.>
 = (. Contract.Requires(cce.NonNullElements(args)); Expression/*!*/ e; .)
   Expression<out e>                            (. args.Add(e); .)
   { "," Expression<out e>                      (. args.Add(e); .)
   }
   .
-
 /*------------------------------------------------------------------------*/
-
 Attribute<ref Attributes attrs>
 = "{"
     AttributeBody<ref attrs>
   "}"
   .
-
 AttributeBody<ref Attributes attrs>
 = (. string aName;
      List<Attributes.Argument/*!*/> aArgs = new List<Attributes.Argument/*!*/>();
@@ -1495,14 +1379,12 @@ AttributeBody<ref Attributes attrs>
     }
   ]                                    (. attrs = new Attributes(aName, aArgs, attrs); .)
   .
-
 AttributeArg<out Attributes.Argument/*!*/ arg>
 = (. Contract.Ensures(Contract.ValueAtReturn(out arg) != null); Expression/*!*/ e;  arg = dummyAttrArg; .)
   ( string                             (. arg = new Attributes.Argument(t.val.Substring(1, t.val.Length-2)); .)
   | Expression<out e>                  (. arg = new Attributes.Argument(e); .)
   )
   .
-
 AttributeOrTrigger<ref Attributes attrs, ref Triggers trigs>
 = (. List<Expression/*!*/> es = new List<Expression/*!*/>();
   .)
@@ -1513,21 +1395,17 @@ AttributeOrTrigger<ref Attributes attrs, ref Triggers trigs>
     )
   "}"
   .
-
 /*------------------------------------------------------------------------*/
-
 Idents<.List<string/*!*/>/*!*/ ids.>
 = (. IToken/*!*/ id; .)
   Ident<out id>                            (. ids.Add(id.val); .)
   { "," Ident<out id>                      (. ids.Add(id.val); .)
   }
   .
-
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t; .)
   .
-
 Nat<out BigInteger n>
 =
   digits
@@ -1537,7 +1415,6 @@ Nat<out BigInteger n>
        SemErr("incorrectly formatted number");
        n = BigInteger.Zero;
      }
-  .) 
+  .)
   .
-
 END Dafny.

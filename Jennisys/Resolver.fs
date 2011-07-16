@@ -70,31 +70,22 @@ let Resolve (env,ctx) cst =
 let Eval (heap,env,ctx) resolveVars expr = 
   let rec __EvalResolver expr = 
     match expr with
-    | VarLiteral(id) when not resolveVars -> ExprConst(expr)
-    | IdLiteral("this") -> GetThisLoc env
+    | VarLiteral(id) when not resolveVars -> VarConst(id)
+    | ObjLiteral("this") -> GetThisLoc env
+    | ObjLiteral("null") -> NullConst
+    | IdLiteral("this") | IdLiteral("null") -> failwith "should never happen anymore" //TODO
     | VarLiteral(id)
     | IdLiteral(id) ->
         match TryResolve (env,ctx) (Unresolved(id)) with 
-        | Unresolved(_) -> __EvalResolver (Dot(IdLiteral("this"), id))
+        | Unresolved(_) -> __EvalResolver (Dot(ObjLiteral("this"), id))
         | _ as c -> c
     | Dot(e, str) -> 
         let discr = __EvalResolver e
         let h2 = Map.filter (fun (loc,Var(fldName,_)) v -> loc = discr && fldName = str) heap |> Map.toList
         match h2 with
         | ((_,_),x) :: [] -> x
-        | _ :: _ -> failwithf "can't evaluate expression deterministically: %s.%s resolves to multiple locations." (PrintConst discr) str
-        | [] -> failwithf "can't find value for %s.%s" (PrintConst discr) str
-    | _ -> failwith "NOT IMPLEMENTED YET"
-//  try 
+        | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" (PrintConst discr) str))
+        | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" (PrintConst discr) str))
+    | _ -> failwith ("NOT IMPLEMENTED YET: " + (PrintExpr 0 expr))
+  (* --- function body starts here --- *)
   EvalSym (fun e -> __EvalResolver e |> Resolve (env,ctx) |> Const2Expr) expr
-//                                     ccc |> Const2Expr
-//                                     match ccc with
-//                                     | ExprConst(eee) -> match Eval (heap,env,ctx) eee with
-//                                                         | Some(c) -> c
-//                                                         | None -> ccc
-//                                     | _ -> ccc
-//                                  ) expr
-    
-    //Some(TryResolve (env,ctx) unresolvedConst)
-//  with
-//    ex -> None

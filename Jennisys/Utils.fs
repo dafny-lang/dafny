@@ -119,6 +119,16 @@ let rec GenList n e =
   else
     e :: (GenList (n-1) e)
 
+//  =======================================
+/// ensures: forall i :: 0 <= i < |lst| ==> 
+///            if lst[i] = oldElem then
+///              ret[i] = newElem
+///            else
+///              ret[i] = lst[i]
+//  =======================================
+let ListReplace oldElem newElem lst = 
+  lst |> List.choose (fun e -> if e = oldElem then Some(newElem) else Some(e))
+
 //  ==========================
 /// ensures: ret = elem in lst
 //  ==========================

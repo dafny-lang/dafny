@@ -12,14 +12,14 @@ namespace Microsoft.Dafny {
       public readonly List<Vertex/*!*/>/*!*/ Successors = new List<Vertex/*!*/>();
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
-      void ObjectInvariant() 
+      void ObjectInvariant()
       {
         Contract.Invariant(cce.NonNullElements(Successors));
         Contract.Invariant(SccMembers==null || cce.NonNullElements(SccMembers));
       }
 
       public Vertex SccRepresentative;  // null if not computed
-      
+
       public int SccId;  // valid only for SCC representatives; indicates position of this representative vertex in the graph's topological sort
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
       public int LowLink;
       // the following field is used during a Reaches computation
       public int Gen;  // generation <= Gen means this vertex has been visited in the current generation
-      
+
       public Vertex(Node n) {
         N = n;
       }
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
 
 
     [ContractInvariantMethod]
-    void ObjectInvariant() 
+    void ObjectInvariant()
     {
       Contract.Invariant(vertices!=null);
       Contract.Invariant(cce.NonNullElements(vertices.Values));
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
     Dictionary<Node, Vertex/*!*/>/*!*/ vertices = new Dictionary<Node, Vertex/*!*/>();
     bool sccComputed = false;
     List<Vertex/*!*/> topologicallySortedRepresentatives;  // computed by the SCC computation
-    
+
     public int SccCount {
       get {
         ComputeSCCs();
@@ -60,11 +60,11 @@ namespace Microsoft.Dafny {
       }
     }
     int generation = 0;
-    
+
     public Graph()
     {
     }
-    
+
     /// <summary>
     /// Idempotently adds a vertex 'n' to the graph.
     /// </summary>
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Idempotently adds a vertex 'n' to the graph and then returns the Vertex for it.
-    /// </summary>    
+    /// </summary>
     Vertex GetVertex(Node n) {
       Contract.Ensures(Contract.Result<Vertex>() != null);
 
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
       }
       return v;
     }
-    
+
     /// <summary>
     /// Returns the vertex for 'n' if 'n' is in the graph.  Otherwise, returns null.
     /// </summary>
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
       v0.AddSuccessor(v1);
       sccComputed = false;  // the addition of an edge may invalidate any previous computation of the graph's SCCs
     }
-    
+
     /// <summary>
     /// Idempotently adds 'n' as a vertex and then returns a Node that is the representative element of the
     /// strongly connected component containing 'n'.
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny {
     public Node GetSCCRepresentative(Node n) {
       return GetSCCRepr(n).N;
     }
-    
+
     /// <summary>
     /// Idempotently adds 'n' as a vertex.  Then, returns the number of SCCs before the SCC of 'n' in the
     /// topologically sorting of SCCs.
@@ -133,7 +133,7 @@ namespace Microsoft.Dafny {
     public int GetSCCRepresentativeId(Node n) {
       return GetSCCRepr(n).SccId;
     }
-    
+
     Vertex GetSCCRepr(Node n) {
       Contract.Ensures(Contract.Result<Vertex>() != null);
 
@@ -142,7 +142,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(v.SccRepresentative != null);  // follows from what ComputeSCCs does
       return v.SccRepresentative;
     }
-    
+
     /// <summary>
     /// Returns a list of the topologically sorted SCCs, each represented in the list by its representative node.
     /// </summary>
@@ -172,21 +172,21 @@ namespace Microsoft.Dafny {
       }
       return nn;
     }
-    
+
     /// <summary>
     /// Idempotently adds 'n' as a vertex and then returns the size of the set of Node's in the strongly connected component
     /// that contains 'n'.
     /// </summary>
     public int GetSCCSize(Node n){
       Contract.Ensures(1 <= Contract.Result<int>());
-    
+
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
       Contract.Assert(repr != null && repr.SccMembers != null);  // follows from postcondition of ComputeSCCs
       return repr.SccMembers.Count;
     }
-    
+
     /// <summary>
     /// This method sets the SccRepresentative fields of the graph's vertices so that two
     /// vertices have the same representative iff they are in the same strongly connected
@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
     void ComputeSCCs()
     {
       Contract.Ensures(sccComputed);
-    
+
       if (sccComputed) { return; }  // check if already computed
 
       // reset all SCC information
@@ -217,7 +217,7 @@ namespace Microsoft.Dafny {
 
       sccComputed = true;
     }
-    
+
     /// <summary>
     /// This is the 'SearchC' procedure from the Aho, Hopcroft, and Ullman book 'The Design and Analysis of Computer Algorithms'.
     /// </summary>
@@ -227,13 +227,13 @@ namespace Microsoft.Dafny {
      Contract.Requires(v.Visited == VisitedStatus.Unvisited);
      Contract.Requires(topologicallySortedRepresentatives != null);
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
-    
+
       v.DfNumber = cnt;
       cnt++;
       v.LowLink = v.DfNumber;
       stack.Push(v);
       v.Visited = VisitedStatus.OnStack;
-      
+
       foreach (Vertex w in v.Successors) {
         if (w.Visited == VisitedStatus.Unvisited) {
           SearchC(w, stack, ref cnt);
@@ -243,7 +243,7 @@ namespace Microsoft.Dafny {
           v.LowLink = Math.Min(v.LowLink, w.DfNumber);
         }
       }
-      
+
       if (v.LowLink == v.DfNumber) {
         // The SCC containing 'v' has now been computed.
         v.SccId = topologicallySortedRepresentatives.Count;
@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     /// <summary>
     /// Returns null if the graph has no cycles.  If the graph does contain some cycle, returns the list of
     /// vertices on one such cycle.
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny {
       foreach (Vertex v in vertices.Values) {
         v.Visited = VisitedStatus.Unvisited;
       }
-      
+
       foreach (Vertex v in vertices.Values) {
         Contract.Assert(v.Visited != VisitedStatus.OnStack);
         if (v.Visited == VisitedStatus.Unvisited) {
@@ -284,7 +284,7 @@ namespace Microsoft.Dafny {
       }
       return null;  // there are no cycles
     }
-    
+
     /// <summary>
     /// A return of null means there are no cycles involving any vertex in the subtree rooted at v.
     /// A non-null return means a cycle has been found.  Then:
@@ -300,7 +300,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
       Contract.Ensures(Contract.Result<List<Vertex>>() != null || v.Visited == VisitedStatus.Visited);
       Contract.Ensures(Contract.Result<List<Vertex>>() == null || Contract.Result<List<Vertex>>().Count != 0);
-    
+
       v.Visited = VisitedStatus.OnStack;
       foreach (Vertex succ in v.Successors) {
         // todo:  I would use a 'switch' statement, but there seems to be a bug in the Spec# compiler's type checking.
@@ -337,7 +337,7 @@ namespace Microsoft.Dafny {
       v.Visited = VisitedStatus.Visited;  // there are no cycles from here on
       return null;
     }
-    
+
     /// <summary>
     /// Returns whether or not 'source' reaches 'sink' in the graph.
     /// 'source' and 'sink' need not be in the graph; if neither is, the return value
@@ -352,7 +352,7 @@ namespace Microsoft.Dafny {
       generation++;
       return ReachSearch(a, b);
     }
-    
+
     bool ReachSearch(Vertex source, Vertex sink) {
       Contract.Requires(source != null);
       Contract.Requires(sink != null);
