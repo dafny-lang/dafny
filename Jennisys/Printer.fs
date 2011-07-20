@@ -5,9 +5,6 @@ open AstUtils
 
 let newline = System.Environment.NewLine // "\r\n"
 
-let PrintGenSym name =
-  sprintf "gensym%s" name
-
 let rec PrintSep sep f list =
   match list with
   | [] -> ""
@@ -70,7 +67,6 @@ let rec PrintConst cst =
   | NullConst          -> "null"
   | NoneConst          -> "<none>"
   | ThisConst(_,_)     -> "this"
-  | ExprConst(e)       -> PrintExpr 0 e
   | NewObj(name,_)     -> PrintGenSym name
   | Unresolved(name)   -> sprintf "Unresolved(%s)" name
 
@@ -148,3 +144,9 @@ let PrintMethodSignFull indent m =
 let Print prog =
   match prog with
   | SProgram(decls) -> List.fold (fun acc d -> acc + (PrintDecl d)) "" decls
+
+let PrintObjRefName o = 
+  match o with
+  | ThisConst(_,_) -> "this";
+  | NewObj(name, _) -> PrintGenSym name
+  | _ -> failwith ("unresolved object ref: " + o.ToString())
