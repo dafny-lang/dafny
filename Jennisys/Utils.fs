@@ -48,6 +48,15 @@ let ExtractOptionMsg msg x =
 let ExtractOption x = 
   ExtractOptionMsg "can't extract anything from a None" x
 
+//  ====================================
+/// ensures: res = Some(a) ==> ret = a
+/// ensures: res = None ==> ret = defVal
+//  ====================================
+let ExtractOptionOr defVal opt = 
+  match opt with 
+  | Some(a) -> a
+  | None -> defVal
+
 //  ==========================================================
 /// requres: List.length lst <= 1, otherwise fails with errMsg
 /// ensures: if |lst| = 0 then

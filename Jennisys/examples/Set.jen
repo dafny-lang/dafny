@@ -14,6 +14,9 @@ class Set {
     requires p != q
     ensures elems = {p q}
 
+  constructor Triple(p: int, q: int, r: int)
+    requires p != q && q != r && r != p
+    ensures elems = {p q r}
 }
 
 model Set {

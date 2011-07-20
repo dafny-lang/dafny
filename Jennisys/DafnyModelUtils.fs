@@ -247,11 +247,11 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
 
   let f_seq_len = model.MkFunc("Seq#Length", 1)
   let f_seq_idx = model.MkFunc("Seq#Index", 2)
-  let f_seq_bld = model.MkFunc("Seq#Build", 4)
+  //let f_seq_bld = model.MkFunc("Seq#Build", 4)
   let f_seq_app = model.MkFunc("Seq#Append", 2)
   (envMap,ctx) |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
                |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
-               |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
+         //      |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
                |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
 
 

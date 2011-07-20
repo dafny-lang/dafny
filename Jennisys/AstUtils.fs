@@ -189,6 +189,23 @@ let GetAllFields comp =
       let aVars = FilterFieldMembers members
       List.concat [aVars ; cVars]
   | _ -> []
+
+//  ===========================================================
+/// Returns a map (Type |--> Set<Var>) where all 
+/// the given fields are grouped by their type
+///
+/// ensures: forall v :: v in ret.values.elems ==> v in fields
+/// ensures: forall k :: k in ret.keys ==> 
+///            forall v1, v2 :: v1, v2 in ret[k].elems ==> 
+///              v1.type = v2.type
+//  ===========================================================
+let rec GroupFieldsByType fields = 
+  match fields with
+  | Var(name, ty) :: rest -> 
+      let map = GroupFieldsByType rest
+      let fldSet = Map.tryFind ty map |> Utils.ExtractOptionOr Set.empty
+      map |> Map.add ty (fldSet |> Set.add (Var(name, ty)))
+  | [] -> Map.empty
                     
 //  =================================
 /// Returns class name of a component
@@ -642,7 +659,7 @@ let ChangeThisReceiver receiver expr =
     | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__ChangeThis locals e1, __ChangeThis locals e2, __ChangeThis locals e3) 
     | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map (__ChangeThis locals))
     | SetExpr(exs)                     -> SetExpr(exs |> List.map (__ChangeThis locals))
-  (* function body starts here *)
+  (* --- function body starts here --- *)
   __ChangeThis Set.empty expr
 
 let rec Rewrite rewriterFunc expr =

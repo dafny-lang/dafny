@@ -10,16 +10,49 @@ open DafnyPrinter
 open DafnyModelUtils
 
 // TODO: this should take a list of fields and unroll all possibilities (instead of unrolling on branch only, following exactly one field)
-let rec GetUnrolledFieldValidExpr fldExpr fldName validFunName numUnrolls : Expr = 
-  if numUnrolls = 0 then
-    TrueLiteral
-  else
-    BinaryImplies (BinaryNeq fldExpr (IdLiteral("null")))
-                  (BinaryAnd (Dot(fldExpr, validFunName))
-                             (GetUnrolledFieldValidExpr (Dot(fldExpr, fldName)) fldName validFunName (numUnrolls-1)))
+//let rec GetUnrolledFieldValidExpr fldExpr fldName validFunName numUnrolls : Expr = 
+//  if numUnrolls = 0 then
+//    TrueLiteral
+//  else
+//    BinaryImplies (BinaryNeq fldExpr (ObjLiteral("null")))
+//                  (BinaryAnd (Dot(fldExpr, validFunName))
+//                             (GetUnrolledFieldValidExpr (Dot(fldExpr, fldName)) fldName validFunName (numUnrolls-1)))
 
-let GetFieldValidExpr fldName validFunName numUnrolls : Expr = 
-  GetUnrolledFieldValidExpr (IdLiteral(fldName)) fldName validFunName numUnrolls
+/// requires: numUnrols >= 0
+/// requires: |fldExprs| = |fldNames|
+let rec GetUnrolledFieldValidExpr fldExprs fldNames validFunName numUnrolls = 
+  let rec __Combine exprLst strLst = 
+    match exprLst with
+    | e :: rest ->
+        let resLst1 = strLst |> List.map (fun s -> Dot(e, s))
+        List.concat [resLst1; __Combine rest strLst]
+    | [] -> []
+  let rec __NotNull e = 
+    match e with
+    | IdLiteral(_)
+    | ObjLiteral(_) -> BinaryNeq e (ObjLiteral("null"))
+    | Dot(sub, str) -> BinaryAnd (__NotNull sub) (BinaryNeq e (ObjLiteral("null")))
+    | _ -> failwith "not supposed to happen"
+  (* --- function body starts here --- *)  
+  assert (numUnrolls >= 0)
+  if numUnrolls = 0 then
+    [TrueLiteral]
+  else
+    let exprList = fldExprs |> List.map (fun e -> BinaryImplies (__NotNull e) (Dot(e, validFunName)))
+    if numUnrolls = 1 then 
+      exprList
+    else 
+      let fldExprs = __Combine fldExprs fldNames
+      List.append exprList (GetUnrolledFieldValidExpr fldExprs fldNames validFunName (numUnrolls - 1))
+                                                                    
+
+//let GetFieldValidExpr fldName validFunName numUnrolls : Expr = 
+//  GetUnrolledFieldValidExpr (IdLiteral(fldName)) fldName validFunName numUnrolls
+
+let GetFieldValidExpr flds validFunName numUnrolls = 
+  let fldExprs = flds |> List.map (function Var(name, _) -> IdLiteral(name))
+  let fldNames = flds |> List.map (function Var(name, _) -> name)
+  GetUnrolledFieldValidExpr fldExprs fldNames validFunName numUnrolls
 
 let GetFieldsForValidExpr allFields prog : VarDecl list =
   allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
@@ -27,13 +60,22 @@ let GetFieldsForValidExpr allFields prog : VarDecl list =
 
 let GetFieldsValidExprList clsName allFields prog : Expr list =
   let fields = GetFieldsForValidExpr allFields prog
-  fields |> List.map (function Var(name, t) -> 
-                                 let validFunName, numUnrolls = 
-                                   match t with
-                                   | Some(ty) when clsName = (GetTypeShortName ty) -> "Valid_self()", Options.CONFIG.numLoopUnrolls
-                                   | _ -> "Valid()", 1
-                                 GetFieldValidExpr name validFunName numUnrolls
-                     )
+  let fieldsByType = GroupFieldsByType fields
+  fieldsByType |> Map.fold (fun acc t varSet ->
+                              let validFunName, numUnrolls = 
+                                match t with
+                                | Some(ty) when clsName = (GetTypeShortName ty) -> "Valid_self()", Options.CONFIG.numLoopUnrolls
+                                | _ -> "Valid()", 1 
+                              acc |> List.append (GetFieldValidExpr (Set.toList varSet) validFunName numUnrolls)
+                           ) []
+
+//  fields |> List.map (function Var(name, t) -> 
+//                                 let validFunName, numUnrolls = 
+//                                   match t with
+//                                   | Some(ty) when clsName = (GetTypeShortName ty) -> "Valid_self()", Options.CONFIG.numLoopUnrolls
+//                                   | _ -> "Valid()", 1
+//                                 GetFieldValidExpr name validFunName numUnrolls
+//                     )
 
 let PrintValidFunctionCode comp prog genRepr: string = 
   let idt = "    "
