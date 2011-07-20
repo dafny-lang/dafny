@@ -27,7 +27,7 @@ model IntList {
   var root: IntNode
 
   frame
-    root * root.list[*]
+    root
 
   invariant
     root = null  ==> |list| = 0
@@ -63,7 +63,7 @@ model IntNode {
   var next: IntNode
 
   frame 
-    data * next
+    next
 
   invariant
     next = null  ==> |succ| = 0

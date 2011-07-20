@@ -9,6 +9,9 @@ module AstUtils
 open Ast
 open Utils
 
+let PrintGenSym name =
+  sprintf "gensym%s" name
+
 //  =====================
 /// Returns TRUE literal
 //  =====================
@@ -28,6 +31,12 @@ let UnaryNot sub =
   match sub with
   | UnaryExpr("!", s) -> s
   | _ -> UnaryExpr("!", sub)
+
+//  =======================================================================
+/// Returns a binary PLUS of the two given expressions
+//  =======================================================================
+let BinaryPlus (lhs: Expr) (rhs: Expr) = 
+  BinaryExpr(50, "+", lhs, rhs)
 
 //  =======================================================================
 /// Returns a binary AND of the two given expressions with short-circuiting
@@ -62,42 +71,16 @@ let BinaryImplies lhs rhs =
   | _, BoolLiteral(false) -> UnaryNot(lhs)
   | _ -> BinaryExpr(20, "==>", lhs, rhs)
 
-
-//let TrueLiteral = IdLiteral("true")
-//let FalseLiteral = IdLiteral("false")
-//
-////  =======================================================================
-///// Returns a binary AND of the two given expressions with short-circuiting
-////  =======================================================================
-//let BinaryAnd (lhs: Expr) (rhs: Expr) = 
-//    match lhs, rhs with
-//    | IdLiteral("true"), _  -> rhs
-//    | IdLiteral("false"), _ -> IdLiteral("false")
-//    | _, IdLiteral("true")  -> lhs
-//    | _, IdLiteral("false") -> IdLiteral("false")
-//    | _, _                  -> BinaryExpr(30, "&&", lhs, rhs)
-//
-////  =======================================================================
-///// Returns a binary OR of the two given expressions with short-circuiting
-////  =======================================================================
-//let BinaryOr (lhs: Expr) (rhs: Expr) = 
-//    match lhs, rhs with
-//    | IdLiteral("true"), _  -> IdLiteral("true")
-//    | IdLiteral("false"), _ -> rhs
-//    | _, IdLiteral("true")  -> IdLiteral("true")
-//    | _, IdLiteral("false") -> lhs
-//    | _, _                  -> BinaryExpr(30, "||", lhs, rhs)
-//
-////  ===================================================================================
-///// Returns a binary IMPLIES of the two given expressions (TODO: with short-circuiting)
-////  ===================================================================================
-//let BinaryImplies lhs rhs = BinaryExpr(20, "==>", lhs, rhs)
-
 //  =======================================================
 /// Constructors for binary EQ/NEQ of two given expressions
 //  =======================================================
 let BinaryNeq lhs rhs = BinaryExpr(40, "!=", lhs, rhs)
 let BinaryEq lhs rhs = BinaryExpr(40, "=", lhs, rhs)
+
+//  =======================================================
+/// Constructor for binary GETS
+//  =======================================================
+let BinaryGets lhs rhs = Assign(lhs, rhs)
 
 //  =======================================================
 /// Constructors for binary IN/!IN of two given expressions
@@ -134,11 +117,10 @@ let rec Const2Expr c =
       let expSet = cset |> Set.fold (fun acc c -> Set.add (Const2Expr c) acc) Set.empty
       SetExpr(Set.toList expSet)
   | VarConst(id) -> VarLiteral(id)
-  | ThisConst(name,_) 
-  | NewObj(name,_)   -> ObjLiteral(name)
+  | ThisConst(_,_) -> ObjLiteral("this")
+  | NewObj(name,_) -> ObjLiteral(PrintGenSym name)
   | NullConst -> ObjLiteral("null")
-  | ExprConst(e) -> e
-  | Unresolved(name) -> printf "What about unresolved stuff??"; failwith "don't want to convert unresolved to expr"
+  | Unresolved(name) -> failwithf "don't want to convert unresolved(%s) to expr" name // IdLiteral(name) //
   | _ -> failwithf "not implemented or not supported: %O" c
 
 let rec Expr2Const e =
@@ -147,7 +129,7 @@ let rec Expr2Const e =
   | BoolLiteral(b) -> BoolConst(b)
   | ObjLiteral("this") -> ThisConst("this",None)
   | ObjLiteral("null") -> NullConst
-  | ObjLiteral(name) -> NewObj(name, None) //TODO: or Unresolved?
+  | ObjLiteral(name) -> Unresolved(name)
   | IdLiteral(id) -> Unresolved(id)
   | VarLiteral(id) -> VarConst(id)
   | SequenceExpr(elist) -> SeqConst(elist |> List.map Expr2Const)
@@ -314,13 +296,36 @@ let FindMethod comp methodName =
 //  ==============================================
 /// Finds a field of a class that has a given name
 //  ==============================================
-let FindVar (prog: Program) clsName fldName =
-  let copt = FindComponent prog clsName
-  match copt with
-  | Some(comp) -> 
-      GetAllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
-                        |> Utils.ListToOption
-  | None -> None
+//let FindCompVar prog clsName fldName =
+//  let copt = FindComponent prog clsName
+//  match copt with
+//  | Some(comp) -> 
+//      GetAllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
+//                        |> Utils.ListToOption
+//  | None -> None
+
+let FindVar comp fldName =
+  GetAllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
+                    |> Utils.ListToOption
+
+//  ======================================
+/// Returns the frame of a given component
+//  ======================================
+let GetFrame comp = 
+  match comp with 
+  | Component(_, Model(_,_,_,frame,_), _) -> frame
+  | _ -> failwithf "not a valid component %O" comp
+
+let GetFrameFields comp =
+  let frame = GetFrame comp
+  frame |> List.choose (function IdLiteral(name) -> Some(name) | _ -> None) // TODO: is it really enough to handle only IdLiteral's
+        |> List.choose (fun varName -> 
+                          let v = FindVar comp varName
+                          Utils.ExtractOptionMsg ("field not found: " + varName) v |> ignore
+                          v
+                       )
+
+////////////////////////
 
 let AddPrecondition prog comp m e =
   match prog, comp, m with

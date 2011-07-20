@@ -13,13 +13,14 @@ class Set {
   constructor Double(p: int, q: int)
     requires p != q
     ensures elems = {p q}
+
 }
 
 model Set {
   var root: SetNode
 
   frame
-    root * root.elems[*]
+    root
 
   invariant
     root = null ==> elems = {}
@@ -35,6 +36,10 @@ class SetNode {
   constructor Double(p: int, q: int)
     requires p != q
     ensures elems = {p q}
+
+  constructor Triple(p: int, q: int, r: int)
+    requires p != q && q != r && r != p
+    ensures elems = {p q r}
 }
 
 model SetNode {
@@ -43,7 +48,7 @@ model SetNode {
   var right: SetNode
 
   frame 
-    data * left * right
+    left * right
 
   invariant
     elems = {data} + (left != null ? left.elems : {}) + (right != null ? right.elems : {})
