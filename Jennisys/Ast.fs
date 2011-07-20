@@ -56,7 +56,6 @@ type Const =
   | ThisConst  of (* loc id *) string * Type option
   | VarConst   of string
   | NewObj     of (* loc id *) string * Type option
-  | ExprConst  of Expr
   | Unresolved of (* loc id *) string 
 
 type Stmt =

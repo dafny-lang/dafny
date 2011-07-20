@@ -15,10 +15,10 @@ model List[T] {
   var root: Node[T]
 
   frame
-    root * root.list[*]
+    root
 
   invariant
-    (root = null) ==> (|list| = 0)
+    root = null ==> |list| = 0
     root != null ==> list = root.list
 }
 
@@ -40,7 +40,7 @@ model Node[T] {
   var next: Node[T]
 
   frame 
-    data * next
+    next
 
   invariant
     next = null <==> list = [data]

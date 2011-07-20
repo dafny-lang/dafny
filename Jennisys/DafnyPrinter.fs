@@ -1,6 +1,7 @@
 ﻿module DafnyPrinter
 
 open Ast
+open AstUtils
 open Printer
 
 let rec PrintType ty =
@@ -56,7 +57,6 @@ let rec PrintConst cst =
   | NullConst          -> "null"
   | NoneConst          -> "<none>"
   | ThisConst(_,_)     -> "this"
-  | ExprConst(e)       -> PrintExpr 0 e
   | NewObj(name,_)     -> PrintGenSym name
   | Unresolved(name)   -> sprintf "Unresolved(%s)" name
 
@@ -70,3 +70,14 @@ let PrintFields vars indent ghost =
   vars |> List.fold (fun acc v -> match v with 
                                   | Var(nm,None)     -> acc + (sprintf "%s%svar %s;%s" (Indent indent) ghostStr nm newline)
                                   | Var(nm,Some(tp)) -> acc + (sprintf "%s%svar %s: %s;%s" (Indent indent) ghostStr nm (PrintType tp) newline)) ""
+
+let rec PrintStmt stmt indent =
+  let idt = (Indent indent)
+  match stmt with
+  | Block(stmts) ->
+      idt + "{" + newline +
+      (PrintStmtList stmts (indent + 2)) +
+      idt + "}" + newline
+  | Assign(lhs,rhs) -> sprintf "%s%s := %s;%s" idt (PrintExpr 0 lhs) (PrintExpr 0 rhs) newline
+and PrintStmtList stmts indent =
+  stmts |> List.fold (fun acc s -> acc + (PrintStmt s indent)) ""

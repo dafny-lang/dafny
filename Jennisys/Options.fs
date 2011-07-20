@@ -11,19 +11,27 @@ open Utils
 type Config = {
    inputFilename: string;
    methodToSynth: string;
+   verifyPartialSolutions: bool;
    verifySolutions: bool;
    checkUnifications: bool;
+   genRepr: bool;
    timeout: int;
+   numLoopUnrolls: int;
 }
 
 let defaultConfig: Config = {
   inputFilename     = "";
   methodToSynth     = "*";
+  verifyPartialSolutions = true;
   verifySolutions   = true;
   checkUnifications = false;
+  genRepr           = false;
   timeout           = 0;
+  numLoopUnrolls    = 2;
 }
 
+/// Should not be mutated outside the ParseCmdLineArgs method, which is 
+/// typically called only once at the beginning of the program execution 
 let mutable CONFIG = defaultConfig
 
 exception InvalidCmdLineArg of string
@@ -78,6 +86,12 @@ let ParseCmdLineArgs args =
         | "method"    -> 
             __CheckNonEmpty value opt
             __Parse rest { cfg with methodToSynth = value }
+        | "verifyParSol" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with verifyPartialSolutions = b }
+        | "noVerifyParSol" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with verifyPartialSolutions = not b }
         | "verifySol" -> 
             let b = __CheckBool value opt
             __Parse rest { cfg with verifySolutions = b }
@@ -90,24 +104,24 @@ let ParseCmdLineArgs args =
         | "noCheckUnifs" -> 
             let b = __CheckBool value opt
             __Parse rest { cfg with checkUnifications = not b }
+        | "genRepr" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with genRepr = b }
+        | "noGenRepr" -> 
+            let b = __CheckBool value opt
+            __Parse rest { cfg with genRepr = not b }
         | "timeout" ->
             let t = __CheckInt value opt
             __Parse rest { cfg with timeout = t }
+        | "unrolls" ->
+            let t = __CheckInt value opt
+            __Parse rest { cfg with numLoopUnrolls = t }
         | "" -> 
             __Parse rest { cfg with inputFilename = value }
         | _ -> 
             raise (InvalidCmdLineOption("Unknown option: " + opt))
     | [] -> cfg   
     
-  let __CheckBool value optName =
-    if value = "" then
-      true
-    else
-      try 
-        System.Boolean.Parse value
-      with 
-        | ex -> raise (InvalidCmdLineArg("Option " + optName " must be boolean"))
-
   (* --- function body starts here --- *)           
   CONFIG <- __Parse args defaultConfig
 
