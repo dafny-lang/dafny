@@ -515,8 +515,8 @@ ghost method P46()
 ghost method P47()
   ensures (forall a :: height(mirror(a)) == height(a));
 {
-  // proving this theorem requires an additional lemma:
-  assert (forall x,y :: max(x,y) == max(y,x));
+  // proving this theorem requires a previously proved lemma:
+  P23();
 }
 
 // ...
