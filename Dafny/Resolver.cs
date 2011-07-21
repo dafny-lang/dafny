@@ -897,6 +897,8 @@ namespace Microsoft.Dafny {
         return b is ObjectType;
       } else if (a is SetType) {
         return b is SetType && UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
+      } else if (a is MultiSetType) {
+        return b is MultiSetType && UnifyTypes(((MultiSetType)a).Arg, ((MultiSetType)b).Arg);
       } else if (a is SeqType) {
         return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
       } else if (a is UserDefinedType) {
@@ -994,7 +996,7 @@ namespace Microsoft.Dafny {
 
       } else if (proxy is OperationTypeProxy) {
         OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
-        if (t is IntType || t is SetType || (opProxy.AllowSeq && t is SeqType)) {
+        if (t is IntType || t is SetType || t is MultiSetType || (opProxy.AllowSeq && t is SeqType)) {
           // this is the expected case
         } else {
           return false;
@@ -1302,15 +1304,14 @@ namespace Microsoft.Dafny {
           // LHS is fine, provided the "sequence" is really an array
           if (lhsResolvedSuccessfully) {
             Contract.Assert(slhs.Seq.Type != null);
-            Type elementType = new InferredTypeProxy();
-            if (!UnifyTypes(slhs.Seq.Type, builtIns.ArrayType(1, elementType))) {
+            if (!UnifyTypes(slhs.Seq.Type, builtIns.ArrayType(1, new InferredTypeProxy()))) {
               Error(slhs.Seq, "LHS of array assignment must denote an array element (found {0})", slhs.Seq.Type);
             }
             if (specContextOnly) {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
-            if (!slhs.SelectOne && !(s.Rhs is ExprRhs)) {
-              Error(stmt, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
+            if (!slhs.SelectOne) {
+              Error(stmt, "cannot assign to multiple array elements (try a foreach).");
             }
           }
 
@@ -1326,43 +1327,43 @@ namespace Microsoft.Dafny {
         s.IsGhost = lvalueIsGhost;
         Type lhsType = s.Lhs.Type;
         if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-          Contract.Assert(lhsType.IsArrayType);
-          lhsType = UserDefinedType.ArrayElementType(lhsType);
-        }
-        if (s.Rhs is ExprRhs) {
-          ExprRhs rr = (ExprRhs)s.Rhs;
-          ResolveExpression(rr.Expr, true);
-          if (!lvalueIsGhost) {
-            CheckIsNonGhost(rr.Expr);
-          }
-          Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(lhsType, rr.Expr.Type)) {
-            Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
-          }
-        } else if (s.Rhs is TypeRhs) {
-          TypeRhs rr = (TypeRhs)s.Rhs;
-          Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
-          if (!lvalueIsGhost) {
-            if (rr.ArrayDimensions != null) {
-              foreach (var dim in rr.ArrayDimensions) {
-                CheckIsNonGhost(dim);
-              }
-            }
-            if (rr.InitCall != null) {
-              foreach (var arg in rr.InitCall.Args) {
-                CheckIsNonGhost(arg);
-              }
-            }
-          }
-          if (!UnifyTypes(lhsType, t)) {
-            Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
-          }
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
+          Error(stmt, "cannot assign to multiple array elements (try a foreach).");
+          //lhsType = UserDefinedType.ArrayElementType(lhsType);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          if (s.Rhs is ExprRhs) {
+            ExprRhs rr = (ExprRhs)s.Rhs;
+            ResolveExpression(rr.Expr, true);
+            if (!lvalueIsGhost) {
+              CheckIsNonGhost(rr.Expr);
+            }
+            Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
+            if (!UnifyTypes(lhsType, rr.Expr.Type)) {
+              Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
+            }
+          } else if (s.Rhs is TypeRhs) {
+            TypeRhs rr = (TypeRhs)s.Rhs;
+            Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
+            if (!lvalueIsGhost) {
+              if (rr.ArrayDimensions != null) {
+                foreach (var dim in rr.ArrayDimensions) {
+                  CheckIsNonGhost(dim);
+                }
+              }
+              if (rr.InitCall != null) {
+                foreach (var arg in rr.InitCall.Args) {
+                  CheckIsNonGhost(arg);
+                }
+              }
+            }
+            if (!UnifyTypes(lhsType, t)) {
+              Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
+            }
+          } else if (s.Rhs is HavocRhs) {
+            // nothing else to do
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          }
         }
-
       } else if (stmt is VarDecl) {
         VarDecl s = (VarDecl)stmt;
         if (s.OptionalType != null) {
@@ -2097,6 +2098,8 @@ namespace Microsoft.Dafny {
           return type;
         } else if (type is SetType) {
           return new SetType(arg);
+        } else if (type is MultiSetType) {
+          return new MultiSetType(arg);
         } else if (type is SeqType) {
           return new SeqType(arg);
         } else {
@@ -2301,6 +2304,8 @@ namespace Microsoft.Dafny {
         }
         if (expr is SetDisplayExpr) {
           expr.Type = new SetType(elementType);
+        } else if (expr is MultiSetDisplayExpr) {
+          expr.Type = new MultiSetType(elementType);
         } else {
           expr.Type = new SeqType(elementType);
         }
@@ -2334,7 +2339,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
-        ResolveSeqSelectExpr(e, twoState, false);
+        ResolveSeqSelectExpr(e, twoState, true);
 
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
@@ -2393,6 +2398,13 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, twoState);
         expr.Type = e.E.Type;
 
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+        ResolveExpression(e.E, twoState);
+        if (!UnifyTypes(e.E.Type, new SetType(new InferredTypeProxy())) && !UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
+          Error(e.tok, "can only form a multiset from a seq or set.");
+        }
+        expr.Type = new MultiSetType(((CollectionType)e.E.Type).Arg);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
         if (!twoState) {
@@ -2477,11 +2489,12 @@ namespace Microsoft.Dafny {
             break;
 
           case BinaryExpr.Opcode.Disjoint:
-            if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy()))) {
-              Error(expr, "arguments must be of a set type (got {0})", e.E0.Type);
-            }
+            // TODO: the error messages are backwards from what (ideally) they should be. this is necessary because UnifyTypes can't backtrack.
             if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
               Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+            }
+            if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy())) && !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy()))) {
+              Error(expr, "arguments must be of a [multi]set type (got {0})", e.E0.Type);
             }
             expr.Type = Type.Bool;
             break;
@@ -3137,6 +3150,12 @@ namespace Microsoft.Dafny {
                   goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
+              case BinaryExpr.ResolvedOpcode.InMultiSet:
+                if (whereIsBv == 0) {
+                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  goto CHECK_NEXT_BOUND_VARIABLE;
+                }
+                break;
               case BinaryExpr.ResolvedOpcode.InSeq:
                 if (whereIsBv == 0) {
                   bounds.Add(new QuantifierExpr.SeqBoundedPool(e1));
@@ -3534,7 +3553,7 @@ namespace Microsoft.Dafny {
         if (e.SelectOne) {
           e.Type = elementType;
         } else {
-          e.Type = e.Seq.Type;
+          e.Type = new SeqType(elementType);
         }
       }
     }
@@ -3553,6 +3572,8 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Eq:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.SetEq;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSetEq;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.SeqEq;
           } else {
@@ -3561,17 +3582,26 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Neq:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.SetNeq;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSetNeq;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.SeqNeq;
           } else {
             return BinaryExpr.ResolvedOpcode.NeqCommon;
           }
-        case BinaryExpr.Opcode.Disjoint:  return BinaryExpr.ResolvedOpcode.Disjoint;
+        case BinaryExpr.Opcode.Disjoint:
+          if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSetDisjoint;
+          } else {
+            return BinaryExpr.ResolvedOpcode.Disjoint;
+          } 
         case BinaryExpr.Opcode.Lt:
           if (operandType.IsDatatype) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.ProperMultiSubset;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.ProperPrefix;
           } else {
@@ -3580,6 +3610,8 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Le:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.Subset;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSubset;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.Prefix;
           } else {
@@ -3588,6 +3620,8 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Add:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.Union;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSetUnion;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.Concat;
           } else {
@@ -3596,12 +3630,16 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Sub:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.SetDifference;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSetDifference;
           } else {
             return BinaryExpr.ResolvedOpcode.Sub;
           }
         case BinaryExpr.Opcode.Mul:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.Intersection;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSetIntersection;
           } else {
             return BinaryExpr.ResolvedOpcode.Mul;
           }
@@ -3610,24 +3648,32 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.RankGt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSuperset;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.ProperMultiSuperset;
           } else {
             return BinaryExpr.ResolvedOpcode.Gt;
           }
         case BinaryExpr.Opcode.Ge:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.Superset;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.MultiSuperset;
           } else {
             return BinaryExpr.ResolvedOpcode.Ge;
           }
         case BinaryExpr.Opcode.In:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.InSet;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.InMultiSet;
           } else {
             return BinaryExpr.ResolvedOpcode.InSeq;
           }
         case BinaryExpr.Opcode.NotIn:
           if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.NotInSet;
+          } else if (operandType is MultiSetType) {
+            return BinaryExpr.ResolvedOpcode.NotInMultiSet;
           } else {
             return BinaryExpr.ResolvedOpcode.NotInSeq;
           }

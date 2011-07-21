@@ -24,6 +24,15 @@ open AstUtils
 open Utils
 
 open Microsoft.Boogie
+
+type HeapModel = {
+   heap : Map<Const * VarDecl, Const>; 
+   env  : Map<Const, Const>; 
+   ctx  : Set<Set<Const>>;
+}
+
+let MkHeapModel heap env ctx = 
+  { heap = heap; env = env; ctx = ctx }
                                          
 let GetElemFullName (elem: Model.Element) = 
   elem.Names |> Seq.filter (fun ft -> ft.Func.Arity = 0)
@@ -140,7 +149,11 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         let clsName = if dotIdx = -1 then "" else fldFullName.Substring(0, dotIdx)
                         let refVal = ft.Result
                         let refObj = Unresolved(GetRefName ref)
-                        let fldVarOpt = FindVar prog clsName fldName
+                        let nonebuilder = CascadingBuilder<_>(None)
+                        let fldVarOpt = nonebuilder {
+                          let! comp = FindComponent prog clsName
+                          return FindVar comp fldName
+                        }
                         match fldVarOpt with
                         | Some(fldVar) ->
                             let fldType = match fldVar with 
@@ -165,7 +178,7 @@ let rec ReadArgValues (model: Microsoft.Boogie.Model) args =
           assert (Seq.length func.Apps = 1)
           let ft = Seq.head func.Apps
           let fldVal = ConvertValue model (ft.Result)
-          ReadArgValues model rest |> Map.add (Unresolved(name)) fldVal
+          ReadArgValues model rest |> Map.add (VarConst(name)) fldVal
       | None -> failwith ("cannot find corresponding function for parameter " + name)
   | [] -> Map.empty
 
@@ -234,11 +247,11 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
 
   let f_seq_len = model.MkFunc("Seq#Length", 1)
   let f_seq_idx = model.MkFunc("Seq#Index", 2)
-  let f_seq_bld = model.MkFunc("Seq#Build", 4)
+  //let f_seq_bld = model.MkFunc("Seq#Build", 4)
   let f_seq_app = model.MkFunc("Seq#Append", 2)
   (envMap,ctx) |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
                |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
-               |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
+         //      |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
                |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
 
 
@@ -382,4 +395,4 @@ let ReadFieldValuesFromModel (model: Microsoft.Boogie.Model) prog comp meth =
   let heap = ReadHeap model prog
   let env0,ctx = ReadEnv model prog
   let env = env0 |> Utils.MapAddAll (ReadArgValues model (GetMethodArgs meth))
-  heap,env,ctx
+  MkHeapModel heap env ctx

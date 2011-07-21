@@ -43,6 +43,9 @@ method Generic<T>(i: int, t0: T, t1: T) returns (r: T) {
 }
 
 function method FenEric<T>(t0: T, t1: T): T
+{
+  t1
+}
 
 datatype Pair<T> = Pr(T, T);
 

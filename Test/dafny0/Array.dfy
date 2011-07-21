@@ -72,27 +72,17 @@ class A {
   }
 
   method Q() {
-    var y := new object[100];
-    y[5] := null;
-    y[0..] := null;
-    y[..83] := null;
-    y[0..y.Length] := null;
-  }
-
-  method R() {
-    var y := new int[100];
-    y[55] := 80;
-    y[10..] := 25;
-    y[..83] := 30;
-    y[50..60] := 35;
-    y[55] := 90;
-
-    assert y[54] == 35;
-    assert y[55] == 90;
-    assert y[83] == 25;
-    assert y[8] == 30;
-    assert y[90] + y[91] + y[0] + 20 == y.Length;
-    assert y[93] == 24;  // error (it's 25)
+    var a := new int[5];
+    a[0],a[1],a[2],a[3],a[4] := 0,1,2,3,4;
+	
+	assert [1,2,3,4] == a[1..];
+	assert [1,2,3,4] == a[1.. a.Length];
+	assert [1] == a[1..2];
+	assert [0,1] == a[..2];
+	assert [0,1] == a[0..2];
+	assert forall i :: 0 <= i <= a.Length ==> [] == a[i..i];
+    assert [0,1,2,3,4] == a[..];
+    assert forall i :: 0 <= i < a.Length ==> a[i] == i;
   }
 }
 

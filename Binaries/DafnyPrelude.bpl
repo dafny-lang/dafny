@@ -84,6 +84,130 @@ function Set#Choose<T>(Set T, TickType): T;
 axiom (forall<T> a: Set T, tick: TickType :: { Set#Choose(a, tick) }
   a != Set#Empty() ==> a[Set#Choose(a, tick)]);
 
+
+// ---------------------------------------------------------------
+// -- Axiomatization of multisets --------------------------------
+// ---------------------------------------------------------------
+
+function Math#min(a: int, b: int): int;
+axiom (forall a: int, b: int :: { Math#min(a, b) } a <= b <==> Math#min(a, b) == a);
+axiom (forall a: int, b: int :: { Math#min(a, b) } b <= a <==> Math#min(a, b) == b);
+axiom (forall a: int, b: int :: { Math#min(a, b) } Math#min(a, b) == a || Math#min(a, b) == b);
+
+function Math#clip(a: int): int;
+axiom (forall a: int :: { Math#clip(a) } 0 <= a ==> Math#clip(a) == a);
+axiom (forall a: int :: { Math#clip(a) } a < 0  ==> Math#clip(a) == 0);
+
+type MultiSet T = [T]int;
+
+function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
+// ints are non-negative, used after havocing, and for conversion from sequences to multisets.
+axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) } 
+     $IsGoodMultiSet(ms) <==> (forall o: T :: { ms[o] } 0 <= ms[o]));
+
+function MultiSet#Empty<T>(): MultiSet T;
+axiom (forall<T> o: T :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
+
+function MultiSet#Singleton<T>(T): MultiSet T;
+axiom (forall<T> r: T, o: T :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton(r)[o] == 1 <==> r == o) &&
+                                                            (MultiSet#Singleton(r)[o] == 0 <==> r != o));
+axiom (forall<T> r: T :: { MultiSet#Singleton(r) } MultiSet#Singleton(r) == MultiSet#UnionOne(MultiSet#Empty(), r));
+
+function MultiSet#UnionOne<T>(MultiSet T, T): MultiSet T;
+// pure containment axiom (in the original multiset or is the added element)
+axiom (forall<T> a: MultiSet T, x: T, o: T :: { MultiSet#UnionOne(a,x)[o] }
+  0 < MultiSet#UnionOne(a,x)[o] <==> o == x || 0 < a[o]);
+// union-ing increases count by one
+axiom (forall<T> a: MultiSet T, x: T :: { MultiSet#UnionOne(a, x) }
+  MultiSet#UnionOne(a, x)[x] == a[x] + 1);
+// non-decreasing
+axiom (forall<T> a: MultiSet T, x: T, y: T :: { MultiSet#UnionOne(a, x), a[y] }
+  0 < a[y] ==> 0 < MultiSet#UnionOne(a, x)[y]);
+// other elements unchanged
+axiom (forall<T> a: MultiSet T, x: T, y: T :: { MultiSet#UnionOne(a, x), a[y] }
+  x != y ==> a[y] == MultiSet#UnionOne(a, x)[y]);
+
+function MultiSet#Union<T>(MultiSet T, MultiSet T): MultiSet T;
+// union-ing is the sum of the contents
+axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Union(a,b)[o] }
+  MultiSet#Union(a,b)[o] == a[o] + b[o]);
+
+// two containment axioms
+axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Union(a, b), a[y] }
+  0 < a[y] ==> 0 < MultiSet#Union(a, b)[y]);
+axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Union(a, b), b[y] }
+  0 < b[y] ==> 0 < MultiSet#Union(a, b)[y]);
+
+// symmetry axiom
+axiom (forall<T> a, b: MultiSet T :: { MultiSet#Union(a, b) }
+  MultiSet#Difference(MultiSet#Union(a, b), a) == b &&
+  MultiSet#Difference(MultiSet#Union(a, b), b) == a);
+
+function MultiSet#Intersection<T>(MultiSet T, MultiSet T): MultiSet T;
+axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Intersection(a,b)[o] }
+  MultiSet#Intersection(a,b)[o] == Math#min(a[o],  b[o]));
+
+// left and right pseudo-idempotence
+axiom (forall<T> a, b: MultiSet T :: { MultiSet#Intersection(MultiSet#Intersection(a, b), b) }
+  MultiSet#Intersection(MultiSet#Intersection(a, b), b) == MultiSet#Intersection(a, b));
+axiom (forall<T> a, b: MultiSet T :: { MultiSet#Intersection(a, MultiSet#Intersection(a, b)) }
+  MultiSet#Intersection(a, MultiSet#Intersection(a, b)) == MultiSet#Intersection(a, b));
+
+// multiset difference, a - b. clip() makes it positive.
+function MultiSet#Difference<T>(MultiSet T, MultiSet T): MultiSet T;
+axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Difference(a,b)[o] }
+  MultiSet#Difference(a,b)[o] == Math#clip(a[o] - b[o]));
+axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Difference(a, b), b[y], a[y] }
+  a[y] <= b[y] ==> MultiSet#Difference(a, b)[y] == 0 );
+
+// multiset subset means a must have at most as many of each element as b
+function MultiSet#Subset<T>(MultiSet T, MultiSet T): bool;
+axiom(forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Subset(a,b) }
+  MultiSet#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <= b[o]));
+
+function MultiSet#Equal<T>(MultiSet T, MultiSet T): bool;
+axiom(forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Equal(a,b) }
+  MultiSet#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] == b[o]));
+// extensionality axiom for multisets
+axiom(forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Equal(a,b) }
+  MultiSet#Equal(a,b) ==> a == b);
+
+function MultiSet#Disjoint<T>(MultiSet T, MultiSet T): bool;
+axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Disjoint(a,b) }
+  MultiSet#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] == 0 || b[o] == 0));
+
+// conversion to a multiset. each element in the original set has duplicity 1.
+function MultiSet#FromSet<T>(Set T): MultiSet T;
+axiom (forall<T> s: Set T, a: T :: { MultiSet#FromSet(s)[a] }
+  (MultiSet#FromSet(s)[a] == 0 <==> !s[a]) &&
+  (MultiSet#FromSet(s)[a] == 1 <==> s[a]));
+
+// conversion to a multiset, from a sequence.
+function MultiSet#FromSeq<T>(Seq T): MultiSet T;
+// conversion produces a good map.
+axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
+// building axiom
+axiom (forall<T> s: Seq T, v: T ::
+  { MultiSet#FromSeq(Seq#Build(s, v)) }
+    MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
+  );
+axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+
+// concatenation axiom
+axiom (forall<T> a: Seq T, b: Seq T ::
+  { MultiSet#FromSeq(Seq#Append(a, b)) }
+    MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) );
+
+// update axiom
+axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
+  { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
+    0 <= i && i < Seq#Length(s) ==>
+    MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
+      MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
+  // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
+axiom (forall<T> s: Seq T, x: T :: { MultiSet#FromSeq(s)[x] }
+  (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
+  
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------
 // ---------------------------------------------------------------
@@ -100,9 +224,12 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#E
 function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
 
-function Seq#Build<T>(s: Seq T, index: int, val: T, newLength: int): Seq T;
-axiom (forall<T> s: Seq T, i: int, v: T, len: int :: { Seq#Length(Seq#Build(s,i,v,len)) }
-  0 <= len ==> Seq#Length(Seq#Build(s,i,v,len)) == len);
+function Seq#Build<T>(s: Seq T, val: T): Seq T;
+axiom (forall<T> s: Seq T, v: T :: { Seq#Length(Seq#Build(s,v)) }
+  Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
+axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Index(Seq#Build(s,v), i) }
+  (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == v) &&
+  (i != Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == Seq#Index(s, i)));
 
 function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
@@ -113,10 +240,6 @@ axiom (forall<T> t: T :: { Seq#Index(Seq#Singleton(t), 0) } Seq#Index(Seq#Single
 axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Index(Seq#Append(s0,s1), n) }
   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
   (Seq#Length(s0) <= n ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s1, n - Seq#Length(s0))));
-axiom (forall<T> s: Seq T, i: int, v: T, len: int, n: int :: { Seq#Index(Seq#Build(s,i,v,len),n) }
-  0 <= n && n < len ==>
-    (i == n ==> Seq#Index(Seq#Build(s,i,v,len),n) == v) &&
-    (i != n ==> Seq#Index(Seq#Build(s,i,v,len),n) == Seq#Index(s,n)));
 
 function Seq#Update<T>(Seq T, int, T): Seq T;
 axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Length(Seq#Update(s,i,v)) }
@@ -137,16 +260,11 @@ axiom (forall<T> s0: Seq T, s1: Seq T, x: T ::
   { Seq#Contains(Seq#Append(s0, s1), x) }
   Seq#Contains(Seq#Append(s0, s1), x) <==>
     Seq#Contains(s0, x) || Seq#Contains(s1, x));
-axiom (forall<T> i: int, v: T, len: int, x: T ::
-  { Seq#Contains(Seq#Build(Seq#Empty(), i, v, len), x) }
-  0 <= i && i < len ==>
-  (Seq#Contains(Seq#Build(Seq#Empty(), i, v, len), x) <==> x == v));
-axiom (forall<T> s: Seq T, i0: int, v0: T, len0: int, i1: int, v1: T, len1: int, x: T ::
-  { Seq#Contains(Seq#Build(Seq#Build(s, i0, v0, len0), i1, v1, len1), x) }
-  0 <= i0 && i0 < len0 && len0 <= i1 && i1 < len1 ==>
-  (Seq#Contains(Seq#Build(Seq#Build(s, i0, v0, len0), i1, v1, len1), x) <==>
-     v1 == x ||
-     Seq#Contains(Seq#Build(s, i0, v0, len0), x)));
+
+axiom (forall<T> s: Seq T, v: T, x: T ::
+  { Seq#Contains(Seq#Build(s, v), x) }
+    Seq#Contains(Seq#Build(s, v), x) <==> (v == x || Seq#Contains(s, x)));
+
 axiom (forall<T> s: Seq T, n: int, x: T ::
   { Seq#Contains(Seq#Take(s, n), x) }
   Seq#Contains(Seq#Take(s, n), x) <==>
@@ -196,6 +314,41 @@ axiom (forall<T> s, t: Seq T ::
   Seq#Take(Seq#Append(s, t), Seq#Length(s)) == s &&
   Seq#Drop(Seq#Append(s, t), Seq#Length(s)) == t);
 
+function Seq#FromArray(h: HeapType, a: ref): Seq BoxType;
+axiom (forall h: HeapType, a: ref ::
+  { Seq#Length(Seq#FromArray(h,a)) }
+    Seq#Length(Seq#FromArray(h, a)) == array.Length(a));
+axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h,a): Seq BoxType }
+   (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
+axiom (forall<alpha> h: HeapType, o: ref, f: Field alpha, v: alpha, a: ref ::
+  { Seq#FromArray(update(h, o, f, v), a) }
+    o != a ==> Seq#FromArray(update(h, o, f, v), a) == Seq#FromArray(h, a) );
+axiom (forall h: HeapType, i: int, v: BoxType, a: ref ::
+  { Seq#FromArray(update(h, a, IndexField(i), v), a) }
+    0 <= i && i < array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
+
+// Commutability of Take and Drop with Update.
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Take(Seq#Update(s, i, v), n) }
+    0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Take(Seq#Update(s, i, v), n) }
+    n <= i && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Take(s, n));
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Drop(Seq#Update(s, i, v), n) }
+    0 <= n && n <= i && i < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
+axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+  { Seq#Drop(Seq#Update(s, i, v), n) }
+    0 <= i && i < n && n < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
+// Extension axiom, triggers only on Takes from arrays.
+axiom (forall h: HeapType, a: ref, n0, n1: int ::
+  { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
+    n0 + 1 == n1 && 0 <= n0 && n1 <= array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field BoxType)) );
+// drop commutes with build.
+axiom (forall<T> s: Seq T, v: T, n: int ::
+  { Seq#Drop(Seq#Build(s, v), n) }
+    0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
+
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
 // ---------------------------------------------------------------
@@ -225,6 +378,7 @@ const unique class.int: ClassName;
 const unique class.bool: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
+const unique class.multiset: ClassName;
 
 function /*{:never_pattern true}*/ dtype(ref): ClassName;
 function /*{:never_pattern true}*/ TypeParams(ref, int): ClassName;
@@ -331,6 +485,9 @@ axiom (forall r: ref, h: HeapType ::
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------
+
+function array.Length(a: ref): int;
+axiom (forall o: ref :: 0 <= array.Length(o));
 
 procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
   modifies $Heap;

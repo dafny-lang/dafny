@@ -48,6 +48,15 @@ let ExtractOptionMsg msg x =
 let ExtractOption x = 
   ExtractOptionMsg "can't extract anything from a None" x
 
+//  ====================================
+/// ensures: res = Some(a) ==> ret = a
+/// ensures: res = None ==> ret = defVal
+//  ====================================
+let ExtractOptionOr defVal opt = 
+  match opt with 
+  | Some(a) -> a
+  | None -> defVal
+
 //  ==========================================================
 /// requres: List.length lst <= 1, otherwise fails with errMsg
 /// ensures: if |lst| = 0 then
@@ -135,6 +144,12 @@ let ListReplace oldElem newElem lst =
 let ListContains elem lst = 
   lst |> List.exists (fun e -> e = elem)
 
+//  ====================================================
+/// Removes all elements in lst that are equal to "elem"
+//  ====================================================
+let ListRemove elem lst = 
+  lst |> List.choose (fun e -> if e = elem then None else Some(e))
+
 //  ===============================================================
 /// ensures: |ret| = max(|lst| - cnt, 0)
 /// ensures: forall i :: cnt <= i < |lst| ==> ret[i] = lst[i-cnt]
@@ -194,6 +209,25 @@ let rec ListSet idx v lst =
 //  =======================================
 let rec MapAddAll map1 map2 = 
   map2 |> Map.fold (fun acc k v -> acc |> Map.add k v) map1
+
+// -------------------------------------------
+// ------------ algorithms -------------------
+// -------------------------------------------
+
+//  =======================================================================
+/// Topologically sorts a given list
+///
+/// ensures: |ret| = |lst|
+/// ensures: forall e in lst :: e in ret
+/// ensures: forall i,j :: 0 <= i < j < ==> not (followsFunc ret[j] ret[i])
+//  =======================================================================
+let rec TopSort followsFunc lst = 
+  match lst with
+  | [] -> []
+  | fs :: [] -> [fs]
+  | fs :: rest -> 
+      let min = rest |> List.fold (fun acc elem -> if followsFunc acc elem then elem else acc) fs
+      min :: TopSort followsFunc (ListRemove min lst)
                                                  
 // -------------------------------------------
 // ------ string active patterns -------------
@@ -220,6 +254,12 @@ let IfDo2 cond func2 (a1,a2) =
     func2 a1 a2
   else
     a1,a2 
+
+let Ite cond f1 f2 =
+  if cond then
+    f1
+  else
+    f2
 
 type CascadingBuilder<'a>(failVal: 'a) = 
   member this.Bind(v, f) =

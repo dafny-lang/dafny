@@ -48,27 +48,35 @@ class SoWellformed {
     requires next != null;
     modifies this;
     ensures next.xyz < 100;  // error: may not be well-defined (if body sets next to null)
+  {
 
+  }
   method Q(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
     requires next != null;
     modifies s;
     ensures next.xyz < 100;  // error: may not be well-defined (if this in s and body sets next to null)
-
+  {
+  
+  }
   method R(a: SoWellformed, s: set<SoWellformed>) returns (c: bool, d: SoWellformed)
     requires next != null && this !in s;
     modifies s;
     ensures next.xyz < 100;  // fine
+  {
+
+  }
 }
 
 // ---------------------- welldefinedness checks for statements -------------------
 
 class StatementTwoShoes {
   var x: int;
-
+  var s: StatementTwoShoes;
   function method F(b: int): StatementTwoShoes
     requires 0 <= b;
+	reads this;
   {
-    this
+    s
   }
 
   method M(p: StatementTwoShoes, a: int)
@@ -175,7 +183,7 @@ class StatementTwoShoes {
   }
 
   function G(w: int): int { 5 }
-  function method H(x: int): int
+  function method H(x: int): int { -x }
 
   method V(s: set<StatementTwoShoes>, a: int, b: int)
     modifies s;

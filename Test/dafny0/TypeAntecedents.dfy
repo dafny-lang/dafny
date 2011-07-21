@@ -87,8 +87,8 @@ method N() returns (k: MyClass)
 {
   k := new MyClass;
 }
-
-function NF(): MyClass
+var a: MyClass;
+function NF(): MyClass reads this; { a }
 
 function TakesADatatype(a: List): int { 12 }
 

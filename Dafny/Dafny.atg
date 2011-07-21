@@ -473,6 +473,12 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        }
                                        ty = new SetType(gt[0]);
                                     .)
+  | "multiset"                      (. tok = t;  gt = new List<Type/*!*/>(); .)
+    GenericInstantiation<gt>        (. if (gt.Count != 1) {
+                                         SemErr("multiset type expects exactly one type argument");
+                                       }
+                                       ty = new MultiSetType(gt[0]);
+                                    .)
   | "seq"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("seq type expects exactly one type argument");
@@ -1108,6 +1114,7 @@ UnaryExpression<out Expression/*!*/ e>
   | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
   | DisplayExpr<out e>
+  | MultiSetExpr<out e>
   | ConstAtomExpression<out e>
     { Suffix<ref e> }
   )
@@ -1153,15 +1160,30 @@ ConstAtomExpression<out Expression/*!*/ e>
   .
 DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x;  List<Expression/*!*/>/*!*/ elements;
+     IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
      e = dummyExpr;
   .)
   ( "{"                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
-      [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements); .)
+      [ Expressions<elements> ]                (. e = new SetDisplayExpr(x, elements);.)
     "}"
   | "["                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
       [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements); .)
     "]"
+  )
+  .
+MultiSetExpr<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
+     e = dummyExpr;
+  .)
+  "multiset"                                   (. x = t; .)
+  ( "{"                                        (. elements = new List<Expression/*!*/>(); .)
+      [ Expressions<elements> ]                (. e = new MultiSetDisplayExpr(x, elements);.)
+    "}"
+  | "("                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
+      Expression<out e>                        (. e = new MultiSetFormingExpr(x, e); .)
+    ")"
+  | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
   .
 EndlessExpression<out Expression e>
@@ -1249,7 +1271,9 @@ Suffix<ref Expression/*!*/ e>
                                                .)
           }
         )
-      | ".." Expression<out ee>                (. anyDots = true;  e1 = ee; .)
+      | ".."                                   (. anyDots = true; .)
+	    [ Expression<out ee>                   (. e1 = ee; .)
+	    ]
       )
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
@@ -1262,7 +1286,7 @@ Suffix<ref Expression/*!*/ e>
            }
            Contract.Assert(anyDots || e0 != null);
            if (anyDots) {
-             Contract.Assert(e0 != null || e1 != null);
+             //Contract.Assert(e0 != null || e1 != null);
              e = new SeqSelectExpr(x, false, e, e0, e1);
            } else if (e1 == null) {
              Contract.Assert(e0 != null);

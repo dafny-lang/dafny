@@ -74,12 +74,14 @@ TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
 TypeTests.dfy(68,17): Error: member F in type C does not refer to a method
 TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
-TypeTests.dfy(78,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
-TypeTests.dfy(79,10): Error: Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable
+TypeTests.dfy(78,10): Error: cannot assign to multiple array elements (try a foreach).
+TypeTests.dfy(78,10): Error: cannot assign to multiple array elements (try a foreach).
+TypeTests.dfy(79,10): Error: cannot assign to multiple array elements (try a foreach).
+TypeTests.dfy(79,10): Error: cannot assign to multiple array elements (try a foreach).
 TypeTests.dfy(85,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(86,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 TypeTests.dfy(87,8): Error: sorry, cannot instantiate 'array' type with a subrange type
-21 resolution/type errors detected in TypeTests.dfy
+23 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
 NatTypes.dfy(7,5): Error: value assigned to a nat must be non-negative
@@ -102,20 +104,20 @@ NatTypes.dfy(40,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-NatTypes.dfy(54,16): Error: assertion violation
+NatTypes.dfy(57,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(68,16): Error: assertion violation
+NatTypes.dfy(71,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(86,19): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(89,19): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(101,45): Error: value assigned to a nat must be non-negative
+NatTypes.dfy(104,45): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
@@ -231,149 +233,167 @@ Execution trace:
 Definedness.dfy(50,18): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(55,18): Error: target object may be null
+Definedness.dfy(51,3): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(50,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Definedness.dfy(77,7): Error: target object may be null
+Definedness.dfy(57,18): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(78,5): Error: possible violation of function precondition
+Definedness.dfy(58,3): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(57,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Definedness.dfy(79,10): Error: possible violation of function precondition
+Definedness.dfy(65,3): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(64,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Definedness.dfy(84,14): Error: possible division by zero
+Definedness.dfy(85,7): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(84,23): Error: possible division by zero
+Definedness.dfy(86,5): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Definedness.dfy(85,15): Error: possible division by zero
+Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Definedness.dfy(90,12): Error: possible division by zero
+Definedness.dfy(86,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(97,15): Error: possible division by zero
+Definedness.dfy(87,10): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(97,5): anon8_LoopHead
+Definedness.dfy(92,14): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+Definedness.dfy(92,23): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+Definedness.dfy(93,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+Definedness.dfy(98,12): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+Definedness.dfy(105,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    Definedness.dfy(105,5): anon8_LoopHead
     (0,0): anon8_LoopBody
-    Definedness.dfy(97,5): anon9_Else
+    Definedness.dfy(105,5): anon9_Else
     (0,0): anon3
-Definedness.dfy(106,23): Error: possible violation of function precondition
+Definedness.dfy(114,23): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(105,5): anon13_LoopHead
+    Definedness.dfy(113,5): anon13_LoopHead
     (0,0): anon13_LoopBody
     (0,0): anon14_Then
-Definedness.dfy(112,17): Error: possible violation of function precondition
+Definedness.dfy(120,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(105,5): anon13_LoopHead
+    Definedness.dfy(113,5): anon13_LoopHead
     (0,0): anon13_LoopBody
-    Definedness.dfy(105,5): anon14_Else
+    Definedness.dfy(113,5): anon14_Else
     (0,0): anon3
     (0,0): anon15_Then
     (0,0): anon6
-    Definedness.dfy(111,5): anon16_LoopHead
+    Definedness.dfy(119,5): anon16_LoopHead
     (0,0): anon16_LoopBody
     (0,0): anon17_Then
-Definedness.dfy(122,17): Error: possible violation of function precondition
+Definedness.dfy(130,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(121,5): anon7_LoopHead
+    Definedness.dfy(129,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(122,22): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(130,22): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
-Definedness.dfy(123,17): Error: possible violation of function precondition
+Definedness.dfy(131,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(121,5): anon7_LoopHead
+    Definedness.dfy(129,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(132,15): Error: possible division by zero
+Definedness.dfy(140,15): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(132,5): anon9_LoopHead
+    Definedness.dfy(140,5): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Definedness.dfy(132,5): anon10_Else
+    Definedness.dfy(140,5): anon10_Else
     (0,0): anon3
-Definedness.dfy(151,15): Error: possible division by zero
+Definedness.dfy(159,15): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(145,5): anon17_LoopHead
+    Definedness.dfy(153,5): anon17_LoopHead
     (0,0): anon17_LoopBody
-    Definedness.dfy(145,5): anon18_Else
+    Definedness.dfy(153,5): anon18_Else
     (0,0): anon3
     (0,0): anon19_Then
     (0,0): anon5
     (0,0): anon20_Then
     (0,0): anon8
-    Definedness.dfy(151,5): anon21_LoopHead
+    Definedness.dfy(159,5): anon21_LoopHead
     (0,0): anon21_LoopBody
-    Definedness.dfy(151,5): anon22_Else
+    Definedness.dfy(159,5): anon22_Else
     (0,0): anon11
-Definedness.dfy(170,17): Error: possible violation of function precondition
+Definedness.dfy(172,28): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(162,5): anon19_LoopHead
+Definedness.dfy(178,17): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    Definedness.dfy(170,5): anon19_LoopHead
     (0,0): anon19_LoopBody
-    Definedness.dfy(162,5): anon20_Else
+    Definedness.dfy(170,5): anon20_Else
     (0,0): anon3
     (0,0): anon21_Then
     (0,0): anon6
-    Definedness.dfy(169,5): anon22_LoopHead
+    Definedness.dfy(177,5): anon22_LoopHead
     (0,0): anon22_LoopBody
     (0,0): anon23_Then
     (0,0): anon24_Then
     (0,0): anon11
-Definedness.dfy(191,24): Error: possible violation of function precondition
+Definedness.dfy(199,24): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Definedness.dfy(193,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
+Definedness.dfy(201,11): Error: foreach assignment may update an object not in the enclosing method's modifies clause
 Execution trace:
     (0,0): anon0
-Definedness.dfy(195,33): Error: range expression must be well defined
+Definedness.dfy(203,33): Error: range expression must be well defined
 Execution trace:
     (0,0): anon0
-Definedness.dfy(201,18): Error: RHS of assignment must be well defined
+Definedness.dfy(218,19): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-Definedness.dfy(210,19): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(208,5): anon7_LoopHead
+    Definedness.dfy(216,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(210,23): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(218,23): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
-Definedness.dfy(210,28): Error: possible division by zero
+Definedness.dfy(218,28): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(208,5): anon7_LoopHead
+    Definedness.dfy(216,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(231,46): Error: possible violation of function postcondition
+Definedness.dfy(239,46): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
-Definedness.dfy(238,22): Error: target object may be null
+Definedness.dfy(246,22): Error: target object may be null
 Execution trace:
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Definedness.dfy(254,24): Error: possible violation of function postcondition
+Definedness.dfy(262,24): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon7_Then
     (0,0): anon2
     (0,0): anon8_Else
 
-Dafny program verifier finished with 23 verified, 34 errors
+Dafny program verifier finished with 23 verified, 39 errors
 
 -------------------- FunctionSpecifications.dfy --------------------
 FunctionSpecifications.dfy(28,13): Error: possible violation of function postcondition
@@ -484,27 +504,24 @@ Execution trace:
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(95,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Array.dfy(107,6): Error: insufficient reads clause to read array element
+Array.dfy(97,6): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(115,6): Error: insufficient reads clause to read array element
+Array.dfy(105,6): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(131,6): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(121,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(138,6): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(128,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 22 verified, 11 errors
+Dafny program verifier finished with 21 verified, 10 errors
 
 -------------------- MultiDimArray.dfy --------------------
 MultiDimArray.dfy(53,21): Error: assertion violation
@@ -812,61 +829,61 @@ Execution trace:
 Dafny program verifier finished with 18 verified, 10 errors
 
 -------------------- Termination.dfy --------------------
-Termination.dfy(100,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(105,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(100,3): anon7_LoopHead
+    Termination.dfy(105,3): anon7_LoopHead
     (0,0): anon7_LoopBody
-    Termination.dfy(100,3): anon8_Else
+    Termination.dfy(105,3): anon8_Else
     (0,0): anon3
-    Termination.dfy(100,3): anon9_Else
+    Termination.dfy(105,3): anon9_Else
     (0,0): anon5
-Termination.dfy(108,3): Error: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(113,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(108,3): anon9_LoopHead
+    Termination.dfy(113,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(108,3): anon10_Else
+    Termination.dfy(113,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(108,3): anon12_Else
+    Termination.dfy(113,3): anon12_Else
     (0,0): anon7
-Termination.dfy(117,3): Error: decreases expression might not decrease
+Termination.dfy(122,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(117,3): anon9_LoopHead
+    Termination.dfy(122,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(117,3): anon10_Else
+    Termination.dfy(122,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(117,3): anon12_Else
+    Termination.dfy(122,3): anon12_Else
     (0,0): anon7
-Termination.dfy(118,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
+Termination.dfy(123,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Execution trace:
     (0,0): anon0
-    Termination.dfy(117,3): anon9_LoopHead
+    Termination.dfy(122,3): anon9_LoopHead
     (0,0): anon9_LoopBody
-    Termination.dfy(117,3): anon10_Else
+    Termination.dfy(122,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon5
-    Termination.dfy(117,3): anon12_Else
+    Termination.dfy(122,3): anon12_Else
     (0,0): anon7
-Termination.dfy(246,35): Error: cannot prove termination; try supplying a decreases clause
+Termination.dfy(251,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-Termination.dfy(286,3): Error: decreases expression might not decrease
+Termination.dfy(291,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(286,3): anon10_LoopHead
+    Termination.dfy(291,3): anon10_LoopHead
     (0,0): anon10_LoopBody
-    Termination.dfy(286,3): anon11_Else
-    Termination.dfy(286,3): anon12_Else
+    Termination.dfy(291,3): anon11_Else
+    Termination.dfy(291,3): anon12_Else
     (0,0): anon13_Else
     (0,0): anon8
 
-Dafny program verifier finished with 44 verified, 6 errors
+Dafny program verifier finished with 45 verified, 6 errors
 
 -------------------- DTypes.dfy --------------------
 DTypes.dfy(15,14): Error: assertion violation
@@ -898,46 +915,46 @@ Execution trace:
 Dafny program verifier finished with 27 verified, 6 errors
 
 -------------------- TypeParameters.dfy --------------------
-TypeParameters.dfy(41,22): Error: assertion violation
+TypeParameters.dfy(44,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
-TypeParameters.dfy(63,27): Error: assertion violation
+TypeParameters.dfy(66,27): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-TypeParameters.dfy(130,12): Error: assertion violation
-TypeParameters.dfy(130,28): Related location: Related location
+TypeParameters.dfy(138,12): Error: assertion violation
+TypeParameters.dfy(138,28): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then
-    TypeParameters.dfy(130,32): anon15_Else
+    TypeParameters.dfy(138,32): anon15_Else
     (0,0): anon5
-TypeParameters.dfy(132,12): Error: assertion violation
-TypeParameters.dfy(132,33): Related location: Related location
+TypeParameters.dfy(140,12): Error: assertion violation
+TypeParameters.dfy(140,33): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then
-    TypeParameters.dfy(132,37): anon18_Else
+    TypeParameters.dfy(140,37): anon18_Else
     (0,0): anon11
-TypeParameters.dfy(146,15): Error BP5005: This loop invariant might not be maintained by the loop.
-TypeParameters.dfy(146,38): Related location: Related location
+TypeParameters.dfy(154,15): Error BP5005: This loop invariant might not be maintained by the loop.
+TypeParameters.dfy(154,38): Related location: Related location
 Execution trace:
     (0,0): anon0
-    TypeParameters.dfy(139,3): anon17_LoopHead
+    TypeParameters.dfy(147,3): anon17_LoopHead
     (0,0): anon17_LoopBody
-    TypeParameters.dfy(139,3): anon18_Else
+    TypeParameters.dfy(147,3): anon18_Else
     (0,0): anon5
     (0,0): anon20_Then
     (0,0): anon8
-    TypeParameters.dfy(145,3): anon21_LoopHead
+    TypeParameters.dfy(153,3): anon21_LoopHead
     (0,0): anon21_LoopBody
-    TypeParameters.dfy(145,3): anon22_Else
+    TypeParameters.dfy(153,3): anon22_Else
     (0,0): anon13
-    TypeParameters.dfy(145,3): anon24_Else
+    TypeParameters.dfy(153,3): anon24_Else
     (0,0): anon15
 
-Dafny program verifier finished with 33 verified, 5 errors
+Dafny program verifier finished with 35 verified, 5 errors
 
 -------------------- Datatypes.dfy --------------------
 Datatypes.dfy(79,20): Error: assertion violation
@@ -1108,3 +1125,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 CallStmtTests.dfy(4,3): Error: LHS of assignment must denote a mutable variable
 CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost variable
 2 resolution/type errors detected in CallStmtTests.dfy
+
+-------------------- MultiSets.dfy --------------------
+
+Dafny program verifier finished with 22 verified, 0 errors

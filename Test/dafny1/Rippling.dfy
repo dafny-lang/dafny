@@ -157,13 +157,14 @@ function last(xs: List): Nat
     case Cons(z, zs) => last(ys)
 }
 
+/*
 function mapF(xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) => Cons(HardcodedUninterpretedFunction(y), mapF(ys))
 }
-function HardcodedUninterpretedFunction(n: Nat): Nat
+function HardcodedUninterpretedFunction(n: Nat): Nat*/
 
 function takeWhileAlways(hardcodedResultOfP: Bool, xs: List): List
 {
@@ -186,7 +187,7 @@ function dropWhileAlways(hardcodedResultOfP: Bool, xs: List): List
     else Cons(y, ys)
 }
 
-function filterP(xs: List): List
+/*function filterP(xs: List): List
 {
   match xs
   case Nil => Nil
@@ -195,7 +196,7 @@ function filterP(xs: List): List
     then Cons(y, filterP(ys))
     else filterP(ys)
 }
-function HardcodedUninterpretedPredicate(n: Nat): Bool
+function HardcodedUninterpretedPredicate(n: Nat): Bool*/
 
 function insort(n: Nat, xs: List): List
 {
@@ -327,21 +328,22 @@ ghost method P11()
 {
 }
 
+/*
 ghost method P12()
   ensures (forall n, xs :: drop(n, mapF(xs)) == mapF(drop(n, xs)));
 {
-}
+}*/
 
 ghost method P13()
   ensures (forall n, x, xs :: drop(Suc(n), Cons(x, xs)) == drop(n, xs));
 {
 }
-
+/*
 ghost method P14()
   ensures (forall xs, ys :: filterP(concat(xs, ys)) == concat(filterP(xs), filterP(ys)));
 {
 }
-
+*/
 ghost method P15()
   ensures (forall x, xs :: len(ins(x, xs)) == Suc(len(xs)));
 {
@@ -478,12 +480,12 @@ ghost method P40()
   ensures (forall xs :: take(Zero, xs) == Nil);
 {
 }
-
+/*
 ghost method P41()
   ensures (forall n, xs :: take(n, mapF(xs)) == mapF(take(n, xs)));
 {
 }
-
+*/
 ghost method P42()
   ensures (forall n, x, xs :: take(Suc(n), Cons(x, xs)) == Cons(x, take(n, xs)));
 {
