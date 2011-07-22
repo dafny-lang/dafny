@@ -213,6 +213,8 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
         __ReadSeqIndex model rest (newEnv,newCtx)
     | _ -> (envMap,ctx)
 
+  //TODO: This has become obsolete now, as the Seq#Build function has a different meaning now.
+  //      On the plus site, it might be that it is not necessary to read the model for this function anymore.
   // reads stuff from Seq#Build
   let rec __ReadSeqBuild (model: Microsoft.Boogie.Model) (bld_tuples: Model.FuncTuple list) (envMap,ctx) = 
     match bld_tuples with
@@ -251,7 +253,7 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
   let f_seq_app = model.MkFunc("Seq#Append", 2)
   (envMap,ctx) |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
                |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
-         //      |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
+             //  |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
                |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
 
 

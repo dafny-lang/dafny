@@ -7,7 +7,78 @@
 module AstUtils
 
 open Ast
+open Logger
 open Utils
+
+let rec Rewrite rewriterFunc expr =
+  let __RewriteOrRecurse e =
+    match rewriterFunc e with
+    | Some(ee) -> ee
+    | None -> Rewrite rewriterFunc e 
+  match expr with
+  | IntLiteral(_)
+  | BoolLiteral(_)                   
+  | Star      
+  | VarLiteral(_) 
+  | ObjLiteral(_)                      
+  | IdLiteral(_)                     -> match rewriterFunc expr with
+                                        | Some(e) -> e
+                                        | None -> expr
+  | Dot(e, id)                       -> Dot(__RewriteOrRecurse e, id)
+  | ForallExpr(vars,e)               -> ForallExpr(vars, __RewriteOrRecurse e)   
+  | UnaryExpr(op,e)                  -> UnaryExpr(op, __RewriteOrRecurse e)
+  | SeqLength(e)                     -> SeqLength(__RewriteOrRecurse e)
+  | SelectExpr(e1, e2)               -> SelectExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2)
+  | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, __RewriteOrRecurse e1, __RewriteOrRecurse e2)
+  | IteExpr(e1,e2,e3)                -> IteExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
+  | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
+  | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map __RewriteOrRecurse)
+  | SetExpr(exs)                     -> SetExpr(exs |> List.map __RewriteOrRecurse)
+
+//  ====================================================
+/// Substitutes all occurences of all IdLiterals having 
+/// the same name as one of the variables in "vars" with
+/// VarLiterals, in "expr".
+//  ====================================================
+let RewriteVars vars expr = 
+  let __IdIsArg id = vars |> List.exists (function Var(name,_) -> name = id)
+  Rewrite (fun e ->
+             match e with 
+             | IdLiteral(id) when __IdIsArg id -> Some(VarLiteral(id))
+             | _ -> None) expr
+
+//  ================================================
+/// Substitutes all occurences of e1 with e2 in expr
+//  ================================================
+let Substitute e1 e2 expr = 
+  Rewrite (fun e ->
+             if e = e1 then
+               Some(e2)
+             else
+               None) expr
+
+let rec DescendExpr visitorFunc composeFunc leafVal expr = 
+  match expr with
+  | IntLiteral(_)
+  | BoolLiteral(_)                   
+  | Star      
+  | VarLiteral(_) 
+  | ObjLiteral(_)                      
+  | IdLiteral(_)                     -> leafVal
+  | Dot(e, _)
+  | ForallExpr(_,e)
+  | UnaryExpr(_,e)           
+  | SeqLength(e)                     -> composeFunc (visitorFunc e) (DescendExpr visitorFunc composeFunc leafVal e)
+  | SelectExpr(e1, e2)
+  | BinaryExpr(_,_,e1,e2)            -> composeFunc (composeFunc (composeFunc (visitorFunc e1) (visitorFunc e2)) (DescendExpr visitorFunc composeFunc leafVal e1)) (DescendExpr visitorFunc composeFunc leafVal e2)
+  | IteExpr(e1,e2,e3)                
+  | UpdateExpr(e1,e2,e3)             -> composeFunc (composeFunc (composeFunc (composeFunc (composeFunc (visitorFunc e1) (visitorFunc e2)) (visitorFunc e3)) (DescendExpr visitorFunc composeFunc leafVal e1)) (DescendExpr visitorFunc composeFunc leafVal e2)) (DescendExpr visitorFunc composeFunc leafVal e3)
+  | SequenceExpr(exs)                
+  | SetExpr(exs)                     -> match exs with
+                                        | [] -> leafVal
+                                        | fs :: rest -> rest |> List.fold (fun acc e -> composeFunc (composeFunc acc (visitorFunc e)) (DescendExpr visitorFunc composeFunc leafVal e)) (visitorFunc fs)
+              
+
 
 let PrintGenSym name =
   sprintf "gensym%s" name
@@ -572,15 +643,27 @@ let rec __EvalSym resolverFunc ctx expr =
         | [] -> BoolLiteral(true)
       match vars with
       | v :: restV -> 
-          let vDom = GetVarDomain resolverFunc v e
+          let vDom = GetVarDomain resolverFunc ctx v e
           __ExhaustVar v restV vDom
       | [] -> __EvalSym resolverFunc ctx e
-and GetVarDomain resolverFunc var expr = 
-  //TODO: don't hardcode this!!!
-  let elems = __EvalSym resolverFunc [] (Dot(ObjLiteral("this"), "elems"))
-  match elems with 
-  | SetExpr(elist) -> elist
-  | _ -> failwith "this is bogus"
+and GetVarDomain resolverFunc ctx var expr = 
+  match expr with 
+  | BinaryExpr(_, "==>", lhs, rhs) -> 
+      let conjs = SplitIntoConjunts lhs
+      conjs |> List.fold (fun acc e ->
+                            match e with
+                            | BinaryExpr(_, "in", VarLiteral(vn), rhs) when GetVarName var = vn ->
+                                match __EvalSym resolverFunc ctx rhs with
+                                | SetExpr(elist)
+                                | SequenceExpr(elist) -> elist |> List.append acc
+                                | _ -> failwith "illegal 'in' expression"
+                            | BinaryExpr(_, op, VarLiteral(vn),oth)
+                            | BinaryExpr(_, op, oth, VarLiteral(vn)) when GetVarName var = vn && Set.ofList ["<"; "<="; ">"; ">="] |> Set.contains op -> 
+                                failwith "not supported yet"
+                            | _ -> []) []
+  | _ -> 
+      Logger.WarnLine ("unknown pattern for a quantified expression; cannot infer domain of quantified variable \"" + (GetVarName var) + "\"")
+      []
 
 let EvalSym resolverFunc expr = 
   __EvalSym resolverFunc [] expr 
@@ -603,9 +686,16 @@ let rec Desugar expr =
   | UpdateExpr(_)     
   | SetExpr(_)     
   | SequenceExpr(_)        -> expr 
+  // forall v :: v in {a1, a2, ..., an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
+  | ForallExpr([Var(vn1,ty1)] as v, BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub)) when vn1 = vn2 ->
+      match rhsCol with 
+      | SetExpr(elist)
+      | SequenceExpr(elist) -> elist |> List.fold (fun acc e -> BinaryAnd acc (Desugar (Substitute (VarLiteral(vn2)) e sub))) TrueLiteral
+      | _ -> ForallExpr(v, Desugar sub)
   | ForallExpr(v,e)        -> ForallExpr(v, Desugar e)
   | UnaryExpr(op,e)        -> UnaryExpr(op, Desugar e)
   | IteExpr(c,e1,e2)       -> IteExpr(c, Desugar e1, Desugar e2)
+  // lst = [a1 a2 ... an] ~~~> lst = [a1 a2 ... an] && lst[0] = a1 && lst[1] = a2 && ... && lst[n-1] = an
   | BinaryExpr(p,op,e1,e2) -> 
       let be = BinaryExpr(p, op, Desugar e1, Desugar e2)
       try
@@ -661,36 +751,3 @@ let ChangeThisReceiver receiver expr =
     | SetExpr(exs)                     -> SetExpr(exs |> List.map (__ChangeThis locals))
   (* --- function body starts here --- *)
   __ChangeThis Set.empty expr
-
-let rec Rewrite rewriterFunc expr =
-  let __RewriteOrRecurse e =
-    match rewriterFunc e with
-    | Some(ee) -> ee
-    | None -> Rewrite rewriterFunc e 
-  match expr with
-  | IntLiteral(_)
-  | BoolLiteral(_)                   
-  | Star      
-  | VarLiteral(_) 
-  | ObjLiteral(_)                      
-  | IdLiteral(_)                     -> match rewriterFunc expr with
-                                        | Some(e) -> e
-                                        | None -> expr
-  | Dot(e, id)                       -> Dot(__RewriteOrRecurse e, id)
-  | ForallExpr(vars,e)               -> ForallExpr(vars, __RewriteOrRecurse e)   
-  | UnaryExpr(op,e)                  -> UnaryExpr(op, __RewriteOrRecurse e)
-  | SeqLength(e)                     -> SeqLength(__RewriteOrRecurse e)
-  | SelectExpr(e1, e2)               -> SelectExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2)
-  | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, __RewriteOrRecurse e1, __RewriteOrRecurse e2)
-  | IteExpr(e1,e2,e3)                -> IteExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
-  | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
-  | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map __RewriteOrRecurse)
-  | SetExpr(exs)                     -> SetExpr(exs |> List.map __RewriteOrRecurse)
-
-let RewriteVars vars expr = 
-  let __IdIsArg id = vars |> List.exists (function Var(name,_) -> name = id)
-  Rewrite (fun e ->
-             match e with 
-             | IdLiteral(id) when __IdIsArg id -> Some(VarLiteral(id))
-             | _ -> None) expr
-              
