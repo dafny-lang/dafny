@@ -201,8 +201,9 @@ axiom (forall<T> a: Seq T, b: Seq T ::
 // update axiom
 axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
   { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
+    0 <= i && i < Seq#Length(s) ==>
     MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
-	  MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
+      MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
   // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
 axiom (forall<T> s: Seq T, x: T :: { MultiSet#FromSeq(s)[x] }
   (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
@@ -329,7 +330,7 @@ axiom (forall h: HeapType, i: int, v: BoxType, a: ref ::
 // Commutability of Take and Drop with Update.
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
   { Seq#Take(Seq#Update(s, i, v), n) }
-    0 <= i && i < n && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
+    0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
   { Seq#Take(Seq#Update(s, i, v), n) }
     n <= i && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Take(s, n));
