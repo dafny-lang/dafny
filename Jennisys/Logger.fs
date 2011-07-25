@@ -5,8 +5,8 @@
 //  #######################################################
 
 module Logger
-
-open Printer
+             
+let newline =  System.Environment.NewLine
 
 let _ALL = 100
 let _TRACE = 90

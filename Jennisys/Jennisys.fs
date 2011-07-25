@@ -40,7 +40,16 @@ let readAndProcess (filename: string) =
 
 try 
   let args = Environment.GetCommandLineArgs()
-  ParseCmdLineArgs (List.ofArray args)
-  readAndProcess CONFIG.inputFilename
+  ParseCmdLineArgs (List.ofArray args |> List.tail)
+  if CONFIG.help then 
+    printfn "%s" PrintHelpMsg
+  else 
+    if CONFIG.inputFilename = "" then
+      printfn "*** Error: No input file was specified."
+    else
+      readAndProcess CONFIG.inputFilename
 with
-  | InvalidCmdLineOption(msg) as ex -> printfn "%s" msg; printfn "%s" ex.StackTrace
+  | InvalidCmdLineOption(msg) 
+  | InvalidCmdLineArg(msg) as ex -> 
+      printfn "  [ERROR] %s" msg; 
+      printfn "%s" PrintHelpMsg

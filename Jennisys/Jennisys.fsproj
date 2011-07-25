@@ -23,7 +23,8 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>C:\boogie\Jennisys\Jennisys\examples\Set.jen /method:Set.Triple /genRepr /noVerifyParSol</StartArguments>
+    <StartArguments>
+    </StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>pdbonly</DebugType>
@@ -42,6 +43,7 @@
     <FsYaccOutputFolder>$(IntermediateOutputPath)</FsYaccOutputFolder>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Logger.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Options.fs" />
     <Compile Include="PipelineUtils.fs" />
@@ -65,7 +67,6 @@
     </FsLex>
     <Compile Include="Printer.fs" />
     <Compile Include="DafnyPrinter.fs" />
-    <Compile Include="Logger.fs" />
     <Compile Include="TypeChecker.fs" />
     <Compile Include="Resolver.fs" />
     <Compile Include="CodeGen.fs" />
