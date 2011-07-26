@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>examples/Set.jen /method:SetNode.Double /genRepr</StartArguments>
+    <StartArguments>examples/List.jen /method:List.Double /genRepr</StartArguments>
     <StartWorkingDirectory>C:\boogie\Jennisys\Jennisys\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">

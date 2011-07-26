@@ -8,7 +8,7 @@ class IntList {
     ensures list = [2]
 
   constructor OneTwo()
-    ensures list = [1] + [2] 
+    ensures list = [1 2]
 
   constructor Singleton(p: int)
     ensures list = [p]

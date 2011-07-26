@@ -85,8 +85,17 @@ let rec IsArgsOnly args expr =
   | SeqLength(e)                         -> IsArgsOnly args e
   | ForallExpr(vars,e)                   -> IsArgsOnly (List.concat [args; vars]) e
 
+let AddUnif indent e v unifMap =
+  let idt = Indent indent
+  let builder = new CascadingBuilder<_>(unifMap)
+  builder {
+    let! notAlreadyAdded = Map.tryFind e unifMap |> Utils.IsNoneOption |> Utils.BoolToOption
+    Logger.DebugLine (idt + "    - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v))
+    return Map.add e v unifMap
+  }
+
 //TODO: unifications should probably by "Expr <--> Expr" instead of "Expr <--> Const"
-let GetUnifications indent expr args heapInst =
+let rec GetUnifications indent args heapInst unifs expr =
   let idt = Indent indent
   // - first looks if the give expression talks only about method arguments (args)
   // - then checks if it doesn't already exist in the unification map
@@ -96,33 +105,11 @@ let GetUnifications indent expr args heapInst =
     let builder = new CascadingBuilder<_>(unifMap)
     builder {
       let! argsOnly = IsArgsOnly args e |> Utils.BoolToOption
-      let! notAlreadyAdded = Map.tryFind e unifMap |> Utils.IsNoneOption |> Utils.BoolToOption
       let! v = try Some(Eval heapInst true e |> Expr2Const) with ex -> None
-      Logger.DebugLine (idt + "    - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v))
-      return Map.add e v unifMap
+      return AddUnif indent e v unifMap
     }
-  // just recurses on all expressions
-  let rec __GetUnifications expr args unifs = 
-    let unifs = __AddUnif expr unifs
-    match expr with
-    | IntLiteral(_)
-    | BoolLiteral(_)
-    | VarLiteral(_)
-    | ObjLiteral(_)
-    | IdLiteral(_)
-    | Star                   -> unifs
-    | Dot(e, _)
-    | SeqLength(e)
-    | ForallExpr(_,e)  
-    | UnaryExpr(_,e)         -> unifs |> __GetUnifications e args
-    | SelectExpr(e1, e2)      
-    | BinaryExpr(_,_,e1,e2)  -> unifs |> __GetUnifications e1 args |> __GetUnifications e2 args
-    | IteExpr(e1,e2,e3)
-    | UpdateExpr(e1, e2, e3) -> unifs |> __GetUnifications e1 args |> __GetUnifications e2 args |> __GetUnifications e3 args
-    | SetExpr(elst)
-    | SequenceExpr(elst)     -> elst |> List.fold (fun acc e -> acc |> __GetUnifications e args) unifs 
   (* --- function body starts here --- *)
-  __GetUnifications expr args Map.empty
+  AstUtils.DescendExpr2 __AddUnif expr unifs
 
 //  =======================================================
 /// Returns a map (Expr |--> Const) containing unifications
@@ -135,8 +122,7 @@ let GetUnificationsForMethod indent comp m heapInst =
     | Var(name,_) :: rest -> 
         match Map.tryFind name heapInst.methodArgs with
         | Some(c) ->
-            Logger.DebugLine (idt + "    - adding unification " + name + " <--> " + (PrintConst c));
-            Map.ofList [VarLiteral(name), c] |> Utils.MapAddAll (GetArgValueUnifications rest)
+            GetArgValueUnifications rest |> AddUnif indent (VarLiteral(name)) c
         | None -> failwith ("couldn't find value for argument " + name)
     | [] -> Map.empty
   (* --- function body starts here --- *)
@@ -145,8 +131,9 @@ let GetUnificationsForMethod indent comp m heapInst =
       let args = List.concat [ins; outs]
       match args with 
       | [] -> Map.empty
-      | _  -> GetUnifications indent (BinaryAnd pre post) args heapInst
-              |> Utils.MapAddAll (GetArgValueUnifications args)
+      | _  -> let unifs = GetArgValueUnifications args
+              GetUnifications indent args heapInst unifs (BinaryAnd pre post)
+              
   | _ -> failwith ("not a method: " + m.ToString())
 
 //  =========================================================================
@@ -250,7 +237,6 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
                                                          | _ -> 
                                                              Utils.ListMapAdd (o,f) value acc
                                                      ) heapInst.assignments
-                                        |> List.rev
       {heapInst with assignments = newHeap }
   | [] -> heapInst
 
@@ -294,9 +280,9 @@ let rec AnalyzeConstructor indent prog comp m =
     let heapInst = ResolveModel hModel
     let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
     let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
+    let sol = [TrueLiteral, heapInst]
     if Options.CONFIG.verifySolutions then
       Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
-      let sol = [TrueLiteral, heapInst]
       let verified = VerifySolution prog comp m sol Options.CONFIG.genRepr
       Logger.Info (idt + "    ")
       if verified then
@@ -304,8 +290,11 @@ let rec AnalyzeConstructor indent prog comp m =
         sol
       else 
         Logger.InfoLine "!!! NOT VERIFIED !!!"
-        Logger.InfoLine (idt + "    Strengthening the pre-condition")
-        TryInferConditionals (indent + 4) prog comp m unifs heapInst
+        if Options.CONFIG.inferConditionals then
+          Logger.InfoLine (idt + "    Strengthening the pre-condition")
+          TryInferConditionals (indent + 4) prog comp m unifs heapInst
+        else
+          sol      
     else
       [TrueLiteral, heapInst]
 and TryInferConditionals indent prog comp m unifs heapInst = 
@@ -409,11 +398,11 @@ let Modularize prog solutions =
         let newAcc = acc |> Map.add (fst newSol) (snd newSol)
         __Modularize newAcc rest
     | [] -> acc
-  (* --- --- *) 
+  (* --- function body starts here --- *) 
   __Modularize Map.empty (Map.toList solutions)
 
 let Analyze prog filename =
-  /// Prints a given (flat) solution to a designated file on the disk
+  /// Prints given solutions to a file
   let __PrintSolution outFileName solutions = 
     use file = System.IO.File.CreateText(outFileName)
     file.AutoFlush <- true  
