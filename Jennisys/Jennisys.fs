@@ -9,6 +9,7 @@ open System.IO
 open Microsoft.FSharp.Text.Lexing
 
 open Ast
+open AstUtils
 open Lexer
 open Options
 open Parser
@@ -53,3 +54,6 @@ with
   | InvalidCmdLineArg(msg) as ex -> 
       printfn "  [ERROR] %s" msg; 
       printfn "%s" PrintHelpMsg
+  | EvalFailed(msg) as ex -> 
+      printfn "  [EVALUATION ERROR]  %s" msg
+      printfn "%O" ex.StackTrace 

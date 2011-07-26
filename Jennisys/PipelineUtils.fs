@@ -11,6 +11,7 @@ let dafnyScratchSuffix = "scratch"
 let dafnyVerifySuffix = "verify"
 let dafnyUnifSuffix = "unif"
 let dafnySynthFileNameTemplate = @"c:\tmp\jennisys-synth_###.dfy"
+let dafnyModularSynthFileNameTemplate = @"c:\tmp\jennisys-synth_###_mod.dfy"
 
 let mutable lastDafnyExitCode = 0 //TODO: how to avoid this muttable state?
 

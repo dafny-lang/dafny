@@ -147,7 +147,7 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr =
 
 let PrintAllocNewObjects heapInst indent = 
   let idt = Indent indent
-  heapInst.assignments |> Map.fold (fun acc (obj,fld) _ ->
+  heapInst.assignments |> List.fold (fun acc ((obj,fld),_) ->
                                       if not (obj.name = "this") then
                                         acc |> Set.add obj
                                       else 
@@ -157,7 +157,7 @@ let PrintAllocNewObjects heapInst indent =
 
 let PrintVarAssignments heapInst indent = 
   let idt = Indent indent
-  heapInst.assignments |> Map.fold (fun acc (o,f) e ->
+  heapInst.assignments |> List.fold (fun acc ((o,f),e) ->
                                       let fldName = PrintVarName f
                                       let value = PrintExpr 0 e
                                       acc + (sprintf "%s%s.%s := %s;" idt o.name fldName value) + newline
@@ -165,11 +165,11 @@ let PrintVarAssignments heapInst indent =
 
 let PrintReprAssignments prog heapInst indent = 
   let __FollowsFunc o1 o2 = 
-    heapInst.assignments |> Map.fold (fun acc (srcObj,fld) value -> 
+    heapInst.assignments |> List.fold (fun acc ((srcObj,fld),value) -> 
                                         acc || (srcObj = o1 && value = ObjLiteral(o2.name))
                                      ) false
   let idt = Indent indent
-  let objs = heapInst.assignments |> Map.fold (fun acc (obj,fld) _ -> acc |> Set.add obj) Set.empty
+  let objs = heapInst.assignments |> List.fold (fun acc ((obj,fld),_) -> acc |> Set.add obj) Set.empty
                                   |> Set.toList
                                   |> Utils.TopSort __FollowsFunc
                                   |> List.rev
@@ -181,7 +181,7 @@ let PrintReprAssignments prog heapInst indent =
                                             let! comp = FindComponent prog typeName
                                             let vars = GetFrameFields comp
                                             let nonNullVars = vars |> List.filter (fun v -> 
-                                                                                      match Map.tryFind (obj,v) heapInst.assignments with
+                                                                                      match Utils.ListMapTryFind (obj,v) heapInst.assignments with
                                                                                       | Some(ObjLiteral(n)) when not (n = "null") -> true
                                                                                       | _ -> false)
                                             return nonNullVars |> List.fold (fun a v -> 

@@ -687,11 +687,11 @@ let rec Desugar expr =
   | SetExpr(_)     
   | SequenceExpr(_)        -> expr 
   // forall v :: v in {a1, a2, ..., an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
-  | ForallExpr([Var(vn1,ty1)] as v, BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub)) when vn1 = vn2 ->
+  | ForallExpr([Var(vn1,ty1)] as v, (BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub) as ee)) when vn1 = vn2 ->
       match rhsCol with 
       | SetExpr(elist)
       | SequenceExpr(elist) -> elist |> List.fold (fun acc e -> BinaryAnd acc (Desugar (Substitute (VarLiteral(vn2)) e sub))) TrueLiteral
-      | _ -> ForallExpr(v, Desugar sub)
+      | _ -> ForallExpr(v, Desugar ee)
   | ForallExpr(v,e)        -> ForallExpr(v, Desugar e)
   | UnaryExpr(op,e)        -> UnaryExpr(op, Desugar e)
   | IteExpr(c,e1,e2)       -> IteExpr(c, Desugar e1, Desugar e2)
