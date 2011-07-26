@@ -174,7 +174,7 @@ let GetObjRefExpr objRefName (heapInst: HeapInstance) =
                 | Some(expr) -> Some(Dot(expr, fldName))
                 | None -> __fff rest
             | [] -> None
-          let backPointers = heapInst.assignments |> Map.filter (fun (_,_) l -> l = ObjLiteral(objRefName)) |> Map.toList
+          let backPointers = heapInst.assignments |> List.filter (fun ((_,_),l) -> l = ObjLiteral(objRefName))
           __fff backPointers 
   (* --- function body starts here --- *)
   if objRef2ExprCache.ContainsKey(objRefName) then
@@ -218,15 +218,15 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
   match unifs with
   | (e,c) :: rest -> 
       let heapInst = ApplyUnifications indent prog comp mthd rest heapInst conservative
-      let newHeap = heapInst.assignments|> Map.fold (fun acc (o,f) value ->
+      let newHeap = heapInst.assignments|> List.fold (fun acc ((o,f),value) ->
                                                        if value = Const2Expr c then
                                                          if __CheckUnif o.name f e -1 then                                                
                                                            // change the value to expression
                                                            //Logger.TraceLine (sprintf "%s    - applied: %s.%s --> %s" idt (PrintConst o) (GetVarName f) (PrintExpr 0 e) )
-                                                           acc |> Map.add (o,f) e
+                                                           Utils.ListMapAdd (o,f) e acc 
                                                          else
                                                            // don't change the value unless "conservative = false"
-                                                           acc |> Map.add (o,f) value
+                                                           Utils.ListMapAdd (o,f) value acc
                                                        else 
                                                          let rec __UnifyOverLst lst cnt =
                                                                match lst with
@@ -243,13 +243,14 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
                                                          match value with
                                                          | SequenceExpr(elist) -> 
                                                              let newExprList = __UnifyOverLst elist 0
-                                                             acc |> Map.add (o,f) (SequenceExpr(newExprList))
+                                                             Utils.ListMapAdd (o,f) (SequenceExpr(newExprList)) acc
                                                          | SetExpr(elist) ->
                                                              let newExprList = __UnifyOverLst elist 0
-                                                             acc |> Map.add (o,f) (SetExpr(newExprList))
+                                                             Utils.ListMapAdd (o,f) (SetExpr(newExprList)) acc
                                                          | _ -> 
-                                                             acc |> Map.add (o,f) value
+                                                             Utils.ListMapAdd (o,f) value acc
                                                      ) heapInst.assignments
+                                        |> List.rev
       {heapInst with assignments = newHeap }
   | [] -> heapInst
 
@@ -316,7 +317,7 @@ and TryInferConditionals indent prog comp m unifs heapInst =
   //   - go through all objects on the heap and assert their invariants  
   let pre,post = GetMethodPrePost m
   let prepostExpr = post //TODO: do we need the "pre" here as well?
-  let heapObjs = heapInst2.assignments |> Map.fold (fun acc (o,_) _ -> acc |> Set.add o) Set.empty
+  let heapObjs = heapInst2.assignments |> List.fold (fun acc ((o,_),_) -> acc |> Set.add o) Set.empty
   let expr = heapObjs |> Set.fold (fun acc o -> 
                                      let receiverOpt = GetObjRefExpr o.name heapInst2
                                      let receiver = Utils.ExtractOption receiverOpt
@@ -387,7 +388,7 @@ let GetMethodsToAnalyze prog =
 /// Goes through a given list of methods of the given program and attempts to 
 /// synthesize code for each one of them.
 ///
-/// Returns a map from (component * method) |--> (heap,env,ctx)
+/// Returns a map from (component * method) |--> Expr * HeapInstance
 // ============================================================================
 let rec AnalyzeMethods prog members = 
   match members with
@@ -400,14 +401,35 @@ let rec AnalyzeMethods prog members =
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 
+let Modularize prog solutions = 
+  let rec __Modularize acc sols = 
+    match sols with
+    | sol :: rest -> 
+        let newSol = sol
+        let newAcc = acc |> Map.add (fst newSol) (snd newSol)
+        __Modularize newAcc rest
+    | [] -> acc
+  (* --- --- *) 
+  __Modularize Map.empty (Map.toList solutions)
+
 let Analyze prog filename =
+  /// Prints a given (flat) solution to a designated file on the disk
+  let __PrintSolution outFileName solutions = 
+    use file = System.IO.File.CreateText(outFileName)
+    file.AutoFlush <- true  
+    let synthCode = PrintImplCode prog solutions GetMethodsToAnalyze Options.CONFIG.genRepr
+    fprintfn file "%s" synthCode
+  (* --- function body starts here --- *)
   let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
   let progName = System.IO.Path.GetFileNameWithoutExtension(filename)
-  use file = System.IO.File.CreateText(dafnySynthFileNameTemplate.Replace("###", progName))
-  file.AutoFlush <- true
+  let outFlatSolFileName = dafnySynthFileNameTemplate.Replace("###", progName)
   Logger.InfoLine "Printing synthesized code"
-  let synthCode = PrintImplCode prog solutions GetMethodsToAnalyze Options.CONFIG.genRepr
-  fprintfn file "%s" synthCode
+  __PrintSolution outFlatSolFileName solutions
+  // try to modularize
+  let modularSolutions = Modularize prog solutions
+  let outModSolFileName = dafnyModularSynthFileNameTemplate.Replace("###", progName)
+  Logger.InfoLine "Printing modularized code"
+  __PrintSolution outModSolFileName modularSolutions
   ()
 
 //let AnalyzeComponent_rustan c =

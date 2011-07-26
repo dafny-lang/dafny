@@ -138,6 +138,29 @@ let rec GenList n e =
 let ListReplace oldElem newElem lst = 
   lst |> List.choose (fun e -> if e = oldElem then Some(newElem) else Some(e))
 
+//  =================================================
+/// if (exists (k,v) :: (k,v) in lst && k = key) then
+///   ret = Some(v)
+/// else
+///   ret = None
+//  =================================================
+let ListMapTryFind key lst = 
+  let filtered = lst |> List.filter (fun (k,v) -> k = key)
+  match filtered with
+  | fs :: rest -> Some(snd fs)
+  | [] -> None
+
+//  ==================================================
+/// Replaces the first occurence of the given key in 
+/// the given list with the given value, or appends 
+/// (key,value) if key does not exist in the list
+//  ==================================================
+let rec ListMapAdd key value lst = 
+  match lst with
+  | (k,v) :: rest -> if k = key then (k, value) :: rest else (k,v) :: (ListMapAdd key value rest)
+  | [] -> [(key,value)]
+  
+
 //  ==========================
 /// ensures: ret = elem in lst
 //  ==========================

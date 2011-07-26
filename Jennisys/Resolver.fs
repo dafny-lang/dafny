@@ -16,7 +16,7 @@ open DafnyModelUtils
 type Obj = { name: string; objType: Type }
 
 type HeapInstance = {
-   assignments: Map<Obj * VarDecl, Expr>; // the first string is the symbolic name of an object literal
+   assignments: ((Obj * VarDecl) * Expr) list; // the first string is the symbolic name of an object literal
    methodArgs: Map<string, Const>;
    globals: Map<string, Expr>;
 }
@@ -99,7 +99,7 @@ let Eval heapInst resolveVars expr =
         let discr = __EvalResolver e
         match discr with
         | ObjLiteral(objName) -> 
-            let h2 = heapInst.assignments |> Map.filter (fun (o,Var(fldName,_)) v -> o.name = objName && fldName = str) |> Map.toList
+            let h2 = heapInst.assignments |> List.filter (fun ((o, Var(fldName,_)), v) -> o.name = objName && fldName = str)
             match h2 with
             | ((_,_),x) :: [] -> x
             | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName str))
@@ -123,8 +123,9 @@ let ResolveModel hModel =
                                                                | _ -> failwith ("unresolved object ref: " + o.ToString())
                                         let objType = objType |> Utils.ExtractOptionMsg "unknown object type"
                                         let value = TryResolve hModel l |> Const2Expr
-                                        acc |> Map.add ({name = objName; objType = objType}, f) value 
-                                     ) Map.empty
+                                        Utils.ListMapAdd ({name = objName; objType = objType}, f) value acc 
+                                     ) []
+                         |> List.rev
   let argmap = hModel.env |> Map.fold (fun acc k v -> 
                                          match k with
                                          | VarConst(name) -> acc |> Map.add name (Resolve hModel v)
