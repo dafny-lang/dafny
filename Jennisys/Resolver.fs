@@ -125,7 +125,6 @@ let ResolveModel hModel =
                                         let value = TryResolve hModel l |> Const2Expr
                                         Utils.ListMapAdd ({name = objName; objType = objType}, f) value acc 
                                      ) []
-                         |> List.rev
   let argmap = hModel.env |> Map.fold (fun acc k v -> 
                                          match k with
                                          | VarConst(name) -> acc |> Map.add name (Resolve hModel v)
