@@ -85,12 +85,12 @@ Dafny program verifier finished with 29 verified, 0 errors
 
 -------------------- Rippling.dfy --------------------
 
-Dafny program verifier finished with 122 verified, 0 errors
+Dafny program verifier finished with 132 verified, 0 errors
 
 -------------------- Celebrity.dfy --------------------
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 
 -------------------- UltraFilter.dfy --------------------
 
-Dafny program verifier finished with 20 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors

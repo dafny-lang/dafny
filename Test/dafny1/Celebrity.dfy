@@ -1,26 +1,15 @@
 // Celebrity example, inspired by the Rodin tutorial
 
-class Person
-{
-
-}
-
-var pa: seq<Person>;
-
-function method Knows(a: Person, b: Person): bool
-  reads this;
+static function method Knows<Person>(a: Person, b: Person): bool
   requires a != b;  // forbid asking about the reflexive case
-{
-   exists i | 0 <= i && i < |pa| :: 0 <= i < |pa| / 2 ==> pa[2*i] == a && pa[2*i+1] == b
-}
-function IsCelebrity(c: Person, people: set<Person>): bool
-  reads this;
+
+static function IsCelebrity<Person>(c: Person, people: set<Person>): bool
 {
   c in people &&
   (forall p :: p in people && p != c ==> Knows(p, c) && !Knows(c, p))
 }
 
-method FindCelebrity0(people: set<Person>, ghost c: Person) returns (r: Person)
+method FindCelebrity0<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
   requires (exists c :: IsCelebrity(c, people));
   ensures r == c;
 {
@@ -28,7 +17,7 @@ method FindCelebrity0(people: set<Person>, ghost c: Person) returns (r: Person)
   r := cc;
 }
 
-method FindCelebrity1(people: set<Person>, ghost c: Person) returns (r: Person)
+method FindCelebrity1<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
   requires IsCelebrity(c, people);
   ensures r == c;
 {
@@ -51,7 +40,7 @@ method FindCelebrity1(people: set<Person>, ghost c: Person) returns (r: Person)
   r := x;
 }
 
-method FindCelebrity2(people: set<Person>, ghost c: Person) returns (r: Person)
+method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
   requires IsCelebrity(c, people);
   ensures r == c;
 {
@@ -75,7 +64,7 @@ method FindCelebrity2(people: set<Person>, ghost c: Person) returns (r: Person)
   }
   r := b;
 }
-/*
+
 method FindCelebrity3(n: int, people: set<int>, ghost c: int) returns (r: int)
   requires 0 < n;
   requires (forall p :: p in people <==> 0 <= p && p < n);
@@ -99,4 +88,3 @@ method FindCelebrity3(n: int, people: set<int>, ghost c: int) returns (r: int)
   }
   r := b;
 }
-*/
