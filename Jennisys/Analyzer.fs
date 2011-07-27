@@ -101,12 +101,12 @@ let rec GetUnifications indent args heapInst unifs expr =
   // - then checks if it doesn't already exist in the unification map
   // - then it tries to evaluate it to a constant
   // - if all of these succeed, it adds a unification rule e <--> val(e) to the given unifMap map
-  let __AddUnif e unifMap =
-    let builder = new CascadingBuilder<_>(unifMap)
+  let __AddUnif e unifsAcc =
+    let builder = new CascadingBuilder<_>(unifsAcc)
     builder {
       let! argsOnly = IsArgsOnly args e |> Utils.BoolToOption
       let! v = try Some(Eval heapInst true e |> Expr2Const) with ex -> None
-      return AddUnif indent e v unifMap
+      return AddUnif indent e v unifsAcc
     }
   (* --- function body starts here --- *)
   AstUtils.DescendExpr2 __AddUnif expr unifs
@@ -249,6 +249,18 @@ let VerifySolution prog comp mthd sol genRepr =
   let code = PrintImplCode prog solutions (fun p -> [comp,mthd]) genRepr
   CheckDafnyProgram code dafnyVerifySuffix
 
+let rec DiscoverAliasing exprList heapInst = 
+  match exprList with
+  | e1 :: rest -> 
+      let eqExpr = rest |> List.fold (fun acc e -> 
+                                        if Eval heapInst true (BinaryEq e1 e) = TrueLiteral then
+                                          BinaryAnd acc (BinaryEq e1 e)
+                                        else
+                                          acc
+                                     ) TrueLiteral
+      BinaryAnd eqExpr (DiscoverAliasing rest heapInst)
+  | [] -> TrueLiteral
+
 //  ============================================================================
 /// Attempts to synthesize the initialization code for the given constructor "m"
 ///
@@ -322,10 +334,19 @@ and TryInferConditionals indent prog comp m unifs heapInst =
       Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
       wrongSol
     else
-      Logger.InfoLine (sprintf "%s    - candidate pre-condition: %s" idt (PrintExpr 0 newCond))
-      let p2,c2,m2 = AddPrecondition prog comp m newCond
+      let candCond = 
+        if newCond = FalseLiteral then
+          // it must be because there is some aliasing going on between method arguments, 
+          // so we should try that as a candidate pre-condition
+          let tmp = DiscoverAliasing (GetMethodArgs m |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst2
+          if tmp = TrueLiteral then failwith ("post-condition evaluated to false and no aliasing was discovered")
+          tmp
+        else 
+          newCond
+      Logger.InfoLine (sprintf "%s    - candidate pre-condition: %s" idt (PrintExpr 0 candCond))
+      let p2,c2,m2 = AddPrecondition prog comp m candCond
       Logger.Info (idt + "    - verifying partial solution ... ")
-      let sol = [newCond, heapInst2]
+      let sol = [candCond, heapInst2]
       let verified = 
         if Options.CONFIG.verifyPartialSolutions then
           VerifySolution p2 c2 m2 sol Options.CONFIG.genRepr
@@ -336,7 +357,7 @@ and TryInferConditionals indent prog comp m unifs heapInst =
           Logger.InfoLine "VERIFIED"
         else 
           Logger.InfoLine "SKIPPED"
-        let p3,c3,m3 = AddPrecondition prog comp m (UnaryNot(newCond))
+        let p3,c3,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
         sol.[0] :: AnalyzeConstructor (indent + 2) p3 c3 m3
       else 
         Logger.InfoLine "NOT VERIFIED"
@@ -390,16 +411,20 @@ let rec AnalyzeMethods prog members =
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 
+let GetModularSol prog sol = 
+  
+  sol
+
 let Modularize prog solutions = 
-  let rec __Modularize acc sols = 
+  let rec __Modularize sols acc = 
     match sols with
     | sol :: rest -> 
-        let newSol = sol
+        let newSol = GetModularSol prog sol
         let newAcc = acc |> Map.add (fst newSol) (snd newSol)
-        __Modularize newAcc rest
+        __Modularize rest newAcc 
     | [] -> acc
   (* --- function body starts here --- *) 
-  __Modularize Map.empty (Map.toList solutions)
+  __Modularize (Map.toList solutions) Map.empty 
 
 let Analyze prog filename =
   /// Prints given solutions to a file
