@@ -56,6 +56,8 @@ let rec PrintExpr ctx expr =
       let openParen = if needParens then "(" else ""
       let closeParen = if needParens then ")" else ""
       sprintf "%sforall %s :: %s%s" openParen (vv |> PrintSep ", " PrintVarDecl) (PrintExpr 0 e) closeParen
+  | MethodCall(rcv,name,aparams) ->
+      sprintf "%s.%s(%s)" (PrintExpr 0 rcv) name (aparams |> PrintSep ", " (PrintExpr 0))
 
 let rec PrintConst cst = 
   match cst with 

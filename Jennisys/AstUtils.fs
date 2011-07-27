@@ -10,6 +10,9 @@ open Ast
 open Logger
 open Utils
 
+let ThisLiteral = ObjLiteral("this")
+let NullLiteral = ObjLiteral("null")
+
 let rec Rewrite rewriterFunc expr =
   let __RewriteOrRecurse e =
     match rewriterFunc e with
@@ -34,6 +37,7 @@ let rec Rewrite rewriterFunc expr =
   | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
   | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map __RewriteOrRecurse)
   | SetExpr(exs)                     -> SetExpr(exs |> List.map __RewriteOrRecurse)
+  | MethodCall(rcv,name,aparams)     -> MethodCall(__RewriteOrRecurse rcv, name, aparams |> List.map __RewriteOrRecurse)
 
 //  ====================================================
 /// Substitutes all occurences of all IdLiterals having 
@@ -58,6 +62,10 @@ let Substitute e1 e2 expr =
                None) expr
 
 let rec DescendExpr visitorFunc composeFunc leafVal expr = 
+  let __Compose elist =
+    match elist with
+    | [] -> leafVal
+    | fs :: rest -> rest |> List.fold (fun acc e -> composeFunc (composeFunc acc (visitorFunc e)) (DescendExpr visitorFunc composeFunc leafVal e)) (visitorFunc fs)
   match expr with
   | IntLiteral(_)
   | BoolLiteral(_)                   
@@ -68,18 +76,18 @@ let rec DescendExpr visitorFunc composeFunc leafVal expr =
   | Dot(e, _)
   | ForallExpr(_,e)
   | UnaryExpr(_,e)           
-  | SeqLength(e)                     -> composeFunc (visitorFunc e) (DescendExpr visitorFunc composeFunc leafVal e)
+  | SeqLength(e)                     -> __Compose (e :: [])
   | SelectExpr(e1, e2)
-  | BinaryExpr(_,_,e1,e2)            -> composeFunc (composeFunc (composeFunc (visitorFunc e1) (visitorFunc e2)) (DescendExpr visitorFunc composeFunc leafVal e1)) (DescendExpr visitorFunc composeFunc leafVal e2)
+  | BinaryExpr(_,_,e1,e2)            -> __Compose (e1 :: e2 :: [])
   | IteExpr(e1,e2,e3)                
-  | UpdateExpr(e1,e2,e3)             -> composeFunc (composeFunc (composeFunc (composeFunc (composeFunc (visitorFunc e1) (visitorFunc e2)) (visitorFunc e3)) (DescendExpr visitorFunc composeFunc leafVal e1)) (DescendExpr visitorFunc composeFunc leafVal e2)) (DescendExpr visitorFunc composeFunc leafVal e3)
+  | UpdateExpr(e1,e2,e3)             -> __Compose (e1 :: e2 :: e3 :: [])
+  | MethodCall(rcv,_,aparams)        -> __Compose (rcv :: aparams)
   | SequenceExpr(exs)                
-  | SetExpr(exs)                     -> match exs with
-                                        | [] -> leafVal
-                                        | fs :: rest -> rest |> List.fold (fun acc e -> composeFunc (composeFunc acc (visitorFunc e)) (DescendExpr visitorFunc composeFunc leafVal e)) (visitorFunc fs)
+  | SetExpr(exs)                     -> __Compose exs
               
 let rec DescendExpr2 visitorFunc expr acc = 
   let newAcc = acc |> visitorFunc expr
+  let __Pipe elist = elist |> List.fold (fun a e -> a |> DescendExpr2 visitorFunc e) newAcc
   match expr with
   | IntLiteral(_)
   | BoolLiteral(_)                   
@@ -90,13 +98,14 @@ let rec DescendExpr2 visitorFunc expr acc =
   | Dot(e, _)
   | ForallExpr(_,e)
   | UnaryExpr(_,e)           
-  | SeqLength(e)                     -> newAcc |> DescendExpr2 visitorFunc e
+  | SeqLength(e)                     -> __Pipe (e :: [])
   | SelectExpr(e1, e2)
-  | BinaryExpr(_,_,e1,e2)            -> newAcc |> DescendExpr2 visitorFunc e1 |> DescendExpr2 visitorFunc e2
+  | BinaryExpr(_,_,e1,e2)            -> __Pipe (e1 :: e2 :: [])
   | IteExpr(e1,e2,e3)
-  | UpdateExpr(e1,e2,e3)             -> newAcc |> DescendExpr2 visitorFunc e1 |> DescendExpr2 visitorFunc e2 |> DescendExpr2 visitorFunc e3
+  | UpdateExpr(e1,e2,e3)             -> __Pipe (e1 :: e2 :: e3 :: [])
+  | MethodCall(rcv,_,aparams)        -> __Pipe (rcv :: aparams)
   | SequenceExpr(exs)                
-  | SetExpr(exs)                     -> exs |> List.fold (fun a e -> a |> DescendExpr2 visitorFunc e) newAcc              
+  | SetExpr(exs)                     -> __Pipe exs
 
 let PrintGenSym name =
   sprintf "gensym%s" name
@@ -269,16 +278,22 @@ let FilterMembers prog filter =
         | Component(Class(_,_,members),_,_) -> List.concat [acc ; members |> filter |> List.choose (fun m -> Some(comp, m))]            
         | _ -> acc) []
 
+let GetAbstractFields comp = 
+  match comp with 
+  | Component(Class(_,_,members), _, _) -> FilterFieldMembers members
+  | _ -> failwithf "internal error: invalid component: %O" comp
+    
+let GetConcreteFields comp = 
+  match comp with 
+  | Component(_, Model(_,_,cVars,_,_), _) -> cVars
+  | _ -> failwithf "internal error: invalid component: %O" comp
+     
 //  =================================
 /// Returns all fields of a component
 //  =================================
 let GetAllFields comp = 
-  match comp with
-  | Component(Class(_,_,members), Model(_,_,cVars,_,_), _) ->
-      let aVars = FilterFieldMembers members
-      List.concat [aVars ; cVars]
-  | _ -> []
-
+  List.concat [GetAbstractFields comp; GetConcreteFields comp]
+  
 //  ===========================================================
 /// Returns a map (Type |--> Set<Var>) where all 
 /// the given fields are grouped by their type
@@ -374,6 +389,14 @@ let GetVarName var =
   | Var(name,_) -> name
 
 //  ==================================
+/// Returns component name
+//  ==================================
+let GetComponentName comp = 
+  match comp with
+  | Component(Class(name,_,_),_,_) -> name
+  | _ -> failwithf "invalid component %O" comp
+
+//  ==================================
 /// Returns all members of a component
 //  ==================================
 let GetMembers comp =
@@ -433,13 +456,24 @@ let GetFrameFields comp =
 
 ////////////////////////
 
-let AddPrecondition prog comp m e =
-  match prog, comp, m with
-  | Program(clist), Component(Class(cname, ctypeParams, members), model, code), Method(mn, sgn, pre, post, cstr) ->
-      let newMthd = Method(mn, sgn, BinaryAnd pre e, post, cstr)
-      let newCls = Class(cname, ctypeParams, Utils.ListReplace m newMthd members)
+let AddReplaceMethod prog comp newMthd oldMethod =
+  match prog, comp with
+  | Program(clist), Component(Class(cname, ctypeParams, members), model, code) ->
+      let newMembers = 
+        match oldMethod with
+        | None -> members @ [newMthd]
+        | Some(m) -> Utils.ListReplace m newMthd members
+      let newCls = Class(cname, ctypeParams, newMembers)
       let newComp = Component(newCls, model, code)
       let newProg = Program(Utils.ListReplace comp newComp clist)
+      newProg, newComp
+  | _ -> failwithf "Invalid component: %O" comp
+
+let AddPrecondition prog comp m e =
+  match m with
+  | Method(mn, sgn, pre, post, cstr) ->
+      let newMthd = Method(mn, sgn, BinaryAnd pre e, post, cstr)
+      let newProg, newComp = AddReplaceMethod prog comp newMthd (Some(m))
       newProg, newComp, newMthd
   | _ -> failwithf "Not a method: %O" m
 
@@ -495,6 +529,10 @@ let rec __EvalSym resolverFunc ctx expr =
   | SetExpr(elist) -> 
       let eset' = elist |> List.fold (fun acc e -> Set.add (__EvalSym resolverFunc ctx e) acc) Set.empty
       SetExpr(Set.toList eset')
+  | MethodCall(rcv,name,aparams) ->
+      let rcv' = __EvalSym resolverFunc ctx rcv
+      let aparams' = aparams |> List.fold (fun acc e -> __EvalSym resolverFunc ctx e :: acc) [] |> List.rev
+      MethodCall(rcv', name, aparams')
   | SelectExpr(lst, idx) ->
       let lst', idx' = __EvalSym resolverFunc ctx lst, __EvalSym resolverFunc ctx idx 
       match lst', idx' with
@@ -702,7 +740,8 @@ let rec Desugar expr =
   | SelectExpr(_) 
   | SeqLength(_)           
   | UpdateExpr(_)     
-  | SetExpr(_)     
+  | SetExpr(_)
+  | MethodCall(_)     
   | SequenceExpr(_)        -> expr 
   // forall v :: v in {a1 a2 ... an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
   // forall v :: v in [a1 a2 ... an] ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
@@ -768,5 +807,6 @@ let ChangeThisReceiver receiver expr =
     | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__ChangeThis locals e1, __ChangeThis locals e2, __ChangeThis locals e3) 
     | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map (__ChangeThis locals))
     | SetExpr(exs)                     -> SetExpr(exs |> List.map (__ChangeThis locals))
+    | MethodCall(rcv,name,aparams)     -> MethodCall(__ChangeThis locals rcv, name, aparams |> List.map (__ChangeThis locals))
   (* --- function body starts here --- *)
   __ChangeThis Set.empty expr

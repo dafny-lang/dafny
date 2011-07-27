@@ -159,17 +159,22 @@ let PrintVarAssignments heapInst indent =
   let idt = Indent indent
   heapInst.assignments |> List.fold (fun acc ((o,f),e) ->
                                       let fldName = PrintVarName f
-                                      let value = PrintExpr 0 e
-                                      acc + (sprintf "%s%s.%s := %s;" idt o.name fldName value) + newline
+                                      let exprStr = 
+                                        if fldName = "" then
+                                          sprintf "%s;" (PrintExpr 0 e)
+                                        else
+                                          let value = PrintExpr 0 e
+                                          sprintf "%s.%s := %s;" o.name fldName value
+                                      acc + idt + exprStr + newline
                                     ) ""
 
 let PrintReprAssignments prog heapInst indent = 
   let __FollowsFunc o1 o2 = 
     heapInst.assignments |> List.fold (fun acc ((srcObj,fld),value) -> 
                                         acc || (srcObj = o1 && value = ObjLiteral(o2.name))
-                                     ) false
+                                      ) false
   let idt = Indent indent
-  let objs = heapInst.assignments |> List.fold (fun acc ((obj,fld),_) -> acc |> Set.add obj) Set.empty
+  let objs = heapInst.assignments |> List.fold (fun acc ((obj,(Var(fldName,_))),_) -> if fldName = "" then acc else acc |> Set.add obj) Set.empty
                                   |> Set.toList
                                   |> Utils.TopSort __FollowsFunc
                                   |> List.rev
@@ -224,18 +229,30 @@ let rec PrintHeapCreationCode prog sol indent genRepr =
           (__ReprAssignments indent)
   | [] -> ""
 
+let PrintPrePost pfix expr = 
+  SplitIntoConjunts expr |> PrintSep "" (fun e -> pfix + (PrintExpr 0 e) + ";")
+
+let GetPostconditionForMethod m genRepr = 
+  let validExpr = IdLiteral("Valid()");
+  match m with
+  | Method(_,_,_,post,_) ->
+      let postExpr = BinaryAnd validExpr post
+      if genRepr then
+        BinaryAnd (IdLiteral("fresh(Repr - {this})")) postExpr
+      else
+        postExpr
+  | _ -> failwithf "expected a method, got %O" m     
+      
 let GenConstructorCode mthd body genRepr =
   let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
-      let __PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep "" (fun e -> pfix + (PrintExpr 0 e) + ";")
       let preExpr = pre 
-      let postExpr = BinaryAnd validExpr post
+      let postExpr = GetPostconditionForMethod mthd genRepr
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + 
-      (__PrintPrePost (newline + "    requires ") preExpr) + 
-      Utils.Ite genRepr (newline + "    ensures fresh(Repr - {this});") "" +
-      (__PrintPrePost (newline + "    ensures ") postExpr) + 
+      (PrintPrePost (newline + "    requires ") preExpr) + 
+      (PrintPrePost (newline + "    ensures ") postExpr) + 
       newline +
       "  {" + newline + 
       body + 
@@ -249,7 +266,9 @@ let PrintImplCode prog solutions methodsToPrintFunc genRepr =
                                  if Utils.ListContains (comp,mthd) methods  then
                                    let mthdBody = match Map.tryFind (comp,mthd) solutions with
                                                   | Some(sol) -> PrintHeapCreationCode prog sol 4 genRepr
-                                                  | _ -> "    //unable to synthesize" + newline
+                                                  | _ -> 
+                                                      "    //unable to synthesize" +
+                                                      PrintPrePost (newline + "    assume ") (GetPostconditionForMethod mthd genRepr) + newline
                                    (GenConstructorCode mthd mthdBody genRepr) + newline
                                  else
                                    "") genRepr

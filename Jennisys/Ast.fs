@@ -45,7 +45,7 @@ type Expr =
   | SeqLength of Expr
   | SetExpr of Expr list //TODO: maybe this should really be a set instead of a list
   | ForallExpr of VarDecl list * Expr
-
+  | MethodCall of (* receiver *) Expr * (* name *) string * (* actual parameters *) Expr list
 type Const = 
   | IntConst   of int
   | BoolConst  of bool

@@ -84,6 +84,7 @@ let rec IsArgsOnly args expr =
   | SequenceExpr(exprs) | SetExpr(exprs) -> exprs |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
   | SeqLength(e)                         -> IsArgsOnly args e
   | ForallExpr(vars,e)                   -> IsArgsOnly (List.concat [args; vars]) e
+  | MethodCall(rcv,_,aparams)            -> rcv :: aparams |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
 
 let AddUnif indent e v unifMap =
   let idt = Indent indent
@@ -365,11 +366,14 @@ and TryInferConditionals indent prog comp m unifs heapInst =
   with
     ex -> raise ex
 
+let GetAllMethodsToAnalyze prog = 
+  FilterMembers prog FilterConstructorMembers
+
 let GetMethodsToAnalyze prog =
   let mOpt = Options.CONFIG.methodToSynth;
   if mOpt = "*" then
     (* all *)
-    FilterMembers prog FilterConstructorMembers   
+    GetAllMethodsToAnalyze prog
   elif mOpt = "paramsOnly" then
     (* only with parameters *)
     FilterMembers prog FilterConstructorMembersWithParams 
@@ -411,39 +415,121 @@ let rec AnalyzeMethods prog members =
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 
+let GetModularBranch prog comp meth cond hInst = 
+  let rec __AddDirectChildren e acc = 
+    match e with
+    | ObjLiteral(_) when not (e = ThisLiteral || e = NullLiteral) -> acc |> Set.add e
+    | SequenceExpr(elist)
+    | SetExpr(elist) -> elist |> List.fold (fun acc2 e2 -> __AddDirectChildren e2 acc2) acc
+    | _ -> acc
+  let __GetDirectChildren = 
+    let thisRhsExprs = hInst.assignments |> List.choose (function ((obj,_),e) when obj.name = "this" -> Some(e) | _ -> None)
+    thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
+                 |> Set.toList
+  let __IsAbstractField ty var = 
+    let builder = CascadingBuilder<_>(false)
+    let varName = GetVarName var
+    builder {
+      let! comp = FindComponent prog (GetTypeShortName ty)
+      let! fld = GetAbstractFields comp |> List.fold (fun acc v -> if GetVarName v = varName then Some(varName) else acc) None
+      return true
+    }
+  let __GetSpecFor objLitName = 
+    let absFieldAssignments = hInst.assignments |> List.choose (fun ((obj,var),e) ->
+                                                                  if obj.name = objLitName && __IsAbstractField obj.objType var then
+                                                                    Some(var,e)
+                                                                  else
+                                                                    None)
+    absFieldAssignments |> List.fold (fun acc (Var(varName,_),e) -> BinaryAnd acc (BinaryEq (IdLiteral(varName)) e)) TrueLiteral
+  let __GetArgsUsed expr = 
+    let args = GetMethodArgs meth
+    let argSet = DescendExpr2 (fun e acc ->
+                                 match e with
+                                 | VarLiteral(vname) ->
+                                     match args |> List.tryFind (function Var(name,_) when vname = name -> true | _ -> false) with
+                                     | Some(var) -> acc |> Set.add var
+                                     | None -> acc
+                                 | _ -> acc
+                               ) expr Set.empty
+    argSet |> Set.toList
+  let rec __GetDelegateMethods objs acc = 
+    match objs with
+    | ObjLiteral(name) as obj :: rest ->
+        let mName = sprintf "_init_%s_%s" (GetMethodFullName comp meth |> String.map (fun c -> if c = '.' then '_' else c)) name
+        let pre = TrueLiteral
+        let post = __GetSpecFor name
+        let ins = __GetArgsUsed (BinaryAnd pre post)
+        let sgn = Sig(ins, [])
+        let m = Method(mName, sgn, pre, post, true)
+        __GetDelegateMethods rest (acc |> Map.add obj m)
+    | _ :: rest -> failwith "internal error: expected to see only ObjLiterals"
+    | [] -> acc
+  let __FindObj objName = 
+    try 
+      hInst.assignments |> List.find (fun ((obj,_),_) -> obj.name = objName) |> fst |> fst
+    with
+      | ex -> failwithf "obj %s not found for method %s" objName (GetMethodFullName comp meth)
+  (* --- function body starts here --- *)
+  let directChildren = __GetDirectChildren
+  let delegateMethods = __GetDelegateMethods directChildren Map.empty
+  let initChildrenExprList = delegateMethods |> Map.toList
+                                             |> List.map (fun (receiver, mthd) -> 
+                                                            let key = __FindObj (PrintExpr 0 receiver), Var("", None)
+                                                            let args = GetMethodArgs mthd |> List.map (fun (Var(name,_)) -> VarLiteral(name))
+                                                            let e = MethodCall(receiver, GetMethodName mthd, args)
+                                                            (key, e)
+                                                         )
+  let newAssgns = hInst.assignments |> List.filter (fun ((obj,_),_) -> if obj.name = "this" then true else false)
+  let newProg = delegateMethods |> Map.fold (fun acc receiver mthd ->
+                                               let obj = __FindObj (PrintExpr 0 receiver)
+                                               let comp = FindComponent acc (GetTypeShortName obj.objType) |> Utils.ExtractOption
+                                               AddReplaceMethod acc comp mthd None |> fst
+                                            ) prog
+  newProg, { hInst with assignments = initChildrenExprList @ newAssgns }
+
 let GetModularSol prog sol = 
-  
-  sol
+  let comp = fst (fst sol)
+  let meth = snd (fst sol)
+  let rec __xxx prog lst = 
+    match lst with
+    | (cond, hInst) :: rest -> 
+        let newProg, newhInst = GetModularBranch prog comp meth cond hInst
+        let newProg, newRest = __xxx newProg rest
+        newProg, ((cond, newhInst) :: newRest)
+    | [] -> prog, []
+  let newProg, newSolutions = __xxx prog (snd sol)
+  let newComp = FindComponent newProg (GetComponentName comp) |> Utils.ExtractOption
+  newProg, ((newComp, meth), newSolutions)
 
 let Modularize prog solutions = 
-  let rec __Modularize sols acc = 
+  let rec __Modularize prog sols acc = 
     match sols with
     | sol :: rest -> 
-        let newSol = GetModularSol prog sol
+        let (newProg, newSol) = GetModularSol prog sol
         let newAcc = acc |> Map.add (fst newSol) (snd newSol)
-        __Modularize rest newAcc 
-    | [] -> acc
+        __Modularize newProg rest newAcc 
+    | [] -> (prog, acc)
   (* --- function body starts here --- *) 
-  __Modularize (Map.toList solutions) Map.empty 
+  __Modularize prog (Map.toList solutions) Map.empty 
 
 let Analyze prog filename =
   /// Prints given solutions to a file
-  let __PrintSolution outFileName solutions = 
+  let __PrintSolution prog outFileName solutions = 
     use file = System.IO.File.CreateText(outFileName)
     file.AutoFlush <- true  
-    let synthCode = PrintImplCode prog solutions GetMethodsToAnalyze Options.CONFIG.genRepr
+    let synthCode = PrintImplCode prog solutions GetAllMethodsToAnalyze Options.CONFIG.genRepr
     fprintfn file "%s" synthCode
   (* --- function body starts here --- *)
   let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
   let progName = System.IO.Path.GetFileNameWithoutExtension(filename)
   let outFlatSolFileName = dafnySynthFileNameTemplate.Replace("###", progName)
   Logger.InfoLine "Printing synthesized code"
-  __PrintSolution outFlatSolFileName solutions
+  __PrintSolution prog outFlatSolFileName solutions
   // try to modularize
-  let modularSolutions = Modularize prog solutions
+  let newProg, modularSolutions = Modularize prog solutions
   let outModSolFileName = dafnyModularSynthFileNameTemplate.Replace("###", progName)
   Logger.InfoLine "Printing modularized code"
-  __PrintSolution outModSolFileName modularSolutions
+  __PrintSolution newProg outModSolFileName modularSolutions
   ()
 
 //let AnalyzeComponent_rustan c =
