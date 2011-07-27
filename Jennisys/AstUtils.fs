@@ -78,7 +78,25 @@ let rec DescendExpr visitorFunc composeFunc leafVal expr =
                                         | [] -> leafVal
                                         | fs :: rest -> rest |> List.fold (fun acc e -> composeFunc (composeFunc acc (visitorFunc e)) (DescendExpr visitorFunc composeFunc leafVal e)) (visitorFunc fs)
               
-
+let rec DescendExpr2 visitorFunc expr acc = 
+  let newAcc = acc |> visitorFunc expr
+  match expr with
+  | IntLiteral(_)
+  | BoolLiteral(_)                   
+  | Star      
+  | VarLiteral(_) 
+  | ObjLiteral(_)                      
+  | IdLiteral(_)                     -> newAcc
+  | Dot(e, _)
+  | ForallExpr(_,e)
+  | UnaryExpr(_,e)           
+  | SeqLength(e)                     -> newAcc |> DescendExpr2 visitorFunc e
+  | SelectExpr(e1, e2)
+  | BinaryExpr(_,_,e1,e2)            -> newAcc |> DescendExpr2 visitorFunc e1 |> DescendExpr2 visitorFunc e2
+  | IteExpr(e1,e2,e3)
+  | UpdateExpr(e1,e2,e3)             -> newAcc |> DescendExpr2 visitorFunc e1 |> DescendExpr2 visitorFunc e2 |> DescendExpr2 visitorFunc e3
+  | SequenceExpr(exs)                
+  | SetExpr(exs)                     -> exs |> List.fold (fun a e -> a |> DescendExpr2 visitorFunc e) newAcc              
 
 let PrintGenSym name =
   sprintf "gensym%s" name
@@ -686,7 +704,8 @@ let rec Desugar expr =
   | UpdateExpr(_)     
   | SetExpr(_)     
   | SequenceExpr(_)        -> expr 
-  // forall v :: v in {a1, a2, ..., an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
+  // forall v :: v in {a1 a2 ... an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
+  // forall v :: v in [a1 a2 ... an] ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
   | ForallExpr([Var(vn1,ty1)] as v, (BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub) as ee)) when vn1 = vn2 ->
       match rhsCol with 
       | SetExpr(elist)

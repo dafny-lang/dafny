@@ -12,6 +12,7 @@ type Config = {
    help: bool;
    inputFilename: string;
    methodToSynth: string;
+   inferConditionals: bool;
    verifyPartialSolutions: bool;
    verifySolutions: bool;
    checkUnifications: bool;
@@ -51,6 +52,8 @@ let CheckBool value optName =
 let cfgOptions = [
   { optionName = "help";            optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with help                   =      CheckBool v "help"});           descr = "description not available"; }
   { optionName = "method";          optionType = "string"; optionSetter = (fun v (cfg: Config) -> {cfg with methodToSynth          = CheckNonEmpty v "method"});          descr = "description not available"; }
+  { optionName = "inferConds";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with inferConditionals      =      CheckBool v "inferConds"});     descr = "description not available"; }
+  { optionName = "noInferConds";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with inferConditionals      = not (CheckBool v "inferConds")});    descr = "description not available"; }
   { optionName = "verifyParSol";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifyPartialSolutions =      CheckBool v "verifyParSol"});   descr = "description not available"; }
   { optionName = "noVerifyParSol";  optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifyPartialSolutions = not (CheckBool v "verifyParSol")});  descr = "description not available"; }
   { optionName = "verifySol";       optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifySolutions        =      CheckBool v "verifySol"});      descr = "description not available"; }
@@ -87,6 +90,7 @@ let PrintHelpMsg =
 let defaultConfig: Config = {
   help              = false;
   inputFilename     = "";
+  inferConditionals = true;
   methodToSynth     = "*";
   verifyPartialSolutions = true;
   verifySolutions   = true;
