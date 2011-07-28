@@ -293,7 +293,7 @@ let GetConcreteFields comp =
 //  =================================
 let GetAllFields comp = 
   List.concat [GetAbstractFields comp; GetConcreteFields comp]
-  
+    
 //  ===========================================================
 /// Returns a map (Type |--> Set<Var>) where all 
 /// the given fields are grouped by their type

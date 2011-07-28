@@ -233,6 +233,16 @@ let rec ListSet idx v lst =
 let rec MapAddAll map1 map2 = 
   map2 |> Map.fold (fun acc k v -> acc |> Map.add k v) map1
 
+//  =======================================
+/// ensures: |ret| = 1
+/// ensures: (key -> value) in ret
+//  =======================================
+let MapSingleton key value = 
+  Map.empty |> Map.add key value
+
+let MapKeys map = 
+  map |> Map.toList |> List.map (fun (k,v) -> k)
+
 // -------------------------------------------
 // ------------ algorithms -------------------
 // -------------------------------------------

@@ -17,6 +17,7 @@ type Config = {
    verifySolutions: bool;
    checkUnifications: bool;
    genRepr: bool;
+   genMod: bool;
    timeout: int;
    numLoopUnrolls: int;
 }
@@ -62,6 +63,8 @@ let cfgOptions = [
   { optionName = "noCheckUnifs";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with checkUnifications      = not (CheckBool v "noCheckUnifs")});  descr = "description not available"; }
   { optionName = "genRepr";         optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genRepr                =      CheckBool v "genRepr"});        descr = "description not available"; }
   { optionName = "noGenRepr";       optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genRepr                = not (CheckBool v "noGenRepr")});     descr = "description not available"; }
+  { optionName = "genMod";          optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genMod                 =      CheckBool v "genMod"});         descr = "description not available"; }
+  { optionName = "noGenMod";        optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genMod                 = not (CheckBool v "noGenMod")});      descr = "description not available"; }
   { optionName = "timeout";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with timeout                =      CheckInt v "timeout"});         descr = "description not available"; }
   { optionName = "unrolls";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with numLoopUnrolls         =      CheckInt v "unrolls"});         descr = "description not available"; }
 ]
@@ -96,6 +99,7 @@ let defaultConfig: Config = {
   verifySolutions   = true;
   checkUnifications = false;
   genRepr           = false;
+  genMod            = false;
   timeout           = 0;
   numLoopUnrolls    = 2;
 }

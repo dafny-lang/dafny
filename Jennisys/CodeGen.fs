@@ -140,7 +140,8 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr =
         // generate the Valid function
         (sprintf "%s" (PrintValidFunctionCode comp prog genRepr)) + newline +
         // call the method printer function on all methods of this component
-        (compMethods |> List.fold (fun acc m -> acc + (methodPrinterFunc comp m)) "") +
+        (methodPrinterFunc comp) +
+        //(compMethods |> List.fold (fun acc m -> acc + (methodPrinterFunc comp m)) "") +
         // the end of the class
         "}" + newline + newline
       | _ -> assert false; "") ""
@@ -260,15 +261,19 @@ let GenConstructorCode mthd body genRepr =
   | _ -> ""
 
 // solutions: (comp, constructor) |--> condition * heapInst
-let PrintImplCode prog solutions methodsToPrintFunc genRepr =
-  let methods = methodsToPrintFunc prog
-  PrintDafnyCodeSkeleton prog (fun comp mthd ->
-                                 if Utils.ListContains (comp,mthd) methods  then
-                                   let mthdBody = match Map.tryFind (comp,mthd) solutions with
-                                                  | Some(sol) -> PrintHeapCreationCode prog sol 4 genRepr
-                                                  | _ -> 
-                                                      "    //unable to synthesize" +
-                                                      PrintPrePost (newline + "    assume ") (GetPostconditionForMethod mthd genRepr) + newline
-                                   (GenConstructorCode mthd mthdBody genRepr) + newline
-                                 else
-                                   "") genRepr
+let PrintImplCode prog solutions genRepr =
+  PrintDafnyCodeSkeleton prog (fun comp ->
+                                 let cname = GetComponentName comp
+                                 solutions |> Map.fold (fun acc (c,m) sol -> 
+                                                          if (GetComponentName c) = cname then
+                                                            let mthdBody = 
+                                                              match sol with
+                                                              | [] -> 
+                                                                  "    //unable to synthesize" +
+                                                                  PrintPrePost (newline + "    assume ") (GetPostconditionForMethod m genRepr) + newline
+                                                              | _ -> 
+                                                                  PrintHeapCreationCode prog sol 4 genRepr
+                                                            acc + newline + (GenConstructorCode m mthdBody genRepr) + newline
+                                  
+                                                          else
+                                                            acc) "") genRepr

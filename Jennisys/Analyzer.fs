@@ -13,7 +13,22 @@ open Utils
 
 open Microsoft.Boogie
 
-                  
+let MergeSolutions sol1 sol2 = 
+  let rec __Merge sol1map sol2lst res =
+    match sol2lst with
+    | ((c2,m2), lst2) :: rest -> 
+        match sol1map |> Map.tryFindKey (fun (c1,m1) lst1 -> GetComponentName c1 = GetComponentName c2 && GetMethodName m1 = GetMethodName m2) with
+        | Some(c1,m1) -> 
+            let lst1 = sol1map |> Map.find(c1,m1)
+            let newRes = res |> Map.add (c1,m1) (lst1 @ lst2)
+            __Merge sol1map rest newRes
+        | None -> 
+            let newRes = res |> Map.add (c2,m2) lst2
+            __Merge sol1map rest newRes
+    | [] -> res
+  (* --- function body starts here --- *)
+  __Merge sol1 (sol2 |> Map.toList) sol1 
+                   
 let Rename suffix vars =
   vars |> List.map (function Var(nm,tp) -> nm, Var(nm + suffix, tp))
 
@@ -59,13 +74,17 @@ let GenMethodAnalysisCode comp m assertion =
   "    assert " + (PrintExpr 0 assertion) + ";" + newline + 
   "  }" + newline
              
-let MethodAnalysisPrinter onlyForThisCompMethod assertion comp mthd = 
-  match onlyForThisCompMethod with
-  | (c,m) when c = comp && m = mthd -> 
+let rec MethodAnalysisPrinter onlyForThese assertion comp = 
+  let cname = GetComponentName comp
+  match onlyForThese with
+  | (c,m) :: rest when GetComponentName c = cname -> 
     match m with 
-    | Method(methodName, sign, pre, post, true) -> (GenMethodAnalysisCode comp m assertion) + newline
+    | Method(methodName, sign, pre, post, true) -> 
+        (GenMethodAnalysisCode c m assertion) + newline +
+        (MethodAnalysisPrinter rest assertion comp)
     | _ -> ""
-  | _ -> ""
+  | _ :: rest -> MethodAnalysisPrinter rest assertion comp
+  | [] -> ""
 
 let rec IsArgsOnly args expr = 
   match expr with                                                
@@ -194,7 +213,7 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
                           | Var(_, Some(SetType(_))) when not (idx = -1) -> BinaryIn e lhs
                           | _                                            -> BinaryEq lhs e 
       // check if the assertion follows and if so update the env
-      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,mthd) assertionExpr) false
+      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,mthd] assertionExpr) false
       Logger.Debug (idt + "    - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
       let ok = CheckDafnyProgram code ("unif_" + (GetMethodFullName comp mthd))
       if ok then
@@ -244,10 +263,10 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
 //  ====================================================================================
 /// Returns whether the code synthesized for the given method can be verified with Dafny
 //  ====================================================================================
-let VerifySolution prog comp mthd sol genRepr =
+let VerifySolution prog solutions genRepr =
   // print the solution to file and try to verify it with Dafny
-  let solutions = Map.empty |> Map.add (comp,mthd) sol
-  let code = PrintImplCode prog solutions (fun p -> [comp,mthd]) genRepr
+  //let prog = Program(solutions |> Utils.MapKeys |> Map.ofList |> Utils.MapKeys)
+  let code = PrintImplCode prog solutions genRepr
   CheckDafnyProgram code dafnyVerifySuffix
 
 let rec DiscoverAliasing exprList heapInst = 
@@ -262,160 +281,9 @@ let rec DiscoverAliasing exprList heapInst =
       BinaryAnd eqExpr (DiscoverAliasing rest heapInst)
   | [] -> TrueLiteral
 
-//  ============================================================================
-/// Attempts to synthesize the initialization code for the given constructor "m"
-///
-/// Returns a (heap,env,ctx) tuple
-//  ============================================================================                           
-let rec AnalyzeConstructor indent prog comp m =
-  let idt = Indent indent
-  let methodName = GetMethodName m
-  let pre,post = GetMethodPrePost m
-  // generate Dafny code for analysis first
-  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter (comp,m) FalseLiteral) false
-  Logger.InfoLine (idt + "[*] Analyzing constructor")
-  Logger.InfoLine (idt + "------------------------------------------")
-  Logger.InfoLine (PrintMethodSignFull (indent + 4) m)
-  Logger.InfoLine (idt + "------------------------------------------")
-  Logger.Info     (idt + "    - searching for an instance      ...")
-  let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
-  if models.Count = 0 then
-    // no models means that the "assert false" was verified, which means that the spec is inconsistent
-    Logger.WarnLine (idt + " !!! SPEC IS INCONSISTENT !!!")
-    []
-  else 
-    if models.Count > 1 then 
-      Logger.WarnLine " FAILED "
-      failwith "internal error (more than one model for a single constructor analysis)"
-    Logger.InfoLine " OK "
-    let model = models.[0]
-    let hModel = ReadFieldValuesFromModel model prog comp m
-    let heapInst = ResolveModel hModel
-    let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
-    let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
-    let sol = [TrueLiteral, heapInst]
-    if Options.CONFIG.verifySolutions then
-      Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
-      let verified = VerifySolution prog comp m sol Options.CONFIG.genRepr
-      Logger.Info (idt + "    ")
-      if verified then
-        Logger.InfoLine "~~~ VERIFIED ~~~"
-        sol
-      else 
-        Logger.InfoLine "!!! NOT VERIFIED !!!"
-        if Options.CONFIG.inferConditionals then
-          Logger.InfoLine (idt + "    Strengthening the pre-condition")
-          TryInferConditionals (indent + 4) prog comp m unifs heapInst
-        else
-          sol      
-    else
-      [TrueLiteral, heapInst]
-and TryInferConditionals indent prog comp m unifs heapInst = 
-  let idt = Indent indent
-  let wrongSol = [TrueLiteral, heapInst]
-  let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
-  // get expressions to evaluate:
-  //   - add post (and pre?) conditions                                     
-  //   - go through all objects on the heap and assert their invariants  
-  let pre,post = GetMethodPrePost m
-  let prepostExpr = post //TODO: do we need the "pre" here as well?
-  let heapObjs = heapInst2.assignments |> List.fold (fun acc ((o,_),_) -> acc |> Set.add o) Set.empty
-  let expr = heapObjs |> Set.fold (fun acc o -> 
-                                     let receiverOpt = GetObjRefExpr o.name heapInst2
-                                     let receiver = Utils.ExtractOption receiverOpt
-                                     let objComp = FindComponent prog (GetTypeShortName o.objType) |> Utils.ExtractOption
-                                     let objInvs = GetInvariantsAsList objComp
-                                     let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
-                                     objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
-                                  ) prepostExpr
-  // now evaluate and see what's left
-  let newCond = Eval heapInst2 false expr
-  try
-    if newCond = TrueLiteral then
-      Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
-      wrongSol
-    else
-      let candCond = 
-        if newCond = FalseLiteral then
-          // it must be because there is some aliasing going on between method arguments, 
-          // so we should try that as a candidate pre-condition
-          let tmp = DiscoverAliasing (GetMethodArgs m |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst2
-          if tmp = TrueLiteral then failwith ("post-condition evaluated to false and no aliasing was discovered")
-          tmp
-        else 
-          newCond
-      Logger.InfoLine (sprintf "%s    - candidate pre-condition: %s" idt (PrintExpr 0 candCond))
-      let p2,c2,m2 = AddPrecondition prog comp m candCond
-      Logger.Info (idt + "    - verifying partial solution ... ")
-      let sol = [candCond, heapInst2]
-      let verified = 
-        if Options.CONFIG.verifyPartialSolutions then
-          VerifySolution p2 c2 m2 sol Options.CONFIG.genRepr
-        else 
-          true
-      if verified then
-        if Options.CONFIG.verifyPartialSolutions then
-          Logger.InfoLine "VERIFIED"
-        else 
-          Logger.InfoLine "SKIPPED"
-        let p3,c3,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
-        sol.[0] :: AnalyzeConstructor (indent + 2) p3 c3 m3
-      else 
-        Logger.InfoLine "NOT VERIFIED"
-        wrongSol                     
-  with
-    ex -> raise ex
+// ------------------------------- Modularization stuff ---------------------------------
 
-let GetAllMethodsToAnalyze prog = 
-  FilterMembers prog FilterConstructorMembers
-
-let GetMethodsToAnalyze prog =
-  let mOpt = Options.CONFIG.methodToSynth;
-  if mOpt = "*" then
-    (* all *)
-    GetAllMethodsToAnalyze prog
-  elif mOpt = "paramsOnly" then
-    (* only with parameters *)
-    FilterMembers prog FilterConstructorMembersWithParams 
-  else
-    let allMethods,neg = 
-      if mOpt.StartsWith("~") then
-        mOpt.Substring(1), true
-      else
-        mOpt, false
-    (* exactly one *)
-    let methods = allMethods.Split([|','|])
-    let lst = methods |> Array.fold (fun acc m -> 
-                                       let compName = m.Substring(0, m.LastIndexOf("."))
-                                       let methName = m.Substring(m.LastIndexOf(".") + 1)
-                                       let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
-                                       let mthd = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
-                                       (c,mthd) :: acc
-                                    ) []
-    if neg then
-      FilterMembers prog FilterConstructorMembers |> List.filter (fun e -> not (Utils.ListContains e lst))
-    else
-      lst
-  
-
-// ============================================================================
-/// Goes through a given list of methods of the given program and attempts to 
-/// synthesize code for each one of them.
-///
-/// Returns a map from (component * method) |--> Expr * HeapInstance
-// ============================================================================
-let rec AnalyzeMethods prog members = 
-  match members with
-  | (comp,m) :: rest -> 
-      match m with
-      | Method(_,_,_,_,true) -> 
-          let solOpt = AnalyzeConstructor 2 prog comp m
-          Logger.InfoLine ""
-          AnalyzeMethods prog rest |> Map.add (comp,m) solOpt
-      | _ -> AnalyzeMethods prog rest
-  | [] -> Map.empty
-
-let GetModularBranch prog comp meth cond hInst = 
+let GetModularBranch prog comp meth hInst = 
   let rec __AddDirectChildren e acc = 
     match e with
     | ObjLiteral(_) when not (e = ThisLiteral || e = NullLiteral) -> acc |> Set.add e
@@ -480,44 +348,231 @@ let GetModularBranch prog comp meth cond hInst =
                                                             (key, e)
                                                          )
   let newAssgns = hInst.assignments |> List.filter (fun ((obj,_),_) -> if obj.name = "this" then true else false)
-  let newProg = delegateMethods |> Map.fold (fun acc receiver mthd ->
-                                               let obj = __FindObj (PrintExpr 0 receiver)
-                                               let comp = FindComponent acc (GetTypeShortName obj.objType) |> Utils.ExtractOption
-                                               AddReplaceMethod acc comp mthd None |> fst
-                                            ) prog
-  newProg, { hInst with assignments = initChildrenExprList @ newAssgns }
+  let newProg, newComp, newMethodsLst = delegateMethods |> Map.fold (fun acc receiver newMthd ->
+                                                                       let obj = __FindObj (PrintExpr 0 receiver)
+                                                                       match acc with
+                                                                       | accProg, accComp, accmList ->
+                                                                           let oldComp = FindComponent accProg (GetTypeShortName obj.objType) |> Utils.ExtractOption
+                                                                           let prog', mcomp' = AddReplaceMethod accProg oldComp newMthd None
+                                                                           let mList' = (mcomp', newMthd) :: accmList
+                                                                           let comp' = if accComp = oldComp then mcomp' else accComp
+                                                                           prog', comp', mList'
+                                                                    ) (prog, comp, [])
+  newProg, newComp, newMethodsLst, { hInst with assignments = initChildrenExprList @ newAssgns }
 
-let GetModularSol prog sol = 
-  let comp = fst (fst sol)
-  let meth = snd (fst sol)
-  let rec __xxx prog lst = 
-    match lst with
-    | (cond, hInst) :: rest -> 
-        let newProg, newhInst = GetModularBranch prog comp meth cond hInst
-        let newProg, newRest = __xxx newProg rest
-        newProg, ((cond, newhInst) :: newRest)
-    | [] -> prog, []
-  let newProg, newSolutions = __xxx prog (snd sol)
-  let newComp = FindComponent newProg (GetComponentName comp) |> Utils.ExtractOption
-  newProg, ((newComp, meth), newSolutions)
+//let GetModularSol prog sol = 
+//  let comp = fst (fst sol)
+//  let meth = snd (fst sol)
+//  let rec __xxx prog lst = 
+//    match lst with
+//    | (cond, hInst) :: rest -> 
+//        let newProg, newComp, newMthdLst, newhInst = GetModularBranch prog comp meth hInst
+//        let newProg, newRest = __xxx newProg rest
+//        newProg, ((cond, newhInst) :: newRest)
+//    | [] -> prog, []
+//  let newProg, newSolutions = __xxx prog (snd sol)
+//  let newComp = FindComponent newProg (GetComponentName comp) |> Utils.ExtractOption
+//  newProg, ((newComp, meth), newSolutions)
+//
+//let Modularize prog solutions = 
+//  let rec __Modularize prog sols acc = 
+//    match sols with
+//    | sol :: rest -> 
+//        let (newProg, newSol) = GetModularSol prog sol
+//        let newAcc = acc |> Map.add (fst newSol) (snd newSol)
+//        __Modularize newProg rest newAcc 
+//    | [] -> (prog, acc)
+//  (* --- function body starts here --- *) 
+//  __Modularize prog (Map.toList solutions) Map.empty 
 
-let Modularize prog solutions = 
-  let rec __Modularize prog sols acc = 
-    match sols with
-    | sol :: rest -> 
-        let (newProg, newSol) = GetModularSol prog sol
-        let newAcc = acc |> Map.add (fst newSol) (snd newSol)
-        __Modularize newProg rest newAcc 
-    | [] -> (prog, acc)
-  (* --- function body starts here --- *) 
-  __Modularize prog (Map.toList solutions) Map.empty 
+let MakeModular indent prog comp m cond heapInst = 
+  let idt = Indent indent
+  if Options.CONFIG.genMod then   
+    Logger.InfoLine (idt + "    - delegating to method calls     ...")
+    let newProg, newComp, newMthdLst, newHeapInst = GetModularBranch prog comp m heapInst
+    let msol = Utils.MapSingleton (newComp,m) [cond, newHeapInst]
+    newMthdLst |> List.fold (fun acc (c,m) -> 
+                                  acc |> MergeSolutions (Utils.MapSingleton (c,m) []) //(AnalyzeConstructor (indent+2) newProg c m)
+                              ) msol     
+  else 
+    Utils.MapSingleton (comp,m) [cond, heapInst]
+
+// --------------------------------------------------------------------------------------
+
+//  ============================================================================
+/// Attempts to synthesize the initialization code for the given constructor "m"
+///
+/// Returns a (heap,env,ctx) tuple
+//  ============================================================================                           
+let rec AnalyzeConstructor indent prog comp m =
+  let idt = Indent indent
+  let methodName = GetMethodName m
+  let pre,post = GetMethodPrePost m
+  // generate Dafny code for analysis first
+  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,m] FalseLiteral) false
+  Logger.InfoLine (idt + "[*] Analyzing constructor")
+  Logger.InfoLine (idt + "------------------------------------------")
+  Logger.InfoLine (PrintMethodSignFull (indent + 4) m)
+  Logger.InfoLine (idt + "------------------------------------------")
+  Logger.Info     (idt + "    - searching for an instance      ...")
+  let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
+  if models.Count = 0 then
+    // no models means that the "assert false" was verified, which means that the spec is inconsistent
+    Logger.WarnLine (idt + " !!! SPEC IS INCONSISTENT !!!")
+    Map.empty
+  else 
+    if models.Count > 1 then 
+      Logger.WarnLine " FAILED "
+      failwith "internal error (more than one model for a single constructor analysis)"
+    Logger.InfoLine " OK "
+    let model = models.[0]
+    let hModel = ReadFieldValuesFromModel model prog comp m
+    let heapInst = ResolveModel hModel
+    let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
+    let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
+        
+    // split into method calls
+    let sol = MakeModular indent prog comp m TrueLiteral heapInst
+
+    if Options.CONFIG.verifySolutions then
+      Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
+      let verified = VerifySolution prog sol Options.CONFIG.genRepr
+      Logger.Info (idt + "    ")
+      if verified then
+        Logger.InfoLine "~~~ VERIFIED ~~~"
+        sol
+      else 
+        Logger.InfoLine "!!! NOT VERIFIED !!!"
+        if Options.CONFIG.inferConditionals then
+          Logger.InfoLine (idt + "    Strengthening the pre-condition")
+          TryInferConditionals (indent + 4) prog comp m unifs heapInst
+        else
+          sol      
+    else
+      sol
+and TryInferConditionals indent prog comp m unifs heapInst = 
+  let idt = Indent indent
+  let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
+  let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
+  // get expressions to evaluate:
+  //   - add post (and pre?) conditions                                     
+  //   - go through all objects on the heap and assert their invariants  
+  let pre,post = GetMethodPrePost m
+  let prepostExpr = post //TODO: do we need the "pre" here as well?
+  let heapObjs = heapInst2.assignments |> List.fold (fun acc ((o,_),_) -> acc |> Set.add o) Set.empty
+  let expr = heapObjs |> Set.fold (fun acc o -> 
+                                     let receiverOpt = GetObjRefExpr o.name heapInst2
+                                     let receiver = Utils.ExtractOption receiverOpt
+                                     let objComp = FindComponent prog (GetTypeShortName o.objType) |> Utils.ExtractOption
+                                     let objInvs = GetInvariantsAsList objComp
+                                     let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
+                                     objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
+                                  ) prepostExpr
+  // now evaluate and see what's left
+  let newCond = Eval heapInst2 false expr
+  try
+    if newCond = TrueLiteral then
+      Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
+      wrongSol
+    else
+      let candCond = 
+        if newCond = FalseLiteral then
+          // it must be because there is some aliasing going on between method arguments, 
+          // so we should try that as a candidate pre-condition
+          let tmp = DiscoverAliasing (GetMethodArgs m |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst2
+          if tmp = TrueLiteral then failwith ("post-condition evaluated to false and no aliasing was discovered")
+          tmp
+        else 
+          newCond
+      Logger.InfoLine (sprintf "%s    - candidate pre-condition: %s" idt (PrintExpr 0 candCond))
+      let p2,c2,m2 = AddPrecondition prog comp m candCond
+      let sol = MakeModular indent p2 c2 m2 candCond heapInst2
+      Logger.Info (idt + "    - verifying partial solution ... ")
+      let verified = 
+        if Options.CONFIG.verifyPartialSolutions then
+          VerifySolution p2 sol Options.CONFIG.genRepr
+        else 
+          true
+      if verified then
+        if Options.CONFIG.verifyPartialSolutions then
+          Logger.InfoLine "VERIFIED"
+        else 
+          Logger.InfoLine "SKIPPED"
+        let p3,c3,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
+        MergeSolutions sol (AnalyzeConstructor (indent + 2) p3 c3 m3)
+      else 
+        Logger.InfoLine "NOT VERIFIED"
+        wrongSol                     
+  with
+    ex -> raise ex
+  
+let GetMethodsToAnalyze prog =
+  let mOpt = Options.CONFIG.methodToSynth;
+  if mOpt = "*" then
+    (* all *)
+    FilterMembers prog FilterConstructorMembers
+  elif mOpt = "paramsOnly" then
+    (* only with parameters *)
+    FilterMembers prog FilterConstructorMembersWithParams 
+  else
+    let allMethods,neg = 
+      if mOpt.StartsWith("~") then
+        mOpt.Substring(1), true
+      else
+        mOpt, false
+    (* exactly one *)
+    let methods = allMethods.Split([|','|])
+    let lst = methods |> Array.fold (fun acc m -> 
+                                       let idx = m.LastIndexOf(".")
+                                       if idx = -1 || idx = m.Length - 1 then
+                                         raise (InvalidCmdLineArg("Invalid method full name: " + m))
+                                       let compName = m.Substring(0, idx)
+                                       let methName = m.Substring(idx + 1)
+                                       let c = FindComponent prog compName |> Utils.ExtractOptionMsg ("Cannot find component " + compName)
+                                       let mthd = FindMethod c methName |> Utils.ExtractOptionMsg ("Cannot find method " + methName + " in component " + compName)
+                                       (c,mthd) :: acc
+                                    ) []
+    if neg then
+      FilterMembers prog FilterConstructorMembers |> List.filter (fun e -> not (Utils.ListContains e lst))
+    else
+      lst
+  
+
+// ============================================================================
+/// Goes through a given list of methods of the given program and attempts to 
+/// synthesize code for each one of them.
+///
+/// Returns a map from (component * method) |--> Expr * HeapInstance
+// ============================================================================
+let rec AnalyzeMethods prog members = 
+  match members with
+  | (comp,m) :: rest -> 
+      match m with
+      | Method(_,_,_,_,true) -> 
+          let solOpt = AnalyzeConstructor 2 prog comp m
+          Logger.InfoLine ""
+          AnalyzeMethods prog rest |> MergeSolutions solOpt
+      | _ -> AnalyzeMethods prog rest
+  | [] -> Map.empty
 
 let Analyze prog filename =
+  let rec __AddMethodsFromProg methods solutions = 
+    match methods with
+    | (c,m) :: rest -> 
+        let exists = solutions |> Map.tryFindKey (fun (c1,m1) _ -> GetComponentName c = GetComponentName c1 && GetMethodName m = GetMethodName m1)
+        match exists with
+        | Some(_) -> __AddMethodsFromProg rest solutions
+        | None -> __AddMethodsFromProg rest (solutions |> Map.add (c,m) [])
+    | [] -> solutions
   /// Prints given solutions to a file
   let __PrintSolution prog outFileName solutions = 
     use file = System.IO.File.CreateText(outFileName)
     file.AutoFlush <- true  
-    let synthCode = PrintImplCode prog solutions GetAllMethodsToAnalyze Options.CONFIG.genRepr
+    //let prog = Program(solutions |> Utils.MapKeys |> Map.ofList |> Utils.MapKeys)
+    // add all other methods (those for which we don't have synthesized solution) as well
+    let allMethods = FilterMembers prog FilterConstructorMembers
+    let extSolutions = solutions //__AddMethodsFromProg allMethods solutions
+    let synthCode = PrintImplCode prog extSolutions Options.CONFIG.genRepr
     fprintfn file "%s" synthCode
   (* --- function body starts here --- *)
   let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
@@ -525,11 +580,6 @@ let Analyze prog filename =
   let outFlatSolFileName = dafnySynthFileNameTemplate.Replace("###", progName)
   Logger.InfoLine "Printing synthesized code"
   __PrintSolution prog outFlatSolFileName solutions
-  // try to modularize
-  let newProg, modularSolutions = Modularize prog solutions
-  let outModSolFileName = dafnyModularSynthFileNameTemplate.Replace("###", progName)
-  Logger.InfoLine "Printing modularized code"
-  __PrintSolution newProg outModSolFileName modularSolutions
   ()
 
 //let AnalyzeComponent_rustan c =
