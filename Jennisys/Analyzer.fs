@@ -406,8 +406,8 @@ let rec MakeModular indent prog comp m cond heapInst =
     let newProg, newComp, newMthdLst, newHeapInst = GetModularBranch prog comp m heapInst
     let msol = Utils.MapSingleton (newComp,m) [cond, newHeapInst]
     newMthdLst |> List.fold (fun acc (c,m) -> 
-                                  acc |> MergeSolutions (Utils.MapSingleton (c,m) []) 
-                              ) msol     
+                               acc |> MergeSolutions (Utils.MapSingleton (c,m) []) 
+                             ) msol     
   else 
     Utils.MapSingleton (comp,m) [cond, heapInst]
 
@@ -520,12 +520,14 @@ and TryInferConditionals indent prog comp m unifs heapInst =
         else 
           true
       if verified then
-        if Options.CONFIG.verifyPartialSolutions then
-          Logger.InfoLine "VERIFIED"
-        else 
-          Logger.InfoLine "SKIPPED"
+        if Options.CONFIG.verifyPartialSolutions then Logger.InfoLine "VERIFIED" else Logger.InfoLine "SKIPPED"
         let p3,c3,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
-        MergeSolutions sol (AnalyzeConstructor (indent + 2) p3 c3 m3)
+        let fixedSol = sol |> Map.fold (fun acc (cc,mm) v -> 
+                                          if GetMethodName mm = GetMethodName m then
+                                            acc |> Map.add (cc,m) v
+                                          else 
+                                            acc |> Map.add (cc,mm) v) Map.empty
+        MergeSolutions fixedSol (AnalyzeConstructor (indent + 2) p3 c3 m3)
       else 
         Logger.InfoLine "NOT VERIFIED"
         wrongSol                     
