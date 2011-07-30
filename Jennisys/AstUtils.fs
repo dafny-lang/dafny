@@ -480,8 +480,12 @@ let AddPrecondition prog comp m e =
 ////////////////////
 
 exception EvalFailed of string
+exception DomainNotInferred
 
-let DefaultResolver e = e
+let DefaultResolver e fldOpt = 
+  match fldOpt with
+  | None -> e
+  | Some(fldName) -> Dot(e, fldName)
 
 let DefaultFallbackResolver resolverFunc e = 
   match resolverFunc e with
@@ -515,9 +519,11 @@ let rec __EvalSym resolverFunc ctx expr =
         let _,e = ctx |> List.find (fun (v,e) -> GetVarName v = id)
         e
       with 
-      | ex -> resolverFunc expr
-  | IdLiteral(_)   -> resolverFunc expr
-  | Dot(_)         -> resolverFunc expr
+      | ex -> resolverFunc expr None
+  | IdLiteral(_)   -> resolverFunc expr None
+  | Dot(e, str)    -> 
+      let discr = __EvalSym resolverFunc ctx e
+      resolverFunc discr (Some(str))
   | SeqLength(e)   -> 
       let e' = __EvalSym resolverFunc ctx e
       match e' with
@@ -534,7 +540,8 @@ let rec __EvalSym resolverFunc ctx expr =
       let aparams' = aparams |> List.fold (fun acc e -> __EvalSym resolverFunc ctx e :: acc) [] |> List.rev
       MethodCall(rcv', name, aparams')
   | SelectExpr(lst, idx) ->
-      let lst', idx' = __EvalSym resolverFunc ctx lst, __EvalSym resolverFunc ctx idx 
+      let lst' = __EvalSym resolverFunc ctx lst
+      let idx' = __EvalSym resolverFunc ctx idx 
       match lst', idx' with
       | SequenceExpr(elist), IntLiteral(n) -> elist.[n] 
       | _ -> SelectExpr(lst', idx')
@@ -601,6 +608,12 @@ let rec __EvalSym resolverFunc ctx expr =
                  | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) >= (List.length s2))
                  | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) >= (List.length s2))
                  | _ -> recomposed.Force()
+      | ".." ->
+          let e1'' = e1'.Force()
+          let e2'' = e2'.Force()
+          match e1'', e2'' with
+          | IntLiteral(lo), IntLiteral(hi)    -> SequenceExpr([lo .. hi] |> List.map (fun n -> IntLiteral(n)))
+          | _ -> recomposed.Force();
       | "in" -> 
           match e1'.Force(), e2'.Force() with
           | _, SetExpr(s)       
@@ -663,7 +676,9 @@ let rec __EvalSym resolverFunc ctx expr =
           match e1'.Force() with
           | BoolLiteral(false) -> BoolLiteral(true)
           | _ ->
-              match e1'.Force(), e2'.Force() with
+              let e1'' = e1'.Force()
+              let e2'' = e2'.Force()
+              match e1'', e2'' with
               | BoolLiteral(false), _            -> BoolLiteral(true)
               | _, BoolLiteral(true)             -> BoolLiteral(true)
               | BoolLiteral(b1), BoolLiteral(b2) -> BoolLiteral((not b1) || b2)
@@ -692,16 +707,23 @@ let rec __EvalSym resolverFunc ctx expr =
       let rec __ExhaustVar v restV vDomain = 
         match vDomain with
         | vv :: restD -> 
-            let newCtx = (v,vv) :: ctx
-            let e = __EvalSym resolverFunc newCtx (ForallExpr(restV, e))
+            let ctx' = (v,vv) :: ctx
+            let e' = __EvalSym resolverFunc ctx' (ForallExpr(restV, e))
             let erest = __ExhaustVar v restV restD
-            __EvalSym resolverFunc ctx (BinaryAnd e erest)
+            (* __EvalSym resolverFunc ctx' *) 
+            BinaryAnd e' erest
         | [] -> BoolLiteral(true)
-      match vars with
-      | v :: restV -> 
-          let vDom = GetVarDomain resolverFunc ctx v e
-          __ExhaustVar v restV vDom
-      | [] -> __EvalSym resolverFunc ctx e
+      let rec __TraverseVars vars =
+        match vars with
+        | v :: restV -> 
+            try 
+              let vDom = GetVarDomain resolverFunc ctx v e
+              __ExhaustVar v restV vDom
+            with
+              | ex -> ForallExpr([v], __TraverseVars restV) 
+        | [] -> __EvalSym resolverFunc ctx e
+      (* --- function body starts here --- *)
+      __TraverseVars vars
 and GetVarDomain resolverFunc ctx var expr = 
   match expr with 
   | BinaryExpr(_, "==>", lhs, rhs) -> 
@@ -712,14 +734,14 @@ and GetVarDomain resolverFunc ctx var expr =
                                 match __EvalSym resolverFunc ctx rhs with
                                 | SetExpr(elist)
                                 | SequenceExpr(elist) -> elist |> List.append acc
-                                | _ -> failwith "illegal 'in' expression"
+                                | _ -> raise DomainNotInferred
                             | BinaryExpr(_, op, VarLiteral(vn),oth)
                             | BinaryExpr(_, op, oth, VarLiteral(vn)) when GetVarName var = vn && Set.ofList ["<"; "<="; ">"; ">="] |> Set.contains op -> 
-                                failwith "not supported yet"
-                            | _ -> []) []
+                                failwith "Not implemented yet"
+                            | _ -> raise DomainNotInferred) []
   | _ -> 
       Logger.WarnLine ("unknown pattern for a quantified expression; cannot infer domain of quantified variable \"" + (GetVarName var) + "\"")
-      []
+      raise DomainNotInferred
 
 let EvalSym resolverFunc expr = 
   __EvalSym resolverFunc [] expr 

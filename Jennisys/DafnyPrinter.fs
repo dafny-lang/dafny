@@ -24,6 +24,14 @@ let rec PrintExpr ctx expr =
   | Dot(e,id) -> sprintf "%s.%s" (PrintExpr 100 e) id
   | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e) -> sprintf "%s%s" op (PrintExpr 90 e)
+  | BinaryExpr(strength,"in",lhs,BinaryExpr(_,"..",lo,hi)) ->
+      let needParens = strength <= ctx
+      let openParen = if needParens then "(" else ""
+      let closeParen = if needParens then ")" else ""
+      let loStr = PrintExpr strength lo
+      let hiStr = PrintExpr strength hi
+      let lhsStr = PrintExpr strength lhs
+      sprintf "%s%s <= %s && %s <= %s%s" openParen loStr lhsStr lhsStr hiStr closeParen
   | BinaryExpr(strength,op,e0,e1) ->
       let op =
         match op with

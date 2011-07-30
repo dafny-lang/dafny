@@ -125,7 +125,7 @@ let rec GetUnifications indent args heapInst unifs expr =
     let builder = new CascadingBuilder<_>(unifsAcc)
     builder {
       let! argsOnly = IsArgsOnly args e |> Utils.BoolToOption
-      let! v = try Some(Eval heapInst true e |> Expr2Const) with ex -> None
+      let! v = try Some(Eval heapInst (fun _ -> true) e |> Expr2Const) with ex -> None
       return AddUnif indent e v unifsAcc
     }
   (* --- function body starts here --- *)
@@ -273,13 +273,33 @@ let rec DiscoverAliasing exprList heapInst =
   match exprList with
   | e1 :: rest -> 
       let eqExpr = rest |> List.fold (fun acc e -> 
-                                        if Eval heapInst true (BinaryEq e1 e) = TrueLiteral then
+                                        if Eval heapInst (fun _ -> true) (BinaryEq e1 e) = TrueLiteral then
                                           BinaryAnd acc (BinaryEq e1 e)
                                         else
                                           acc
                                      ) TrueLiteral
       BinaryAnd eqExpr (DiscoverAliasing rest heapInst)
   | [] -> TrueLiteral
+
+//  =============================================================================
+/// Returns an expression that combines the post-condition of a given method with
+/// invariants for all objects present on the heap
+//  =============================================================================
+let GetHeapExpr prog mthd heapInst = 
+  // get expressions to evaluate:
+  //   - add post (and pre?) conditions                                     
+  //   - go through all objects on the heap and assert their invariants  
+  let pre,post = GetMethodPrePost mthd
+  let prepostExpr = post //TODO: do we need the "pre" here as well?
+  let heapObjs = heapInst.assignments |> List.fold (fun acc ((o,_),_) -> acc |> Set.add o) Set.empty
+  heapObjs |> Set.fold (fun acc o -> 
+                          let receiverOpt = GetObjRefExpr o.name heapInst
+                          let receiver = Utils.ExtractOption receiverOpt
+                          let objComp = FindComponent prog (GetTypeShortName o.objType) |> Utils.ExtractOption
+                          let objInvs = GetInvariantsAsList objComp
+                          let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
+                          objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
+                      ) prepostExpr
 
 // ------------------------------- Modularization stuff ---------------------------------
 
@@ -294,6 +314,7 @@ let GetModularBranch prog comp meth hInst =
     let thisRhsExprs = hInst.assignments |> List.choose (function ((obj,_),e) when obj.name = "this" -> Some(e) | _ -> None)
     thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
                  |> Set.toList
+  let directChildren = lazy (__GetDirectChildren)
   let __IsAbstractField ty var = 
     let builder = CascadingBuilder<_>(false)
     let varName = GetVarName var
@@ -302,13 +323,32 @@ let GetModularBranch prog comp meth hInst =
       let! fld = GetAbstractFields comp |> List.fold (fun acc v -> if GetVarName v = varName then Some(varName) else acc) None
       return true
     }
-  let __GetSpecFor objLitName = 
-    let absFieldAssignments = hInst.assignments |> List.choose (fun ((obj,var),e) ->
-                                                                  if obj.name = objLitName && __IsAbstractField obj.objType var then
-                                                                    Some(var,e)
-                                                                  else
-                                                                    None)
-    absFieldAssignments |> List.fold (fun acc (Var(varName,_),e) -> BinaryAnd acc (BinaryEq (IdLiteral(varName)) e)) TrueLiteral
+  let __GetAbsFldAssignments objLitName = 
+    hInst.assignments |> List.choose (fun ((obj,var),e) ->
+                                        if obj.name = objLitName && __IsAbstractField obj.objType var then
+                                          Some(var,e)
+                                        else
+                                          None)
+  let rec __ExamineAndFix x e = 
+    match e with
+    | ObjLiteral(id) when not (Utils.ListContains e (directChildren.Force())) -> 
+        let absFlds = __GetAbsFldAssignments id
+        absFlds |> List.fold (fun acc (Var(vname,_),vval) -> BinaryAnd acc (BinaryEq (Dot(x, vname)) vval)) TrueLiteral
+    | SequenceExpr(elist) ->
+        let rec __fff lst acc cnt = 
+          match lst with
+          | fsExpr :: rest -> 
+              let acc = BinaryAnd acc (__ExamineAndFix (SelectExpr(x, IntLiteral(cnt))) fsExpr)
+              __fff rest acc (cnt+1)
+          | [] -> 
+              let lenExpr = BinaryEq (SeqLength(x)) (IntLiteral(cnt)) 
+              BinaryAnd lenExpr acc
+        __fff elist TrueLiteral 0
+    | _ -> BinaryEq x e
+
+  let __GetSpecFor objLitName =
+    let absFieldAssignments = __GetAbsFldAssignments objLitName
+    absFieldAssignments |> List.fold (fun acc (Var(name,_),e) -> BinaryAnd acc (__ExamineAndFix (IdLiteral(name)) e)) TrueLiteral
   let __GetArgsUsed expr = 
     let args = GetMethodArgs meth
     let argSet = DescendExpr2 (fun e acc ->
@@ -323,7 +363,7 @@ let GetModularBranch prog comp meth hInst =
   let rec __GetDelegateMethods objs acc = 
     match objs with
     | ObjLiteral(name) as obj :: rest ->
-        let mName = sprintf "_init_%s_%s" (GetMethodFullName comp meth |> String.map (fun c -> if c = '.' then '_' else c)) name
+        let mName = sprintf "_synth_%s_%s" (GetMethodFullName comp meth |> String.map (fun c -> if c = '.' then '_' else c)) name
         let pre = TrueLiteral
         let post = __GetSpecFor name
         let ins = __GetArgsUsed (BinaryAnd pre post)
@@ -338,8 +378,7 @@ let GetModularBranch prog comp meth hInst =
     with
       | ex -> failwithf "obj %s not found for method %s" objName (GetMethodFullName comp meth)
   (* --- function body starts here --- *)
-  let directChildren = __GetDirectChildren
-  let delegateMethods = __GetDelegateMethods directChildren Map.empty
+  let delegateMethods = __GetDelegateMethods (directChildren.Force()) Map.empty
   let initChildrenExprList = delegateMethods |> Map.toList
                                              |> List.map (fun (receiver, mthd) -> 
                                                             let key = __FindObj (PrintExpr 0 receiver), Var("", None)
@@ -359,6 +398,18 @@ let GetModularBranch prog comp meth hInst =
                                                                            prog', comp', mList'
                                                                     ) (prog, comp, [])
   newProg, newComp, newMethodsLst, { hInst with assignments = initChildrenExprList @ newAssgns }
+
+let rec MakeModular indent prog comp m cond heapInst = 
+  let idt = Indent indent
+  if Options.CONFIG.genMod then   
+    Logger.InfoLine (idt + "    - delegating to method calls     ...")
+    let newProg, newComp, newMthdLst, newHeapInst = GetModularBranch prog comp m heapInst
+    let msol = Utils.MapSingleton (newComp,m) [cond, newHeapInst]
+    newMthdLst |> List.fold (fun acc (c,m) -> 
+                                  acc |> MergeSolutions (Utils.MapSingleton (c,m) []) 
+                              ) msol     
+  else 
+    Utils.MapSingleton (comp,m) [cond, heapInst]
 
 //let GetModularSol prog sol = 
 //  let comp = fst (fst sol)
@@ -384,18 +435,6 @@ let GetModularBranch prog comp meth hInst =
 //    | [] -> (prog, acc)
 //  (* --- function body starts here --- *) 
 //  __Modularize prog (Map.toList solutions) Map.empty 
-
-let MakeModular indent prog comp m cond heapInst = 
-  let idt = Indent indent
-  if Options.CONFIG.genMod then   
-    Logger.InfoLine (idt + "    - delegating to method calls     ...")
-    let newProg, newComp, newMthdLst, newHeapInst = GetModularBranch prog comp m heapInst
-    let msol = Utils.MapSingleton (newComp,m) [cond, newHeapInst]
-    newMthdLst |> List.fold (fun acc (c,m) -> 
-                                  acc |> MergeSolutions (Utils.MapSingleton (c,m) []) //(AnalyzeConstructor (indent+2) newProg c m)
-                              ) msol     
-  else 
-    Utils.MapSingleton (comp,m) [cond, heapInst]
 
 // --------------------------------------------------------------------------------------
 
@@ -454,22 +493,9 @@ and TryInferConditionals indent prog comp m unifs heapInst =
   let idt = Indent indent
   let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
   let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
-  // get expressions to evaluate:
-  //   - add post (and pre?) conditions                                     
-  //   - go through all objects on the heap and assert their invariants  
-  let pre,post = GetMethodPrePost m
-  let prepostExpr = post //TODO: do we need the "pre" here as well?
-  let heapObjs = heapInst2.assignments |> List.fold (fun acc ((o,_),_) -> acc |> Set.add o) Set.empty
-  let expr = heapObjs |> Set.fold (fun acc o -> 
-                                     let receiverOpt = GetObjRefExpr o.name heapInst2
-                                     let receiver = Utils.ExtractOption receiverOpt
-                                     let objComp = FindComponent prog (GetTypeShortName o.objType) |> Utils.ExtractOption
-                                     let objInvs = GetInvariantsAsList objComp
-                                     let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
-                                     objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
-                                  ) prepostExpr
+  let expr = GetHeapExpr prog m heapInst2
   // now evaluate and see what's left
-  let newCond = Eval heapInst2 false expr
+  let newCond = Eval heapInst2 (function VarLiteral(_) -> false | _ -> true) expr
   try
     if newCond = TrueLiteral then
       Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
@@ -505,7 +531,7 @@ and TryInferConditionals indent prog comp m unifs heapInst =
         wrongSol                     
   with
     ex -> raise ex
-  
+      
 let GetMethodsToAnalyze prog =
   let mOpt = Options.CONFIG.methodToSynth;
   if mOpt = "*" then
@@ -545,13 +571,21 @@ let GetMethodsToAnalyze prog =
 /// Returns a map from (component * method) |--> Expr * HeapInstance
 // ============================================================================
 let rec AnalyzeMethods prog members = 
+  let rec __AnalyzeConstructorDeep prog mList = 
+    match mList with
+    | (comp,mthd) :: rest -> 
+        let sol = AnalyzeConstructor 2 prog comp mthd
+        let unsolved = sol |> Map.filter (fun (c,m) lst -> lst = []) |> Utils.MapKeys
+        sol |> MergeSolutions (__AnalyzeConstructorDeep prog (rest@unsolved))
+    | [] -> Map.empty
+  (* --- function body starts here --- *)
   match members with
   | (comp,m) :: rest -> 
       match m with
       | Method(_,_,_,_,true) -> 
-          let solOpt = AnalyzeConstructor 2 prog comp m
+          let sol = __AnalyzeConstructorDeep prog [comp,m]
           Logger.InfoLine ""
-          AnalyzeMethods prog rest |> MergeSolutions solOpt
+          AnalyzeMethods prog rest |> MergeSolutions sol
       | _ -> AnalyzeMethods prog rest
   | [] -> Map.empty
 

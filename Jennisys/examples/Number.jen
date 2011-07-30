@@ -36,6 +36,7 @@ class Number {
 
   constructor Abs(a: int)  
     ensures num in {a (-a)} && num >= 0
+
 }
 
 model Number {

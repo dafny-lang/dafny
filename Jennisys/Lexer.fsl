@@ -39,6 +39,7 @@ rule tokenize = parse
 | "set"          { SETTYPE }
 // Operators
 | "."      { DOT }
+| ".."     { DOTDOT }
 | "+"      { PLUS }
 | "-"      { MINUS }
 | "*"      { STAR }

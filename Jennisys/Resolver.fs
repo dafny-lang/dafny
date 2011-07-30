@@ -81,33 +81,38 @@ let Resolve hModel cst =
 //  ==================================================================
 /// Evaluates a given expression with respect to a given heap instance       
 //  ==================================================================
-let Eval heapInst resolveVars expr = 
-  let rec __EvalResolver expr = 
-    match expr with
-    | VarLiteral(id) when not resolveVars -> expr
-    | ObjLiteral("this") | ObjLiteral("null") -> expr
-    | IdLiteral("this")  | IdLiteral("null") -> failwith "should never happen anymore" //TODO
-    | VarLiteral(id) -> 
-        let argValue = heapInst.methodArgs |> Map.tryFind id |> Utils.ExtractOptionMsg ("cannot find value for method parameter " + id)
-        argValue |> Const2Expr
-    | IdLiteral(id) ->
-        let globalVal = heapInst.globals |> Map.tryFind id
-        match globalVal with
-        | Some(e) -> e
-        | None -> __EvalResolver (Dot(ObjLiteral("this"), id))
-    | Dot(e, str) -> 
-        let discr = __EvalResolver e
-        match discr with
-        | ObjLiteral(objName) -> 
-            let h2 = heapInst.assignments |> List.filter (fun ((o, Var(fldName,_)), v) -> o.name = objName && fldName = str)
-            match h2 with
-            | ((_,_),x) :: [] -> x
-            | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName str))
-            | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" objName str))  // TODO: what if that value doesn't matter for the solution, and that's why it's not present in the model???
-        | _ -> raise (EvalFailed(sprintf "Dot expression discriminator does not resolve to an object literal but %O" discr))
-    | _ -> failwith ("NOT IMPLEMENTED YET: " + (PrintExpr 0 expr))
+let Eval heapInst resolveExprFunc expr = 
+  let rec __EvalResolver expr fldNameOpt = 
+    if not (resolveExprFunc expr) then
+      match fldNameOpt with
+      | None -> expr
+      | Some(n) -> Dot(expr, n)
+    else
+      match fldNameOpt with
+      | None -> 
+          match expr with
+          | ObjLiteral("this") | ObjLiteral("null") -> expr
+          | IdLiteral("this")  | IdLiteral("null") -> failwith "should never happen anymore" //TODO
+          | VarLiteral(id) -> 
+              let argValue = heapInst.methodArgs |> Map.tryFind id |> Utils.ExtractOptionMsg ("cannot find value for method parameter " + id)
+              argValue |> Const2Expr
+          | IdLiteral(id) ->
+              let globalVal = heapInst.globals |> Map.tryFind id
+              match globalVal with
+              | Some(e) -> e
+              | None -> __EvalResolver ThisLiteral (Some(id))      
+          | _ -> raise (EvalFailed(sprintf "I'm not supposed to resolve %O" expr))
+      | Some(fldName) -> 
+          match expr with
+          | ObjLiteral(objName) -> 
+              let h2 = heapInst.assignments |> List.filter (fun ((o, Var(varName,_)), v) -> o.name = objName && varName = fldName)
+              match h2 with
+              | ((_,_),x) :: [] -> x
+              | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName fldName))
+              | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" objName fldName))  // TODO: what if that value doesn't matter for the solution, and that's why it's not present in the model???
+          | _ -> Dot(expr, fldName)
   (* --- function body starts here --- *)
-  EvalSym (fun e -> __EvalResolver e) expr
+  EvalSym __EvalResolver expr
 
 //  =====================================================================
 /// Takes an unresolved model of the heap (HeapModel), resolves all 

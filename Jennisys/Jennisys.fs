@@ -18,26 +18,30 @@ open TypeChecker
 open Analyzer
 
 let readAndProcess (filename: string) =
-    printfn "// Jennisys, Copyright (c) 2011, Microsoft."
-    // lex
-    let f = if filename = null then Console.In else new StreamReader(filename) :> TextReader
-    let lexbuf = LexBuffer<char>.FromTextReader(f)
-    lexbuf.EndPos <- { pos_bol = 0;
-                       pos_fname=if filename = null then "stdin" else filename; 
-                       pos_cnum=0;
-                       pos_lnum=1 }
-//    try
+  printfn "// Jennisys, Copyright (c) 2011, Microsoft."
+  // lex
+  let f = if filename = null then Console.In else new StreamReader(filename) :> TextReader
+  let lexbuf = LexBuffer<char>.FromTextReader(f)
+  lexbuf.EndPos <- { pos_bol = 0;
+                     pos_fname=if filename = null then "stdin" else filename; 
+                     pos_cnum=0;
+                     pos_lnum=1 }
+  
+  let sprog = 
+    try 
       // parse
-    let sprog = Parser.start Lexer.tokenize lexbuf
-    match TypeCheck sprog with
-    | None -> ()  // errors have already been reported
-    | Some(prog) ->
-        Analyze prog filename
-//    with
-//      | ex ->
-//          let pos = lexbuf.EndPos
-//          printfn "%s(%d,%d): %s" pos.FileName pos.Line pos.Column ex.Message
-//          printfn "%O" ex.StackTrace
+      Parser.start Lexer.tokenize lexbuf
+    with
+    | ex ->
+        let pos = lexbuf.EndPos
+        printfn "  [PARSE ERROR]: %s(%d,%d): %s" pos.FileName pos.Line pos.Column ex.Message
+        Environment.Exit(1)
+        failwith ""
+  match TypeCheck sprog with
+  | None -> ()  // errors have already been reported
+  | Some(prog) ->
+      Analyze prog filename
+  
 
 try 
   let args = Environment.GetCommandLineArgs()
