@@ -24,6 +24,15 @@ method ManyIndices<T>(a: array3<T>, b: array<T>, m: int, n: int)
   var z := b[m, n, m, n];  // error
 }
 
+method SB(b: array2<int>, s: int) returns (x: int, y: int)
+  requires b != null;
+{
+  while
+  {
+    case b[x,y] == s =>
+  }
+}
+
 // -------- name resolution
 
 class Global {

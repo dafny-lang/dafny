@@ -3715,6 +3715,9 @@ namespace Microsoft.Dafny {
         return UsesSpecFeatures(e.Seq) ||
                (e.E0 != null && UsesSpecFeatures(e.E0)) ||
                (e.E1 != null && UsesSpecFeatures(e.E1));
+      } else if (expr is MultiSelectExpr) {
+        MultiSelectExpr e = (MultiSelectExpr)expr;
+        return UsesSpecFeatures(e.Array) || e.Indices.Exists(ee => UsesSpecFeatures(ee));
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         return UsesSpecFeatures(e.Seq) ||
