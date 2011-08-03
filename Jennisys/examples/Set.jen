@@ -11,6 +11,7 @@ class Set {
     ensures elems = {p + q}
 
   constructor Double(p: int, q: int)
+    requires p != q
     ensures elems = {p q}
 
   constructor Triple(p: int, q: int, r: int)
@@ -32,16 +33,20 @@ model Set {
 class SetNode {
   var elems: set[int]
 
-  constructor Init(t: int)
-    ensures elems = {t}
+  constructor Init(x: int)
+    ensures elems = {x}
 
-  constructor Double(p: int, q: int)
-    requires p != q
-    ensures elems = {p q}
+  constructor Double(x: int, y: int)
+    requires x != y
+    ensures elems = {x y}
 
-  constructor Triple(p: int, q: int, r: int)
-    requires p != q && q != r && r != p
-    ensures elems = {p q r}
+  constructor Double2(x: int, y: int)
+    requires x > y
+    ensures elems = {x y}
+
+  constructor Triple(x: int, y: int, z: int)
+    requires x != y && y != z && z != x
+    ensures elems = {x y z}
 }
 
 model SetNode {

@@ -454,6 +454,15 @@ let GetFrameFields comp =
                           v
                        )
 
+//  ==============================================
+/// Checks whether two given methods are the same.
+///
+/// Methods are the same if their names are the 
+/// same and their components have the same name.
+//  ==============================================
+let CheckSameMethods (c1,m1) (c2,m2) = 
+  GetComponentName c1 = GetComponentName c2 && GetMethodName m1 = GetMethodName m2
+
 ////////////////////////
 
 let AddReplaceMethod prog comp newMthd oldMethod =
@@ -750,60 +759,66 @@ let EvalSym resolverFunc expr =
 /// Desugars a given expression so that all list constructors 
 /// are expanded into explicit assignments to indexed elements
 //  ==========================================================
-let rec Desugar expr = 
-  match expr with
-  | IntLiteral(_)          
-  | BoolLiteral(_)  
-  | IdLiteral(_)   
-  | VarLiteral(_)        
-  | ObjLiteral(_)
-  | Star                   
-  | Dot(_)                 
-  | SelectExpr(_) 
-  | SeqLength(_)           
-  | UpdateExpr(_)     
-  | SetExpr(_)
-  | MethodCall(_)     
-  | SequenceExpr(_)        -> expr 
-  // forall v :: v in {a1 a2 ... an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
-  // forall v :: v in [a1 a2 ... an] ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
-  | ForallExpr([Var(vn1,ty1)] as v, (BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub) as ee)) when vn1 = vn2 ->
-      match rhsCol with 
-      | SetExpr(elist)
-      | SequenceExpr(elist) -> elist |> List.fold (fun acc e -> BinaryAnd acc (Desugar (Substitute (VarLiteral(vn2)) e sub))) TrueLiteral
-      | _ -> ForallExpr(v, Desugar ee)
-  | ForallExpr(v,e)        -> ForallExpr(v, Desugar e)
-  | UnaryExpr(op,e)        -> UnaryExpr(op, Desugar e)
-  | IteExpr(c,e1,e2)       -> IteExpr(c, Desugar e1, Desugar e2)
-  // lst = [a1 a2 ... an] ~~~> lst = [a1 a2 ... an] && lst[0] = a1 && lst[1] = a2 && ... && lst[n-1] = an
-  | BinaryExpr(p,op,e1,e2) -> 
-      let be = BinaryExpr(p, op, Desugar e1, Desugar e2)
-      try
-        match op with
-        | "=" ->           
-            match EvalSym DefaultResolver e1, EvalSym DefaultResolver e2 with
-            | SequenceExpr(l1), SequenceExpr(l2) -> 
-                let rec __fff lst1 lst2 cnt = 
-                  match lst1, lst2 with
-                  | fs1 :: rest1, fs2 :: rest2 -> BinaryEq l1.[cnt] l2.[cnt] :: __fff rest1 rest2 (cnt+1)
-                  | [], [] -> []
-                  | _ -> failwith "Lists are of different sizes"
-                __fff l1 l2 0 |> List.fold (fun acc e -> BinaryAnd acc e) be
-            | e, SequenceExpr(elist)
-            | SequenceExpr(elist), e -> 
-                let rec __fff lst cnt = 
-                  match lst with
-                  | fs :: rest -> BinaryEq (SelectExpr(e, IntLiteral(cnt))) elist.[cnt] :: __fff rest (cnt+1)
-                  | [] -> []
-                __fff elist 0 |> List.fold (fun acc e -> BinaryAnd acc e) be
-            | _ -> be
-        | _ -> be
-      with
-        | EvalFailed(_) as ex -> (* printfn "%O" (ex.StackTrace);  *) be
+let MyDesugar expr removeOriginal =
+  let rec __Desugar expr = 
+    match expr with
+    | IntLiteral(_)          
+    | BoolLiteral(_)  
+    | IdLiteral(_)   
+    | VarLiteral(_)        
+    | ObjLiteral(_)
+    | Star                   
+    | Dot(_)                 
+    | SelectExpr(_) 
+    | SeqLength(_)           
+    | UpdateExpr(_)     
+    | SetExpr(_)
+    | MethodCall(_)     
+    | SequenceExpr(_)        -> expr 
+    // forall v :: v in {a1 a2 ... an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
+    // forall v :: v in [a1 a2 ... an] ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
+    | ForallExpr([Var(vn1,ty1)] as v, (BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub) as ee)) when vn1 = vn2 ->
+        match rhsCol with 
+        | SetExpr(elist)
+        | SequenceExpr(elist) -> elist |> List.fold (fun acc e -> BinaryAnd acc (__Desugar (Substitute (VarLiteral(vn2)) e sub))) TrueLiteral
+        | _ -> ForallExpr(v, __Desugar ee)
+    | ForallExpr(v,e)        -> ForallExpr(v, __Desugar e)
+    | UnaryExpr(op,e)        -> UnaryExpr(op, __Desugar e)
+    | IteExpr(c,e1,e2)       -> IteExpr(c, __Desugar e1, __Desugar e2)
+    // lst = [a1 a2 ... an] ~~~> lst = [a1 a2 ... an] && lst[0] = a1 && lst[1] = a2 && ... && lst[n-1] = an && |lst| = n
+    | BinaryExpr(p,op,e1,e2) -> 
+        let be = BinaryExpr(p, op, __Desugar e1, __Desugar e2)
+        let fs = if removeOriginal then TrueLiteral else be
+        try
+          match op with
+          | "=" ->           
+              match EvalSym DefaultResolver e1, EvalSym DefaultResolver e2 with
+              | SequenceExpr(l1), SequenceExpr(l2) -> 
+                  let rec __fff lst1 lst2 cnt = 
+                    match lst1, lst2 with
+                    | fs1 :: rest1, fs2 :: rest2 -> BinaryEq l1.[cnt] l2.[cnt] :: __fff rest1 rest2 (cnt+1)
+                    | [], [] -> []
+                    | _ -> failwith "Lists are of different sizes"
+                  __fff l1 l2 0 |> List.fold (fun acc e -> BinaryAnd acc e) fs
+              | e, SequenceExpr(elist)
+              | SequenceExpr(elist), e -> 
+                  let rec __fff lst cnt = 
+                    match lst with
+                    | fs :: rest -> BinaryEq (SelectExpr(e, IntLiteral(cnt))) elist.[cnt] :: __fff rest (cnt+1)
+                    | [] -> [BinaryEq (SeqLength(e)) (IntLiteral(cnt))] 
+                  __fff elist 0 |> List.fold (fun acc e -> BinaryAnd acc e) fs
+              | _ -> be
+          | _ -> be
+        with
+          | EvalFailed(_) as ex -> (* printfn "%O" (ex.StackTrace);  *) be
+  __Desugar expr
+
+let Desugar expr = MyDesugar expr false
+let DesugarRemove expr = MyDesugar expr true
 
 let rec DesugarLst exprLst = 
   match exprLst with
-  | expr :: rest -> Desugar expr :: DesugarLst rest
+  | expr :: rest -> Desugar expr :: DesugarLst rest 
   | [] -> []
 
 let ChangeThisReceiver receiver expr = 

@@ -129,18 +129,18 @@ let PrintDecl d =
   | Code(id,typeParams) ->
       (PrintTopLevelDeclHeader "code" id typeParams) + "}" + newline
 
-let PrintMethodSignFull indent m = 
+let PrintMethodSignFull indent comp m = 
   let idt = Indent indent
   let __PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
+  let compName = GetComponentName comp
   match m with
   | Method(methodName, sgn, pre, post, isConstr) ->  
       let mc = if isConstr then "constructor" else "method"
       let preStr = (__PrintPrePost (idt + "  requires ") pre)
       let postStr = (__PrintPrePost (idt + "  ensures ") post)
-      idt + mc + " " + methodName + (PrintSig sgn) + newline +
+      idt + mc + " " + compName + "." + methodName + (PrintSig sgn) + newline +
       preStr + (if preStr = "" then "" else newline) +
-      postStr
-      
+      postStr      
   | _ -> failwithf "not a method: %O" m
 
 let Print prog =

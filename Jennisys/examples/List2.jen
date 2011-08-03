@@ -42,6 +42,12 @@ class IntNode {
 
   constructor SingletonZero()
     ensures list = [0]
+
+  constructor Init(x: int) 
+    ensures list = [x]
+
+  constructor Double(x: int, y: int)
+    ensures list = [x y]
 }
 
 model IntNode {

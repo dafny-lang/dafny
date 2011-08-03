@@ -13,14 +13,19 @@ open Utils
 
 open Microsoft.Boogie
 
+//  =======================================================================
+/// Merges two solution maps so that if there are multiple entries for a
+/// single (comp,method) pair it concatenates them (corresponds to multiple 
+/// branches).
+//  =======================================================================
 let MergeSolutions sol1 sol2 = 
   let rec __Merge sol1map sol2lst res =
     match sol2lst with
     | ((c2,m2), lst2) :: rest -> 
-        match sol1map |> Map.tryFindKey (fun (c1,m1) lst1 -> GetComponentName c1 = GetComponentName c2 && GetMethodName m1 = GetMethodName m2) with
+        match sol1map |> Map.tryFindKey (fun (c1,m1) lst1 -> CheckSameMethods (c1,m1) (c2,m2)) with
         | Some(c1,m1) -> 
             let lst1 = sol1map |> Map.find(c1,m1)
-            let newRes = res |> Map.add (c1,m1) (lst1 @ lst2)
+            let newRes = res |> Map.add (c1,m1) (lst1@lst2)
             __Merge sol1map rest newRes
         | None -> 
             let newRes = res |> Map.add (c2,m2) lst2
@@ -303,6 +308,8 @@ let GetHeapExpr prog mthd heapInst =
 
 // ------------------------------- Modularization stuff ---------------------------------
 
+exception CannotUnify
+
 let GetModularBranch prog comp meth hInst = 
   let rec __AddDirectChildren e acc = 
     match e with
@@ -310,11 +317,14 @@ let GetModularBranch prog comp meth hInst =
     | SequenceExpr(elist)
     | SetExpr(elist) -> elist |> List.fold (fun acc2 e2 -> __AddDirectChildren e2 acc2) acc
     | _ -> acc
+
   let __GetDirectChildren = 
     let thisRhsExprs = hInst.assignments |> List.choose (function ((obj,_),e) when obj.name = "this" -> Some(e) | _ -> None)
     thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
                  |> Set.toList
+
   let directChildren = lazy (__GetDirectChildren)
+
   let __IsAbstractField ty var = 
     let builder = CascadingBuilder<_>(false)
     let varName = GetVarName var
@@ -323,6 +333,16 @@ let GetModularBranch prog comp meth hInst =
       let! fld = GetAbstractFields comp |> List.fold (fun acc v -> if GetVarName v = varName then Some(varName) else acc) None
       return true
     }
+
+  let __FindObj objName = 
+    try 
+      hInst.assignments |> List.find (fun ((obj,_),_) -> obj.name = objName) |> fst |> fst
+    with
+      | ex -> failwithf "obj %s not found for method %s" objName (GetMethodFullName comp meth)
+
+  let __GetObjLitType objLitName = 
+    (__FindObj objLitName).objType
+
   let __GetAbsFldAssignments objLitName = 
     hInst.assignments |> List.choose (fun ((obj,var),e) ->
                                         if obj.name = objLitName && __IsAbstractField obj.objType var then
@@ -349,6 +369,7 @@ let GetModularBranch prog comp meth hInst =
   let __GetSpecFor objLitName =
     let absFieldAssignments = __GetAbsFldAssignments objLitName
     absFieldAssignments |> List.fold (fun acc (Var(name,_),e) -> BinaryAnd acc (__ExamineAndFix (IdLiteral(name)) e)) TrueLiteral
+  
   let __GetArgsUsed expr = 
     let args = GetMethodArgs meth
     let argSet = DescendExpr2 (fun e acc ->
@@ -360,34 +381,145 @@ let GetModularBranch prog comp meth hInst =
                                  | _ -> acc
                                ) expr Set.empty
     argSet |> Set.toList
+
+  let rec __UnifyImplies lhs rhs unifs = 
+    let ___AddOrNone unifs name e = Some(unifs |> Utils.MapAddNew name e)
+
+    if lhs = FalseLiteral || rhs = TrueLiteral then
+      Some(unifs)
+    else 
+      try 
+        match lhs, rhs with
+        | VarLiteral(vname), rhs -> ___AddOrNone unifs vname rhs
+        | IntLiteral(nL), IntLiteral(nR) when nL = nR -> 
+            Some(unifs)
+        | BoolLiteral(bL), BoolLiteral(bR) when bL = bR -> 
+            Some(unifs)
+        | SetExpr(elistL),  SetExpr(elistR) 
+        | SequenceExpr(elistL), SequenceExpr(elistR) when List.length elistL = List.length elistR ->
+            let unifs2 = List.fold2 (fun acc elL elR -> match __UnifyImplies elL elR acc with
+                                                        | Some(u) -> u
+                                                        | None -> raise CannotUnify) unifs elistL elistR
+            Some(unifs2)
+        | _ when lhs = rhs ->
+            Some(unifs)
+        | _ ->
+
+            let rec ___f2 target candidate unifs = 
+              match target, candidate with
+              | BinaryExpr(_, opT, lhsT, rhsT), BinaryExpr(_, opC, lhsC, rhsC) when opT = opC ->
+                  let builder = new CascadingBuilder<_>(None)
+                  builder {
+                    let! unifsLhs = __UnifyImplies lhsC lhsT unifs
+                    let! unifsRhs = __UnifyImplies rhsC rhsT unifsLhs
+                    return Some(unifsRhs)
+                  }
+              | _ -> None                     
+
+            let rec ___f1 rhsLst lhsLst unifs = 
+              match rhsLst, lhsLst with
+              | targetExpr :: rhsRest, candExpr :: lhsRest -> 
+                  // trying to find a unification for "targetExpr"
+                  let uOpt = match ___f2 targetExpr candExpr unifs with
+                             // found -> just return
+                             | Some(unifs2) -> Some(unifs2)
+                             // not found -> keep looking in the rest of the candidate expressions
+                             | None -> ___f1 [targetExpr] lhsRest unifs
+                  match uOpt with
+                  // found -> try find for the rest of the target expressions
+                  | Some(unifs2) -> ___f1 rhsRest lhsLst unifs2
+                  // not found -> fail
+                  | None -> None
+              | targetExpr :: _, [] ->
+                  // no more candidates for unification for this targetExpr -> fail
+                  None
+              | [], _ ->
+                  // we've found unifications for all target expressions -> return the current unifications map
+                  Some(unifs)
+                  
+//        let candExprs = lhsLst |> List.choose (function BinaryExpr(_,cop,cl,cr) as e when cop = top -> Some(e) | _ -> None)
+//                      candExprs |> List.fold (fun acc candExpr -> 
+//                                                match candExpr with
+//                                                | BinaryExpr(_,_,cl,cr) -> 
+
+//            let rec ___f1 lhsLst rhsLst unifs = 
+//              match rhsLst with
+//              | targetExpr :: rhsRest -> 
+//                  match targetExpr with
+//                  | BinaryExpr(_,"=",l,SequenceExpr(_)) -> 
+//                      // this one has already been desugared so it's ok to skip it
+//                      ___f1 lhsLst rhsRest unifs
+//                  | BinaryExpr(_,top,tl,tr) ->
+//                      let candExprs = lhsLst |> List.choose (function BinaryExpr(_,cop,cl,cr) when cop = top -> Some(cr) | _ -> None)
+//                      match candExprs with
+//                      | [] -> None
+//                      | cand :: _ -> 
+//                          let unifs2Opt = __UnifyImplies cand tr unifs
+//                          match unifs2Opt with
+//                          | Some(unifs2) -> ___f1 lhsLst rhsRest unifs2
+//                          | None -> None
+//                  | _ -> None          
+//              | [] -> Some(unifs)  
+            //-----------
+            let lhsConjs = lhs |> DesugarRemove |> SplitIntoConjunts
+            let rhsConjs = rhs |> DesugarRemove |> SplitIntoConjunts
+            ___f1 rhsConjs lhsConjs unifs
+      with
+      | KeyAlreadyExists
+      | CannotUnify -> None
+
+  let __TryUnify targetMthd candMethod = 
+    let targetPre,targetPost = GetMethodPrePost targetMthd
+    let candPre,candPost = GetMethodPrePost candMethod
+    let builder = new CascadingBuilder<_>(None)
+    builder {
+      let! unifs1 = __UnifyImplies targetPre candPre Map.empty
+      let! unifs2 = __UnifyImplies candPost targetPost unifs1
+      return Some(unifs2)
+    }
+
+  let rec __TryFindAMatch targetMthd candidateMethods = 
+    match candidateMethods with
+    | candMthd :: rest ->
+        match __TryUnify targetMthd candMthd with
+        | Some(unifs) -> Some(candMthd,unifs)
+        | None -> __TryFindAMatch targetMthd rest
+    | [] -> None
+  
+  let __TryFindExisting comp targetMthd = 
+    Logger.TraceLine "Trying"
+    match __TryFindAMatch targetMthd (GetMembers comp |> FilterMethodMembers) with
+    | Some(m,unifs) -> m,unifs
+    | None -> 
+        let argsExprs = GetMethodArgs targetMthd |> List.fold (fun acc (Var(name,_)) -> acc |> Map.add name (VarLiteral(name))) Map.empty
+        targetMthd,argsExprs
+
   let rec __GetDelegateMethods objs acc = 
     match objs with
     | ObjLiteral(name) as obj :: rest ->
         let mName = sprintf "_synth_%s_%s" (GetMethodFullName comp meth |> String.map (fun c -> if c = '.' then '_' else c)) name
-        let pre = TrueLiteral
+        let pre,_ = GetMethodPrePost meth //TrueLiteral
         let post = __GetSpecFor name
         let ins = __GetArgsUsed (BinaryAnd pre post)
         let sgn = Sig(ins, [])
         let m = Method(mName, sgn, pre, post, true)
-        __GetDelegateMethods rest (acc |> Map.add obj m)
+        let c = FindComponent prog (name |> __GetObjLitType |> GetTypeShortName) |> Utils.ExtractOption
+        let m',unifs = __TryFindExisting c m
+        let args = GetMethodArgs m' |> List.map (fun (Var(name,_)) -> Map.find name unifs)
+        __GetDelegateMethods rest (acc |> Map.add obj (c,m',args))
     | _ :: rest -> failwith "internal error: expected to see only ObjLiterals"
     | [] -> acc
-  let __FindObj objName = 
-    try 
-      hInst.assignments |> List.find (fun ((obj,_),_) -> obj.name = objName) |> fst |> fst
-    with
-      | ex -> failwithf "obj %s not found for method %s" objName (GetMethodFullName comp meth)
+
   (* --- function body starts here --- *)
   let delegateMethods = __GetDelegateMethods (directChildren.Force()) Map.empty
   let initChildrenExprList = delegateMethods |> Map.toList
-                                             |> List.map (fun (receiver, mthd) -> 
+                                             |> List.map (fun (receiver, (cmp,mthd,args)) -> 
                                                             let key = __FindObj (PrintExpr 0 receiver), Var("", None)
-                                                            let args = GetMethodArgs mthd |> List.map (fun (Var(name,_)) -> VarLiteral(name))
                                                             let e = MethodCall(receiver, GetMethodName mthd, args)
                                                             (key, e)
                                                          )
   let newAssgns = hInst.assignments |> List.filter (fun ((obj,_),_) -> if obj.name = "this" then true else false)
-  let newProg, newComp, newMethodsLst = delegateMethods |> Map.fold (fun acc receiver newMthd ->
+  let newProg, newComp, newMethodsLst = delegateMethods |> Map.fold (fun acc receiver (c,newMthd,_) ->
                                                                        let obj = __FindObj (PrintExpr 0 receiver)
                                                                        match acc with
                                                                        | accProg, accComp, accmList ->
@@ -444,6 +576,9 @@ let rec MakeModular indent prog comp m cond heapInst =
 /// Returns a (heap,env,ctx) tuple
 //  ============================================================================                           
 let rec AnalyzeConstructor indent prog comp m =
+  // TODO: first check maybe there's already a method with this spec
+  
+
   let idt = Indent indent
   let methodName = GetMethodName m
   let pre,post = GetMethodPrePost m
@@ -451,7 +586,7 @@ let rec AnalyzeConstructor indent prog comp m =
   let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,m] FalseLiteral) false
   Logger.InfoLine (idt + "[*] Analyzing constructor")
   Logger.InfoLine (idt + "------------------------------------------")
-  Logger.InfoLine (PrintMethodSignFull (indent + 4) m)
+  Logger.InfoLine (PrintMethodSignFull (indent + 4) comp m)
   Logger.InfoLine (idt + "------------------------------------------")
   Logger.Info     (idt + "    - searching for an instance      ...")
   let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
@@ -572,34 +707,46 @@ let GetMethodsToAnalyze prog =
 ///
 /// Returns a map from (component * method) |--> Expr * HeapInstance
 // ============================================================================
-let rec AnalyzeMethods prog members = 
-  let rec __AnalyzeConstructorDeep prog mList = 
+let rec AnalyzeMethods prog members solutionsSoFar = 
+  let __IsAlreadySolved c m solutionMap = 
+      let existingKey = solutionMap |> Map.tryFindKey (fun (cc,mm) v -> CheckSameMethods (c,m) (cc,mm) && not (v = [])) 
+      match existingKey with
+      | Some(_) -> true
+      | None -> false
+
+  let rec __AnalyzeConstructorDeep prog mList solutionsSoFar = 
     match mList with
     | (comp,mthd) :: rest -> 
-        let sol = AnalyzeConstructor 2 prog comp mthd
-        let unsolved = sol |> Map.filter (fun (c,m) lst -> lst = []) |> Utils.MapKeys
-        sol |> MergeSolutions (__AnalyzeConstructorDeep prog (rest@unsolved))
-    | [] -> Map.empty
+        if not (__IsAlreadySolved comp mthd solutionsSoFar) then
+          let sol = AnalyzeConstructor 2 prog comp mthd
+          let unsolved = sol |> Map.filter (fun (c,m) lst -> lst = [] && not(__IsAlreadySolved c m solutionsSoFar)) |> Utils.MapKeys
+          let newSols = solutionsSoFar |> MergeSolutions sol
+          __AnalyzeConstructorDeep prog (rest@unsolved) newSols
+        else
+          __AnalyzeConstructorDeep prog rest solutionsSoFar
+    | [] -> solutionsSoFar
+  
   (* --- function body starts here --- *)
   match members with
   | (comp,m) :: rest -> 
       match m with
       | Method(_,_,_,_,true) -> 
-          let sol = __AnalyzeConstructorDeep prog [comp,m]
+          let sol = __AnalyzeConstructorDeep prog [comp,m] solutionsSoFar
           Logger.InfoLine ""
-          AnalyzeMethods prog rest |> MergeSolutions sol
-      | _ -> AnalyzeMethods prog rest
-  | [] -> Map.empty
+          AnalyzeMethods prog rest sol
+      | _ -> AnalyzeMethods prog rest solutionsSoFar
+  | [] -> solutionsSoFar
 
 let Analyze prog filename =
   let rec __AddMethodsFromProg methods solutions = 
     match methods with
     | (c,m) :: rest -> 
-        let exists = solutions |> Map.tryFindKey (fun (c1,m1) _ -> GetComponentName c = GetComponentName c1 && GetMethodName m = GetMethodName m1)
+        let exists = solutions |> Map.tryFindKey (fun (c1,m1) _ -> CheckSameMethods (c,m) (c1,m1))
         match exists with
         | Some(_) -> __AddMethodsFromProg rest solutions
         | None -> __AddMethodsFromProg rest (solutions |> Map.add (c,m) [])
     | [] -> solutions
+
   /// Prints given solutions to a file
   let __PrintSolution prog outFileName solutions = 
     use file = System.IO.File.CreateText(outFileName)
@@ -610,8 +757,9 @@ let Analyze prog filename =
     let extSolutions = solutions //__AddMethodsFromProg allMethods solutions
     let synthCode = PrintImplCode prog extSolutions Options.CONFIG.genRepr
     fprintfn file "%s" synthCode
+
   (* --- function body starts here --- *)
-  let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog)
+  let solutions = AnalyzeMethods prog (GetMethodsToAnalyze prog) Map.empty
   let progName = System.IO.Path.GetFileNameWithoutExtension(filename)
   let outFlatSolFileName = dafnySynthFileNameTemplate.Replace("###", progName)
   Logger.InfoLine "Printing synthesized code"

@@ -221,6 +221,23 @@ let rec ListSet idx v lst =
                     fs :: ListSet (idx-1) v rest
   | [] -> failwith "index out of range"
 
+exception KeyAlreadyExists
+
+//  =======================================
+/// requires (key |--> value) !in map
+///
+/// ensures ret = map ++ (key |--> value)
+//  =======================================
+let MapAddNew key value map = 
+  match Map.tryFind key map with
+  | Some(existingValue) -> 
+      if existingValue = value then
+        map
+      else 
+        raise KeyAlreadyExists
+  | None -> 
+      map |> Map.add key value
+
 //  =======================================
 /// ensures: forall k,v :: 
 ///            if k,v in map2 then
