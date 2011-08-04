@@ -61,6 +61,31 @@ let Substitute e1 e2 expr =
              else
                None) expr
 
+//  ================================================
+/// Distributes the negation operator over 
+/// arithmetic relations
+//  ================================================
+let rec DistributeNegation expr = 
+  let __Neg op = 
+    match op with
+    | "="  -> Some("!=")
+    | "!=" -> Some("=")
+    | "<"  -> Some(">")
+    | ">"  -> Some("<")
+    | ">=" -> Some("<=")
+    | "<=" -> Some(">=")
+    | _ -> None
+  Rewrite (fun e -> 
+    match e with
+    | UnaryExpr("!", sub) ->
+        match sub with 
+        | BinaryExpr(p,op,lhs,rhs) -> 
+            match __Neg op with
+            | Some(op') -> Some(BinaryExpr(p, op', DistributeNegation lhs, DistributeNegation rhs))
+            | None -> None
+        | _ -> None
+    | _ -> None) expr
+
 let rec DescendExpr visitorFunc composeFunc leafVal expr = 
   let __Compose elist =
     match elist with
@@ -814,7 +839,7 @@ let MyDesugar expr removeOriginal =
   __Desugar expr
 
 let Desugar expr = MyDesugar expr false
-let DesugarRemove expr = MyDesugar expr true
+let DesugarAndRemove expr = MyDesugar expr true
 
 let rec DesugarLst exprLst = 
   match exprLst with

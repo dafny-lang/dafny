@@ -30,14 +30,15 @@ class Set {
 
   method Double(p: int, q: int)
     modifies this;
+    requires p != q;
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures elems == {p, q};
   {
-    var gensym67 := new SetNode;
-    gensym67.Double(p, q);
+    var gensym72 := new SetNode;
+    gensym72.Double(p, q);
     this.elems := {p, q};
-    this.root := gensym67;
+    this.root := gensym72;
     // repr stuff
     this.Repr := {this} + this.root.Repr;
   }
@@ -126,21 +127,6 @@ class SetNode {
   }
 
 
-  method Init(x: int)
-    modifies this;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures elems == {x};
-  {
-    this.data := x;
-    this.elems := {x};
-    this.left := null;
-    this.right := null;
-    // repr stuff
-    this.Repr := {this};
-  }
-
-
   method Triple(x: int, y: int, z: int)
     modifies this;
     requires x != y;
@@ -151,64 +137,19 @@ class SetNode {
     ensures elems == {x, y, z};
   {
     if (x < y && z > y) {
-      var gensym80 := new SetNode;
-      var gensym81 := new SetNode;
-      gensym80.Init(z);
-      gensym81.Init(x);
-      this.data := y;
-      this.elems := {x, y, z};
-      this.left := gensym81;
-      this.right := gensym80;
-      // repr stuff
-      this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+      this.TripleBase(x, y, z);
     } else {
       if (z < x && y > x) {
-        var gensym80 := new SetNode;
-        var gensym81 := new SetNode;
-        gensym80.Init(y);
-        gensym81.Init(z);
-        this.data := x;
-        this.elems := {x, y, z};
-        this.left := gensym81;
-        this.right := gensym80;
-        // repr stuff
-        this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+        this.TripleBase(z, x, y);
       } else {
         if (x < z && y > z) {
-          var gensym80 := new SetNode;
-          var gensym81 := new SetNode;
-          gensym80.Init(y);
-          gensym81.Init(x);
-          this.data := z;
-          this.elems := {x, y, z};
-          this.left := gensym81;
-          this.right := gensym80;
-          // repr stuff
-          this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+          this.TripleBase(x, z, y);
         } else {
           if (z < y && x > y) {
-            var gensym80 := new SetNode;
-            var gensym81 := new SetNode;
-            gensym80.Init(x);
-            gensym81.Init(z);
-            this.data := y;
-            this.elems := {x, y, z};
-            this.left := gensym81;
-            this.right := gensym80;
-            // repr stuff
-            this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+            this.TripleBase(z, y, x);
           } else {
             if (y < z && x > z) {
-              var gensym80 := new SetNode;
-              var gensym81 := new SetNode;
-              gensym80.Init(x);
-              gensym81.Init(y);
-              this.data := z;
-              this.elems := {x, y, z};
-              this.left := gensym81;
-              this.right := gensym80;
-              // repr stuff
-              this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+              this.TripleBase(y, z, x);
             } else {
               var gensym80 := new SetNode;
               var gensym81 := new SetNode;
@@ -230,38 +171,70 @@ class SetNode {
 
   method Double(x: int, y: int)
     modifies this;
+    requires x != y;
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures elems == {x, y};
   {
     if (y > x) {
-      var gensym77 := new SetNode;
-      gensym77.Init(y);
-      this.data := x;
-      this.elems := {x, y};
-      this.left := null;
-      this.right := gensym77;
-      // repr stuff
-      this.Repr := {this} + this.right.Repr;
+      this.DoubleBase(y, x);
     } else {
-      if (x > y) {
-        var gensym77 := new SetNode;
-        gensym77.Init(x);
-        this.data := y;
-        this.elems := {x, y};
-        this.left := null;
-        this.right := gensym77;
-        // repr stuff
-        this.Repr := {this} + this.right.Repr;
-      } else {
-        this.data := y;
-        this.elems := {x, y};
-        this.left := null;
-        this.right := null;
-        // repr stuff
-        this.Repr := {this};
-      }
+      this.DoubleBase(x, y);
     }
+  }
+
+
+  method DoubleBase(x: int, y: int)
+    modifies this;
+    requires x > y;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {x, y};
+  {
+    var gensym77 := new SetNode;
+    gensym77.Init(x);
+    this.data := y;
+    this.elems := {x, y};
+    this.left := null;
+    this.right := gensym77;
+    // repr stuff
+    this.Repr := {this} + this.right.Repr;
+  }
+
+
+  method Init(x: int)
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {x};
+  {
+    this.data := x;
+    this.elems := {x};
+    this.left := null;
+    this.right := null;
+    // repr stuff
+    this.Repr := {this};
+  }
+
+
+  method TripleBase(x: int, y: int, z: int)
+    modifies this;
+    requires x < y;
+    requires y < z;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {x, y, z};
+  {
+    var gensym80 := new SetNode;
+    var gensym81 := new SetNode;
+    gensym80.Init(z);
+    gensym81.Init(x);
+    this.data := y;
+    this.elems := {x, y, z};
+    this.left := gensym81;
+    this.right := gensym80;
+    // repr stuff
+    this.Repr := ({this} + this.left.Repr) + this.right.Repr;
   }
 
 }

@@ -198,8 +198,11 @@ let PrintReprAssignments prog heapInst indent =
                                           fullReprExpr :: acc
                                        ) []
   
-  idt + "// repr stuff" + newline + 
-  (PrintStmtList reprGetsList indent)
+  if not (reprGetsList = []) then
+    idt + "// repr stuff" + newline + 
+    (PrintStmtList reprGetsList indent)
+  else
+    ""
                                                           
 let rec PrintHeapCreationCode prog sol indent genRepr =    
   let idt = Indent indent

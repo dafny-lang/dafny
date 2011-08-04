@@ -40,12 +40,16 @@ class SetNode {
     requires x != y
     ensures elems = {x y}
 
-  constructor Double2(x: int, y: int)
+  constructor DoubleBase(x: int, y: int)
     requires x > y
     ensures elems = {x y}
 
   constructor Triple(x: int, y: int, z: int)
     requires x != y && y != z && z != x
+    ensures elems = {x y z}
+
+  constructor TripleBase(x: int, y: int, z: int)
+    requires x < y && y < z
     ensures elems = {x y z}
 }
 
