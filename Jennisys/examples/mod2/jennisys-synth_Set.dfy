@@ -78,12 +78,7 @@ class Set {
     ensures Valid();
     ensures elems == {p + q};
   {
-    var gensym69 := new SetNode;
-    gensym69.Init(p + q);
-    this.elems := {p + q};
-    this.root := gensym69;
-    // repr stuff
-    this.Repr := {this} + this.root.Repr;
+    this.Singleton(p + q);
   }
 
 }
@@ -169,6 +164,27 @@ class SetNode {
   }
 
 
+  method TripleBase(x: int, y: int, z: int)
+    modifies this;
+    requires x < y;
+    requires y < z;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {x, y, z};
+  {
+    var gensym80 := new SetNode;
+    var gensym81 := new SetNode;
+    gensym80.Init(z);
+    gensym81.Init(x);
+    this.data := y;
+    this.elems := {x, y, z};
+    this.left := gensym81;
+    this.right := gensym80;
+    // repr stuff
+    this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+  }
+
+
   method Double(x: int, y: int)
     modifies this;
     requires x != y;
@@ -214,27 +230,6 @@ class SetNode {
     this.right := null;
     // repr stuff
     this.Repr := {this};
-  }
-
-
-  method TripleBase(x: int, y: int, z: int)
-    modifies this;
-    requires x < y;
-    requires y < z;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures elems == {x, y, z};
-  {
-    var gensym80 := new SetNode;
-    var gensym81 := new SetNode;
-    gensym80.Init(z);
-    gensym81.Init(x);
-    this.data := y;
-    this.elems := {x, y, z};
-    this.left := gensym81;
-    this.right := gensym80;
-    // repr stuff
-    this.Repr := ({this} + this.left.Repr) + this.right.Repr;
   }
 
 }

@@ -25,15 +25,28 @@ class Number {
   }
 
 
+  method Abs(a: int)
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures num in {a, -a};
+    ensures num >= 0;
+  {
+    if (a >= 0) {
+      this.Init(a);
+    } else {
+      this.Init(-a);
+    }
+  }
+
+
   method Double(p: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures num == 2 * p;
   {
-    this.num := 2 * p;
-    // repr stuff
-    this.Repr := {this};
+    this.Init(2 * p);
   }
 
 
@@ -49,33 +62,67 @@ class Number {
   }
 
 
-  method Sum(a: int, b: int)
+  method Min2(a: int, b: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
-    ensures num == a + b;
+    ensures a < b ==> num == a;
+    ensures a >= b ==> num == b;
   {
-    this.num := a + b;
-    // repr stuff
-    this.Repr := {this};
+    if (a >= b ==> a == b) {
+      this.Init(a);
+    } else {
+      this.Init(b);
+    }
   }
 
 
-  method Abs(a: int)
+  method Min22(a: int, b: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
-    ensures num in {a, -a};
-    ensures num >= 0;
+    ensures num in {a, b};
+    ensures num <= a;
+    ensures num <= b;
   {
-    if (a >= 0) {
-      this.num := a;
-      // repr stuff
-      this.Repr := {this};
+    if (a <= b) {
+      this.Init(a);
     } else {
-      this.num := -a;
-      // repr stuff
-      this.Repr := {this};
+      this.Init(b);
+    }
+  }
+
+
+  method Min3(a: int, b: int, c: int)
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures num in {a, b, c};
+    ensures num <= a;
+    ensures num <= b;
+    ensures num <= c;
+  {
+    this.Min32(a, b, c);
+  }
+
+
+  method Min32(a: int, b: int, c: int)
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures num in {a, b, c};
+    ensures num <= a;
+    ensures num <= b;
+    ensures num <= c;
+  {
+    if (a <= b && a <= c) {
+      this.Init(a);
+    } else {
+      if (c <= a && c <= b) {
+        this.Init(c);
+      } else {
+        this.Init(b);
+      }
     }
   }
 
@@ -85,26 +132,21 @@ class Number {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures num in {a, b, c, d};
-    ensures (forall x :: x in {a, b, c, d} ==> num <= x);
+    ensures num <= a;
+    ensures num <= b;
+    ensures num <= c;
+    ensures num <= d;
   {
     if (a <= b && (a <= c && a <= d)) {
-      this.num := a;
-      // repr stuff
-      this.Repr := {this};
+      this.Init(a);
     } else {
       if (d <= a && (d <= b && d <= c)) {
-        this.num := d;
-        // repr stuff
-        this.Repr := {this};
+        this.Init(d);
       } else {
         if (c <= a && (c <= b && c <= d)) {
-          this.num := c;
-          // repr stuff
-          this.Repr := {this};
+          this.Init(c);
         } else {
-          this.num := b;
-          // repr stuff
-          this.Repr := {this};
+          this.Init(b);
         }
       }
     }
@@ -120,112 +162,17 @@ class Number {
     ensures num <= b + c;
     ensures num <= a + c;
   {
-    if (a + b <= b + c && a + b <= a + c) {
-      this.num := a + b;
-      // repr stuff
-      this.Repr := {this};
-    } else {
-      if (a + c <= a + b && a + c <= b + c) {
-        this.num := a + c;
-        // repr stuff
-        this.Repr := {this};
-      } else {
-        this.num := b + c;
-        // repr stuff
-        this.Repr := {this};
-      }
-    }
+    this.Min3(a + b, a + c, b + c);
   }
 
 
-  method Min32(a: int, b: int, c: int)
+  method Sum(a: int, b: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
-    ensures num in {a, b, c};
-    ensures (forall x :: x in {a, b, c} ==> num <= x);
+    ensures num == a + b;
   {
-    if (a <= b && a <= c) {
-      this.num := a;
-      // repr stuff
-      this.Repr := {this};
-    } else {
-      if (c <= a && c <= b) {
-        this.num := c;
-        // repr stuff
-        this.Repr := {this};
-      } else {
-        this.num := b;
-        // repr stuff
-        this.Repr := {this};
-      }
-    }
-  }
-
-
-  method Min3(a: int, b: int, c: int)
-    modifies this;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures num in {a, b, c};
-    ensures num <= a;
-    ensures num <= b;
-    ensures num <= c;
-  {
-    if (a <= b && a <= c) {
-      this.num := a;
-      // repr stuff
-      this.Repr := {this};
-    } else {
-      if (c <= a && c <= b) {
-        this.num := c;
-        // repr stuff
-        this.Repr := {this};
-      } else {
-        this.num := b;
-        // repr stuff
-        this.Repr := {this};
-      }
-    }
-  }
-
-
-  method Min22(a: int, b: int)
-    modifies this;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures num in {a, b};
-    ensures num <= a;
-    ensures num <= b;
-  {
-    if (a <= b) {
-      this.num := a;
-      // repr stuff
-      this.Repr := {this};
-    } else {
-      this.num := b;
-      // repr stuff
-      this.Repr := {this};
-    }
-  }
-
-
-  method Min2(a: int, b: int)
-    modifies this;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures a < b ==> num == a;
-    ensures a >= b ==> num == b;
-  {
-    if (a >= b ==> a == b) {
-      this.num := a;
-      // repr stuff
-      this.Repr := {this};
-    } else {
-      this.num := b;
-      // repr stuff
-      this.Repr := {this};
-    }
+    this.Init(a + b);
   }
 
 }

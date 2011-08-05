@@ -122,7 +122,10 @@ let rec TryFindAMatch targetMthd candidateMethods =
         | Some(unifs) -> Some(candMthd,unifs)
         | None -> TryFindAMatch targetMthd rest
   | [] -> None
-  
+
+let TryFindExistingOpt comp targetMthd = 
+  TryFindAMatch targetMthd (GetMembers comp |> FilterMethodMembers)
+
 let TryFindExisting comp targetMthd = 
   match TryFindAMatch targetMthd (GetMembers comp |> FilterMethodMembers) with
   | Some(m,unifs) -> m,unifs
@@ -133,3 +136,34 @@ let ApplyMethodUnifs m unifs =
                                  match Map.tryFind name unifs with
                                  | Some(e) -> e
                                  | None -> VarLiteral(name))
+
+let TryFindExistingAndConvertToSolution indent comp m cond callGraph =
+  let __Calls caller callee =
+    let keyOpt = callGraph |> Map.tryFindKey (fun (cc,mm) mset -> CheckSameMethods (comp,caller) (cc,mm))
+    match keyOpt with
+    | Some(k) -> callGraph |> Map.find k |> Set.contains ((GetComponentName comp),(GetMethodName callee))
+    | None -> false
+  (* --- function body starts here --- *)      
+  if not Options.CONFIG.genMod then
+    None
+  else 
+    let idt = Indent indent
+    let candidateMethods = GetMembers comp |> List.filter (fun cm ->
+                                                             match cm with
+                                                             | Method(mname,_,_,_,_) when not (__Calls cm m) -> true
+                                                             | _ -> false)
+    match TryFindAMatch m candidateMethods with
+    | Some(m',unifs) -> 
+        Logger.InfoLine (idt + "    - substitution method found:")
+        Logger.InfoLine (PrintMethodSignFull (indent+6) comp m')
+        let args = ApplyMethodUnifs m' unifs
+        let delegateCall = MethodCall(ThisLiteral, GetMethodName m', args)
+        let obj = { name = "this"; objType = GetClassType comp }
+        let var = Var("", None)
+        let body = [(obj,var), delegateCall]
+        let hInst = { assignments = body; 
+                      methodArgs  = Map.empty; 
+                      globals     = Map.empty }
+        Some(Map.empty |> Map.add (comp,m) [cond, hInst]
+                       |> Map.add (comp,m') [])
+    | None -> None

@@ -287,86 +287,69 @@ let GetHeapExpr prog mthd heapInst =
                           objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
                       ) prepostExpr
 
-let FindExisting indent comp m cond =
-  if not Options.CONFIG.genMod then
-    None
-  else 
-    let idt = Indent indent
-    match TryFindAMatch m (GetMembers comp |> FilterMethodMembers) with
-    | Some(m',unifs) -> 
-        Logger.InfoLine (idt + "    - substitution method found:")
-        Logger.InfoLine (PrintMethodSignFull (indent+6) comp m')
-        let args = ApplyMethodUnifs m' unifs
-        let delegateCall = MethodCall(ThisLiteral, GetMethodName m', args)
-        let obj = { name = "this"; objType = GetClassType comp }
-        let var = Var("", None)
-        let body = [(obj,var), delegateCall]
-        let hInst = { assignments = body; 
-                      methodArgs  = Map.empty; 
-                      globals     = Map.empty }
-        Some(Map.empty |> Map.add (comp,m) [cond, hInst]
-                       |> Map.add (comp,m') [])
-    | None -> None
+// use the orginal method, not the one with an extra precondition
+let FixSolution origMeth sol =
+  sol |> Map.fold (fun acc (cc,mm) v -> 
+                      if GetMethodName mm = GetMethodName origMeth then
+                        acc |> Map.add (cc,origMeth) v
+                      else 
+                        acc |> Map.add (cc,mm) v) Map.empty
 
 //  ============================================================================
 /// Attempts to synthesize the initialization code for the given constructor "m"
 ///
 /// Returns a (heap,env,ctx) tuple
 //  ============================================================================                           
-let rec AnalyzeConstructor indent prog comp m =
+let rec AnalyzeConstructor indent prog comp m callGraph =
   let idt = Indent indent
   Logger.InfoLine (idt + "[*] Analyzing constructor")
   Logger.InfoLine (idt + "------------------------------------------")
   Logger.InfoLine (PrintMethodSignFull (indent + 4) comp m)
   Logger.InfoLine (idt + "------------------------------------------")
-  let methodName = GetMethodName m
-  let pre,post = GetMethodPrePost m
-  // generate Dafny code for analysis first
-  let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,m] FalseLiteral) false
-  Logger.Info     (idt + "    - searching for an instance      ...")
-  let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
-  if models.Count = 0 then
-    // no models means that the "assert false" was verified, which means that the spec is inconsistent
-    Logger.WarnLine (idt + " !!! SPEC IS INCONSISTENT !!!")
-    Map.empty
-  else 
-    if models.Count > 1 then 
-      Logger.WarnLine " FAILED "
-      failwith "internal error (more than one model for a single constructor analysis)"
-    Logger.InfoLine " OK "
-    let model = models.[0]
-    let hModel = ReadFieldValuesFromModel model prog comp m
-    let heapInst = ResolveModel hModel
-    let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
-    let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
-        
-    // split into method calls
-    let sol = MakeModular indent prog comp m TrueLiteral heapInst
-
-    if Options.CONFIG.verifySolutions then
-      Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
-      let verified = VerifySolution prog sol Options.CONFIG.genRepr
-      Logger.Info (idt + "    ")
-      if verified then
-        Logger.InfoLine "~~~ VERIFIED ~~~"
-        sol
+  match TryFindExistingAndConvertToSolution indent comp m TrueLiteral callGraph with
+  | Some(sol) -> sol
+  | None -> 
+      let methodName = GetMethodName m
+      let pre,post = GetMethodPrePost m
+      // generate Dafny code for analysis first
+      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,m] FalseLiteral) false
+      Logger.Info     (idt + "    - searching for an instance      ...")
+      let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
+      if models.Count = 0 then
+        // no models means that the "assert false" was verified, which means that the spec is inconsistent
+        Logger.WarnLine (idt + " !!! SPEC IS INCONSISTENT !!!")
+        Map.empty
       else 
-        Logger.InfoLine "!!! NOT VERIFIED !!!"
-        if Options.CONFIG.inferConditionals then
-          Logger.InfoLine (idt + "    Strengthening the pre-condition")
-          TryInferConditionals (indent + 4) prog comp m unifs heapInst
+        if models.Count > 1 then 
+          Logger.WarnLine " FAILED "
+          failwith "internal error (more than one model for a single constructor analysis)"
+        Logger.InfoLine " OK "
+        let model = models.[0]
+        let hModel = ReadFieldValuesFromModel model prog comp m
+        let heapInst = ResolveModel hModel
+        let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
+        let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
+        
+        // split into method calls
+        let sol = MakeModular indent prog comp m TrueLiteral heapInst callGraph |> FixSolution m
+
+        if Options.CONFIG.verifySolutions then
+          Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
+          let verified = VerifySolution prog sol Options.CONFIG.genRepr
+          Logger.Info (idt + "    ")
+          if verified then
+            Logger.InfoLine "~~~ VERIFIED ~~~"
+            sol
+          else 
+            Logger.InfoLine "!!! NOT VERIFIED !!!"
+            if Options.CONFIG.inferConditionals then
+              Logger.InfoLine (idt + "    Strengthening the pre-condition")
+              TryInferConditionals (indent + 4) prog comp m unifs heapInst callGraph
+            else
+              sol      
         else
-          sol      
-    else
-      sol
-and TryInferConditionals indent prog comp m unifs heapInst = 
-  // use the orginal method, not the one with an extra precondition
-  let __FixSolution sol =
-    sol |> Map.fold (fun acc (cc,mm) v -> 
-                       if GetMethodName mm = GetMethodName m then
-                         acc |> Map.add (cc,m) v
-                       else 
-                         acc |> Map.add (cc,mm) v) Map.empty
+          sol
+and TryInferConditionals indent prog comp m unifs heapInst callGraph = 
   let idt = Indent indent
   let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
   let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
@@ -388,7 +371,7 @@ and TryInferConditionals indent prog comp m unifs heapInst =
         newCond
     Logger.InfoLine (sprintf "%s    - candidate pre-condition: %s" idt (PrintExpr 0 candCond))
     let _,_,m2 = AddPrecondition prog comp m candCond
-    let sol = MakeModular indent prog comp m2 candCond heapInst2
+    let sol = MakeModular indent prog comp m2 candCond heapInst2 callGraph
     Logger.Info (idt + "    - verifying partial solution ... ")
     let verified = 
       if Options.CONFIG.verifyPartialSolutions then
@@ -397,14 +380,16 @@ and TryInferConditionals indent prog comp m unifs heapInst =
         true
     if verified then
       if Options.CONFIG.verifyPartialSolutions then Logger.InfoLine "VERIFIED" else Logger.InfoLine "SKIPPED"
-      let solThis = match FindExisting indent comp m2 candCond with
+      let solThis = match TryFindExistingAndConvertToSolution indent comp m2 candCond callGraph with
                     | Some(sol2) -> sol2
                     | None -> sol   
       let _,_,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
-      let solRest = match FindExisting indent comp m3 (UnaryNot(candCond)) with
-                    | Some(sol3) -> sol3
-                    | None -> AnalyzeConstructor (indent + 2) prog comp m3
-      MergeSolutions (__FixSolution solThis) (__FixSolution solRest)
+      let solRest = AnalyzeConstructor (indent + 2) prog comp m3 callGraph
+//      let solRest = match FindExisting indent comp m3 (UnaryNot(candCond)) with
+//                    | Some(sol3) -> sol3
+//                    | None -> AnalyzeConstructor (indent + 2) prog comp m3
+ 
+      MergeSolutions solThis solRest |> FixSolution m
     else 
       Logger.InfoLine "NOT VERIFIED"
       wrongSol  
@@ -454,11 +439,12 @@ let rec AnalyzeMethods prog members solutionsSoFar =
       | Some(_) -> true
       | None -> false
 
-  let rec __AnalyzeConstructorDeep prog mList solutionsSoFar = 
+  let rec __AnalyzeConstructorDeep prog mList solutionsSoFar =
+    let callGraph = GetCallGraph (solutionsSoFar |> Map.toList) Map.empty
     match mList with
     | (comp,mthd) :: rest -> 
         if not (__IsAlreadySolved comp mthd solutionsSoFar) then
-          let sol = AnalyzeConstructor 2 prog comp mthd
+          let sol = AnalyzeConstructor 2 prog comp mthd callGraph
           let unsolved = sol |> Map.filter (fun (c,m) lst -> lst = [] && not(__IsAlreadySolved c m solutionsSoFar)) |> Utils.MapKeys
           let newSols = solutionsSoFar |> MergeSolutions sol
           __AnalyzeConstructorDeep prog (rest@unsolved) newSols

@@ -251,8 +251,8 @@ let GenConstructorCode mthd body genRepr =
   let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
-      let preExpr = pre 
-      let postExpr = GetPostconditionForMethod mthd genRepr
+      let preExpr = pre |> Desugar
+      let postExpr = GetPostconditionForMethod mthd genRepr |> Desugar
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + 
       (PrintPrePost (newline + "    requires ") preExpr) + 
@@ -273,7 +273,7 @@ let PrintImplCode prog solutions genRepr =
                                                               match sol with
                                                               | [] -> 
                                                                   "    //unable to synthesize" +
-                                                                  PrintPrePost (newline + "    assume ") (GetPostconditionForMethod m genRepr) + newline
+                                                                  PrintPrePost (newline + "    assume ") (GetPostconditionForMethod m genRepr |> Desugar) + newline
                                                               | _ -> 
                                                                   PrintHeapCreationCode prog sol 4 genRepr
                                                             acc + newline + (GenConstructorCode m mthdBody genRepr) + newline

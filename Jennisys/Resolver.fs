@@ -138,3 +138,19 @@ let ResolveModel hModel =
   { assignments = hmap; 
     methodArgs  = argmap; 
     globals     = Map.empty }
+
+let rec GetCallGraph solutions graph = 
+  match solutions with
+  | ((comp,m), sol) :: rest -> 
+        let callees = sol |> List.fold (fun acc (cond, hInst) ->
+                                          let mcalls = hInst.assignments |> List.choose (fun ((obj,_),e) ->
+                                                                                          match e with 
+                                                                                          | MethodCall(_,mname,_) -> 
+                                                                                              let targetCompName = GetTypeShortName obj.objType
+                                                                                              Some(targetCompName, mname)
+                                                                                          | _ -> None)
+                                          acc |> Set.union (mcalls |> Set.ofList)
+                                      ) Set.empty
+        let graph' = graph |> Map.add (comp,m) callees
+        GetCallGraph rest graph'
+  | [] -> graph
