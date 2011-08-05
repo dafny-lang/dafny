@@ -234,6 +234,13 @@ function sort(xs: List): List
   case Cons(y, ys) => insort(y, sort(ys))
 }
 
+function reverse(xs: List): List
+{
+  match xs
+  case Nil => Nil
+  case Cons(t, rest) => concat(reverse(rest), Cons(t, Nil))
+}
+
 // Pair list functions
 
 function zip(a: List, b: List): PList
@@ -552,5 +559,30 @@ ghost method P67()
   } else {
     // a different way to prove it uses the following lemma:
     assert (forall x,y :: add(x, Suc(y)) == Suc(add(x,y)));
+  }
+}
+
+// ---------
+
+ghost method Lemma_RevConcat(xs: List, ys: List)
+  ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs));
+{
+  match (xs) {
+    case Nil =>
+      assert forall ws :: concat(ws, Nil) == ws;
+    case Cons(t, rest) =>
+      Lemma_RevConcat(rest, ys);
+      assert forall a, b, c :: concat(a, concat(b, c)) == concat(concat(a, b), c);
+  }
+}
+
+ghost method Theorem(xs: List)
+  ensures reverse(reverse(xs)) == xs;
+{
+  match (xs) {
+    case Nil =>
+    case Cons(t, rest) =>
+      Lemma_RevConcat(reverse(rest), Cons(t, Nil));
+      Theorem(rest);
   }
 }

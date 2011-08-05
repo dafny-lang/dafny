@@ -352,6 +352,7 @@ namespace Demo
           | "==>"
           | "<==>"
           | "#"
+          | "?" // this is not an operator, but a possible character in identifiers
           | n
           | stringLiteral
           ;
