@@ -3,9 +3,9 @@
 open Ast
 open AstUtils
 open Utils
-open Printer   
 open Resolver
 open TypeChecker
+open PrintUtils
 open DafnyPrinter
 open DafnyModelUtils
 
@@ -141,41 +141,58 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr =
         (sprintf "%s" (PrintValidFunctionCode comp prog genRepr)) + newline +
         // call the method printer function on all methods of this component
         (methodPrinterFunc comp) +
-        //(compMethods |> List.fold (fun acc m -> acc + (methodPrinterFunc comp m)) "") +
         // the end of the class
         "}" + newline + newline
       | _ -> assert false; "") ""
 
 let PrintAllocNewObjects heapInst indent = 
   let idt = Indent indent
-  heapInst.assignments |> List.fold (fun acc ((obj,fld),_) ->
-                                      if not (obj.name = "this") then
-                                        acc |> Set.add obj
-                                      else 
-                                        acc
+  heapInst.assignments |> List.fold (fun acc a ->
+                                       match a with
+                                       | FieldAssignment((obj,fld),_) when not (obj.name = "this") ->
+                                           acc |> Set.add obj
+                                       | FieldAssignment(_, ObjLiteral(name)) when not (name = "this" || name = "null") ->
+                                           acc |> Set.add (heapInst.objs |> Map.find name)
+                                       | _ -> acc
                                    ) Set.empty
                        |> Set.fold (fun acc obj -> acc + (sprintf "%svar %s := new %s;%s" idt obj.name (PrintType obj.objType) newline)) ""
 
 let PrintVarAssignments heapInst indent = 
   let idt = Indent indent
-  heapInst.assignments |> List.fold (fun acc ((o,f),e) ->
-                                      let fldName = PrintVarName f
-                                      let exprStr = 
-                                        if fldName = "" then
-                                          sprintf "%s;" (PrintExpr 0 e)
-                                        else
-                                          let value = PrintExpr 0 e
-                                          sprintf "%s.%s := %s;" o.name fldName value
-                                      acc + idt + exprStr + newline
-                                    ) ""
+  let fldAssgnsStr = heapInst.assignments |> PrintSep newline (fun asgn ->                                                        
+                                                                 let exprStr = 
+                                                                   match asgn with
+                                                                   | FieldAssignment((o,f),e) ->
+                                                                       let fldName = GetVarName f
+                                                                       if fldName = "" then
+                                                                         PrintStmt (ExprStmt(e)) 0 false
+                                                                       else
+                                                                         PrintStmt (Assign(Dot(ObjLiteral(o.name), fldName), e)) 0 false
+                                                                   | ArbitraryStatement(stmt) ->
+                                                                         PrintStmt stmt 0 false
+                                                                 idt + exprStr)
+  let retValsAssgnsStr = heapInst.methodRetVals |> Map.toList
+                                                |> PrintSep newline (fun (retVarName, retVarVal) ->  
+                                                                       let stmt = Assign(VarLiteral(retVarName), retVarVal)
+                                                                       let assgnStr = PrintStmt stmt 0 false
+                                                                       idt + assgnStr)
+  let str = [fldAssgnsStr; retValsAssgnsStr] |> List.filter (fun s -> not (s = "")) |> PrintSep newline (fun s -> s)
+  str + newline
 
+///
 let PrintReprAssignments prog heapInst indent = 
   let __FollowsFunc o1 o2 = 
-    heapInst.assignments |> List.fold (fun acc ((srcObj,fld),value) -> 
-                                        acc || (srcObj = o1 && value = ObjLiteral(o2.name))
+    heapInst.assignments |> List.fold (fun acc assgn -> 
+                                         match assgn with
+                                         | FieldAssignment ((srcObj,fld),value) -> acc || (srcObj = o1 && value = ObjLiteral(o2.name))
+                                         | _ -> false
                                       ) false
   let idt = Indent indent
-  let objs = heapInst.assignments |> List.fold (fun acc ((obj,(Var(fldName,_))),_) -> if fldName = "" then acc else acc |> Set.add obj) Set.empty
+  let objs = heapInst.assignments |> List.fold (fun acc assgn -> 
+                                                  match assgn with
+                                                  | FieldAssignment((obj,(Var(fldName,_))),_) -> if fldName = "" then acc else acc |> Set.add obj
+                                                  | _ -> acc
+                                               ) Set.empty
                                   |> Set.toList
                                   |> Utils.TopSort __FollowsFunc
                                   |> List.rev
@@ -187,20 +204,21 @@ let PrintReprAssignments prog heapInst indent =
                                             let! comp = FindComponent prog typeName
                                             let vars = GetFrameFields comp
                                             let nonNullVars = vars |> List.filter (fun v -> 
-                                                                                      match Utils.ListMapTryFind (obj,v) heapInst.assignments with
+                                                                                      let lst = heapInst.assignments |> List.choose (function FieldAssignment(x,y) -> Some(x,y) | _ -> None)
+                                                                                      match Utils.ListMapTryFind (obj,v) lst with
                                                                                       | Some(ObjLiteral(n)) when not (n = "null") -> true
                                                                                       | _ -> false)
                                             return nonNullVars |> List.fold (fun a v -> 
-                                                                               BinaryPlus a (Dot(Dot(ObjLiteral(obj.name), (PrintVarName v)), "Repr"))
+                                                                                BinaryPlus a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
                                                                             ) expr
                                           }
                                           let fullReprExpr = BinaryGets (Dot(ObjLiteral(obj.name), "Repr")) fullRhs 
                                           fullReprExpr :: acc
-                                       ) []
+                                        ) []
   
   if not (reprGetsList = []) then
     idt + "// repr stuff" + newline + 
-    (PrintStmtList reprGetsList indent)
+    (PrintStmtList reprGetsList indent true)
   else
     ""
                                                           
@@ -236,13 +254,24 @@ let rec PrintHeapCreationCode prog sol indent genRepr =
 let PrintPrePost pfix expr = 
   SplitIntoConjunts expr |> PrintSep "" (fun e -> pfix + (PrintExpr 0 e) + ";")
 
+let GetPreconditionForMethod m = 
+  let validExpr = IdLiteral("Valid()");
+  match m with
+  | Method(_,_,pre,_,isConstr) ->
+      if isConstr then
+        pre
+      else
+        BinaryAnd validExpr pre
+  | _ -> failwithf "expected a method, got %O" m     
+
 let GetPostconditionForMethod m genRepr = 
   let validExpr = IdLiteral("Valid()");
   match m with
-  | Method(_,_,_,post,_) ->
+  | Method(_,_,_,post,isConstr) ->
       let postExpr = BinaryAnd validExpr post
       if genRepr then
-        BinaryAnd (IdLiteral("fresh(Repr - {this})")) postExpr
+        let freshExpr = if isConstr then "fresh(Repr - {this})" else "fresh(Repr - old(Repr))";
+        BinaryAnd (IdLiteral(freshExpr)) postExpr
       else
         postExpr
   | _ -> failwithf "expected a method, got %O" m     
@@ -251,7 +280,7 @@ let GenConstructorCode mthd body genRepr =
   let validExpr = IdLiteral("Valid()");
   match mthd with
   | Method(methodName, sign, pre, post, _) -> 
-      let preExpr = pre |> Desugar
+      let preExpr = GetPreconditionForMethod mthd |> Desugar
       let postExpr = GetPostconditionForMethod mthd genRepr |> Desugar
       "  method " + methodName + (PrintSig sign) + newline +
       "    modifies this;" + 

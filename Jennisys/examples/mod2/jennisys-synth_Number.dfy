@@ -162,7 +162,7 @@ class Number {
     ensures num <= b + c;
     ensures num <= a + c;
   {
-    this.Min3(a + b, a + c, b + c);
+    this.Min3(a + b, b + c, a + c);
   }
 
 

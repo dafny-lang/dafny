@@ -33,6 +33,9 @@ class List<T> {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [p, q];
+    ensures list[0] == p;
+    ensures list[1] == q;
+    ensures |list| == 2;
   {
     var gensym68 := new Node<T>;
     gensym68.Double(p, q);
@@ -48,6 +51,7 @@ class List<T> {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [];
+    ensures |list| == 0;
   {
     this.list := [];
     this.root := null;
@@ -61,6 +65,8 @@ class List<T> {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [t];
+    ensures list[0] == t;
+    ensures |list| == 1;
   {
     var gensym67 := new Node<T>;
     gensym67.Init(t);
@@ -110,6 +116,9 @@ class Node<T> {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [p, q];
+    ensures list[0] == p;
+    ensures list[1] == q;
+    ensures |list| == 2;
   {
     var gensym74 := new Node<T>;
     gensym74.Init(q);
@@ -126,6 +135,8 @@ class Node<T> {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [t];
+    ensures list[0] == t;
+    ensures |list| == 1;
   {
     this.data := t;
     this.list := [t];

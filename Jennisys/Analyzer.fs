@@ -8,8 +8,8 @@ open MethodUnifier
 open Modularizer
 open PipelineUtils
 open Options
-open Printer
 open Resolver
+open PrintUtils
 open DafnyPrinter
 open Utils
 
@@ -41,13 +41,16 @@ let GenMethodAnalysisCode comp m assertion =
   let ppre,ppost = GetMethodPrePost m 
   let pre = Desugar ppre
   let post = Desugar ppost
+  //let sigStr = PrintSig signature
+  let sigVars = 
+    match signature with
+    | Sig(ins,outs) ->
+        List.concat [ins; outs] |> List.fold (fun acc vd -> acc + (sprintf "    var %s;" (PrintVarDecl vd)) + newline) ""
   "  method " + methodName + "()" + newline +
   "    modifies this;" + newline +
   "  {" + newline + 
   // print signature as local variables
-  (match signature with
-    | Sig(ins,outs) ->
-        List.concat [ins; outs] |> List.fold (fun acc vd -> acc + (sprintf "    var %s;" (PrintVarDecl vd)) + newline) "") +
+  sigVars +
   "    // assume precondition" + newline +
   "    assume " + (PrintExpr 0 pre) + ";" + newline + 
   "    // assume invariant and postcondition" + newline + 
@@ -65,7 +68,7 @@ let rec MethodAnalysisPrinter onlyForThese assertion comp =
   match onlyForThese with
   | (c,m) :: rest when GetComponentName c = cname -> 
     match m with 
-    | Method(methodName, sign, pre, post, true) -> 
+    | Method(methodName, sign, pre, post, _) -> 
         (GenMethodAnalysisCode c m assertion) + newline +
         (MethodAnalysisPrinter rest assertion comp)
     | _ -> ""
@@ -73,23 +76,27 @@ let rec MethodAnalysisPrinter onlyForThese assertion comp =
   | [] -> ""
 
 let rec IsArgsOnly args expr = 
+  let __IsArgsOnlyLst elist = 
+    elist |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
   match expr with                                                
-  | IntLiteral(_)                        -> true
-  | BoolLiteral(_)                       -> true
-  | Star                                 -> true
-  | ObjLiteral(id)                       -> true
+  | IntLiteral(_)
+  | BoolLiteral(_)
+  | BoxLiteral(_)
+  | Star        
+  | VarDeclExpr(_)
+  | ObjLiteral(_)                        -> true
   | VarLiteral(id)
   | IdLiteral(id)                        -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
-  | UnaryExpr(_,e)                       -> IsArgsOnly args e
-  | BinaryExpr(_,_,e1,e2)                -> (IsArgsOnly args e1) && (IsArgsOnly args e2)
-  | IteExpr(c,e1,e2)                     -> (IsArgsOnly args c) && (IsArgsOnly args e1) && (IsArgsOnly args e2)
-  | Dot(e,_)                             -> IsArgsOnly args e
-  | SelectExpr(e1, e2)                   -> (IsArgsOnly args e1) && (IsArgsOnly args e2)
-  | UpdateExpr(e1, e2, e3)               -> (IsArgsOnly args e1) && (IsArgsOnly args e2) && (IsArgsOnly args e3)
-  | SequenceExpr(exprs) | SetExpr(exprs) -> exprs |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
-  | SeqLength(e)                         -> IsArgsOnly args e
+  | Dot(e,_)
+  | SeqLength(e)
+  | UnaryExpr(_,e)                       -> __IsArgsOnlyLst [e]
+  | SelectExpr(e1, e2)
+  | BinaryExpr(_,_,e1,e2)                -> __IsArgsOnlyLst [e1; e2]
+  | IteExpr(e3, e1, e2)         
+  | UpdateExpr(e1, e2, e3)               -> __IsArgsOnlyLst [e1; e2; e3]
+  | SequenceExpr(exprs) | SetExpr(exprs) -> __IsArgsOnlyLst exprs
+  | MethodCall(rcv,_,_,aparams)          -> __IsArgsOnlyLst (rcv :: aparams)
   | ForallExpr(vars,e)                   -> IsArgsOnly (List.concat [args; vars]) e
-  | MethodCall(rcv,_,aparams)            -> rcv :: aparams |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
 
 let AddUnif indent e v unifMap =
   let idt = Indent indent
@@ -134,12 +141,11 @@ let GetUnificationsForMethod indent comp m heapInst =
   (* --- function body starts here --- *)
   match m with
   | Method(mName,Sig(ins, outs),pre,post,_) -> 
-      let args = List.concat [ins; outs]
+      let args = ins
       match args with 
       | [] -> Map.empty
       | _  -> let unifs = GetArgValueUnifications args
-              GetUnifications indent args heapInst unifs (BinaryAnd pre post)
-              
+              GetUnifications indent args heapInst unifs (BinaryAnd pre post)                 
   | _ -> failwith ("not a method: " + m.ToString())
 
 //  =========================================================================
@@ -167,7 +173,8 @@ let GetObjRefExpr objRefName (heapInst: HeapInstance) =
                 | Some(expr) -> Some(Dot(expr, fldName))
                 | None -> __fff rest
             | [] -> None
-          let backPointers = heapInst.assignments |> List.filter (fun ((_,_),l) -> l = ObjLiteral(objRefName))
+          let backPointers = heapInst.assignments |> List.choose (function FieldAssignment (x,l) -> if l = ObjLiteral(objRefName) then Some(x,l) else None
+                                                                           |_ -> None)
           __fff backPointers 
   (* --- function body starts here --- *)
   if objRef2ExprCache.ContainsKey(objRefName) then
@@ -187,13 +194,17 @@ let GetObjRefExpr objRefName (heapInst: HeapInstance) =
 //  =======================================================
 let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative = 
   let idt = Indent indent
+  /// 
   let __CheckUnif o f e idx =
     if not conservative || not Options.CONFIG.checkUnifications then 
       true 
     else
-      let objRefExpr = GetObjRefExpr o heapInst |> Utils.ExtractOptionMsg ("Couldn't find a path from 'this' to " + o)
-      let fldName = PrintVarName f                             
-      let lhs = Dot(objRefExpr, fldName)
+      let lhs = if o = NoObj then
+                  VarLiteral(GetVarName f)
+                else
+                  let objRefExpr = GetObjRefExpr o.name heapInst |> Utils.ExtractOptionMsg ("Couldn't find a path from 'this' to " + o.name)
+                  let fldName = GetVarName f                             
+                  Dot(objRefExpr, fldName)
       let assertionExpr = match f with
                           | Var(_, Some(SeqType(_))) when not (idx = -1) -> BinaryEq (SelectExpr(lhs, IntLiteral(idx))) e
                           | Var(_, Some(SetType(_))) when not (idx = -1) -> BinaryIn e lhs
@@ -207,43 +218,54 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
       else
         Logger.DebugLine " DOESN'T HOLD"
       ok
+  ///
+  let __Apply (o,f) c e value= 
+    if value = Const2Expr c then
+      if __CheckUnif o f e -1 then                                                
+        // change the value to expression
+        //Logger.TraceLine (sprintf "%s    - applied: %s.%s --> %s" idt (PrintConst o) (GetVarName f) (PrintExpr 0 e) )
+        e 
+      else
+        value
+    else 
+      let rec __UnifyOverLst lst cnt =
+        match lst with
+        | lstElem :: rest when lstElem = Const2Expr c ->
+            if __CheckUnif o f e cnt then
+              //Logger.TraceLine (sprintf "%s    - applied: %s.%s[%d] --> %s" idt (PrintConst o) (GetVarName f) cnt (PrintExpr 0 e) )
+              e :: __UnifyOverLst rest (cnt+1)
+            else  
+              lstElem :: __UnifyOverLst rest (cnt+1)
+        | lstElem :: rest ->
+            lstElem :: __UnifyOverLst rest (cnt+1)
+        | [] -> []
+      // see if it's a list, then try to match its elements, otherwise leave it as is
+      match value with
+      | SequenceExpr(elist) -> 
+          let newExprList = __UnifyOverLst elist 0
+          SequenceExpr(newExprList)
+      | SetExpr(elist) ->
+          let newExprList = __UnifyOverLst elist 0
+          SetExpr(newExprList)
+      | _ -> 
+          value
+
   (* --- function body starts here --- *)
   match unifs with
   | (e,c) :: rest -> 
       let heapInst = ApplyUnifications indent prog comp mthd rest heapInst conservative
-      let newHeap = heapInst.assignments|> List.fold (fun acc ((o,f),value) ->
-                                                       if value = Const2Expr c then
-                                                         if __CheckUnif o.name f e -1 then                                                
-                                                           // change the value to expression
-                                                           //Logger.TraceLine (sprintf "%s    - applied: %s.%s --> %s" idt (PrintConst o) (GetVarName f) (PrintExpr 0 e) )
-                                                           Utils.ListMapAdd (o,f) e acc 
-                                                         else
-                                                           // don't change the value unless "conservative = false"
-                                                           Utils.ListMapAdd (o,f) value acc
-                                                       else 
-                                                         let rec __UnifyOverLst lst cnt =
-                                                               match lst with
-                                                               | lstElem :: rest when lstElem = Const2Expr c ->
-                                                                   if __CheckUnif o.name f e cnt then
-                                                                     //Logger.TraceLine (sprintf "%s    - applied: %s.%s[%d] --> %s" idt (PrintConst o) (GetVarName f) cnt (PrintExpr 0 e) )
-                                                                     e :: __UnifyOverLst rest (cnt+1)
-                                                                   else  
-                                                                     lstElem :: __UnifyOverLst rest (cnt+1)
-                                                               | lstElem :: rest ->
-                                                                   lstElem :: __UnifyOverLst rest (cnt+1)
-                                                               | [] -> []
-                                                         // see if it's a list, then try to match its elements, otherwise leave it as is
-                                                         match value with
-                                                         | SequenceExpr(elist) -> 
-                                                             let newExprList = __UnifyOverLst elist 0
-                                                             Utils.ListMapAdd (o,f) (SequenceExpr(newExprList)) acc
-                                                         | SetExpr(elist) ->
-                                                             let newExprList = __UnifyOverLst elist 0
-                                                             Utils.ListMapAdd (o,f) (SetExpr(newExprList)) acc
-                                                         | _ -> 
-                                                             Utils.ListMapAdd (o,f) value acc
-                                                     ) heapInst.assignments
-      {heapInst with assignments = newHeap }
+      let newHeap = heapInst.assignments|> List.fold (fun acc asgn ->
+                                                        match asgn with
+                                                        | FieldAssignment((o,f),value) ->
+                                                            let e2 = __Apply (o,f) c e value
+                                                            acc @ [FieldAssignment((o,f),e2)] 
+                                                        | _ -> acc @ [asgn]
+                                                     ) [] 
+      let newRetVals = heapInst.methodRetVals |> Map.fold (fun acc key value ->
+                                                             let e2 = __Apply (NoObj,Var(key, None)) c e value
+                                                             acc |> Map.add key e2
+                                                          ) Map.empty
+      {heapInst with assignments = newHeap; methodRetVals = newRetVals}
   | [] -> heapInst
 
 //  ====================================================================================
@@ -277,7 +299,10 @@ let GetHeapExpr prog mthd heapInst =
   //   - go through all objects on the heap and assert their invariants  
   let pre,post = GetMethodPrePost mthd
   let prepostExpr = post //TODO: do we need the "pre" here as well?
-  let heapObjs = heapInst.assignments |> List.fold (fun acc ((o,_),_) -> acc |> Set.add o) Set.empty
+  let heapObjs = heapInst.assignments |> List.fold (fun acc asgn ->
+                                                      match asgn with
+                                                      | FieldAssignment((o,_),_) -> acc |> Set.add o
+                                                      | _ -> acc) Set.empty
   heapObjs |> Set.fold (fun acc o -> 
                           let receiverOpt = GetObjRefExpr o.name heapInst
                           let receiver = Utils.ExtractOption receiverOpt
@@ -288,10 +313,10 @@ let GetHeapExpr prog mthd heapInst =
                       ) prepostExpr
 
 // use the orginal method, not the one with an extra precondition
-let FixSolution origMeth sol =
+let FixSolution origComp origMeth sol =
   sol |> Map.fold (fun acc (cc,mm) v -> 
-                      if GetMethodName mm = GetMethodName origMeth then
-                        acc |> Map.add (cc,origMeth) v
+                      if CheckSameMethods (cc,mm) (origComp,origMeth) then
+                        acc |> Map.add (origComp,origMeth) v
                       else 
                         acc |> Map.add (cc,mm) v) Map.empty
 
@@ -304,7 +329,7 @@ let rec AnalyzeConstructor indent prog comp m callGraph =
   let idt = Indent indent
   Logger.InfoLine (idt + "[*] Analyzing constructor")
   Logger.InfoLine (idt + "------------------------------------------")
-  Logger.InfoLine (PrintMethodSignFull (indent + 4) comp m)
+  Logger.InfoLine (Printer.PrintMethodSignFull (indent + 4) comp m)
   Logger.InfoLine (idt + "------------------------------------------")
   match TryFindExistingAndConvertToSolution indent comp m TrueLiteral callGraph with
   | Some(sol) -> sol
@@ -326,12 +351,12 @@ let rec AnalyzeConstructor indent prog comp m callGraph =
         Logger.InfoLine " OK "
         let model = models.[0]
         let hModel = ReadFieldValuesFromModel model prog comp m
-        let heapInst = ResolveModel hModel
+        let heapInst = ResolveModel hModel (GetMethodOutArgs m)
         let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
         let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
         
         // split into method calls
-        let sol = MakeModular indent prog comp m TrueLiteral heapInst callGraph |> FixSolution m
+        let sol = MakeModular indent prog comp m TrueLiteral heapInst callGraph |> FixSolution comp m
 
         if Options.CONFIG.verifySolutions then
           Logger.InfoLine (idt + "    - verifying synthesized solution ... ")
@@ -353,9 +378,11 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
   let idt = Indent indent
   let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
   let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
+  let methodArgs = GetMethodInArgs m
+  let __IsMethodArg argName = methodArgs |> List.exists (fun (Var(vname,_)) -> vname = argName)
   let expr = GetHeapExpr prog m heapInst2
   // now evaluate and see what's left
-  let newCond = Eval heapInst2 (function VarLiteral(_) -> false | _ -> true) expr
+  let newCond = Eval heapInst2 (function VarLiteral(id) when __IsMethodArg id -> false | _ -> true) expr
   if newCond = TrueLiteral then
     Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
     wrongSol
@@ -364,7 +391,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
       if newCond = FalseLiteral then
         // it must be because there is some aliasing going on between method arguments, 
         // so we should try that as a candidate pre-condition
-        let tmp = DiscoverAliasing (GetMethodArgs m |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst2
+        let tmp = DiscoverAliasing (methodArgs |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst2
         if tmp = TrueLiteral then failwith ("post-condition evaluated to false and no aliasing was discovered")
         tmp
       else 
@@ -385,11 +412,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
                     | None -> sol   
       let _,_,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
       let solRest = AnalyzeConstructor (indent + 2) prog comp m3 callGraph
-//      let solRest = match FindExisting indent comp m3 (UnaryNot(candCond)) with
-//                    | Some(sol3) -> sol3
-//                    | None -> AnalyzeConstructor (indent + 2) prog comp m3
- 
-      MergeSolutions solThis solRest |> FixSolution m
+      MergeSolutions solThis solRest |> FixSolution comp m
     else 
       Logger.InfoLine "NOT VERIFIED"
       wrongSol  
@@ -398,7 +421,7 @@ let GetMethodsToAnalyze prog =
   let mOpt = Options.CONFIG.methodToSynth;
   if mOpt = "*" then
     (* all *)
-    FilterMembers prog FilterConstructorMembers
+    FilterMembers prog FilterMethodMembers // FilterConstructorMembers
   elif mOpt = "paramsOnly" then
     (* only with parameters *)
     FilterMembers prog FilterConstructorMembersWithParams 
@@ -408,7 +431,7 @@ let GetMethodsToAnalyze prog =
         mOpt.Substring(1), true
       else
         mOpt, false
-    (* exactly one *)
+    (* exact list *)
     let methods = allMethods.Split([|','|])
     let lst = methods |> Array.fold (fun acc m -> 
                                        let idx = m.LastIndexOf(".")
@@ -456,7 +479,7 @@ let rec AnalyzeMethods prog members solutionsSoFar =
   match members with
   | (comp,m) :: rest -> 
       match m with
-      | Method(_,_,_,_,true) -> 
+      | Method(_,_,_,_,_) -> 
           let sol = __AnalyzeConstructorDeep prog [comp,m] solutionsSoFar
           Logger.InfoLine ""
           AnalyzeMethods prog rest sol

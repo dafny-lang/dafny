@@ -31,6 +31,7 @@ type VarDecl =
 type Expr =
   | IntLiteral of int
   | BoolLiteral of bool
+  | BoxLiteral of string
   | VarLiteral of string  
   | IdLiteral of string 
   | ObjLiteral of string 
@@ -45,10 +46,13 @@ type Expr =
   | SeqLength of Expr
   | SetExpr of Expr list //TODO: maybe this should really be a set instead of a list
   | ForallExpr of VarDecl list * Expr
-  | MethodCall of (* receiver *) Expr * (* name *) string * (* actual parameters *) Expr list
+  | MethodCall of (* receiver *) Expr * (* component name *) string * (* method name *) string * (* actual parameters *) Expr list
+  | VarDeclExpr of (* var list *) VarDecl list * (* declareAlso *) bool
+
 type Const = 
   | IntConst   of int
   | BoolConst  of bool
+  | BoxConst   of string
   | SetConst   of Set<Const>
   | SeqConst   of Const list
   | NullConst
@@ -60,6 +64,7 @@ type Const =
 
 type Stmt =
   | Block of Stmt list
+  | ExprStmt of Expr
   | Assign of Expr * Expr
 
 type Signature =

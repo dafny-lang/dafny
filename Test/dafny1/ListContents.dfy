@@ -48,7 +48,7 @@ class Node<T> {
     r.footprint := {r} + this.footprint;
     r.list := [r.data] + this.list;
   }
-
+  
   method ReverseInPlace() returns (reverse: Node<T>)
     requires Valid();
     modifies footprint;

@@ -1,0 +1,435 @@
+// Jennisys, Copyright (c) 2011, Microsoft.
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor Set.Empty()
+        ensures elems = {};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      ~~~ VERIFIED ~~~
+
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor Set.Singleton(t: int)
+        ensures elems = {t};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification t <--> -463
+      - adding unification {t} <--> {-463}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      ~~~ VERIFIED ~~~
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor SetNode.Init(x: int)
+        ensures elems = {x};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification x <--> -100
+      - adding unification {x} <--> {-100}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      ~~~ VERIFIED ~~~
+
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor Set.Sum(p: int, q: int)
+        ensures elems = {p + q};
+  ------------------------------------------
+      - substitution method found:
+        constructor Set.Singleton(t: int)
+          ensures elems = {t};
+        Unifications: 
+          t -> p + q
+
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor Set.Double(p: int, q: int)
+        requires p != q;
+        ensures elems = {p q};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification q <--> -760
+      - adding unification p <--> -463
+      - adding unification p != q <--> true
+      - adding unification {p, q} <--> {-760, -463}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      ~~~ VERIFIED ~~~
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor SetNode.Double(p: int, q: int)
+        requires p != q;
+        ensures elems = {p q};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification q <--> 215
+      - adding unification p <--> -249
+      - adding unification p != q <--> true
+      - adding unification {p, q} <--> {-249, 215}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      !!! NOT VERIFIED !!!
+      Strengthening the pre-condition
+          - candidate pre-condition: q > p
+          - delegating to method calls     ...
+          - verifying partial solution ... VERIFIED
+        [*] Analyzing constructor
+        ------------------------------------------
+            constructor SetNode.Double(p: int, q: int)
+              requires p != q;
+              requires !(q > p);
+              ensures elems = {p q};
+        ------------------------------------------
+            - substitution method found:
+              constructor SetNode.DoubleBase(x: int, y: int)
+                requires x > y;
+                ensures elems = {x y};
+              Unifications: 
+                y -> q
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor SetNode.DoubleBase(x: int, y: int)
+        requires x > y;
+        ensures elems = {x y};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification y <--> 743
+      - adding unification x <--> 744
+      - adding unification x > y <--> true
+      - adding unification {x, y} <--> {743, 744}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      ~~~ VERIFIED ~~~
+
+
+
+
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor SetNode.Triple(x: int, y: int, z: int)
+        requires x != y;
+        requires y != z;
+        requires z != x;
+        ensures elems = {x y z};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification z <--> -224
+      - adding unification y <--> -225
+      - adding unification x <--> -452
+      - adding unification x != y && (y != z && z != x) <--> true
+      - adding unification x != y <--> true
+      - adding unification y != z && z != x <--> true
+      - adding unification y != z <--> true
+      - adding unification z != x <--> true
+      - adding unification {x, y, z} <--> {-452, -225, -224}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      !!! NOT VERIFIED !!!
+      Strengthening the pre-condition
+          - candidate pre-condition: x < y && z > y
+          - delegating to method calls     ...
+          - substitution method found:
+            constructor SetNode.TripleBase(x: int, y: int, z: int)
+              requires x < y;
+              requires y < z;
+              ensures elems = {x y z};
+            Unifications: 
+              z -> z
+          - verifying partial solution ... VERIFIED
+          - substitution method found:
+            constructor SetNode.TripleBase(x: int, y: int, z: int)
+              requires x < y;
+              requires y < z;
+              ensures elems = {x y z};
+            Unifications: 
+              z -> z
+        [*] Analyzing constructor
+        ------------------------------------------
+            constructor SetNode.Triple(x: int, y: int, z: int)
+              requires x != y;
+              requires y != z;
+              requires z != x;
+              requires !(x < y && z > y);
+              ensures elems = {x y z};
+        ------------------------------------------
+            - searching for an instance      ... OK 
+            - adding unification z <--> -484
+            - adding unification y <--> 123
+            - adding unification x <--> 122
+            - adding unification (x != y && (y != z && z != x)) && !(x < y && z > y) <--> true
+            - adding unification x != y && (y != z && z != x) <--> true
+            - adding unification x != y <--> true
+            - adding unification y != z && z != x <--> true
+            - adding unification y != z <--> true
+            - adding unification z != x <--> true
+            - adding unification !(x < y && z > y) <--> true
+            - adding unification x < y && z > y <--> false
+            - adding unification x < y <--> true
+            - adding unification z > y <--> false
+            - adding unification {x, y, z} <--> {-484, 122, 123}
+            - delegating to method calls     ...
+            - verifying synthesized solution ... 
+            !!! NOT VERIFIED !!!
+            Strengthening the pre-condition
+                - candidate pre-condition: z < x && y > x
+                - delegating to method calls     ...
+                - substitution method found:
+                  constructor SetNode.TripleBase(x: int, y: int, z: int)
+                    requires x < y;
+                    requires y < z;
+                    ensures elems = {x y z};
+                  Unifications: 
+                    z -> y
+                - verifying partial solution ... VERIFIED
+                - substitution method found:
+                  constructor SetNode.TripleBase(x: int, y: int, z: int)
+                    requires x < y;
+                    requires y < z;
+                    ensures elems = {x y z};
+                  Unifications: 
+                    z -> y
+              [*] Analyzing constructor
+              ------------------------------------------
+                  constructor SetNode.Triple(x: int, y: int, z: int)
+                    requires x != y;
+                    requires y != z;
+                    requires z != x;
+                    requires !(x < y && z > y);
+                    requires !(z < x && y > x);
+                    ensures elems = {x y z};
+              ------------------------------------------
+                  - searching for an instance      ... OK 
+                  - adding unification z <--> -853
+                  - adding unification y <--> -852
+                  - adding unification x <--> -854
+                  - adding unification ((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x) <--> true
+                  - adding unification (x != y && (y != z && z != x)) && !(x < y && z > y) <--> true
+                  - adding unification x != y && (y != z && z != x) <--> true
+                  - adding unification x != y <--> true
+                  - adding unification y != z && z != x <--> true
+                  - adding unification y != z <--> true
+                  - adding unification z != x <--> true
+                  - adding unification !(x < y && z > y) <--> true
+                  - adding unification x < y && z > y <--> false
+                  - adding unification x < y <--> true
+                  - adding unification z > y <--> false
+                  - adding unification !(z < x && y > x) <--> true
+                  - adding unification z < x && y > x <--> false
+                  - adding unification z < x <--> false
+                  - adding unification y > x <--> true
+                  - adding unification {x, y, z} <--> {-854, -853, -852}
+                  - delegating to method calls     ...
+                  - verifying synthesized solution ... 
+                  !!! NOT VERIFIED !!!
+                  Strengthening the pre-condition
+                      - candidate pre-condition: x < z && y > z
+                      - delegating to method calls     ...
+                      - substitution method found:
+                        constructor SetNode.TripleBase(x: int, y: int, z: int)
+                          requires x < y;
+                          requires y < z;
+                          ensures elems = {x y z};
+                        Unifications: 
+                          z -> y
+                      - verifying partial solution ... VERIFIED
+                      - substitution method found:
+                        constructor SetNode.TripleBase(x: int, y: int, z: int)
+                          requires x < y;
+                          requires y < z;
+                          ensures elems = {x y z};
+                        Unifications: 
+                          z -> y
+                    [*] Analyzing constructor
+                    ------------------------------------------
+                        constructor SetNode.Triple(x: int, y: int, z: int)
+                          requires x != y;
+                          requires y != z;
+                          requires z != x;
+                          requires !(x < y && z > y);
+                          requires !(z < x && y > x);
+                          requires !(x < z && y > z);
+                          ensures elems = {x y z};
+                    ------------------------------------------
+                        - searching for an instance      ... OK 
+                        - adding unification z <--> -303
+                        - adding unification y <--> -155
+                        - adding unification x <--> -154
+                        - adding unification (((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x)) && !(x < z && y > z) <--> true
+                        - adding unification ((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x) <--> true
+                        - adding unification (x != y && (y != z && z != x)) && !(x < y && z > y) <--> true
+                        - adding unification x != y && (y != z && z != x) <--> true
+                        - adding unification x != y <--> true
+                        - adding unification y != z && z != x <--> true
+                        - adding unification y != z <--> true
+                        - adding unification z != x <--> true
+                        - adding unification !(x < y && z > y) <--> true
+                        - adding unification x < y && z > y <--> false
+                        - adding unification x < y <--> false
+                        - adding unification z > y <--> false
+                        - adding unification !(z < x && y > x) <--> true
+                        - adding unification z < x && y > x <--> false
+                        - adding unification z < x <--> true
+                        - adding unification y > x <--> false
+                        - adding unification !(x < z && y > z) <--> true
+                        - adding unification x < z && y > z <--> false
+                        - adding unification x < z <--> false
+                        - adding unification y > z <--> true
+                        - adding unification {x, y, z} <--> {-303, -155, -154}
+                        - delegating to method calls     ...
+                        - verifying synthesized solution ... 
+                        !!! NOT VERIFIED !!!
+                        Strengthening the pre-condition
+                            - candidate pre-condition: z < y && x > y
+                            - delegating to method calls     ...
+                            - substitution method found:
+                              constructor SetNode.TripleBase(x: int, y: int, z: int)
+                                requires x < y;
+                                requires y < z;
+                                ensures elems = {x y z};
+                              Unifications: 
+                                z -> x
+                            - verifying partial solution ... VERIFIED
+                            - substitution method found:
+                              constructor SetNode.TripleBase(x: int, y: int, z: int)
+                                requires x < y;
+                                requires y < z;
+                                ensures elems = {x y z};
+                              Unifications: 
+                                z -> x
+                          [*] Analyzing constructor
+                          ------------------------------------------
+                              constructor SetNode.Triple(x: int, y: int, z: int)
+                                requires x != y;
+                                requires y != z;
+                                requires z != x;
+                                requires !(x < y && z > y);
+                                requires !(z < x && y > x);
+                                requires !(x < z && y > z);
+                                requires !(z < y && x > y);
+                                ensures elems = {x y z};
+                          ------------------------------------------
+                              - searching for an instance      ... OK 
+                              - adding unification z <--> -226
+                              - adding unification y <--> -227
+                              - adding unification x <--> -225
+                              - adding unification ((((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x)) && !(x < z && y > z)) && !(z < y && x > y) <--> true
+                              - adding unification (((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x)) && !(x < z && y > z) <--> true
+                              - adding unification ((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x) <--> true
+                              - adding unification (x != y && (y != z && z != x)) && !(x < y && z > y) <--> true
+                              - adding unification x != y && (y != z && z != x) <--> true
+                              - adding unification x != y <--> true
+                              - adding unification y != z && z != x <--> true
+                              - adding unification y != z <--> true
+                              - adding unification z != x <--> true
+                              - adding unification !(x < y && z > y) <--> true
+                              - adding unification x < y && z > y <--> false
+                              - adding unification x < y <--> false
+                              - adding unification z > y <--> true
+                              - adding unification !(z < x && y > x) <--> true
+                              - adding unification z < x && y > x <--> false
+                              - adding unification z < x <--> true
+                              - adding unification y > x <--> false
+                              - adding unification !(x < z && y > z) <--> true
+                              - adding unification x < z && y > z <--> false
+                              - adding unification x < z <--> false
+                              - adding unification y > z <--> false
+                              - adding unification !(z < y && x > y) <--> true
+                              - adding unification z < y && x > y <--> false
+                              - adding unification z < y <--> false
+                              - adding unification x > y <--> true
+                              - adding unification {x, y, z} <--> {-227, -226, -225}
+                              - delegating to method calls     ...
+                              - verifying synthesized solution ... 
+                              !!! NOT VERIFIED !!!
+                              Strengthening the pre-condition
+                                  - candidate pre-condition: y < z && x > z
+                                  - delegating to method calls     ...
+                                  - substitution method found:
+                                    constructor SetNode.TripleBase(x: int, y: int, z: int)
+                                      requires x < y;
+                                      requires y < z;
+                                      ensures elems = {x y z};
+                                    Unifications: 
+                                      z -> x
+                                  - verifying partial solution ... VERIFIED
+                                  - substitution method found:
+                                    constructor SetNode.TripleBase(x: int, y: int, z: int)
+                                      requires x < y;
+                                      requires y < z;
+                                      ensures elems = {x y z};
+                                    Unifications: 
+                                      z -> x
+                                [*] Analyzing constructor
+                                ------------------------------------------
+                                    constructor SetNode.Triple(x: int, y: int, z: int)
+                                      requires x != y;
+                                      requires y != z;
+                                      requires z != x;
+                                      requires !(x < y && z > y);
+                                      requires !(z < x && y > x);
+                                      requires !(x < z && y > z);
+                                      requires !(z < y && x > y);
+                                      requires !(y < z && x > z);
+                                      ensures elems = {x y z};
+                                ------------------------------------------
+                                    - searching for an instance      ... OK 
+                                    - adding unification z <--> 123
+                                    - adding unification y <--> -203
+                                    - adding unification x <--> 122
+                                    - adding unification (((((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x)) && !(x < z && y > z)) && !(z < y && x > y)) && !(y < z && x > z) <--> true
+                                    - adding unification ((((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x)) && !(x < z && y > z)) && !(z < y && x > y) <--> true
+                                    - adding unification (((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x)) && !(x < z && y > z) <--> true
+                                    - adding unification ((x != y && (y != z && z != x)) && !(x < y && z > y)) && !(z < x && y > x) <--> true
+                                    - adding unification (x != y && (y != z && z != x)) && !(x < y && z > y) <--> true
+                                    - adding unification x != y && (y != z && z != x) <--> true
+                                    - adding unification x != y <--> true
+                                    - adding unification y != z && z != x <--> true
+                                    - adding unification y != z <--> true
+                                    - adding unification z != x <--> true
+                                    - adding unification !(x < y && z > y) <--> true
+                                    - adding unification x < y && z > y <--> false
+                                    - adding unification x < y <--> false
+                                    - adding unification z > y <--> true
+                                    - adding unification !(z < x && y > x) <--> true
+                                    - adding unification z < x && y > x <--> false
+                                    - adding unification z < x <--> false
+                                    - adding unification y > x <--> false
+                                    - adding unification !(x < z && y > z) <--> true
+                                    - adding unification x < z && y > z <--> false
+                                    - adding unification x < z <--> true
+                                    - adding unification y > z <--> false
+                                    - adding unification !(z < y && x > y) <--> true
+                                    - adding unification z < y && x > y <--> false
+                                    - adding unification z < y <--> false
+                                    - adding unification x > y <--> true
+                                    - adding unification !(y < z && x > z) <--> true
+                                    - adding unification y < z && x > z <--> false
+                                    - adding unification y < z <--> true
+                                    - adding unification x > z <--> false
+                                    - adding unification {x, y, z} <--> {-203, 122, 123}
+                                    - delegating to method calls     ...
+                                    - verifying synthesized solution ... 
+                                    ~~~ VERIFIED ~~~
+  [*] Analyzing constructor
+  ------------------------------------------
+      constructor SetNode.TripleBase(x: int, y: int, z: int)
+        requires x < y;
+        requires y < z;
+        ensures elems = {x y z};
+  ------------------------------------------
+      - searching for an instance      ... OK 
+      - adding unification z <--> 596
+      - adding unification y <--> -384
+      - adding unification x <--> -385
+      - adding unification x < y && y < z <--> true
+      - adding unification x < y <--> true
+      - adding unification y < z <--> true
+      - adding unification {x, y, z} <--> {-385, -384, 596}
+      - delegating to method calls     ...
+      - verifying synthesized solution ... 
+      ~~~ VERIFIED ~~~
+
+
+Printing synthesized code

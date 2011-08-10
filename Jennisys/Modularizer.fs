@@ -3,7 +3,7 @@
 open Ast
 open AstUtils
 open MethodUnifier
-open Printer 
+open PrintUtils
 open Resolver
 open Utils
 
@@ -27,7 +27,10 @@ let MergeSolutions sol1 sol2 =
     | [] -> res
   (* --- function body starts here --- *)
   __Merge sol1 (sol2 |> Map.toList) sol1 
-                   
+ 
+//  ===========================================                   
+///
+//  ===========================================                   
 let rec MakeModular indent prog comp meth cond hInst callGraph = 
   let rec __AddDirectChildren e acc = 
     match e with
@@ -37,7 +40,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
     | _ -> acc
 
   let __GetDirectChildren = 
-    let thisRhsExprs = hInst.assignments |> List.choose (function ((obj,_),e) when obj.name = "this" -> Some(e) | _ -> None)
+    let thisRhsExprs = hInst.assignments |> List.choose (function FieldAssignment((obj,_),e) when obj.name = "this" -> Some(e) | _ -> None)
     thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
                  |> Set.toList
 
@@ -54,7 +57,11 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
 
   let __FindObj objName = 
     try 
-      hInst.assignments |> List.find (fun ((obj,_),_) -> obj.name = objName) |> fst |> fst
+      //hInst.assignments |> List.find (fun ((obj,_),_) -> obj.name = objName) |> fst |> fst
+      hInst.assignments |> List.choose (function FieldAssignment((obj,_),_) -> 
+                                                   if (obj.name = objName) then Some(obj) else None 
+                                                 | _ -> None)
+                        |> List.head
     with
       | ex -> failwithf "obj %s not found for method %s" objName (GetMethodFullName comp meth)
 
@@ -66,11 +73,13 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
   /// assignments that correspond to abstract fields of the given "objLitName" object
   //  ===============================================================================
   let __GetAbsFldAssignments objLitName = 
-    hInst.assignments |> List.choose (fun ((obj,var),e) ->
-                                        if obj.name = objLitName && __IsAbstractField obj.objType var then
-                                          Some(var,e)
-                                        else
-                                          None)
+    hInst.assignments |> List.choose (function
+                                        FieldAssignment ((obj,var),e) ->
+                                          if obj.name = objLitName && __IsAbstractField obj.objType var then
+                                            Some(var,e)
+                                          else
+                                            None
+                                        | _ -> None)
 
   //  ===============================================================================
   /// The given assignment is: 
@@ -110,7 +119,9 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
   //  ================================================================================
   let __GetSpecFor objLitName =
     let absFieldAssignments = __GetAbsFldAssignments objLitName
-    absFieldAssignments |> List.fold (fun acc (Var(name,_),e) -> BinaryAnd acc (__ExamineAndFix (IdLiteral(name)) e)) TrueLiteral
+    let absFldAssgnExpr = absFieldAssignments |> List.fold (fun acc (Var(name,_),e) -> BinaryAnd acc (__ExamineAndFix (IdLiteral(name)) e)) TrueLiteral
+    let retValExpr = hInst.methodRetVals |> Map.fold (fun acc varName varValueExpr -> BinaryAnd acc (BinaryEq (VarLiteral(varName)) varValueExpr)) TrueLiteral
+    BinaryAnd absFldAssgnExpr retValExpr
   
   //  ================================================================================================
   /// Simply traverses a given expression and returns all arguments of the "meth" method that are used
@@ -138,7 +149,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
         let m = Method(mName, sgn, pre, post, true)
         let c = FindComponent prog (name |> __GetObjLitType |> GetTypeShortName) |> Utils.ExtractOption
         let m',unifs = TryFindExisting c m
-        let args = ApplyMethodUnifs m' unifs
+        let args = ApplyMethodUnifs obj (c,m') unifs
         __GetDelegateMethods rest (acc |> Map.add obj (c,m',args))
     | _ :: rest -> failwith "internal error: expected to see only ObjLiterals"
     | [] -> acc
@@ -151,22 +162,17 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
   let __GetModularBranch = 
     let delegateMethods = __GetDelegateMethods (directChildren.Force()) Map.empty
     let initChildrenExprList = delegateMethods |> Map.toList
-                                                |> List.map (fun (receiver, (cmp,mthd,args)) -> 
-                                                              let key = __FindObj (PrintExpr 0 receiver), Var("", None)
-                                                              let e = MethodCall(receiver, GetMethodName mthd, args)
-                                                              (key, e))
-    let newAssgns = hInst.assignments |> List.filter (fun ((obj,_),_) -> if obj.name = "this" then true else false)
-    let newProg, newComp, newMethodsLst = delegateMethods |> Map.fold (fun acc receiver (c,newMthd,_) ->
-                                                                          let obj = __FindObj (PrintExpr 0 receiver)
-                                                                          match acc with
-                                                                          | accProg, accComp, accmList ->
-                                                                              let oldComp = FindComponent accProg (GetTypeShortName obj.objType) |> Utils.ExtractOption
-                                                                              let prog', mcomp' = AddReplaceMethod accProg oldComp newMthd None
-                                                                              let mList' = (mcomp', newMthd) :: accmList
-                                                                              let comp' = if accComp = oldComp then mcomp' else accComp
-                                                                              prog', comp', mList'
-                                                                      ) (prog, comp, [])
-    newProg, newComp, newMethodsLst, { hInst with assignments = initChildrenExprList @ newAssgns }
+                                               |> List.map (fun (_, (_,_,asgs)) -> asgs)
+                                               |> List.concat
+//TODO(remove)
+//                                                              let key = __FindObj (Printer.PrintExpr 0 receiver), Var("", None)
+//                                                              let e = MethodCall(receiver, GetMethodName mthd, fst args)
+//                                                              FieldAssignment(key, e))
+    let newAssgns = hInst.assignments |> List.filter (function FieldAssignment((obj,_),_) -> obj.name = "this" | _ -> false)
+    let newMethodsLst = delegateMethods |> Map.fold (fun acc receiver (c,newMthd,_) ->
+                                                       (c,newMthd) :: acc
+                                                    ) []
+    newMethodsLst, { hInst with assignments = initChildrenExprList @ newAssgns }
 
   (* --- function body starts here --- *)
   let idt = Indent indent
@@ -181,7 +187,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
     | Some(sol) -> sol
     | None -> 
         // if not found, try to split into parts
-        let _, _, newMthdLst, newHeapInst = __GetModularBranch
+        let newMthdLst, newHeapInst = __GetModularBranch
         let msol = Utils.MapSingleton (comp,meth) [cond, newHeapInst]
         newMthdLst |> List.fold (fun acc (c,m) -> 
                                    acc |> MergeSolutions (Utils.MapSingleton (c,m) []) 

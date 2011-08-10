@@ -2,14 +2,7 @@
 
 open Ast
 open AstUtils
-
-let newline = System.Environment.NewLine // "\r\n"
-
-let rec PrintSep sep f list =
-  match list with
-  | [] -> ""
-  | [a] -> f a
-  | a :: more -> (f a) + sep + (PrintSep sep f more)
+open PrintUtils     
   
 let rec PrintType ty =
   match ty with
@@ -25,17 +18,18 @@ let PrintVarDecl vd =
   | Var(id,None) -> id
   | Var(id,Some(ty)) -> sprintf "%s: %s" id (PrintType ty)
 
-let PrintVarName vd =
-  match vd with
-  | Var(id,_) -> id
-
 let rec PrintExpr ctx expr =
   match expr with
   | IntLiteral(d)     -> sprintf "%d" d
   | BoolLiteral(b)    -> sprintf "%b" b
+  | BoxLiteral(id)    -> sprintf "box_%s" id
   | ObjLiteral(id)
   | VarLiteral(id) 
   | IdLiteral(id)     -> id
+  | VarDeclExpr(vlist, declare) -> 
+      let decl = if declare then "var " else ""
+      let vars = PrintSep ", " PrintVarDecl vlist
+      sprintf "%s%s" decl vars
   | Star              -> "*"
   | Dot(e,id)         -> sprintf "%s.%s" (PrintExpr 100 e) id
   | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
@@ -56,13 +50,14 @@ let rec PrintExpr ctx expr =
       let openParen = if needParens then "(" else ""
       let closeParen = if needParens then ")" else ""
       sprintf "%sforall %s :: %s%s" openParen (vv |> PrintSep ", " PrintVarDecl) (PrintExpr 0 e) closeParen
-  | MethodCall(rcv,name,aparams) ->
+  | MethodCall(rcv,_,name,aparams) ->
       sprintf "%s.%s(%s)" (PrintExpr 0 rcv) name (aparams |> PrintSep ", " (PrintExpr 0))
 
 let rec PrintConst cst = 
   match cst with 
   | IntConst(v)        -> sprintf "%d" v
   | BoolConst(b)       -> sprintf "%b" b
+  | BoxConst(id)       -> sprintf "box_%s" id
   | VarConst(v)        -> sprintf "%s" v
   | SetConst(cset)     -> sprintf "{%s}" (PrintSep " " (fun c -> PrintConst c) (Set.toList cset))
   | SeqConst(cseq)     -> sprintf "[%s]" (PrintSep " " (fun c -> PrintConst c) cseq)
@@ -80,19 +75,18 @@ let PrintSig signature =
         else ""
       sprintf "(%s)%s" (ins |> PrintSep ", " PrintVarDecl) returnClause
 
-let rec Indent i =
-  if i = 0 then "" else " " + (Indent (i-1))
-
-let rec PrintStmt stmt indent =
+let rec PrintStmt stmt indent printNewline =
   let idt = (Indent indent)
+  let nl = if printNewline then newline else ""
   match stmt with
   | Block(stmts) ->
-      idt + "{" + newline +
-      (PrintStmtList stmts (indent + 2)) +
-      idt + "}" + newline
-  | Assign(lhs,rhs) -> sprintf "%s%s := %s%s" idt (PrintExpr 0 lhs) (PrintExpr 0 rhs) newline
-and PrintStmtList stmts indent =
-  stmts |> List.fold (fun acc s -> acc + (PrintStmt s indent)) ""
+      idt + "{" + nl +
+      (PrintStmtList stmts (indent + 2) true) +
+      idt + "}" + nl
+  | Assign(lhs,rhs) -> sprintf "%s%s := %s%s" idt (PrintExpr 0 lhs) (PrintExpr 0 rhs) nl
+  | ExprStmt(expr) -> sprintf "%s%s%s" idt (PrintExpr 0 expr) nl
+and PrintStmtList stmts indent printNewline =
+  stmts |> List.fold (fun acc s -> acc + (PrintStmt s indent printNewline)) ""
 
 let PrintRoutine signature pre body =
   let preStr = pre |> ForeachConjunct (fun e -> sprintf "    requires %s%s" (PrintExpr 0 e) newline)
