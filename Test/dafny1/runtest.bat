@@ -28,7 +28,7 @@ for %%f in (Queue.dfy PriorityQueue.dfy ExtensibleArray.dfy
   echo -------------------- %%f --------------------
 
   REM The following line will just run the verifier
-  IF "%COMPILEDAFNY%"=="" %DAFNY_EXE% /compile:0 %* %%f
+  IF "%COMPILEDAFNY%"=="" %DAFNY_EXE% /compile:0 /dprint:out.dfy.tmp %* %%f
 
   REM Alternatively, the following lines also produce C# code and compile it
   IF NOT "%COMPILEDAFNY%"=="" %DAFNY_EXE% %* %%f
