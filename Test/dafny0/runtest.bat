@@ -23,5 +23,5 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             CallStmtTests.dfy MultiSets.dfy) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /compile:0 %* %%f
+  %DAFNY_EXE% /compile:0 /dprint:out.dfy.tmp %* %%f
 )

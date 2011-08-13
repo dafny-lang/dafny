@@ -733,7 +733,7 @@ namespace Microsoft.Dafny {
           i++;
         }
       } else if (expr is ParensExpression) {
-        PrintExtendedExpr((ParensExpression)expr, indent, isRightmost, endWithCloseParen);
+        PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen);
       } else {
         PrintExpression(expr, indent);
         wr.WriteLine(endWithCloseParen ? ")" : "");
