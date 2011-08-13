@@ -203,18 +203,15 @@ let TryFindExistingAndConvertToSolution indent comp m cond callGraph =
         Logger.DebugLine (idt + "      Unifications: ")
         let idtt = idt + "        "
         unifs |> Map.fold (fun acc k v -> acc + (sprintf "%s%s -> %s%s" idtt k (Printer.PrintExpr 0 v) newline)) "" |> Logger.Debug 
-//        let ins,outs = ApplyMethodUnifs m' unifs
-//        let delegateCall = MethodCall(ThisLiteral, GetMethodName m', ins)
-//        let obj = { name = "this"; objType = GetClassType comp }
-//        let var = Var("", None)
-//        let body = [FieldAssignment((obj,var), delegateCall)]
         let obj = { name = "this"; objType = GetClassType comp }
+        let modObjs = if IsModifiableObj obj m then Set.singleton obj else Set.empty
         let body = ApplyMethodUnifs ThisLiteral (comp,m') unifs
-        let hInst = { objs        = Utils.MapSingleton obj.name obj;
-                      assignments = body; 
-                      methodArgs  = Map.empty; 
-                      methodRetVals = Map.empty;
-                      globals     = Map.empty }
+        let hInst = { objs           = Utils.MapSingleton obj.name obj;
+                      modifiableObjs = modObjs;
+                      assignments    = body; 
+                      methodArgs     = Map.empty; 
+                      methodRetVals  = Map.empty;
+                      globals        = Map.empty }
         Some(Map.empty |> Map.add (comp,m) [cond, hInst]
                        |> Map.add (comp,m') [])
     | None -> None

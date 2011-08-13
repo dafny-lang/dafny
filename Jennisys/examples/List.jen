@@ -37,6 +37,10 @@ class Node[T] {
   method List() returns (lst: seq[T])
     requires |list| = 1
     ensures lst = list
+
+  method Tail() returns (tail: Node[T])
+    ensures |list| = 1 ==> tail = null
+    ensures |list| > 1 ==> tail != null && tail.list = list[1..]
 }
 
 model Node[T] {

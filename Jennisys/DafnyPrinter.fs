@@ -32,9 +32,10 @@ let rec PrintExpr ctx expr =
       sprintf "%s%s" decl vars
   | Star -> "*"
   | Dot(e,id) -> sprintf "%s.%s" (PrintExpr 100 e) id
+  | LCIntervalExpr(e) -> sprintf "%s.." (PrintExpr 90 e)
   | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e) -> sprintf "%s%s" op (PrintExpr 90 e)
-  | BinaryExpr(strength,"in",lhs,BinaryExpr(_,"..",lo,hi)) ->
+  | BinaryExpr(strength,"in",lhs,BinaryExpr(_,"...",lo,hi)) ->
       let needParens = strength <= ctx
       let openParen = if needParens then "(" else ""
       let closeParen = if needParens then ")" else ""

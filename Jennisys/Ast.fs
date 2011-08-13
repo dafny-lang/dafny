@@ -38,6 +38,7 @@ type Expr =
   | Star
   | Dot of Expr * string
   | UnaryExpr of string * Expr
+  | LCIntervalExpr of Expr
   | BinaryExpr of int * string * Expr * Expr
   | IteExpr of (* cond *) Expr * (* thenExpr *) Expr * (* elseExpr *) Expr
   | SelectExpr of Expr * Expr

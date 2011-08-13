@@ -89,6 +89,7 @@ let rec IsArgsOnly args expr =
   | IdLiteral(id)                        -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
   | Dot(e,_)
   | SeqLength(e)
+  | LCIntervalExpr(e)
   | UnaryExpr(_,e)                       -> __IsArgsOnlyLst [e]
   | SelectExpr(e1, e2)
   | BinaryExpr(_,_,e1,e2)                -> __IsArgsOnlyLst [e1; e2]
@@ -111,7 +112,6 @@ let AddUnif indent e v unifMap =
 let rec GetUnifications indent args heapInst unifs expr =
   let idt = Indent indent
   // - first looks if the give expression talks only about method arguments (args)
-  // - then checks if it doesn't already exist in the unification map
   // - then it tries to evaluate it to a constant
   // - if all of these succeed, it adds a unification rule e <--> val(e) to the given unifMap map
   let __AddUnif e unifsAcc =
@@ -320,6 +320,17 @@ let FixSolution origComp origMeth sol =
                       else 
                         acc |> Map.add (cc,mm) v) Map.empty
 
+//
+let DontResolveUnmodifiableStuff prog comp meth expr =
+  let methodArgs = GetMethodInArgs meth
+  let __IsMethodArg argName = methodArgs |> List.exists (fun (Var(vname,_)) -> vname = argName)
+  let isConstr = match meth with Method(_,_,_,_,b) -> b | _ -> false
+  match expr with
+  | VarLiteral(id) when __IsMethodArg id -> false 
+  | IdLiteral(id) when not (id = "this" || id = "null") -> isConstr
+  | Dot(lhs, fldName) -> isConstr
+  | _ -> true
+
 //  ============================================================================
 /// Attempts to synthesize the initialization code for the given constructor "m"
 ///
@@ -351,7 +362,7 @@ let rec AnalyzeConstructor indent prog comp m callGraph =
         Logger.InfoLine " OK "
         let model = models.[0]
         let hModel = ReadFieldValuesFromModel model prog comp m
-        let heapInst = ResolveModel hModel (GetMethodOutArgs m)
+        let heapInst = ResolveModel hModel m
         let unifs = GetUnificationsForMethod indent comp m heapInst |> Map.toList
         let heapInst = ApplyUnifications indent prog comp m unifs heapInst true
         
@@ -379,10 +390,9 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
   let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
   let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
   let methodArgs = GetMethodInArgs m
-  let __IsMethodArg argName = methodArgs |> List.exists (fun (Var(vname,_)) -> vname = argName)
   let expr = GetHeapExpr prog m heapInst2
   // now evaluate and see what's left
-  let newCond = Eval heapInst2 (function VarLiteral(id) when __IsMethodArg id -> false | _ -> true) expr
+  let newCond = Eval heapInst2 (DontResolveUnmodifiableStuff prog comp m) expr
   if newCond = TrueLiteral then
     Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)
     wrongSol

@@ -32,6 +32,7 @@ let rec PrintExpr ctx expr =
       sprintf "%s%s" decl vars
   | Star              -> "*"
   | Dot(e,id)         -> sprintf "%s.%s" (PrintExpr 100 e) id
+  | LCIntervalExpr(e) -> sprintf "%s.." (PrintExpr 90 e)
   | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e)   -> sprintf "%s%s" op (PrintExpr 90 e)
   | BinaryExpr(strength,op,e0,e1) ->

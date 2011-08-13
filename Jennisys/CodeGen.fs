@@ -222,32 +222,43 @@ let PrintReprAssignments prog heapInst indent =
   else
     ""
                                                           
-let rec PrintHeapCreationCode prog sol indent genRepr =    
+let rec PrintHeapCreationCode prog sol indent genRepr =
+  /// just removes all FieldAssignments to unmodifiable objects    
+  let __RemoveUnmodifiableStuff heapInst = 
+    let newAsgs = heapInst.assignments |> List.fold (fun acc a ->
+                                                       match a with
+                                                       | FieldAssignment((obj,_),_) when not (Set.contains obj heapInst.modifiableObjs) ->
+                                                           acc
+                                                       | _ -> acc @ [a]
+                                                    ) []
+    { heapInst with assignments = newAsgs }
+
   let idt = Indent indent
   match sol with
-  | (c, heapInst) :: rest ->
+  | (c, hi) :: rest ->
+      let heapInstMod = __RemoveUnmodifiableStuff hi
       let __ReprAssignments ind = 
         if genRepr then
-          (PrintReprAssignments prog heapInst ind)
+          (PrintReprAssignments prog heapInstMod ind)
         else 
           ""
       if c = TrueLiteral then
-        (PrintAllocNewObjects heapInst indent) +
-        (PrintVarAssignments heapInst indent) +
+        (PrintAllocNewObjects heapInstMod indent) +
+        (PrintVarAssignments heapInstMod indent) +
         (__ReprAssignments indent) +
         (PrintHeapCreationCode prog rest indent genRepr) 
       else
         if List.length rest > 0 then
           idt + "if (" + (PrintExpr 0 c) + ") {" + newline +
-          (PrintAllocNewObjects heapInst (indent+2)) +
-          (PrintVarAssignments heapInst (indent+2)) +
+          (PrintAllocNewObjects heapInstMod (indent+2)) +
+          (PrintVarAssignments heapInstMod (indent+2)) +
           (__ReprAssignments (indent+2)) +
           idt + "} else {" + newline + 
           (PrintHeapCreationCode prog rest (indent+2) genRepr) +
           idt + "}" + newline
         else 
-          (PrintAllocNewObjects heapInst indent) +
-          (PrintVarAssignments heapInst indent) +
+          (PrintAllocNewObjects heapInstMod indent) +
+          (PrintVarAssignments heapInstMod indent) +
           (__ReprAssignments indent)
   | [] -> ""
 

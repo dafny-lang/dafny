@@ -32,6 +32,7 @@ let rec Rewrite rewriterFunc expr =
   | Dot(e, id)                       -> Dot(__RewriteOrRecurse e, id)
   | ForallExpr(vars,e)               -> ForallExpr(vars, __RewriteOrRecurse e)   
   | UnaryExpr(op,e)                  -> UnaryExpr(op, __RewriteOrRecurse e)
+  | LCIntervalExpr(e)                -> LCIntervalExpr(__RewriteOrRecurse e)
   | SeqLength(e)                     -> SeqLength(__RewriteOrRecurse e)
   | SelectExpr(e1, e2)               -> SelectExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2)
   | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, __RewriteOrRecurse e1, __RewriteOrRecurse e2)
@@ -104,6 +105,7 @@ let rec DescendExpr visitorFunc composeFunc leafVal expr =
   | IdLiteral(_)                     -> leafVal
   | Dot(e, _)
   | ForallExpr(_,e)
+  | LCIntervalExpr(e)
   | UnaryExpr(_,e)           
   | SeqLength(e)                     -> __Compose (e :: [])
   | SelectExpr(e1, e2)
@@ -128,6 +130,7 @@ let rec DescendExpr2 visitorFunc expr acc =
   | IdLiteral(_)                     -> newAcc
   | Dot(e, _)
   | ForallExpr(_,e)
+  | LCIntervalExpr(e)
   | UnaryExpr(_,e)           
   | SeqLength(e)                     -> __Pipe (e :: [])
   | SelectExpr(e1, e2)
@@ -592,11 +595,19 @@ let rec __EvalSym resolverFunc ctx expr =
       let rcv' = __EvalSym resolverFunc ctx rcv
       let aparams' = aparams |> List.fold (fun acc e -> __EvalSym resolverFunc ctx e :: acc) [] |> List.rev
       MethodCall(rcv', cname, mname, aparams')
+  | LCIntervalExpr(_) -> expr
   | SelectExpr(lst, idx) ->
       let lst' = __EvalSym resolverFunc ctx lst
       let idx' = __EvalSym resolverFunc ctx idx 
       match lst', idx' with
       | SequenceExpr(elist), IntLiteral(n) -> elist.[n] 
+      | SequenceExpr(elist), LCIntervalExpr(startIdx) ->
+          let startIdx' = __EvalSym resolverFunc ctx startIdx
+          match startIdx' with
+          | IntLiteral(startIdxInt) -> 
+              let rec __Skip n l = if n = 0 then l else __Skip (n-1) (List.tail l)
+              SequenceExpr(__Skip startIdxInt elist)
+          | _ -> SelectExpr(lst', idx')
       | _ -> SelectExpr(lst', idx')
   | UpdateExpr(lst,idx,v) ->
       let lst', idx', v' = __EvalSym resolverFunc ctx lst, __EvalSym resolverFunc ctx idx, __EvalSym resolverFunc ctx v
@@ -829,6 +840,7 @@ let MyDesugar expr removeOriginal =
         | SequenceExpr(elist) -> elist |> List.fold (fun acc e -> BinaryAnd acc (__Desugar (Substitute (VarLiteral(vn2)) e sub))) TrueLiteral
         | _ -> ForallExpr(v, __Desugar ee)
     | ForallExpr(v,e)        -> ForallExpr(v, __Desugar e)
+    | LCIntervalExpr(e)      -> LCIntervalExpr(__Desugar e)
     | UnaryExpr(op,e)        -> UnaryExpr(op, __Desugar e)
     | IteExpr(c,e1,e2)       -> IteExpr(c, __Desugar e1, __Desugar e2)
     // lst = [a1 a2 ... an] ~~~> lst = [a1 a2 ... an] && lst[0] = a1 && lst[1] = a2 && ... && lst[n-1] = an && |lst| = n
@@ -884,6 +896,7 @@ let ChangeThisReceiver receiver expr =
     | Dot(e, id)                           -> Dot(__ChangeThis locals e, id)
     | ForallExpr(vars,e)                   -> let newLocals = vars |> List.map (function Var(name,_) -> name) |> Set.ofList |> Set.union locals
                                               ForallExpr(vars, __ChangeThis newLocals e)   
+    | LCIntervalExpr(e)                    -> LCIntervalExpr(__ChangeThis locals e)
     | UnaryExpr(op,e)                      -> UnaryExpr(op, __ChangeThis locals e)
     | SeqLength(e)                         -> SeqLength(__ChangeThis locals e)
     | SelectExpr(e1, e2)                   -> SelectExpr(__ChangeThis locals e1, __ChangeThis locals e2)
@@ -902,3 +915,12 @@ let rec ExtractTopLevelExpressions stmt =
   | Assign(e1, e2) -> [e1; e2]
   | Block(slist)   -> slist |> List.fold (fun acc s -> acc @ ExtractTopLevelExpressions s) [] 
 
+//  ==========================================================
+/// Very simple for now: 
+///   - if "m" is a constructor, everything is modifiable
+///   - otherwise, all objects are immutable (TODO: instead it should read the "modifies" clause of a method and figure out what's modifiable from there)
+//  ==========================================================
+let IsModifiableObj obj m = 
+  match m with
+  | Method(_,_,_,_,isConstr) -> isConstr
+  | _ -> failwithf "expected a Method but got %O" m

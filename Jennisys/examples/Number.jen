@@ -26,11 +26,11 @@ class Number {
     ensures num in {a b c}
     ensures forall x :: x in {a b c} ==> num <= x
 
- constructor MinSum(a: int, b: int, c: int)
+  constructor MinSum(a: int, b: int, c: int)
     ensures num in {a+b a+c b+c}
     ensures num <= a+b && num <= b+c && num <= a+c
 
- constructor Min4(a: int, b: int, c: int, d: int)
+  constructor Min4(a: int, b: int, c: int, d: int)
     ensures num in {a b c d}
     ensures forall x :: x in {a b c d} ==> num <= x
 

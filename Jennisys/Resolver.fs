@@ -21,6 +21,7 @@ type AssignmentType =
 
 type HeapInstance = {
    objs: Map<string, Obj>;
+   modifiableObjs: Set<Obj>;
    assignments: AssignmentType list
    methodArgs: Map<string, Const>;
    methodRetVals: Map<string, Expr>;
@@ -136,7 +137,8 @@ let Eval heapInst resolveExprFunc expr =
 /// (HeapInstance), where all fields for all objects have explicit 
 /// assignments.
 //  =====================================================================
-let ResolveModel hModel outArgs = 
+let ResolveModel hModel meth = 
+  let outArgs = GetMethodOutArgs meth
   let hmap = hModel.heap |> Map.fold (fun acc (o,f) l ->
                                         let objName, objTypeOpt = match Resolve hModel o with
                                                                   | ThisConst(_,t) -> "this", t;
@@ -148,10 +150,18 @@ let ResolveModel hModel outArgs =
                                         Utils.ListMapAdd (obj, f) value acc 
                                      ) []
                          |> List.map (fun el -> FieldAssignment(el))
-  let objs = hmap |> List.fold (fun acc asgn -> 
-                                  match asgn with
-                                  | FieldAssignment((obj,_),_) -> acc |> Map.add obj.name obj
-                                  | _ -> acc) Map.empty
+  let objs, modObjs = hmap |> List.fold (fun (acc1,acc2) asgn -> 
+                                           match asgn with
+                                           | FieldAssignment((obj,_),_) -> 
+                                               let acc1' = acc1 |> Map.add obj.name obj
+                                               let acc2' = 
+                                                 if IsModifiableObj obj meth then
+                                                   acc2 |> Set.add obj
+                                                 else
+                                                   acc2
+                                               acc1',acc2'
+                                           | _ -> acc1,acc2
+                                        ) (Map.empty, Set.empty)
   let argmap, retvals = hModel.env |> Map.fold (fun (acc1,acc2) k v -> 
                                                   match k with
                                                   | VarConst(name) -> 
@@ -161,11 +171,12 @@ let ResolveModel hModel outArgs =
                                                         acc1 |> Map.add name (Resolve hModel v), acc2
                                                   | _ -> acc1, acc2
                                                ) (Map.empty, Map.empty)
-  { objs          = objs;
-    assignments   = hmap; 
-    methodArgs    = argmap; 
-    methodRetVals = retvals;
-    globals       = Map.empty }
+  { objs           = objs;
+    modifiableObjs = modObjs;
+    assignments    = hmap; 
+    methodArgs     = argmap; 
+    methodRetVals  = retvals;
+    globals        = Map.empty }
 
 let rec GetCallGraph solutions graph = 
   let rec __SearchExprsForMethodCalls elist acc = 
