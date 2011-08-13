@@ -37,3 +37,7 @@ let TypeCheck prog =
       let componentNames = decls |> List.choose (function Class(name,_,_) -> Some(name) | _ -> None)
       let clist = componentNames |> List.map (fun name -> Component(GetClass name decls, GetModel name decls, GetCode name decls))
       Some(Program(clist))
+
+// TODO: implement this
+let InferType prog expr = 
+  NamedType("unknown", [])

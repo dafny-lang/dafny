@@ -275,6 +275,13 @@ let TryExpr2Const e =
   with
     | ex -> None
 
+let IsConstExpr e = 
+  try 
+    Expr2Const e |> ignore
+    true
+  with
+    | _ -> false
+
 // --- search functions ---
                      
 //  =========================================================
@@ -407,6 +414,11 @@ let GetMethodArgs mthd =
   let ins = GetMethodInArgs mthd
   let outs = GetMethodOutArgs mthd
   List.concat [ins; outs]
+
+let IsConstructor mthd = 
+  match mthd with
+  | Method(_,_,_,_,isConstr) -> isConstr
+  | _ -> failwithf "expected a method but got %O" mthd
 
 let rec GetTypeShortName ty =
   match ty with

@@ -73,80 +73,7 @@ let rec MethodAnalysisPrinter onlyForThese assertion comp =
         (MethodAnalysisPrinter rest assertion comp)
     | _ -> ""
   | _ :: rest -> MethodAnalysisPrinter rest assertion comp
-  | [] -> ""
-
-let rec IsArgsOnly args expr = 
-  let __IsArgsOnlyLst elist = 
-    elist |> List.fold (fun acc e -> acc && (IsArgsOnly args e)) true
-  match expr with                                                
-  | IntLiteral(_)
-  | BoolLiteral(_)
-  | BoxLiteral(_)
-  | Star        
-  | VarDeclExpr(_)
-  | ObjLiteral(_)                        -> true
-  | VarLiteral(id)
-  | IdLiteral(id)                        -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
-  | Dot(e,_)
-  | SeqLength(e)
-  | LCIntervalExpr(e)
-  | UnaryExpr(_,e)                       -> __IsArgsOnlyLst [e]
-  | SelectExpr(e1, e2)
-  | BinaryExpr(_,_,e1,e2)                -> __IsArgsOnlyLst [e1; e2]
-  | IteExpr(e3, e1, e2)         
-  | UpdateExpr(e1, e2, e3)               -> __IsArgsOnlyLst [e1; e2; e3]
-  | SequenceExpr(exprs) | SetExpr(exprs) -> __IsArgsOnlyLst exprs
-  | MethodCall(rcv,_,_,aparams)          -> __IsArgsOnlyLst (rcv :: aparams)
-  | ForallExpr(vars,e)                   -> IsArgsOnly (List.concat [args; vars]) e
-
-let AddUnif indent e v unifMap =
-  let idt = Indent indent
-  let builder = new CascadingBuilder<_>(unifMap)
-  builder {
-    let! notAlreadyAdded = Map.tryFind e unifMap |> Utils.IsNoneOption |> Utils.BoolToOption
-    Logger.DebugLine (idt + "    - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v))
-    return Map.add e v unifMap
-  }
-
-//TODO: unifications should probably by "Expr <--> Expr" instead of "Expr <--> Const"
-let rec GetUnifications indent args heapInst unifs expr =
-  let idt = Indent indent
-  // - first looks if the give expression talks only about method arguments (args)
-  // - then it tries to evaluate it to a constant
-  // - if all of these succeed, it adds a unification rule e <--> val(e) to the given unifMap map
-  let __AddUnif e unifsAcc =
-    let builder = new CascadingBuilder<_>(unifsAcc)
-    builder {
-      let! argsOnly = IsArgsOnly args e |> Utils.BoolToOption
-      let! v = try Some(Eval heapInst (fun _ -> true) e |> Expr2Const) with ex -> None
-      return AddUnif indent e v unifsAcc
-    }
-  (* --- function body starts here --- *)
-  AstUtils.DescendExpr2 __AddUnif expr unifs
-
-//  =======================================================
-/// Returns a map (Expr |--> Const) containing unifications
-/// found for the given method and heap/env/ctx
-//  =======================================================
-let GetUnificationsForMethod indent comp m heapInst =
-  let idt = Indent indent
-  let rec GetArgValueUnifications args = 
-    match args with
-    | Var(name,_) :: rest -> 
-        match Map.tryFind name heapInst.methodArgs with
-        | Some(c) ->
-            GetArgValueUnifications rest |> AddUnif indent (VarLiteral(name)) c
-        | None -> failwith ("couldn't find value for argument " + name)
-    | [] -> Map.empty
-  (* --- function body starts here --- *)
-  match m with
-  | Method(mName,Sig(ins, outs),pre,post,_) -> 
-      let args = ins
-      match args with 
-      | [] -> Map.empty
-      | _  -> let unifs = GetArgValueUnifications args
-              GetUnifications indent args heapInst unifs (BinaryAnd pre post)                 
-  | _ -> failwith ("not a method: " + m.ToString())
+  | [] -> ""     
 
 //  =========================================================================
 /// For a given constant "o" (which is an object, something like "gensym32"), 
@@ -185,6 +112,125 @@ let GetObjRefExpr objRefName (heapInst: HeapInstance) =
     | Some(e) -> objRef2ExprCache.Add(objRefName, e)
     | None -> ()
     res
+
+//  =============================================================================
+/// Returns an expression that combines the post-condition of a given method with
+/// invariants for all objects present on the heap
+//  =============================================================================
+let GetHeapExpr prog mthd heapInst = 
+  // get expressions to evaluate:
+  //   - add post (and pre?) conditions                                     
+  //   - go through all objects on the heap and assert their invariants  
+  let pre,post = GetMethodPrePost mthd
+  let prepostExpr = post //TODO: do we need the "pre" here as well?
+  let heapObjs = heapInst.assignments |> List.fold (fun acc asgn ->
+                                                      match asgn with
+                                                      | FieldAssignment((o,_),_) -> acc |> Set.add o
+                                                      | _ -> acc) Set.empty
+  heapObjs |> Set.fold (fun acc o -> 
+                          let receiverOpt = GetObjRefExpr o.name heapInst
+                          let receiver = Utils.ExtractOption receiverOpt
+                          let objComp = FindComponent prog (GetTypeShortName o.objType) |> Utils.ExtractOption
+                          let objInvs = GetInvariantsAsList objComp
+                          let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
+                          objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
+                      ) prepostExpr
+
+let IsUnmodOnly (comp,meth) expr = 
+  let isConstr = IsConstructor meth
+  let rec __IsUnmodOnly args expr = 
+    let __IsUnmodOnlyLst elist = 
+      elist |> List.fold (fun acc e -> acc && (__IsUnmodOnly args e)) true
+    match expr with                                                
+    | IntLiteral(_)
+    | BoolLiteral(_)
+    | BoxLiteral(_)
+    | Star        
+    | VarDeclExpr(_)
+    | ObjLiteral(_)                        -> true
+    | VarLiteral(id)                       -> args |> List.exists (function Var(varName,_) when varName = id -> true | _ -> false)
+    | IdLiteral("null")                    -> true
+    | IdLiteral(id)                        -> if isConstr then false else true  //TODO: tempporary implementation
+    | Dot(e, fldName)                      -> if isConstr then false else __IsUnmodOnlyLst [e]
+        // TODO: this is how it should really work
+        // let lhsType = InferType prog e
+        // let isMod = IsFieldModifiable lhsType fldName
+        // (not isMod) && __IsUnmodOnlyLst [e]
+    | SeqLength(e)
+    | LCIntervalExpr(e)
+    | UnaryExpr(_,e)                       -> __IsUnmodOnlyLst [e]
+    | SelectExpr(e1, e2)
+    | BinaryExpr(_,_,e1,e2)                -> __IsUnmodOnlyLst [e1; e2]
+    | IteExpr(e3, e1, e2)         
+    | UpdateExpr(e1, e2, e3)               -> __IsUnmodOnlyLst [e1; e2; e3]
+    | SequenceExpr(exprs) | SetExpr(exprs) -> __IsUnmodOnlyLst exprs
+    | MethodCall(rcv,_,_,aparams)          -> __IsUnmodOnlyLst (rcv :: aparams)
+    | ForallExpr(vars,e)                   -> __IsUnmodOnly (args @ vars) e
+  (* --- function body starts here --- *)
+  __IsUnmodOnly (GetMethodInArgs meth) expr
+
+let AddUnif indent e v unifMap =
+  let idt = Indent indent
+  let builder = new CascadingBuilder<_>(unifMap)
+  builder {
+    let! notAlreadyAdded = Map.tryFind e unifMap |> Utils.IsNoneOption |> Utils.BoolToOption
+    Logger.DebugLine (idt + "    - adding unification " + (PrintExpr 0 e) + " <--> " + (PrintConst v))
+    return Map.add e v unifMap
+  }
+
+//TODO: unifications should probably by "Expr <--> Expr" instead of "Expr <--> Const"
+let rec GetUnifications indent (comp,meth) heapInst unifs expr =
+  let idt = Indent indent
+  // - first looks if the give expression talks only about method arguments (args)
+  // - then it tries to evaluate it to a constant
+  // - if all of these succeed, it adds a unification rule e <--> val(e) to the given unifMap map
+  let __AddUnif e unifsAcc =
+    if IsConstExpr e then
+      unifsAcc
+    else      
+      let builder = new CascadingBuilder<_>(unifsAcc)
+      builder {
+        let! argsOnly = IsUnmodOnly (comp,meth) e |> Utils.BoolToOption
+        let! v = try Some(Eval heapInst (fun _ -> true) e |> Expr2Const) with ex -> None
+        return AddUnif indent e v unifsAcc
+      }
+  (* --- function body starts here --- *)
+  AstUtils.DescendExpr2 __AddUnif expr unifs
+
+//  =======================================================
+/// Returns a map (Expr |--> Const) containing unifications
+/// found for the given method and heap/env/ctx
+//  =======================================================
+let GetUnificationsForMethod indent comp m heapInst =
+  let idt = Indent indent
+  let rec GetArgValueUnifications args = 
+    match args with
+    | Var(name,_) :: rest -> 
+        match Map.tryFind name heapInst.methodArgs with
+        | Some(c) ->
+            GetArgValueUnifications rest |> AddUnif indent (VarLiteral(name)) c
+        | None -> failwith ("couldn't find value for argument " + name)
+    | [] -> Map.empty
+  let rec GetFldValueUnifications fldNames unifs = 
+    match fldNames with
+    | fldName :: rest -> 
+        heapInst.assignments |> List.fold (fun acc asgn ->  
+                                             match asgn with 
+                                             | FieldAssignment((obj,Var(vname,_)), fldVal) when obj.name = "this" && vname = fldName -> 
+                                                 try 
+                                                   let c = Expr2Const fldVal
+                                                   AddUnif indent (IdLiteral(fldName)) c acc
+                                                 with
+                                                 | _ -> acc
+                                             | _ -> acc
+                                          ) unifs
+                             |> GetFldValueUnifications rest 
+    | [] -> unifs
+  (* --- function body starts here --- *)
+  let unifs = GetArgValueUnifications (GetMethodInArgs m)
+  let fldNames = if IsConstructor m then [] else GetConcreteFields comp |> List.map (function Var(name,_) -> name)
+  let unifs2 = GetFldValueUnifications fldNames unifs
+  GetUnifications indent (comp,m) heapInst unifs2 (GetMethodPrePost m |> fun x -> BinaryAnd (fst x) (snd x))
 
 //  =======================================================
 /// Applies given unifications onto the given heap/env/ctx
@@ -288,29 +334,6 @@ let rec DiscoverAliasing exprList heapInst =
                                      ) TrueLiteral
       BinaryAnd eqExpr (DiscoverAliasing rest heapInst)
   | [] -> TrueLiteral
-
-//  =============================================================================
-/// Returns an expression that combines the post-condition of a given method with
-/// invariants for all objects present on the heap
-//  =============================================================================
-let GetHeapExpr prog mthd heapInst = 
-  // get expressions to evaluate:
-  //   - add post (and pre?) conditions                                     
-  //   - go through all objects on the heap and assert their invariants  
-  let pre,post = GetMethodPrePost mthd
-  let prepostExpr = post //TODO: do we need the "pre" here as well?
-  let heapObjs = heapInst.assignments |> List.fold (fun acc asgn ->
-                                                      match asgn with
-                                                      | FieldAssignment((o,_),_) -> acc |> Set.add o
-                                                      | _ -> acc) Set.empty
-  heapObjs |> Set.fold (fun acc o -> 
-                          let receiverOpt = GetObjRefExpr o.name heapInst
-                          let receiver = Utils.ExtractOption receiverOpt
-                          let objComp = FindComponent prog (GetTypeShortName o.objType) |> Utils.ExtractOption
-                          let objInvs = GetInvariantsAsList objComp
-                          let objInvsUpdated = objInvs |> List.map (ChangeThisReceiver receiver)
-                          objInvsUpdated |> List.fold (fun a e -> BinaryAnd a e) acc
-                      ) prepostExpr
 
 // use the orginal method, not the one with an extra precondition
 let FixSolution origComp origMeth sol =
