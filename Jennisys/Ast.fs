@@ -49,6 +49,8 @@ type Expr =
   | ForallExpr of VarDecl list * Expr
   | MethodCall of (* receiver *) Expr * (* component name *) string * (* method name *) string * (* actual parameters *) Expr list
   | VarDeclExpr of (* var list *) VarDecl list * (* declareAlso *) bool
+  | AssertExpr of Expr
+  | AssumeExpr of Expr
 
 type Const = 
   | IntConst   of int

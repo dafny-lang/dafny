@@ -41,6 +41,8 @@ let rec Rewrite rewriterFunc expr =
   | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map __RewriteOrRecurse)
   | SetExpr(exs)                     -> SetExpr(exs |> List.map __RewriteOrRecurse)
   | MethodCall(rcv,cname,mname,ins)  -> MethodCall(__RewriteOrRecurse rcv, cname, mname, ins |> List.map __RewriteOrRecurse)
+  | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse e)
+  | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse e)
 
 //  ====================================================
 /// Substitutes all occurences of all IdLiterals having 
@@ -103,6 +105,8 @@ let rec DescendExpr visitorFunc composeFunc leafVal expr =
   | ObjLiteral(_)                      
   | VarDeclExpr(_)
   | IdLiteral(_)                     -> leafVal
+  | AssertExpr(e)
+  | AssumeExpr(e)
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
@@ -128,6 +132,8 @@ let rec DescendExpr2 visitorFunc expr acc =
   | ObjLiteral(_)   
   | VarDeclExpr(_)                   
   | IdLiteral(_)                     -> newAcc
+  | AssertExpr(e)
+  | AssumeExpr(e)
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
@@ -582,6 +588,8 @@ let rec __EvalSym resolverFunc ctx expr =
   | ObjLiteral(_)  -> expr
   | Star           -> expr //TODO: can we do better?
   | VarDeclExpr(_) -> expr
+  | AssertExpr(e)  -> AssertExpr(__EvalSym resolverFunc ctx e)
+  | AssumeExpr(e)  -> AssumeExpr(__EvalSym resolverFunc ctx e)
   | VarLiteral(id) -> 
       try 
         let _,e = ctx |> List.find (fun (v,e) -> GetVarName v = id)
@@ -854,6 +862,8 @@ let MyDesugar expr removeOriginal =
     | ForallExpr(v,e)        -> ForallExpr(v, __Desugar e)
     | LCIntervalExpr(e)      -> LCIntervalExpr(__Desugar e)
     | UnaryExpr(op,e)        -> UnaryExpr(op, __Desugar e)
+    | AssertExpr(e)          -> AssertExpr(__Desugar e)
+    | AssumeExpr(e)          -> AssumeExpr(__Desugar e)
     | IteExpr(c,e1,e2)       -> IteExpr(c, __Desugar e1, __Desugar e2)
     // lst = [a1 a2 ... an] ~~~> lst = [a1 a2 ... an] && lst[0] = a1 && lst[1] = a2 && ... && lst[n-1] = an && |lst| = n
     | BinaryExpr(p,op,e1,e2) -> 
@@ -906,6 +916,8 @@ let ChangeThisReceiver receiver expr =
     | IdLiteral("this")                    -> failwith "should never happen anymore"
     | IdLiteral(id)                        -> if Set.contains id locals then VarLiteral(id) else __ChangeThis locals (Dot(ObjLiteral("this"), id))
     | Dot(e, id)                           -> Dot(__ChangeThis locals e, id)
+    | AssertExpr(e)                        -> AssertExpr(__ChangeThis locals e)
+    | AssumeExpr(e)                        -> AssumeExpr(__ChangeThis locals e)
     | ForallExpr(vars,e)                   -> let newLocals = vars |> List.map (function Var(name,_) -> name) |> Set.ofList |> Set.union locals
                                               ForallExpr(vars, __ChangeThis newLocals e)   
     | LCIntervalExpr(e)                    -> LCIntervalExpr(__ChangeThis locals e)

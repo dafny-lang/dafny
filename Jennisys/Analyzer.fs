@@ -83,7 +83,7 @@ let rec MethodAnalysisPrinter onlyForThese assertion comp =
 /// path.  It starts from the given object, and follows the backpointers
 /// until it reaches the root ("this")
 //  ========================================================================= 
-let objRef2ExprCache = new System.Collections.Generic.Dictionary<string, Expr>()
+// let objRef2ExprCache = new System.Collections.Generic.Dictionary<string, Expr>()
 let GetObjRefExpr objRefName (heapInst: HeapInstance) = 
   let rec __GetObjRefExpr objRefName visited = 
     if Set.contains objRefName visited then 
@@ -100,18 +100,22 @@ let GetObjRefExpr objRefName (heapInst: HeapInstance) =
                 | Some(expr) -> Some(Dot(expr, fldName))
                 | None -> __fff rest
             | [] -> None
-          let backPointers = heapInst.assignments |> List.choose (function FieldAssignment (x,l) -> if l = ObjLiteral(objRefName) then Some(x,l) else None
-                                                                           |_ -> None)
+          let backPointers = heapInst.assignments |> List.choose (function 
+                                                                    FieldAssignment (x,l) -> 
+                                                                      if l = ObjLiteral(objRefName) then Some(x,l) else None
+                                                                    |_ -> None)
           __fff backPointers 
   (* --- function body starts here --- *)
-  if objRef2ExprCache.ContainsKey(objRefName) then
-    Some(objRef2ExprCache.[objRefName])
-  else
-    let res = __GetObjRefExpr objRefName (Set.empty)
-    match res with 
-    | Some(e) -> objRef2ExprCache.Add(objRefName, e)
-    | None -> ()
-    res
+  __GetObjRefExpr objRefName (Set.empty)
+// THIS DOESN'T WORK BECAUSE THE CACHE HAS TO BE PURGED AFTER EVERY METHOD
+//  if objRef2ExprCache.ContainsKey(objRefName) then
+//    Some(objRef2ExprCache.[objRefName])
+//  else
+//    let res = __GetObjRefExpr objRefName (Set.empty)
+//    match res with 
+//    | Some(e) -> objRef2ExprCache.Add(objRefName, e)
+//    | None -> ()
+//    res
 
 //  =============================================================================
 /// Returns an expression that combines the post-condition of a given method with
@@ -156,6 +160,8 @@ let IsUnmodOnly (comp,meth) expr =
         // let lhsType = InferType prog e
         // let isMod = IsFieldModifiable lhsType fldName
         // (not isMod) && __IsUnmodOnlyLst [e]
+    | AssertExpr(e)
+    | AssumeExpr(e)
     | SeqLength(e)
     | LCIntervalExpr(e)
     | UnaryExpr(_,e)                       -> __IsUnmodOnlyLst [e]
@@ -256,7 +262,7 @@ let rec ApplyUnifications indent prog comp mthd unifs heapInst conservative =
                           | Var(_, Some(SetType(_))) when not (idx = -1) -> BinaryIn e lhs
                           | _                                            -> BinaryEq lhs e 
       // check if the assertion follows and if so update the env
-      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,mthd] assertionExpr) false
+      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,mthd] assertionExpr) true
       Logger.Debug (idt + "    - checking assertion: " + (PrintExpr 0 assertionExpr) + " ... ")
       let ok = CheckDafnyProgram code ("unif_" + (GetMethodFullName comp mthd))
       if ok then
@@ -371,7 +377,7 @@ let rec AnalyzeConstructor indent prog comp m callGraph =
       let methodName = GetMethodName m
       let pre,post = GetMethodPrePost m
       // generate Dafny code for analysis first
-      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,m] FalseLiteral) false
+      let code = PrintDafnyCodeSkeleton prog (MethodAnalysisPrinter [comp,m] FalseLiteral) true
       Logger.Info     (idt + "    - searching for an instance      ...")
       let models = RunDafnyProgram code (dafnyScratchSuffix + "_" + (GetMethodFullName comp m))  
       if models.Count = 0 then
@@ -415,6 +421,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
   let methodArgs = GetMethodInArgs m
   let expr = GetHeapExpr prog m heapInst2
   // now evaluate and see what's left
+  // printf "%s" (expr |> SplitIntoConjunts |> PrintSep newline (fun e -> PrintExpr 0 e))
   let newCond = Eval heapInst2 (DontResolveUnmodifiableStuff prog comp m) expr
   if newCond = TrueLiteral then
     Logger.InfoLine (sprintf "%s    - no more interesting pre-conditions" idt)

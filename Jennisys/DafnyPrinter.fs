@@ -11,7 +11,7 @@ let rec PrintType ty =
   | SeqType(t)                -> sprintf "seq<%s>" (PrintType t)
   | SetType(t)                -> sprintf "set<%s>" (PrintType t)
   | NamedType(id,args)        -> if List.isEmpty args then id else sprintf "%s<%s>" id (PrintSep ", " (fun s -> s) args)
-  | InstantiatedType(id,args) -> sprintf "%s<%s>" id (PrintSep ", " (fun t -> PrintType t) args)
+  | InstantiatedType(id,args) -> if List.isEmpty args then id else sprintf "%s<%s>" id (PrintSep ", " (fun t -> PrintType t) args)
 
 let PrintVarDecl vd =
   match vd with
@@ -60,6 +60,8 @@ let rec PrintExpr ctx expr =
   | SequenceExpr(ee)  -> sprintf "[%s]" (ee |> PrintSep ", " (PrintExpr 0))
   | SeqLength(e)      -> sprintf "|%s|" (PrintExpr 0 e)
   | SetExpr(ee)       -> sprintf "{%s}" (ee |> PrintSep ", " (PrintExpr 0))
+  | AssertExpr(e)     -> sprintf "assert %s" (PrintExpr 0 e)
+  | AssumeExpr(e)     -> sprintf "assume %s" (PrintExpr 0 e)
   | ForallExpr(vv,e)  ->
       let needParens = true
       let openParen = if needParens then "(" else ""

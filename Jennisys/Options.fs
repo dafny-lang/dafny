@@ -20,6 +20,7 @@ type Config = {
    genMod: bool;
    timeout: int;
    numLoopUnrolls: int;
+   recursiveValid: bool;
 }
 
 type CfgOption<'a> = {
@@ -67,6 +68,8 @@ let cfgOptions = [
   { optionName = "noGenMod";        optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genMod                 = not (CheckBool v "noGenMod")});      descr = "description not available"; }
   { optionName = "timeout";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with timeout                =      CheckInt v "timeout"});         descr = "description not available"; }
   { optionName = "unrolls";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with numLoopUnrolls         =      CheckInt v "unrolls"});         descr = "description not available"; }
+  { optionName = "recValid";        optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         =      CheckBool v "recValid"});       descr = "description not available"; }
+  { optionName = "noRecValid";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         = not (CheckBool v "noRecValid")});    descr = "description not available"; }
 ]
 
 let cfgOptMap = cfgOptions |> List.fold (fun acc o -> acc |> Map.add o.optionName o) Map.empty
@@ -98,10 +101,11 @@ let defaultConfig: Config = {
   verifyPartialSolutions = true;
   verifySolutions   = true;
   checkUnifications = false;
-  genRepr           = false;
+  genRepr           = true;
   genMod            = false;
   timeout           = 0;
   numLoopUnrolls    = 2;
+  recursiveValid    = true;
 }
 
 /// Should not be mutated outside the ParseCmdLineArgs method, which is 

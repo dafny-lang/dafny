@@ -46,6 +46,8 @@ let rec PrintExpr ctx expr =
   | SequenceExpr(ee)  -> sprintf "[%s]" (ee |> PrintSep " " (PrintExpr 0))
   | SeqLength(e)      -> sprintf "|%s|" (PrintExpr 0 e)
   | SetExpr(ee)       -> sprintf "{%s}" (ee |> PrintSep " " (PrintExpr 0))
+  | AssertExpr(e)     -> sprintf "assert %s" (PrintExpr 0 e)
+  | AssumeExpr(e)     -> sprintf "assume %s" (PrintExpr 0 e)
   | ForallExpr(vv,e)  ->
       let needParens = ctx <> 0
       let openParen = if needParens then "(" else ""
