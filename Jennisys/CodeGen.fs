@@ -160,24 +160,8 @@ let PrintAllocNewObjects heapInst indent =
 
 let PrintVarAssignments heapInst indent = 
   let idt = Indent indent
-  let fldAssgnsStr = heapInst.assignments |> PrintSep newline (fun asgn ->                                                        
-                                                                 let exprStr = 
-                                                                   match asgn with
-                                                                   | FieldAssignment((o,f),e) ->
-                                                                       let fldName = GetVarName f
-                                                                       if fldName = "" then
-                                                                         PrintStmt (ExprStmt(e)) 0 false
-                                                                       else
-                                                                         PrintStmt (Assign(Dot(ObjLiteral(o.name), fldName), e)) 0 false
-                                                                   | ArbitraryStatement(stmt) ->
-                                                                         PrintStmt stmt 0 false
-                                                                 idt + exprStr)
-  let retValsAssgnsStr = heapInst.methodRetVals |> Map.toList
-                                                |> PrintSep newline (fun (retVarName, retVarVal) ->  
-                                                                       let stmt = Assign(VarLiteral(retVarName), retVarVal)
-                                                                       let assgnStr = PrintStmt stmt 0 false
-                                                                       idt + assgnStr)
-  let str = [fldAssgnsStr; retValsAssgnsStr] |> List.filter (fun s -> not (s = "")) |> PrintSep newline (fun s -> s)
+  let stmts = ConvertToStatements heapInst
+  let str = stmts |> PrintSep (newline) (fun s -> idt + (PrintStmt s 0 false))
   str + newline
 
 ///

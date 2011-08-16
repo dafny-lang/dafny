@@ -209,6 +209,7 @@ let TryFindExistingAndConvertToSolution indent comp m cond callGraph =
         let hInst = { objs           = Utils.MapSingleton obj.name obj;
                       modifiableObjs = modObjs;
                       assignments    = body; 
+                      concreteValues = body;
                       methodArgs     = Map.empty; 
                       methodRetVals  = Map.empty;
                       globals        = Map.empty }

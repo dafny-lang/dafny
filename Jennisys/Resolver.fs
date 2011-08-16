@@ -22,13 +22,28 @@ type AssignmentType =
 type HeapInstance = {
    objs: Map<string, Obj>;
    modifiableObjs: Set<Obj>;
-   assignments: AssignmentType list
+   assignments: AssignmentType list;
+   concreteValues: AssignmentType list;
    methodArgs: Map<string, Const>;
    methodRetVals: Map<string, Expr>;
    globals: Map<string, Expr>;
 }
 
 let NoObj = { name = ""; objType = NamedType("", []) }
+
+let ConvertToStatements heapInst = 
+  let stmtLst1 = heapInst.assignments |> List.map (fun asgn ->                                                        
+                                                     match asgn with
+                                                     | FieldAssignment((o,f),e) ->
+                                                         let fldName = GetVarName f
+                                                         if fldName = "" then
+                                                           ExprStmt(e)
+                                                          else
+                                                            Assign(Dot(ObjLiteral(o.name), fldName), e)
+                                                      | ArbitraryStatement(stmt) -> stmt)
+  let stmtLst2 = heapInst.methodRetVals |> Map.toList
+                                        |> List.map (fun (retVarName, retVarVal) -> Assign(VarLiteral(retVarName), retVarVal))
+  stmtLst1 @ stmtLst2
 
 // resolving values
 exception ConstResolveFailed of string
@@ -95,7 +110,23 @@ let Resolve hModel cst =
 /// Evaluates a given expression with respect to a given heap instance       
 //  ==================================================================
 let Eval heapInst resolveExprFunc expr = 
-  let rec __EvalResolver expr fldNameOpt = 
+  let rec __EvalResolver useConcrete resolveExprFunc expr fldNameOpt = 
+    let rec __FurtherResolve expr = 
+      match expr with
+      | SetExpr(elist)      -> SetExpr(elist |> List.map __FurtherResolve)
+      | SequenceExpr(elist) -> SequenceExpr(elist |> List.map __FurtherResolve)
+      | VarLiteral(_) ->
+          try 
+            __EvalResolver useConcrete resolveExprFunc expr None
+          with 
+          | _ -> expr
+      | IdLiteral(id) when not (id = "this" || id = "null") ->
+          try 
+            __EvalResolver useConcrete resolveExprFunc expr None
+          with 
+          | _ -> expr
+      | _ -> expr
+
     if not (resolveExprFunc expr) then
       match fldNameOpt with
       | None -> expr
@@ -117,19 +148,32 @@ let Eval heapInst resolveExprFunc expr =
               let globalVal = heapInst.globals |> Map.tryFind id
               match globalVal with
               | Some(e) -> e
-              | None -> __EvalResolver ThisLiteral (Some(id))      
+              | None -> __EvalResolver useConcrete resolveExprFunc ThisLiteral (Some(id))      
           | _ -> raise (EvalFailed(sprintf "I'm not supposed to resolve %O" expr))
       | Some(fldName) -> 
           match expr with
           | ObjLiteral(objName) -> 
-              let h2 = heapInst.assignments |> List.filter (function FieldAssignment((o, Var(varName,_)), v) -> o.name = objName && varName = fldName | _ -> false)
+              let asgs = if useConcrete then heapInst.concreteValues else heapInst.assignments
+              let h2 = asgs |> List.filter (function FieldAssignment((o, Var(varName,_)), v) -> o.name = objName && varName = fldName | _ -> false)
               match h2 with
-              | FieldAssignment((_,_),x) :: [] -> x
+              | FieldAssignment((_,_),x) :: [] -> __FurtherResolve x
               | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName fldName))
               | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" objName fldName))  // TODO: what if that value doesn't matter for the solution, and that's why it's not present in the model???
           | _ -> Dot(expr, fldName)
   (* --- function body starts here --- *)
-  EvalSym __EvalResolver expr
+  //EvalSym  (__EvalResolver resolveExprFunc) expr
+  EvalSymRet  (__EvalResolver false resolveExprFunc)
+              (fun expr -> 
+                 // TODO: infer type of expr and then re-execute only if its type is Bool
+                 let e1 = EvalSym (__EvalResolver true (fun _ -> true)) expr
+                 match e1 with
+                 | BoolLiteral(b) -> 
+                     if b then
+                       expr
+                     else 
+                       FalseLiteral
+                 | _ -> expr
+              ) expr
 
 //  =====================================================================
 /// Takes an unresolved model of the heap (HeapModel), resolves all 
@@ -174,6 +218,7 @@ let ResolveModel hModel meth =
   { objs           = objs;
     modifiableObjs = modObjs;
     assignments    = hmap; 
+    concreteValues = hmap;
     methodArgs     = argmap; 
     methodRetVals  = retvals;
     globals        = Map.empty }
@@ -202,3 +247,33 @@ let rec GetCallGraph solutions graph =
         let graph' = graph |> Map.add (comp,m) callees
         GetCallGraph rest graph'
   | [] -> graph
+
+//////////////////////////////
+
+let Is1stLevelExpr heapInst expr = 
+  DescendExpr2 (fun expr acc ->
+                  if not acc then
+                    false
+                  else
+                    match expr with
+                    | Dot(discr, fldName) -> 
+                        let obj = Eval heapInst (fun _ -> true) discr
+                        match obj with 
+                        | ObjLiteral(id) -> not (id = "this")
+                        | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
+                    | _ -> true                          
+               ) expr true
+
+let IsSolution1stLevelOnly heapInst = 
+  let rec __IsSol1stLevel stmts = 
+    match stmts with
+    | stmt :: rest -> 
+        match stmt with
+        | Assign(_, e)
+        | ExprStmt(e) -> 
+            let ok = Is1stLevelExpr heapInst e
+            ok && __IsSol1stLevel rest
+        | Block(stmts) -> __IsSol1stLevel (stmts @ rest)
+    | [] -> true
+  (* --- function body starts here --- *)
+  __IsSol1stLevel (ConvertToStatements heapInst)

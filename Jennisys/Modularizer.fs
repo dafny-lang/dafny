@@ -39,12 +39,12 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
     | SetExpr(elist) -> elist |> List.fold (fun acc2 e2 -> __AddDirectChildren e2 acc2) acc
     | _ -> acc
 
-  let __GetDirectChildren = 
-    let thisRhsExprs = hInst.assignments |> List.choose (function FieldAssignment((obj,_),e) when obj.name = "this" -> Some(e) | _ -> None)
+  let __GetDirectModifiableChildren = 
+    let thisRhsExprs = hInst.assignments |> List.choose (function FieldAssignment((obj,_),e) when obj.name = "this" && Set.contains obj hInst.modifiableObjs  -> Some(e) | _ -> None)
     thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
                  |> Set.toList
 
-  let directChildren = lazy (__GetDirectChildren)
+  let directChildren = lazy (__GetDirectModifiableChildren)
 
   let __IsAbstractField ty var = 
     let builder = CascadingBuilder<_>(false)
