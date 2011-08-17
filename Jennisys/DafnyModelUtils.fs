@@ -244,14 +244,24 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
         __ReadSeqAppend model rest (newEnv,newCtx)
     | _ -> (envMap,ctx)  
 
+  // keeps reading from Seq#Build and Seq#Append until fixpoint
+  let rec __ReadUntilFixpoint hmodel = 
+    let f_seq_bld = model.MkFunc("Seq#Build", 2)
+    let f_seq_app = model.MkFunc("Seq#Append", 2)
+    let hmodel' = hmodel |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
+                       |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)               
+    if hmodel' = hmodel then
+      hmodel'
+    else
+      __ReadUntilFixpoint hmodel'
+
   let f_seq_len = model.MkFunc("Seq#Length", 1)
   let f_seq_idx = model.MkFunc("Seq#Index", 2)
-  let f_seq_bld = model.MkFunc("Seq#Build", 2)
-  let f_seq_app = model.MkFunc("Seq#Append", 2)
-  (envMap,ctx) |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
-               |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
-               |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
-               |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)
+  let hmodel = (envMap,ctx)
+  let hmodel' = hmodel |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
+                       |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
+  __ReadUntilFixpoint hmodel'  
+  
 
 
 //  =====================================================

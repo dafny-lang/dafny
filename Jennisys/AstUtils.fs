@@ -147,8 +147,11 @@ let rec DescendExpr2 visitorFunc expr acc =
   | SequenceExpr(exs)                
   | SetExpr(exs)                     -> __Pipe exs
 
-let PrintGenSym name =
-  sprintf "gensym%s" name
+let PrintGenSym (name: string) =
+  if name.StartsWith("gensym") then
+    name
+  else
+    sprintf "gensym%s" name
 
 //  =====================
 /// Returns TRUE literal
@@ -267,9 +270,10 @@ let rec Expr2Const e =
   match e with
   | IntLiteral(n) -> IntConst(n)
   | BoolLiteral(b) -> BoolConst(b)
+  | BoxLiteral(id) -> BoxConst(id)
   | ObjLiteral("this") -> ThisConst("this",None)
   | ObjLiteral("null") -> NullConst
-  | ObjLiteral(name) -> Unresolved(name)
+  | ObjLiteral(name) -> NewObj(name, None)
   | IdLiteral(id) -> Unresolved(id)
   | VarLiteral(id) -> VarConst(id)
   | SequenceExpr(elist) -> SeqConst(elist |> List.map Expr2Const)
@@ -359,6 +363,9 @@ let rec GroupFieldsByType fields =
       let fldSet = Map.tryFind ty map |> Utils.ExtractOptionOr Set.empty
       map |> Map.add ty (fldSet |> Set.add (Var(name, ty)))
   | [] -> Map.empty
+ 
+let IsConcreteField comp fldName = GetConcreteFields comp |> List.exists (function Var(name,_) -> name = fldName)
+let IsAbstractField comp fldName = GetAbstractFields comp |> List.exists (function Var(name,_) -> name = fldName)
                     
 //  =================================
 /// Returns class name of a component
@@ -475,6 +482,9 @@ let FindComponent (prog: Program) clsName =
   match prog with
   | Program(comps) -> comps |> List.filter (function Component(Class(name,_,_),_,_) when name = clsName -> true | _ -> false)
                             |> Utils.ListToOption
+
+let FindComponentForType prog ty = 
+  FindComponent prog (GetTypeShortName ty)
 
 //  ===================================================
 /// Finds a method of a component that has a given name

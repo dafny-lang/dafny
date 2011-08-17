@@ -49,7 +49,6 @@ class Node[T] {
 
   method Get(idx: int) returns (ret: T)
     requires idx >= 0 && idx < |list|
-    requires idx != 0 && next != null
     ensures ret = list[idx]
 }
 
@@ -61,6 +60,6 @@ model Node[T] {
     next
 
   invariant
-    next = null <==> list = [data]
+    next = null ==> list = [data]
     next != null ==> list = [data] + next.list 
 } 

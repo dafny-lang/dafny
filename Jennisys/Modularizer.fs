@@ -184,7 +184,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
                 | Method (mname, msig, mpre, _, isConstr) -> Method(mname, msig, mpre, postSpec, isConstr)
                 | _ -> failwithf "internal error: expected a Method but got %O" meth
     match TryFindExistingAndConvertToSolution indent comp meth' cond callGraph with
-    | Some(sol) -> sol
+    | Some(sol) -> sol |> FixSolution comp meth
     | None -> 
         // if not found, try to split into parts
         let newMthdLst, newHeapInst = __GetModularBranch

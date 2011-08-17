@@ -31,20 +31,29 @@ type HeapInstance = {
 
 let NoObj = { name = ""; objType = NamedType("", []) }
 
-let ConvertToStatements heapInst = 
-  let stmtLst1 = heapInst.assignments |> List.map (fun asgn ->                                                        
-                                                     match asgn with
-                                                     | FieldAssignment((o,f),e) ->
-                                                         let fldName = GetVarName f
-                                                         if fldName = "" then
-                                                           ExprStmt(e)
-                                                          else
-                                                            Assign(Dot(ObjLiteral(o.name), fldName), e)
-                                                      | ArbitraryStatement(stmt) -> stmt)
+// use the orginal method, not the one with an extra precondition
+let FixSolution origComp origMeth sol =
+  sol |> Map.fold (fun acc (cc,mm) v -> 
+                      if CheckSameMethods (cc,mm) (origComp,origMeth) then
+                        acc |> Map.add (origComp,origMeth) v
+                      else 
+                        acc |> Map.add (cc,mm) v) Map.empty
+
+let ConvertToStatements heapInst onModifiableObjsOnly = 
+  let stmtLst1 = heapInst.assignments |> List.choose (fun asgn ->                                                        
+                                                        match asgn with
+                                                        | FieldAssignment((o,f),e) when (not onModifiableObjsOnly || Set.contains o heapInst.modifiableObjs) ->
+                                                            let fldName = GetVarName f
+                                                            if fldName = "" then
+                                                              Some(ExprStmt(e))
+                                                            else
+                                                              Some(Assign(Dot(ObjLiteral(o.name), fldName), e))
+                                                        | ArbitraryStatement(stmt) -> Some(stmt)
+                                                        | _ -> None)
   let stmtLst2 = heapInst.methodRetVals |> Map.toList
                                         |> List.map (fun (retVarName, retVarVal) -> Assign(VarLiteral(retVarName), retVarVal))
   stmtLst1 @ stmtLst2
-
+                            
 // resolving values
 exception ConstResolveFailed of string
  
@@ -73,11 +82,12 @@ let rec ResolveCont hModel failResolver cst =
               | Some(c) -> c
               | _ -> failResolver cst hModel
           | None ->
-              // finally, see if it's a method argument
-              let m = hModel.env |> Map.filter (fun k v -> v = u && match k with VarConst(name) -> true | _ -> false) |> Map.toList
-              match m with 
-              | (vc,_) :: [] -> vc
-              | _ -> failResolver cst hModel
+              failResolver cst hModel
+//              // finally, see if it's an *input* (have no way of telling input from output params here) method argument
+//              let m = hModel.env |> Map.filter (fun k v -> v = u && match k with VarConst(name) -> true | _ -> false) |> Map.toList
+//              match m with 
+//              | (vc,_) :: [] -> vc
+//              | _ -> failResolver cst hModel
   | SeqConst(cseq) -> 
       let resolvedLst = cseq |> List.rev |> List.fold (fun acc c -> ResolveCont hModel failResolver c :: acc) []
       SeqConst(resolvedLst)
@@ -127,10 +137,12 @@ let Eval heapInst resolveExprFunc expr =
           | _ -> expr
       | _ -> expr
 
-    if not (resolveExprFunc expr) then
-      match fldNameOpt with
-      | None -> expr
-      | Some(n) -> Dot(expr, n)
+    (* --- function body starts here --- *)
+    let ex = match fldNameOpt with
+             | None -> expr
+             | Some(n) -> Dot(expr, n)
+    if not (resolveExprFunc ex) then
+      ex
     else
       match fldNameOpt with
       | None -> 
@@ -142,7 +154,7 @@ let Eval heapInst resolveExprFunc expr =
               | Some(argValue) -> argValue |> Const2Expr
               | None -> 
                   match heapInst.methodRetVals |> Map.tryFind id with
-                  | Some(e) -> e
+                  | Some(e) -> e |> __FurtherResolve
                   | None -> raise (EvalFailed("cannot find value for method parameter " + id))              
           | IdLiteral(id) ->
               let globalVal = heapInst.globals |> Map.tryFind id
@@ -160,6 +172,7 @@ let Eval heapInst resolveExprFunc expr =
               | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName fldName))
               | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" objName fldName))  // TODO: what if that value doesn't matter for the solution, and that's why it's not present in the model???
           | _ -> Dot(expr, fldName)
+
   (* --- function body starts here --- *)
   //EvalSym  (__EvalResolver resolveExprFunc) expr
   EvalSymRet  (__EvalResolver false resolveExprFunc)
@@ -209,10 +222,11 @@ let ResolveModel hModel meth =
   let argmap, retvals = hModel.env |> Map.fold (fun (acc1,acc2) k v -> 
                                                   match k with
                                                   | VarConst(name) -> 
+                                                      let resolvedValExpr = Resolve hModel v
                                                       if outArgs |> List.exists (function Var(varName, _) -> varName = name) then
-                                                        acc1, acc2 |> Map.add name (Resolve hModel v |> Const2Expr)
+                                                        acc1, acc2 |> Map.add name (resolvedValExpr |> Const2Expr)
                                                       else
-                                                        acc1 |> Map.add name (Resolve hModel v), acc2
+                                                        acc1 |> Map.add name resolvedValExpr, acc2
                                                   | _ -> acc1, acc2
                                                ) (Map.empty, Map.empty)
   { objs           = objs;
@@ -259,7 +273,7 @@ let Is1stLevelExpr heapInst expr =
                     | Dot(discr, fldName) -> 
                         let obj = Eval heapInst (fun _ -> true) discr
                         match obj with 
-                        | ObjLiteral(id) -> not (id = "this")
+                        | ObjLiteral(id) -> id = "this"
                         | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
                     | _ -> true                          
                ) expr true
@@ -276,4 +290,4 @@ let IsSolution1stLevelOnly heapInst =
         | Block(stmts) -> __IsSol1stLevel (stmts @ rest)
     | [] -> true
   (* --- function body starts here --- *)
-  __IsSol1stLevel (ConvertToStatements heapInst)
+  __IsSol1stLevel (ConvertToStatements heapInst true)

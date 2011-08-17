@@ -160,7 +160,7 @@ let PrintAllocNewObjects heapInst indent =
 
 let PrintVarAssignments heapInst indent = 
   let idt = Indent indent
-  let stmts = ConvertToStatements heapInst
+  let stmts = ConvertToStatements heapInst true
   let str = stmts |> PrintSep (newline) (fun s -> idt + (PrintStmt s 0 false))
   str + newline
 

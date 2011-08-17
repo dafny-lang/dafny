@@ -74,6 +74,19 @@ let ListToOptionMsg  lst errMsg =
 
 let ListToOption lst = ListToOptionMsg lst "given list contains more than one element"
 
+let ListDeduplicate lst = 
+  let rec __Dedup lst (visitedSet: System.Collections.Generic.HashSet<_>) acc = 
+    match lst with
+    | fs :: rest ->  
+        let newAcc = 
+          if visitedSet.Add(fs) then
+            acc @ [fs]
+          else
+            acc
+        __Dedup rest visitedSet newAcc
+    | _ -> acc
+  __Dedup lst (new System.Collections.Generic.HashSet<_>()) []
+        
 //  =============================================================
 /// ensures: forall i :: 0 <= i < |lst| ==> ret[i] = Some(lst[i])
 //  =============================================================

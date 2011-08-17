@@ -1,6 +1,7 @@
 ﻿module TypeChecker
 
 open Ast
+open AstUtils
 open Printer
 open System.Collections.Generic
 
@@ -39,5 +40,22 @@ let TypeCheck prog =
       Some(Program(clist))
 
 // TODO: implement this
-let InferType prog expr = 
-  NamedType("unknown", [])
+let rec InferType prog thisComp expr = 
+  let __FindVar comp fldName = 
+    let var = FindVar comp fldName |> Utils.ExtractOption
+    match var with
+    | Var(_, tyOpt) -> 
+        let c = FindComponentForType prog (Utils.ExtractOption tyOpt) |> Utils.ExtractOption
+        Some(c)
+  try 
+    match expr with
+    | ObjLiteral("this") -> Some(thisComp)
+    | ObjLiteral("null") -> None
+    | IdLiteral(id) -> __FindVar thisComp id
+    | Dot(discr, fldName) -> 
+        match InferType prog thisComp discr with
+        | Some(comp) -> __FindVar comp fldName
+        | None -> None
+    | _ -> None
+  with 
+  | ex -> None
