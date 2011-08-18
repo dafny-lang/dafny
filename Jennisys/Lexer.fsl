@@ -38,8 +38,9 @@ rule tokenize = parse
 | "seq"          { SEQTYPE }
 | "set"          { SETTYPE }
 // Operators
-| "."      { DOT }
+| "..."    { DOTDOTDOT }
 | ".."     { DOTDOT }
+| "."      { DOT }
 | "+"      { PLUS }
 | "-"      { MINUS }
 | "*"      { STAR }

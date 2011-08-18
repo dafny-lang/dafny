@@ -78,12 +78,7 @@ class Set {
     ensures Valid();
     ensures elems == {p + q};
   {
-    var gensym69 := new SetNode;
-    gensym69.Init(p + q);
-    this.elems := {p + q};
-    this.root := gensym69;
-    // repr stuff
-    this.Repr := {this} + this.root.Repr;
+    this.Singleton(p + q);
   }
 
 }
@@ -127,6 +122,54 @@ class SetNode {
   }
 
 
+  method Double(a: int, b: int)
+    modifies this;
+    requires a != b;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {a, b};
+  {
+    if (b > a) {
+      this.DoubleBase(b, a);
+    } else {
+      this.DoubleBase(a, b);
+    }
+  }
+
+
+  method DoubleBase(x: int, y: int)
+    modifies this;
+    requires x > y;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {x, y};
+  {
+    var gensym77 := new SetNode;
+    gensym77.Init(x);
+    this.data := y;
+    this.elems := {x, y};
+    this.left := null;
+    this.right := gensym77;
+    // repr stuff
+    this.Repr := {this} + this.right.Repr;
+  }
+
+
+  method Init(x: int)
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {x};
+  {
+    this.data := x;
+    this.elems := {x};
+    this.left := null;
+    this.right := null;
+    // repr stuff
+    this.Repr := {this};
+  }
+
+
   method Triple(x: int, y: int, z: int)
     modifies this;
     requires x != y;
@@ -166,54 +209,6 @@ class SetNode {
         }
       }
     }
-  }
-
-
-  method Double(x: int, y: int)
-    modifies this;
-    requires x != y;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures elems == {x, y};
-  {
-    if (y > x) {
-      this.DoubleBase(y, x);
-    } else {
-      this.DoubleBase(x, y);
-    }
-  }
-
-
-  method DoubleBase(x: int, y: int)
-    modifies this;
-    requires x > y;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures elems == {x, y};
-  {
-    var gensym77 := new SetNode;
-    gensym77.Init(x);
-    this.data := y;
-    this.elems := {x, y};
-    this.left := null;
-    this.right := gensym77;
-    // repr stuff
-    this.Repr := {this} + this.right.Repr;
-  }
-
-
-  method Init(x: int)
-    modifies this;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures elems == {x};
-  {
-    this.data := x;
-    this.elems := {x};
-    this.left := null;
-    this.right := null;
-    // repr stuff
-    this.Repr := {this};
   }
 
 

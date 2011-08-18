@@ -9,17 +9,19 @@ module Options
 open Utils
 
 type Config = {
-   help: bool;
-   inputFilename: string;
-   methodToSynth: string;
-   inferConditionals: bool;
-   verifyPartialSolutions: bool;
-   verifySolutions: bool;
-   checkUnifications: bool;
-   genRepr: bool;
-   genMod: bool;
-   timeout: int;
-   numLoopUnrolls: int;
+   help                      : bool;
+   inputFilename             : string;
+   methodToSynth             : string;
+   constructorsOnly          : bool;
+   inferConditionals         : bool;
+   verifyPartialSolutions    : bool;
+   verifySolutions           : bool;
+   checkUnifications         : bool;
+   genRepr                   : bool;
+   genMod                    : bool;
+   timeout                   : int;
+   numLoopUnrolls            : int;
+   recursiveValid            : bool;
 }
 
 type CfgOption<'a> = {
@@ -53,6 +55,7 @@ let CheckBool value optName =
 let cfgOptions = [
   { optionName = "help";            optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with help                   =      CheckBool v "help"});           descr = "description not available"; }
   { optionName = "method";          optionType = "string"; optionSetter = (fun v (cfg: Config) -> {cfg with methodToSynth          = CheckNonEmpty v "method"});          descr = "description not available"; }
+  { optionName = "constrOnly";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with constructorsOnly       =      CheckBool v "constrOnly"});     descr = "description not available"; }
   { optionName = "inferConds";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with inferConditionals      =      CheckBool v "inferConds"});     descr = "description not available"; }
   { optionName = "noInferConds";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with inferConditionals      = not (CheckBool v "inferConds")});    descr = "description not available"; }
   { optionName = "verifyParSol";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifyPartialSolutions =      CheckBool v "verifyParSol"});   descr = "description not available"; }
@@ -67,6 +70,8 @@ let cfgOptions = [
   { optionName = "noGenMod";        optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genMod                 = not (CheckBool v "noGenMod")});      descr = "description not available"; }
   { optionName = "timeout";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with timeout                =      CheckInt v "timeout"});         descr = "description not available"; }
   { optionName = "unrolls";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with numLoopUnrolls         =      CheckInt v "unrolls"});         descr = "description not available"; }
+  { optionName = "recValid";        optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         =      CheckBool v "recValid"});       descr = "description not available"; }
+  { optionName = "noRecValid";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         = not (CheckBool v "noRecValid")});    descr = "description not available"; }
 ]
 
 let cfgOptMap = cfgOptions |> List.fold (fun acc o -> acc |> Map.add o.optionName o) Map.empty
@@ -95,13 +100,15 @@ let defaultConfig: Config = {
   inputFilename     = "";
   inferConditionals = true;
   methodToSynth     = "*";
+  constructorsOnly  = false;
   verifyPartialSolutions = true;
   verifySolutions   = true;
   checkUnifications = false;
-  genRepr           = false;
+  genRepr           = true;
   genMod            = false;
   timeout           = 0;
   numLoopUnrolls    = 2;
+  recursiveValid    = true;
 }
 
 /// Should not be mutated outside the ParseCmdLineArgs method, which is 

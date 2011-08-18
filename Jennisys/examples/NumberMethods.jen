@@ -1,0 +1,40 @@
+class NumberMethods {
+ 
+  method Double(p: int) returns (ret: int)
+    ensures ret = 2*p
+
+  method Sum(a: int, b: int) returns (ret: int)
+    ensures ret = a + b
+
+  method Min2(a: int, b: int) returns (ret: int)
+    ensures a < b ==> ret = a
+    ensures a >= b ==> ret = b
+
+  method Min22(a: int, b: int) returns (ret: int)
+    ensures ret in {a b}
+    ensures ret <= a && ret <= b
+
+  method Min3(a: int, b: int, c: int) returns (ret: int)
+    ensures ret in {a b c}
+    ensures ret <= a && ret <= b && ret <= c
+
+  method Min32(a: int, b: int, c: int) returns (ret: int)
+    ensures ret in {a b c}
+    ensures forall x :: x in {a b c} ==> ret <= x
+
+ method MinSum(a: int, b: int, c: int) returns (ret: int)
+    ensures ret in {a+b a+c b+c}
+    ensures ret <= a+b && ret <= b+c && ret <= a+c
+
+ method Min4(a: int, b: int, c: int, d: int) returns (ret: int)
+    ensures ret in {a b c d}
+    ensures forall x :: x in {a b c d} ==> ret <= x
+
+  method Abs(a: int) returns (ret: int)
+    ensures ret in {a (-a)} && ret >= 0
+
+}
+
+model NumberMethods {
+
+}

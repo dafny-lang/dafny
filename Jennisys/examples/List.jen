@@ -33,6 +33,23 @@ class Node[T] {
 
   constructor Double(p: T, q: T)
     ensures list = [p q]
+
+  method List() returns (lst: seq[T])
+    requires |list| = 1
+    ensures lst = list
+
+  method Tail() returns (tail: Node[T])
+    ensures |list| = 1 ==> tail = null
+    ensures |list| > 1 ==> tail != null && tail.list = list[1..]
+
+  method SkipFew(num: int) returns (ret: Node[T])
+    requires num >= 0
+    ensures num >= |list| ==> ret = null
+    ensures num < |list| ==> ret != null && ret.list = list[num..]
+
+  method Get(idx: int) returns (ret: T)
+    requires idx >= 0 && idx < |list|
+    ensures ret = list[idx]
 }
 
 model Node[T] {
@@ -43,6 +60,6 @@ model Node[T] {
     next
 
   invariant
-    next = null <==> list = [data]
+    next = null ==> list = [data]
     next != null ==> list = [data] + next.list 
 } 

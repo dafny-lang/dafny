@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>examples/Set.jen /method:SetNode.Triple /genRepr  /genMod</StartArguments>
+    <StartArguments>examples/NumberMethods.jen /genMod /genRepr /method:NumberMethods.Min4</StartArguments>
     <StartWorkingDirectory>C:\boogie\Jennisys\Jennisys\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
@@ -43,6 +43,7 @@
     <FsYaccOutputFolder>$(IntermediateOutputPath)</FsYaccOutputFolder>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="SymGen.fs" />
     <Compile Include="Logger.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Options.fs" />
@@ -65,6 +66,7 @@
     <FsLex Include="Lexer.fsl">
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>
+    <Compile Include="PrintUtils.fs" />
     <Compile Include="Printer.fs" />
     <Compile Include="DafnyPrinter.fs" />
     <Compile Include="TypeChecker.fs" />

@@ -33,6 +33,9 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [p] + [q];
+    ensures list[0] == p;
+    ensures list[1] == q;
+    ensures |list| == 2;
   {
     var gensym67 := new IntNode;
     gensym67.Double(p, q);
@@ -48,6 +51,7 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [];
+    ensures |list| == 0;
   {
     this.list := [];
     this.root := null;
@@ -61,13 +65,11 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [1, 2];
+    ensures list[0] == 1;
+    ensures list[1] == 2;
+    ensures |list| == 2;
   {
-    var gensym65 := new IntNode;
-    gensym65.Double(1, 2);
-    this.list := [1, 2];
-    this.root := gensym65;
-    // repr stuff
-    this.Repr := {this} + this.root.Repr;
+    this.Double(1, 2);
   }
 
 
@@ -76,6 +78,8 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [p];
+    ensures list[0] == p;
+    ensures |list| == 1;
   {
     var gensym66 := new IntNode;
     gensym66.Init(p);
@@ -91,13 +95,10 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [2];
+    ensures list[0] == 2;
+    ensures |list| == 1;
   {
-    var gensym65 := new IntNode;
-    gensym65.Init(2);
-    this.list := [2];
-    this.root := gensym65;
-    // repr stuff
-    this.Repr := {this} + this.root.Repr;
+    this.Singleton(2);
   }
 
 
@@ -106,13 +107,10 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [p + q];
+    ensures list[0] == p + q;
+    ensures |list| == 1;
   {
-    var gensym67 := new IntNode;
-    gensym67.Init(p + q);
-    this.list := [p + q];
-    this.root := gensym67;
-    // repr stuff
-    this.Repr := {this} + this.root.Repr;
+    this.Singleton(p + q);
   }
 
 
@@ -121,13 +119,11 @@ class IntList {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [p] + [p + 1];
+    ensures list[0] == p;
+    ensures list[1] == p + 1;
+    ensures |list| == 2;
   {
-    var gensym66 := new IntNode;
-    gensym66.Double(p, p + 1);
-    this.list := [p] + [p + 1];
-    this.root := gensym66;
-    // repr stuff
-    this.Repr := {this} + this.root.Repr;
+    this.Double(p, p + 1);
   }
 
 }
@@ -165,25 +161,14 @@ class IntNode {
   }
 
 
-  method SingletonZero()
-    modifies this;
-    ensures fresh(Repr - {this});
-    ensures Valid();
-    ensures list == [0];
-  {
-    this.data := 0;
-    this.list := [0];
-    this.next := null;
-    // repr stuff
-    this.Repr := {this};
-  }
-
-
   method Double(x: int, y: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [x, y];
+    ensures list[0] == x;
+    ensures list[1] == y;
+    ensures |list| == 2;
   {
     var gensym74 := new IntNode;
     gensym74.Init(y);
@@ -200,12 +185,26 @@ class IntNode {
     ensures fresh(Repr - {this});
     ensures Valid();
     ensures list == [x];
+    ensures list[0] == x;
+    ensures |list| == 1;
   {
     this.data := x;
     this.list := [x];
     this.next := null;
     // repr stuff
     this.Repr := {this};
+  }
+
+
+  method SingletonZero()
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures list == [0];
+    ensures list[0] == 0;
+    ensures |list| == 1;
+  {
+    this.Init(0);
   }
 
 }

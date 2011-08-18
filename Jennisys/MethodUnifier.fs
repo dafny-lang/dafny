@@ -2,7 +2,7 @@
 
 open Ast
 open AstUtils
-open Printer 
+open PrintUtils
 open Resolver
 open Utils
 
@@ -11,7 +11,29 @@ exception CannotUnify
 type UnifDirection = LTR | RTL
 
 let rec UnifyImplies lhs rhs dir unifs = 
-  let ___AddOrNone unifs name e = Some(unifs |> Utils.MapAddNew name e)
+  ///
+  let __AddOrNone unifs name e = Some(unifs |> Utils.MapAddNew name e)
+  ///
+  let __UnifLists lstL lstR = 
+    if List.length lstL = List.length lstR then
+      try 
+        let unifs2 = List.fold2 (fun acc elL elR -> match UnifyImplies elL elR dir acc with
+                                                    | Some(u) -> u
+                                                    | None -> raise CannotUnify) unifs lstL lstR
+        Some(unifs2)
+      with 
+      | CannotUnify -> None
+    else
+      None
+  ///
+  let __ApplyUnifs unifs exprList = 
+            exprList |> List.fold (fun acc e -> 
+                                     let e' = e |> Rewrite (fun e ->
+                                                              match e with 
+                                                              | VarLiteral(id) when Map.containsKey id unifs -> Some(unifs |> Map.find id)
+                                                              | _ -> None)
+                                     acc |> Set.add e'
+                                  ) Set.empty
 
   if lhs = FalseLiteral || rhs = TrueLiteral then
     Some(unifs)
@@ -21,17 +43,20 @@ let rec UnifyImplies lhs rhs dir unifs =
                 | LTR -> lhs,rhs
                 | RTL -> rhs,lhs
       match l, r with
-      | VarLiteral(vname), rhs -> ___AddOrNone unifs vname rhs
+      | VarLiteral(vname), rhs -> __AddOrNone unifs vname rhs
       | IntLiteral(nL), IntLiteral(nR) when nL = nR -> 
           Some(unifs)
       | BoolLiteral(bL), BoolLiteral(bR) when bL = bR -> 
           Some(unifs)
-      | SetExpr(elistL),  SetExpr(elistR) 
+      | SetExpr(elistL),  SetExpr(elistR) ->
+          let s1 = elistL |> __ApplyUnifs unifs 
+          let s2 = elistR |> Set.ofList
+          if (s1 = s2) then 
+            Some(unifs)
+          else
+            __UnifLists elistL elistR
       | SequenceExpr(elistL), SequenceExpr(elistR) when List.length elistL = List.length elistR ->
-          let unifs2 = List.fold2 (fun acc elL elR -> match UnifyImplies elL elR dir acc with
-                                                      | Some(u) -> u
-                                                      | None -> raise CannotUnify) unifs elistL elistR
-          Some(unifs2)
+          __UnifLists elistL elistR
       | _ when l = r ->
           Some(unifs)
       | _ ->
@@ -93,8 +118,10 @@ let rec UnifyImplies lhs rhs dir unifs =
                 // we've found unifications for all target expressions -> return the current unifications map
                 Some(unifs)
                   
-          let lhsConjs = lhs |> DesugarAndRemove |> DistributeNegation |> SplitIntoConjunts
-          let rhsConjs = rhs |> DesugarAndRemove |> DistributeNegation |> SplitIntoConjunts
+          let __HasSetExpr e = DescendExpr2 (fun ex acc -> if acc then true else match ex with SetExpr(_) -> true | _ -> false) e false
+          let __PreprocSplitSort e = e |> DesugarAndRemove |> DistributeNegation |> SplitIntoConjunts |> List.sortBy (fun e -> if __HasSetExpr e then 1 else 0)
+          let lhsConjs = lhs |> __PreprocSplitSort
+          let rhsConjs = rhs |> __PreprocSplitSort
           ___f1 rhsConjs lhsConjs unifs
     with
     | KeyAlreadyExists
@@ -122,14 +149,70 @@ let rec TryFindAMatch targetMthd candidateMethods =
         | Some(unifs) -> Some(candMthd,unifs)
         | None -> TryFindAMatch targetMthd rest
   | [] -> None
-  
+
+let TryFindExistingOpt comp targetMthd = 
+  TryFindAMatch targetMthd (GetMembers comp |> FilterMethodMembers)
+
 let TryFindExisting comp targetMthd = 
   match TryFindAMatch targetMthd (GetMembers comp |> FilterMethodMembers) with
   | Some(m,unifs) -> m,unifs
   | None -> targetMthd, Map.empty
 
-let ApplyMethodUnifs m unifs =
-  GetMethodArgs m |> List.map (fun (Var(name,_)) -> 
-                                 match Map.tryFind name unifs with
-                                 | Some(e) -> e
-                                 | None -> VarLiteral(name))
+let ApplyMethodUnifs receiver (c,m) unifs =
+  let __Apply args = args |> List.map (fun (Var(name,_)) -> 
+                                             match Map.tryFind name unifs with
+                                             | Some(e) -> e
+                                             | None -> VarLiteral(name))
+  let ins = GetMethodInArgs m |> __Apply
+  let outs = GetMethodOutArgs m |> __Apply
+  
+  let retVars, asgs = outs |> List.fold (fun (acc1,acc2) e -> 
+                                          let vname = SymGen.NewSym
+                                          let v = Var(vname, None)
+                                          let acc1' = acc1 @ [v]
+                                          let acc2' = acc2 @ [ArbitraryStatement(Assign(VarLiteral(vname), e))]
+                                          acc1', acc2'
+                                       ) ([],[])
+  let mcallExpr = MethodCall(receiver, GetComponentName c, GetMethodName m, ins)
+  match retVars, outs with
+  | [], [] -> [ArbitraryStatement(ExprStmt(mcallExpr))]
+  | [_], [VarLiteral(vn2)] -> [ArbitraryStatement(Assign(VarDeclExpr([Var(vn2, None)], false), mcallExpr))]
+  | _ ->
+      let mcall = ArbitraryStatement(Assign(VarDeclExpr(retVars, true), mcallExpr))
+      mcall :: asgs
+
+let TryFindExistingAndConvertToSolution indent comp m cond callGraph =
+  let __Calls caller callee =
+    let keyOpt = callGraph |> Map.tryFindKey (fun (cc,mm) mset -> CheckSameMethods (comp,caller) (cc,mm))
+    match keyOpt with
+    | Some(k) -> callGraph |> Map.find k |> Set.contains ((GetComponentName comp),(GetMethodName callee))
+    | None -> false
+  (* --- function body starts here --- *)      
+  if not Options.CONFIG.genMod then
+    None
+  else 
+    let idt = Indent indent
+    let candidateMethods = GetMembers comp |> List.filter (fun cm ->
+                                                             match cm with
+                                                             | Method(mname,_,_,_,_) when not (__Calls cm m) -> true
+                                                             | _ -> false)
+    match TryFindAMatch m candidateMethods with
+    | Some(m',unifs) -> 
+        Logger.InfoLine (idt + "    - substitution method found:")
+        Logger.InfoLine (Printer.PrintMethodSignFull (indent+6) comp m')
+        Logger.DebugLine (idt + "      Unifications: ")
+        let idtt = idt + "        "
+        unifs |> Map.fold (fun acc k v -> acc + (sprintf "%s%s -> %s%s" idtt k (Printer.PrintExpr 0 v) newline)) "" |> Logger.Debug 
+        let obj = { name = "this"; objType = GetClassType comp }
+        let modObjs = if IsModifiableObj obj m then Set.singleton obj else Set.empty
+        let body = ApplyMethodUnifs ThisLiteral (comp,m') unifs
+        let hInst = { objs           = Utils.MapSingleton obj.name obj;
+                      modifiableObjs = modObjs;
+                      assignments    = body; 
+                      concreteValues = body;
+                      methodArgs     = Map.empty; 
+                      methodRetVals  = Map.empty;
+                      globals        = Map.empty }
+        Some(Map.empty |> Map.add (comp,m) [cond, hInst]
+                       |> Map.add (comp,m') [])
+    | None -> None
