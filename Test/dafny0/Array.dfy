@@ -144,3 +144,41 @@ class ArrayTests {
     b[7] := 13;  // good
   }
 }
+
+// -------------------- induction attribute --------------------------------
+
+ghost method Fill_I(s: seq<int>)
+  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i];
+  ensures forall i,j {:induction i} :: 0 <= i < j < |s| ==> s[i] <= s[j];
+{  // error: cannot prove postcondition
+}
+
+ghost method Fill_J(s: seq<int>)
+  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i];
+  ensures forall i,j {:induction j} :: 0 <= i < j < |s| ==> s[i] <= s[j];
+{
+}
+
+ghost method Fill_All(s: seq<int>)
+  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i];
+  ensures forall i,j {:induction i,j} :: 0 <= i < j < |s| ==> s[i] <= s[j];
+{
+}
+
+ghost method Fill_True(s: seq<int>)
+  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i];
+  ensures forall i,j {:induction} :: 0 <= i < j < |s| ==> s[i] <= s[j];
+{
+}
+
+ghost method Fill_False(s: seq<int>)
+  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i];
+  ensures forall i,j {:induction false} :: 0 <= i < j < |s| ==> s[i] <= s[j];
+{  // error: cannot prove postcondition
+}
+
+ghost method Fill_None(s: seq<int>)
+  requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i];
+  ensures forall i,j :: 0 <= i < j < |s| ==> s[i] <= s[j];
+{  // error: cannot prove postcondition
+}
