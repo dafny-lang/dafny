@@ -32,19 +32,7 @@ let MergeSolutions sol1 sol2 =
 ///
 //  ===========================================                   
 let rec MakeModular indent prog comp meth cond hInst callGraph = 
-  let rec __AddDirectChildren e acc = 
-    match e with
-    | ObjLiteral(_) when not (e = ThisLiteral || e = NullLiteral) -> acc |> Set.add e
-    | SequenceExpr(elist)
-    | SetExpr(elist) -> elist |> List.fold (fun acc2 e2 -> __AddDirectChildren e2 acc2) acc
-    | _ -> acc
-
-  let __GetDirectModifiableChildren = 
-    let thisRhsExprs = hInst.assignments |> List.choose (function FieldAssignment((obj,_),e) when obj.name = "this" && Set.contains obj hInst.modifiableObjs  -> Some(e) | _ -> None)
-    thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
-                 |> Set.toList
-
-  let directChildren = lazy (__GetDirectModifiableChildren)
+  let directChildren = lazy (GetDirectModifiableChildren hInst)
 
   let __IsAbstractField ty var = 
     let builder = CascadingBuilder<_>(false)
@@ -164,10 +152,6 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
     let initChildrenExprList = delegateMethods |> Map.toList
                                                |> List.map (fun (_, (_,_,asgs)) -> asgs)
                                                |> List.concat
-//TODO(remove)
-//                                                              let key = __FindObj (Printer.PrintExpr 0 receiver), Var("", None)
-//                                                              let e = MethodCall(receiver, GetMethodName mthd, fst args)
-//                                                              FieldAssignment(key, e))
     let newAssgns = hInst.assignments |> List.filter (function FieldAssignment((obj,_),_) -> obj.name = "this" | _ -> false)
     let newMethodsLst = delegateMethods |> Map.fold (fun acc receiver (c,newMthd,_) ->
                                                        (c,newMthd) :: acc
@@ -177,7 +161,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
   (* --- function body starts here --- *)
   let idt = Indent indent
   if Options.CONFIG.genMod then   
-    Logger.InfoLine (idt + "    - delegating to method calls     ...")
+    Logger.InfoLine (idt + "    - delegating to method calls ...")
     // first try to find a match for the entire method (based on the given solution)
     let postSpec = __GetSpecFor "this"
     let meth' = match meth with

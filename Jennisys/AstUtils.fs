@@ -13,6 +13,29 @@ open Utils
 let ThisLiteral = ObjLiteral("this")
 let NullLiteral = ObjLiteral("null")
 
+let IsLogicalOp op = [ "&&"; "||"; "==>"; "<==>" ] |> Utils.ListContains op
+let IsRelationalOp op = [ "="; "!="; "<"; "<="; ">"; ">=" ] |> Utils.ListContains op     
+
+let AreInverseOps op1 op2 = match op1, op2 with "<" , ">" | ">" , "<" | "<=", ">=" | ">=", "<=" -> true | _ -> false
+let DoesImplyOp op1 op2 = 
+  match op1, op2 with 
+  | "<" , "!=" | ">" , "!=" -> true 
+  | "=" , ">=" | "=" , "<=" -> true 
+  | _ -> false
+let IsCommutativeOp op = match op with "=" | "!=" -> true | _ -> false
+
+exception ExprConvFailed of string
+
+let Expr2Int e = 
+  match e with
+  | IntLiteral(n) -> n
+  | _ -> raise (ExprConvFailed(sprintf "not an int but: %O" e))
+
+let Expr2List e = 
+  match e with
+  | SequenceExpr(elist) -> elist
+  | _ -> raise (ExprConvFailed(sprintf "not a Seq but: %O" e))
+
 let rec Rewrite rewriterFunc expr =
   let __RewriteOrRecurse e =
     match rewriterFunc e with
@@ -44,6 +67,36 @@ let rec Rewrite rewriterFunc expr =
   | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse e)
   | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse e)
 
+let rec RewriteWithCtx rewriterFunc ctx expr =
+  let __RewriteOrRecurse ctx e =
+    match rewriterFunc ctx e with
+    | Some(ee) -> ee
+    | None -> RewriteWithCtx rewriterFunc ctx e 
+  match expr with
+  | IntLiteral(_)
+  | BoolLiteral(_) 
+  | BoxLiteral(_)                  
+  | Star      
+  | VarLiteral(_) 
+  | ObjLiteral(_) 
+  | VarDeclExpr(_)                     
+  | IdLiteral(_)                     -> match rewriterFunc ctx expr with
+                                        | Some(e) -> e
+                                        | None -> expr
+  | Dot(e, id)                       -> Dot(__RewriteOrRecurse ctx e, id)
+  | ForallExpr(vars,e)               -> ForallExpr(vars, __RewriteOrRecurse (ctx @ vars) e)   
+  | UnaryExpr(op,e)                  -> UnaryExpr(op, __RewriteOrRecurse ctx e)
+  | LCIntervalExpr(e)                -> LCIntervalExpr(__RewriteOrRecurse ctx e)
+  | SeqLength(e)                     -> SeqLength(__RewriteOrRecurse ctx e)
+  | SelectExpr(e1, e2)               -> SelectExpr(__RewriteOrRecurse ctx e1, __RewriteOrRecurse ctx e2)
+  | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, __RewriteOrRecurse ctx e1, __RewriteOrRecurse ctx e2)
+  | IteExpr(e1,e2,e3)                -> IteExpr(__RewriteOrRecurse ctx e1, __RewriteOrRecurse ctx e2, __RewriteOrRecurse ctx e3) 
+  | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__RewriteOrRecurse ctx e1, __RewriteOrRecurse ctx e2, __RewriteOrRecurse ctx e3) 
+  | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map (__RewriteOrRecurse ctx))
+  | SetExpr(exs)                     -> SetExpr(exs |> List.map (__RewriteOrRecurse ctx))
+  | MethodCall(rcv,cname,mname,ins)  -> MethodCall(__RewriteOrRecurse ctx rcv, cname, mname, ins |> List.map (__RewriteOrRecurse ctx))
+  | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse ctx e)
+  | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse ctx e)
 //  ====================================================
 /// Substitutes all occurences of all IdLiterals having 
 /// the same name as one of the variables in "vars" with
@@ -175,12 +228,6 @@ let UnaryNot sub =
   | _ -> UnaryExpr("!", sub)
 
 //  =======================================================================
-/// Returns a binary PLUS of the two given expressions
-//  =======================================================================
-let BinaryPlus (lhs: Expr) (rhs: Expr) = 
-  BinaryExpr(50, "+", lhs, rhs)
-
-//  =======================================================================
 /// Returns a binary AND of the two given expressions with short-circuiting
 //  =======================================================================
 let BinaryAnd (lhs: Expr) (rhs: Expr) = 
@@ -223,6 +270,9 @@ let BinaryEq lhs rhs = BinaryExpr(40, "=", lhs, rhs)
 /// Constructor for binary GETS
 //  =======================================================
 let BinaryGets lhs rhs = Assign(lhs, rhs)
+
+let BinaryAdd lhs rhs = BinaryExpr(55, "+", lhs, rhs)
+let BinarySub lhs rhs = BinaryExpr(55, "-", lhs, rhs)
 
 //  =======================================================
 /// Constructors for binary IN/!IN of two given expressions
@@ -459,6 +509,13 @@ let GetVarName var =
   match var with
   | Var(name,_) -> name
 
+//  ===============================================
+/// Returns whether there exists a variable 
+/// in a given VarDecl list with a given name (id)
+//  ===============================================
+let IsInVarList varLst id = 
+  varLst |> List.exists (function Var(name,_) -> name = id)
+
 //  ==================================
 /// Returns component name
 //  ==================================
@@ -485,6 +542,9 @@ let FindComponent (prog: Program) clsName =
 
 let FindComponentForType prog ty = 
   FindComponent prog (GetTypeShortName ty)
+
+let CheckSameCompType comp ty = 
+  GetComponentName comp = GetTypeShortName ty
 
 //  ===================================================
 /// Finds a method of a component that has a given name

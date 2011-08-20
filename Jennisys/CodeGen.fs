@@ -194,7 +194,7 @@ let PrintReprAssignments prog heapInst indent =
                                                                                       | Some(ObjLiteral(n)) when not (n = "null") -> true
                                                                                       | _ -> false)
                                             return nonNullVars |> List.fold (fun a v -> 
-                                                                                BinaryPlus a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
+                                                                                BinaryAdd a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
                                                                             ) expr
                                           }
                                           let fullReprExpr = BinaryGets (Dot(ObjLiteral(obj.name), "Repr")) fullRhs 

@@ -49,6 +49,7 @@ class Node[T] {
 
   method Get(idx: int) returns (ret: T)
     requires idx >= 0 && idx < |list|
+    requires idx >= 1 && next != null
     ensures ret = list[idx]
 }
 
