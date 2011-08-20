@@ -520,8 +520,20 @@ Execution trace:
 Array.dfy(128,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
+Array.dfy(153,1): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(152,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Array.dfy(177,1): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(176,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Array.dfy(183,1): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(182,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 21 verified, 10 errors
+Dafny program verifier finished with 30 verified, 13 errors
 
 -------------------- MultiDimArray.dfy --------------------
 MultiDimArray.dfy(53,21): Error: assertion violation

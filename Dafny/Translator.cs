@@ -6063,7 +6063,7 @@ namespace Microsoft.Dafny {
           if (a.Args.Count != 0) {
             var L = new List<BoundVar>();
             foreach (var arg in a.Args) {
-              var id = arg.E as IdentifierExpr;
+              var id = arg.E.Resolved as IdentifierExpr;
               var bv = id == null ? null : id.Var as BoundVar;
               if (bv != null && e.BoundVars.Contains(bv)) {
                 // add to L, but don't add duplicates
