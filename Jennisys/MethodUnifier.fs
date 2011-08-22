@@ -9,7 +9,9 @@ open Utils
 
 let TryUnify targetMthd candMethod = 
   let targetPre,targetPost = GetMethodPrePost targetMthd
+  let targetPre = BinaryAnd targetPre (GetMethodGhostPrecondition targetMthd)
   let candPre,candPost = GetMethodPrePost candMethod
+  let candPre = BinaryAnd candPre (GetMethodGhostPrecondition candMethod)
   let builder = new CascadingBuilder<_>(None)
   builder {
     let! unifs1 = UnifyImplies targetPre candPre RTL Map.empty

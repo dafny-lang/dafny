@@ -43,6 +43,7 @@ let GenMethodAnalysisCode comp m assertion =
   let ppre,ppost = GetMethodPrePost m 
   let pre = Desugar ppre
   let post = Desugar ppost
+  let ghostPre = GetMethodGhostPrecondition m |> Desugar 
   //let sigStr = PrintSig signature
   let sigVars = 
     match signature with
@@ -54,7 +55,9 @@ let GenMethodAnalysisCode comp m assertion =
   // print signature as local variables
   sigVars +
   "    // assume precondition" + newline +
-  "    assume " + (PrintExpr 0 pre) + ";" + newline + 
+  "    assume " + (PrintExpr 0 pre) + ";" + newline +
+  "    // assume ghost precondition" + newline +
+  "    assume " + (PrintExpr 0 ghostPre) + ";" + newline +
   "    // assume invariant and postcondition" + newline + 
   "    assume Valid();" + newline +
   "    assume " + (PrintExpr 0 post) + ";" + newline +
@@ -70,7 +73,7 @@ let rec MethodAnalysisPrinter onlyForThese assertion comp =
   match onlyForThese with
   | (c,m) :: rest when GetComponentName c = cname -> 
     match m with 
-    | Method(methodName, sign, pre, post, _) -> 
+    | Method(_) -> 
         (GenMethodAnalysisCode c m assertion) + newline +
         (MethodAnalysisPrinter rest assertion comp)
     | _ -> ""
@@ -164,12 +167,13 @@ let IsUnmodConcrOnly prog (comp,meth) expr =
           false
         else
           // assume it is unmodifiable, because it is a method, so just check if it's concrete
-          let lhsType = InferType prog comp e |> Utils.ExtractOptionMsg (sprintf "Inference failed for %s" (PrintExpr 0 e))
+          let lhsType = InferType prog comp (MethodArgChecker prog meth) e |> Utils.ExtractOptionMsg (sprintf "Inference failed for %s" (PrintExpr 0 e))
           IsConcreteField lhsType fldName          
     | AssertExpr(e)
     | AssumeExpr(e)
     | SeqLength(e)
     | LCIntervalExpr(e)
+    | MethodOutSelect(e,_)   
     | UnaryExpr(_,e)                        -> __IsUnmodOnlyLst [e]
     | SelectExpr(e1, e2)
     | BinaryExpr(_,_,e1,e2)                 -> __IsUnmodOnlyLst [e1; e2]
@@ -487,7 +491,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
         Logger.InfoLine (sprintf "%s    candidate pre-condition: %s" idt (PrintExpr 0 candCond))
         Logger.InfoLine (sprintf "%s    ------------------------" idt)
         let idt = idt + "  "
-        let _,_,m2 = AddPrecondition prog comp m candCond
+        let m2 = AddPrecondition prog comp m candCond
         let sol = MakeModular (indent+2) prog comp m2 candCond heapInst callGraph
         Logger.Info (idt + "    - verifying partial solution ... ")
         let verified = 
@@ -530,7 +534,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
         let solThis = match TryFindExistingAndConvertToSolution indent comp m2 candCond callGraph with
                       | Some(sol2) -> sol2
                       | None -> sol   
-        let _,_,m3 = AddPrecondition prog comp m (UnaryNot(candCond))
+        let m3 = AddPrecondition prog comp m (UnaryNot(candCond))
         let solRest = AnalyzeConstructor (indent + 2) prog comp m3 callGraph
         MergeSolutions solThis solRest |> FixSolution comp m
     | None -> 
@@ -543,7 +547,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
     expr |> SplitIntoConjunts |> List.iter loggerFunc
 
     let premises = expr |> FindTrueClauses (fun e -> false) heapInst2
-    let closedPremise = ComputeClosure (premises |> Set.ofList) heapInst2
+    let closedPremise = ComputeClosure heapInst2 (premises |> Set.ofList) 
 
     // --- trace
     Logger.TraceLine (sprintf "%s Premises:" idt)
@@ -552,6 +556,30 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
     closedPremise |> Set.iter loggerFunc
 
     //------------------
+    let compName = GetComponentName comp
+    let methName = GetMethodName m
+
+    let __IsOk expr = 
+      DescendExpr2 (fun expr acc ->
+                      if not acc then
+                        false
+                      else
+                        match expr with
+                        | Dot(discr, fldName) -> 
+                            let obj = EvalFull heapInst discr
+                            match obj with 
+                            | ObjLiteral(id) when id = "this" -> 
+                                try 
+                                  IsConcreteField (InferType prog comp (MethodArgChecker prog m) discr |> Utils.ExtractOption) fldName
+                                with
+                                  | _ -> false
+                            | ObjLiteral(id) -> false
+                            | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
+                        | MethodCall(receiver, cn, mn, elst) when receiver = ThisLiteral && cn = compName && mn = methName -> 
+                            elst |> List.exists (function VarLiteral(_) -> false | _ -> true)
+                        | _ -> true                          
+                    ) expr true
+
     let __CheckSol hInst premises = 
       let rec __CheckVars vars = 
         match vars with
@@ -560,6 +588,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
                                       |> List.choose (function
                                                         | BinaryExpr(_,"=",l,r) -> if l = lhs then Some(r) elif r = lhs then Some(l) else None
                                                         | _ -> None)
+                                      |> List.filter __IsOk
                                       |> List.map (fun e -> [lhs,e])
             lhsOptions
         | lhs :: rest -> 
@@ -576,65 +605,102 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
                                             | Assign(lhs,_) -> Some(lhs)
                                             | _ -> None)
       __CheckVars modVars
+
+    let rec __ConvToAssignments s = 
+      match s with 
+      | (l,r) :: rest ->
+          ArbitraryStatement(Assign(l,r)) :: __ConvToAssignments rest
+      | [] -> []
+
+    let rec __IterSolutions hInst sList = 
+      match sList with
+      | s :: rest -> 
+          let asgs = __ConvToAssignments s
+          let hInst' = { hInst with assignments = asgs; methodRetVals = Map.empty}
+          let sol = Utils.MapSingleton (comp,m) [TrueLiteral, hInst']
+          Logger.Info (idt + "    ")
+          if VerifySolution prog sol Options.CONFIG.genRepr then
+            Logger.InfoLine "~~~ VERIFIED ~~~"
+            Some(sol)
+          else 
+            Logger.InfoLine "!!! NOT VERIFIED !!!"
+            __IterSolutions hInst rest    
+      | [] -> None
     //-------------------
 
     let __InCtx ctx id = ctx |> List.exists (function Var(name,_) -> name = id)
-    let compName = GetComponentName comp
-    let methName = GetMethodName m
     let invocationArgs = GetMethodInArgs m |> List.map (function Var(name,_) -> VarLiteral("$" + name))
-      
-    let s = __CheckSol heapInst2 closedPremise
-     
-    // add only recursive calls to immediate children
+                                                     
+    // add only recursive call for now
+    let ins = GetMethodInArgs m
+    let outs = GetMethodOutArgs m
     let post = GetMethodPrePost m |> snd 
                                   |> RewriteWithCtx (fun ctx e -> 
                                                         match e with 
-                                                        | VarLiteral(id) when not (IsInVarList ctx id) -> Some(VarLiteral("$" + id)) 
+                                                        | VarLiteral(id) when not (IsInVarList ctx id) -> 
+                                                            if IsInVarList outs id then
+                                                              //Some(VarLiteral((GetMethodFullName comp m) + "_" + id))
+                                                              let mcall = MethodCall(ThisLiteral, compName, methName, ins |> List.map (function Var(name,_) -> VarLiteral("$" + name)))
+                                                              let outSel = MethodOutSelect(mcall, id)
+                                                              Some(outSel)
+                                                            else
+                                                              Some(VarLiteral("$" + id)) 
                                                         | _ -> None) []
+                                  |> ChangeThisReceiver (VarLiteral("$this"))
+    let closedPremises' = closedPremise |> Set.add post |> ComputeClosure heapInst2
+    Logger.TraceLine "Closed premises with methods"
+    closedPremises' |> Set.iter loggerFunc
+
+    let s = __CheckSol heapInst2 closedPremises'
+    match __IterSolutions heapInst2 s with
+    | Some(x) -> x 
+    | None -> wrongSol
+
+    //s |> List.iter (fun lst -> lst |> List.iter (fun (l,r) -> Logger.TraceLine (sprintf "%s = %s" (PrintExpr 0 l) (PrintExpr 0 r))))
     
-    let rec Try spec s = 
-      match s with
-      | fs :: rest -> 
-          let goal = fs |> List.fold (fun acc (e1,e2) -> BinaryAnd acc (BinaryEq e1 e2)) TrueLiteral
-          match UnifyImplies spec goal LTR Map.empty with
-          | Some(x) -> Some(x)
-          | None -> Try spec rest
-      | [] -> None
-
-    let rec __IterAsgs asgs = 
-      match asgs with
-      | FieldAssignment((obj,Var(fldName,Some(fldType))),fldVal) :: rest
-            when obj.name = "this" && not (fldVal = NullLiteral) && IsConcreteField comp fldName && CheckSameCompType comp fldType ->
-          let receiver = Dot(ThisLiteral, fldName)
-          let changedThis = ChangeThisReceiver receiver post
-          let mcall = MethodCall(receiver, compName, methName, invocationArgs)
-
-          match Try changedThis s with
-          | Some(unifs) -> 
-              let unifs = unifs |> Map.fold (fun acc (k: string) v -> acc |> Map.add (k.Replace("$", "")) v) Map.empty
-              //s |> Map.iter (fun k v -> Logger.TraceLine (sprintf "%s --> %s" k (PrintExpr 0 v)))
-              let asgs = ApplyMethodUnifs receiver (comp,m) unifs
-              let restRes = __IterAsgs rest              
-              (fst restRes, asgs @ (snd restRes))
-          | None -> (false, [])
-      | _ :: rest -> 
-          __IterAsgs rest
-      | [] -> (true, [])
-   
-    match __IterAsgs heapInst2.assignments with
-    | (true, asgs) -> 
-        Logger.InfoLine "AAAAAAAAAAAAAAAAA"
-        let heapInst3 = {heapInst2 with assignments = asgs}
-        let sol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst3]
-        Logger.Info (idt + "    ")
-        if VerifySolution prog sol Options.CONFIG.genRepr then
-          Logger.InfoLine "~~~ VERIFIED ~~~"
-          sol
-        else 
-          Logger.InfoLine "!!! NOT VERIFIED !!!"
-          sol
-
-    | (false, _) -> wrongSol
+//    let rec Try spec s = 
+//      match s with
+//      | fs :: rest -> 
+//          let goal = fs |> List.fold (fun acc (e1,e2) -> BinaryAnd acc (BinaryEq e1 e2)) TrueLiteral
+//          match UnifyImplies spec goal LTR Map.empty with
+//          | Some(x) -> Some(x)
+//          | None -> Try spec rest
+//      | [] -> None
+//
+//    let rec __IterAsgs asgs = 
+//      match asgs with
+//      | FieldAssignment((obj,Var(fldName,Some(fldType))),fldVal) :: rest
+//            when obj.name = "this" && not (fldVal = NullLiteral) && IsConcreteField comp fldName && CheckSameCompType comp fldType ->
+//          let receiver = Dot(ThisLiteral, fldName)
+//          let changedThis = ChangeThisReceiver receiver post
+//          let mcall = MethodCall(receiver, compName, methName, invocationArgs)
+//
+//          match Try changedThis s with
+//          | Some(unifs) -> 
+//              let unifs = unifs |> Map.fold (fun acc (k: string) v -> acc |> Map.add (k.Replace("$", "")) v) Map.empty
+//              //s |> Map.iter (fun k v -> Logger.TraceLine (sprintf "%s --> %s" k (PrintExpr 0 v)))
+//              let asgs = ApplyMethodUnifs receiver (comp,m) unifs
+//              let restRes = __IterAsgs rest              
+//              (fst restRes, asgs @ (snd restRes))
+//          | None -> (false, [])
+//      | _ :: rest -> 
+//          __IterAsgs rest
+//      | [] -> (true, [])
+//   
+//    match __IterAsgs heapInst2.assignments with
+//    | (true, asgs) -> 
+//        Logger.InfoLine "AAAAAAAAAAAAAAAAA"
+//        let heapInst3 = {heapInst2 with assignments = asgs}
+//        let sol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst3]
+//        Logger.Info (idt + "    ")
+//        if VerifySolution prog sol Options.CONFIG.genRepr then
+//          Logger.InfoLine "~~~ VERIFIED ~~~"
+//          sol
+//        else 
+//          Logger.InfoLine "!!! NOT VERIFIED !!!"
+//          sol
+//
+//    | (false, _) -> wrongSol
                                           
 //    if List.isEmpty s then
 //

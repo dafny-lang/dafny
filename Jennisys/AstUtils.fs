@@ -64,6 +64,7 @@ let rec Rewrite rewriterFunc expr =
   | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map __RewriteOrRecurse)
   | SetExpr(exs)                     -> SetExpr(exs |> List.map __RewriteOrRecurse)
   | MethodCall(rcv,cname,mname,ins)  -> MethodCall(__RewriteOrRecurse rcv, cname, mname, ins |> List.map __RewriteOrRecurse)
+  | MethodOutSelect(mth,name)        -> MethodOutSelect(__RewriteOrRecurse mth, name)
   | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse e)
   | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse e)
 
@@ -95,6 +96,7 @@ let rec RewriteWithCtx rewriterFunc ctx expr =
   | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map (__RewriteOrRecurse ctx))
   | SetExpr(exs)                     -> SetExpr(exs |> List.map (__RewriteOrRecurse ctx))
   | MethodCall(rcv,cname,mname,ins)  -> MethodCall(__RewriteOrRecurse ctx rcv, cname, mname, ins |> List.map (__RewriteOrRecurse ctx))
+  | MethodOutSelect(mth,name)        -> MethodOutSelect(__RewriteOrRecurse ctx mth, name)
   | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse ctx e)
   | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse ctx e)
 //  ====================================================
@@ -163,7 +165,8 @@ let rec DescendExpr visitorFunc composeFunc leafVal expr =
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
-  | UnaryExpr(_,e)           
+  | UnaryExpr(_,e) 
+  | MethodOutSelect(e,_)          
   | SeqLength(e)                     -> __Compose (e :: [])
   | SelectExpr(e1, e2)
   | BinaryExpr(_,_,e1,e2)            -> __Compose (e1 :: e2 :: [])
@@ -190,7 +193,8 @@ let rec DescendExpr2 visitorFunc expr acc =
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
-  | UnaryExpr(_,e)           
+  | UnaryExpr(_,e)  
+  | MethodOutSelect(e,_)         
   | SeqLength(e)                     -> __Pipe (e :: [])
   | SelectExpr(e1, e2)
   | BinaryExpr(_,_,e1,e2)            -> __Pipe (e1 :: e2 :: [])
@@ -453,8 +457,15 @@ let GetMethodSig mthd =
   | _ -> failwith ("not a method: " + mthd.ToString())
 
 let GetMethodPrePost mthd = 
+  let __FilterOutAssumes e = e |> SplitIntoConjunts |> List.filter (function AssumeExpr(_) -> false | _ -> true) |> List.fold BinaryAnd TrueLiteral
   match mthd with
-  | Method(_,_,pre,post,_) -> pre,post
+  | Method(_,_,pre,post,_) -> __FilterOutAssumes pre,post
+  | _ -> failwith ("not a method: " + mthd.ToString())
+
+let GetMethodGhostPrecondition mthd = 
+  match mthd with 
+  | Method(_,_,pre,_,_) -> 
+      pre |> SplitIntoConjunts |> List.choose (function AssumeExpr(e) -> Some(e) | _ -> None) |> List.fold BinaryAnd TrueLiteral
   | _ -> failwith ("not a method: " + mthd.ToString())
 
 //  =========================================================
@@ -543,6 +554,11 @@ let FindComponent (prog: Program) clsName =
 let FindComponentForType prog ty = 
   FindComponent prog (GetTypeShortName ty)
 
+let FindComponentForTypeOpt prog tyOpt = 
+  match tyOpt with
+  | Some(ty) -> FindComponentForType prog ty
+  | None -> None
+
 let CheckSameCompType comp ty = 
   GetComponentName comp = GetTypeShortName ty
 
@@ -615,9 +631,8 @@ let AddReplaceMethod prog comp newMthd oldMethod =
 let AddPrecondition prog comp m e =
   match m with
   | Method(mn, sgn, pre, post, cstr) ->
-      let newMthd = Method(mn, sgn, BinaryAnd pre e, post, cstr)
-      let newProg, newComp = AddReplaceMethod prog comp newMthd (Some(m))
-      newProg, newComp, newMthd
+      let newMthd = Method(mn, sgn, BinaryAnd pre (AssumeExpr(e)), post, cstr)
+      newMthd
   | _ -> failwithf "Not a method: %O" m
 
 ////////////////////
@@ -683,6 +698,8 @@ let rec __EvalSym resolverFunc returnFunc ctx expr =
     | SetExpr(elist) -> 
         let eset' = elist |> List.fold (fun acc e -> Set.add (__EvalSym resolverFunc returnFunc ctx e) acc) Set.empty
         SetExpr(Set.toList eset') 
+    | MethodOutSelect(e,name) -> 
+        MethodOutSelect(__EvalSym resolverFunc returnFunc ctx e, name)
     | MethodCall(rcv,cname, mname,aparams) ->
         let rcv' = __EvalSym resolverFunc returnFunc ctx rcv
         let aparams' = aparams |> List.fold (fun acc e -> __EvalSym resolverFunc returnFunc ctx e :: acc) [] |> List.rev
@@ -922,7 +939,8 @@ let MyDesugar expr removeOriginal =
     | SeqLength(_)           
     | UpdateExpr(_)     
     | SetExpr(_)
-    | MethodCall(_)     
+    | MethodCall(_)  
+    | MethodOutSelect(_)   
     | SequenceExpr(_)        -> expr 
     // forall v :: v in {a1 a2 ... an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
     // forall v :: v in [a1 a2 ... an] ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
@@ -1001,6 +1019,7 @@ let ChangeThisReceiver receiver expr =
     | UpdateExpr(e1,e2,e3)                 -> UpdateExpr(__ChangeThis locals e1, __ChangeThis locals e2, __ChangeThis locals e3) 
     | SequenceExpr(exs)                    -> SequenceExpr(exs |> List.map (__ChangeThis locals))
     | SetExpr(exs)                         -> SetExpr(exs |> List.map (__ChangeThis locals))
+    | MethodOutSelect(e, name)             -> MethodOutSelect(__ChangeThis locals e, name)
     | MethodCall(rcv,cname, mname,aparams) -> MethodCall(__ChangeThis locals rcv, cname, mname, aparams |> List.map (__ChangeThis locals))
   (* --- function body starts here --- *)
   __ChangeThis Set.empty expr

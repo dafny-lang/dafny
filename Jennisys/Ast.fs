@@ -48,6 +48,7 @@ type Expr =
   | SetExpr of Expr list //TODO: maybe this should really be a set instead of a list
   | ForallExpr of VarDecl list * Expr
   | MethodCall of (* receiver *) Expr * (* component name *) string * (* method name *) string * (* actual parameters *) Expr list
+  | MethodOutSelect of (* method *) Expr * (* out param name *) string
   | VarDeclExpr of (* var list *) VarDecl list * (* declareAlso *) bool
   | AssertExpr of Expr
   | AssumeExpr of Expr

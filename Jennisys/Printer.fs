@@ -55,6 +55,8 @@ let rec PrintExpr ctx expr =
       sprintf "%sforall %s :: %s%s" openParen (vv |> PrintSep ", " PrintVarDecl) (PrintExpr 0 e) closeParen
   | MethodCall(rcv,_,name,aparams) ->
       sprintf "%s.%s(%s)" (PrintExpr 0 rcv) name (aparams |> PrintSep ", " (PrintExpr 0))
+  | MethodOutSelect(mth,name)      ->
+      sprintf "%s[\"%s\"]" (PrintExpr 0 mth) name
 
 let rec PrintConst cst = 
   match cst with 
