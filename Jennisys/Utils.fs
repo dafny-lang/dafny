@@ -86,6 +86,20 @@ let ListDeduplicate lst =
         __Dedup rest visitedSet newAcc
     | _ -> acc
   __Dedup lst (new System.Collections.Generic.HashSet<_>()) []
+
+let rec ListCombine combinerFunc lst1 lst2 = 
+  match lst1 with
+  | e1 :: rest ->
+      let resLst1 = lst2 |> List.fold (fun acc e2 -> acc @ [combinerFunc e1 e2]) []
+      List.concat [resLst1; ListCombine combinerFunc rest lst2]
+  | [] -> []
+
+let rec ListCombineMult combinerFunc lst1 lst2 = 
+  match lst1 with
+  | e1 :: rest ->
+      let resLst1 = lst2 |> List.fold (fun acc e2 -> acc @ combinerFunc e1 e2) []
+      List.concat [resLst1; ListCombineMult combinerFunc rest lst2]
+  | [] -> []
         
 //  =============================================================
 /// ensures: forall i :: 0 <= i < |lst| ==> ret[i] = Some(lst[i])

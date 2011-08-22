@@ -87,6 +87,16 @@ let GetType (e: Model.Element) prog =
 let GetLoc (e: Model.Element) =
   Unresolved(GetRefName e)
 
+let FindOrCreateSeq env key len =
+  match Map.tryFind key env with
+  | Some(SeqConst(lst)) -> lst,env
+  | None -> 
+      let emptyList = Utils.GenList len NoneConst
+      let newSeq = SeqConst(emptyList)
+      let newMap = env |> Map.add key newSeq
+      emptyList,newMap
+  | Some(_) as x-> failwith ("not a SeqConst but: " + x.ToString())
+
 let FindSeqInEnv env key =
   match Map.find key env with
   | SeqConst(lst) -> lst
@@ -204,8 +214,8 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
     match idx_tuples with
     | ft :: rest -> 
         let srcLstKey = GetLoc ft.Args.[0]
-        let oldLst = FindSeqInEnv envMap srcLstKey
         let idx = GetInt ft.Args.[1]
+        let oldLst,envMap = FindOrCreateSeq envMap srcLstKey (idx+1)        
         let lstElem = UnboxIfNeeded model ft.Result
         let newLst = Utils.ListSet idx lstElem oldLst
         let newCtx = UpdateContext oldLst newLst ctx

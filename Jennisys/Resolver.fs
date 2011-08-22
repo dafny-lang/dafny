@@ -20,13 +20,14 @@ type AssignmentType =
   | ArbitraryStatement of Stmt
 
 type HeapInstance = {
-   objs: Map<string, Obj>;
-   modifiableObjs: Set<Obj>;
-   assignments: AssignmentType list;
-   concreteValues: AssignmentType list;
-   methodArgs: Map<string, Const>;
-   methodRetVals: Map<string, Expr>;
-   globals: Map<string, Expr>;
+   objs                       : Map<string, Obj>;
+   modifiableObjs             : Set<Obj>;
+   assignments                : AssignmentType list;
+   concreteValues             : AssignmentType list;
+   methodArgs                 : Map<string, Const>;
+   methodRetVals              : Map<string, Expr>;
+   concreteMethodRetVals      : Map<string, Expr>;
+   globals                    : Map<string, Expr>;
 }
 
 let NoObj = { name = ""; objType = NamedType("", []) }
@@ -119,74 +120,87 @@ let Resolve hModel cst =
 //  ==================================================================
 /// Evaluates a given expression with respect to a given heap instance       
 //  ==================================================================
-let Eval heapInst resolveExprFunc expr = 
-  let rec __EvalResolver useConcrete resolveExprFunc expr fldNameOpt = 
-    let rec __FurtherResolve expr = 
-      match expr with
-      | SetExpr(elist)      -> SetExpr(elist |> List.map __FurtherResolve)
-      | SequenceExpr(elist) -> SequenceExpr(elist |> List.map __FurtherResolve)
-      | VarLiteral(_) ->
-          try 
-            __EvalResolver useConcrete resolveExprFunc expr None
-          with 
-          | _ -> expr
-      | IdLiteral(id) when not (id = "this" || id = "null") ->
-          try 
-            __EvalResolver useConcrete resolveExprFunc expr None
-          with 
-          | _ -> expr
-      | _ -> expr
 
-    (* --- function body starts here --- *)
-    let ex = match fldNameOpt with
-             | None -> expr
-             | Some(n) -> Dot(expr, n)
-    if not (resolveExprFunc ex) then
-      ex
-    else
-      match fldNameOpt with
-      | None -> 
-          match expr with
-          | ObjLiteral("this") | ObjLiteral("null") -> expr
-          | IdLiteral("this")  | IdLiteral("null") -> failwith "should never happen anymore" //TODO
-          | VarLiteral(id) -> 
-              match heapInst.methodArgs |> Map.tryFind id with
-              | Some(argValue) -> argValue |> Const2Expr
-              | None -> 
-                  match heapInst.methodRetVals |> Map.tryFind id with
-                  | Some(e) -> e |> __FurtherResolve
-                  | None -> raise (EvalFailed("cannot find value for method parameter " + id))              
-          | IdLiteral(id) ->
-              let globalVal = heapInst.globals |> Map.tryFind id
-              match globalVal with
-              | Some(e) -> e
-              | None -> __EvalResolver useConcrete resolveExprFunc ThisLiteral (Some(id))      
-          | _ -> raise (EvalFailed(sprintf "I'm not supposed to resolve %O" expr))
-      | Some(fldName) -> 
-          match expr with
-          | ObjLiteral(objName) -> 
-              let asgs = if useConcrete then heapInst.concreteValues else heapInst.assignments
-              let h2 = asgs |> List.filter (function FieldAssignment((o, Var(varName,_)), v) -> o.name = objName && varName = fldName | _ -> false)
-              match h2 with
-              | FieldAssignment((_,_),x) :: [] -> __FurtherResolve x
-              | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName fldName))
-              | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" objName fldName))  // TODO: what if that value doesn't matter for the solution, and that's why it's not present in the model???
-          | _ -> Dot(expr, fldName)
+let rec _EvalResolver heapInst useConcrete resolveExprFunc expr fldNameOpt = 
+  let rec __FurtherResolve expr = 
+    match expr with
+    | SetExpr(elist)      -> SetExpr(elist |> List.map __FurtherResolve)
+    | SequenceExpr(elist) -> SequenceExpr(elist |> List.map __FurtherResolve)
+    | VarLiteral(_) ->
+        try 
+          _EvalResolver heapInst useConcrete resolveExprFunc expr None
+        with 
+        | _ -> expr
+    | IdLiteral(id) when not (id = "this" || id = "null") ->
+        try 
+          _EvalResolver heapInst useConcrete resolveExprFunc expr None
+        with 
+        | _ -> expr
+    | _ -> expr
 
   (* --- function body starts here --- *)
+  let ex = match fldNameOpt with
+            | None -> expr
+            | Some(n) -> Dot(expr, n)
+  if not (resolveExprFunc ex) then
+    ex
+  else
+    match fldNameOpt with
+    | None -> 
+        match expr with
+        | ObjLiteral("this") | ObjLiteral("null") -> expr
+        | IdLiteral("this")  | IdLiteral("null") -> failwith "should never happen anymore" //TODO
+        | VarLiteral(id) -> 
+            match heapInst.methodArgs |> Map.tryFind id with
+            | Some(argValue) -> argValue |> Const2Expr
+            | None -> 
+                let retVals = if useConcrete then heapInst.concreteMethodRetVals else heapInst.methodRetVals
+                match retVals |> Map.tryFind id with
+                | Some(e) -> e |> __FurtherResolve
+                | None -> raise (EvalFailed("cannot find value for method parameter " + id))              
+        | IdLiteral(id) ->
+            let globalVal = heapInst.globals |> Map.tryFind id
+            match globalVal with
+            | Some(e) -> e
+            | None -> _EvalResolver heapInst useConcrete resolveExprFunc ThisLiteral (Some(id))      
+        | _ -> raise (EvalFailed(sprintf "I'm not supposed to resolve %O" expr))
+    | Some(fldName) -> 
+        match expr with
+        | ObjLiteral(objName) -> 
+            let asgs = if useConcrete then heapInst.concreteValues else heapInst.assignments
+            let h2 = asgs |> List.filter (function FieldAssignment((o, Var(varName,_)), v) -> o.name = objName && varName = fldName | _ -> false)
+            match h2 with
+            | FieldAssignment((_,_),x) :: [] -> __FurtherResolve x
+            | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName fldName))
+            | [] -> raise (EvalFailed(sprintf "can't find value for %s.%s" objName fldName))  // TODO: what if that value doesn't matter for the solution, and that's why it's not present in the model???
+        | _ -> Dot(expr, fldName)
+
+let _Eval heapInst resolveExprFunc returnFunc expr = 
+  (* --- function body starts here --- *)
   //EvalSym  (__EvalResolver resolveExprFunc) expr
-  EvalSymRet  (__EvalResolver false resolveExprFunc)
-              (fun expr -> 
-                 // TODO: infer type of expr and then re-execute only if its type is Bool
-                 let e1 = EvalSym (__EvalResolver true (fun _ -> true)) expr
-                 match e1 with
-                 | BoolLiteral(b) -> 
-                     if b then
-                       expr
-                     else 
-                       FalseLiteral
-                 | _ -> expr
-              ) expr
+  EvalSymRet  (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
+
+/// Resolves everything
+let EvalFull heapInst expr = 
+  EvalSym  (_EvalResolver heapInst true (fun e -> true)) expr
+  //_Eval heapInst (fun _ -> true) (fun e -> e) expr 
+
+let EvalAndCheckTrue heapInst resolveExprFunc expr = 
+  let returnFunc = fun expr -> 
+                     // TODO: this is just to ensure that all field accesses to this object are prefixed with "this."
+                     //       this is not the best place to do it, though
+                     let expr = match expr with IdLiteral(id) -> Dot(ThisLiteral, id) | _ -> expr
+                     // TODO: infer type of expr and then re-execute only if its type is Bool
+                     let e1 = EvalFull heapInst expr //EvalSym (_EvalResolver heapInst true (fun _ -> true)) expr
+                     match e1 with
+                     | BoolLiteral(b) -> 
+                         if b then
+                           expr
+                         else 
+                           FalseLiteral
+                     | _ -> expr
+  EvalSymRet (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
+  //_Eval heapInst resolveExprFunc returnFunc expr 
 
 //  =====================================================================
 /// Takes an unresolved model of the heap (HeapModel), resolves all 
@@ -229,13 +243,14 @@ let ResolveModel hModel meth =
                                                         acc1 |> Map.add name resolvedValExpr, acc2
                                                   | _ -> acc1, acc2
                                                ) (Map.empty, Map.empty)
-  { objs           = objs;
-    modifiableObjs = modObjs;
-    assignments    = hmap; 
-    concreteValues = hmap;
-    methodArgs     = argmap; 
-    methodRetVals  = retvals;
-    globals        = Map.empty }
+  { objs                   = objs;
+    modifiableObjs         = modObjs;
+    assignments            = hmap; 
+    concreteValues         = hmap;
+    methodArgs             = argmap; 
+    methodRetVals          = retvals;
+    concreteMethodRetVals  = retvals;
+    globals                = Map.empty }
 
 let rec GetCallGraph solutions graph = 
   let rec __SearchExprsForMethodCalls elist acc = 
@@ -264,6 +279,8 @@ let rec GetCallGraph solutions graph =
 
 //////////////////////////////
 
+//TODO: below here should really go to a different module
+
 let Is1stLevelExpr heapInst expr = 
   DescendExpr2 (fun expr acc ->
                   if not acc then
@@ -271,7 +288,7 @@ let Is1stLevelExpr heapInst expr =
                   else
                     match expr with
                     | Dot(discr, fldName) -> 
-                        let obj = Eval heapInst (fun _ -> true) discr
+                        let obj = EvalFull heapInst discr
                         match obj with 
                         | ObjLiteral(id) -> id = "this"
                         | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
@@ -291,3 +308,21 @@ let IsSolution1stLevelOnly heapInst =
     | [] -> true
   (* --- function body starts here --- *)
   __IsSol1stLevel (ConvertToStatements heapInst true)
+
+/// Returns a list of direct modifiable children objects with respect to "this" object
+///
+/// All returned expressions are of type ObjLiteral
+///
+/// ensures: forall e :: e in ret ==> e is ObjInstance
+let GetDirectModifiableChildren hInst = 
+  let rec __AddDirectChildren e acc = 
+    match e with
+    | ObjLiteral(_) when not (e = ThisLiteral || e = NullLiteral) -> acc |> Set.add e
+    | SequenceExpr(elist)
+    | SetExpr(elist) -> elist |> List.fold (fun acc2 e2 -> __AddDirectChildren e2 acc2) acc
+    | _ -> acc
+
+  (* --- function body starts here --- *)
+  let thisRhsExprs = hInst.assignments |> List.choose (function FieldAssignment((obj,_),e) when obj.name = "this" && Set.contains obj hInst.modifiableObjs  -> Some(e) | _ -> None)
+  thisRhsExprs |> List.fold (fun acc e -> __AddDirectChildren e acc) Set.empty 
+               |> Set.toList

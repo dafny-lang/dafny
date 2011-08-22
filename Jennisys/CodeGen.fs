@@ -144,6 +144,42 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr =
         "}" + newline + newline
       | _ -> assert false; "") ""
 
+let PrintPrePost pfix expr = 
+  SplitIntoConjunts expr |> PrintSep "" (fun e -> pfix + (PrintExpr 0 e) + ";")
+
+let GetPreconditionForMethod prog m = 
+  let validExpr = IdLiteral(validFuncName);
+  if IsConstructor m then
+    GetMethodPrePost m |> fst
+  else 
+    BinaryAnd validExpr (GetMethodPrePost m |> fst)
+  
+let GetPostconditionForMethod prog m genRepr = 
+  let validExpr = IdLiteral(validFuncName);
+  match m with
+  | Method(_,_,_,post,isConstr) ->
+      // this.Valid() and user-defined post-condition
+      let postExpr = BinaryAnd validExpr post
+      // method out args are valid
+      let postExpr = (GetMethodOutArgs m) |> List.fold (fun acc (Var(name,tyOpt)) ->
+                                                          if IsUserType prog tyOpt then
+                                                            let varExpr = VarLiteral(name)
+                                                            let argValidExpr = BinaryImplies (BinaryNeq varExpr NullLiteral) (Dot(varExpr, validFuncName))
+                                                            BinaryAnd acc argValidExpr
+                                                          else 
+                                                            acc
+                                                       ) postExpr
+      // fresh Repr
+      if genRepr then
+        let freshExpr = if isConstr then "fresh(Repr - {this})" else "fresh(Repr - old(Repr))";
+        BinaryAnd (IdLiteral(freshExpr)) postExpr
+      else
+        postExpr
+  | _ -> failwithf "expected a method, got %O" m 
+
+let PrintAssumePostcondition prog m genRepr prefix = 
+  PrintPrePost prefix (GetPostconditionForMethod prog m genRepr |> Desugar) + newline
+
 let GetAllocObjects heapInst = 
   heapInst.assignments |> List.fold (fun acc a ->
                                        match a with
@@ -194,7 +230,7 @@ let PrintReprAssignments prog heapInst indent =
                                                                                       | Some(ObjLiteral(n)) when not (n = "null") -> true
                                                                                       | _ -> false)
                                             return nonNullVars |> List.fold (fun a v -> 
-                                                                                BinaryPlus a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
+                                                                                BinaryAdd a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
                                                                             ) expr
                                           }
                                           let fullReprExpr = BinaryGets (Dot(ObjLiteral(obj.name), "Repr")) fullRhs 
@@ -219,7 +255,7 @@ let PrintReprAssignments prog heapInst indent =
   else 
     newline + outStr   
                                                           
-let rec PrintHeapCreationCode prog sol indent genRepr =
+let rec PrintHeapCreationCodeOld prog (comp,meth) sol indent genRepr =
   /// just removes all FieldAssignments to unmodifiable objects    
   let __RemoveUnmodifiableStuff heapInst = 
     let newAsgs = heapInst.assignments |> List.fold (fun acc a ->
@@ -229,7 +265,7 @@ let rec PrintHeapCreationCode prog sol indent genRepr =
                                                        | _ -> acc @ [a]
                                                     ) []
     { heapInst with assignments = newAsgs }
-
+  
   let idt = Indent indent
   match sol with
   | (c, hi) :: rest ->
@@ -243,7 +279,7 @@ let rec PrintHeapCreationCode prog sol indent genRepr =
         (PrintAllocNewObjects heapInstMod indent) +
         (PrintVarAssignments heapInstMod indent) +
         (__ReprAssignments indent) +
-        (PrintHeapCreationCode prog rest indent genRepr) 
+        (PrintHeapCreationCodeOld prog (comp,meth) rest indent genRepr) 
       else
         if List.length rest > 0 then
           idt + "if (" + (PrintExpr 0 c) + ") {" + newline +
@@ -251,7 +287,7 @@ let rec PrintHeapCreationCode prog sol indent genRepr =
           (PrintVarAssignments heapInstMod (indent+2)) +
           (__ReprAssignments (indent+2)) +
           idt + "} else {" + newline + 
-          (PrintHeapCreationCode prog rest (indent+2) genRepr) +
+          (PrintHeapCreationCodeOld prog (comp,meth) rest (indent+2) genRepr) +
           idt + "}" + newline
         else 
           (PrintAllocNewObjects heapInstMod indent) +
@@ -259,46 +295,19 @@ let rec PrintHeapCreationCode prog sol indent genRepr =
           (__ReprAssignments indent)
   | [] -> ""
 
-let PrintPrePost pfix expr = 
-  SplitIntoConjunts expr |> PrintSep "" (fun e -> pfix + (PrintExpr 0 e) + ";")
-
-let GetPreconditionForMethod prog m = 
-  let validExpr = IdLiteral(validFuncName);
-  match m with
-  | Method(_,_,pre,_,isConstr) ->
-      if isConstr then
-        pre
-      else
-        BinaryAnd validExpr pre
-  | _ -> failwithf "expected a method, got %O" m     
-
-let GetPostconditionForMethod prog m genRepr = 
-  let validExpr = IdLiteral(validFuncName);
-  match m with
-  | Method(_,_,_,post,isConstr) ->
-      // this.Valid() and user-defined post-condition
-      let postExpr = BinaryAnd validExpr post
-      // method out args are valid
-      let postExpr = (GetMethodOutArgs m) |> List.fold (fun acc (Var(name,tyOpt)) ->
-                                                          if IsUserType prog tyOpt then
-                                                            let varExpr = VarLiteral(name)
-                                                            let argValidExpr = BinaryImplies (BinaryNeq varExpr NullLiteral) (Dot(varExpr, validFuncName))
-                                                            BinaryAnd acc argValidExpr
-                                                          else 
-                                                            acc
-                                                       ) postExpr
-      // fresh Repr
-      if genRepr then
-        let freshExpr = if isConstr then "fresh(Repr - {this})" else "fresh(Repr - old(Repr))";
-        BinaryAnd (IdLiteral(freshExpr)) postExpr
-      else
-        postExpr
-  | _ -> failwithf "expected a method, got %O" m     
+let PrintHeapCreationCode prog (comp,meth) sol indent genRepr =
+  let idt = Indent indent
+  let ghostPre = GetMethodGhostPrecondition meth
+  if ghostPre = TrueLiteral then
+    PrintHeapCreationCodeOld prog (comp,meth) sol indent genRepr
+  else 
+    (ghostPre |> SplitIntoConjunts |> PrintSep newline (fun e -> idt + "assume " + (PrintExpr 0 e) + ";")) + newline + 
+    (PrintHeapCreationCodeOld prog (comp,meth) sol indent genRepr)
       
 let GenConstructorCode prog mthd body genRepr =
   let validExpr = IdLiteral(validFuncName);
   match mthd with
-  | Method(methodName, sign, pre, post, isConstr) -> 
+  | Method(methodName,sign,_,_,isConstr) -> 
       let preExpr = GetPreconditionForMethod prog mthd |> Desugar
       let postExpr = GetPostconditionForMethod prog mthd genRepr |> Desugar
       "  method " + methodName + (PrintSig sign) + 
@@ -321,9 +330,10 @@ let PrintImplCode prog solutions genRepr =
                                                               match sol with
                                                               | [] -> 
                                                                   "    //unable to synthesize" +
-                                                                  PrintPrePost (newline + "    assume ") (GetPostconditionForMethod prog m genRepr |> Desugar) + newline
+                                                                  PrintAssumePostcondition prog m genRepr (newline + "    assume ")
+                                                                  //PrintPrePost (newline + "    assume ") (GetPostconditionForMethod prog m genRepr |> Desugar) + newline
                                                               | _ -> 
-                                                                  PrintHeapCreationCode prog sol 4 genRepr
+                                                                  PrintHeapCreationCode prog (c,m) sol 4 genRepr
                                                             acc + newline + (GenConstructorCode prog m mthdBody genRepr) + newline
                                   
                                                           else

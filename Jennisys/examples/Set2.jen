@@ -1,21 +1,13 @@
-class Set {
-  var elems: set[int]
+class Set {  var elems: seq[int]
 
   constructor Empty()
-    ensures elems = {}
-
-  constructor SingletonZero()
-    ensures elems = {0}
+    ensures elems = []
 
   constructor Singleton(t: int)
-    ensures elems = {t}
+    ensures elems = [t]
 
   constructor Sum(p: int, q: int)
-    ensures elems = {p + q}
-
-  constructor Double(p: int, q: int)
-    requires p != q
-    ensures elems = {p q}
+    ensures elems = [p + q]
 
 }
 
@@ -26,31 +18,31 @@ model Set {
     root
 
   invariant
-    root = null ==> elems = {}
+    root = null ==> elems = []
     root != null ==> elems = root.elems
 }
 
 class SetNode {
-  var elems: set[int]
+  var elems: seq[int]
 
   constructor Init(x: int)
-    ensures elems = {x}
+    ensures elems = [x]
 
   constructor Double(a: int, b: int)
     requires a != b
-    ensures elems = {a b}
+    ensures |elems| = 2 && a in elems && b in elems
 
   constructor DoubleBase(x: int, y: int)
-    requires x > y
-    ensures elems = {x y}
+    requires x < y
+    ensures elems = [x y]
 
   constructor Triple(x: int, y: int, z: int)
     requires x != y && y != z && z != x
-    ensures elems = {x y z}
+    ensures |elems| = 3 && x in elems && y in elems && z in elems
 
   constructor TripleBase(x: int, y: int, z: int)
     requires x < y && y < z
-    ensures elems = {x y z}
+    ensures elems = [x y z]
 }
 
 model SetNode {
@@ -62,7 +54,7 @@ model SetNode {
     left * right
 
   invariant
-    elems = {data} + (left != null ? left.elems : {}) + (right != null ? right.elems : {})
+    elems = (left != null ? left.elems : []) + [data] + (right != null ? right.elems : [])
     left != null  ==> forall e :: e in left.elems ==> e < data
     right != null ==> forall e :: e in right.elems ==> e > data
 } 
