@@ -35,7 +35,6 @@ class Node[T] {
     ensures list = [p q]
 
   method List() returns (lst: seq[T])
-    requires |list| = 1
     ensures lst = list
 
   method Tail() returns (tail: Node[T])

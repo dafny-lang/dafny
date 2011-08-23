@@ -375,11 +375,13 @@ let BinarySub lhs rhs = BinaryExpr(55, "-", lhs, rhs)
 //  =======================================================
 let BinaryIn lhs rhs = 
   match lhs, rhs with
+  | _, SequenceExpr(elist) | _, SetExpr(elist) when elist |> List.length = 0 -> FalseLiteral
   | _, SequenceExpr(elist) | _, SetExpr(elist) when elist |> List.length = 1 -> BinaryEq lhs (elist.[0])
   | _ -> BinaryExpr(40, "in", lhs, rhs)
 
 let BinaryNotIn lhs rhs = 
   match lhs, rhs with
+  | _, SequenceExpr(elist) | _, SetExpr(elist) when elist |> List.length = 0 -> TrueLiteral
   | _, SequenceExpr(elist) | _, SetExpr(elist) when elist |> List.length = 1 -> BinaryNeq lhs (elist.[0])
   | _ -> BinaryExpr(40, "!in", lhs, rhs)
   
@@ -983,7 +985,7 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
             match vars with
             | v :: restV -> 
                 try 
-                  let vDom = GetVarDomain fullResolverFunc returnFunc ctx v e
+                  let vDom = GetVarDomain resolverFunc returnFunc ctx v e
                   __ExhaustVar v restV vDom
                 with
                   | ex -> ForallExpr([v], __TraverseVars restV) 
@@ -1148,10 +1150,10 @@ let rec ExtractTopLevelExpressions stmt =
 let rec PullUpMethodCalls stmt = 
   let stmtList = new System.Collections.Generic.LinkedList<_>()
   let rec __PullUpMethodCalls expr = 
-    stmtList.Clear()
-    let newExpr = RewriteBU (function  
-                               | MethodOutSelect(_) as expr ->
-                                   let vname = SymGen.NewSym
+    let newExpr = RewriteBU (fun expr ->  
+                               match expr with
+                               | MethodOutSelect(_) ->
+                                   let vname = SymGen.NewSymFake expr
                                    let e' = VarLiteral(vname)
                                    let var = VarDeclExpr([Var(vname,None)], true)
                                    let asgn = BinaryGets var expr
@@ -1160,6 +1162,7 @@ let rec PullUpMethodCalls stmt =
                                | _ -> None
                             ) expr
     newExpr, (stmtList |> List.ofSeq)
+  stmtList.Clear()
   match stmt with
   | ExprStmt(e)    -> 
       let e', slist = __PullUpMethodCalls e

@@ -61,3 +61,11 @@ with
   | EvalFailed(msg) as ex -> 
       printfn "  [EVALUATION ERROR]  %s" msg
       printfn "%O" ex.StackTrace 
+
+//let mc = MethodOutSelect (MethodCall(IdLiteral("left"),"SetNode","Find",[VarLiteral("n")]), "ret")
+//let expr = BinaryOr (BinaryOr (BinaryEq (VarLiteral("a")) (VarLiteral("b"))) mc) (mc) 
+//printfn "%s" (PrintExpr 0 expr)
+//printfn ""
+//
+//let stmt = ExprStmt(expr)
+//printfn "%s" (DafnyPrinter.PrintStmt stmt 0 false)

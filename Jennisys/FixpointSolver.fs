@@ -165,7 +165,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   
   let MySetAdd expr set =
     let x = Printer.PrintExpr 0 expr
-    if x.Contains("$") then
+    if x.Contains("$") || not (expandExprFunc expr) then
       set
     else 
       match expr with
@@ -324,12 +324,15 @@ let rec ComputeClosure heapInst expandExprFunc premises =
     | [] -> premises
 
   (* --- function body starts here --- *)
-  let premises' = __Iter (premises |> Set.toList) premises
-  if premises' = premises then
-    premises'
-  else 
-    //Logger.TraceLine "-----------------------"
-    //premises' |> Set.iter (fun e -> Logger.TraceLine (Printer.PrintExpr 0 e))
-    ComputeClosure heapInst expandExprFunc premises' 
+  let iterOnceFunc p = __Iter (p |> Set.toList) p
+  // TODO: iterate only 3 times, instead of to full closure
+  iterOnceFunc premises |> iterOnceFunc |> iterOnceFunc
+//  let premises' = iterOnceFunc premises 
+//  if premises' = premises then
+//    premises'
+//  else 
+//    Logger.TraceLine "-------closure----------------"
+//    //premises' |> Set.iter (fun e -> Logger.TraceLine (Printer.PrintExpr 0 e))
+//    ComputeClosure heapInst expandExprFunc premises' 
 
 
