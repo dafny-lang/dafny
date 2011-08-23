@@ -14,7 +14,7 @@ let ThisLiteral = ObjLiteral("this")
 let NullLiteral = ObjLiteral("null")
 
 let IsLogicalOp op = [ "&&"; "||"; "==>"; "<==>" ] |> Utils.ListContains op
-let IsRelationalOp op = [ "="; "!="; "<"; "<="; ">"; ">=" ] |> Utils.ListContains op     
+let IsRelationalOp op = [ "="; "!="; "<"; "<="; ">"; ">="; "in"; "!in" ] |> Utils.ListContains op     
 
 let AreInverseOps op1 op2 = match op1, op2 with "<" , ">" | ">" , "<" | "<=", ">=" | ">=", "<=" -> true | _ -> false
 let DoesImplyOp op1 op2 = 
@@ -36,11 +36,7 @@ let Expr2List e =
   | SequenceExpr(elist) -> elist
   | _ -> raise (ExprConvFailed(sprintf "not a Seq but: %O" e))
 
-let rec Rewrite rewriterFunc expr =
-  let __RewriteOrRecurse e =
-    match rewriterFunc e with
-    | Some(ee) -> ee
-    | None -> Rewrite rewriterFunc e 
+let rec MyRewrite rewriterFunc rewriteRecurseFunc expr =
   match expr with
   | IntLiteral(_)
   | BoolLiteral(_) 
@@ -52,21 +48,65 @@ let rec Rewrite rewriterFunc expr =
   | IdLiteral(_)                     -> match rewriterFunc expr with
                                         | Some(e) -> e
                                         | None -> expr
-  | Dot(e, id)                       -> Dot(__RewriteOrRecurse e, id)
-  | ForallExpr(vars,e)               -> ForallExpr(vars, __RewriteOrRecurse e)   
-  | UnaryExpr(op,e)                  -> UnaryExpr(op, __RewriteOrRecurse e)
-  | LCIntervalExpr(e)                -> LCIntervalExpr(__RewriteOrRecurse e)
-  | SeqLength(e)                     -> SeqLength(__RewriteOrRecurse e)
-  | SelectExpr(e1, e2)               -> SelectExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2)
-  | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, __RewriteOrRecurse e1, __RewriteOrRecurse e2)
-  | IteExpr(e1,e2,e3)                -> IteExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
-  | UpdateExpr(e1,e2,e3)             -> UpdateExpr(__RewriteOrRecurse e1, __RewriteOrRecurse e2, __RewriteOrRecurse e3) 
-  | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map __RewriteOrRecurse)
-  | SetExpr(exs)                     -> SetExpr(exs |> List.map __RewriteOrRecurse)
-  | MethodCall(rcv,cname,mname,ins)  -> MethodCall(__RewriteOrRecurse rcv, cname, mname, ins |> List.map __RewriteOrRecurse)
-  | MethodOutSelect(mth,name)        -> MethodOutSelect(__RewriteOrRecurse mth, name)
-  | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse e)
-  | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse e)
+  | Dot(e, id)                       -> Dot(rewriteRecurseFunc e, id)
+  | ForallExpr(vars,e)               -> ForallExpr(vars, rewriteRecurseFunc e)   
+  | UnaryExpr(op,e)                  -> UnaryExpr(op, rewriteRecurseFunc e)
+  | LCIntervalExpr(e)                -> LCIntervalExpr(rewriteRecurseFunc e)
+  | SeqLength(e)                     -> SeqLength(rewriteRecurseFunc e)
+  | SelectExpr(e1, e2)               -> SelectExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2)
+  | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, rewriteRecurseFunc e1, rewriteRecurseFunc e2)
+  | IteExpr(e1,e2,e3)                -> IteExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2, rewriteRecurseFunc e3) 
+  | UpdateExpr(e1,e2,e3)             -> UpdateExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2, rewriteRecurseFunc e3) 
+  | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map rewriteRecurseFunc)
+  | SetExpr(exs)                     -> SetExpr(exs |> List.map rewriteRecurseFunc)
+  | MethodCall(rcv,cname,mname,ins)  -> MethodCall(rewriteRecurseFunc rcv, cname, mname, ins |> List.map rewriteRecurseFunc)
+  | MethodOutSelect(mth,name)        -> MethodOutSelect(rewriteRecurseFunc mth, name)
+  | AssertExpr(e)                    -> AssertExpr(rewriteRecurseFunc e)
+  | AssumeExpr(e)                    -> AssumeExpr(rewriteRecurseFunc e)
+
+let rec Rewrite rewriterFunc expr = 
+  let __RewriteOrRecurse e =
+    match rewriterFunc e with
+    | Some(ee) -> ee
+    | None -> Rewrite rewriterFunc e 
+  MyRewrite rewriterFunc __RewriteOrRecurse expr
+
+let rec RewriteBU rewriterFunc expr = 
+  let rewriteRecurseFunc e =
+    let e' = Rewrite rewriterFunc e
+    match rewriterFunc e' with
+    | Some(ee) -> ee
+    | None -> e'
+  let rewriteFunc e = 
+    match rewriterFunc e with
+    | Some(ee) -> ee
+    | None -> e
+  let expr' = 
+    match expr with
+    | IntLiteral(_)
+    | BoolLiteral(_) 
+    | BoxLiteral(_)                  
+    | Star      
+    | VarLiteral(_) 
+    | ObjLiteral(_) 
+    | VarDeclExpr(_)                     
+    | IdLiteral(_)                     -> expr
+    | Dot(e, id)                       -> Dot(rewriteRecurseFunc e, id) 
+    | ForallExpr(vars,e)               -> ForallExpr(vars, rewriteRecurseFunc e)   
+    | UnaryExpr(op,e)                  -> UnaryExpr(op, rewriteRecurseFunc e)
+    | LCIntervalExpr(e)                -> LCIntervalExpr(rewriteRecurseFunc e)
+    | SeqLength(e)                     -> SeqLength(rewriteRecurseFunc e)
+    | SelectExpr(e1, e2)               -> SelectExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2)
+    | BinaryExpr(p,op,e1,e2)           -> BinaryExpr(p, op, rewriteRecurseFunc e1, rewriteRecurseFunc e2)
+    | IteExpr(e1,e2,e3)                -> IteExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2, rewriteRecurseFunc e3) 
+    | UpdateExpr(e1,e2,e3)             -> UpdateExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2, rewriteRecurseFunc e3) 
+    | SequenceExpr(exs)                -> SequenceExpr(exs |> List.map rewriteRecurseFunc)
+    | SetExpr(exs)                     -> SetExpr(exs |> List.map rewriteRecurseFunc)
+    | MethodCall(rcv,cname,mname,ins)  -> MethodCall(rewriteRecurseFunc rcv, cname, mname, ins |> List.map rewriteRecurseFunc)
+    | MethodOutSelect(mth,name)        -> MethodOutSelect(rewriteRecurseFunc mth, name)
+    | AssertExpr(e)                    -> AssertExpr(rewriteRecurseFunc e)
+    | AssumeExpr(e)                    -> AssumeExpr(rewriteRecurseFunc e)
+  expr' |> rewriteFunc
 
 let rec RewriteWithCtx rewriterFunc ctx expr =
   let __RewriteOrRecurse ctx e =
@@ -204,6 +244,35 @@ let rec DescendExpr2 visitorFunc expr acc =
   | SequenceExpr(exs)                
   | SetExpr(exs)                     -> __Pipe exs
 
+let rec DescendExpr2BU visitorFunc expr acc = 
+  let __Pipe elist = 
+    let newAcc = elist |> List.fold (fun a e -> a |> DescendExpr2 visitorFunc e) acc
+    newAcc |> visitorFunc expr
+  match expr with
+  | IntLiteral(_)
+  | BoolLiteral(_)  
+  | BoxLiteral(_)                 
+  | Star      
+  | VarLiteral(_) 
+  | ObjLiteral(_)   
+  | VarDeclExpr(_)                   
+  | IdLiteral(_)                     -> __Pipe []
+  | AssertExpr(e)
+  | AssumeExpr(e)
+  | Dot(e, _)
+  | ForallExpr(_,e)
+  | LCIntervalExpr(e)
+  | UnaryExpr(_,e)  
+  | MethodOutSelect(e,_)         
+  | SeqLength(e)                     -> __Pipe (e :: [])
+  | SelectExpr(e1, e2)
+  | BinaryExpr(_,_,e1,e2)            -> __Pipe (e1 :: e2 :: [])
+  | IteExpr(e1,e2,e3)
+  | UpdateExpr(e1,e2,e3)             -> __Pipe (e1 :: e2 :: e3 :: [])
+  | MethodCall(rcv,_,_,aparams)      -> __Pipe (rcv :: aparams)
+  | SequenceExpr(exs)                
+  | SetExpr(exs)                     -> __Pipe exs
+
 let PrintGenSym (name: string) =
   if name.StartsWith("gensym") then
     name
@@ -229,6 +298,14 @@ let UnaryNot sub =
   match sub with
   | UnaryExpr("!", s) -> s
   | BoolLiteral(b) -> BoolLiteral(not b)
+  | BinaryExpr(p,"=",l,r) -> BinaryExpr(p,"!=",l,r)
+  | BinaryExpr(p,"!=",l,r) -> BinaryExpr(p,"=",l,r)
+  | BinaryExpr(p,"in",l,r) -> BinaryExpr(p,"!in",l,r)
+  | BinaryExpr(p,"!in=",l,r) -> BinaryExpr(p,"in",l,r)
+  | BinaryExpr(p,"<",l,r) -> BinaryExpr(p,">=",l,r)
+  | BinaryExpr(p,"<=",l,r) -> BinaryExpr(p,">",l,r)
+  | BinaryExpr(p,">",l,r) -> BinaryExpr(p,"<=",l,r)
+  | BinaryExpr(p,">=",l,r) -> BinaryExpr(p,"<",l,r)
   | _ -> UnaryExpr("!", sub)
 
 //  =======================================================================
@@ -267,8 +344,18 @@ let BinaryImplies lhs rhs =
 //  =======================================================
 /// Constructors for binary EQ/NEQ of two given expressions
 //  =======================================================
-let BinaryNeq lhs rhs = BinaryExpr(40, "!=", lhs, rhs)
-let BinaryEq lhs rhs = BinaryExpr(40, "=", lhs, rhs)
+let BinaryNeq lhs rhs = 
+  match lhs, rhs with
+  | BoolLiteral(true), x | x, BoolLiteral(true) -> UnaryNot x
+  | BoolLiteral(false), x | x, BoolLiteral(false) -> x
+  | _ -> BinaryExpr(40, "!=", lhs, rhs)
+
+let BinaryEq lhs rhs = 
+  match lhs, rhs with
+  | BoolLiteral(true), x | x, BoolLiteral(true) -> x
+  | BoolLiteral(false), x | x, BoolLiteral(false) -> UnaryNot x
+  | _ when lhs = rhs -> TrueLiteral
+  | _ -> BinaryExpr(40, "=", lhs, rhs)
 
 //  =======================================================
 /// Constructor for binary GETS
@@ -281,8 +368,15 @@ let BinarySub lhs rhs = BinaryExpr(55, "-", lhs, rhs)
 //  =======================================================
 /// Constructors for binary IN/!IN of two given expressions
 //  =======================================================
-let BinaryIn lhs rhs = BinaryExpr(40, "in", lhs, rhs)
-let BinaryNotIn lhs rhs = BinaryExpr(40, "!in", lhs, rhs)
+let BinaryIn lhs rhs = 
+  match lhs, rhs with
+  | _, SequenceExpr(elist) | _, SetExpr(elist) when elist |> List.length = 1 -> BinaryEq lhs (elist.[0])
+  | _ -> BinaryExpr(40, "in", lhs, rhs)
+
+let BinaryNotIn lhs rhs = 
+  match lhs, rhs with
+  | _, SequenceExpr(elist) | _, SetExpr(elist) when elist |> List.length = 1 -> BinaryNeq lhs (elist.[0])
+  | _ -> BinaryExpr(40, "!in", lhs, rhs)
   
 //  ==========================================
 /// Splits "expr" into a list of its conjuncts
@@ -893,6 +987,8 @@ let rec __EvalSym resolverFunc returnFunc ctx expr =
           | [] -> __EvalSym resolverFunc returnFunc ctx e
         (* --- function body starts here --- *)
         __TraverseVars vars
+  if expr' = FalseLiteral then
+    Logger.Debug ""
   expr' |> returnFunc
 and GetVarDomain resolverFunc returnFunc ctx var expr = 
   match expr with 
@@ -1024,11 +1120,49 @@ let ChangeThisReceiver receiver expr =
   (* --- function body starts here --- *)
   __ChangeThis Set.empty expr
 
+let rec SimplifyExpr expr = 
+  let __Simplify expr = 
+    match expr with
+    | UnaryExpr("!", sub) -> Some(UnaryNot sub)
+    | BinaryExpr(_, "&&", l, r) -> Some(BinaryAnd l r)
+    | BinaryExpr(_, "||", l, r) -> Some(BinaryOr l r)
+    | BinaryExpr(_, "in", l, r) -> Some(BinaryIn l r)
+    | BinaryExpr(_, "!in", l, r) -> Some(BinaryNotIn l r)
+    | BinaryExpr(_, "==>", l, r) -> Some(BinaryImplies l r)
+    | BinaryExpr(_, "=", l, r) -> Some(BinaryEq l r)
+    | BinaryExpr(_, "!=", l, r) -> Some(BinaryNeq l r)
+    | _ -> None
+  RewriteBU __Simplify expr
+
 let rec ExtractTopLevelExpressions stmt = 
   match stmt with
   | ExprStmt(e)    -> [e]
   | Assign(e1, e2) -> [e1; e2]
   | Block(slist)   -> slist |> List.fold (fun acc s -> acc @ ExtractTopLevelExpressions s) [] 
+
+let rec PullUpMethodCalls stmt = 
+  let stmtList = new System.Collections.Generic.LinkedList<_>()
+  let rec __PullUpMethodCalls expr = 
+    stmtList.Clear()
+    let newExpr = RewriteBU (function  
+                               | MethodOutSelect(_) as expr ->
+                                   let vname = SymGen.NewSym
+                                   let e' = VarLiteral(vname)
+                                   let var = VarDeclExpr([Var(vname,None)], true)
+                                   let asgn = BinaryGets var expr
+                                   stmtList.AddLast asgn |> ignore
+                                   Some(e')
+                               | _ -> None
+                            ) expr
+    newExpr, (stmtList |> List.ofSeq)
+  match stmt with
+  | ExprStmt(e)    -> 
+      let e', slist = __PullUpMethodCalls e
+      slist @ [ExprStmt(e')]
+  | Assign(e1, e2) -> 
+      let e2', slist = __PullUpMethodCalls e2
+      slist @ [Assign(e1, e2')]
+  | Block(slist)   -> slist |> List.fold (fun acc s -> acc @ PullUpMethodCalls s) [] 
 
 //  ==========================================================
 /// Very simple for now: 

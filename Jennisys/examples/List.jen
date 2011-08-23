@@ -53,6 +53,13 @@ class Node[T] {
   method Get(idx: int) returns (ret: T)
     requires idx >= 0 && idx < |list|
     ensures ret = list[idx]
+
+  method Index(n: T) returns (ret: int)
+    ensures n !in list ==> ret = -1
+    ensures n in list ==> ret >= 0 && ret < |list| && list[ret] = n
+
+  method Find(n: T) returns (ret: bool)
+    ensures ret = (n in list)
 }
 
 model Node[T] {

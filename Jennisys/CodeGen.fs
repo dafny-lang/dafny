@@ -197,7 +197,7 @@ let PrintAllocNewObjects heapInst indent =
 let PrintVarAssignments heapInst indent = 
   let idt = Indent indent
   let stmts = ConvertToStatements heapInst true
-  let str = stmts |> PrintSep (newline) (fun s -> idt + (PrintStmt s 0 false))
+  let str = stmts |> PrintSep (newline) (fun s -> (PrintStmt s indent false))
   str + newline
 
 ///
@@ -304,7 +304,7 @@ let PrintHeapCreationCode prog (comp,meth) sol indent genRepr =
     (ghostPre |> SplitIntoConjunts |> PrintSep newline (fun e -> idt + "assume " + (PrintExpr 0 e) + ";")) + newline + 
     (PrintHeapCreationCodeOld prog (comp,meth) sol indent genRepr)
       
-let GenConstructorCode prog mthd body genRepr =
+let GenConstructorCode prog mthd decreasesClause body genRepr =
   let validExpr = IdLiteral(validFuncName);
   match mthd with
   | Method(methodName,sign,_,_,isConstr) -> 
@@ -315,10 +315,17 @@ let GenConstructorCode prog mthd body genRepr =
       (PrintPrePost (newline + "    requires ") preExpr) + 
       (PrintPrePost (newline + "    ensures ") postExpr) + 
       newline +
+      decreasesClause +
       "  {" + newline + 
       body + 
       "  }" + newline
   | _ -> ""
+
+let GetDecreasesClause (c,m) sol = 
+  if IsRecursiveSol (c,m) sol then 
+    "    decreases Repr;" + newline
+  else
+    ""
 
 // solutions: (comp, constructor) |--> condition * heapInst
 let PrintImplCode prog solutions genRepr =
@@ -326,15 +333,18 @@ let PrintImplCode prog solutions genRepr =
                                  let cname = GetComponentName comp
                                  solutions |> Map.fold (fun acc (c,m) sol -> 
                                                           if (GetComponentName c) = cname then
-                                                            let mthdBody = 
+                                                            let mthdBody,decr = 
                                                               match sol with
                                                               | [] -> 
-                                                                  "    //unable to synthesize" +
-                                                                  PrintAssumePostcondition prog m genRepr (newline + "    assume ")
-                                                                  //PrintPrePost (newline + "    assume ") (GetPostconditionForMethod prog m genRepr |> Desugar) + newline
-                                                              | _ -> 
-                                                                  PrintHeapCreationCode prog (c,m) sol 4 genRepr
-                                                            acc + newline + (GenConstructorCode prog m mthdBody genRepr) + newline
+                                                                  let body = "    //unable to synthesize" +
+                                                                             (PrintAssumePostcondition prog m genRepr (newline + "    assume "))
+                                                                  let decr = ""
+                                                                  body,decr
+                                                              | _ ->
+                                                                  let body = PrintHeapCreationCode prog (c,m) sol 4 genRepr
+                                                                  let decr = GetDecreasesClause (c,m) sol
+                                                                  body,decr
+                                                            acc + newline + (GenConstructorCode prog m decr mthdBody genRepr) + newline
                                   
                                                           else
                                                             acc) "") genRepr

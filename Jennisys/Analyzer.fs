@@ -372,6 +372,28 @@ let DontResolveUnmodifiableStuff prog comp meth expr =
       isConstr
   | _ -> true
 
+/// Descends down a given expression and returns bunch of sub-expressions that all evaluate to true
+let FindClauses resolverFunc heapInst expr = 
+  let MyFun expr acc =
+    try
+      match expr with
+      // skip binary logical operators because we want to find smallest sub-expressions
+      | BinaryExpr(_,op,_,_) when IsLogicalOp op -> acc 
+      | _ ->
+          let exprEval = Eval heapInst resolverFunc expr
+          match exprEval with
+          | _ when exprEval = TrueLiteral -> acc
+          | _ ->
+              let exprAllResolved = EvalFull heapInst expr
+              match exprAllResolved with
+              | BoolLiteral(true) -> acc @ [exprEval]
+              | BoolLiteral(false) -> acc @ [UnaryNot exprEval]
+              | _ -> acc
+    with
+    | _ -> acc
+  (* --- function body starts here --- *)
+  DescendExpr2 MyFun expr []
+
 /// Descends down a given expression and returns all sub-expressions that evaluate to TrueLiteral
 let FindTrueClauses resolverFunc heapInst expr = 
   let MyFun expr acc =
@@ -473,14 +495,214 @@ let rec AnalyzeConstructor indent prog comp m callGraph =
           else 
             Logger.InfoLine "!!! NOT VERIFIED !!!"
             if Options.CONFIG.inferConditionals then
-              Logger.InfoLine (idt + "    Strengthening the pre-condition")
-              TryInferConditionals (indent + 4) prog comp m unifs heapInst callGraph
+              TryRecursion (indent + 4) prog comp m unifs heapInst callGraph
             else
               sol      
         else
           sol             
-and TryInferConditionals indent prog comp m unifs heapInst callGraph = 
-  let rec __TryOutConditions candidateConditions =
+and TryRecursion indent prog comp m unifs heapInst callGraph = 
+  let idt = Indent indent
+
+  /// checks whether an expression is ok, meaning 
+  ///   - only immediate concrete fields of the "this" object are used,
+  ///   - no recursion on the same object with the same parameters
+  ///   - not a constant
+  let __IsOk hInst expr = 
+    let compName = GetComponentName comp
+    let methName = GetMethodName m
+    try
+      expr |> EvalNone hInst |> Expr2Const |> ignore
+      false
+    with
+    | _ -> 
+        DescendExpr2 (fun expr acc ->
+                        if not acc then
+                          false
+                        else
+                          match expr with
+                          | Dot(discr, fldName) -> 
+                              let obj = EvalFull heapInst discr
+                              match obj with 
+                              | ObjLiteral(id) when id = "this" -> 
+                                  try 
+                                    IsConcreteField (InferType prog comp (MethodArgChecker prog m) discr |> Utils.ExtractOption) fldName
+                                  with
+                                    | _ -> false
+                              | ObjLiteral(id) -> false
+                              | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
+                          | MethodCall(receiver, cn, mn, elst) when receiver = ThisLiteral && cn = compName && mn = methName -> 
+                              elst |> List.exists (function VarLiteral(_) -> false | _ -> true)
+                          | _ -> true                          
+                      ) expr true
+
+  /// Finds all modifiable fields in a given hInst, and checks if an "ok" 
+  /// expression exists for each one of them.
+  ///
+  /// Returns all possible combinations of "ok" solutions (these are not verified yet).
+  let __GetAllAssignments hInst premises = 
+    let rec __IterVars vars = 
+      match vars with
+      | lhs :: [] -> 
+          let lhsOptions = premises |> Set.toList 
+                                    |> List.choose (function
+                                                      | BinaryExpr(_,"=",l,r) -> if l = lhs then Some(r) elif r = lhs then Some(l) else None
+                                                      | _ -> None)
+                                    |> List.filter (__IsOk hInst)
+                                    |> List.map (fun e -> [lhs,e])
+          lhsOptions
+      | lhs :: rest -> 
+          let lhsOptions = __IterVars [lhs]
+          if List.isEmpty lhsOptions then
+            List.empty
+          else 
+            let restOptions = __IterVars rest 
+            Utils.ListCombine (fun t1 t2 -> t1 @ t2) lhsOptions restOptions
+      | [] -> List.empty
+                                                              
+    let stmts = ConvertToStatements hInst true
+    let modVars = stmts |> List.choose (function
+                                          | Assign(lhs,_) -> Some(lhs)
+                                          | _ -> None)
+    __IterVars modVars
+
+  /// Print a given list of assignments
+  let rec __PrintSol indent s = 
+    let idt = Indent indent
+    match s with
+    | (l,r) :: [] -> 
+        sprintf "%s%s := %s" idt (PrintExpr 0 l) (PrintExpr 0 r)
+    | (l,r) :: rest -> 
+        let str = __PrintSol indent [l,r]
+        str + newline + (__PrintSol indent rest)  
+    | [] -> ""      
+      
+  /// Returns a given method's postcondition where 
+  ///   - all input variables are renamed so that their names start with "$" and 
+  ///     (so that the unifier know that it's ok to try to unify those variables)
+  ///   - all output variables are rewritten as $this.<method_name>(<args>)["<out_var_name>"]
+  ///     (so that it is clear that they are results of a method call)
+  let __GetMethodPostTemplate comp m = 
+    let compName = GetComponentName comp
+    let methName = GetMethodName m
+    let ins = GetMethodInArgs m
+    let outs = GetMethodOutArgs m
+    let post = GetMethodPrePost m |> snd 
+    post |> RewriteWithCtx (fun ctx e -> 
+                              match e with 
+                              | VarLiteral(id) when not (IsInVarList ctx id) -> 
+                                  if IsInVarList outs id then
+                                    let mcall = MethodCall(ThisLiteral, compName, methName, ins |> List.map (function Var(name,_) -> VarLiteral("$" + name)))
+                                    let outSel = MethodOutSelect(mcall, id)
+                                    Some(outSel)
+                                  else
+                                    Some(VarLiteral("$" + id)) 
+                              | _ -> None) []
+        |> ChangeThisReceiver (VarLiteral("$this"))
+
+  /// Merges ...
+  let __MergeSolutions hInst s = 
+    let __FindRhs lhs = s |> List.choose (fun (l,r) -> if l = lhs then Some(r) else None) |> Utils.ListToOption
+    let rec __FixAssignments asgs = 
+      match asgs with
+      | asg :: rest -> 
+          let newAsg = 
+            match asg with
+            | FieldAssignment((obj,Var(fldName,_)) as discr,valExpr) -> 
+                let objPath = GetObjRefExpr obj.name hInst |> Utils.ExtractOption
+                let lhs = Dot(objPath, fldName)
+                match __FindRhs lhs with
+                | Some(rhs) -> FieldAssignment(discr,rhs)
+                | None -> asg
+            | _ -> asg
+          newAsg :: (__FixAssignments rest)              
+      | [] -> []
+    let rec __FixRetValues retVals = 
+      match retVals with
+      | (varName,varExpr) :: rest -> 
+          let lhs = VarLiteral(varName)
+          let newVarExpr = 
+            match __FindRhs lhs with
+            | Some(rhs) -> rhs
+            | None -> varExpr
+          __FixRetValues rest |> Map.add varName newVarExpr
+      | [] -> Map.empty
+    if s = [] then 
+      hInst
+    else 
+      // fix assignments
+      let newAsgs = __FixAssignments hInst.assignments
+      // fix return values
+      let newRetVals = __FixRetValues (hInst.methodRetVals |> Map.toList)
+      {hInst with assignments   = newAsgs; 
+                  methodRetVals = newRetVals}
+
+
+  /// For a given heap instance and a list of possible solutions, it iterates 
+  /// trough all of them and returns whichever verifies first. 
+  let rec __IterSolutions hInst premises wrongSol sList = 
+    match sList with
+    | s :: rest -> 
+        Logger.InfoLine (idt + "Candidate solution:")
+        Logger.InfoLine (__PrintSol (indent + 4) s)
+        let hInst' = __MergeSolutions hInst s
+        let sol = Utils.MapSingleton (comp,m) [TrueLiteral, hInst']
+        if not (hInst' = hInst) && VerifySolution prog sol Options.CONFIG.genRepr then
+          Logger.InfoLine (idt + "  ~~~ VERIFIED ~~~")
+          sol
+        else 
+          Logger.InfoLine (idt + "  !!! NOT VERIFIED !!!")  
+          match TryInferConditionals indent prog comp m unifs hInst' callGraph premises with
+          | Some(candCond,solThis) -> 
+              let m' = AddPrecondition prog comp m (UnaryNot(candCond))
+              let solRest = AnalyzeConstructor (indent + 2) prog comp m' callGraph
+              MergeSolutions solThis solRest |> FixSolution comp m
+          | None -> 
+              __IterSolutions hInst premises wrongSol rest    
+    | [] -> wrongSol
+
+  (* --- function body starts here --- *) 
+  let loggerFunc = fun e -> Logger.TraceLine (sprintf "%s    --> %s" idt (PrintExpr 0 e))
+
+  let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
+  let heapInst = ApplyUnifications indent prog comp m unifs heapInst false
+  let methodArgs = GetMethodInArgs m
+  let heapExpr = GetHeapExpr prog m heapInst
+
+  // find set of premises (don't resolve anything)
+  let premises = heapExpr |> FindClauses (fun e -> false) heapInst 
+
+  Logger.TraceLine (sprintf "%s Premises:" idt)
+  premises |> List.iter loggerFunc  
+                                                     
+  // add only recursive call for now
+  let post = __GetMethodPostTemplate comp m
+    
+  let premiseSet = premises |> Set.ofList |> Set.add post 
+  let closedPremises = ComputeClosure heapInst premiseSet
+     
+  Logger.TraceLine (idt + "Closed premises with methods")
+  closedPremises |> Set.iter loggerFunc
+
+  let s = __GetAllAssignments heapInst closedPremises
+  if s = [] then
+    // have at least one empty sol so that the original heapInst is not missed
+    __IterSolutions heapInst closedPremises wrongSol [[]]
+  else 
+    __IterSolutions heapInst closedPremises wrongSol s
+  
+and TryInferConditionals indent prog comp m unifs heapInst callGraph premises = 
+  let idt = Indent indent
+  let loggerFunc = fun e -> Logger.TraceLine (sprintf "%s    --> %s" idt (PrintExpr 0 e))
+  let methodArgs = GetMethodInArgs m
+
+  /// Iterates through a given list of boolean conditions and checks
+  /// which one suffices.  If it finds such a condition, it returns
+  /// the following three things: 
+  ///   - the condition itself
+  ///   - the method with this condition added to its preconditions
+  ///   - a solution
+  /// Otherwise returns None.
+  let rec __TryOutConditions heapInst candidateConditions =
     let idt = Indent indent
     match candidateConditions with 
     | [] ->
@@ -504,233 +726,52 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph =
           Some(candCond,m2,sol)
         else 
           Logger.InfoLine "NOT VERIFIED"
-          __TryOutConditions rest
+          __TryOutConditions heapInst rest
 
-  (* --- function body starts here --- *) 
-  let idt = Indent indent
-  let loggerFunc = fun e -> Logger.TraceLine (sprintf "%s    --> %s" idt (PrintExpr 0 e))
-
-  let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
-  let heapInst2 = ApplyUnifications indent prog comp m unifs heapInst false
-  let methodArgs = GetMethodInArgs m
-  
-  // find candidate conditions
-  let expr = GetHeapExpr prog m heapInst2
-  let specConds = expr |> FindTrueClauses (DontResolveUnmodifiableStuff prog comp m) heapInst2
-                       |> List.filter (IsUnmodConcrOnly prog (comp,m))
-
-  let aliasingCond = lazy(DiscoverAliasing (methodArgs |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst2) 
-  let argConds = heapInst2.methodArgs |> Map.fold (fun acc name value -> acc @ [BinaryEq (VarLiteral(name)) (Const2Expr value)]) []
-  let allConds = GetAllPossibleConditions specConds argConds [aliasingCond.Force()]
-    
-  // --- trace
-  allConds |> List.iter loggerFunc
-  // ---
-                      
-  if IsSolution1stLevelOnly heapInst2 then
+  if IsSolution1stLevelOnly heapInst then
     // try to find a non-recursive solution
-    match __TryOutConditions allConds with
+    Logger.InfoLine (idt + "Strengthening the pre-condition")
+    let expr = GetHeapExpr prog m heapInst
+    let specConds1 = expr |> FindTrueClauses (DontResolveUnmodifiableStuff prog comp m) heapInst
+                          |> List.filter (IsUnmodConcrOnly prog (comp,m))
+
+    let specConds2 = premises |> Set.filter (IsUnmodConcrOnly prog (comp,m)) |> Set.toList
+                              // remove constants
+                              |> List.filter (fun e -> try 
+                                                         EvalNone heapInst e |> Expr2Const |> ignore 
+                                                         false
+                                                       with
+                                                       | _ -> true)
+    let specConds = (specConds1 @ specConds2) |> List.map (fun e -> 
+                                                             PrintExpr 0 e |> Logger.TraceLine
+                                                             let e' = SimplifyExpr e
+                                                             PrintExpr 0 e'  |> Logger.TraceLine
+                                                             e')
+    let aliasingCond = lazy(DiscoverAliasing (methodArgs |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst) 
+    let argConds = heapInst.methodArgs |> Map.fold (fun acc name value -> acc @ [BinaryEq (VarLiteral(name)) (Const2Expr value)]) []
+    let allConds = GetAllPossibleConditions specConds argConds [aliasingCond.Force()]
+    allConds |> List.iter loggerFunc
+
+    match __TryOutConditions heapInst allConds with
     | Some(candCond,m2,sol) ->
         let solThis = match TryFindExistingAndConvertToSolution indent comp m2 candCond callGraph with
                       | Some(sol2) -> sol2
-                      | None -> sol   
-        let m3 = AddPrecondition prog comp m (UnaryNot(candCond))
-        let solRest = AnalyzeConstructor (indent + 2) prog comp m3 callGraph
-        MergeSolutions solThis solRest |> FixSolution comp m
+                      | None -> sol 
+        let solThis = solThis |> FixSolution comp m                
+        Some(candCond,solThis)
     | None -> 
         Logger.InfoLine (idt + "!!! Giving up !!!")
-        wrongSol
+        None
   else
-    // the solution is not immediate, so try to delegate to a method call, possibly to a recursive one
+    // the solution is not immediate
+    None
     
-    // find set of premises (don't resolve anything)
-    expr |> SplitIntoConjunts |> List.iter loggerFunc
 
-    let premises = expr |> FindTrueClauses (fun e -> false) heapInst2
-    let closedPremise = ComputeClosure heapInst2 (premises |> Set.ofList) 
 
-    // --- trace
-    Logger.TraceLine (sprintf "%s Premises:" idt)
-    premises |> List.iter loggerFunc    // 
-    Logger.TraceLine (sprintf "%s Closed premises:" idt)
-    closedPremise |> Set.iter loggerFunc
-
-    //------------------
-    let compName = GetComponentName comp
-    let methName = GetMethodName m
-
-    let __IsOk expr = 
-      DescendExpr2 (fun expr acc ->
-                      if not acc then
-                        false
-                      else
-                        match expr with
-                        | Dot(discr, fldName) -> 
-                            let obj = EvalFull heapInst discr
-                            match obj with 
-                            | ObjLiteral(id) when id = "this" -> 
-                                try 
-                                  IsConcreteField (InferType prog comp (MethodArgChecker prog m) discr |> Utils.ExtractOption) fldName
-                                with
-                                  | _ -> false
-                            | ObjLiteral(id) -> false
-                            | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
-                        | MethodCall(receiver, cn, mn, elst) when receiver = ThisLiteral && cn = compName && mn = methName -> 
-                            elst |> List.exists (function VarLiteral(_) -> false | _ -> true)
-                        | _ -> true                          
-                    ) expr true
-
-    let __CheckSol hInst premises = 
-      let rec __CheckVars vars = 
-        match vars with
-        | lhs :: [] -> 
-            let lhsOptions = premises |> Set.toList 
-                                      |> List.choose (function
-                                                        | BinaryExpr(_,"=",l,r) -> if l = lhs then Some(r) elif r = lhs then Some(l) else None
-                                                        | _ -> None)
-                                      |> List.filter __IsOk
-                                      |> List.map (fun e -> [lhs,e])
-            lhsOptions
-        | lhs :: rest -> 
-            let lhsOptions = __CheckVars [lhs]
-            if List.isEmpty lhsOptions then
-              List.empty
-            else 
-              let restOptions = __CheckVars rest 
-              Utils.ListCombine (fun t1 t2 -> t1 @ t2) lhsOptions restOptions
-        | [] -> List.empty
-                                                              
-      let stmts = ConvertToStatements hInst true
-      let modVars = stmts |> List.choose (function
-                                            | Assign(lhs,_) -> Some(lhs)
-                                            | _ -> None)
-      __CheckVars modVars
-
-    let rec __ConvToAssignments s = 
-      match s with 
-      | (l,r) :: rest ->
-          ArbitraryStatement(Assign(l,r)) :: __ConvToAssignments rest
-      | [] -> []
-
-    let rec __IterSolutions hInst sList = 
-      match sList with
-      | s :: rest -> 
-          let asgs = __ConvToAssignments s
-          let hInst' = { hInst with assignments = asgs; methodRetVals = Map.empty}
-          let sol = Utils.MapSingleton (comp,m) [TrueLiteral, hInst']
-          Logger.Info (idt + "    ")
-          if VerifySolution prog sol Options.CONFIG.genRepr then
-            Logger.InfoLine "~~~ VERIFIED ~~~"
-            Some(sol)
-          else 
-            Logger.InfoLine "!!! NOT VERIFIED !!!"
-            __IterSolutions hInst rest    
-      | [] -> None
-    //-------------------
-
-    let __InCtx ctx id = ctx |> List.exists (function Var(name,_) -> name = id)
-    let invocationArgs = GetMethodInArgs m |> List.map (function Var(name,_) -> VarLiteral("$" + name))
-                                                     
-    // add only recursive call for now
-    let ins = GetMethodInArgs m
-    let outs = GetMethodOutArgs m
-    let post = GetMethodPrePost m |> snd 
-                                  |> RewriteWithCtx (fun ctx e -> 
-                                                        match e with 
-                                                        | VarLiteral(id) when not (IsInVarList ctx id) -> 
-                                                            if IsInVarList outs id then
-                                                              //Some(VarLiteral((GetMethodFullName comp m) + "_" + id))
-                                                              let mcall = MethodCall(ThisLiteral, compName, methName, ins |> List.map (function Var(name,_) -> VarLiteral("$" + name)))
-                                                              let outSel = MethodOutSelect(mcall, id)
-                                                              Some(outSel)
-                                                            else
-                                                              Some(VarLiteral("$" + id)) 
-                                                        | _ -> None) []
-                                  |> ChangeThisReceiver (VarLiteral("$this"))
-    let closedPremises' = closedPremise |> Set.add post |> ComputeClosure heapInst2
-    Logger.TraceLine "Closed premises with methods"
-    closedPremises' |> Set.iter loggerFunc
-
-    let s = __CheckSol heapInst2 closedPremises'
-    match __IterSolutions heapInst2 s with
-    | Some(x) -> x 
-    | None -> wrongSol
-
-    //s |> List.iter (fun lst -> lst |> List.iter (fun (l,r) -> Logger.TraceLine (sprintf "%s = %s" (PrintExpr 0 l) (PrintExpr 0 r))))
-    
-//    let rec Try spec s = 
-//      match s with
-//      | fs :: rest -> 
-//          let goal = fs |> List.fold (fun acc (e1,e2) -> BinaryAnd acc (BinaryEq e1 e2)) TrueLiteral
-//          match UnifyImplies spec goal LTR Map.empty with
-//          | Some(x) -> Some(x)
-//          | None -> Try spec rest
-//      | [] -> None
-//
-//    let rec __IterAsgs asgs = 
-//      match asgs with
-//      | FieldAssignment((obj,Var(fldName,Some(fldType))),fldVal) :: rest
-//            when obj.name = "this" && not (fldVal = NullLiteral) && IsConcreteField comp fldName && CheckSameCompType comp fldType ->
-//          let receiver = Dot(ThisLiteral, fldName)
-//          let changedThis = ChangeThisReceiver receiver post
-//          let mcall = MethodCall(receiver, compName, methName, invocationArgs)
-//
-//          match Try changedThis s with
-//          | Some(unifs) -> 
-//              let unifs = unifs |> Map.fold (fun acc (k: string) v -> acc |> Map.add (k.Replace("$", "")) v) Map.empty
-//              //s |> Map.iter (fun k v -> Logger.TraceLine (sprintf "%s --> %s" k (PrintExpr 0 v)))
-//              let asgs = ApplyMethodUnifs receiver (comp,m) unifs
-//              let restRes = __IterAsgs rest              
-//              (fst restRes, asgs @ (snd restRes))
-//          | None -> (false, [])
-//      | _ :: rest -> 
-//          __IterAsgs rest
-//      | [] -> (true, [])
-//   
-//    match __IterAsgs heapInst2.assignments with
-//    | (true, asgs) -> 
-//        Logger.InfoLine "AAAAAAAAAAAAAAAAA"
-//        let heapInst3 = {heapInst2 with assignments = asgs}
-//        let sol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst3]
-//        Logger.Info (idt + "    ")
-//        if VerifySolution prog sol Options.CONFIG.genRepr then
-//          Logger.InfoLine "~~~ VERIFIED ~~~"
-//          sol
-//        else 
-//          Logger.InfoLine "!!! NOT VERIFIED !!!"
-//          sol
-//
-//    | (false, _) -> wrongSol
-                                          
-//    if List.isEmpty s then
-//
-//
-//      // add only recursive calls to immediate children
-//      let post = GetMethodPrePost m |> snd 
-//                                    |> RewriteWithCtx (fun ctx e -> 
-//                                                         match e with 
-//                                                         | VarLiteral(id) when not (IsInVarList ctx id) -> Some(VarLiteral("$" + id)) 
-//                                                         | _ -> None) []
-//      let extraExprs = heapInst2.assignments |> List.fold (fun acc asgn ->
-//                                                             match asgn with
-//                                                             | FieldAssignment((obj,Var(fldName,Some(fldType))),fldVal) 
-//                                                                 when obj.name = "this" && not (fldVal = NullLiteral) && IsConcreteField comp fldName && CheckSameCompType comp fldType ->
-//                                                                 let receiver = Dot(ThisLiteral, fldName)
-//                                                                 let changedThis = ChangeThisReceiver receiver post
-//                                                                 let mcall = MethodCall(receiver, compName, methName, invocationArgs)
-//                                                                 acc @ [BinaryEq mcall changedThis] 
-//                                                             | _ -> acc
-//                                                          ) []
-//      let newPremises = closedPremise |> Set.union (extraExprs |> Set.ofList)
-//      Logger.TraceLine (sprintf "%s With extra premises:" idt)
-//      //newPremises |> Set.iter loggerFunc
-//      extraExprs |> List.iter loggerFunc
-//      wrongSol  
-//    else
-//      s |> List.iter (fun lst -> lst |> List.iter (fun (l,r) -> Logger.TraceLine (sprintf "%s --> %s" (PrintExpr 0 l) (PrintExpr 0 r))))
-//      wrongSol
-  
-
+//  ===========================================================
+/// Reads CONFIG.methodToSynth to return a list of methods 
+/// that Jennisys should attempt to synthesize.
+//  ===========================================================
 let GetMethodsToAnalyze prog =
   let __ReadMethodsParam = 
     let mOpt = Options.CONFIG.methodToSynth;

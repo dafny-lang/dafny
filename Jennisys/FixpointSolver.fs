@@ -96,6 +96,8 @@ let rec SelectiveUnifyImplies okToUnifyFunc lhs rhs dir unifs =
                 SelectiveUnifyImplies okToUnifyFunc subP subC dir unifs 
             | SelectExpr(lstC, idxC), SelectExpr(lstP, idxP) ->
                 __TryUnifyPair lstP lstC idxP idxC unifs
+            | SeqLength(lstC), SeqLength(lstP) -> 
+                SelectiveUnifyImplies okToUnifyFunc lstP lstC dir unifs
             | Dot(exprC, fldNameC), Dot(exprP, fldNameP) when fldNameC = fldNameP ->
                 SelectiveUnifyImplies okToUnifyFunc exprP exprC dir unifs
             | _ -> None                     
@@ -202,12 +204,82 @@ let rec ComputeClosure heapInst premises =
       | _ -> lenExpr
     [__fff lst]
 
+  let BinaryInCombiner lhs rhs =
+    // distribute the "in" operation if possible
+    let rec __fff lhs rhs = 
+      let binInExpr = BinaryIn lhs rhs
+      match rhs with
+      | BinaryExpr(_,"+",l,r) -> 
+          let lhsVal = EvalFull heapInst lhs 
+          let lVal = EvalFull heapInst l 
+          let rVal = EvalFull heapInst r
+          match lVal,rVal with
+          | SequenceExpr(elistL), SequenceExpr(elistR)
+          | SetExpr(elistL), SetExpr(elistR) ->
+              if elistL |> Utils.ListContains lhsVal then 
+                __fff lhs l
+              else
+                __fff lhs r
+          | _ -> [binInExpr]
+      | SequenceExpr(elist) -> 
+          let len = elist |> List.length
+          if len = 0 then
+            [FalseLiteral]
+          elif len = 1 then
+            [BinaryEq lhs elist.[0]]
+          else
+            let lhsVal = EvalFull heapInst lhs
+            let lst0Val = EvalFull heapInst elist.[0]
+            if lhsVal = lst0Val then 
+              [BinaryEq lhs elist.[0]]
+            else 
+              [BinaryIn lhs (SequenceExpr(elist |> List.tail))]
+      | _ -> [binInExpr] 
+    __fff lhs rhs
+
+  let BinaryNotInCombiner lhs rhs =
+    // distribute the "in" operation if possible
+    let rec __fff lhs rhs = 
+      let binNotInExpr = BinaryNotIn lhs rhs
+      match rhs with
+      | BinaryExpr(_,"+",l,r) -> 
+          let lhsVal = EvalFull heapInst lhs 
+          let lVal = EvalFull heapInst l 
+          let rVal = EvalFull heapInst r
+          match lVal,rVal with
+          | SequenceExpr(elistL), SequenceExpr(elistR)
+          | SetExpr(elistL), SetExpr(elistR) ->
+              (__fff lhs l) @ 
+              (__fff lhs r)
+          | _ -> [binNotInExpr]
+      | SequenceExpr(elist) -> 
+          let len = elist |> List.length
+          if len = 0 then
+            [TrueLiteral]
+          elif len = 1 then
+            [BinaryNeq lhs elist.[0]]
+          else
+            let lhsVal = EvalFull heapInst lhs
+            let lst0Val = EvalFull heapInst elist.[0]
+            [BinaryNeq lhs elist.[0]] @
+            [BinaryNotIn lhs (SequenceExpr(elist |> List.tail))]
+      | _ -> [binNotInExpr] 
+    __fff lhs rhs
+
   let rec __CombineAllMatches expr premises =
     match expr with
     | BinaryExpr(p,op,lhs,rhs) -> 
         let lhsMatches = __CombineAllMatches lhs premises
         let rhsMatches = __CombineAllMatches rhs premises
-        Utils.ListCombine (fun e1 e2 -> BinaryExpr(p,op,e1,e2)) lhsMatches rhsMatches
+        let lst1 = Utils.ListCombine (fun e1 e2 -> BinaryExpr(p,op,e1,e2)) lhsMatches rhsMatches
+        let lst2 = 
+          if op = "in" then
+            Utils.ListCombineMult BinaryInCombiner lhsMatches rhsMatches
+          elif op = "!in" then
+            Utils.ListCombineMult BinaryNotInCombiner lhsMatches rhsMatches
+          else
+            []
+        lst1 @ lst2
     | UnaryExpr(op,sub) -> 
         __CombineAllMatches sub premises |> List.map (fun e -> UnaryExpr(op,e))
     | SelectExpr(lst,idx) ->
