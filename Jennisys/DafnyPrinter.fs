@@ -106,15 +106,27 @@ let PrintFields vars indent ghost =
                                   | Var(nm,None)     -> acc + (sprintf "%s%svar %s;%s" (Indent indent) ghostStr nm newline)
                                   | Var(nm,Some(tp)) -> acc + (sprintf "%s%svar %s: %s;%s" (Indent indent) ghostStr nm (PrintType tp) newline)) ""
 
-let rec PrintStmt stmt indent printNewline =
+let rec _PrintStmt stmt indent printNewline =
   let idt = Indent indent
   let nl = if printNewline then newline else ""
   match stmt with
   | Block(stmts) ->
       idt + "{" + nl +
-      (PrintStmtList stmts (indent + 2) true) +
+      (_PrintStmtList stmts (indent + 2) true) +
       idt + "}" + nl
   | Assign(lhs,rhs) -> sprintf "%s%s := %s;%s" idt (PrintExpr 0 lhs) (PrintExpr 0 rhs) nl
   | ExprStmt(expr) -> sprintf "%s%s;%s" idt (PrintExpr 0 expr) nl
-and PrintStmtList stmts indent printNewLine =
+and _PrintStmtList stmts indent printNewLine =
+  let idt = Indent indent
+  let str = stmts |> PrintSep newline (fun s -> _PrintStmt s indent false)
+  if printNewLine then
+    str + newline
+  else
+    str
+
+let PrintStmt stmt indent printNewline =
+  let stmts = PullUpMethodCalls stmt
+  _PrintStmtList stmts indent printNewline
+
+let PrintStmtList stmts indent printNewLine =
   stmts |> List.fold (fun acc s -> acc + (PrintStmt s indent printNewLine)) ""

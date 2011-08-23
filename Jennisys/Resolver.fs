@@ -32,6 +32,11 @@ type HeapInstance = {
 
 let NoObj = { name = ""; objType = NamedType("", []) }
 
+let ExtractAllExpressions asg = 
+  match asg with
+  | FieldAssignment(_,e) -> [e]
+  | ArbitraryStatement(s) -> ExtractTopLevelExpressions s
+
 // use the orginal method, not the one with an extra precondition
 let FixSolution origComp origMeth sol =
   sol |> Map.fold (fun acc (cc,mm) v -> 
@@ -180,10 +185,18 @@ let _Eval heapInst resolveExprFunc returnFunc expr =
   //EvalSym  (__EvalResolver resolveExprFunc) expr
   EvalSymRet  (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
 
+/// Resolves nothing
+let EvalNone heapInst expr = 
+  EvalSym (_EvalResolver heapInst false (fun e -> false)) expr
+
 /// Resolves everything
 let EvalFull heapInst expr = 
   EvalSym  (_EvalResolver heapInst true (fun e -> true)) expr
   //_Eval heapInst (fun _ -> true) (fun e -> e) expr 
+
+let Eval heapInst resolveExprFunc expr = 
+  let returnFunc = fun expr -> match expr with IdLiteral(id) -> Dot(ThisLiteral, id) | _ -> expr
+  EvalSymRet (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
 
 let EvalAndCheckTrue heapInst resolveExprFunc expr = 
   let returnFunc = fun expr -> 
@@ -198,6 +211,7 @@ let EvalAndCheckTrue heapInst resolveExprFunc expr =
                            expr
                          else 
                            FalseLiteral
+                           //UnaryNot expr
                      | _ -> expr
   EvalSymRet (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
   //_Eval heapInst resolveExprFunc returnFunc expr 
@@ -308,6 +322,23 @@ let IsSolution1stLevelOnly heapInst =
     | [] -> true
   (* --- function body starts here --- *)
   __IsSol1stLevel (ConvertToStatements heapInst true)
+
+let IsRecursiveSol (c,m) sol = 
+  let compName = GetComponentName c
+  let methName = GetMethodName m
+  let allAssignments = sol |> List.map (fun (_,hInst) -> hInst.assignments) |> List.concat
+  let allExprs = (allAssignments |> List.map ExtractAllExpressions |> List.concat) @
+                 (sol |> List.map (fun (_,hInst) -> hInst.methodRetVals |> Map.toList |> List.map snd) |> List.concat)
+  let singleExpr = allExprs |> List.fold BinaryAnd TrueLiteral
+  DescendExpr2 (fun expr acc ->
+                  if acc then
+                    true
+                  else
+                    match expr with
+                    | MethodCall(_, cn, mn, elst) when cn = compName && mn = methName -> 
+                        true
+                    | _ -> false
+                ) singleExpr false
 
 /// Returns a list of direct modifiable children objects with respect to "this" object
 ///
