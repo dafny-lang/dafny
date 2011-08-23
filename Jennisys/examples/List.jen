@@ -42,8 +42,8 @@ class Node[T] {
     ensures |list| = 1 ==> tail = null
     ensures |list| > 1 ==> tail != null && tail.list = list[1..]
 
-  method Size() returns (size: int)
-    ensures size = |list|
+  method Size() returns (ret: int)
+    ensures ret = |list|
 
   method SkipFew(num: int) returns (ret: Node[T])
     requires num >= 0

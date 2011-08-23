@@ -51,6 +51,9 @@ class SetNode {
   constructor TripleBase(x: int, y: int, z: int)
     requires x < y && y < z
     ensures elems = {x y z}
+	
+  method Find(n: int) returns (ret: bool)
+    ensures ret = (n in elems)
 }
 
 model SetNode {

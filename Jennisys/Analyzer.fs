@@ -662,6 +662,16 @@ and TryRecursion indent prog comp m unifs heapInst callGraph =
 
   (* --- function body starts here --- *) 
   let loggerFunc = fun e -> Logger.TraceLine (sprintf "%s    --> %s" idt (PrintExpr 0 e))
+  let expandOnlyModVarsFunc = fun e ->
+    let __CheckExpr l = 
+      //TODO: FIX THIS!!!!!
+      let str = PrintExpr 0 l
+      str.Contains("ret")
+    match e with
+    | BinaryExpr(_,"=",l,_) -> 
+        //TODO: it should really check both lhs and rhs
+        __CheckExpr l
+    | _ -> __CheckExpr e
 
   let wrongSol = Utils.MapSingleton (comp,m) [TrueLiteral, heapInst]
   let heapInst = ApplyUnifications indent prog comp m unifs heapInst false
@@ -678,7 +688,7 @@ and TryRecursion indent prog comp m unifs heapInst callGraph =
   let post = __GetMethodPostTemplate comp m
     
   let premiseSet = premises |> Set.ofList |> Set.add post 
-  let closedPremises = ComputeClosure heapInst premiseSet
+  let closedPremises = ComputeClosure heapInst expandOnlyModVarsFunc premiseSet
      
   Logger.TraceLine (idt + "Closed premises with methods")
   closedPremises |> Set.iter loggerFunc
@@ -733,16 +743,20 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph premises =
     Logger.InfoLine (idt + "Strengthening the pre-condition")
     let expr = GetHeapExpr prog m heapInst
     let specConds1 = expr |> FindTrueClauses (DontResolveUnmodifiableStuff prog comp m) heapInst
-                          |> List.filter (IsUnmodConcrOnly prog (comp,m))
-
-    let specConds2 = premises |> Set.filter (IsUnmodConcrOnly prog (comp,m)) |> Set.toList
-                              // remove constants
-                              |> List.filter (fun e -> try 
-                                                         EvalNone heapInst e |> Expr2Const |> ignore 
-                                                         false
-                                                       with
-                                                       | _ -> true)
-    let specConds = (specConds1 @ specConds2) |> List.map SimplifyExpr 
+    let specConds2 = premises |> Set.toList
+    
+    let isConstFunc = fun e -> try 
+                                 EvalNone heapInst e |> Expr2Const |> ignore 
+                                 true
+                               with
+                               | _ -> false
+    let unmodConcrFunc = IsUnmodConcrOnly prog (comp,m)
+    let is1stLevelFunc = __Is1stLevelExpr false heapInst
+    
+    let specConds = (specConds1 @ specConds2) 
+                       |> List.map SimplifyExpr 
+                       |> List.filter (fun e -> is1stLevelFunc e && unmodConcrFunc e && not (isConstFunc e))
+    
     let aliasingCond = lazy(DiscoverAliasing (methodArgs |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst) 
     let argConds = heapInst.methodArgs |> Map.fold (fun acc name value -> acc @ [BinaryEq (VarLiteral(name)) (Const2Expr value)]) []
     let allConds = GetAllPossibleConditions specConds argConds [aliasingCond.Force()]

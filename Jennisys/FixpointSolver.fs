@@ -136,7 +136,7 @@ let UnifyImplies lhs rhs dir unifs = SelectiveUnifyImplies (fun e -> true) lhs r
 
 ////////////////////////////////////////////
 
-let rec ComputeClosure heapInst premises = 
+let rec ComputeClosure heapInst expandExprFunc premises = 
   let bogusExpr = VarLiteral("!@#$%^&*()")
 
   let ApplyUnifs unifs expr =
@@ -209,18 +209,23 @@ let rec ComputeClosure heapInst premises =
     let rec __fff lhs rhs = 
       let binInExpr = BinaryIn lhs rhs
       match rhs with
+      | BinaryExpr(_,"+",BinaryExpr(_,"+",SetExpr(_), Dot(_)), Dot(_)) -> Logger.Trace ""
+      | _ -> ()//TODO: remove
+
+      match rhs with
       | BinaryExpr(_,"+",l,r) -> 
-          let lhsVal = EvalFull heapInst lhs 
-          let lVal = EvalFull heapInst l 
-          let rVal = EvalFull heapInst r
-          match lVal,rVal with
-          | SequenceExpr(elistL), SequenceExpr(elistR)
-          | SetExpr(elistL), SetExpr(elistR) ->
-              if elistL |> Utils.ListContains lhsVal then 
-                __fff lhs l
-              else
-                __fff lhs r
-          | _ -> [binInExpr]
+//          let lhsVal = EvalFull heapInst lhs 
+//          let lVal = EvalFull heapInst l 
+//          let rVal = EvalFull heapInst r
+//          match lVal,rVal with
+//          | SequenceExpr(elist), _ | _, SequenceExpr(elist) 
+//          | SetExpr(elist), _ | _, SetExpr(elist) ->
+//              if elist |> Utils.ListContains lhsVal then 
+//                __fff lhs l
+//              else
+//                __fff lhs r
+//          | _ -> [binInExpr]
+          [BinaryOr (BinaryIn lhs l) (BinaryIn lhs r)] 
       | SequenceExpr(elist) -> 
           let len = elist |> List.length
           if len = 0 then
@@ -238,20 +243,21 @@ let rec ComputeClosure heapInst premises =
     __fff lhs rhs
 
   let BinaryNotInCombiner lhs rhs =
-    // distribute the "in" operation if possible
+    // distribute the "!in" operation if possible
     let rec __fff lhs rhs = 
       let binNotInExpr = BinaryNotIn lhs rhs
       match rhs with
       | BinaryExpr(_,"+",l,r) -> 
-          let lhsVal = EvalFull heapInst lhs 
-          let lVal = EvalFull heapInst l 
-          let rVal = EvalFull heapInst r
-          match lVal,rVal with
-          | SequenceExpr(elistL), SequenceExpr(elistR)
-          | SetExpr(elistL), SetExpr(elistR) ->
-              (__fff lhs l) @ 
-              (__fff lhs r)
-          | _ -> [binNotInExpr]
+//          let lhsVal = EvalFull heapInst lhs 
+//          let lVal = EvalFull heapInst l 
+//          let rVal = EvalFull heapInst r
+//          match lVal,rVal with
+//          | SequenceExpr(elistL), SequenceExpr(elistR)
+//          | SetExpr(elistL), SetExpr(elistR) ->
+//              (__fff lhs l) @ 
+//              (__fff lhs r)
+//          | _ -> [binNotInExpr]
+          __fff lhs l @ __fff lhs r 
       | SequenceExpr(elist) -> 
           let len = elist |> List.length
           if len = 0 then
@@ -309,7 +315,11 @@ let rec ComputeClosure heapInst premises =
   let rec __Iter exprLst premises = 
     match exprLst with
     | expr :: rest ->  
-        let newPremises = __ExpandPremise expr premises
+        let newPremises = 
+          if expandExprFunc expr then
+            __ExpandPremise expr premises
+          else 
+            premises
         __Iter rest newPremises
     | [] -> premises
 
@@ -318,6 +328,8 @@ let rec ComputeClosure heapInst premises =
   if premises' = premises then
     premises'
   else 
-    ComputeClosure heapInst premises' 
+    //Logger.TraceLine "-----------------------"
+    //premises' |> Set.iter (fun e -> Logger.TraceLine (Printer.PrintExpr 0 e))
+    ComputeClosure heapInst expandExprFunc premises' 
 
 
