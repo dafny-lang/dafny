@@ -267,33 +267,32 @@ let rec ComputeClosure heapInst premises =
     __fff lhs rhs
 
   let rec __CombineAllMatches expr premises =
-    match expr with
-    | BinaryExpr(p,op,lhs,rhs) -> 
-        let lhsMatches = __CombineAllMatches lhs premises
-        let rhsMatches = __CombineAllMatches rhs premises
-        let lst1 = Utils.ListCombine (fun e1 e2 -> BinaryExpr(p,op,e1,e2)) lhsMatches rhsMatches
-        let lst2 = 
-          if op = "in" then
-            Utils.ListCombineMult BinaryInCombiner lhsMatches rhsMatches
-          elif op = "!in" then
-            Utils.ListCombineMult BinaryNotInCombiner lhsMatches rhsMatches
-          else
-            []
-        lst1 @ lst2
-    | UnaryExpr(op,sub) -> 
-        __CombineAllMatches sub premises |> List.map (fun e -> UnaryExpr(op,e))
-    | SelectExpr(lst,idx) ->
-        let lst1 = FindMatches expr bogusExpr premises 
-        let lstMatches = __CombineAllMatches lst premises
-        let idxMatches = __CombineAllMatches idx premises
-        let lst2 = Utils.ListCombineMult SelectExprCombinerFunc lstMatches idxMatches
-        lst1 @ lst2
-    | SeqLength(lst) -> 
-        let lst1 = FindMatches expr bogusExpr premises 
-        let lst2 = __CombineAllMatches lst premises |> List.map SeqLenCombinerFunc |> List.concat
-        lst1 @ lst2
-    // TODO: other cases
-    | _ -> expr :: (FindMatches expr bogusExpr premises)
+    let lst0 = FindMatches expr bogusExpr premises 
+    let lstCombined = 
+      match expr with
+      | BinaryExpr(p,op,lhs,rhs) -> 
+          let lhsMatches = __CombineAllMatches lhs premises
+          let rhsMatches = __CombineAllMatches rhs premises
+          let lst1 = Utils.ListCombine (fun e1 e2 -> BinaryExpr(p,op,e1,e2)) lhsMatches rhsMatches
+          let lst2 = 
+            if op = "in" then
+              Utils.ListCombineMult BinaryInCombiner lhsMatches rhsMatches
+            elif op = "!in" then
+              Utils.ListCombineMult BinaryNotInCombiner lhsMatches rhsMatches
+            else
+              []
+          lst1 @ lst2
+      | UnaryExpr(op,sub) -> 
+          __CombineAllMatches sub premises |> List.map (fun e -> UnaryExpr(op,e))
+      | SelectExpr(lst,idx) ->
+          let lstMatches = __CombineAllMatches lst premises
+          let idxMatches = __CombineAllMatches idx premises
+          Utils.ListCombineMult SelectExprCombinerFunc lstMatches idxMatches
+      | SeqLength(lst) -> 
+          __CombineAllMatches lst premises |> List.map SeqLenCombinerFunc |> List.concat
+      // TODO: other cases
+      | _ -> [] 
+    expr :: (lst0 @ lstCombined)
 
   let rec __ExpandPremise expr premises = 
     let __AddToPremisses exprLst premises = exprLst |> List.fold (fun acc e -> MySetAdd e acc) premises

@@ -742,11 +742,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph premises =
                                                          false
                                                        with
                                                        | _ -> true)
-    let specConds = (specConds1 @ specConds2) |> List.map (fun e -> 
-                                                             PrintExpr 0 e |> Logger.TraceLine
-                                                             let e' = SimplifyExpr e
-                                                             PrintExpr 0 e'  |> Logger.TraceLine
-                                                             e')
+    let specConds = (specConds1 @ specConds2) |> List.map SimplifyExpr 
     let aliasingCond = lazy(DiscoverAliasing (methodArgs |> List.map (function Var(name,_) -> VarLiteral(name))) heapInst) 
     let argConds = heapInst.methodArgs |> Map.fold (fun acc name value -> acc @ [BinaryEq (VarLiteral(name)) (Const2Expr value)]) []
     let allConds = GetAllPossibleConditions specConds argConds [aliasingCond.Force()]
