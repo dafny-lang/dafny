@@ -157,45 +157,45 @@ function last(xs: List): Nat
     case Cons(z, zs) => last(ys)
 }
 
-function mapF(xs: List): List
+function map(f: FunctionValue, xs: List): List
 {
   match xs
   case Nil => Nil
-  case Cons(y, ys) => Cons(HardcodedUninterpretedFunction(y), mapF(ys))
+  case Cons(y, ys) => Cons(Apply(f, y), map(f, ys))
 }
-function HardcodedUninterpretedFunction(n: Nat): Nat
 
-function takeWhileAlways(hardcodedResultOfP: Bool, xs: List): List
+// In the following two functions, parameter "p" stands for a predicate:  applying p and
+// getting Zero means "false" and getting anything else means "true".
+
+function takeWhileAlways(p: FunctionValue, xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) =>
-    if whilePredicate(hardcodedResultOfP, y) == True
-    then Cons(y, takeWhileAlways(hardcodedResultOfP, ys))
+    if Apply(p, y) != Zero
+    then Cons(y, takeWhileAlways(p, ys))
     else Nil
 }
-function whilePredicate(result: Bool, arg: Nat): Bool { result }
 
-function dropWhileAlways(hardcodedResultOfP: Bool, xs: List): List
+function dropWhileAlways(p: FunctionValue, xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) =>
-    if whilePredicate(hardcodedResultOfP, y) == True
-    then dropWhileAlways(hardcodedResultOfP, ys)
+    if Apply(p, y) != Zero
+    then dropWhileAlways(p, ys)
     else Cons(y, ys)
 }
 
-function filterP(xs: List): List
+function filter(p: FunctionValue, xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) =>
-    if HardcodedUninterpretedPredicate(y) == True
-    then Cons(y, filterP(ys))
-    else filterP(ys)
+    if Apply(p, y) != Zero
+    then Cons(y, filter(p, ys))
+    else filter(p, ys)
 }
-function HardcodedUninterpretedPredicate(n: Nat): Bool
 
 function insort(n: Nat, xs: List): List
 {
@@ -275,7 +275,27 @@ function mirror(t: Tree): Tree
   case Node(l, x, r) => Node(mirror(r), x, mirror(l))
 }
 
+// Function parameters
+
+// Dafny currently does not support passing functions as arguments.  To simulate
+// arbitrary functions, the following type (declared as a class) and Apply function
+// play the role of applying some prescribed function (here, an instance of the class)
+// to some argument.
+
+class FunctionValue { }
+function Apply(f: FunctionValue, x: Nat): Nat  // this function is left uninterpreted
+
+// The following functions stand for the constant "false" and "true" functions,
+// respectively.
+
+function AlwaysFalseFunction(): FunctionValue
+  ensures forall n :: Apply(AlwaysFalseFunction(), n) == Zero;
+function AlwaysTrueFunction(): FunctionValue
+  ensures forall n :: Apply(AlwaysTrueFunction(), n) != Zero;
+
+// -----------------------------------------------------------------------------------
 // The theorems to be proved
+// -----------------------------------------------------------------------------------
 
 ghost method P1()
   ensures (forall n, xs :: concat(take(n, xs), drop(n, xs)) == xs);
@@ -335,7 +355,7 @@ ghost method P11()
 }
 
 ghost method P12()
-  ensures (forall n, xs :: drop(n, mapF(xs)) == mapF(drop(n, xs)));
+  ensures (forall n, xs, f :: drop(n, map(f, xs)) == map(f, drop(n, xs)));
 {
 }
 
@@ -345,7 +365,7 @@ ghost method P13()
 }
 
 ghost method P14()
-  ensures (forall xs, ys :: filterP(concat(xs, ys)) == concat(filterP(xs), filterP(ys)));
+  ensures (forall xs, ys, p :: filter(p, concat(xs, ys)) == concat(filter(p, xs), filter(p, ys)));
 {
 }
 
@@ -456,12 +476,12 @@ ghost method P34()
 }
 
 ghost method P35()
-  ensures (forall xs :: dropWhileAlways(False, xs) == xs);
+  ensures (forall xs :: dropWhileAlways(AlwaysFalseFunction(), xs) == xs);
 {
 }
 
 ghost method P36()
-  ensures (forall xs :: takeWhileAlways(True, xs) == xs);
+  ensures (forall xs :: takeWhileAlways(AlwaysTrueFunction(), xs) == xs);
 {
 }
 
@@ -487,7 +507,7 @@ ghost method P40()
 }
 
 ghost method P41()
-  ensures (forall n, xs :: take(n, mapF(xs)) == mapF(take(n, xs)));
+  ensures (forall n, xs, f :: take(n, map(f, xs)) == map(f, take(n, xs)));
 {
 }
 
@@ -496,8 +516,7 @@ ghost method P42()
 {
 }
 
-ghost method P43(p: Bool)
-  // this is an approximation of the actual problem 43
+ghost method P43(p: FunctionValue)
   ensures (forall xs :: concat(takeWhileAlways(p, xs), dropWhileAlways(p, xs)) == xs);
 {
 }
