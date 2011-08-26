@@ -25,7 +25,6 @@ class NumberMethods {
 
 
   method Abs(a: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -41,7 +40,6 @@ class NumberMethods {
 
 
   method Double(p: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -52,14 +50,13 @@ class NumberMethods {
 
 
   method Min2(a: int, b: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
     ensures a < b ==> ret == a;
     ensures a >= b ==> ret == b;
   {
-    if (a >= b ==> a == b) {
+    if (a < b) {
       ret := a;
     } else {
       ret := b;
@@ -68,7 +65,6 @@ class NumberMethods {
 
 
   method Min22(a: int, b: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -85,7 +81,6 @@ class NumberMethods {
 
 
   method Min3(a: int, b: int, c: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -99,7 +94,6 @@ class NumberMethods {
 
 
   method Min32(a: int, b: int, c: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -121,7 +115,6 @@ class NumberMethods {
 
 
   method Min4(a: int, b: int, c: int, d: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -131,13 +124,13 @@ class NumberMethods {
     ensures ret <= c;
     ensures ret <= d;
   {
-    if (a <= b && (a <= c && a <= d)) {
+    if ((a <= b && a <= c) && a <= d) {
       ret := a;
     } else {
-      if (d <= a && (d <= b && d <= c)) {
+      if ((d <= a && d <= b) && d <= c) {
         ret := d;
       } else {
-        if (c <= a && (c <= b && c <= d)) {
+        if ((c <= a && c <= b) && c <= d) {
           ret := c;
         } else {
           ret := b;
@@ -148,7 +141,6 @@ class NumberMethods {
 
 
   method MinSum(a: int, b: int, c: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();
@@ -162,7 +154,6 @@ class NumberMethods {
 
 
   method Sum(a: int, b: int) returns (ret: int)
-    modifies this;
     requires Valid();
     ensures fresh(Repr - old(Repr));
     ensures Valid();

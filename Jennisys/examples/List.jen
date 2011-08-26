@@ -34,8 +34,8 @@ class Node[T] {
   constructor Double(p: T, q: T)
     ensures list = [p q]
 
-  method List() returns (lst: seq[T])
-    ensures lst = list
+  method List() returns (ret: seq[T])
+    ensures ret = list
 
   method Tail() returns (tail: Node[T])
     ensures |list| = 1 ==> tail = null

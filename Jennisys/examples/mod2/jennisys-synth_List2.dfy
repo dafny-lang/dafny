@@ -37,12 +37,15 @@ class IntList {
     ensures list[1] == q;
     ensures |list| == 2;
   {
-    var gensym67 := new IntNode;
-    gensym67.Double(p, q);
+    var gensym74 := new IntNode;
+    gensym74.Double(p, q);
     this.list := [p] + [q];
-    this.root := gensym67;
+    this.root := gensym74;
+
     // repr stuff
     this.Repr := {this} + this.root.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym74.Valid();
   }
 
 
@@ -55,6 +58,7 @@ class IntList {
   {
     this.list := [];
     this.root := null;
+
     // repr stuff
     this.Repr := {this};
   }
@@ -81,12 +85,15 @@ class IntList {
     ensures list[0] == p;
     ensures |list| == 1;
   {
-    var gensym66 := new IntNode;
-    gensym66.Init(p);
+    var gensym73 := new IntNode;
+    gensym73.Init(p);
     this.list := [p];
-    this.root := gensym66;
+    this.root := gensym73;
+
     // repr stuff
     this.Repr := {this} + this.root.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym73.Valid();
   }
 
 
@@ -154,8 +161,10 @@ class IntNode {
 
   function Valid(): bool
     reads *;
+    decreases Repr;
   {
     this.Valid_self() &&
+    (next != null ==> next.Valid()) &&
     (next != null ==> next.Valid_self()) &&
     (next != null && next.next != null ==> next.next.Valid_self())
   }
@@ -170,13 +179,16 @@ class IntNode {
     ensures list[1] == y;
     ensures |list| == 2;
   {
-    var gensym74 := new IntNode;
-    gensym74.Init(y);
+    var gensym87 := new IntNode;
+    gensym87.Init(y);
     this.data := x;
     this.list := [x, y];
-    this.next := gensym74;
+    this.next := gensym87;
+
     // repr stuff
     this.Repr := {this} + this.next.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym87.Valid();
   }
 
 
@@ -191,6 +203,7 @@ class IntNode {
     this.data := x;
     this.list := [x];
     this.next := null;
+
     // repr stuff
     this.Repr := {this};
   }

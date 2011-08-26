@@ -443,7 +443,7 @@ let GetAllPossibleConditions specConds argConds aliasingConds =
 //  ============================================================================                           
 let rec AnalyzeConstructor indent prog comp m callGraph =
   let idt = Indent indent
-  let TryFindAndVerify = 
+  let TryFindAndVerify m = 
     match TryFindExistingAndConvertToSolution indent comp m TrueLiteral callGraph with
     | Some(sol) ->
         if VerifySolution prog sol Options.CONFIG.genRepr then
@@ -458,7 +458,7 @@ let rec AnalyzeConstructor indent prog comp m callGraph =
   Logger.InfoLine (idt + "------------------------------------------")
   Logger.InfoLine (Printer.PrintMethodSignFull (indent + 4) comp m)
   Logger.InfoLine (idt + "------------------------------------------")
-  match TryFindAndVerify with
+  match TryFindAndVerify m with
   | Some(sol) -> sol
   | None -> 
       let methodName = GetMethodName m

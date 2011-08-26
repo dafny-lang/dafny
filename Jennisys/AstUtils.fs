@@ -17,10 +17,12 @@ let IsLogicalOp op = [ "&&"; "||"; "==>"; "<==>" ] |> Utils.ListContains op
 let IsRelationalOp op = [ "="; "!="; "<"; "<="; ">"; ">="; "in"; "!in" ] |> Utils.ListContains op     
 
 let AreInverseOps op1 op2 = match op1, op2 with "<" , ">" | ">" , "<" | "<=", ">=" | ">=", "<=" -> true | _ -> false
+
 let DoesImplyOp op1 op2 = 
   match op1, op2 with 
   | "<" , "!=" | ">" , "!=" -> true 
   | "=" , ">=" | "=" , "<=" -> true 
+  | ">" , ">=" | "<" , "<=" -> true 
   | _ -> false
 let IsCommutativeOp op = match op with "=" | "!=" -> true | _ -> false
 
@@ -175,10 +177,10 @@ let rec DistributeNegation expr =
     match op with
     | "="  -> Some("!=")
     | "!=" -> Some("=")
-    | "<"  -> Some(">")
-    | ">"  -> Some("<")
-    | ">=" -> Some("<=")
-    | "<=" -> Some(">=")
+    | "<"  -> Some(">=")
+    | ">"  -> Some("<=")
+    | ">=" -> Some("<")
+    | "<=" -> Some(">")
     | _ -> None
   Rewrite (fun e -> 
     match e with
