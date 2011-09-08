@@ -49,7 +49,7 @@ let ApplyMethodUnifs receiver (c,m) unifs =
   let outs = GetMethodOutArgs m |> __Apply
   
   let retVars, asgs = outs |> List.fold (fun (acc1,acc2) e -> 
-                                          let vname = SymGen.NewSym
+                                          let vname = SymGen.NewSymFake e
                                           let v = Var(vname, None)
                                           let acc1' = acc1 @ [v]
                                           let acc2' = acc2 @ [ArbitraryStatement(Assign(VarLiteral(vname), e))]

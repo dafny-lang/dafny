@@ -57,6 +57,7 @@ class Number {
     ensures num == p;
   {
     this.num := p;
+
     // repr stuff
     this.Repr := {this};
   }
@@ -69,7 +70,7 @@ class Number {
     ensures a < b ==> num == a;
     ensures a >= b ==> num == b;
   {
-    if (a >= b ==> a == b) {
+    if (a < b) {
       this.Init(a);
     } else {
       this.Init(b);
@@ -137,13 +138,13 @@ class Number {
     ensures num <= c;
     ensures num <= d;
   {
-    if (a <= b && (a <= c && a <= d)) {
+    if ((a <= b && a <= c) && a <= d) {
       this.Init(a);
     } else {
-      if (d <= a && (d <= b && d <= c)) {
+      if ((d <= a && d <= b) && d <= c) {
         this.Init(d);
       } else {
-        if (c <= a && (c <= b && c <= d)) {
+        if ((c <= a && c <= b) && c <= d) {
           this.Init(c);
         } else {
           this.Init(b);

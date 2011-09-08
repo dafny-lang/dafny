@@ -37,12 +37,15 @@ class IntList {
     ensures list[1] == q;
     ensures |list| == 2;
   {
-    var gensym68 := new IntNode;
-    gensym68._synth_IntList_Double_gensym68(p, q);
+    var gensym79 := new IntNode;
+    gensym79._synth_IntList_Double_gensym79(p, q);
     this.list := [p] + [q];
-    this.root := gensym68;
+    this.root := gensym79;
+
     // repr stuff
     this.Repr := {this} + this.root.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym79.Valid();
   }
 
 
@@ -55,6 +58,7 @@ class IntList {
   {
     this.list := [];
     this.root := null;
+
     // repr stuff
     this.Repr := {this};
   }
@@ -81,12 +85,15 @@ class IntList {
     ensures list[0] == p;
     ensures |list| == 1;
   {
-    var gensym67 := new IntNode;
-    gensym67._synth_IntList_Singleton_gensym67(p);
+    var gensym77 := new IntNode;
+    gensym77._synth_IntList_Singleton_gensym77(p);
     this.list := [p];
-    this.root := gensym67;
+    this.root := gensym77;
+
     // repr stuff
     this.Repr := {this} + this.root.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym77.Valid();
   }
 
 
@@ -154,8 +161,10 @@ class IntNode {
 
   function Valid(): bool
     reads *;
+    decreases Repr;
   {
     this.Valid_self() &&
+    (next != null ==> next.Valid()) &&
     (next != null ==> next.Valid_self()) &&
     (next != null && next.next != null ==> next.next.Valid_self())
   }
@@ -170,6 +179,7 @@ class IntNode {
     this.data := p;
     this.next := null;
     this.succ := [];
+
     // repr stuff
     this.Repr := {this};
   }
@@ -194,13 +204,16 @@ class IntNode {
     ensures succ[0] != null;
     ensures succ[0].data == 2;
   {
-    var gensym73 := new IntNode;
-    gensym73._synth_IntNode_OneTwo_gensym73();
+    var gensym83 := new IntNode;
+    gensym83._synth_IntNode_OneTwo_gensym83();
     this.data := 1;
-    this.next := gensym73;
-    this.succ := [gensym73];
+    this.next := gensym83;
+    this.succ := [gensym83];
+
     // repr stuff
     this.Repr := {this} + this.next.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym83.Valid();
   }
 
 
@@ -215,12 +228,13 @@ class IntNode {
     this.data := 0;
     this.next := null;
     this.succ := [];
+
     // repr stuff
     this.Repr := {this};
   }
 
 
-  method _synth_IntList_Double_gensym68(p: int, q: int)
+  method _synth_IntList_Double_gensym79(p: int, q: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
@@ -230,17 +244,20 @@ class IntNode {
     ensures succ[0].succ == [];
     ensures |succ[0].succ| == 0;
   {
-    var gensym80 := new IntNode;
-    gensym80._synth_IntNode__synth_IntList_Double_gensym68_gensym80(q);
+    var gensym93 := new IntNode;
+    gensym93._synth_IntNode__synth_IntList_Double_gensym79_gensym93(q);
     this.data := p;
-    this.next := gensym80;
-    this.succ := [gensym80];
+    this.next := gensym93;
+    this.succ := [gensym93];
+
     // repr stuff
     this.Repr := {this} + this.next.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym93.Valid();
   }
 
 
-  method _synth_IntList_Singleton_gensym67(p: int)
+  method _synth_IntList_Singleton_gensym77(p: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
@@ -250,12 +267,13 @@ class IntNode {
     this.data := p;
     this.next := null;
     this.succ := [];
+
     // repr stuff
     this.Repr := {this};
   }
 
 
-  method _synth_IntNode_OneTwo_gensym73()
+  method _synth_IntNode_OneTwo_gensym83()
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
@@ -265,12 +283,13 @@ class IntNode {
     this.data := 2;
     this.next := null;
     this.succ := [];
+
     // repr stuff
     this.Repr := {this};
   }
 
 
-  method _synth_IntNode__synth_IntList_Double_gensym68_gensym80(q: int)
+  method _synth_IntNode__synth_IntList_Double_gensym79_gensym93(q: int)
     modifies this;
     ensures fresh(Repr - {this});
     ensures Valid();
@@ -280,6 +299,7 @@ class IntNode {
     this.data := q;
     this.next := null;
     this.succ := [];
+
     // repr stuff
     this.Repr := {this};
   }

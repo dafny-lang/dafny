@@ -34,16 +34,15 @@ class Node[T] {
   constructor Double(p: T, q: T)
     ensures list = [p q]
 
-  method List() returns (lst: seq[T])
-    requires |list| = 1
-    ensures lst = list
+  method List() returns (ret: seq[T])
+    ensures ret = list
 
   method Tail() returns (tail: Node[T])
     ensures |list| = 1 ==> tail = null
     ensures |list| > 1 ==> tail != null && tail.list = list[1..]
 
-  method Size() returns (size: int)
-    ensures size = |list|
+  method Size() returns (ret: int)
+    ensures ret = |list|
 
   method SkipFew(num: int) returns (ret: Node[T])
     requires num >= 0

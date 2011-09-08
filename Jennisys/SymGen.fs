@@ -1,9 +1,9 @@
 ﻿module SymGen
 
-let cnt = ref 0
+let incr =
+  let counter = ref 0
+  fun () ->
+    counter := !counter + 1
+    !counter
 
-let NewSym = 
-  let sym = sprintf "x_%d" !cnt
-  cnt := !cnt + 1
-  sym
-   
+let NewSymFake expr = sprintf "x_%d" (incr())

@@ -35,12 +35,15 @@ class Set {
     ensures Valid();
     ensures elems == {p, q};
   {
-    var gensym72 := new SetNode;
-    gensym72.Double(p, q);
-    this.elems := {p, q};
-    this.root := gensym72;
+    var gensym80 := new SetNode;
+    gensym80.Double(p, q);
+    this.elems := {q, p};
+    this.root := gensym80;
+
     // repr stuff
     this.Repr := {this} + this.root.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym80.Valid();
   }
 
 
@@ -52,6 +55,7 @@ class Set {
   {
     this.elems := {};
     this.root := null;
+
     // repr stuff
     this.Repr := {this};
   }
@@ -63,12 +67,25 @@ class Set {
     ensures Valid();
     ensures elems == {t};
   {
-    var gensym67 := new SetNode;
-    gensym67.Init(t);
+    var gensym75 := new SetNode;
+    gensym75.Init(t);
     this.elems := {t};
-    this.root := gensym67;
+    this.root := gensym75;
+
     // repr stuff
     this.Repr := {this} + this.root.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym75.Valid();
+  }
+
+
+  method SingletonZero()
+    modifies this;
+    ensures fresh(Repr - {this});
+    ensures Valid();
+    ensures elems == {0};
+  {
+    this.Singleton(0);
   }
 
 
@@ -111,8 +128,11 @@ class SetNode {
 
   function Valid(): bool
     reads *;
+    decreases Repr;
   {
     this.Valid_self() &&
+    (left != null ==> left.Valid()) &&
+    (right != null ==> right.Valid()) &&
     (left != null ==> left.Valid_self()) &&
     (right != null ==> right.Valid_self()) &&
     (left != null && left.left != null ==> left.left.Valid_self()) &&
@@ -132,7 +152,17 @@ class SetNode {
     if (b > a) {
       this.DoubleBase(b, a);
     } else {
-      this.DoubleBase(a, b);
+      var gensym88 := new SetNode;
+      gensym88.Init(a);
+      this.data := b;
+      this.elems := {b, a};
+      this.left := null;
+      this.right := gensym88;
+
+      // repr stuff
+      this.Repr := {this} + this.right.Repr;
+      // assert repr objects are valid (helps verification)
+      assert gensym88.Valid();
     }
   }
 
@@ -144,14 +174,44 @@ class SetNode {
     ensures Valid();
     ensures elems == {x, y};
   {
-    var gensym77 := new SetNode;
-    gensym77.Init(x);
+    var gensym88 := new SetNode;
+    gensym88.Init(x);
     this.data := y;
-    this.elems := {x, y};
+    this.elems := {y, x};
     this.left := null;
-    this.right := gensym77;
+    this.right := gensym88;
+
     // repr stuff
     this.Repr := {this} + this.right.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym88.Valid();
+  }
+
+
+  method Find(n: int) returns (ret: bool)
+    requires Valid();
+    ensures fresh(Repr - old(Repr));
+    ensures Valid();
+    ensures ret == (n in elems);
+    decreases Repr;
+  {
+    if (this.left != null && this.right != null) {
+      var x_9 := this.left.Find(n);
+      var x_10 := this.right.Find(n);
+      ret := (n == this.data || x_9) || x_10;
+    } else {
+      if (this.left != null && this.right == null) {
+        var x_11 := this.left.Find(n);
+        ret := n == this.data || x_11;
+      } else {
+        if (this.right != null && this.left == null) {
+          var x_12 := this.right.Find(n);
+          ret := n == this.data || x_12;
+        } else {
+          ret := n == this.data;
+        }
+      }
+    }
   }
 
 
@@ -165,6 +225,7 @@ class SetNode {
     this.elems := {x};
     this.left := null;
     this.right := null;
+
     // repr stuff
     this.Repr := {this};
   }
@@ -179,31 +240,34 @@ class SetNode {
     ensures Valid();
     ensures elems == {x, y, z};
   {
-    if (x < y && z > y) {
-      this.TripleBase(x, y, z);
+    if (z < x && y > x) {
+      this.TripleBase(z, x, y);
     } else {
-      if (z < x && y > x) {
-        this.TripleBase(z, x, y);
+      if (x < y && z > y) {
+        this.TripleBase(x, y, z);
       } else {
         if (x < z && y > z) {
           this.TripleBase(x, z, y);
         } else {
-          if (z < y && x > y) {
-            this.TripleBase(z, y, x);
+          if (y < z && x > z) {
+            this.TripleBase(y, z, x);
           } else {
-            if (y < z && x > z) {
-              this.TripleBase(y, z, x);
+            if (z < y && x > y) {
+              this.TripleBase(z, y, x);
             } else {
-              var gensym80 := new SetNode;
-              var gensym81 := new SetNode;
-              gensym80.Init(z);
-              gensym81.Init(y);
+              var gensym82 := new SetNode;
+              var gensym83 := new SetNode;
+              gensym82.Init(y);
+              gensym83.Init(z);
               this.data := x;
-              this.elems := {x, y, z};
-              this.left := gensym81;
-              this.right := gensym80;
+              this.elems := {y, x, z};
+              this.left := gensym82;
+              this.right := gensym83;
+
               // repr stuff
               this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+              // assert repr objects are valid (helps verification)
+              assert gensym82.Valid() && gensym83.Valid();
             }
           }
         }
@@ -220,16 +284,19 @@ class SetNode {
     ensures Valid();
     ensures elems == {x, y, z};
   {
-    var gensym80 := new SetNode;
-    var gensym81 := new SetNode;
-    gensym80.Init(z);
-    gensym81.Init(x);
+    var gensym89 := new SetNode;
+    var gensym90 := new SetNode;
+    gensym89.Init(z);
+    gensym90.Init(x);
     this.data := y;
     this.elems := {x, y, z};
-    this.left := gensym81;
-    this.right := gensym80;
+    this.left := gensym90;
+    this.right := gensym89;
+
     // repr stuff
     this.Repr := ({this} + this.left.Repr) + this.right.Repr;
+    // assert repr objects are valid (helps verification)
+    assert gensym89.Valid() && gensym90.Valid();
   }
 
 }

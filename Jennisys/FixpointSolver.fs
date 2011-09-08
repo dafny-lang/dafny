@@ -136,7 +136,7 @@ let UnifyImplies lhs rhs dir unifs = SelectiveUnifyImplies (fun e -> true) lhs r
 
 ////////////////////////////////////////////
 
-let rec ComputeClosure heapInst premises = 
+let rec ComputeClosure heapInst expandExprFunc premises = 
   let bogusExpr = VarLiteral("!@#$%^&*()")
 
   let ApplyUnifs unifs expr =
@@ -165,7 +165,7 @@ let rec ComputeClosure heapInst premises =
   
   let MySetAdd expr set =
     let x = Printer.PrintExpr 0 expr
-    if x.Contains("$") then
+    if x.Contains("$") || not (expandExprFunc expr) then
       set
     else 
       match expr with
@@ -209,18 +209,23 @@ let rec ComputeClosure heapInst premises =
     let rec __fff lhs rhs = 
       let binInExpr = BinaryIn lhs rhs
       match rhs with
+      | BinaryExpr(_,"+",BinaryExpr(_,"+",SetExpr(_), Dot(_)), Dot(_)) -> Logger.Trace ""
+      | _ -> ()//TODO: remove
+
+      match rhs with
       | BinaryExpr(_,"+",l,r) -> 
-          let lhsVal = EvalFull heapInst lhs 
-          let lVal = EvalFull heapInst l 
-          let rVal = EvalFull heapInst r
-          match lVal,rVal with
-          | SequenceExpr(elistL), SequenceExpr(elistR)
-          | SetExpr(elistL), SetExpr(elistR) ->
-              if elistL |> Utils.ListContains lhsVal then 
-                __fff lhs l
-              else
-                __fff lhs r
-          | _ -> [binInExpr]
+//          let lhsVal = EvalFull heapInst lhs 
+//          let lVal = EvalFull heapInst l 
+//          let rVal = EvalFull heapInst r
+//          match lVal,rVal with
+//          | SequenceExpr(elist), _ | _, SequenceExpr(elist) 
+//          | SetExpr(elist), _ | _, SetExpr(elist) ->
+//              if elist |> Utils.ListContains lhsVal then 
+//                __fff lhs l
+//              else
+//                __fff lhs r
+//          | _ -> [binInExpr]
+          [BinaryOr (BinaryIn lhs l) (BinaryIn lhs r)] 
       | SequenceExpr(elist) -> 
           let len = elist |> List.length
           if len = 0 then
@@ -238,20 +243,21 @@ let rec ComputeClosure heapInst premises =
     __fff lhs rhs
 
   let BinaryNotInCombiner lhs rhs =
-    // distribute the "in" operation if possible
+    // distribute the "!in" operation if possible
     let rec __fff lhs rhs = 
       let binNotInExpr = BinaryNotIn lhs rhs
       match rhs with
       | BinaryExpr(_,"+",l,r) -> 
-          let lhsVal = EvalFull heapInst lhs 
-          let lVal = EvalFull heapInst l 
-          let rVal = EvalFull heapInst r
-          match lVal,rVal with
-          | SequenceExpr(elistL), SequenceExpr(elistR)
-          | SetExpr(elistL), SetExpr(elistR) ->
-              (__fff lhs l) @ 
-              (__fff lhs r)
-          | _ -> [binNotInExpr]
+//          let lhsVal = EvalFull heapInst lhs 
+//          let lVal = EvalFull heapInst l 
+//          let rVal = EvalFull heapInst r
+//          match lVal,rVal with
+//          | SequenceExpr(elistL), SequenceExpr(elistR)
+//          | SetExpr(elistL), SetExpr(elistR) ->
+//              (__fff lhs l) @ 
+//              (__fff lhs r)
+//          | _ -> [binNotInExpr]
+          __fff lhs l @ __fff lhs r 
       | SequenceExpr(elist) -> 
           let len = elist |> List.length
           if len = 0 then
@@ -267,33 +273,32 @@ let rec ComputeClosure heapInst premises =
     __fff lhs rhs
 
   let rec __CombineAllMatches expr premises =
-    match expr with
-    | BinaryExpr(p,op,lhs,rhs) -> 
-        let lhsMatches = __CombineAllMatches lhs premises
-        let rhsMatches = __CombineAllMatches rhs premises
-        let lst1 = Utils.ListCombine (fun e1 e2 -> BinaryExpr(p,op,e1,e2)) lhsMatches rhsMatches
-        let lst2 = 
-          if op = "in" then
-            Utils.ListCombineMult BinaryInCombiner lhsMatches rhsMatches
-          elif op = "!in" then
-            Utils.ListCombineMult BinaryNotInCombiner lhsMatches rhsMatches
-          else
-            []
-        lst1 @ lst2
-    | UnaryExpr(op,sub) -> 
-        __CombineAllMatches sub premises |> List.map (fun e -> UnaryExpr(op,e))
-    | SelectExpr(lst,idx) ->
-        let lst1 = FindMatches expr bogusExpr premises 
-        let lstMatches = __CombineAllMatches lst premises
-        let idxMatches = __CombineAllMatches idx premises
-        let lst2 = Utils.ListCombineMult SelectExprCombinerFunc lstMatches idxMatches
-        lst1 @ lst2
-    | SeqLength(lst) -> 
-        let lst1 = FindMatches expr bogusExpr premises 
-        let lst2 = __CombineAllMatches lst premises |> List.map SeqLenCombinerFunc |> List.concat
-        lst1 @ lst2
-    // TODO: other cases
-    | _ -> expr :: (FindMatches expr bogusExpr premises)
+    let lst0 = FindMatches expr bogusExpr premises 
+    let lstCombined = 
+      match expr with
+      | BinaryExpr(p,op,lhs,rhs) -> 
+          let lhsMatches = __CombineAllMatches lhs premises
+          let rhsMatches = __CombineAllMatches rhs premises
+          let lst1 = Utils.ListCombine (fun e1 e2 -> BinaryExpr(p,op,e1,e2)) lhsMatches rhsMatches
+          let lst2 = 
+            if op = "in" then
+              Utils.ListCombineMult BinaryInCombiner lhsMatches rhsMatches
+            elif op = "!in" then
+              Utils.ListCombineMult BinaryNotInCombiner lhsMatches rhsMatches
+            else
+              []
+          lst1 @ lst2
+      | UnaryExpr(op,sub) -> 
+          __CombineAllMatches sub premises |> List.map (fun e -> UnaryExpr(op,e))
+      | SelectExpr(lst,idx) ->
+          let lstMatches = __CombineAllMatches lst premises
+          let idxMatches = __CombineAllMatches idx premises
+          Utils.ListCombineMult SelectExprCombinerFunc lstMatches idxMatches
+      | SeqLength(lst) -> 
+          __CombineAllMatches lst premises |> List.map SeqLenCombinerFunc |> List.concat
+      // TODO: other cases
+      | _ -> [] 
+    expr :: (lst0 @ lstCombined)
 
   let rec __ExpandPremise expr premises = 
     let __AddToPremisses exprLst premises = exprLst |> List.fold (fun acc e -> MySetAdd e acc) premises
@@ -310,15 +315,24 @@ let rec ComputeClosure heapInst premises =
   let rec __Iter exprLst premises = 
     match exprLst with
     | expr :: rest ->  
-        let newPremises = __ExpandPremise expr premises
+        let newPremises = 
+          if expandExprFunc expr then
+            __ExpandPremise expr premises
+          else 
+            premises
         __Iter rest newPremises
     | [] -> premises
 
   (* --- function body starts here --- *)
-  let premises' = __Iter (premises |> Set.toList) premises
-  if premises' = premises then
-    premises'
-  else 
-    ComputeClosure heapInst premises' 
+  let iterOnceFunc p = __Iter (p |> Set.toList) p
+  // TODO: iterate only 3 times, instead of to full closure
+  iterOnceFunc premises |> iterOnceFunc |> iterOnceFunc
+//  let premises' = iterOnceFunc premises 
+//  if premises' = premises then
+//    premises'
+//  else 
+//    Logger.TraceLine "-------closure----------------"
+//    //premises' |> Set.iter (fun e -> Logger.TraceLine (Printer.PrintExpr 0 e))
+//    ComputeClosure heapInst expandExprFunc premises' 
 
 

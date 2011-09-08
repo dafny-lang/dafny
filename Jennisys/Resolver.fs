@@ -189,20 +189,30 @@ let _Eval heapInst resolveExprFunc returnFunc expr =
 let EvalNone heapInst expr = 
   EvalSym (_EvalResolver heapInst false (fun e -> false)) expr
 
+let fullResolver heapInst = _EvalResolver heapInst true (fun e -> true)
+
 /// Resolves everything
 let EvalFull heapInst expr = 
-  EvalSym  (_EvalResolver heapInst true (fun e -> true)) expr
+  EvalSym (fullResolver heapInst) expr
   //_Eval heapInst (fun _ -> true) (fun e -> e) expr 
 
 let Eval heapInst resolveExprFunc expr = 
   let returnFunc = fun expr -> match expr with IdLiteral(id) -> Dot(ThisLiteral, id) | _ -> expr
-  EvalSymRet (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
+  EvalSymRet (fullResolver heapInst) (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
 
 let EvalAndCheckTrue heapInst resolveExprFunc expr = 
   let returnFunc = fun expr -> 
-                     // TODO: this is just to ensure that all field accesses to this object are prefixed with "this."
-                     //       this is not the best place to do it, though
-                     let expr = match expr with IdLiteral(id) -> Dot(ThisLiteral, id) | _ -> expr
+                     let expr =
+                       match expr with
+                       //| IteExpr(c,t,e) -> 
+                       //    let cond = c |> EvalFull heapInst |> Expr2Bool
+                       //    if cond then t else e
+                       //| ForallExpr(vars, sub) -> expr
+                       // TODO: this is just to ensure that all field accesses to this object are prefixed with "this."
+                       //       this is not the best place to do it, though
+                       | IdLiteral(id) -> Dot(ThisLiteral, id) 
+                       | _ -> expr  
+                     
                      // TODO: infer type of expr and then re-execute only if its type is Bool
                      let e1 = EvalFull heapInst expr //EvalSym (_EvalResolver heapInst true (fun _ -> true)) expr
                      match e1 with
@@ -213,7 +223,7 @@ let EvalAndCheckTrue heapInst resolveExprFunc expr =
                            FalseLiteral
                            //UnaryNot expr
                      | _ -> expr
-  EvalSymRet (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
+  EvalSymRet (fullResolver heapInst) (_EvalResolver heapInst false resolveExprFunc) returnFunc expr
   //_Eval heapInst resolveExprFunc returnFunc expr 
 
 //  =====================================================================
@@ -295,19 +305,25 @@ let rec GetCallGraph solutions graph =
 
 //TODO: below here should really go to a different module
 
-let Is1stLevelExpr heapInst expr = 
+let __Is1stLevelExpr methodsOk heapInst expr = 
   DescendExpr2 (fun expr acc ->
                   if not acc then
                     false
                   else
                     match expr with
                     | Dot(discr, fldName) -> 
-                        let obj = EvalFull heapInst discr
-                        match obj with 
-                        | ObjLiteral(id) -> id = "this"
-                        | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
+                        try
+                          let obj = EvalFull heapInst discr
+                          match obj with 
+                          | ObjLiteral(id) -> id = "this"
+                          | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
+                        with
+                        | _ -> false
+                    | MethodCall(_) -> methodsOk
                     | _ -> true                          
                ) expr true
+
+let Is1stLevelExpr = __Is1stLevelExpr true
 
 let IsSolution1stLevelOnly heapInst = 
   let rec __IsSol1stLevel stmts = 
