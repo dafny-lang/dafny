@@ -362,17 +362,13 @@ namespace Microsoft.Dafny {
         if (bvs.Length != 0) {
           q = new Bpl.ExistsExpr(ctor.tok, bvs, q);
         }
-        var queryFunctionName = string.Format("{0}.{1}?", ctor.EnclosingDatatype.Name, ctor.Name);
-        q = Bpl.Expr.Imp(FunctionCall(ctor.tok, queryFunctionName, Bpl.Type.Bool, dId), q);
+        q = Bpl.Expr.Imp(FunctionCall(ctor.tok, ctor.QueryField.FullName, Bpl.Type.Bool, dId), q);
         q = new Bpl.ForallExpr(ctor.tok, new VariableSeq(dBv), q);
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
 
-        // Add:  function dt.ctor?(d: DatatypeType): bool { DatatypeCtorId(d) == ##dt.ctor }
-        var d = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, "d", predef.DatatypeType), true);
-        var res = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        fn = new Bpl.Function(ctor.tok, queryFunctionName, new VariableSeq(d), res);
-        fieldFunctions.Add(ctor.QueryField, fn);
-        lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, new Bpl.IdentifierExpr(ctor.tok, d.Name, predef.DatatypeType));
+        // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
+        fn = GetReadonlyField(ctor.QueryField);
+        lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, new Bpl.IdentifierExpr(ctor.tok, fn.InParams[0].Name, predef.DatatypeType));
         fn.Body = Bpl.Expr.Eq(lhs, new Bpl.IdentifierExpr(ctor.tok, cid));  // this uses the "cid" defined for the previous axiom
         sink.TopLevelDeclarations.Add(fn);
 
@@ -405,14 +401,16 @@ namespace Microsoft.Dafny {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           // function ##dt.ctor#i(DatatypeType) returns (Ti);
-          argTypes = new Bpl.VariableSeq();
-          argTypes.Add(new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), true));
-          resType = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)), false);
-          string nm = arg.HasName ? string.Format("{0}.{1}", ctor.EnclosingDatatype.Name, arg.Name) : "#" + ctor.FullName + "#" + i;
-          fn = new Bpl.Function(ctor.tok, nm, argTypes, resType);
           var sf = ctor.Destructors[i];
           if (sf != null) {
-            fieldFunctions.Add(sf, fn);
+            fn = GetReadonlyField(sf);
+          } else {
+            Contract.Assert(!arg.HasName);
+            argTypes = new Bpl.VariableSeq();
+            argTypes.Add(new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), true));
+            resType = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)), false);
+            string nm = "#" + ctor.FullName + "#" + i;
+            fn = new Bpl.Function(ctor.tok, nm, argTypes, resType);
           }
           sink.TopLevelDeclarations.Add(fn);
           // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
@@ -1453,13 +1451,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      VariableSeq bvars;
-      List<Bpl.Expr> args;
-      CreateBoundVariables(ctor.Formals, out bvars, out args);
-      locals.AddRange(bvars);
+      // create local variables for the formals
+      var args = new ExprSeq();
+      foreach (Formal arg in ctor.Formals) {
+        Contract.Assert(arg != null);
+        var nm = string.Format("a{0}#{1}", args.Length, otherTmpVarCount);
+        otherTmpVarCount++;
+        Bpl.Variable bv = new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
+        locals.Add(bv);
+        args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
+      }
 
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(tok, ctor.FullName, predef.DatatypeType);
-      return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), new ExprSeq(args.ToArray()));
+      return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), args);
     }
 
     Bpl.Expr IsTotal(Expression expr, ExpressionTranslator etran) {

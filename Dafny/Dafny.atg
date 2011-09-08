@@ -1059,7 +1059,10 @@ RelationalExpression<out Expression/*!*/ e>
   .)
   .
 RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
-= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
+     x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/;
+     IToken y;
+  .)
   ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
   | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
   | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
@@ -1068,7 +1071,20 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
   | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
   | "!!"           (. x = t;  op = BinaryExpr.Opcode.Disjoint; .)
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
-  | "!in"          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
+  | /* The next operator is "!in", but Coco evidently parses "!in" even when it is a prefix of, say, "!initialized".
+     * The reason for this seems to be that the first character of "!in" is not a letter.  So, here is the workaround:
+     */
+    "!"            (. x = t;  y = Token.NoToken; .)
+    [ "in"         (. y = t; .)
+    ]              (. if (y == Token.NoToken) {
+                        SemErr(x, "invalid RelOp");
+                      } else if (y.pos != x.pos + 1) {
+                        SemErr(x, "invalid RelOp (perhaps you intended \"!in\" with no intervening whitespace?)");
+                      } else {
+                        x.val = "!in";
+                        op = BinaryExpr.Opcode.NotIn;
+                      }
+                   .)
   | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
   | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
   | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)

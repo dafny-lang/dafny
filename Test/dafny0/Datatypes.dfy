@@ -193,3 +193,28 @@ method InjectivityTests(d: XList)
       assert d == XCons(d.Car, d.Cdr);
   }
 }
+
+// -------------
+
+method FwdBug(f: Fwd, initialized: bool)
+  requires !f.FwdCons?;
+{
+  match (f) {
+    case FwdNil =>
+    // Syntactically, there is a missing case here, but the verifier checks that this is still cool.
+    // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
+  }
+  if (!initialized) {  // There was once a Dafny parsing bug with this line
+  }
+}
+
+function FwdBugFunction(f: Fwd): bool
+  requires !f.FwdCons?;
+{
+  match f
+  case FwdNil => true
+  // Syntactically, there is a missing case here, but the verifier checks that this is still cool.
+  // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
+}
+
+datatype Fwd = FwdNil | FwdCons(int, Fwd);

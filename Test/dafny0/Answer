@@ -989,7 +989,7 @@ Execution trace:
     (0,0): anon4_Else
     (0,0): anon5_Then
 
-Dafny program verifier finished with 26 verified, 3 errors
+Dafny program verifier finished with 29 verified, 3 errors
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
