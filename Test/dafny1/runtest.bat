@@ -21,7 +21,7 @@ for %%f in (Queue.dfy PriorityQueue.dfy ExtensibleArray.dfy
             SchorrWaite.dfy
             Cubes.dfy SumOfCubes.dfy FindZero.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy
-            Induction.dfy Rippling.dfy
+            Induction.dfy Rippling.dfy MoreInduction.dfy
             Celebrity.dfy
             UltraFilter.dfy) do (
   echo.

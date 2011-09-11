@@ -87,6 +87,10 @@ Dafny program verifier finished with 29 verified, 0 errors
 
 Dafny program verifier finished with 137 verified, 0 errors
 
+-------------------- MoreInduction.dfy --------------------
+
+Dafny program verifier finished with 8 verified, 0 errors
+
 -------------------- Celebrity.dfy --------------------
 
 Dafny program verifier finished with 10 verified, 0 errors
