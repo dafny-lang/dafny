@@ -176,7 +176,7 @@ namespace Microsoft.Boogie
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-              if ((CommandLineOptions.Clo.Compile && allOk) || CommandLineOptions.Clo.ForceCompile)
+              if ((CommandLineOptions.Clo.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || CommandLineOptions.Clo.ForceCompile)
                 CompileDafnyProgram(dafnyProgram);
               break;
             case PipelineOutcome.Done:
