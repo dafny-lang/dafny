@@ -183,15 +183,18 @@ namespace Microsoft.Dafny {
         //   public Dt_Ctor(arguments) {
         //     Fields = arguments;
         //   }
+        //   public override bool Equals(object other) {
+        //     var oth = other as Dt_Dtor;
+        //     return oth != null && equals(_field0, oth._field0) && ... ;
+        //   }
+        //   public override int GetHashCode() {
+        //     return base.GetHashCode();  // surely this can be improved
+        //   }
         // }
         Indent(indent);
         wr.Write("public class {0}", DtCtorName(ctor));
         if (dt.TypeArgs.Count != 0) {
-          wr.Write("<");
-          if (dt.TypeArgs.Count != 0) {
-            wr.Write("{0}", TypeParameters(dt.TypeArgs));
-          }
-          wr.Write(">");
+          wr.Write("<{0}>", TypeParameters(dt.TypeArgs));
         }
         wr.Write(" : Base_{0}", dt.Name);
         if (dt.TypeArgs.Count != 0) {
@@ -222,6 +225,36 @@ namespace Microsoft.Dafny {
           }
         }
         Indent(ind);  wr.WriteLine("}");
+
+        // Equals method
+        Indent(ind); wr.WriteLine("public override bool Equals(object other) {");
+        Indent(ind + IndentAmount);
+        wr.Write("var oth = other as {0}", DtCtorName(ctor));
+        if (dt.TypeArgs.Count != 0) {
+          wr.Write("<{0}>", TypeParameters(dt.TypeArgs));
+        }
+        wr.WriteLine(";");
+        Indent(ind + IndentAmount);
+        wr.Write("return oth != null");
+        i = 0;
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            string nm = FormalName(arg, i);
+            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
+              wr.Write(" && this.@{0}.Equals(oth.@{0})", nm);
+            } else {
+              wr.Write(" && this.@{0} == oth.@{0}", nm);
+            }
+            i++;
+          }
+        }
+        wr.WriteLine(";");
+        Indent(ind); wr.WriteLine("}");
+
+        // GetHashCode method
+        Indent(ind); wr.WriteLine("public override int GetHashCode() {");
+        Indent(ind + IndentAmount); wr.WriteLine("return base.GetHashCode();  // surely this can be improved");
+        Indent(ind); wr.WriteLine("}");
 
         Indent(indent);  wr.WriteLine("}");
       }
