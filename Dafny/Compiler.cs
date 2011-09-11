@@ -601,7 +601,7 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return "new BigInteger(0)";
       } else if (type.IsRefType) {
-        return "null";
+        return string.Format("({0})null", TypeName(type));
       } else if (type.IsDatatype) {
         UserDefinedType udt = (UserDefinedType)type;
         string s = "@" + udt.Name;
@@ -1175,7 +1175,7 @@ namespace Microsoft.Dafny {
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
-          wr.Write("null");
+          wr.Write("({0})null", TypeName(e.Type));
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
         } else if (e.Value is BigInteger) {
