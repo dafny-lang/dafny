@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
 
         return new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new Bpl.TypeSeq(ty));
       }
-      
+
       public Bpl.Type SeqType(IToken tok, Bpl.Type ty) {
         Contract.Requires(tok != null);
         Contract.Requires(ty != null);
@@ -1071,7 +1071,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
-        localVariables, stmts);
+        localVariables, stmts, etran.TrAttributes(m.Attributes));
       sink.TopLevelDeclarations.Add(impl);
 
       currentMethod = null;
@@ -4973,7 +4973,7 @@ namespace Microsoft.Dafny {
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetIntersection, translator.TrType(cce.NonNull((SetType)expr.Type).Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.SetDifference:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetDifference, translator.TrType(cce.NonNull((SetType)expr.Type).Arg), e0, e1);
- 
+
             case BinaryExpr.ResolvedOpcode.MultiSetEq:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSetNeq:
@@ -5359,7 +5359,7 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), BoxIfNecessary(tok, elmt, elmtType)), Bpl.Expr.Literal(0));
       }
 
-      Bpl.QKeyValue TrAttributes(Attributes attrs) {
+      public Bpl.QKeyValue TrAttributes(Attributes attrs) {
         Bpl.QKeyValue kv = null;
         while (attrs != null) {
           List<object> parms = new List<object>();
