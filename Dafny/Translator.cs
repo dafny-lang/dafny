@@ -1069,9 +1069,11 @@ namespace Microsoft.Dafny {
         stmts = builder.Collect(m.tok);
       }
 
+      QKeyValue kv = etran.TrAttributes(m.Attributes);
+
       Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
-        localVariables, stmts, etran.TrAttributes(m.Attributes));
+        localVariables, stmts, kv);
       sink.TopLevelDeclarations.Add(impl);
 
       currentMethod = null;
