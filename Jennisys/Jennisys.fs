@@ -46,6 +46,7 @@ let readAndProcess (filename: string) =
 try 
   let args = Environment.GetCommandLineArgs()
   ParseCmdLineArgs (List.ofArray args |> List.tail)
+  if CONFIG.breakIntoDebugger then ignore (System.Diagnostics.Debugger.Launch()) else ()
   if CONFIG.help then 
     printfn "%s" PrintHelpMsg
   else 

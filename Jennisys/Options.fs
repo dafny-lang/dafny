@@ -22,6 +22,7 @@ type Config = {
    timeout                   : int;
    numLoopUnrolls            : int;
    recursiveValid            : bool;
+   breakIntoDebugger         : bool;
 }
 
 type CfgOption<'a> = {
@@ -72,6 +73,7 @@ let cfgOptions = [
   { optionName = "unrolls";         optionType = "int";    optionSetter = (fun v (cfg: Config) -> {cfg with numLoopUnrolls         =      CheckInt v "unrolls"});         descr = "description not available"; }
   { optionName = "recValid";        optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         =      CheckBool v "recValid"});       descr = "description not available"; }
   { optionName = "noRecValid";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         = not (CheckBool v "noRecValid")});    descr = "description not available"; }
+  { optionName = "break";           optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with breakIntoDebugger      =      CheckBool v "break"});          descr = "launches debugger upon start-up"; }
 ]
 
 let cfgOptMap = cfgOptions |> List.fold (fun acc o -> acc |> Map.add o.optionName o) Map.empty
@@ -109,6 +111,7 @@ let defaultConfig: Config = {
   timeout           = 0;
   numLoopUnrolls    = 2;
   recursiveValid    = true;
+  breakIntoDebugger = false;
 }
 
 /// Should not be mutated outside the ParseCmdLineArgs method, which is 
