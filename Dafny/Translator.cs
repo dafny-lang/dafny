@@ -2751,10 +2751,9 @@ namespace Microsoft.Dafny {
 
       public override Expr VisitIdentifierExpr(Bpl.IdentifierExpr node)
       {
-        Contract.Requires(node != null);
         Contract.Ensures(Contract.Result<Expr>() != null);
 
-        if (subst.ContainsKey(node.Name))
+        if (node != null && subst.ContainsKey(node.Name))
           return subst[node.Name];
         else
           return base.VisitIdentifierExpr(node);
@@ -3582,7 +3581,7 @@ namespace Microsoft.Dafny {
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
                         Bpl.StmtListBuilder builder, VariableSeq locals, ExpressionTranslator etran) {
       Contract.Requires(alternatives != null);
-      Contract.Requires((elseCase0 == null) == (elseCase1 == null));  // ugly way of doing a type union
+      Contract.Requires((elseCase0 != null) == (elseCase1 == null));  // ugly way of doing a type union
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
@@ -3665,7 +3664,7 @@ namespace Microsoft.Dafny {
       Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
 
       Contract.Requires(tok != null);
-      Contract.Requires((dafnyReceiver == null) != (bReceiver == null));
+      Contract.Requires((dafnyReceiver != null) || (bReceiver != null));
       Contract.Requires(method != null);
       Contract.Requires(cce.NonNullElements(Args));
       Contract.Requires(cce.NonNullElements(Lhss));
@@ -4515,7 +4514,7 @@ namespace Microsoft.Dafny {
       public readonly string This;
       public readonly string modifiesFrame = "$_Frame"; // the name of the context's frame variable.
       readonly Function applyLimited_CurrentFunction;
-      readonly int layerOffset = 0;
+      public readonly int layerOffset = 0;
       public int Statistics_FunctionCount = 0;
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -4564,7 +4563,6 @@ namespace Microsoft.Dafny {
           Contract.Requires(translator != null);
           Contract.Requires(predef != null);
           Contract.Requires(heap != null);
-          Contract.Requires(applyLimited_CurrentFunction != null);
           this.translator = translator;
           this.predef = predef;
           this.HeapExpr = heap;
@@ -6271,7 +6269,6 @@ namespace Microsoft.Dafny {
 
     static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(expr != null);
-      Contract.Requires(receiverReplacement != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
@@ -6436,8 +6433,7 @@ namespace Microsoft.Dafny {
     static List<Expression/*!*/>/*!*/ SubstituteExprList(List<Expression/*!*/>/*!*/ elist,
                                                  Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(cce.NonNullElements(elist));
-      Contract.Requires((receiverReplacement == null) == (substMap == null));
-      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<Expression>>()));
 
       List<Expression> newElist = null;  // initialized lazily

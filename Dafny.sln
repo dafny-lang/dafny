@@ -7,6 +7,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyPipeline", "Dafny\Dafn
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Checked|.NET = Checked|.NET
+		Checked|Any CPU = Checked|Any CPU
+		Checked|Mixed Platforms = Checked|Mixed Platforms
 		Debug|.NET = Debug|.NET
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -15,6 +18,12 @@ Global
 		Release|Mixed Platforms = Release|Mixed Platforms
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Checked|.NET.ActiveCfg = Checked|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Checked|.NET.Build.0 = Checked|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Checked|Any CPU.Build.0 = Debug|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Checked|Mixed Platforms.ActiveCfg = Checked|Any CPU
+		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Checked|Mixed Platforms.Build.0 = Checked|Any CPU
 		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|.NET.ActiveCfg = Debug|Any CPU
 		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|.NET.Build.0 = Debug|Any CPU
 		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -26,6 +35,12 @@ Global
 		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{63400D1F-05B2-453E-9592-1EAB74B2C9CC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{FE44674A-1633-4917-99F4-57635E6FA740}.Checked|.NET.ActiveCfg = Checked|Any CPU
+		{FE44674A-1633-4917-99F4-57635E6FA740}.Checked|.NET.Build.0 = Checked|Any CPU
+		{FE44674A-1633-4917-99F4-57635E6FA740}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE44674A-1633-4917-99F4-57635E6FA740}.Checked|Any CPU.Build.0 = Debug|Any CPU
+		{FE44674A-1633-4917-99F4-57635E6FA740}.Checked|Mixed Platforms.ActiveCfg = Checked|Any CPU
+		{FE44674A-1633-4917-99F4-57635E6FA740}.Checked|Mixed Platforms.Build.0 = Checked|Any CPU
 		{FE44674A-1633-4917-99F4-57635E6FA740}.Debug|.NET.ActiveCfg = Debug|Any CPU
 		{FE44674A-1633-4917-99F4-57635E6FA740}.Debug|.NET.Build.0 = Debug|Any CPU
 		{FE44674A-1633-4917-99F4-57635E6FA740}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
