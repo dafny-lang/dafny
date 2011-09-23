@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
     public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(typeArgs != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;

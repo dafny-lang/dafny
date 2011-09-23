@@ -27,7 +27,10 @@ namespace Microsoft.Dafny {
     TextWriter wr;
 
     public int ErrorCount;
-    void Error(string msg, params object[] args) {Contract.Requires(msg != null);
+    void Error(string msg, params object[] args) {
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+
       string s = string.Format("Compilation error: " + msg, args);
       Console.WriteLine(s);
       wr.WriteLine("/* {0} */", s);
