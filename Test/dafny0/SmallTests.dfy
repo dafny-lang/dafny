@@ -8,7 +8,7 @@ class Node {
     (next != null  ==>  next.IsList(r - {this}))
   }
 
-  method Test(n: Node, nodes: set<Node>) 
+  method Test(n: Node, nodes: set<Node>)
   {
     assume nodes == nodes - {n};
     // the next line needs the Set extensionality axiom, the antecedent of
@@ -189,7 +189,7 @@ class AllocatedTests {
   method M(r: AllocatedTests, k: Node, S: set<Node>, d: Lindgren)
   {
     assert allocated(r);
-    
+
     var n := new Node;
     var t := S + {n};
     assert allocated(t);
@@ -345,4 +345,40 @@ method TestSequences0()
     assert exists n :: n in s && -3 <= n && n < 2;
   }
   assert 7 in s;  // error
+}
+
+// ----------------------- test attributes on methods and constructors --------
+
+method test0()
+{
+  assert false;  // error
+}
+
+method {:verify false} test1()
+{
+  assert false;
+}
+
+class Test {
+
+  method test0()
+  {
+    assert false;  // error
+  }
+
+  method {:verify false} test1()
+  {
+    assert false;
+  }
+
+  constructor init0()
+  {
+    assert false;  // error
+  }
+
+  constructor {:verify false} init1()
+  {
+    assert false;
+  }
+
 }

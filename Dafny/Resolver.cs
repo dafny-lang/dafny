@@ -935,9 +935,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(proxy != null);
       Contract.Requires(t != null);
       Contract.Requires(proxy.T == null);
-      Contract.Requires((t is TypeProxy)|| ((TypeProxy)t).T == null);
+      Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
       //modifies proxy.T, ((TypeProxy)t).T;  // might also change t.T if t is a proxy
-      Contract.Ensures(Contract.Result<bool>() || proxy == t || proxy.T != null || (t is TypeProxy && ((TypeProxy)t).T != null));
+      Contract.Ensures(Contract.Result<bool>() == (proxy == t || proxy.T != null || (t is TypeProxy && ((TypeProxy)t).T != null)));
       if (proxy == t) {
         // they are already in the same equivalence class
         return true;
@@ -1845,7 +1845,7 @@ namespace Microsoft.Dafny {
         Contract.Assume(lhs.Type != null);  // a sanity check that LHSs have already been resolved
       }
       // resolve arguments
-      if (!s.IsGhost) {
+      if (!s.IsGhost && s.Receiver.WasResolved()) {
         CheckIsNonGhost(s.Receiver);
       }
       int j = 0;
@@ -2791,7 +2791,7 @@ namespace Microsoft.Dafny {
     void CheckIsNonGhost(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
-      Contract.Requires(expr.Type != null);  // this check approximates the requirement that "expr" be resolved
+      Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
 
       if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
@@ -3505,7 +3505,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
 
-      if (expr is ThisExpr) {
+      if (expr is ThisExpr && !expr.WasResolved()) {
         // Allow 'this' here, regardless of scope.AllowInstance.  The caller is responsible for
         // making sure 'this' does not really get used when it's not available.
         expr.Type = GetThisType(expr.tok, currentClass);

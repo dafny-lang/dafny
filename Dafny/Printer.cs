@@ -723,7 +723,7 @@ namespace Microsoft.Dafny {
             }
             wr.Write(")");
           }
-          bool parensNeeded = !isLastCase && mc.Body.Resolved is MatchExpr;
+          bool parensNeeded = !isLastCase && mc.Body.WasResolved() && mc.Body.Resolved is MatchExpr;
           if (parensNeeded) {
             wr.WriteLine(" => (");
           } else {

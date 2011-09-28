@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
     public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(typeArgs != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -752,7 +752,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
-      Contract.Invariant(1 <= ctors.Count);
+      Contract.Requires(1 <= ctors.Count);
       Ctors = ctors;
     }
   }
@@ -871,8 +871,8 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Expr != null);
       Contract.Invariant(cce.NonNullElements(Toks));
-      Contract.Invariant(cce.NonNullElements(Formals));
-      Contract.Invariant(cce.NonNullElements(Refined));
+      Contract.Invariant(Formals == null || cce.NonNullElements(Formals));
+      Contract.Invariant(Refined == null || cce.NonNullElements(Refined));
     }
 
 
@@ -1298,12 +1298,13 @@ namespace Microsoft.Dafny {
     public Statement TargetStmt;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(TargetLabel == null || 1 <= BreakCount);
+      Contract.Invariant(TargetLabel != null || 1 <= BreakCount);
     }
 
     public BreakStmt(IToken tok, string targetLabel)
       : base(tok) {
       Contract.Requires(tok != null);
+      Contract.Requires(targetLabel != null);
       this.TargetLabel = targetLabel;
     }
     public BreakStmt(IToken tok, int breakCount)
@@ -1639,13 +1640,11 @@ namespace Microsoft.Dafny {
     public IfStmt(IToken tok, Expression guard, Statement thn, Statement els)
       : base(tok) {
       Contract.Requires(tok != null);
-      Contract.Requires(guard != null);
       Contract.Requires(thn != null);
       Contract.Requires(els == null || els is BlockStmt || els is IfStmt);
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
-
     }
   }
 
@@ -1875,9 +1874,15 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
     }
 
+    [Pure]
+    public bool WasResolved()
+    {
+      return Type != null;
+    }
+
     public Expression Resolved {
       get {
-        Contract.Requires(type != null);  // should be called only on resolved expressions; this approximates that precondition
+        Contract.Requires(WasResolved());  // should be called only on resolved expressions; this approximates that precondition
         Expression r = this;
         while (true) {
           var rr = r as ConcreteSyntaxExpression;
@@ -1899,7 +1904,7 @@ namespace Microsoft.Dafny {
       [NoDefaultContract]  // no particular validity of 'this' is required, except that it not be committed
       set {
         Contract.Requires(cce.IsValid(this));
-        Contract.Requires(Type == null);  // set it only once
+        Contract.Requires(!WasResolved());  // set it only once
         Contract.Requires(value != null);
         //modifies type;
         type = value.Normalize();
@@ -2907,7 +2912,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(operands != null);
       Contract.Requires(operators != null);
       Contract.Requires(desugaring != null);
-      Contract.Requires(operators.Count == operators.Count + 1);
+      Contract.Requires(operands.Count == operators.Count + 1);
 
       Operands = operands;
       Operators = operators;
