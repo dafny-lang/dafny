@@ -20,9 +20,9 @@ rule tokenize = parse
 | newline     { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf }
 // TODO:  | "//"[-newline]* { tokenize lexbuf }
 // keywords
-| "class"    { CLASS }
-| "model"    { MODEL }
-| "code"     { CODE }
+| "interface"    { INTERFACE }
+| "datamodel"    { DATAMODEL }
+| "code"         { CODE }
 | "var"          { VAR }
 | "constructor"  { CONSTRUCTOR }
 | "method"       { METHOD }

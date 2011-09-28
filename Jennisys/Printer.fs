@@ -113,11 +113,11 @@ let PrintTopLevelDeclHeader kind id typeParams =
   
 let PrintDecl d =
   match d with
-  | Class(id,typeParams,members) ->
-      sprintf "%s%s}%s" (PrintTopLevelDeclHeader "class" id typeParams)
+  | Interface(id,typeParams,members) ->
+      sprintf "%s%s}%s" (PrintTopLevelDeclHeader "interface" id typeParams)
                         (List.fold (fun acc m -> acc + (PrintMember m)) "" members)
                         newline
-  | Model(id,typeParams,vars,frame,inv) ->
+  | DataModel(id,typeParams,vars,frame,inv) ->
       (PrintTopLevelDeclHeader "model" id typeParams) + 
       (vars |> List.fold (fun acc vd -> acc + "  var " + (PrintVarDecl vd) + newline) "") +
       "  frame" + newline +

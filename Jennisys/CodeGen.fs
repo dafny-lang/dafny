@@ -127,7 +127,7 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr =
   match prog with
   | Program(components) -> components |> List.fold (fun acc comp -> 
       match comp with  
-      | Component(Class(name,typeParams,members), Model(_,_,cVars,frame,inv), code) as comp ->
+      | Component(Interface(name,typeParams,members), DataModel(_,_,cVars,frame,inv), code) as comp ->
         let aVars = FilterFieldMembers members |> List.append (Utils.Ite genRepr [Var("Repr", Some(SetType(NamedType("object", []))))] [])
         let compMethods = FilterConstructorMembers members
         // Now print it as a Dafny program

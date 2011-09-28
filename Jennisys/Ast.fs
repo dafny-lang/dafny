@@ -80,15 +80,15 @@ type Member =
   | Invariant of Expr list
 
 type TopLevelDecl =
-  | Class of string * string list * Member list
-  | Model of string * string list * VarDecl list * (* frame *) Expr list * (* invariant *) Expr
+  | Interface of string * string list * Member list
+  | DataModel of string * string list * VarDecl list * (* frame *) Expr list * (* invariant *) Expr
   | Code of string * string list
 
 type SyntacticProgram =
   | SProgram of TopLevelDecl list
 
 type Component =
-  | Component of (*class*)TopLevelDecl * (*model*)TopLevelDecl * (*code*)TopLevelDecl
+  | Component of (*interface*)TopLevelDecl * (*datamodel*)TopLevelDecl * (*code*)TopLevelDecl
 
 type Program =
   | Program of Component list

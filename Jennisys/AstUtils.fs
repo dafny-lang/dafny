@@ -485,17 +485,17 @@ let FilterMembers prog filter =
   | Program(components) ->
       components |> List.fold (fun acc comp -> 
         match comp with
-        | Component(Class(_,_,members),_,_) -> List.concat [acc ; members |> filter |> List.choose (fun m -> Some(comp, m))]            
+        | Component(Interface(_,_,members),_,_) -> List.concat [acc ; members |> filter |> List.choose (fun m -> Some(comp, m))]            
         | _ -> acc) []
 
 let GetAbstractFields comp = 
   match comp with 
-  | Component(Class(_,_,members), _, _) -> FilterFieldMembers members
+  | Component(Interface(_,_,members), _, _) -> FilterFieldMembers members
   | _ -> failwithf "internal error: invalid component: %O" comp
     
 let GetConcreteFields comp = 
   match comp with 
-  | Component(_, Model(_,_,cVars,_,_), _) -> cVars
+  | Component(_, DataModel(_,_,cVars,_,_), _) -> cVars
   | _ -> failwithf "internal error: invalid component: %O" comp
      
 //  =================================
@@ -529,12 +529,12 @@ let IsAbstractField comp fldName = GetAbstractFields comp |> List.exists (functi
 //  =================================
 let GetClassName comp =
   match comp with
-  | Component(Class(name,_,_),_,_) -> name
+  | Component(Interface(name,_,_),_,_) -> name
   | _ -> failwith ("unrecognized component: " + comp.ToString())
 
 let GetClassType comp = 
   match comp with
-  | Component(Class(name,typeParams,_),_,_) -> NamedType(name, typeParams)
+  | Component(Interface(name,typeParams,_),_,_) -> NamedType(name, typeParams)
   | _ -> failwith ("unrecognized component: " + comp.ToString())
 
 //  ========================
@@ -611,7 +611,7 @@ let rec GetTypeShortName ty =
 //  ==============================================================
 let GetInvariantsAsList comp = 
   match comp with
-  | Component(Class(_,_,members), Model(_,_,_,_,inv), _) -> 
+  | Component(Interface(_,_,members), DataModel(_,_,_,_,inv), _) -> 
       let clsInvs = members |> List.choose (function Invariant(exprList) -> Some(exprList) | _ -> None) |> List.concat
       List.append (SplitIntoConjunts inv) clsInvs
   | _ -> failwithf "unexpected kind of component: %O" comp
@@ -635,7 +635,7 @@ let IsInVarList varLst id =
 //  ==================================
 let GetComponentName comp = 
   match comp with
-  | Component(Class(name,_,_),_,_) -> name
+  | Component(Interface(name,_,_),_,_) -> name
   | _ -> failwithf "invalid component %O" comp
 
 //  ==================================
@@ -643,7 +643,7 @@ let GetComponentName comp =
 //  ==================================
 let GetMembers comp =
   match comp with
-  | Component(Class(_,_,members),_,_) -> members
+  | Component(Interface(_,_,members),_,_) -> members
   | _ -> failwith ("unrecognized component: " + comp.ToString())
 
 //  ====================================================
@@ -651,7 +651,7 @@ let GetMembers comp =
 //  ====================================================
 let FindComponent (prog: Program) clsName = 
   match prog with
-  | Program(comps) -> comps |> List.filter (function Component(Class(name,_,_),_,_) when name = clsName -> true | _ -> false)
+  | Program(comps) -> comps |> List.filter (function Component(Interface(name,_,_),_,_) when name = clsName -> true | _ -> false)
                             |> Utils.ListToOption
 
 let FindComponentForType prog ty = 
@@ -695,7 +695,7 @@ let FindVar comp fldName =
 //  ======================================
 let GetFrame comp = 
   match comp with 
-  | Component(_, Model(_,_,_,frame,_), _) -> frame
+  | Component(_, DataModel(_,_,_,frame,_), _) -> frame
   | _ -> failwithf "not a valid component %O" comp
 
 let GetFrameFields comp =
@@ -720,12 +720,12 @@ let CheckSameMethods (c1,m1) (c2,m2) =
 
 let AddReplaceMethod prog comp newMthd oldMethod =
   match prog, comp with
-  | Program(clist), Component(Class(cname, ctypeParams, members), model, code) ->
+  | Program(clist), Component(Interface(cname, ctypeParams, members), model, code) ->
       let newMembers = 
         match oldMethod with
         | None -> members @ [newMthd]
         | Some(m) -> Utils.ListReplace m newMthd members
-      let newCls = Class(cname, ctypeParams, newMembers)
+      let newCls = Interface(cname, ctypeParams, newMembers)
       let newComp = Component(newCls, model, code)
       let newProg = Program(Utils.ListReplace comp newComp clist)
       newProg, newComp
