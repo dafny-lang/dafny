@@ -1,4 +1,4 @@
-class NumberMethods {
+interface NumberMethods {
  
   method Double(p: int) returns (ret: int)
     ensures ret = 2*p
@@ -35,6 +35,6 @@ class NumberMethods {
 
 }
 
-model NumberMethods {
+datamodel NumberMethods {
 
 }

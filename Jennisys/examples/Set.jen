@@ -1,4 +1,4 @@
-class Set {
+interface Set {
   var elems: set[int]
 
   constructor Empty()
@@ -19,7 +19,7 @@ class Set {
 
 }
 
-model Set {
+datamodel Set {
   var root: SetNode
 
   frame
@@ -30,7 +30,7 @@ model Set {
     root != null ==> elems = root.elems
 }
 
-class SetNode {
+interface SetNode {
   var elems: set[int]
 
   constructor Init(x: int)
@@ -56,7 +56,7 @@ class SetNode {
     ensures ret = (n in elems)
 }
 
-model SetNode {
+datamodel SetNode {
   var data: int
   var left: SetNode
   var right: SetNode

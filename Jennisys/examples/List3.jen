@@ -1,4 +1,4 @@
-class IntList {
+interface IntList {
   var list: seq[int]
 
   constructor Empty()
@@ -23,7 +23,7 @@ class IntList {
     ensures list = [p + q]
 }
 
-model IntList {
+datamodel IntList {
   var root: IntNode
 
   frame
@@ -36,7 +36,7 @@ model IntList {
                       (forall i :: i in 1 ... |root.succ| ==> (root.succ[i-1] != null && list[i] = root.succ[i-1].data)))
 }
 
-class IntNode {
+interface IntNode {
   var succ: seq[IntNode]
   var data: int
 
@@ -59,7 +59,7 @@ class IntNode {
     !(null in succ)
 }
 
-model IntNode {
+datamodel IntNode {
   var next: IntNode
 
   frame 

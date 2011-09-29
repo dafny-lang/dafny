@@ -1,4 +1,4 @@
-class List[T] {
+interface List[T] {
   var list: seq[T]
 
   constructor Empty()
@@ -11,7 +11,7 @@ class List[T] {
     ensures list = [p q]
 }
 
-model List[T] {
+datamodel List[T] {
   var root: Node[T]
 
   frame
@@ -22,7 +22,7 @@ model List[T] {
     root != null ==> list = root.list
 }
 
-class Node[T] {
+interface Node[T] {
   var list: seq[T]
 
   invariant
@@ -61,7 +61,7 @@ class Node[T] {
     ensures ret = (n in list)
 }
 
-model Node[T] {
+datamodel Node[T] {
   var data: T
   var next: Node[T]
 

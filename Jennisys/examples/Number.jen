@@ -1,4 +1,4 @@
-class Number { 
+interface Number { 
   var num: int
  
   constructor Init(p: int)
@@ -39,6 +39,6 @@ class Number {
 
 }
 
-model Number {
+datamodel Number {
 
 }
