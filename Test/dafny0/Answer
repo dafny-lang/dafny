@@ -541,8 +541,20 @@ Array.dfy(183,1): Error BP5003: A postcondition might not hold on this return pa
 Array.dfy(182,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+Array.dfy(198,10): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+Array.dfy(199,5): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
 
-Dafny program verifier finished with 30 verified, 13 errors
+Dafny program verifier finished with 31 verified, 15 errors
 
 -------------------- MultiDimArray.dfy --------------------
 MultiDimArray.dfy(53,21): Error: assertion violation
