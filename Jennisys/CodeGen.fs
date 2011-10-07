@@ -1,6 +1,7 @@
 ﻿module CodeGen
 
 open Ast
+open Getters
 open AstUtils
 open Utils
 open Resolver
@@ -41,20 +42,21 @@ let rec GetUnrolledFieldValidExpr fldExprs fldNames validFuncToUse numUnrolls =
       List.append exprList (GetUnrolledFieldValidExpr fldExprs fldNames validFuncToUse (numUnrolls - 1))
                                   
 let GetFieldValidExpr flds validFunName numUnrolls = 
-  let fldExprs = flds |> List.map (function Var(name, _) -> IdLiteral(name))
-  let fldNames = flds |> List.map (function Var(name, _) -> name)
+  let fldExprs = flds |> List.map (fun var -> IdLiteral(GetExtVarName var))
+  let fldNames = flds |> List.map GetExtVarName
   let unrolledExprs = GetUnrolledFieldValidExpr fldExprs fldNames validFunName numUnrolls
   // add the recursive definition as well
   let recExprs = 
     if not (validFunName = validFuncName) && Options.CONFIG.recursiveValid then
-      flds |> List.map (function Var(name,_) -> BinaryImplies (BinaryNeq (IdLiteral(name)) NullLiteral) (Dot(IdLiteral(name), validFuncName)))
+      flds |> List.map (fun var -> 
+                          let name = GetExtVarName var
+                          BinaryImplies (BinaryNeq (IdLiteral(name)) NullLiteral) (Dot(IdLiteral(name), validFuncName)))
     else
       []
   recExprs @ unrolledExprs
 
 let GetFieldsForValidExpr allFields prog : VarDecl list =
-  allFields |> List.filter (function Var(name, tp) when IsUserType prog tp -> true
-                                     | _                                   -> false)
+  allFields |> List.filter (fun var -> IsUserType prog (GetVarType var))
 
 let GetFieldsValidExprList clsName allFields prog : Expr list =
   let fields = GetFieldsForValidExpr allFields prog
@@ -67,20 +69,21 @@ let GetFieldsValidExprList clsName allFields prog : Expr list =
                               acc |> List.append (GetFieldValidExpr (Set.toList varSet) validFunName numUnrolls)
                            ) []
 
-let PrintValidFunctionCode comp prog genRepr: string = 
+let PrintValidFunctionCode comp prog vars allInvs genRepr nameSuffix: string = 
+  let validFuncName = "Valid" + nameSuffix + "()"
+  let validReprFuncName = "Valid_repr" + nameSuffix + "()"
+  let validSelfFuncName = "Valid_self" + nameSuffix + "()"
   let idt = "    "
   let __PrintInvs invs = 
     invs |> List.fold (fun acc e -> List.concat [acc ; SplitIntoConjunts e]) []
          |> PrintSep (" &&" + newline) (fun e -> sprintf "%s(%s)" idt (PrintExpr 0 e))
          |> fun s -> if s = "" then (idt + "true") else s
   let clsName = GetClassName comp
-  let vars = GetAllFields comp
   let compTypeName = GetClassType comp |> PrintType
-  let hasLoop = vars |> List.exists (function Var(_,tyOpt) -> match tyOpt with Some(ty) when compTypeName = PrintType ty -> true | _ -> false)
-  let allInvs = GetInvariantsAsList comp |> DesugarLst
+  let hasLoop = vars |> List.exists (fun var -> match GetVarType var with Some(ty) when compTypeName = PrintType ty -> true | _ -> false)
   let fieldsValid = GetFieldsValidExprList clsName vars prog
   
-  let frameFldNames = GetFrameFields comp |> List.choose (function Var(name,_) -> Some(name))
+  let frameFldNames = GetFrameFields comp |> List.map GetExtVarName
   let validReprBody = 
     "    this in Repr &&" + newline +
     "    null !in Repr" + 
@@ -115,7 +118,7 @@ let PrintValidFunctionCode comp prog genRepr: string =
   (__PrintInvs allInvs) + newline +
   "  }" + newline +
   newline +
-  "  function Valid(): bool" + newline +
+  "  function " + validFuncName + ": bool" + newline +
   "    reads *;" + newline +
   decreasesStr + 
   "  {" + newline + 
@@ -123,21 +126,35 @@ let PrintValidFunctionCode comp prog genRepr: string =
   (__PrintInvs fieldsValid) + newline +
   "  }" + newline
 
-let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr =
+let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr genOld =
   match prog with
   | Program(components) -> components |> List.fold (fun acc comp -> 
       match comp with  
       | Component(Interface(name,typeParams,members), DataModel(_,_,cVars,frame,inv), code) as comp ->
-        let aVars = FilterFieldMembers members |> List.append (Utils.Ite genRepr [Var("Repr", Some(SetType(NamedType("object", []))))] [])
+        let aVars = FilterFieldMembers members
+        let aOldVars = MakeOldVars aVars
+        let cOldVars = MakeOldVars cVars
+        let allInvs = GetInvariantsAsList comp |> DesugarLst
+        let allOldInvs = MakeOld (allInvs |> List.fold BinaryAnd TrueLiteral) |> SplitIntoConjunts
+        let aVarsAndRepr = aVars |> List.append (Utils.Ite genRepr [Var("Repr", Some(SetType(NamedType("object", []))), false)] [])
         let compMethods = FilterConstructorMembers members
         // Now print it as a Dafny program
         acc + 
         (sprintf "class %s%s {" name (PrintTypeParams typeParams)) + newline +       
         // the fields: original abstract fields plus concrete fields
-        (sprintf "%s" (PrintFields aVars 2 true)) + newline +     
-        (sprintf "%s" (PrintFields cVars 2 false)) + newline +                           
+        (sprintf "%s" (PrintFields aVarsAndRepr 2 true)) + newline +     
+        (sprintf "%s" (PrintFields cVars 2 false)) + newline +  
+        (if genOld then
+           (sprintf "%s" (PrintFields aOldVars 2 true)) + newline +     
+           (sprintf "%s" (PrintFields cOldVars 2 false)) + newline
+         else
+           "") +                                  
         // generate the Valid function
-        (sprintf "%s" (PrintValidFunctionCode comp prog genRepr)) + newline +
+        (sprintf "%s" (PrintValidFunctionCode comp prog (aVars @ cVars) allInvs genRepr "")) + newline +
+        (if genOld then
+           (sprintf "%s" (PrintValidFunctionCode comp prog (aOldVars @ cOldVars) allOldInvs genRepr "_old")) + newline
+         else
+           "") +
         // call the method printer function on all methods of this component
         (methodPrinterFunc comp) +
         // the end of the class
@@ -161,9 +178,9 @@ let GetPostconditionForMethod prog m genRepr =
       // this.Valid() and user-defined post-condition
       let postExpr = BinaryAnd validExpr post
       // method out args are valid
-      let postExpr = (GetMethodOutArgs m) |> List.fold (fun acc (Var(name,tyOpt)) ->
-                                                          if IsUserType prog tyOpt then
-                                                            let varExpr = VarLiteral(name)
+      let postExpr = (GetMethodOutArgs m) |> List.fold (fun acc var ->
+                                                          if IsUserType prog (GetVarType var) then
+                                                            let varExpr = VarLiteral(GetExtVarName var)
                                                             let argValidExpr = BinaryImplies (BinaryNeq varExpr NullLiteral) (Dot(varExpr, validFuncName))
                                                             BinaryAnd acc argValidExpr
                                                           else 
@@ -211,7 +228,7 @@ let PrintReprAssignments prog heapInst indent =
   let idt = Indent indent
   let objs = heapInst.assignments |> List.fold (fun acc assgn -> 
                                                   match assgn with
-                                                  | FieldAssignment((obj,(Var(fldName,_))),_) -> if fldName = "" then acc else acc |> Set.add obj
+                                                  | FieldAssignment((obj,var),_) -> if GetVarName var = "" then acc else acc |> Set.add obj
                                                   | _ -> acc
                                                ) Set.empty
                                   |> Set.toList
@@ -256,13 +273,46 @@ let PrintReprAssignments prog heapInst indent =
     newline + outStr   
                                                           
 let rec PrintHeapCreationCodeOld prog (comp,meth) sol indent genRepr =
-  /// just removes all FieldAssignments to unmodifiable objects    
+  let rec __RewriteOldStmt stmt = 
+    match stmt with
+    | Assign(l, r) -> Assign(l, BringToPost r)
+    | ExprStmt(e) -> ExprStmt(BringToPost e)
+    | Block(slist) -> Block(slist |> List.map __RewriteOldStmt)
+
+  let __RewriteOldAsgn a =
+    match a with
+    | FieldAssignment((o,f),e) -> FieldAssignment((o,f), BringToPost e)
+    | ArbitraryStatement(stmt) -> ArbitraryStatement(__RewriteOldStmt stmt)
+
+  /// inserts an assignments into a list of assignments such that the list remains
+  /// topologically sorted wrt field dependencies between different assignments
+  let rec __InsertSorted asgsLst asg = 
+    let ___DependsOn dependentAsg asg = 
+      match asg, dependentAsg with
+      | FieldAssignment((o,f),_), FieldAssignment(_,e) ->
+          let mf = fun e acc -> 
+                          match e with 
+                          | IdLiteral(name) when name = GetVarName f && o.name = "this" -> true
+                          | Dot(discr, name) -> 
+                              let t1 = InferType prog comp (fun s -> None) discr
+                              let t2 = FindComponentForType prog o.objType
+                              acc || (name = GetVarName f && t1 = t2)
+                          | _ -> acc
+          DescendExpr2 (mf    
+                       ) e false
+      | _ -> false
+    match asgsLst with
+    | [] -> [asg]
+    | a :: rest -> if ___DependsOn a asg then asg :: a :: rest else a :: __InsertSorted rest asg                    
+
+  /// - removes all FieldAssignments to unmodifiable objects and old variables
+  /// - rewrites expressions not to use old fields    
   let __RemoveUnmodifiableStuff heapInst = 
     let newAsgs = heapInst.assignments |> List.fold (fun acc a ->
                                                        match a with
-                                                       | FieldAssignment((obj,_),_) when not (Set.contains obj heapInst.modifiableObjs) ->
-                                                           acc
-                                                       | _ -> acc @ [a]
+                                                       | FieldAssignment((obj,_),_) when not (Set.contains obj heapInst.modifiableObjs) -> acc
+                                                       | FieldAssignment((_,var),_) when IsOldVar var -> acc
+                                                       | _ -> __InsertSorted acc (__RewriteOldAsgn a)
                                                     ) []
     { heapInst with assignments = newAsgs }
   
@@ -304,14 +354,15 @@ let PrintHeapCreationCode prog (comp,meth) sol indent genRepr =
     (ghostPre |> SplitIntoConjunts |> PrintSep newline (fun e -> idt + "assume " + (PrintExpr 0 e) + ";")) + newline + 
     (PrintHeapCreationCodeOld prog (comp,meth) sol indent genRepr)
       
-let GenConstructorCode prog mthd decreasesClause body genRepr =
+let GenConstructorCode prog comp mthd decreasesClause body genRepr =
   let validExpr = IdLiteral(validFuncName);
   match mthd with
   | Method(methodName,sign,_,_,isConstr) -> 
       let preExpr = GetPreconditionForMethod prog mthd |> Desugar
       let postExpr = GetPostconditionForMethod prog mthd genRepr |> Desugar
+      let thisObj = {name = "this"; objType = GetComponentType comp}
       "  method " + methodName + (PrintSig sign) + 
-      (if isConstr then newline + "    modifies this;" else "") +
+      (if IsModifiableObj thisObj (comp,mthd) then newline + "    modifies this;" else "") +
       (PrintPrePost (newline + "    requires ") preExpr) + 
       (PrintPrePost (newline + "    ensures ") postExpr) + 
       newline +
@@ -344,7 +395,7 @@ let PrintImplCode prog solutions genRepr =
                                                                   let body = PrintHeapCreationCode prog (c,m) sol 4 genRepr
                                                                   let decr = GetDecreasesClause (c,m) sol
                                                                   body,decr
-                                                            acc + newline + (GenConstructorCode prog m decr mthdBody genRepr) + newline
+                                                            acc + newline + (GenConstructorCode prog comp m decr mthdBody genRepr) + newline
                                   
                                                           else
                                                             acc) "") genRepr

@@ -1,6 +1,7 @@
 ﻿module TypeChecker
 
 open Ast
+open Getters
 open AstUtils
 open Printer
 open System.Collections.Generic
@@ -42,16 +43,15 @@ let TypeCheck prog =
 let MethodArgChecker prog meth varName = 
   let ins = GetMethodInArgs meth
   let outs = GetMethodOutArgs meth
-  ins @ outs |> List.choose (function Var(vname,ty) when vname = varName -> ty |> FindComponentForTypeOpt prog | _ -> None) |> Utils.ListToOption
+  ins @ outs |> List.choose (fun var -> if GetVarName var = varName then GetVarType var |> FindComponentForTypeOpt prog else None) |> Utils.ListToOption
 
 // TODO: implement this
 let rec InferType prog thisComp checkLocalFunc expr = 
   let __FindVar comp fldName = 
     let var = FindVar comp fldName |> Utils.ExtractOption
-    match var with
-    | Var(_, tyOpt) -> 
-        let c = FindComponentForType prog (Utils.ExtractOption tyOpt) |> Utils.ExtractOption
-        Some(c)
+    let c = FindComponentForType prog (Utils.ExtractOption (GetVarType var)) |> Utils.ExtractOption
+    Some(c)
+    
   try 
     match expr with
     | ObjLiteral("this") -> Some(thisComp)

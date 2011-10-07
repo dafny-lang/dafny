@@ -22,6 +22,14 @@ let BoolToOption b =
 //  =====================================
 /// ensures: ret = (opt == Some(_))
 //  =====================================
+let OptionToBool opt = 
+  match opt with
+  | Some(_) -> true
+  | None -> false
+
+//  =====================================
+/// ensures: ret = (opt == Some(_))
+//  =====================================
 let IsSomeOption opt = 
   match opt with
   | Some(_) -> true

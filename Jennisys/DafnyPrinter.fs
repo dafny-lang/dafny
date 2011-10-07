@@ -1,6 +1,7 @@
 ﻿module DafnyPrinter
 
 open Ast
+open Getters
 open AstUtils
 open PrintUtils
 
@@ -14,9 +15,10 @@ let rec PrintType ty =
   | InstantiatedType(id,args) -> if List.isEmpty args then id else sprintf "%s<%s>" id (PrintSep ", " (fun t -> PrintType t) args)
 
 let PrintVarDecl vd =
-  match vd with
-  | Var(id,None) -> id
-  | Var(id,Some(ty)) -> sprintf "%s: %s" id (PrintType ty)
+  let name = GetExtVarName vd
+  match GetVarType vd with
+  | None     -> name
+  | Some(ty) -> sprintf "%s: %s" name (PrintType ty)
 
 let rec PrintExpr ctx expr =
   match expr with
@@ -33,6 +35,7 @@ let rec PrintExpr ctx expr =
   | Star -> "*"
   | Dot(e,id) -> sprintf "%s.%s" (PrintExpr 100 e) id
   | LCIntervalExpr(e) -> sprintf "%s.." (PrintExpr 90 e)
+  | OldExpr(e) -> sprintf "old(%s)" (PrintExpr 90 e)
   | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e) -> sprintf "%s%s" op (PrintExpr 90 e)
   | BinaryExpr(strength,"in",lhs,BinaryExpr(_,"...",lo,hi)) ->
@@ -102,9 +105,9 @@ let PrintTypeParams typeParams =
 
 let PrintFields vars indent ghost = 
   let ghostStr = if ghost then "ghost " else ""
-  vars |> List.fold (fun acc v -> match v with 
-                                  | Var(nm,None)     -> acc + (sprintf "%s%svar %s;%s" (Indent indent) ghostStr nm newline)
-                                  | Var(nm,Some(tp)) -> acc + (sprintf "%s%svar %s: %s;%s" (Indent indent) ghostStr nm (PrintType tp) newline)) ""
+  vars |> List.fold (fun acc v -> match GetVarType v with 
+                                  | None     -> acc + (sprintf "%s%svar %s;%s" (Indent indent) ghostStr (GetExtVarName v) newline)
+                                  | Some(tp) -> acc + (sprintf "%s%svar %s: %s;%s" (Indent indent) ghostStr (GetExtVarName v) (PrintType tp) newline)) ""
 
 let rec _PrintStmt stmt indent printNewline =
   let idt = Indent indent

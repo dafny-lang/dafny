@@ -7,6 +7,7 @@
 module AstUtils
 
 open Ast
+open Getters
 open Logger
 open Utils
 
@@ -58,6 +59,7 @@ let rec MyRewrite rewriterFunc rewriteRecurseFunc expr =
   | Dot(e, id)                       -> Dot(rewriteRecurseFunc e, id)
   | ForallExpr(vars,e)               -> ForallExpr(vars, rewriteRecurseFunc e)   
   | UnaryExpr(op,e)                  -> UnaryExpr(op, rewriteRecurseFunc e)
+  | OldExpr(e)                       -> OldExpr(rewriteRecurseFunc e)
   | LCIntervalExpr(e)                -> LCIntervalExpr(rewriteRecurseFunc e)
   | SeqLength(e)                     -> SeqLength(rewriteRecurseFunc e)
   | SelectExpr(e1, e2)               -> SelectExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2)
@@ -78,12 +80,14 @@ let rec Rewrite rewriterFunc expr =
     | None -> Rewrite rewriterFunc e 
   MyRewrite rewriterFunc __RewriteOrRecurse expr
 
+// TODO: double check this!
 let rec RewriteBU rewriterFunc expr = 
   let rewriteRecurseFunc e =
-    let e' = Rewrite rewriterFunc e
-    match rewriterFunc e' with
-    | Some(ee) -> ee
-    | None -> e'
+    RewriteBU rewriterFunc e
+//    let e' = Rewrite rewriterFunc e
+//    match rewriterFunc e' with
+//    | Some(ee) -> ee
+//    | None -> e'
   let rewriteFunc e = 
     match rewriterFunc e with
     | Some(ee) -> ee
@@ -101,6 +105,7 @@ let rec RewriteBU rewriterFunc expr =
     | Dot(e, id)                       -> Dot(rewriteRecurseFunc e, id) 
     | ForallExpr(vars,e)               -> ForallExpr(vars, rewriteRecurseFunc e)   
     | UnaryExpr(op,e)                  -> UnaryExpr(op, rewriteRecurseFunc e)
+    | OldExpr(e)                       -> OldExpr(rewriteRecurseFunc e)
     | LCIntervalExpr(e)                -> LCIntervalExpr(rewriteRecurseFunc e)
     | SeqLength(e)                     -> SeqLength(rewriteRecurseFunc e)
     | SelectExpr(e1, e2)               -> SelectExpr(rewriteRecurseFunc e1, rewriteRecurseFunc e2)
@@ -134,6 +139,7 @@ let rec RewriteWithCtx rewriterFunc ctx expr =
   | Dot(e, id)                       -> Dot(__RewriteOrRecurse ctx e, id)
   | ForallExpr(vars,e)               -> ForallExpr(vars, __RewriteOrRecurse (ctx @ vars) e)   
   | UnaryExpr(op,e)                  -> UnaryExpr(op, __RewriteOrRecurse ctx e)
+  | OldExpr(e)                       -> OldExpr(__RewriteOrRecurse ctx e)
   | LCIntervalExpr(e)                -> LCIntervalExpr(__RewriteOrRecurse ctx e)
   | SeqLength(e)                     -> SeqLength(__RewriteOrRecurse ctx e)
   | SelectExpr(e1, e2)               -> SelectExpr(__RewriteOrRecurse ctx e1, __RewriteOrRecurse ctx e2)
@@ -146,13 +152,14 @@ let rec RewriteWithCtx rewriterFunc ctx expr =
   | MethodOutSelect(mth,name)        -> MethodOutSelect(__RewriteOrRecurse ctx mth, name)
   | AssertExpr(e)                    -> AssertExpr(__RewriteOrRecurse ctx e)
   | AssumeExpr(e)                    -> AssumeExpr(__RewriteOrRecurse ctx e)
+
 //  ====================================================
 /// Substitutes all occurences of all IdLiterals having 
 /// the same name as one of the variables in "vars" with
 /// VarLiterals, in "expr".
 //  ====================================================
 let RewriteVars vars expr = 
-  let __IdIsArg id = vars |> List.exists (function Var(name,_) -> name = id)
+  let __IdIsArg id = vars |> List.exists (fun var -> GetVarName var = id)
   Rewrite (fun e ->
              match e with 
              | IdLiteral(id) when __IdIsArg id -> Some(VarLiteral(id))
@@ -212,6 +219,7 @@ let rec DescendExpr visitorFunc composeFunc leafVal expr =
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
+  | OldExpr(e)
   | UnaryExpr(_,e) 
   | MethodOutSelect(e,_)          
   | SeqLength(e)                     -> __Compose (e :: [])
@@ -240,6 +248,7 @@ let rec DescendExpr2 visitorFunc expr acc =
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
+  | OldExpr(e)
   | UnaryExpr(_,e)  
   | MethodOutSelect(e,_)         
   | SeqLength(e)                     -> __Pipe (e :: [])
@@ -269,6 +278,7 @@ let rec DescendExpr2BU visitorFunc expr acc =
   | Dot(e, _)
   | ForallExpr(_,e)
   | LCIntervalExpr(e)
+  | OldExpr(e)
   | UnaryExpr(_,e)  
   | MethodOutSelect(e,_)         
   | SeqLength(e)                     -> __Pipe (e :: [])
@@ -450,114 +460,7 @@ let IsConstExpr e =
   with
     | _ -> false
 
-// --- search functions ---
-                     
-//  =========================================================
-/// Out of all "members" returns only those that are "Field"s                                               
-//  =========================================================
-let FilterFieldMembers members =
-  members |> List.choose (function Field(vd) -> Some(vd) | _ -> None)
-
-//  =============================================================
-/// Out of all "members" returns only those that are constructors
-//  =============================================================
-let FilterConstructorMembers members = 
-  members |> List.choose (function Method(_,_,_,_, true) as m -> Some(m) | _ -> None)
-
-//  =============================================================
-/// Out of all "members" returns only those that are 
-/// constructors and have at least one input parameter
-//  =============================================================
-let FilterConstructorMembersWithParams members = 
-  members |> List.choose (function Method(_,Sig(ins,outs),_,_, true) as m when not (List.isEmpty ins) -> Some(m) | _ -> None)
-
-//  ==========================================================
-/// Out of all "members" returns only those that are "Method"s
-//  ==========================================================
-let FilterMethodMembers members = 
-  members |> List.choose (function Method(_,_,_,_,_) as m -> Some(m) | _ -> None)
-
-//  =======================================================================
-/// Returns all members of the program "prog" that pass the filter "filter"
-//  =======================================================================
-let FilterMembers prog filter = 
-  match prog with
-  | Program(components) ->
-      components |> List.fold (fun acc comp -> 
-        match comp with
-        | Component(Interface(_,_,members),_,_) -> List.concat [acc ; members |> filter |> List.choose (fun m -> Some(comp, m))]            
-        | _ -> acc) []
-
-let GetAbstractFields comp = 
-  match comp with 
-  | Component(Interface(_,_,members), _, _) -> FilterFieldMembers members
-  | _ -> failwithf "internal error: invalid component: %O" comp
-    
-let GetConcreteFields comp = 
-  match comp with 
-  | Component(_, DataModel(_,_,cVars,_,_), _) -> cVars
-  | _ -> failwithf "internal error: invalid component: %O" comp
-     
-//  =================================
-/// Returns all fields of a component
-//  =================================
-let GetAllFields comp = 
-  List.concat [GetAbstractFields comp; GetConcreteFields comp]
-    
-//  ===========================================================
-/// Returns a map (Type |--> Set<Var>) where all 
-/// the given fields are grouped by their type
-///
-/// ensures: forall v :: v in ret.values.elems ==> v in fields
-/// ensures: forall k :: k in ret.keys ==> 
-///            forall v1, v2 :: v1, v2 in ret[k].elems ==> 
-///              v1.type = v2.type
-//  ===========================================================
-let rec GroupFieldsByType fields = 
-  match fields with
-  | Var(name, ty) :: rest -> 
-      let map = GroupFieldsByType rest
-      let fldSet = Map.tryFind ty map |> Utils.ExtractOptionOr Set.empty
-      map |> Map.add ty (fldSet |> Set.add (Var(name, ty)))
-  | [] -> Map.empty
- 
-let IsConcreteField comp fldName = GetConcreteFields comp |> List.exists (function Var(name,_) -> name = fldName)
-let IsAbstractField comp fldName = GetAbstractFields comp |> List.exists (function Var(name,_) -> name = fldName)
-                    
-//  =================================
-/// Returns class name of a component
-//  =================================
-let GetClassName comp =
-  match comp with
-  | Component(Interface(name,_,_),_,_) -> name
-  | _ -> failwith ("unrecognized component: " + comp.ToString())
-
-let GetClassType comp = 
-  match comp with
-  | Component(Interface(name,typeParams,_),_,_) -> NamedType(name, typeParams)
-  | _ -> failwith ("unrecognized component: " + comp.ToString())
-
-//  ========================
-/// Returns name of a method
-//  ========================
-let GetMethodName mthd = 
-  match mthd with
-  | Method(name,_,_,_,_) -> name
-  | _ -> failwith ("not a method: " + mthd.ToString())
-
-//  ===========================================================
-/// Returns full name of a method (= <class_name>.<method_name>
-//  ===========================================================
-let GetMethodFullName comp mthd = 
-  (GetClassName comp) + "." + (GetMethodName mthd)
-
-//  =============================
-/// Returns signature of a method
-//  =============================
-let GetMethodSig mthd = 
-  match mthd with
-  | Method(_,sgn,_,_,_) -> sgn
-  | _ -> failwith ("not a method: " + mthd.ToString())
+///////
 
 let GetMethodPrePost mthd = 
   let __FilterOutAssumes e = e |> SplitIntoConjunts |> List.filter (function AssumeExpr(_) -> false | _ -> true) |> List.fold BinaryAnd TrueLiteral
@@ -571,41 +474,6 @@ let GetMethodGhostPrecondition mthd =
       pre |> SplitIntoConjunts |> List.choose (function AssumeExpr(e) -> Some(e) | _ -> None) |> List.fold BinaryAnd TrueLiteral
   | _ -> failwith ("not a method: " + mthd.ToString())
 
-//  =========================================================
-/// Returns all arguments of a method (both input and output)
-//  =========================================================
-let GetSigVars sign = 
-  match sign with
-  | Sig(ins, outs) -> List.concat [ins; outs]
-
-let GetMethodInArgs mthd = 
-  match mthd with
-  | Method(_,Sig(ins, _),_,_,_) -> ins
-  | _ -> failwith ("not a method: " + mthd.ToString())
-
-let GetMethodOutArgs mthd = 
-  match mthd with
-  | Method(_,Sig(_, outs),_,_,_) -> outs
-  | _ -> failwith ("not a method: " + mthd.ToString())
-
-let GetMethodArgs mthd = 
-  let ins = GetMethodInArgs mthd
-  let outs = GetMethodOutArgs mthd
-  List.concat [ins; outs]
-
-let IsConstructor mthd = 
-  match mthd with
-  | Method(_,_,_,_,isConstr) -> isConstr
-  | _ -> failwithf "expected a method but got %O" mthd
-
-let rec GetTypeShortName ty =
-  match ty with
-  | IntType -> "int"
-  | BoolType -> "bool"
-  | SetType(_) -> "set"
-  | SeqType(_) -> "seq"
-  | NamedType(n,_) | InstantiatedType(n,_) -> n
-
 //  ==============================================================
 /// Returns all invariants of a component as a list of expressions
 //  ==============================================================
@@ -616,105 +484,31 @@ let GetInvariantsAsList comp =
       List.append (SplitIntoConjunts inv) clsInvs
   | _ -> failwithf "unexpected kind of component: %O" comp
 
-//  ==================================
-/// Returns variable name
-//  ==================================
-let GetVarName var =
+/// Replaces all Old nodes with IdLiteral with name = "old_" + <name>
+let RewriteOldExpr expr = 
+  expr |> RewriteBU (fun e -> match e with
+                              | OldExpr(IdLiteral(name)) -> Some(IdLiteral(RenameToOld name))
+                              | _ -> None)
+
+let MakeOldVar var = 
   match var with
-  | Var(name,_) -> name
+  | Var(name, ty, _) -> Var(name, ty, true)
 
-//  ===============================================
-/// Returns whether there exists a variable 
-/// in a given VarDecl list with a given name (id)
-//  ===============================================
-let IsInVarList varLst id = 
-  varLst |> List.exists (function Var(name,_) -> name = id)
+let MakeOldVars varLst =
+  varLst |> List.map MakeOldVar
 
-//  ==================================
-/// Returns component name
-//  ==================================
-let GetComponentName comp = 
-  match comp with
-  | Component(Interface(name,_,_),_,_) -> name
-  | _ -> failwithf "invalid component %O" comp
+/// renames ALL variables to "old_"+<varname>
+let MakeOld expr = 
+  expr |> RewriteBU (fun e -> match e with 
+                              | IdLiteral(name) when not (name="this") -> Some(IdLiteral(RenameToOld name)) 
+                              | Dot(e, name) -> Some(Dot(e, RenameToOld name))
+                              | _ -> None)
 
-//  ==================================
-/// Returns all members of a component
-//  ==================================
-let GetMembers comp =
-  match comp with
-  | Component(Interface(_,_,members),_,_) -> members
-  | _ -> failwith ("unrecognized component: " + comp.ToString())
-
-//  ====================================================
-/// Finds a component of a program that has a given name
-//  ====================================================
-let FindComponent (prog: Program) clsName = 
-  match prog with
-  | Program(comps) -> comps |> List.filter (function Component(Interface(name,_,_),_,_) when name = clsName -> true | _ -> false)
-                            |> Utils.ListToOption
-
-let FindComponentForType prog ty = 
-  FindComponent prog (GetTypeShortName ty)
-
-let FindComponentForTypeOpt prog tyOpt = 
-  match tyOpt with
-  | Some(ty) -> FindComponentForType prog ty
-  | None -> None
-
-let CheckSameCompType comp ty = 
-  GetComponentName comp = GetTypeShortName ty
-
-//  ===================================================
-/// Finds a method of a component that has a given name
-//  ===================================================
-let FindMethod comp methodName =
-  let x = GetMembers comp
-  let y = x |> FilterMethodMembers
-  let z = y |> List.filter (function Method(name,_,_,_,_) when name = methodName -> true | _ -> false)
-  GetMembers comp |> FilterMethodMembers |> List.filter (function Method(name,_,_,_,_) when name = methodName -> true | _ -> false)
-                                         |> Utils.ListToOption
-
-//  ==============================================
-/// Finds a field of a class that has a given name
-//  ==============================================
-//let FindCompVar prog clsName fldName =
-//  let copt = FindComponent prog clsName
-//  match copt with
-//  | Some(comp) -> 
-//      GetAllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
-//                        |> Utils.ListToOption
-//  | None -> None
-
-let FindVar comp fldName =
-  GetAllFields comp |> List.filter (function Var(name,_) when name = fldName -> true | _ -> false)
-                    |> Utils.ListToOption
-
-//  ======================================
-/// Returns the frame of a given component
-//  ======================================
-let GetFrame comp = 
-  match comp with 
-  | Component(_, DataModel(_,_,_,frame,_), _) -> frame
-  | _ -> failwithf "not a valid component %O" comp
-
-let GetFrameFields comp =
-  let frame = GetFrame comp
-  frame |> List.choose (function IdLiteral(name) -> Some(name) | _ -> None) // TODO: is it really enough to handle only IdLiteral's
-        |> List.choose (fun varName -> 
-                          let v = FindVar comp varName
-                          Utils.ExtractOptionMsg ("field not found: " + varName) v |> ignore
-                          v
-                       )
-
-//  ==============================================
-/// Checks whether two given methods are the same.
-///
-/// Methods are the same if their names are the 
-/// same and their components have the same name.
-//  ==============================================
-let CheckSameMethods (c1,m1) (c2,m2) = 
-  GetComponentName c1 = GetComponentName c2 && GetMethodName m1 = GetMethodName m2
+let BringToPost expr =
+  expr |> RewriteBU (fun e -> match e with 
+                              | IdLiteral(name) -> Some(IdLiteral(RenameFromOld name))
+                              | Dot(e, name) -> Some(Dot(e, RenameFromOld name))
+                              | _ -> None)
 
 ////////////////////////
 
@@ -961,6 +755,12 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
               | BoolLiteral(b), x -> if b then x else UnaryNot(x)
               | _ -> recomposed.Force()
           | _ -> recomposed.Force()
+      | OldExpr(e) ->  
+          let e' = __EvalSym resolverFunc returnFunc ctx e
+          let recomposed = OldExpr(e')
+          match e with
+          | IdLiteral(name) -> resolverFunc (IdLiteral(RenameToOld name)) None
+          | _ -> recomposed
       | UnaryExpr(op, e) ->
           let e' = __EvalSym resolverFunc returnFunc ctx e
           let recomposed = UnaryExpr(op, e')
@@ -1049,13 +849,14 @@ let MyDesugar expr removeOriginal =
     | SequenceExpr(_)        -> expr 
     // forall v :: v in {a1 a2 ... an} ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
     // forall v :: v in [a1 a2 ... an] ==> e  ~~~> e[v/a1] && e[v/a2] && ... && e[v/an] 
-    | ForallExpr([Var(vn1,ty1)] as v, (BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub) as ee)) when vn1 = vn2 ->
+    | ForallExpr([Var(vn1,ty1,old1)] as v, (BinaryExpr(_, "==>", BinaryExpr(_, "in", VarLiteral(vn2), rhsCol), sub) as ee)) when vn1 = vn2 ->
         match rhsCol with 
         | SetExpr(elist)
         | SequenceExpr(elist) -> elist |> List.fold (fun acc e -> BinaryAnd acc (__Desugar (Substitute (VarLiteral(vn2)) e sub))) TrueLiteral
         | _ -> ForallExpr(v, __Desugar ee)
     | ForallExpr(v,e)        -> ForallExpr(v, __Desugar e)
     | LCIntervalExpr(e)      -> LCIntervalExpr(__Desugar e)
+    | OldExpr(e)             -> OldExpr(__Desugar e)
     | UnaryExpr(op,e)        -> UnaryExpr(op, __Desugar e)
     | AssertExpr(e)          -> AssertExpr(__Desugar e)
     | AssumeExpr(e)          -> AssumeExpr(__Desugar e)
@@ -1113,9 +914,10 @@ let ChangeThisReceiver receiver expr =
     | Dot(e, id)                           -> Dot(__ChangeThis locals e, id)
     | AssertExpr(e)                        -> AssertExpr(__ChangeThis locals e)
     | AssumeExpr(e)                        -> AssumeExpr(__ChangeThis locals e)
-    | ForallExpr(vars,e)                   -> let newLocals = vars |> List.map (function Var(name,_) -> name) |> Set.ofList |> Set.union locals
+    | ForallExpr(vars,e)                   -> let newLocals = vars |> List.map GetVarName |> Set.ofList |> Set.union locals
                                               ForallExpr(vars, __ChangeThis newLocals e)   
     | LCIntervalExpr(e)                    -> LCIntervalExpr(__ChangeThis locals e)
+    | OldExpr(e)                           -> OldExpr(__ChangeThis locals e)
     | UnaryExpr(op,e)                      -> UnaryExpr(op, __ChangeThis locals e)
     | SeqLength(e)                         -> SeqLength(__ChangeThis locals e)
     | SelectExpr(e1, e2)                   -> SelectExpr(__ChangeThis locals e1, __ChangeThis locals e2)
@@ -1157,7 +959,7 @@ let rec PullUpMethodCalls stmt =
                                | MethodOutSelect(_) ->
                                    let vname = SymGen.NewSymFake expr
                                    let e' = VarLiteral(vname)
-                                   let var = VarDeclExpr([Var(vname,None)], true)
+                                   let var = VarDeclExpr([Var(vname,None,false)], true)
                                    let asgn = BinaryGets var expr
                                    stmtList.AddLast asgn |> ignore
                                    Some(e')
@@ -1177,9 +979,20 @@ let rec PullUpMethodCalls stmt =
 //  ==========================================================
 /// Very simple for now: 
 ///   - if "m" is a constructor, everything is modifiable
-///   - otherwise, all objects are immutable (TODO: instead it should read the "modifies" clause of a method and figure out what's modifiable from there)
+///   - if the method's post condition contains assignments to fields, everything is modifiable
+///   - otherwise, all objects are immutable 
+///
+/// (TODO: instead it should read the "modifies" clause of a method and figure out what's modifiable from there)
 //  ==========================================================
-let IsModifiableObj obj m = 
+let IsModifiableObj obj (c,m) = 
+  let __IsFld name = FindVar c name |> Utils.OptionToBool
   match m with
-  | Method(_,_,_,_,isConstr) -> isConstr
+  | Method(_,_,_,_,true) -> true
+  | Method(_,_,_,post,false) -> 
+      DescendExpr2 (fun e acc -> 
+                      match e with 
+                      | BinaryExpr(_,"=",IdLiteral(name),r) when __IsFld name -> true
+                      | Dot(_,name) when __IsFld name -> true
+                      | _ -> acc
+                   ) post false
   | _ -> failwithf "expected a Method but got %O" m

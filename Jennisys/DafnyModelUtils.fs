@@ -20,6 +20,7 @@ module DafnyModelUtils
 *)
 
 open Ast
+open Getters
 open AstUtils
 open Utils
 
@@ -162,12 +163,16 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         let nonebuilder = CascadingBuilder<_>(None)
                         let fldVarOpt = nonebuilder {
                           let! comp = FindComponent prog clsName
-                          return FindVar comp fldName
+                          if fldName.StartsWith("old_") then
+                            let fn = RenameFromOld fldName 
+                            let! var = FindVar comp fn
+                            return Some(MakeOldVar var)
+                          else
+                            return FindVar comp fldName
                         }
                         match fldVarOpt with
                         | Some(fldVar) ->
-                            let fldType = match fldVar with 
-                                          | Var(_,t) -> t
+                            let fldType = GetVarType fldVar 
                             let fldVal = ConvertValue model refVal
                             acc |> Map.add (refObj, fldVar) fldVal
                         | None -> acc
@@ -180,7 +185,8 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
 //  ====================================================================
 let rec ReadArgValues (model: Microsoft.Boogie.Model) args = 
   match args with 
-  | Var(name,_) as v :: rest -> 
+  | v :: rest ->
+      let name = GetVarName v 
       let farg = model.Functions |> Seq.filter (fun f -> f.Arity = 0 && f.Name.StartsWith(name + "#")) |> Utils.SeqToOption
       match farg with
       | Some(func) -> 

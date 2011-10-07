@@ -2,6 +2,7 @@
 
 open Ast
 open AstUtils
+open Printer
 open Resolver
 open Utils
 
@@ -146,22 +147,26 @@ let rec ComputeClosure heapInst expandExprFunc premises =
                | _ -> None                 
             ) expr    
 
-  let FindMatches expr except premises = 
+  let FindMatches expr except premises =
+    //Logger.TraceLine ("finding matches for: " + (PrintExpr 0 expr) + "; #premises = " + (Set.count premises |> sprintf "%i"))
     let okToUnifyFunc = fun (varName: string) -> varName.StartsWith("$")
-    premises |> Set.toList
-             |> List.choose (function BinaryExpr(_,"=",lhs,rhs) -> 
-                                        if lhs = expr && not (rhs = except) then 
-                                          Some(rhs)
-                                        elif rhs = expr && not (lhs = except) then
-                                          Some(lhs)
-                                        else 
-                                          match SelectiveUnifyImplies okToUnifyFunc lhs expr LTR Map.empty with
-                                          | Some(unifs) -> Some(ApplyUnifs unifs rhs)
-                                          | None -> 
-                                              match SelectiveUnifyImplies okToUnifyFunc rhs expr LTR Map.empty with
-                                              | Some(unifs) -> Some(ApplyUnifs unifs lhs)
-                                              | None -> None
-                                      | _ -> None)
+    let matches = 
+      premises |> Set.toList
+               |> List.choose (function BinaryExpr(_,"=",lhs,rhs) -> 
+                                          if lhs = expr && not (rhs = except) then 
+                                            Some(rhs)
+                                          elif rhs = expr && not (lhs = except) then
+                                            Some(lhs)
+                                          else 
+                                            match SelectiveUnifyImplies okToUnifyFunc lhs expr LTR Map.empty with
+                                            | Some(unifs) -> Some(ApplyUnifs unifs rhs)
+                                            | None -> 
+                                                match SelectiveUnifyImplies okToUnifyFunc rhs expr LTR Map.empty with
+                                                | Some(unifs) -> Some(ApplyUnifs unifs lhs)
+                                                | None -> None
+                                        | _ -> None)
+    //Logger.TraceLine (sprintf "Number of matches for %s: %i" (PrintExpr 0 expr) (List.length matches))
+    matches
   
   let MySetAdd expr set =
     let x = Printer.PrintExpr 0 expr
@@ -176,6 +181,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   let SelectExprCombinerFunc lst idx = 
     // distribute the indexing operation if possible
     let rec __fff lst idx = 
+      //Logger.TraceLine ("SelectExpr fff for " + (PrintExpr 0 lst))
       let selExpr = SelectExpr(lst, idx)
       match lst with
       | BinaryExpr(_,"+",lhs,rhs) -> 
@@ -195,6 +201,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   let SeqLenCombinerFunc lst =
     // distribute the SeqLength operation if possible 
     let rec __fff lst = 
+      //Logger.TraceLine ("SeqLen fff for " + (PrintExpr 0 lst))
       let lenExpr = SeqLength(lst)
       match lst with
       | BinaryExpr(_,"+",lhs,rhs) -> 
@@ -207,10 +214,11 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   let BinaryInCombiner lhs rhs =
     // distribute the "in" operation if possible
     let rec __fff lhs rhs = 
+      //Logger.TraceLine ("In fff for " + (PrintExpr 0 lhs) + " and " + (PrintExpr 0 rhs))
       let binInExpr = BinaryIn lhs rhs
-      match rhs with
-      | BinaryExpr(_,"+",BinaryExpr(_,"+",SetExpr(_), Dot(_)), Dot(_)) -> Logger.Trace ""
-      | _ -> ()//TODO: remove
+//      match rhs with
+//      | BinaryExpr(_,"+",BinaryExpr(_,"+",SetExpr(_), Dot(_)), Dot(_)) -> Logger.Trace ""
+//      | _ -> ()//TODO: remove
 
       match rhs with
       | BinaryExpr(_,"+",l,r) -> 
@@ -245,6 +253,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   let BinaryNotInCombiner lhs rhs =
     // distribute the "!in" operation if possible
     let rec __fff lhs rhs = 
+      //Logger.TraceLine ("NotIn fff for " + (PrintExpr 0 lhs) + " and " + (PrintExpr 0 rhs))
       let binNotInExpr = BinaryNotIn lhs rhs
       match rhs with
       | BinaryExpr(_,"+",l,r) -> 
@@ -273,6 +282,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
     __fff lhs rhs
 
   let rec __CombineAllMatches expr premises =
+    //Logger.TraceLine ("Combining all matches for: " + (PrintExpr 0 expr))
     let lst0 = FindMatches expr bogusExpr premises 
     let lstCombined = 
       match expr with
@@ -317,6 +327,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
     | expr :: rest ->  
         let newPremises = 
           if expandExprFunc expr then
+            //Logger.TraceLine ("expanding " + (PrintExpr 0 expr))
             __ExpandPremise expr premises
           else 
             premises
@@ -326,7 +337,10 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   (* --- function body starts here --- *)
   let iterOnceFunc p = __Iter (p |> Set.toList) p
   // TODO: iterate only 3 times, instead of to full closure
-  iterOnceFunc premises |> iterOnceFunc |> iterOnceFunc
+  let p1 = iterOnceFunc premises 
+  let p2 = p1 |> iterOnceFunc 
+  let p3 = p2 |> iterOnceFunc
+  p3
 //  let premises' = iterOnceFunc premises 
 //  if premises' = premises then
 //    premises'

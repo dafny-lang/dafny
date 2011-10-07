@@ -8,6 +8,7 @@
 module Resolver
 
 open Ast
+open Getters
 open AstUtils 
 open Printer
 open EnvUtils
@@ -49,10 +50,13 @@ let ConvertToStatements heapInst onModifiableObjsOnly =
   let stmtLst1 = heapInst.assignments |> List.choose (fun asgn ->                                                        
                                                         match asgn with
                                                         | FieldAssignment((o,f),e) when (not onModifiableObjsOnly || Set.contains o heapInst.modifiableObjs) ->
-                                                            let fldName = GetVarName f
-                                                            if fldName = "" then
-                                                              Some(ExprStmt(e))
+                                                            if IsOldVar f then
+                                                              None
                                                             else
+                                                              let fldName = GetVarName f
+                                                              if fldName = "" then
+                                                                Some(ExprStmt(e))
+                                                              else
                                                               Some(Assign(Dot(ObjLiteral(o.name), fldName), e))
                                                         | ArbitraryStatement(stmt) -> Some(stmt)
                                                         | _ -> None)
@@ -173,7 +177,7 @@ let rec _EvalResolver heapInst useConcrete resolveExprFunc expr fldNameOpt =
         match expr with
         | ObjLiteral(objName) -> 
             let asgs = if useConcrete then heapInst.concreteValues else heapInst.assignments
-            let h2 = asgs |> List.filter (function FieldAssignment((o, Var(varName,_)), v) -> o.name = objName && varName = fldName | _ -> false)
+            let h2 = asgs |> List.filter (function FieldAssignment((o, var), v) -> o.name = objName && GetExtVarName var = fldName | _ -> false)
             match h2 with
             | FieldAssignment((_,_),x) :: [] -> __FurtherResolve x
             | _ :: _ -> raise (EvalFailed(sprintf "can't evaluate expression deterministically: %s.%s resolves to multiple locations" objName fldName))
@@ -232,7 +236,7 @@ let EvalAndCheckTrue heapInst resolveExprFunc expr =
 /// (HeapInstance), where all fields for all objects have explicit 
 /// assignments.
 //  =====================================================================
-let ResolveModel hModel meth = 
+let ResolveModel hModel (comp,meth) = 
   let outArgs = GetMethodOutArgs meth
   let hmap = hModel.heap |> Map.fold (fun acc (o,f) l ->
                                         let objName, objTypeOpt = match Resolve hModel o with
@@ -250,7 +254,7 @@ let ResolveModel hModel meth =
                                            | FieldAssignment((obj,_),_) -> 
                                                let acc1' = acc1 |> Map.add obj.name obj
                                                let acc2' = 
-                                                 if IsModifiableObj obj meth then
+                                                 if IsModifiableObj obj (comp,meth) then
                                                    acc2 |> Set.add obj
                                                  else
                                                    acc2
@@ -261,7 +265,7 @@ let ResolveModel hModel meth =
                                                   match k with
                                                   | VarConst(name) -> 
                                                       let resolvedValExpr = Resolve hModel v
-                                                      if outArgs |> List.exists (function Var(varName, _) -> varName = name) then
+                                                      if outArgs |> List.exists (fun var -> GetVarName var = name) then
                                                         acc1, acc2 |> Map.add name (resolvedValExpr |> Const2Expr)
                                                       else
                                                         acc1 |> Map.add name resolvedValExpr, acc2

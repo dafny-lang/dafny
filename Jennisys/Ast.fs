@@ -19,7 +19,7 @@ type Type =
   | InstantiatedType of string * Type list (* type parameters *)
 
 type VarDecl =
-  | Var of string * Type option
+  | Var of string * Type option * (* isOld *) bool 
 
 (* 
    the difference between IdLiteral and VarLiteral is that the VarLiteral is more specific, 
@@ -38,6 +38,7 @@ type Expr =
   | Star
   | Dot of Expr * string
   | UnaryExpr of string * Expr
+  | OldExpr of Expr
   | LCIntervalExpr of Expr
   | BinaryExpr of int * string * Expr * Expr
   | IteExpr of (* cond *) Expr * (* thenExpr *) Expr * (* elseExpr *) Expr

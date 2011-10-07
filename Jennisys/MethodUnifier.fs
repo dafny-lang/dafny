@@ -1,6 +1,7 @@
 ﻿module MethodUnifier
 
 open Ast
+open Getters
 open AstUtils
 open FixpointSolver
 open PrintUtils
@@ -41,16 +42,17 @@ let TryFindExisting comp targetMthd =
   | None -> targetMthd, Map.empty
 
 let ApplyMethodUnifs receiver (c,m) unifs =
-  let __Apply args = args |> List.map (fun (Var(name,_)) -> 
-                                             match Map.tryFind name unifs with
-                                             | Some(e) -> e
-                                             | None -> VarLiteral(name))
+  let __Apply args = args |> List.map (fun var -> 
+                                         let name = GetExtVarName var
+                                         match Map.tryFind name unifs with
+                                         | Some(e) -> e
+                                         | None -> VarLiteral(name))
   let ins = GetMethodInArgs m |> __Apply
   let outs = GetMethodOutArgs m |> __Apply
   
   let retVars, asgs = outs |> List.fold (fun (acc1,acc2) e -> 
                                           let vname = SymGen.NewSymFake e
-                                          let v = Var(vname, None)
+                                          let v = Var(vname, None, false)
                                           let acc1' = acc1 @ [v]
                                           let acc2' = acc2 @ [ArbitraryStatement(Assign(VarLiteral(vname), e))]
                                           acc1', acc2'
@@ -58,7 +60,7 @@ let ApplyMethodUnifs receiver (c,m) unifs =
   let mcallExpr = MethodCall(receiver, GetComponentName c, GetMethodName m, ins)
   match retVars, outs with
   | [], [] -> [ArbitraryStatement(ExprStmt(mcallExpr))]
-  | [_], [VarLiteral(vn2)] -> [ArbitraryStatement(Assign(VarDeclExpr([Var(vn2, None)], false), mcallExpr))]
+  | [_], [VarLiteral(vn2)] -> [ArbitraryStatement(Assign(VarDeclExpr([Var(vn2, None, false)], false), mcallExpr))]
   | _ ->
       let mcall = ArbitraryStatement(Assign(VarDeclExpr(retVars, true), mcallExpr))
       mcall :: asgs
@@ -89,7 +91,7 @@ let TryFindExistingAndConvertToSolution indent comp m cond callGraph =
         let idtt = idt + "        "
         unifs |> Map.fold (fun acc k v -> acc + (sprintf "%s%s -> %s%s" idtt k (Printer.PrintExpr 0 v) newline)) "" |> Logger.Debug 
         let obj = { name = "this"; objType = GetClassType comp }
-        let modObjs = if IsModifiableObj obj m then Set.singleton obj else Set.empty
+        let modObjs = if IsModifiableObj obj (comp,m) then Set.singleton obj else Set.empty
         let body = ApplyMethodUnifs ThisLiteral (comp,m') unifs
         let hInst = { objs           = Utils.MapSingleton obj.name obj;
                       modifiableObjs         = modObjs;

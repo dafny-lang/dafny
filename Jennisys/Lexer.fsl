@@ -41,6 +41,7 @@ rule tokenize = parse
 | "..."    { DOTDOTDOT }
 | ".."     { DOTDOT }
 | "."      { DOT }
+| "old"    { OLD }
 | "+"      { PLUS }
 | "-"      { MINUS }
 | "*"      { STAR }

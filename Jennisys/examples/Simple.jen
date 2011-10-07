@@ -1,0 +1,11 @@
+interface Simple {
+ var a: int
+ 
+ method Inc()
+   a := old(a) + 1
+}
+
+datamodel Simple {
+ var c: int
+ invariant a = c
+}

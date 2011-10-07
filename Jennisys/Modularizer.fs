@@ -1,6 +1,7 @@
 ﻿module Modularizer
 
 open Ast
+open Getters
 open AstUtils
 open MethodUnifier
 open PrintUtils
@@ -86,7 +87,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
     match e with
     | ObjLiteral(id) when not (Utils.ListContains e (directChildren.Force())) -> //TODO: is it really only non-direct children?
         let absFlds = __GetAbsFldAssignments id
-        absFlds |> List.fold (fun acc (Var(vname,_),vval) -> BinaryAnd acc (BinaryEq (Dot(x, vname)) vval)) TrueLiteral
+        absFlds |> List.fold (fun acc (var,vval) -> BinaryAnd acc (BinaryEq (Dot(x, GetVarName var)) vval)) TrueLiteral
     | SequenceExpr(elist) ->
         let rec __fff lst acc cnt = 
           match lst with
@@ -107,7 +108,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
   //  ================================================================================
   let __GetSpecFor objLitName =
     let absFieldAssignments = __GetAbsFldAssignments objLitName
-    let absFldAssgnExpr = absFieldAssignments |> List.fold (fun acc (Var(name,_),e) -> BinaryAnd acc (__ExamineAndFix (IdLiteral(name)) e)) TrueLiteral
+    let absFldAssgnExpr = absFieldAssignments |> List.fold (fun acc (var,e) -> BinaryAnd acc (__ExamineAndFix (IdLiteral(GetVarName var)) e)) TrueLiteral
     let retValExpr = hInst.methodRetVals |> Map.fold (fun acc varName varValueExpr -> BinaryAnd acc (BinaryEq (VarLiteral(varName)) varValueExpr)) TrueLiteral
     BinaryAnd absFldAssgnExpr retValExpr
   
@@ -119,7 +120,7 @@ let rec MakeModular indent prog comp meth cond hInst callGraph =
     let argSet = DescendExpr2 (fun e acc ->
                                  match e with
                                  | VarLiteral(vname) ->
-                                     match args |> List.tryFind (function Var(name,_) when vname = name -> true | _ -> false) with
+                                     match args |> List.tryFind (fun var -> GetVarName var = vname) with
                                      | Some(var) -> acc |> Set.add var
                                      | None -> acc
                                  | _ -> acc

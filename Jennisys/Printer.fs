@@ -1,6 +1,7 @@
 ﻿module Printer
 
 open Ast
+open Getters
 open AstUtils
 open PrintUtils     
   
@@ -14,9 +15,10 @@ let rec PrintType ty =
   | InstantiatedType(id,args) -> sprintf "%s[%s]" id (PrintSep ", " (fun a -> PrintType a) args)
 
 let PrintVarDecl vd =
-  match vd with
-  | Var(id,None) -> id
-  | Var(id,Some(ty)) -> sprintf "%s: %s" id (PrintType ty)
+  let name = GetExtVarName vd
+  match GetVarType vd with
+  | None     -> name
+  | Some(ty) -> sprintf "%s: %s" name (PrintType ty)
 
 let rec PrintExpr ctx expr =
   match expr with
@@ -33,6 +35,7 @@ let rec PrintExpr ctx expr =
   | Star              -> "*"
   | Dot(e,id)         -> sprintf "%s.%s" (PrintExpr 100 e) id
   | LCIntervalExpr(e) -> sprintf "%s.." (PrintExpr 90 e)
+  | OldExpr(e)        -> sprintf "old(%s)" (PrintExpr 90 e)
   | UnaryExpr(op,UnaryExpr(op2, e2))   -> sprintf "%s(%s)" op (PrintExpr 90 (UnaryExpr(op2, e2)))
   | UnaryExpr(op,e)   -> sprintf "%s%s" op (PrintExpr 90 e)
   | BinaryExpr(strength,op,e0,e1) ->
