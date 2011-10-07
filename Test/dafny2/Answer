@@ -2,3 +2,7 @@
 -------------------- SnapshotableTrees.dfy --------------------
 
 Dafny program verifier finished with 37 verified, 0 errors
+
+-------------------- TreeBarrier.dfy --------------------
+
+Dafny program verifier finished with 8 verified, 0 errors

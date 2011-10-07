@@ -34,7 +34,7 @@ class ExtensibleArray<T> {
     (forall i :: M <= i && i < length ==> Contents[i] == elements[i - M])
   }
 
-  method Init()
+  constructor Init()
     modifies this;
     ensures Valid() && fresh(Repr - {this});
     ensures Contents == [];

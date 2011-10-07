@@ -147,7 +147,7 @@ class Tree
   }
 
   method CreateIterator() returns (iter: Iterator)
-    requires Valid() && IsReadonly;
+    requires Valid(); // && IsReadonly;
     ensures iter != null && iter.Valid() && fresh(iter.IterRepr);
     ensures iter.T == this && iter.Contents == Contents && iter.N == -1;
   {
@@ -459,3 +459,21 @@ class Iterator
 }
 
 datatype List = Nil | Cons(Node, List);
+
+/*  The following method shows the problem of concurrent modifications and shows that the
+ *  design of the snapshotable trees herein handle this correctly.  That is, after inserting
+ *  into a tree that is being iterated, use of the associated iterator can no longer be
+ *  proved to be correct.
+ *
+method TestConcurrentModification(t: Tree)
+  requires t != null && t.Valid() && !t.IsReadonly;
+  modifies t.MutableRepr;
+{
+  var it := t.CreateIterator();
+  var more := it.MoveNext();
+  if (more) {
+    var pos := t.Insert(52);  // this modification of the collection renders all associated iterators invalid
+    more := it.MoveNext();  // error: operation t.Insert may have made this iterator invalid
+  }
+}
+*/

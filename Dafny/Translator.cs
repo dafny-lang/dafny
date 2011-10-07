@@ -3652,7 +3652,22 @@ namespace Microsoft.Dafny {
       }
       ProcessCallStmt(s.Tok, s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
       for (int i = 0; i < lhsBuilders.Count; i++) {
-        lhsBuilders[i](bLhss[i], builder, etran);
+        var lhs = s.Lhs[i];
+        Type lhsType = null;
+        if (lhs is IdentifierExpr) {
+          lhsType = lhs.Type;
+        } else if (lhs is FieldSelectExpr) {
+          var fse = (FieldSelectExpr)lhs;
+          lhsType = fse.Field.Type;
+        }
+
+        Bpl.Expr bRhs = bLhss[i];  // the RHS (bRhs) of the assignment to the actual call-LHS (lhs) was a LHS (bLhss[i]) in the Boogie call statement
+        if (lhsType != null) {
+          CheckSubrange(lhs.tok, bRhs, lhsType, builder);
+        }
+        bRhs = etran.CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
+
+        lhsBuilders[i](bRhs, builder, etran);
       }
       builder.Add(CaptureState(s.Tok));
     }

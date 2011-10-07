@@ -2809,15 +2809,17 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (e.Function != null && e.Function.IsGhost) {
-          Error(expr, "function calls are allowed only in specification contexts (consider declaring the function a 'function method')");
-          return;
-        }
-        // function is okay, so check all NON-ghost arguments
-        CheckIsNonGhost(e.Receiver);
-        for (int i = 0; i < e.Function.Formals.Count; i++) {
-          if (!e.Function.Formals[i].IsGhost) {
-            CheckIsNonGhost(e.Args[i]);
+        if (e.Function != null) {
+          if (e.Function.IsGhost) {
+            Error(expr, "function calls are allowed only in specification contexts (consider declaring the function a 'function method')");
+            return;
+          }
+          // function is okay, so check all NON-ghost arguments
+          CheckIsNonGhost(e.Receiver);
+          for (int i = 0; i < e.Function.Formals.Count; i++) {
+            if (!e.Function.Formals[i].IsGhost) {
+              CheckIsNonGhost(e.Args[i]);
+            }
           }
         }
         return;
@@ -2885,9 +2887,13 @@ namespace Microsoft.Dafny {
 #endif
       if (member == null) {
         // error has already been reported by ResolveMember
-      } else if (allowMethodCall && member is Method) {
-        // it's a method
-        return new CallRhs(e.tok, e.Receiver, e.Name, e.Args);
+      } else if (member is Method) {
+        if (allowMethodCall) {
+          // it's a method
+          return new CallRhs(e.tok, e.Receiver, e.Name, e.Args);
+        } else {
+          Error(e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, cce.NonNull(ctype).Name);
+        }
       } else if (!(member is Function)) {
         Error(e, "member {0} in type {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);
       } else {
