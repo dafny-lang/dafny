@@ -6,3 +6,23 @@ Dafny program verifier finished with 37 verified, 0 errors
 -------------------- TreeBarrier.dfy --------------------
 
 Dafny program verifier finished with 8 verified, 0 errors
+
+-------------------- COST-verif-comp-2011-1-MaxArray.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+-------------------- COST-verif-comp-2011-2-MaxTree-class.dfy --------------------
+
+Dafny program verifier finished with 8 verified, 0 errors
+
+-------------------- COST-verif-comp-2011-2-MaxTree-datatype.dfy --------------------
+
+Dafny program verifier finished with 5 verified, 0 errors
+
+-------------------- COST-verif-comp-2011-3-TwoDuplicates.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+
+-------------------- COST-verif-comp-2011-4-FloydCycleDetect.dfy --------------------
+
+Dafny program verifier finished with 23 verified, 0 errors
