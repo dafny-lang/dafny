@@ -32,6 +32,7 @@ type HeapInstance = {
 }
 
 let NoObj = { name = ""; objType = NamedType("", []) }
+let ThisObj comp = {name = "this"; objType = GetComponentType comp}
 
 let ExtractAllExpressions asg = 
   match asg with

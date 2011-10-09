@@ -108,10 +108,10 @@ let GetObjRefExpr objRefName (heapInst: HeapInstance) =
                 | Some(expr) -> Some(Dot(expr, GetExtVarName var))
                 | None -> __fff rest
             | [] -> None
-          let backPointers = heapInst.assignments |> List.choose (function 
-                                                                    FieldAssignment (x,l) -> 
-                                                                      if l = ObjLiteral(objRefName) then Some(x,l) else None
-                                                                    |_ -> None)
+          let backPointers = heapInst.concreteValues |> List.choose (function 
+                                                                        FieldAssignment (x,l) -> 
+                                                                          if l = ObjLiteral(objRefName) then Some(x,l) else None
+                                                                        |_ -> None)
           __fff backPointers 
   (* --- function body starts here --- *)
   __GetObjRefExpr objRefName (Set.empty)
@@ -156,7 +156,7 @@ let GetHeapExpr prog mthd heapInst includePreState =
                       ) prepostExpr
 
 let IsUnmodConcrOnly prog (comp,meth) expr = 
-  let isConstr = IsConstructor meth
+  let isConstr = IsModifiableObj (ThisObj comp) (comp,meth)
   let rec __IsUnmodOnly args expr = 
     let __IsUnmodOnlyLst elist = 
       elist |> List.fold (fun acc e -> acc && (__IsUnmodOnly args e)) true
@@ -382,13 +382,13 @@ let rec DiscoverAliasing exprList heapInst =
 let DontResolveUnmodifiableStuff prog comp meth expr =
   let methodArgs = GetMethodInArgs meth
   let __IsMethodArg argName = methodArgs |> List.exists (fun var -> GetExtVarName var = argName)
-  let isConstr = IsConstructor meth
+  let isMod = IsModifiableObj (ThisObj comp) (comp,meth)
   match expr with
   | VarLiteral(id) when __IsMethodArg id -> false 
   | IdLiteral(id) when id = "this" || id = "null" -> true
   | IdLiteral(id) | Dot(_, id) -> 
-      // this must be a field, so resolve it only if constructor
-      isConstr
+      // this must be a field, so resolve it only if modifiable
+      isMod
   | _ -> true
 
 /// Descends down a given expression and returns bunch of sub-expressions that all evaluate to true
@@ -405,8 +405,8 @@ let FindClauses trueOnly resolverFunc heapInst expr =
           | _ ->
               let exprAllResolved = EvalFull heapInst expr
               match exprAllResolved with
-              | BoolLiteral(true) -> acc @ [exprEval]
-              | BoolLiteral(false) -> if trueOnly then acc else acc @ [UnaryNot exprEval]
+              | BoolLiteral(true) -> acc @ (exprEval |> SplitIntoConjunts)
+              | BoolLiteral(false) -> if trueOnly then acc else acc @ (UnaryNot exprEval |> SplitIntoConjunts)
               | _ -> acc
     with
     | _ -> acc
@@ -528,36 +528,30 @@ and TryRecursion indent prog comp m unifs heapInst callGraph =
   /// checks whether an expression is ok, meaning 
   ///   - only immediate concrete fields of the "this" object are used,
   ///   - no recursion on the same object with the same parameters
-  ///   - not a constant
   let __IsOk hInst expr = 
     let compName = GetComponentName comp
     let methName = GetMethodName m
-    try
-      expr |> EvalNone hInst |> Expr2Const |> ignore
-      false
-    with
-    | _ -> 
-        let myVisitor = 
-          fun expr acc ->
-            if not acc then
-              false
-            else
-              match expr with
-              | Dot(discr, fldName) -> 
-                  let obj = EvalFull heapInst discr
-                  match obj with 
-                  | ObjLiteral(id) when id = "this" -> 
-                      try 
-                        let fname = RenameFromOld fldName
-                        IsConcreteField (InferType prog comp (MethodArgChecker prog m) discr |> Utils.ExtractOption) fname
-                      with
-                        | _ -> false
-                  | ObjLiteral(id) -> false
-                  | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
-              | MethodCall(receiver, cn, mn, elst) when receiver = ThisLiteral && cn = compName && mn = methName -> 
-                  elst |> List.exists (function VarLiteral(_) -> false | _ -> true)
-              | _ -> true                          
-        DescendExpr2 myVisitor expr true
+    let myVisitor = 
+        fun expr acc ->
+        if not acc then
+            false
+        else
+            match expr with
+            | Dot(discr, fldName) -> 
+                let obj = EvalFull heapInst discr
+                match obj with 
+                | ObjLiteral(id) when id = "this" -> 
+                    try 
+                    let fname = RenameFromOld fldName
+                    IsConcreteField (InferType prog comp (MethodArgChecker prog m) discr |> Utils.ExtractOption) fname
+                    with
+                    | _ -> false
+                | ObjLiteral(id) -> false
+                | _ -> failwithf "Didn't expect the discriminator of a Dot to not be ObjLiteral"
+            | MethodCall(receiver, cn, mn, elst) when receiver = ThisLiteral && cn = compName && mn = methName -> 
+                elst |> List.exists (function VarLiteral(_) -> false | _ -> true)
+            | _ -> true                          
+    DescendExpr2 myVisitor expr true
 
   /// Finds all modifiable fields in a given hInst, and checks if an "ok" 
   /// expression exists for each one of them.
@@ -697,12 +691,11 @@ and TryRecursion indent prog comp m unifs heapInst callGraph =
       | IdLiteral(_) -> true
       | Dot(_,_) -> true
       | _ -> false     
-//      let str = PrintExpr 0 l
-//      str.Contains("ret")
-
     match e with
     | BinaryExpr(_,"=",l,_) -> 
         //TODO: it should really check both lhs and rhs
+        __CheckExpr l
+    | BinaryExpr(_,op,l,_) when IsRelationalOp op ->
         __CheckExpr l
     | _ -> __CheckExpr e
 

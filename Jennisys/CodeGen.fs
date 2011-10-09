@@ -360,7 +360,7 @@ let GenConstructorCode prog comp mthd decreasesClause body genRepr =
   | Method(methodName,sign,_,_,isConstr) -> 
       let preExpr = GetPreconditionForMethod prog mthd |> Desugar
       let postExpr = GetPostconditionForMethod prog mthd genRepr |> Desugar
-      let thisObj = {name = "this"; objType = GetComponentType comp}
+      let thisObj = ThisObj comp
       "  method " + methodName + (PrintSig sign) + 
       (if IsModifiableObj thisObj (comp,mthd) then newline + "    modifies this;" else "") +
       (PrintPrePost (newline + "    requires ") preExpr) + 

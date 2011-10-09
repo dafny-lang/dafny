@@ -158,12 +158,15 @@ let rec ComputeClosure heapInst expandExprFunc premises =
                                           elif rhs = expr && not (lhs = except) then
                                             Some(lhs)
                                           else 
-                                            match SelectiveUnifyImplies okToUnifyFunc lhs expr LTR Map.empty with
-                                            | Some(unifs) -> Some(ApplyUnifs unifs rhs)
-                                            | None -> 
-                                                match SelectiveUnifyImplies okToUnifyFunc rhs expr LTR Map.empty with
-                                                | Some(unifs) -> Some(ApplyUnifs unifs lhs)
-                                                | None -> None
+                                            if expr = TrueLiteral then 
+                                              None
+                                            else
+                                               match SelectiveUnifyImplies okToUnifyFunc lhs expr LTR Map.empty with
+                                               | Some(unifs) -> Some(ApplyUnifs unifs rhs)
+                                               | None -> 
+                                                   match SelectiveUnifyImplies okToUnifyFunc rhs expr LTR Map.empty with
+                                                   | Some(unifs) -> Some(ApplyUnifs unifs lhs)
+                                                   | None -> None
                                         | _ -> None)
     //Logger.TraceLine (sprintf "Number of matches for %s: %i" (PrintExpr 0 expr) (List.length matches))
     matches
@@ -247,6 +250,14 @@ let rec ComputeClosure heapInst expandExprFunc premises =
               [BinaryEq lhs elist.[0]]
             else 
               [BinaryIn lhs (SequenceExpr(elist |> List.tail))]
+      | SetExpr(elist) -> 
+          let evalElist = elist |> List.map (EvalFull heapInst)
+          let evalLhs = EvalFull heapInst lhs
+          try 
+            let idx = evalElist |> List.findIndex (fun e -> e = evalLhs)
+            [BinaryEq lhs elist.[idx]]
+          with
+          | _ -> [binInExpr]
       | _ -> [binInExpr] 
     __fff lhs rhs
 

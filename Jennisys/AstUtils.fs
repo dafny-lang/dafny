@@ -447,6 +447,18 @@ let rec Expr2Const e =
   | SetExpr(elist) -> SetConst(elist |> List.map Expr2Const |> Set.ofList)
   | _ -> failwithf "Not a constant: %O" e
 
+let rec Expr2ConstStrict e =
+  match e with
+  | IntLiteral(n) -> IntConst(n)
+  | BoolLiteral(b) -> BoolConst(b)
+  | BoxLiteral(id) -> BoxConst(id)
+  | ObjLiteral("this") -> ThisConst("this",None)
+  | ObjLiteral("null") -> NullConst
+  | ObjLiteral(name) -> NewObj(name, None)
+  | SequenceExpr(elist) -> SeqConst(elist |> List.map Expr2ConstStrict)
+  | SetExpr(elist) -> SetConst(elist |> List.map Expr2ConstStrict |> Set.ofList)
+  | _ -> failwithf "Not a constant: %O" e
+
 let TryExpr2Const e =
   try 
     Some(Expr2Const e)
@@ -688,12 +700,28 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
           | "in" -> 
               match e1'.Force(), e2'.Force() with
               | _, SetExpr(s)       
-              | _, SequenceExpr(s)  -> BoolLiteral(Utils.ListContains (e1'.Force()) s)
+              | _, SequenceExpr(s)  -> //BoolLiteral(Utils.ListContains (e1'.Force()) s)
+                  if Utils.ListContains (e1'.Force()) s then
+                    TrueLiteral
+                  else
+                    try 
+                      let contains = s |> List.map Expr2ConstStrict |> Utils.ListContains (e1'.Force() |> Expr2ConstStrict)
+                      BoolLiteral(contains)
+                    with
+                    | _ -> recomposed.Force()
               | _ -> recomposed.Force()
           | "!in" -> 
               match e1'.Force(), e2'.Force() with
               | _, SetExpr(s)       
-              | _, SequenceExpr(s)  -> BoolLiteral(not (Utils.ListContains (e1'.Force()) s))
+              | _, SequenceExpr(s)  -> //BoolLiteral(not (Utils.ListContains (e1'.Force()) s))
+                  if Utils.ListContains (e1'.Force()) s then
+                    FalseLiteral
+                  else
+                    try 
+                      let contains = s |> List.map Expr2ConstStrict |> Utils.ListContains (e1'.Force() |> Expr2ConstStrict)
+                      BoolLiteral(not contains)
+                    with
+                    | _ -> recomposed.Force()
               | _ -> recomposed.Force()
           | "+" -> 
               let e1'' = e1'.Force();
@@ -987,6 +1015,7 @@ let rec PullUpMethodCalls stmt =
 let IsModifiableObj obj (c,m) = 
   let __IsFld name = FindVar c name |> Utils.OptionToBool
   match m with
+  | Method(name,_,_,_,_) when name.EndsWith("__mod__") -> true
   | Method(_,_,_,_,true) -> true
   | Method(_,_,_,post,false) -> 
       DescendExpr2 (fun e acc -> 

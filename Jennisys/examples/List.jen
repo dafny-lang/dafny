@@ -59,6 +59,12 @@ interface Node[T] {
 
   method Find(n: T) returns (ret: bool)
     ensures ret = (n in list)
+
+  method SetZ(n: T) 
+    ensures list = old(list[0 := n])
+	
+  method Insert(n: T) 
+    ensures list = old(list) + [n]  
 }
 
 datamodel Node[T] {

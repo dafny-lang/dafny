@@ -3,6 +3,22 @@ interface Simple {
  
  method Inc()
    a := old(a) + 1
+   
+ method Init(n: int)
+   a := n
+   
+ method Max(x: int, y: int)
+   ensures x < y ==> a = y
+   ensures x >= y ==> a = x
+   
+ 
+ method Max2(x: int, y: int)
+   ensures a = x || a = y
+   ensures forall t :: t in {x y} ==> a >= t
+   
+ method Max3__mod__(x: int, y: int)
+   ensures a in {x y}
+   ensures forall t :: t in {x y} ==> a >= t   
 }
 
 datamodel Simple {
