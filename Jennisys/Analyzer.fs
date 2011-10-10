@@ -746,7 +746,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph premises =
       let newSol = sol |> Utils.MapReplaceKey (c,m) (c,newMeth) newLst
       if newSol = sol then Logger.TraceLine "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa sol aaaaaaaaaaaaaaaaaaaaaaaaaa" else ()
       newMeth,newSol
-    if i >= List.length guardList then
+    if i >= List.length guardList || List.length guardList <= 1 then
       guard,m,sol
     else
       let newGuardList = Utils.ListRemoveNth i guardList

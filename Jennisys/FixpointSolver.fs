@@ -237,12 +237,14 @@ let rec ComputeClosure heapInst expandExprFunc premises =
 //                __fff lhs r
 //          | _ -> [binInExpr]
 ///////////////////////////////
-          [BinaryOr (BinaryIn lhs l) (BinaryIn lhs r)] 
-//          let opt1 = BinaryIn lhs l
-//          let opt2 = BinaryIn lhs r
-//          match EvalFull heapInst opt1 with
-//          | BoolLiteral(true) -> [opt1]
-//          | _ -> [opt2]
+//          [BinaryOr (BinaryIn lhs l) (BinaryIn lhs r)] 
+          let opt1 = BinaryIn lhs l
+          let opt2 = BinaryIn lhs r
+          match EvalFull heapInst opt1 with
+          | BoolLiteral(true) -> [opt1]
+          | _ -> match EvalFull heapInst opt2 with
+                 | BoolLiteral(true) -> [opt2]
+                 | _ -> [BinaryOr (BinaryIn lhs l)(BinaryIn lhs r)]
       | SequenceExpr(elist) -> 
           let len = elist |> List.length
           if len = 0 then
