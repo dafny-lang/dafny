@@ -474,6 +474,11 @@ let IsConstExpr e =
 
 ///////
 
+let GetMethodPre mthd = 
+  match mthd with 
+  | Method(_,_,pre,_,_) -> pre
+  | _ -> failwith ("not a method" + mthd.ToString())
+
 let GetMethodPrePost mthd = 
   let __FilterOutAssumes e = e |> SplitIntoConjunts |> List.filter (function AssumeExpr(_) -> false | _ -> true) |> List.fold BinaryAnd TrueLiteral
   match mthd with
@@ -537,11 +542,16 @@ let AddReplaceMethod prog comp newMthd oldMethod =
       newProg, newComp
   | _ -> failwithf "Invalid component: %O" comp
 
-let AddPrecondition prog comp m e =
+let UnwrapAssumes e = e |> SplitIntoConjunts |> List.map (function AssumeExpr(e) -> e | x -> x) |> List.fold BinaryAnd TrueLiteral
+  
+let AddPrecondition m e =
   match m with
-  | Method(mn, sgn, pre, post, cstr) ->
-      let newMthd = Method(mn, sgn, BinaryAnd pre (AssumeExpr(e)), post, cstr)
-      newMthd
+  | Method(mn, sgn, pre, post, cstr) -> Method(mn, sgn, BinaryAnd pre (AssumeExpr(e |> UnwrapAssumes)), post, cstr)
+  | _ -> failwithf "Not a method: %O" m
+
+let SetPrecondition m e =
+  match m with
+  | Method(mn, sgn, pre, post, cstr) -> Method(mn, sgn, AssumeExpr(e |> UnwrapAssumes), post, cstr)
   | _ -> failwithf "Not a method: %O" m
 
 ////////////////////

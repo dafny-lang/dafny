@@ -48,6 +48,11 @@ interface IntNode {
 
   constructor Double(x: int, y: int)
     ensures list = [x y]
+	
+  method Max() returns (ret: int)
+    ensures ret in list
+	ensures forall t :: t in list ==> ret >= t
+
 }
 
 datamodel IntNode {

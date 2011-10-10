@@ -171,7 +171,7 @@ let rec GenList n e =
 ///              ret[i] = lst[i]
 //  =======================================
 let ListReplace oldElem newElem lst = 
-  lst |> List.choose (fun e -> if e = oldElem then Some(newElem) else Some(e))
+  lst |> List.map (fun e -> if e = oldElem then newElem else e)
 
 //  =================================================
 /// if (exists (k,v) :: (k,v) in lst && k = key) then
@@ -206,6 +206,12 @@ let ListContains elem lst =
 //  ====================================================
 let ListRemove elem lst = 
   lst |> List.choose (fun e -> if e = elem then None else Some(e))
+
+let rec ListRemoveNth n lst = 
+  if n = 0 then
+    List.tail lst
+  else
+    List.head lst :: ListRemoveNth (n-1) (List.tail lst)
 
 //  ===============================================================
 /// ensures: |ret| = max(|lst| - cnt, 0)
@@ -293,6 +299,9 @@ let MapSingleton key value =
 
 let MapKeys map = 
   map |> Map.toList |> List.map (fun (k,v) -> k)
+
+let MapReplaceKey oldKey newKey newVal map = 
+  map |> Map.toList |> List.fold (fun acc (k,v) -> if k = oldKey then acc |> Map.add newKey newVal else acc |> Map.add k v) Map.empty
 
 // -------------------------------------------
 // ------------ algorithms -------------------

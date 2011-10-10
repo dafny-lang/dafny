@@ -54,6 +54,7 @@ interface SetNode {
 	
   method Find(n: int) returns (ret: bool)
     ensures ret = (n in elems)
+	
 }
 
 datamodel SetNode {

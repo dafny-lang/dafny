@@ -164,7 +164,7 @@ let PrintDafnyCodeSkeleton prog methodPrinterFunc genRepr genOld =
 let PrintPrePost pfix expr = 
   SplitIntoConjunts expr |> PrintSep "" (fun e -> pfix + (PrintExpr 0 e) + ";")
 
-let GetPreconditionForMethod prog m = 
+let GetPreconditionForMethod m = 
   let validExpr = IdLiteral(validFuncName);
   if IsConstructor m then
     GetMethodPrePost m |> fst
@@ -358,7 +358,7 @@ let GenConstructorCode prog comp mthd decreasesClause body genRepr =
   let validExpr = IdLiteral(validFuncName);
   match mthd with
   | Method(methodName,sign,_,_,isConstr) -> 
-      let preExpr = GetPreconditionForMethod prog mthd |> Desugar
+      let preExpr = GetPreconditionForMethod mthd |> Desugar
       let postExpr = GetPostconditionForMethod prog mthd genRepr |> Desugar
       let thisObj = ThisObj comp
       "  method " + methodName + (PrintSig sign) + 

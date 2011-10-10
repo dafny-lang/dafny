@@ -1,8 +1,8 @@
 interface Simple {
  var a: int
  
- method Inc()
-   a := old(a) + 1
+ method Inc(p: int)
+   a := old(a) + p   
    
  method Init(n: int)
    a := n
@@ -19,6 +19,10 @@ interface Simple {
  method Max3__mod__(x: int, y: int)
    ensures a in {x y}
    ensures forall t :: t in {x y} ==> a >= t   
+   
+ method MaxAll__mod__(x: seq[int])
+   ensures a in x
+   ensures forall t :: t in x ==> a >= t
 }
 
 datamodel Simple {
