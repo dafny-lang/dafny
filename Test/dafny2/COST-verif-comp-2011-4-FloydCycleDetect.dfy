@@ -231,12 +231,7 @@ class Node {
     requires 0 <= a && 1 <= b;
     requires forall k,l :: 0 <= k < l < a ==> Nexxxt(k, S) != Nexxxt(l, S);
     requires Nexxxt(a, S) == null || Nexxxt(a, S).Nexxxt(b, S) == Nexxxt(a, S);
-    // The next line most straightforwardly expresses the postcondition of this method:
-    //   ensures exists T :: 0 <= T <= a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S);
-    // However, Dafny does an unfortunate (I would say performance-buggy) translation of existential
-    // quantifiers, which the alternative formulation of "exists x :: P(x)" as
-    // "(forall x :: !P(x)) ==> false" works around.  This translation issue should be fixed.
-    ensures (forall T :: !(0 <= T <= a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S))) ==> false;
+    ensures exists T :: 0 <= T < a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S);
   {
     if (Nexxxt(a, S) == null) {
       Lemma_NullIsTerminal(1+2*a, S);
@@ -276,7 +271,6 @@ class Node {
         i, t, vt, h := i+1, t+1, vt+1, h+2;
       }
       assert a <= t < a + b && Nexxxt(t, S) == Nexxxt(1 + 2*t, S);
-      assert exists T :: 0 <= T < a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S);
     }
   }
 
