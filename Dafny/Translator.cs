@@ -1069,7 +1069,7 @@ namespace Microsoft.Dafny {
         stmts = builder.Collect(m.tok);
       }
 
-      QKeyValue kv = etran.TrAttributes(m.Attributes);
+      QKeyValue kv = etran.TrAttributes(m.Attributes, null);
 
       Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
@@ -3121,7 +3121,7 @@ namespace Microsoft.Dafny {
           foreach (var lhs in s.Lhss) {
             lhss.Add(lhs.Resolved);
           }
-          bool rhssCanAffectPreviouslyKnownExpressions = !s.Rhss.TrueForAll(rhs => !rhs.CanAffectPreviouslyKnownExpressions);
+          bool rhssCanAffectPreviouslyKnownExpressions = s.Rhss.Exists(rhs => rhs.CanAffectPreviouslyKnownExpressions);
           List<AssignToLhs> lhsBuilder;
           List<Bpl.IdentifierExpr> bLhss;
           ProcessLhss(lhss, rhssCanAffectPreviouslyKnownExpressions, builder, locals, etran, out lhsBuilder, out bLhss);
@@ -3355,6 +3355,79 @@ namespace Microsoft.Dafny {
         }
 
         builder.Add(CaptureState(stmt.Tok));
+
+      } else if (stmt is ParallelStmt) {
+        AddComment(builder, stmt, "parallel statement");
+        var s = (ParallelStmt)stmt;
+        if (s.Kind == ParallelStmt.ParBodyKind.Assign) {
+
+          // Given:
+          //   parallel (x,y | Range(x,y)) {
+          //     (a)   E(x,y) . f :=  G(x,y);
+          //     (b)   A(x,y) [ I0(x,y), I1(x,y), ... ] :=  G(x,y);
+          //   }
+          // translate into:
+          //   if (*) {
+          //     // check definedness of Range
+          //     var x,y;
+          //     havoc x,y;
+          //     CheckWellDefined( Range );
+          //     assume Range;
+          //     // check definedness of the other expressions
+          //     (a)
+          //       CheckWellDefined( E );
+          //       assert Tr(E) != null;
+          //       check that E.f is in the modifies frame;
+          //       CheckWellDefined( G );
+          //       check nat restrictions for the RHS
+          //     (b)
+          //       CheckWellDefined( A );
+          //       assert Tr(A) != null;
+          //       CheckWellDefined( I0 );
+          //       assert 0 <= Tr(I0) && Tr(I0) < Tr(A).Length0;
+          //       CheckWellDefined( I1 );
+          //       assert 0 <= Tr(I0) && Tr(I0) < Tr(A).Length1;
+          //       ...
+          //       check that A[I0,I1,...] is in the modifies frame;
+          //       CheckWellDefined( G );
+          //       check nat restrictions for the RHS
+          //     // check for duplicate LHSs
+          //     var x', y';
+          //     havoc x', y';
+          //     assume Range[x,y := x',y'];
+          //     assume !(x == x' && y == y');
+          //     (a)
+          //       assert E(x,y) != E(x',y');
+          //     (b)
+          //       assert !( I0(x,y)==I0(x',y') && I1(x,y)==I1(x',y') && ... );
+          //
+          //     assume false;
+          //
+          //   } else {
+          //     var oldHeap := $Heap;
+          //     havoc $Heap;
+          //     assume $HeapSucc(oldHeap, $Heap);
+          //     (a)
+          //       assume (forall<alpha> o: ref, F: Field alpha ::
+          //         $Heap[o,F] = oldHeap[o,F] ||
+          //         (exists x,y :: Range(x,y) && o == E(x,y) && F = f));
+          //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]);
+          //     (b)
+          //       assume (forall<alpha> o: ref, F: Field alpha ::
+          //         $Heap[o,F] = oldHeap[o,F] ||
+          //         (exists x,y :: Range(x,y) && o == A(x,y) && F = Index(I0,I1,...)));
+          //       assume (forall x,y ::  Range ==> $Heap[ A[$Heap:=oldHeap], Index(I0,I1,...)] == G[$Heap:=oldHeap]);
+          //   }
+
+          // TODO: do the above
+
+        } else if (s.Kind == ParallelStmt.ParBodyKind.Call) {
+          // TODO: call forall
+        } else if (s.Kind == ParallelStmt.ParBodyKind.Proof) {
+          // TODO
+        } else {
+          Contract.Assert(false);  // unexpected kind
+        }
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -4169,6 +4242,9 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
+    /// </summary>
     void TrAssignment(IToken tok, Expression lhs, AssignmentRhs rhs,
       Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran)
     {
@@ -4184,7 +4260,7 @@ namespace Microsoft.Dafny {
 
       List<AssignToLhs> lhsBuilder;
       List<Bpl.IdentifierExpr> bLhss;
-      var lhss = new List<Expression>() { lhs.Resolved };
+      var lhss = new List<Expression>() { lhs };
       ProcessLhss(lhss, rhs.CanAffectPreviouslyKnownExpressions, builder, locals, etran,
         out lhsBuilder, out bLhss);
       Contract.Assert(lhsBuilder.Count == 1 && bLhss.Count == 1);  // guaranteed by postcondition of ProcessLhss
@@ -5059,14 +5135,20 @@ namespace Microsoft.Dafny {
           QuantifierExpr e = (QuantifierExpr)expr;
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
           Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes);
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
           Bpl.Trigger tr = null;
-          for (Triggers trigs = e.Trigs; trigs != null; trigs = trigs.Prev) {
-            Bpl.ExprSeq tt = new Bpl.ExprSeq();
-            foreach (Expression term in trigs.Terms) {
-              tt.Add(TrExpr(term));
+          for (Attributes aa = e.Attributes; aa != null; aa = aa.Prev) {
+            if (aa.Name == "trigger") {
+              Bpl.ExprSeq tt = new Bpl.ExprSeq();
+              foreach (var arg in aa.Args) {
+                if (arg.E == null) {
+                  Console.WriteLine("Warning: string argument to 'trigger' attribute ignored");
+                } else {
+                  tt.Add(TrExpr(arg.E));
+                }
+              }
+              tr = new Bpl.Trigger(expr.tok, true, tt, tr);
             }
-            tr = new Bpl.Trigger(expr.tok, true, tt, tr);
           }
           var antecedent = typeAntecedent;
           if (e.Range != null) {
@@ -5086,7 +5168,7 @@ namespace Microsoft.Dafny {
           // Translate "set xs | R :: T" into "lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))".
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
           Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
-          Bpl.QKeyValue kv = TrAttributes(e.Attributes);
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
 
           var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.otherTmpVarCount, predef.BoxType));
           translator.otherTmpVarCount++;
@@ -5373,9 +5455,10 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), BoxIfNecessary(tok, elmt, elmtType)), Bpl.Expr.Literal(0));
       }
 
-      public Bpl.QKeyValue TrAttributes(Attributes attrs) {
+      public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
         Bpl.QKeyValue kv = null;
-        while (attrs != null) {
+        for ( ; attrs != null; attrs = attrs.Prev) {
+          if (attrs.Name == skipThisAttribute) { continue; }
           List<object> parms = new List<object>();
           foreach (Attributes.Argument arg in attrs.Args) {
             if (arg.E != null) {
@@ -5385,7 +5468,6 @@ namespace Microsoft.Dafny {
             }
           }
           kv = new Bpl.QKeyValue(Token.NoToken, attrs.Name, parms, kv);
-          attrs = attrs.Prev;
         }
         return kv;
       }
@@ -6455,12 +6537,11 @@ namespace Microsoft.Dafny {
           }
         } else if (e is QuantifierExpr) {
           var q = (QuantifierExpr)e;
-          Triggers newTrigs = SubstTriggers(q.Trigs, receiverReplacement, substMap);
-          if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newTrigs != q.Trigs) {
+          if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
             if (expr is ForallExpr) {
-              newExpr = new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
+              newExpr = new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newAttrs);
             } else {
-              newExpr = new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newTrigs, newAttrs);
+              newExpr = new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newAttrs);
             }
           }
         } else {
@@ -6517,18 +6598,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Triggers SubstTriggers(Triggers trigs, Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap) {
-      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
-      if (trigs != null) {
-        List<Expression> terms = SubstituteExprList(trigs.Terms, receiverReplacement, substMap);
-        Triggers prev = SubstTriggers(trigs.Prev, receiverReplacement, substMap);
-        if (terms != trigs.Terms || prev != trigs.Prev) {
-          return new Triggers(terms, prev);
-        }
-      }
-      return trigs;
-    }
-
     static Attributes SubstAttributes(Attributes attrs, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       if (attrs != null) {
@@ -6539,7 +6608,7 @@ namespace Microsoft.Dafny {
           if (arg.E != null) {
             Expression newE = Substitute(arg.E, receiverReplacement, substMap);
             if (newE != arg.E) {
-              newArg = new Attributes.Argument(newE);
+              newArg = new Attributes.Argument(arg.Tok, newE);
               anyArgSubst = true;
             }
           }

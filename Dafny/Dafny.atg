@@ -19,7 +19,7 @@ static BuiltIns theBuiltIns;
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
 static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
-static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument("dummyAttrArg");
+static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
 static int anonymousIds = 0;
 struct MemberModifiers {
   public bool IsGhost;
@@ -632,6 +632,7 @@ OneStmt<out Statement/*!*/ s>
   | WhileStmt<out s>
   | MatchStmt<out s>
   | ForeachStmt<out s>
+  | ParallelStmt<out s>
   | "label"                            (. x = t; .)
     Ident<out id> ":"
     OneStmt<out s>                     (. s.Labels = new LabelNode(x, id.val, s.Labels); .)
@@ -868,15 +869,16 @@ MatchStmt<out Statement/*!*/ s>
   .
 CaseStatement<out MatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
-     IToken/*!*/ x, id, arg;
+     IToken/*!*/ x, id;
      List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
+     BoundVar/*!*/ bv;
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
   "case"                      (. x = t; .)
   Ident<out id>
   [ "("
-    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
-    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
+    IdentTypeOptional<out bv>        (. arguments.Add(bv); .)
+    { "," IdentTypeOptional<out bv>  (. arguments.Add(bv); .)
     }
   ")" ]
   "=>"
@@ -933,6 +935,31 @@ PrintStmt<out Statement/*!*/ s>
   { "," AttributeArg<out arg>                  (. args.Add(arg); .)
   }
   ";"                                          (. s = new PrintStmt(x, args); .)
+  .
+
+ParallelStmt<out Statement/*!*/ s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     IToken/*!*/ x;
+     List<BoundVar/*!*/> bvars;
+     Attributes attrs;
+     Expression range;
+     var ens = new List<MaybeFreeExpression/*!*/>();
+     bool isFree;
+     Expression/*!*/ e;
+     Statement/*!*/ block;
+     IToken bodyStart, bodyEnd;
+  .)
+  "parallel"                                (. x = t; .)
+  "("
+  QuantifierDomain<out bvars, out attrs, out range>
+  ")"
+  {                                         (. isFree = false; .)
+    [ "free"                                (. isFree = true; .)
+    ]
+    "ensures" Expression<out e> ";"         (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
+  }
+  BlockStmt<out block, out bodyStart, out bodyEnd>
+  (. s = new ParallelStmt(x, bvars, attrs, range, ens, block); .)
   .
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>
@@ -1230,15 +1257,16 @@ MatchExpression<out Expression/*!*/ e>
   (. e = new MatchExpr(x, e, cases); .)
   .
 CaseExpression<out MatchCaseExpr/*!*/ c>
-= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id, arg;
+= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
      List<BoundVar/*!*/> arguments = new List<BoundVar/*!*/>();
+     BoundVar/*!*/ bv;
      Expression/*!*/ body;
   .)
   "case"                      (. x = t; .)
   Ident<out id>
   [ "("
-    Ident<out arg>            (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
-    { "," Ident<out arg>      (. arguments.Add(new BoundVar(arg, arg.val, new InferredTypeProxy())); .)
+    IdentTypeOptional<out bv>        (. arguments.Add(bv); .)
+    { "," IdentTypeOptional<out bv>  (. arguments.Add(bv); .)
     }
   ")" ]
   "=>"
@@ -1320,36 +1348,46 @@ Suffix<ref Expression/*!*/ e>
 QuantifierGuts<out Expression/*!*/ q>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null); IToken/*!*/ x = Token.NoToken;
      bool univ = false;
-     BoundVar/*!*/ bv;
-     List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
-     Attributes attrs = null;
-     Triggers trigs = null;
-     Expression range = null;
+     List<BoundVar/*!*/> bvars;
+     Attributes attrs;
+     Expression range;
      Expression/*!*/ body;
   .)
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
   )
+  QuantifierDomain<out bvars, out attrs, out range>
+  QSep
+  Expression<out body>
+  (. if (univ) {
+       q = new ForallExpr(x, bvars, range, body, attrs);
+     } else {
+       q = new ExistsExpr(x, bvars, range, body, attrs);
+     }
+  .)
+  .
+
+Forall = "forall" | '\u2200'.
+Exists = "exists" | '\u2203'.
+QSep = "::" | '\u2022'.
+
+QuantifierDomain<.out List<BoundVar/*!*/> bvars, out Attributes attrs, out Expression range.>
+= (.
+     bvars = new List<BoundVar/*!*/>();
+     BoundVar/*!*/ bv;
+     attrs = null;
+     range = null;
+  .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
-  { AttributeOrTrigger<ref attrs, ref trigs> }
+  { Attribute<ref attrs> }
   [ "|"
     Expression<out range>
   ]
-  QSep
-  Expression<out body>
-  (. if (univ) {
-       q = new ForallExpr(x, bvars, range, body, trigs, attrs);
-     } else {
-       q = new ExistsExpr(x, bvars, range, body, trigs, attrs);
-     }
-  .)
   .
-Forall = "forall" | '\u2200'.
-Exists = "exists" | '\u2203'.
-QSep = "::" | '\u2022'.
+
 ComprehensionExpr<out Expression/*!*/ q>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      IToken/*!*/ x = Token.NoToken;
@@ -1397,19 +1435,9 @@ AttributeBody<ref Attributes attrs>
   .
 AttributeArg<out Attributes.Argument/*!*/ arg>
 = (. Contract.Ensures(Contract.ValueAtReturn(out arg) != null); Expression/*!*/ e;  arg = dummyAttrArg; .)
-  ( string                             (. arg = new Attributes.Argument(t.val.Substring(1, t.val.Length-2)); .)
-  | Expression<out e>                  (. arg = new Attributes.Argument(e); .)
+  ( string                             (. arg = new Attributes.Argument(t, t.val.Substring(1, t.val.Length-2)); .)
+  | Expression<out e>                  (. arg = new Attributes.Argument(t, e); .)
   )
-  .
-AttributeOrTrigger<ref Attributes attrs, ref Triggers trigs>
-= (. List<Expression/*!*/> es = new List<Expression/*!*/>();
-  .)
-  "{"
-    ( AttributeBody<ref attrs>
-    |                                  (. es = new List<Expression/*!*/>(); .)
-      Expressions<es>                  (. trigs = new Triggers(es, trigs); .)
-    )
-  "}"
   .
 /*------------------------------------------------------------------------*/
 Idents<.List<string/*!*/>/*!*/ ids.>

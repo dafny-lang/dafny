@@ -696,6 +696,9 @@ namespace Microsoft.Dafny {
           CheckHasNoAssumes(t);
         }
         CheckHasNoAssumes(s.GivenBody);
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        CheckHasNoAssumes(s.Body);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         foreach (MatchCaseStmt mc in s.Cases) {
@@ -890,6 +893,11 @@ namespace Microsoft.Dafny {
           wr.WriteLine("}");
         }
 
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        Error("parallel statements are not yet supported by the Dafny compiler; stay tuned");
+        // TODO
+        
       } else if (stmt is ForeachStmt) {
         ForeachStmt s = (ForeachStmt)stmt;
         // List<Pair<TType,RhsType>> pendingUpdates = new List<Pair<TType,RhsType>>();

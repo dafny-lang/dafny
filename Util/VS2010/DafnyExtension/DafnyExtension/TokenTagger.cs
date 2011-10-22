@@ -272,6 +272,7 @@ namespace DafnyLanguage
                 case "null":
                 case "object":
                 case "old":
+                case "parallel":
                 case "print":
                 case "reads":
                 case "refines":

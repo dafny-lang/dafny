@@ -102,19 +102,25 @@ namespace Microsoft.Dafny {
     }
 
     public class Argument {
+      public readonly IToken Tok;
       public readonly string S;
       public readonly Expression E;
       [ContractInvariantMethod]
       void ObjectInvariant() {
+        Contract.Invariant(Tok != null);
         Contract.Invariant((S == null) != (E == null));
       }
 
-      public Argument(string s) {
+      public Argument(IToken tok, string s) {
+        Contract.Requires(tok != null);
         Contract.Requires(s != null);
+        Tok = tok;
         S = s;
       }
-      public Argument(Expression e) {
+      public Argument(IToken tok, Expression e) {
+        Contract.Requires(tok != null);
         Contract.Requires(e != null);
+        Tok = tok;
         E = e;
       }
     }
@@ -1781,7 +1787,82 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class MatchStmt : Statement {
+  public class ParallelStmt : Statement
+  {
+    public readonly List<BoundVar/*!*/> BoundVars;
+    public readonly Attributes Attributes;
+    public readonly Expression/*!*/ Range;
+    public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
+    public readonly Statement Body;  // used only until resolution; afterwards, use BodyAssign
+
+    public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver
+    // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
+
+    /// <summary>
+    /// Assign means there are no ensures clauses and the body consists of one update statement,
+    ///   either to an object field or to an array.
+    /// Call means there are no ensures clauses and the body consists of a single call to a (presumably
+    ///   ghost, but non-ghost is also allowed) method with no out-parameters and an empty modifies
+    ///   clause.
+    /// Proof means there is at least one ensures clause, and the body consists of any (presumably ghost,
+    ///   but non-ghost is also allowed) code without side effects on variables (including fields and array
+    ///   elements) declared outside the body itself.
+    /// Notes:
+    /// * More kinds may be allowed in the future.
+    /// * One could also allow Call to call non-ghost methods without side effects.  However, that
+    ///   would seem pointless in the program, so they are disallowed (to avoid any confusion that
+    ///   such use of the parallel statement might actually have a point).
+    /// * One could allow Proof even without ensures clauses that "export" what was learned.
+    ///   However, that might give the false impression that the body is nevertheless exported.
+    /// </summary>
+    public enum ParBodyKind { Assign, Call, Proof }
+    public ParBodyKind Kind;  // filled in during resolution
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(BoundVars != null);
+      Contract.Invariant(Range != null);
+      Contract.Invariant(Ens != null);
+      Contract.Invariant(Body != null);
+    }
+
+    public ParallelStmt(IToken tok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<MaybeFreeExpression/*!*/>/*!*/ ens, Statement body)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(boundVars));
+      Contract.Requires(range != null);
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(body != null);
+      this.BoundVars = boundVars;
+      this.Attributes = attrs;
+      this.Range = range;
+      this.Ens = ens;
+      this.Body = body;
+    }
+
+    public Statement S0 {
+      get {
+        // dig into Body to find a single statement
+        Statement s = this.Body;
+        while (true) {
+          var block = s as BlockStmt;
+          if (block != null && block.Body.Count == 1) {
+            s = block.Body[0];
+          } else {
+            var conc = s as ConcreteSyntaxStatement;
+            if (conc != null && conc.ResolvedStatements.Count == 1) {
+              s = conc.ResolvedStatements[0];
+            } else {
+              return s;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public class MatchStmt : Statement
+  {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Source != null);
@@ -2593,37 +2674,18 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr {
-    public readonly Triggers Trigs;
-
-    public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression/*!*/ term, Triggers trigs, Attributes attrs)
+    public QuantifierExpr(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression/*!*/ term, Attributes attrs)
       : base(tok, bvars, range, term, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(term != null);
-
-      this.Trigs = trigs;
     }
     public abstract Expression/*!*/ LogicalBody();
   }
 
-  public class Triggers {
-    public readonly List<Expression/*!*/>/*!*/ Terms;
-    public readonly Triggers Prev;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(cce.NonNullElements(Terms));
-    }
-
-    public Triggers(List<Expression/*!*/>/*!*/ terms, Triggers prev) {
-      Contract.Requires(cce.NonNullElements(terms));
-      this.Terms = terms;
-      this.Prev = prev;
-    }
-  }
-
   public class ForallExpr : QuantifierExpr {
-    public ForallExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression term, Triggers trig, Attributes attrs)
-      : base(tok, bvars, range, term, trig, attrs) {
+    public ForallExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
@@ -2640,8 +2702,8 @@ namespace Microsoft.Dafny {
   }
 
   public class ExistsExpr : QuantifierExpr {
-    public ExistsExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression term, Triggers trig, Attributes attrs)
-      : base(tok, bvars, range, term, trig, attrs) {
+    public ExistsExpr(IToken tok, List<BoundVar/*!*/>/*!*/ bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);

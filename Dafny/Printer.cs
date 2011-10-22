@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
         if (module.IsDefaultModule) {
           PrintTopLevelDecls(module.TopLevelDecls, 0);
         } else {
-          wr.Write("module ");
+          wr.Write("module");
           PrintAttributes(module.Attributes);
-          wr.Write("{0} ", module.Name);
+          wr.Write(" {0} ", module.Name);
           if (module.Imports.Count != 0) {
             string sep = "imports ";
             foreach (string imp in module.Imports) {
@@ -127,15 +127,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Prints no space before "kind", but does print a space before "attrs" and "name".
+    /// </summary>
     void PrintClassMethodHelper(string kind, Attributes attrs, string name, List<TypeParameter> typeArgs) {
       Contract.Requires(kind != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
       if (kind.Length != 0) {
-        wr.Write("{0} ", kind);
+        wr.Write(kind);
       }
       PrintAttributes(attrs);
-      wr.Write(name);
+      wr.Write(" {0}", name);
       if (typeArgs.Count != 0) {
         wr.Write("<");
         string sep = "";
@@ -152,7 +155,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
-      wr.Write(" = ");
+      wr.Write(" =");
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {
         wr.Write(sep);
@@ -160,18 +163,21 @@ namespace Microsoft.Dafny {
         if (ctor.Formals.Count != 0) {
           PrintFormals(ctor.Formals);
         }
-        sep = " | ";
+        sep = " |";
       }
       wr.WriteLine(";");
     }
 
+    /// <summary>
+    /// Prints a space before each attribute.
+    /// </summary>
     public void PrintAttributes(Attributes a) {
       if (a != null) {
         PrintAttributes(a.Prev);
 
-        wr.Write("{{:{0}", a.Name);
+        wr.Write(" {{:{0}", a.Name);
         PrintAttributeArgs(a.Args);
-        wr.Write("} ");
+        wr.Write("}");
       }
     }
 
@@ -197,9 +203,9 @@ namespace Microsoft.Dafny {
       if (field.IsGhost) {
         wr.Write("ghost ");
       }
-      wr.Write("var ");
+      wr.Write("var");
       PrintAttributes(field.Attributes);
-      wr.Write("{0}: ", field.Name);
+      wr.Write(" {0}: ", field.Name);
       PrintType(field.Type);
       wr.WriteLine(";");
     }
@@ -454,7 +460,6 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
-        wr.Write("call ");
         if (s.Lhs.Count != 0) {
           string sep = "";
           foreach (IdentifierExpr v in s.Lhs) {
@@ -556,6 +561,19 @@ namespace Microsoft.Dafny {
         wr.WriteLine();
         Indent(indent);
         wr.Write("}");
+
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        wr.Write("parallel (");
+        PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
+        if (s.Ens.Count == 0) {
+          wr.Write(") ");
+        } else {
+          wr.WriteLine(")");
+          PrintSpec("ensures", s.Ens, indent + IndentAmount);
+          Indent(indent);
+        }
+        PrintStatement(s.Body, indent);
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
@@ -1022,21 +1040,8 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall " : "exists ");
-        string sep = "";
-        foreach (BoundVar bv in e.BoundVars) {
-          wr.Write("{0}{1}", sep, bv.Name);
-          sep = ", ";
-          PrintType(": ", bv.Type);
-        }
-        wr.Write(" ");
-        PrintAttributes(e.Attributes);
-        PrintTriggers(e.Trigs);
-        if (e.Range != null) {
-          wr.Write("| ");
-          PrintExpression(e.Range);
-          wr.Write(" ");
-        }
-        wr.Write(":: ");
+        PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
+        wr.Write(" :: ");
         if (0 <= indent) {
           int ind = indent + IndentAmount;
           wr.WriteLine();
@@ -1058,9 +1063,8 @@ namespace Microsoft.Dafny {
           sep = ", ";
           PrintType(": ", bv.Type);
         }
-        wr.Write(" ");
         PrintAttributes(e.Attributes);
-        wr.Write("| ");
+        wr.Write(" | ");
         PrintExpression(e.Range);
         if (!e.TermIsImplicit) {
           wr.Write(" :: ");
@@ -1108,13 +1112,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintTriggers(Triggers trigs) {
-      if (trigs != null) {
-        PrintTriggers(trigs.Prev);
-
-        wr.Write("{ ");
-        PrintExpressionList(trigs.Terms);
-        wr.Write(" } ");
+    private void PrintQuantifierDomain(List<BoundVar> boundVars, Attributes attrs, Expression range) {
+      Contract.Requires(boundVars != null);
+      string sep = "";
+      foreach (BoundVar bv in boundVars) {
+        wr.Write("{0}{1}", sep, bv.Name);
+        sep = ", ";
+        PrintType(": ", bv.Type);
+      }
+      PrintAttributes(attrs);
+      if (range != null) {
+        wr.Write(" | ");
+        PrintExpression(range);
       }
     }
 
