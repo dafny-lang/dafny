@@ -311,8 +311,8 @@ namespace Microsoft.Dafny {
     Function currentFunction;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
-    readonly Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
-    readonly List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
+    Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
+    List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     readonly Dictionary<Statement, bool> inSpecOnlyContext = new Dictionary<Statement, bool>();  // invariant: domain contain union of the domains of "labeledStatements" and "loopStack"
 
     /// <summary>
@@ -1558,7 +1558,15 @@ namespace Microsoft.Dafny {
           }
         }
         s.IsGhost = bodyMustBeSpecOnly;
+
+        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a parallel statement 
+        var prevLblStmts = labeledStatements;
+        var prevLoopStack = loopStack;
+        labeledStatements = new Scope<Statement>();
+        loopStack = new List<Statement>();
         ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
+        labeledStatements = prevLblStmts;
+        loopStack = prevLoopStack;
         scope.PopMarker();
 
         if (prevErrorCount == ErrorCount) {
@@ -1577,7 +1585,12 @@ namespace Microsoft.Dafny {
               } else if (lhs is MultiSelectExpr) {
                 // cool
               } else {
-                Error(s0, "unexpected or disallowed assignment LHS in parallel statement");
+                Contract.Assert(false);  // unexpected assignment LHS
+              }
+              var rhs = ((AssignStmt)s0).Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
+              // TODO: Occurrences of Choose in RHS must also be handled or disallowed (this happen when Choose is treated like a method member of the set type)
+              if (rhs is TypeRhs) {
+                Error(rhs.Tok, "new allocation not supported in parallel statements");
               }
               s.Kind = ParallelStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {

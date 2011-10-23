@@ -34,14 +34,14 @@ method MirrorImage<T>(m: array2<T>)
 method Flip<T>(m: array2<T>)
   requires m != null && m.Length0 == m.Length1;
   modifies m;
-  ensures (forall i,j :: 0 <= i && i < m.Length0 && 0 <= j && j < m.Length1 ==> m[i,j] == old(m[j,i]));
+  ensures (forall i,j :: 0 <= i < m.Length0 && 0 <= j < m.Length1 ==> m[i,j] == old(m[j,i]));
 {
   var N := m.Length0;
   var a := 0;
-  var b := 0;
+  var b := 1;
   while (a != N)
-    invariant a <= b && b <= N;
-    invariant (forall i,j :: 0 <= i && i <= j && j < N ==>
+    invariant a < b <= N || (a == N && b == N+1);
+    invariant (forall i,j :: 0 <= i <= j < N ==>
                 (if i < a || (i == a && j < b)
                   then m[i,j] == old(m[j,i]) && m[j,i] == old(m[i,j])
                   else m[i,j] == old(m[i,j]) && m[j,i] == old(m[j,i])));
@@ -51,7 +51,7 @@ method Flip<T>(m: array2<T>)
       m[a,b], m[b,a] := m[b,a], m[a,b];
       b := b + 1;
     } else {
-      a := a + 1;  b := a;
+      a := a + 1;  b := a + 1;
     }
   }
 }
