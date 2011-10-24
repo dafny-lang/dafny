@@ -3348,159 +3348,24 @@ namespace Microsoft.Dafny {
         if (s.Kind == ParallelStmt.ParBodyKind.Assign) {
           Contract.Assert(s.Ens.Count == 0);
           var s0 = (AssignStmt)s.S0;
-
-          // The statement:
-          //   parallel (x,y | Range(x,y)) {
-          //     (a)   E(x,y) . f :=  G(x,y);
-          //     (b)   A(x,y) [ I0(x,y), I1(x,y), ... ] :=  G(x,y);
-          //   }
-          // translate into:
-          //   if (*) {
-          //     // check definedness of Range
-          //     var x,y;
-          //     havoc x,y;
-          //     CheckWellDefined( Range );
-          //     assume Range;
-          //     // check definedness of the other expressions
-          //     (a)
-          //       CheckWellDefined( E.F );
-          //       check that E.f is in the modifies frame;
-          //       CheckWellDefined( G );
-          //       check nat restrictions for the RHS
-          //     (b)
-          //       CheckWellDefined( A[I0,I1,...] );
-          //       check that A[I0,I1,...] is in the modifies frame;
-          //       CheckWellDefined( G );
-          //       check nat restrictions for the RHS
-          //     // check for duplicate LHSs
-          //     var x', y';
-          //     havoc x', y';
-          //     assume Range[x,y := x',y'];
-          //     assume !(x == x' && y == y');
-          //     (a)
-          //       assert E(x,y) != E(x',y');
-          //     (b)
-          //       assert !( A(x,y)==A(x',y') && I0(x,y)==I0(x',y') && I1(x,y)==I1(x',y') && ... );
-          //
-          //     assume false;
-          //
-          //   } else {
-          //     var oldHeap := $Heap;
-          //     havoc $Heap;
-          //     assume $HeapSucc(oldHeap, $Heap);
-          //     (a)
-          //       assume (forall<alpha> o: ref, F: Field alpha ::
-          //         $Heap[o,F] = oldHeap[o,F] ||
-          //         (exists x,y :: Range(x,y) && o == E(x,y) && F = f));
-          //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]);
-          //     (b)
-          //       assume (forall<alpha> o: ref, F: Field alpha ::
-          //         $Heap[o,F] = oldHeap[o,F] ||
-          //         (exists x,y :: Range(x,y) && o == A(x,y) && F = Index(I0,I1,...)));
-          //       assume (forall x,y ::  Range ==> $Heap[ A[$Heap:=oldHeap], Index(I0,I1,...)] == G[$Heap:=oldHeap]);
-          //   }
-
-          var definedness = new StmtListBuilder();
-          var substMap = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
-          if (s.Range != null) {
-            Expression range = Substitute(s.Range, null, substMap);
-            TrStmt_CheckWellformed(range, definedness, locals, etran, false);
-            definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(range)));
-          }
-
-          var lhs = Substitute(s0.Lhs.Resolved, null, substMap);
-          TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
-          Bpl.Expr obj, F;
-          string description = GetObjFieldDetails(lhs, etran, out obj, out F);
-          definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
-            "assignment may update " + description + " not in the enclosing context's modifies clause"));
-          if (s0.Rhs is ExprRhs) {
-            var rhs = Substitute(((ExprRhs)s0.Rhs).Expr, null, substMap);
-            TrStmt_CheckWellformed(rhs, definedness, locals, etran, false);
-            // TODO: check nat restrictions for the RHS
-          }
-
-          // check for duplicate LHSs
-          var substMapPrime = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
-          var lhsPrime = Substitute(s0.Lhs.Resolved, null, substMapPrime);
-          if (s.Range != null) {
-            Expression range = Substitute(s.Range, null, substMapPrime);
-            definedness.Add(new Bpl.AssumeCmd(range.tok, etran.TrExpr(range)));
-          }
-          // assume !(x == x' && y == y');
-          Bpl.Expr eqs = Bpl.Expr.True;
-          foreach (var bv in s.BoundVars) {
-            var x = substMap[bv];
-            var xPrime = substMapPrime[bv];
-            // TODO: in the following line, is the term equality okay, or does it have to include things like Set#Equal sometimes too?
-            eqs = BplAnd(eqs, Bpl.Expr.Eq(etran.TrExpr(x), etran.TrExpr(xPrime)));
-          }
-          definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.Not(eqs)));
-          Bpl.Expr objPrime, FPrime;
-          GetObjFieldDetails(lhsPrime, etran, out objPrime, out FPrime);
-          definedness.Add(Assert(s0.Tok,
-            Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
-            "left-hand sides for different parallel-statement bound variables may refer to the same location"));
-
-          definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
-
-          // Now for the translation of the update itself 
-
+          var definedness = new Bpl.StmtListBuilder();
           var updater = new Bpl.StmtListBuilder();
-          Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(stmt.Tok, locals);
-          var prevEtran = new ExpressionTranslator(this, predef, prevHeap);
-          updater.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, prevHeap, etran.HeapExpr));
-          updater.Add(new Bpl.HavocCmd(stmt.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
-          updater.Add(new Bpl.AssumeCmd(stmt.Tok, FunctionCall(stmt.Tok, BuiltinFunction.HeapSucc, null, prevHeap, etran.HeapExpr)));
-
-          // Here comes:
-          //   assume (forall<alpha> o: ref, f: Field alpha ::
-          //     $Heap[o,f] = oldHeap[o,f] ||
-          //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
-          //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
-          Bpl.TypeVariable alpha = new Bpl.TypeVariable(stmt.Tok, "alpha");
-          Bpl.BoundVariable oVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$o", predef.RefType));
-          Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(stmt.Tok, oVar);
-          Bpl.BoundVariable fVar = new Bpl.BoundVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, "$f", predef.FieldName(stmt.Tok, alpha)));
-          Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(stmt.Tok, fVar);
-          Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(stmt.Tok, etran.HeapExpr, o, f);
-          Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(stmt.Tok, prevHeap, o, f);
-          Bpl.VariableSeq xBvars = new Bpl.VariableSeq();
-          var xBody = etran.TrBoundVariables(s.BoundVars, xBvars);
-          if (s.Range != null) {
-            xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
-          }
-          Bpl.Expr xObj, xField;
-          GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out xObj, out xField);
-          xBody = BplAnd(xBody, Bpl.Expr.Eq(o, xObj));
-          xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
-          Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);
-          Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
-          Bpl.Expr qq = new Bpl.ForallExpr(stmt.Tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), body);
-          updater.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
-
-          if (s0.Rhs is ExprRhs) {
-            //   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
-            //                         $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap] ));
-            xBvars = new Bpl.VariableSeq();
-            Bpl.Expr xAnte = etran.TrBoundVariables(s.BoundVars, xBvars);
-            if (s.Range != null) {
-              xAnte = BplAnd(xAnte, prevEtran.TrExpr(s.Range));
-            }
-            GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out xObj, out xField);
-            var xHeapOF = ExpressionTranslator.ReadHeap(stmt.Tok, etran.HeapExpr, xObj, xField);
-            var g = prevEtran.TrExpr(((ExprRhs)s0.Rhs).Expr);
-            qq = new Bpl.ForallExpr(stmt.Tok, xBvars, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
-            updater.Add(new Bpl.AssumeCmd(stmt.Tok, qq));
-          }
+          TrParallelAssign(s, s0, definedness, updater, locals, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
           builder.Add(CaptureState(stmt.Tok));
 
         } else if (s.Kind == ParallelStmt.ParBodyKind.Call) {
           // TODO: call forall
+
         } else if (s.Kind == ParallelStmt.ParBodyKind.Proof) {
-          // TODO
+          var definedness = new Bpl.StmtListBuilder();
+          var exporter = new Bpl.StmtListBuilder();
+          TrParallelProof(s, definedness, exporter, locals, etran);
+          // All done, so put the two pieces together
+          builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
+          builder.Add(CaptureState(stmt.Tok));
+
         } else {
           Contract.Assert(false);  // unexpected kind
         }
@@ -3571,6 +3436,240 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    void TrParallelAssign(ParallelStmt s, AssignStmt s0,
+      Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder updater, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      // The statement:
+      //   parallel (x,y | Range(x,y)) {
+      //     (a)   E(x,y) . f :=  G(x,y);
+      //     (b)   A(x,y) [ I0(x,y), I1(x,y), ... ] :=  G(x,y);
+      //   }
+      // translate into:
+      //   if (*) {
+      //     // check definedness of Range
+      //     var x,y;
+      //     havoc x,y;
+      //     CheckWellDefined( Range );
+      //     assume Range;
+      //     // check definedness of the other expressions
+      //     (a)
+      //       CheckWellDefined( E.F );
+      //       check that E.f is in the modifies frame;
+      //       CheckWellDefined( G );
+      //       check nat restrictions for the RHS
+      //     (b)
+      //       CheckWellDefined( A[I0,I1,...] );
+      //       check that A[I0,I1,...] is in the modifies frame;
+      //       CheckWellDefined( G );
+      //       check nat restrictions for the RHS
+      //     // check for duplicate LHSs
+      //     var x', y';
+      //     havoc x', y';
+      //     assume Range[x,y := x',y'];
+      //     assume !(x == x' && y == y');
+      //     (a)
+      //       assert E(x,y) != E(x',y');
+      //     (b)
+      //       assert !( A(x,y)==A(x',y') && I0(x,y)==I0(x',y') && I1(x,y)==I1(x',y') && ... );
+      //
+      //     assume false;
+      //
+      //   } else {
+      //     var oldHeap := $Heap;
+      //     havoc $Heap;
+      //     assume $HeapSucc(oldHeap, $Heap);
+      //     (a)
+      //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //         $Heap[o,F] = oldHeap[o,F] ||
+      //         (exists x,y :: Range(x,y) && o == E(x,y) && F = f));
+      //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]);
+      //     (b)
+      //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //         $Heap[o,F] = oldHeap[o,F] ||
+      //         (exists x,y :: Range(x,y) && o == A(x,y) && F = Index(I0,I1,...)));
+      //       assume (forall x,y ::  Range ==> $Heap[ A[$Heap:=oldHeap], Index(I0,I1,...)] == G[$Heap:=oldHeap]);
+      //   }
+
+      var substMap = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
+      if (s.Range != null) {
+        Expression range = Substitute(s.Range, null, substMap);
+        TrStmt_CheckWellformed(range, definedness, locals, etran, false);
+        definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(range)));
+      }
+
+      var lhs = Substitute(s0.Lhs.Resolved, null, substMap);
+      TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
+      Bpl.Expr obj, F;
+      string description = GetObjFieldDetails(lhs, etran, out obj, out F);
+      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
+        "assignment may update " + description + " not in the enclosing context's modifies clause"));
+      if (s0.Rhs is ExprRhs) {
+        var r = (ExprRhs)s0.Rhs;
+        var rhs = Substitute(r.Expr, null, substMap);
+        TrStmt_CheckWellformed(rhs, definedness, locals, etran, false);
+        // TODO: check nat restrictions for the RHS
+        //   CheckSubrange(rhs.tok, bRhs, checkSubrangeType, definedness);
+      }
+
+      // check for duplicate LHSs
+      var substMapPrime = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
+      var lhsPrime = Substitute(s0.Lhs.Resolved, null, substMapPrime);
+      if (s.Range != null) {
+        Expression range = Substitute(s.Range, null, substMapPrime);
+        definedness.Add(new Bpl.AssumeCmd(range.tok, etran.TrExpr(range)));
+      }
+      // assume !(x == x' && y == y');
+      Bpl.Expr eqs = Bpl.Expr.True;
+      foreach (var bv in s.BoundVars) {
+        var x = substMap[bv];
+        var xPrime = substMapPrime[bv];
+        // TODO: in the following line, is the term equality okay, or does it have to include things like Set#Equal sometimes too?
+        eqs = BplAnd(eqs, Bpl.Expr.Eq(etran.TrExpr(x), etran.TrExpr(xPrime)));
+      }
+      definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.Not(eqs)));
+      Bpl.Expr objPrime, FPrime;
+      GetObjFieldDetails(lhsPrime, etran, out objPrime, out FPrime);
+      definedness.Add(Assert(s0.Tok,
+        Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
+        "left-hand sides for different parallel-statement bound variables may refer to the same location"));
+
+      definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+
+      // Now for the translation of the update itself 
+
+      Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Tok, locals);
+      var prevEtran = new ExpressionTranslator(this, predef, prevHeap);
+      updater.Add(Bpl.Cmd.SimpleAssign(s.Tok, prevHeap, etran.HeapExpr));
+      updater.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
+      updater.Add(new Bpl.AssumeCmd(s.Tok, FunctionCall(s.Tok, BuiltinFunction.HeapSucc, null, prevHeap, etran.HeapExpr)));
+
+      // Here comes:
+      //   assume (forall<alpha> o: ref, f: Field alpha ::
+      //     $Heap[o,f] = oldHeap[o,f] ||
+      //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
+      //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(s.Tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
+      Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, o, f);
+      Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(s.Tok, prevHeap, o, f);
+      Bpl.VariableSeq xBvars = new Bpl.VariableSeq();
+      var xBody = etran.TrBoundVariables(s.BoundVars, xBvars);
+      if (s.Range != null) {
+        xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
+      }
+      Bpl.Expr xObj, xField;
+      GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out xObj, out xField);
+      xBody = BplAnd(xBody, Bpl.Expr.Eq(o, xObj));
+      xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
+      Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);
+      Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
+      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), body);
+      updater.Add(new Bpl.AssumeCmd(s.Tok, qq));
+
+      if (s0.Rhs is ExprRhs) {
+        //   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
+        //                         $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap] ));
+        xBvars = new Bpl.VariableSeq();
+        Bpl.Expr xAnte = etran.TrBoundVariables(s.BoundVars, xBvars);
+        if (s.Range != null) {
+          xAnte = BplAnd(xAnte, prevEtran.TrExpr(s.Range));
+        }
+        var rhs = ((ExprRhs)s0.Rhs).Expr;
+        var g = prevEtran.TrExpr(rhs);
+        GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out xObj, out xField);
+        var xHeapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, xObj, xField);
+
+        Type lhsType;
+        if (lhs is FieldSelectExpr) {
+          lhsType = ((FieldSelectExpr)lhs).Type;
+        } else {
+          lhsType = null;
+        }
+        g = etran.CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
+
+        qq = new Bpl.ForallExpr(s.Tok, xBvars, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
+        updater.Add(new Bpl.AssumeCmd(s.Tok, qq));
+      }
+    }
+
+    void TrParallelProof(ParallelStmt s, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      // Translate:
+      //   parallel (x,y | Range(x,y))
+      //     ensures Post(x,y);
+      //   {
+      //     Body;
+      //   }
+      // as:
+      //   if (*) {
+      //     var x,y;
+      //     havoc x,y;
+      //     CheckWellDefined( Range );
+      //     assume Range(x,y);
+      //     Tr( Body );
+      //     CheckWellDefined( Post );
+      //     assert Post;
+      //     assume false;
+      //   } else {
+      //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
+      //   }
+
+      // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
+      // here (rather than a TrBoundVariables).  However, there is currently no way to apply
+      // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+      Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+      var ante = etran.TrBoundVariables(s.BoundVars, bvars, true);
+      locals.AddRange(bvars);
+      var havocIds = new Bpl.IdentifierExprSeq();
+      foreach (Bpl.Variable bv in bvars) {
+        havocIds.Add(new Bpl.IdentifierExpr(s.Tok, bv));
+      }
+      definedness.Add(new Bpl.HavocCmd(s.Tok, havocIds));
+      definedness.Add(new Bpl.AssumeCmd(s.Tok, ante));
+      if (s.Range != null) {
+        TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
+        definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
+      }
+
+      TrStmt(s.Body, definedness, locals, etran);
+
+      // check that postconditions hold
+      foreach (var ens in s.Ens) {
+        TrStmt_CheckWellformed(ens.E, definedness, locals, etran, false);
+        if (!ens.IsFree) {
+          bool splitHappened;  // we actually don't care
+          foreach (var split in TrSplitExpr(ens.E, etran, out splitHappened)) {
+            if (!split.IsFree) {
+              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of parallel statement"));
+            }
+          }
+        }
+      }
+
+      definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+
+      // Now for the other branch, where the ensures clauses are exported.
+
+      bvars = new Bpl.VariableSeq();
+      Dictionary<IVariable, Expression> substMap;
+      ante = etran.TrBoundVariablesRename(s.BoundVars, bvars, out substMap);
+      if (s.Range != null) {
+        var range = Substitute(s.Range, null, substMap);
+        TrStmt_CheckWellformed(range, definedness, locals, etran, false);
+        ante = BplAnd(ante, etran.TrExpr(range));
+      }
+
+      Bpl.Expr post = Bpl.Expr.True;
+      foreach (var ens in s.Ens) {
+        var p = Substitute(ens.E, null, substMap);
+        post = BplAnd(post, etran.TrExpr(p));
+      }
+
+      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, bvars, Bpl.Expr.Imp(ante, post));
+      exporter.Add(new Bpl.AssumeCmd(s.Tok, qq));
     }
 
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
@@ -5326,14 +5425,46 @@ namespace Microsoft.Dafny {
       }
 
       public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, Bpl.VariableSeq bvars) {
+        return TrBoundVariables(boundVars, bvars, false);
+      }
+
+      public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, Bpl.VariableSeq bvars, bool translateAsLocals) {
         Contract.Requires(boundVars != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         Bpl.Expr typeAntecedent = Bpl.Expr.True;
         foreach (BoundVar bv in boundVars) {
-          Bpl.Variable bvar = new Bpl.BoundVariable(bv.tok, new Bpl.TypedIdent(bv.tok, bv.UniqueName, translator.TrType(bv.Type)));
+          var tid = new Bpl.TypedIdent(bv.tok, bv.UniqueName, translator.TrType(bv.Type));
+          Bpl.Variable bvar;
+          if (translateAsLocals) {
+            bvar = new Bpl.LocalVariable(bv.tok, tid);
+          } else {
+            bvar = new Bpl.BoundVariable(bv.tok, tid);
+          }
           bvars.Add(bvar);
           Bpl.Expr wh = translator.GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, bvar), bv.Type, this);
+          if (wh != null) {
+            typeAntecedent = translator.BplAnd(typeAntecedent, wh);
+          }
+        }
+        return typeAntecedent;
+      }
+
+      public Bpl.Expr TrBoundVariablesRename(List<BoundVar> boundVars, Bpl.VariableSeq bvars, out Dictionary<IVariable, Expression> substMap) {
+        Contract.Requires(boundVars != null);
+        Contract.Requires(bvars != null);
+
+        substMap = new Dictionary<IVariable, Expression>();
+        Bpl.Expr typeAntecedent = Bpl.Expr.True;
+        foreach (BoundVar bv in boundVars) {
+          var newBoundVar = new BoundVar(bv.tok, bv.Name, bv.Type);
+          IdentifierExpr ie = new IdentifierExpr(newBoundVar.tok, newBoundVar.UniqueName);
+          ie.Var = newBoundVar; ie.Type = ie.Var.Type;  // resolve ie here
+          substMap.Add(bv, ie);
+          Bpl.Variable bvar = new Bpl.BoundVariable(newBoundVar.tok, new Bpl.TypedIdent(newBoundVar.tok, newBoundVar.UniqueName, translator.TrType(newBoundVar.Type)));
+          bvars.Add(bvar);
+          var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
+          Bpl.Expr wh = translator.GetWhereClause(bv.tok, bIe, newBoundVar.Type, this);
           if (wh != null) {
             typeAntecedent = translator.BplAnd(typeAntecedent, wh);
           }

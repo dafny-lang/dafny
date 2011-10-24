@@ -16,7 +16,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             Array.dfy MultiDimArray.dfy NonGhostQuantifiers.dfy AdvancedLHS.dfy
             Modules0.dfy Modules1.dfy BadFunction.dfy
             Comprehensions.dfy Basics.dfy ControlStructures.dfy
-            Termination.dfy DTypes.dfy
+            Termination.dfy DTypes.dfy Parallel.dfy
             TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy SplitExpr.dfy
             Refinement.dfy RefinementErrors.dfy LoopModifies.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
