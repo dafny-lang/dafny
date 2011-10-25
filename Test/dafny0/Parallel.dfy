@@ -1,6 +1,11 @@
 class C {
   var data: int;
+  var n: nat;
   var st: set<object>;
+
+  ghost method CLemma(k: int)
+    requires k != -23;
+    ensures data < k;  // magic, isn't it (or bogus, some would say)
 }
 
 // This method more or less just tests the syntax, resolution, and basic verification
@@ -8,7 +13,8 @@ method ParallelStatement_Resolve(
     a: array<int>,
     spine: set<C>,
     Repr: set<object>,
-    S: set<int>
+    S: set<int>,
+    clx: C, cly: C, clk: int
   )
   requires a != null && null !in spine;
   modifies a, spine;
@@ -22,17 +28,21 @@ method ParallelStatement_Resolve(
   }
 
   parallel (x, y | x in S && 0 <= y+x < 100) {
-    Lemma(x, y);
+    Lemma(clx, x, y);  // error: precondition does not hold (clx may be null)
+  }
+
+  parallel (x, y | x in S && 0 <= y+x < 100) {
+    cly.CLemma(x + y);  // error: receiver might be null
   }
 
   parallel (p | 0 <= p)
-    ensures F(p) <= Sum(p) * (p-1) + 100;  // error (no connection is known between F and Sum)
+    ensures F(p) <= Sum(p) + p - 1;  // error (no connection is known between F and Sum)
   {
     assert 0 <= G(p);
     ghost var t;
     if (p % 2 == 0) {
       assert G(p) == F(p+2);  // error (there's nothing that gives any relation between F and G)
-      t := p*p;
+      t := p+p;
     } else {
       assume H(p, 20) < 100;  // don't know how to justify this
       t := p;
@@ -43,13 +53,17 @@ method ParallelStatement_Resolve(
   }
 }
 
-method Lemma(x: int, y: int)
+method Lemma(c: C, x: int, y: int)
+  requires c != null;
+  ensures c.data <= x+y;
 ghost method PowerLemma(x: int, y: int)
+  ensures Pred(x, y);
 
 function F(x: int): int
 function G(x: int): nat
 function H(x: int, y: int): int
 function Sum(x: int): int
+function Pred(x: int, y: int): bool
 
 // ---------------------------------------------------------------------
 
@@ -95,5 +109,42 @@ method M2() returns (a: array<int>)
   }
   parallel (i | 125 <= i < 250) {
     a[i] := 300 + i;
+  }
+}
+
+method M4(S: set<C>, k: int)
+  modifies S;
+{
+  parallel (s | s in S && s != null) {
+    s.n := k;  // error: k might be negative
+  }
+}
+
+method M5()
+{
+  if {
+  case true =>
+    parallel (x | 0 <= x < 100) {
+      PowerLemma(x, x);
+    }
+    assert Pred(34, 34);
+
+  case true =>
+    parallel (x,y | 0 <= x < 100 && y == x+1) {
+      PowerLemma(x, y);
+    }
+    assert Pred(34, 35);
+
+  case true =>
+    parallel (x,y | 0 <= x < y < 100) {
+      PowerLemma(x, y);
+    }
+    assert Pred(34, 35);
+
+  case true =>
+    parallel (x | x in set k | 0 <= k < 100) {
+      PowerLemma(x, x);
+    }
+    assert Pred(34, 34);
   }
 }

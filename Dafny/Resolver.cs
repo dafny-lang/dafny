@@ -3889,10 +3889,10 @@ namespace Microsoft.Dafny {
         return cce.NonNull(e.Var).IsGhost;
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
-        return Contract.Exists(dtv.Arguments, arg=> UsesSpecFeatures(arg));
+        return dtv.Arguments.Exists(arg => UsesSpecFeatures(arg));
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
-        return Contract.Exists( e.Elements,ee=> UsesSpecFeatures(ee));
+        return e.Elements.Exists(ee => UsesSpecFeatures(ee));
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         return cce.NonNull(e.Field).IsGhost || UsesSpecFeatures(e.Obj);
@@ -3914,7 +3914,7 @@ namespace Microsoft.Dafny {
         if (cce.NonNull(e.Function).IsGhost) {
           return true;
         }
-        return Contract.Exists( e.Args,arg=> UsesSpecFeatures(arg));
+        return e.Args.Exists(arg => UsesSpecFeatures(arg));
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         return UsesSpecFeatures(e.E);
@@ -3931,9 +3931,14 @@ namespace Microsoft.Dafny {
           return true;
         }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
-      } else if (expr is QuantifierExpr) {
-        var e = (QuantifierExpr)expr;
-        return e.Bounds == null;  // if the resolver found bounds, then the quantifier can be compiled
+      } else if (expr is ComprehensionExpr) {
+        if (expr is QuantifierExpr && ((QuantifierExpr)expr).Bounds == null) {
+          return true;  // the quantifier cannot be compiled if the resolver found no bounds
+        }
+        return Contract.Exists(expr.SubExpressions, se => UsesSpecFeatures(se));
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
+        return (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
       } else if (expr is WildcardExpr) {
         return false;
       } else if (expr is ITEExpr) {
@@ -3944,7 +3949,7 @@ namespace Microsoft.Dafny {
         if (UsesSpecFeatures(me.Source)) {
           return true;
         }
-        return Contract.Exists( me.Cases,mc=> UsesSpecFeatures(mc.Body));
+        return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);

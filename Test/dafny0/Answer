@@ -948,40 +948,79 @@ Execution trace:
 Dafny program verifier finished with 27 verified, 6 errors
 
 -------------------- Parallel.dfy --------------------
-Parallel.dfy(29,18): Error: possible violation of postcondition of parallel statement
+Parallel.dfy(31,5): Error BP5002: A precondition for this call might not hold.
+Parallel.dfy(57,14): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon17_Else
+    (0,0): anon29_Else
     (0,0): anon7
-    (0,0): anon20_Else
+    (0,0): anon32_Else
     (0,0): anon10
-    (0,0): anon21_Then
-    (0,0): anon22_Then
+    (0,0): anon33_Then
+    (0,0): anon34_Then
+    (0,0): anon35_Then
     (0,0): anon14
-Parallel.dfy(34,19): Error: assertion violation
+Parallel.dfy(35,5): Error: target object may be null
 Execution trace:
     (0,0): anon0
-    (0,0): anon17_Else
+    (0,0): anon29_Else
     (0,0): anon7
-    (0,0): anon20_Else
+    (0,0): anon32_Else
     (0,0): anon10
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-Parallel.dfy(76,19): Error: assertion violation
+    (0,0): anon33_Else
+    (0,0): anon16
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon38_Then
+    (0,0): anon20
+Parallel.dfy(39,18): Error: possible violation of postcondition of parallel statement
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon32_Else
+    (0,0): anon10
+    (0,0): anon33_Else
+    (0,0): anon16
+    (0,0): anon36_Else
+    (0,0): anon22
+    (0,0): anon39_Then
+    (0,0): anon40_Then
+    (0,0): anon26
+Parallel.dfy(44,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon32_Else
+    (0,0): anon10
+    (0,0): anon33_Else
+    (0,0): anon16
+    (0,0): anon36_Else
+    (0,0): anon22
+    (0,0): anon39_Then
+    (0,0): anon40_Then
+Parallel.dfy(90,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon3
     (0,0): anon11_Then
-Parallel.dfy(82,20): Error: possible violation of postcondition of parallel statement
+Parallel.dfy(96,20): Error: possible violation of postcondition of parallel statement
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon3
     (0,0): anon11_Then
     (0,0): anon12_Then
+Parallel.dfy(119,12): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+    (0,0): anon7_Then
+    (0,0): anon3
 
-Dafny program verifier finished with 12 verified, 4 errors
+Dafny program verifier finished with 17 verified, 7 errors
 
 -------------------- TypeParameters.dfy --------------------
 TypeParameters.dfy(44,22): Error: assertion violation

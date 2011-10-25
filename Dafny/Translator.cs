@@ -3356,7 +3356,14 @@ namespace Microsoft.Dafny {
           builder.Add(CaptureState(stmt.Tok));
 
         } else if (s.Kind == ParallelStmt.ParBodyKind.Call) {
-          // TODO: call forall
+          Contract.Assert(s.Ens.Count == 0);
+          var s0 = (CallStmt)s.S0;
+          var definedness = new Bpl.StmtListBuilder();
+          var exporter = new Bpl.StmtListBuilder();
+          TrParallelCall(s, s0, definedness, exporter, locals, etran);
+          // All done, so put the two pieces together
+          builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
+          builder.Add(CaptureState(stmt.Tok));
 
         } else if (s.Kind == ParallelStmt.ParBodyKind.Proof) {
           var definedness = new Bpl.StmtListBuilder();
@@ -3450,18 +3457,18 @@ namespace Microsoft.Dafny {
       //     // check definedness of Range
       //     var x,y;
       //     havoc x,y;
-      //     CheckWellDefined( Range );
+      //     CheckWellformed( Range );
       //     assume Range;
       //     // check definedness of the other expressions
       //     (a)
-      //       CheckWellDefined( E.F );
+      //       CheckWellformed( E.F );
       //       check that E.f is in the modifies frame;
-      //       CheckWellDefined( G );
+      //       CheckWellformed( G );
       //       check nat restrictions for the RHS
       //     (b)
-      //       CheckWellDefined( A[I0,I1,...] );
+      //       CheckWellformed( A[I0,I1,...] );
       //       check that A[I0,I1,...] is in the modifies frame;
-      //       CheckWellDefined( G );
+      //       CheckWellformed( G );
       //       check nat restrictions for the RHS
       //     // check for duplicate LHSs
       //     var x', y';
@@ -3508,8 +3515,16 @@ namespace Microsoft.Dafny {
         var r = (ExprRhs)s0.Rhs;
         var rhs = Substitute(r.Expr, null, substMap);
         TrStmt_CheckWellformed(rhs, definedness, locals, etran, false);
-        // TODO: check nat restrictions for the RHS
-        //   CheckSubrange(rhs.tok, bRhs, checkSubrangeType, definedness);
+        // check nat restrictions for the RHS
+        Type lhsType;
+        if (lhs is FieldSelectExpr) {
+          lhsType = ((FieldSelectExpr)lhs).Type;
+        } else if (lhs is SeqSelectExpr) {
+          lhsType = ((SeqSelectExpr)lhs).Type;
+        } else {
+          lhsType = ((MultiSelectExpr)lhs).Type;
+        }
+        CheckSubrange(r.Tok, etran.TrExpr(rhs), lhsType, definedness);
       }
 
       // check for duplicate LHSs
@@ -3596,6 +3611,71 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrParallelCall(ParallelStmt s, CallStmt s0, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      // Translate:
+      //   parallel (x,y | Range(x,y)) {
+      //     E(x,y) . M( Args(x,y) );
+      //   }
+      // as:
+      //   if (*) {
+      //     var x,y;
+      //     havoc x,y;
+      //     CheckWellformed( Range );
+      //     assume Range(x,y);
+      //     Tr( Call );
+      //     assume false;
+      //   } else {
+      //     assume (forall x,y :: Range(x,y) ==> Post( E(x,y), Args(x,y) ));
+      //   }
+      // where Post(this,args) is the postcondition of method M.
+
+      // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
+      // here (rather than a TrBoundVariables).  However, there is currently no way to apply
+      // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+      Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+      var ante = etran.TrBoundVariables(s.BoundVars, bvars, true);
+      locals.AddRange(bvars);
+      var havocIds = new Bpl.IdentifierExprSeq();
+      foreach (Bpl.Variable bv in bvars) {
+        havocIds.Add(new Bpl.IdentifierExpr(s.Tok, bv));
+      }
+      definedness.Add(new Bpl.HavocCmd(s.Tok, havocIds));
+      definedness.Add(new Bpl.AssumeCmd(s.Tok, ante));
+      if (s.Range != null) {
+        TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
+        definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
+      }
+
+      TrStmt(s0, definedness, locals, etran);
+
+      definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+
+      // Now for the other branch, where the postcondition of the call is exported.
+
+      bvars = new Bpl.VariableSeq();
+      Dictionary<IVariable, Expression> substMap;
+      ante = etran.TrBoundVariablesRename(s.BoundVars, bvars, out substMap);
+      if (s.Range != null) {
+        var range = Substitute(s.Range, null, substMap);
+        ante = BplAnd(ante, etran.TrExpr(range));
+      }
+
+      var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+      Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
+      for (int i = 0; i < s0.Method.Ins.Count; i++) {
+        argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
+      }
+      Bpl.Expr post = Bpl.Expr.True;
+      foreach (var ens in s0.Method.Ens) {
+        var p = Substitute(ens.E, s0.Receiver, argsSubstMap);  // substitute the call's actuals for the method's formals
+        p = Substitute(p, null, substMap);  // substitute the renamed bound variables for the declared ones
+        post = BplAnd(post, etran.TrExpr(p));
+      }
+
+      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, bvars, Bpl.Expr.Imp(ante, post));
+      exporter.Add(new Bpl.AssumeCmd(s.Tok, qq));
+    }
+
     void TrParallelProof(ParallelStmt s, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
       // Translate:
       //   parallel (x,y | Range(x,y))
@@ -3607,10 +3687,10 @@ namespace Microsoft.Dafny {
       //   if (*) {
       //     var x,y;
       //     havoc x,y;
-      //     CheckWellDefined( Range );
+      //     CheckWellformed( Range );
       //     assume Range(x,y);
       //     Tr( Body );
-      //     CheckWellDefined( Post );
+      //     CheckWellformed( Post );
       //     assert Post;
       //     assume false;
       //   } else {
@@ -3960,6 +4040,11 @@ namespace Microsoft.Dafny {
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver);
       Bpl.ExprSeq ins = new Bpl.ExprSeq();
       if (!method.IsStatic) {
+        if (bReceiver == null) {
+          if (!(dafnyReceiver is ThisExpr)) {
+            CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+          }
+        }
         ins.Add(etran.TrExpr(receiver));
       }
 
@@ -6746,7 +6831,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
-        Expression se = Substitute(e.E, receiverReplacement, substMap);
+        Expression se = Substitute(e.E, receiverReplacement, substMap);  // TODO: whoa, won't this do improper variable capture?
         if (se != e.E) {
           newExpr = new OldExpr(expr.tok, se);
         }
