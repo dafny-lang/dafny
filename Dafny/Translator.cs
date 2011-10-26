@@ -3988,7 +3988,7 @@ namespace Microsoft.Dafny {
         lhsTypes.Add(lhs.Type);
         if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
           // create temporary local and assign it to bLhss[i]
-          string nm = "$rhs#" + otherTmpVarCount;
+          string nm = "$rhs##" + otherTmpVarCount;
           otherTmpVarCount++;
           var ty = TrType(lhs.Type);
           Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), lhs.Type, etran);
@@ -4055,7 +4055,7 @@ namespace Microsoft.Dafny {
       Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < method.Ins.Count; i++) {
         Formal p = method.Ins[i];
-        VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
+        VarDecl local = new VarDecl(p.tok, p.Name + "#", p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -4093,7 +4093,7 @@ namespace Microsoft.Dafny {
         var bLhs = Lhss[i];
         if (ExpressionTranslator.ModeledAsBoxType(method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(LhsTypes[i])) {
           // we need an Unbox
-          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp#" + otherTmpVarCount, predef.BoxType));
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + otherTmpVarCount, predef.BoxType));
           otherTmpVarCount++;
           locals.Add(var);
           Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
