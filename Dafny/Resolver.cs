@@ -12,7 +12,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Resolver {
     public int ErrorCount = 0;
-    protected virtual void Error(IToken tok, string msg, params object[] args) {
+    void Error(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       ConsoleColor col = Console.ForegroundColor;
@@ -42,6 +42,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Error(e.tok, msg, args);
+    }
+    void Warning(IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      ConsoleColor col = Console.ForegroundColor;
+      Console.ForegroundColor = ConsoleColor.Yellow;
+      Console.WriteLine("{0}({1},{2}): Warning: {3}",
+          tok.filename, tok.line, tok.col - 1,
+          string.Format(msg, args));
+      Console.ForegroundColor = col;
     }
 
     readonly BuiltIns builtIns;
@@ -1570,40 +1580,27 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
 
         if (prevErrorCount == ErrorCount) {
-          // check for supported kinds
-          if (s.Ens.Count == 0) {
-            // The supported kinds are Assign and Call.  See if it's one of them.
+          // determine the Kind and run some additional checks on the body
+          if (s.Ens.Count != 0) {
+            // The only supported kind with ensures clauses is Proof.
+            s.Kind = ParallelStmt.ParBodyKind.Proof;
+          } else {
+            // There are two special cases:
+            // * Assign, which is the only kind of the parallel statement that allows a heap update.
+            // * Call, which is a single call statement with no side effects or output parameters.
+            // The effect of Assign and the postcondition of Call will be seen outside the parallel
+            // statement.
             Statement s0 = s.S0;
             if (s0 is AssignStmt) {
-              var lhs = ((AssignStmt)s0).Lhs.Resolved;
-              if (lhs is IdentifierExpr) {
-                Error(s0, "a parallel statement must not update local variables declared outside the parallel body");
-              } else if (lhs is FieldSelectExpr) {
-                // cool
-              } else if (lhs is SeqSelectExpr && ((SeqSelectExpr)lhs).SelectOne) {
-                // cool
-              } else if (lhs is MultiSelectExpr) {
-                // cool
-              } else {
-                Contract.Assert(false);  // unexpected assignment LHS
-              }
-              var rhs = ((AssignStmt)s0).Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
-              // TODO: Occurrences of Choose in RHS must also be handled or disallowed (this happen when Choose is treated like a method member of the set type)
-              if (rhs is TypeRhs) {
-                Error(rhs.Tok, "new allocation not supported in parallel statements");
-              }
               s.Kind = ParallelStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {
-              CheckNoForeignUpdates(s0);
               s.Kind = ParallelStmt.ParBodyKind.Call;
             } else {
-              Error(s, "the body of an ensures-less parallel statement must be one assignment statement or one call statement");
+              s.Kind = ParallelStmt.ParBodyKind.Proof;
+              Warning(s.Tok, "the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause");
             }
-          } else {
-            // The only supported kind with ensures clauses is Proof.  See if that's what the body really is.
-            CheckNoForeignUpdates(s.Body);
-            s.Kind = ParallelStmt.ParBodyKind.Proof;
           }
+          CheckParallelBodyRestrictions(s.Body, s.Kind == ParallelStmt.ParBodyKind.Assign);
         }
 
       } else if (stmt is MatchStmt) {
@@ -2064,30 +2061,42 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void CheckNoForeignUpdates(Statement stmt) {
+    /// <summary>
+    /// This method performs some additional checks on the body "stmt" of a parallel statement
+    /// </summary>
+    public void CheckParallelBodyRestrictions(Statement stmt, bool allowHeapUpdates) {
       Contract.Requires(stmt != null);
       if (stmt is PredicateStmt) {
         // cool
       } else if (stmt is PrintStmt) {
         Error(stmt, "print statement is not allowed inside a parallel statement");
       } else if (stmt is BreakStmt) {
-        // TODO: this case can be checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
+        // this case can be checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
       } else if (stmt is ReturnStmt) {
         Error(stmt, "return statement is not allowed inside a parallel statement");
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         foreach (var ss in s.ResolvedStatements) {
-          CheckNoForeignUpdates(ss);
+          CheckParallelBodyRestrictions(ss, allowHeapUpdates);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        var idExpr = s.Lhs as IdentifierExpr;
+        var idExpr = s.Lhs.Resolved as IdentifierExpr;
         if (idExpr != null) {
           if (scope.ContainsDecl(idExpr.Var)) {
             Error(stmt, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
           }
-        } else {
-          Error(stmt, "the body of the enclosing parallel statement may not updated heap locations");
+        } else if (!allowHeapUpdates) {
+          Error(stmt, "the body of the enclosing parallel statement may not update heap locations");
+        }
+        var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
+        if (rhs is TypeRhs) {
+          Error(rhs.Tok, "new allocation not supported in parallel statements");
+        } else if (rhs is ExprRhs) {
+          var r = ((ExprRhs)rhs).Expr.Resolved;
+          if (r is UnaryExpr && ((UnaryExpr)r).Op == UnaryExpr.Opcode.SetChoose) {
+            Error(r, "set choose operator not supported inside parallel statement");
+          }
         }
       } else if (stmt is VarDecl) {
         // cool
@@ -2100,7 +2109,7 @@ namespace Microsoft.Dafny {
               Error(stmt, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
             }
           } else {
-            Error(stmt, "the body of the enclosing parallel statement may not updated heap locations");
+            Error(stmt, "the body of the enclosing parallel statement may not update heap locations");
           }
         }
         if (s.Method.Mod.Count != 0) {
@@ -2111,34 +2120,34 @@ namespace Microsoft.Dafny {
         var s = (BlockStmt)stmt;
         scope.PushMarker();
         foreach (var ss in s.Body) {
-          CheckNoForeignUpdates(ss);
+          CheckParallelBodyRestrictions(ss, allowHeapUpdates);
         }
         scope.PopMarker();
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        CheckNoForeignUpdates(s.Thn);
+        CheckParallelBodyRestrictions(s.Thn, allowHeapUpdates);
         if (s.Els != null) {
-          CheckNoForeignUpdates(s.Els);
+          CheckParallelBodyRestrictions(s.Els, allowHeapUpdates);
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckNoForeignUpdates(ss);
+            CheckParallelBodyRestrictions(ss, allowHeapUpdates);
           }
         }
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
-        CheckNoForeignUpdates(s.Body);
+        CheckParallelBodyRestrictions(s.Body, allowHeapUpdates);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckNoForeignUpdates(ss);
+            CheckParallelBodyRestrictions(ss, allowHeapUpdates);
           }
         }
 
@@ -2164,7 +2173,7 @@ namespace Microsoft.Dafny {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
           foreach (var ss in kase.Body) {
-            CheckNoForeignUpdates(ss);
+            CheckParallelBodyRestrictions(ss, allowHeapUpdates);
           }
         }
 

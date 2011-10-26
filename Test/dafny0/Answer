@@ -947,6 +947,22 @@ Execution trace:
 
 Dafny program verifier finished with 27 verified, 6 errors
 
+-------------------- ParallelResolveErrors.dfy --------------------
+ParallelResolveErrors.dfy(8,6): Error: LHS of assignment must denote a mutable variable or field
+ParallelResolveErrors.dfy(13,6): Error: body of parallel statement is attempting to update a variable declared outside the parallel statement
+ParallelResolveErrors.dfy(31,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(43,13): Error: set choose operator not supported inside parallel statement
+ParallelResolveErrors.dfy(48,13): Error: new allocation not supported in parallel statements
+ParallelResolveErrors.dfy(53,13): Error: new allocation not supported in parallel statements
+ParallelResolveErrors.dfy(60,19): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(64,18): Error: return statement is not allowed inside a parallel statement
+ParallelResolveErrors.dfy(71,21): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(72,20): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(73,20): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(82,24): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(83,24): Error: break label is undefined or not in scope: OutsideLoop
+13 resolution/type errors detected in ParallelResolveErrors.dfy
+
 -------------------- Parallel.dfy --------------------
 Parallel.dfy(31,5): Error BP5002: A precondition for this call might not hold.
 Parallel.dfy(57,14): Related location: This is the precondition that might not hold.
@@ -1019,8 +1035,14 @@ Execution trace:
     (0,0): anon6_Then
     (0,0): anon7_Then
     (0,0): anon3
+Parallel.dfy(182,12): Error: left-hand sides for different parallel-statement bound variables may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon19_Then
+    (0,0): anon20_Then
+    (0,0): anon5
 
-Dafny program verifier finished with 17 verified, 7 errors
+Dafny program verifier finished with 20 verified, 8 errors
 
 -------------------- TypeParameters.dfy --------------------
 TypeParameters.dfy(44,22): Error: assertion violation

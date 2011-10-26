@@ -148,3 +148,42 @@ method M5()
     assert Pred(34, 34);
   }
 }
+
+method Main()
+{
+  var a := new int[180];
+  parallel (i | 0 <= i < 180) {
+    a[i] := 2*i + 100;
+  }
+  var sq := [0, 0, 0, 2, 2, 2, 5, 5, 5];
+  parallel (i | 0 <= i < |sq|) {
+    a[20+i] := sq[i];
+  }
+  parallel (t | t in sq) {
+    a[t] := 1000;
+  }
+  parallel (t,u | t in sq && t < 4 && 10 <= u < 10+t) {
+    a[u] := 6000 + t;
+  }
+  var k := 0;
+  while (k < 180) {
+    if (k != 0) { print ", "; }
+    print a[k];
+    k := k + 1;
+  }
+  print "\n";
+}
+
+method DuplicateUpdate() {
+  var a := new int[180];
+  var sq := [0, 0, 0, 2, 2, 2, 5, 5, 5];
+  if (*) {
+    parallel (t,u | t in sq && 10 <= u < 10+t) {
+      a[u] := 6000 + t;  // error: a[10] (and a[11]) are assigned more than once
+    }
+  } else {
+    parallel (t,u | t in sq && t < 4 && 10 <= u < 10+t) {
+      a[u] := 6000 + t;  // with the 't < 4' conjunct in the line above, this is fine
+    }
+  }
+}
