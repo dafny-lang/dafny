@@ -413,8 +413,8 @@ namespace Microsoft.Dafny {
       ResolveAttributes(cl.Attributes, false);
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
-        ResolveAttributes(member.Attributes, false);
         if (member is Field) {
+          ResolveAttributes(member.Attributes, false);
           // nothing more to do
 
         } else if (member is Function) {
@@ -457,6 +457,7 @@ namespace Microsoft.Dafny {
 
         } else if (member is CouplingInvariant) {
           CouplingInvariant inv = (CouplingInvariant)member;
+          ResolveAttributes(member.Attributes, false);
           if (inv.Refined != null) {
             inv.Formals = new List<Formal>();
             scope.PushMarker();
@@ -649,6 +650,7 @@ namespace Microsoft.Dafny {
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
+      ResolveAttributes(f.Attributes, false);
       foreach (Expression r in f.Req) {
         ResolveExpression(r, false);
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
@@ -778,6 +780,9 @@ namespace Microsoft.Dafny {
       foreach (Formal p in m.Outs) {
         scope.Push(p.Name, p);
       }
+
+      // attributes are allowed to mention both in- and out-parameters
+      ResolveAttributes(m.Attributes, false);
 
       // ... continue resolving specification
       foreach (MaybeFreeExpression e in m.Ens) {
