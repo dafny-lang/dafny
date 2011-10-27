@@ -250,6 +250,7 @@ class Node
       0 <= pos < |r.Contents| == |n.Contents| + 1 &&
       r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
     decreases if n == null then {} else n.Repr;
+/*  Commented out while performance issues with the prover and going into SMTLib2 mode are being investigated.
   {
     if (n == null) {
       r := new Node.Init(x);
@@ -259,11 +260,12 @@ class Node
       assert n.left != null ==> n.data == n.Contents[|n.left.Contents|];
       assert n.left == null ==> n.data == n.Contents[0];
       left, pos := FunctionalInsert(n.left, x);
+      assert n.left == old(n.left);
       if (left == n.left) {
         r, pos := n, -1;
       } else {
+        assert n.left != null ==> forall i :: 0 <= i < |n.left.Contents| ==> n.Contents[i] < n.data;
         assert forall i :: 0 <= i < |left.Contents| ==> left.Contents[i] < n.data;
-        assert n.right != null ==> forall i :: 0 <= i < |n.right.Contents| ==> n.data < n.right.Contents[i];
         r := new Node.Build(left, n.data, n.right);
       }
     } else if (n.data < x) {
@@ -285,7 +287,7 @@ class Node
       r, pos := n, -1;
     }
   }
-
+*/
   method MutatingInsert(x: int) returns (ghost pos: int)
     requires Valid();
     modifies Repr;
