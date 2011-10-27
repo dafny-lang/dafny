@@ -8,7 +8,7 @@ syntax case match
 syntax keyword dafnyFunction function method constructor
 syntax keyword dafnyTypeDef class datatype 
 syntax keyword dafnyConditional if then else match case 
-syntax keyword dafnyRepeat foreach while parallel
+syntax keyword dafnyRepeat while parallel
 syntax keyword dafnyStatement havoc assume assert return new print break label
 syntax keyword dafnyKeyword var ghost returns null static this refines replaces by
 syntax keyword dafnyType bool nat int seq set object array array2 array3

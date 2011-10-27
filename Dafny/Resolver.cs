@@ -1474,62 +1474,6 @@ namespace Microsoft.Dafny {
           // any type is fine
         }
 
-      } else if (stmt is ForeachStmt) {
-        ForeachStmt s = (ForeachStmt)stmt;
-
-        ResolveExpression(s.Collection, true);
-        Contract.Assert(s.Collection.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(s.Collection.Type, new CollectionTypeProxy(s.BoundVar.Type))) {
-          Error(s.Collection, "The type is expected to be a collection of {0} (instead got {1})", s.BoundVar.Type, s.Collection.Type);
-        }
-
-        scope.PushMarker();
-        bool b = scope.Push(s.BoundVar.Name, s.BoundVar);
-        Contract.Assert(b);  // since we just pushed a marker, we expect the Push to succeed
-        ResolveType(s.BoundVar.tok, s.BoundVar.Type);
-        int prevErrorCount = ErrorCount;
-
-        ResolveExpression(s.Range, true);
-        Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(s.Range.Type, Type.Bool)) {
-          Error(s.Range, "range condition is expected to be of type {0}, but is {1}", Type.Bool, s.Range.Type);
-        }
-        bool successfullyResolvedCollectionAndRange = ErrorCount == prevErrorCount;
-
-        foreach (PredicateStmt ss in s.BodyPrefix) {
-          ResolveStatement(ss, specContextOnly, method);
-        }
-
-        bool specOnly = specContextOnly ||
-                        (successfullyResolvedCollectionAndRange && (UsesSpecFeatures(s.Collection) || UsesSpecFeatures(s.Range)));
-        s.IsGhost = specOnly;
-        ResolveStatement(s.GivenBody, specOnly, method);
-        // check for correct usage of BoundVar in LHS and RHS of this assignment
-        if (s.GivenBody is AssignStmt) {
-          s.BodyAssign = (AssignStmt)s.GivenBody;
-        } else if (s.GivenBody is ConcreteSyntaxStatement) {
-          var css = (ConcreteSyntaxStatement)s.GivenBody;
-          if (css.ResolvedStatements.Count == 1 && css.ResolvedStatements[0] is AssignStmt) {
-            s.BodyAssign = (AssignStmt)css.ResolvedStatements[0];
-          }
-        }
-        if (s.BodyAssign == null) {
-          Error(s, "update statement inside foreach must be a single assignment statement");
-        } else {
-          FieldSelectExpr lhs = s.BodyAssign.Lhs as FieldSelectExpr;
-          IdentifierExpr obj = lhs == null ? null : lhs.Obj as IdentifierExpr;
-          if (obj == null || obj.Var != s.BoundVar) {
-            Error(s, "assignment inside foreach must assign to a field of the bound variable of the foreach statement");
-          } else {
-            var rhs = s.BodyAssign.Rhs as ExprRhs;
-            if (rhs != null && rhs.Expr is UnaryExpr && ((UnaryExpr)rhs.Expr).Op == UnaryExpr.Opcode.SetChoose) {
-              Error(s, "foreach statement does not support 'choose' statements");
-            }
-          }
-        }
-
-        scope.PopMarker();
-
       } else if (stmt is ParallelStmt) {
         var s = (ParallelStmt)stmt;
 
@@ -2150,9 +2094,6 @@ namespace Microsoft.Dafny {
             CheckParallelBodyRestrictions(ss, allowHeapUpdates);
           }
         }
-
-      } else if (stmt is ForeachStmt) {
-        Error(stmt, "foreach statement not allowed in body of parallel statement");
 
       } else if (stmt is ParallelStmt) {
         var s = (ParallelStmt)stmt;

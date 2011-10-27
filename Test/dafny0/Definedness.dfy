@@ -185,31 +185,6 @@ class StatementTwoShoes {
   function G(w: int): int { 5 }
   function method H(x: int): int { -x }
 
-  method V(s: set<StatementTwoShoes>, a: int, b: int)
-    modifies s;
-  {
-
-    foreach (m in s | m.x < 200)  // s may contain null, but the foreach excludes null
-    {
-      assume 0 <= m.x;
-      assert m.x < 1000;
-
-      m.x := m.x + 1;
-    }
-    foreach (m in s + {F(a)})  // error: collection expression may not be well defined (fn precondition)
-    {
-      m.x := 5;  // error: possible modifies clause violation
-    }
-    foreach (m in s | F(H(m.x)) == this)  // error: range expression may not be well defined
-    {
-      m.x := H(m.x);
-    }
-    foreach (m in s)
-    {
-      m.x := 100 / m.x;  // error: RhS may not be well defined
-    }
-  }
-
   method W(x: int)
   {
     var i := 0;

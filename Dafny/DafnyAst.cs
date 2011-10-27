@@ -1753,40 +1753,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ForeachStmt : Statement
-  {
-    public readonly BoundVar/*!*/ BoundVar;
-    public readonly Expression/*!*/ Collection;
-    public readonly Expression/*!*/ Range;
-    public readonly List<PredicateStmt/*!*/>/*!*/ BodyPrefix;
-    public readonly Statement GivenBody;  // used only until resolution; afterwards, use BodyAssign
-    public AssignStmt/*!*/ BodyAssign;  // filled in during resolution
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(BoundVar != null);
-      Contract.Invariant(Collection != null);
-      Contract.Invariant(Range != null);
-      Contract.Invariant(cce.NonNullElements(BodyPrefix));
-      Contract.Invariant(GivenBody != null);
-    }
-
-    public ForeachStmt(IToken tok, BoundVar boundVar, Expression collection, Expression range,
-      List<PredicateStmt/*!*/>/*!*/ bodyPrefix, Statement givenBody)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(boundVar != null);
-      Contract.Requires(collection != null);
-      Contract.Requires(range != null);
-      Contract.Requires(cce.NonNullElements(bodyPrefix));
-      Contract.Requires(givenBody != null);
-      this.BoundVar = boundVar;
-      this.Collection = collection;
-      this.Range = range;
-      this.BodyPrefix = bodyPrefix;
-      this.GivenBody = givenBody;
-    }
-  }
-
   public class ParallelStmt : Statement
   {
     public readonly List<BoundVar/*!*/> BoundVars;

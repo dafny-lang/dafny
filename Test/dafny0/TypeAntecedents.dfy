@@ -68,8 +68,8 @@ method M(list: List, S: set<MyClass>) returns (ret: int)
   ghost var l := NF();
   assert l != null ==> l.H() == 5;
 
-  foreach (s in S) {
-    assert s == null || s.H() == 5;
+  parallel (s | s in S) ensures true; { assert s == null || s.H() == 5; }
+  parallel (s | s != null && s in S) {
     s.x := 0;
   }
 

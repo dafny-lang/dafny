@@ -251,7 +251,6 @@ namespace DafnyLanguage
                 case "exists":
                 case "false":
                 case "forall":
-                case "foreach":
                 case "free":
                 case "fresh":
                 case "function":

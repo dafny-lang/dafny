@@ -20,7 +20,7 @@ namespace Demo
           "assert", "assume", "new", "this", "object", "refines", "replaces", "by",
           "unlimited", "module", "imports",
           "if", "then", "else", "while", "invariant",
-          "break", "label", "return", "foreach", "parallel", "havoc", "print",
+          "break", "label", "return", "parallel", "havoc", "print",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
           "bool", "nat", "int", "false", "true", "null",
           "function", "free",
@@ -238,7 +238,6 @@ namespace Demo
                         | "if" + Condition + Statement + PreferShiftHere() + "else" + Statement
                         | "while" + Condition + loopSpec.Star() + Statement
                         | "for" + LParen + expression.Q() + Semi + expression.Q() + Semi + expression.Q() + RParen + Statement
-                        | "foreach" + LParen + ident + "in" + expression + RParen + Statement
                         | blockStatement
                         | expression + Semi
                         | "break" + Semi
@@ -286,7 +285,6 @@ namespace Demo
           | "break"
           | "label"
           | "return"
-          | "foreach"
           | "parallel"
           | "havoc"
           | "print"

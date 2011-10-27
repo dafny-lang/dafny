@@ -144,7 +144,7 @@ class Modifies {
   method F(s: set<Modifies>)
     modifies s;
   {
-    foreach (m in s | 2 <= m.x) {
+    parallel (m | m in s && m != null && 2 <= m.x) {
       m.x := m.x + 1;
     }
     if (this in s) {
@@ -157,17 +157,17 @@ class Modifies {
   {
     var m := 3;  // this is a different m
 
-    foreach (m in s | m == this) {
+    parallel (m | m in s && m == this) {
       m.x := m.x + 1;
     }
     if (s <= {this}) {
-      foreach (m in s) {
+      parallel (m | m in s) {
         m.x := m.x + 1;
       }
       F(s);
     }
-    foreach (m in s) {
-      assert m.x < m.x + 10;  // nothing wrong with asserting something
+    parallel (m | m in s) ensures true; { assert m == null || m.x < m.x + 10; }
+    parallel (m | m != null && m in s) {
       m.x := m.x + 1;  // error: may violate modifies clause
     }
   }
@@ -322,10 +322,10 @@ class SomeType
 {
   var x: int;
   method DoIt(stack: seq<SomeType>)
+    requires null !in stack;
     modifies stack;
   {
-    // the following line once gave rise to a crash in the translation
-    foreach (n in stack) {
+    parallel (n | n in stack) {
       n.x := 10;
     }
   }

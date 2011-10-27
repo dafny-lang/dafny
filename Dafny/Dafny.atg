@@ -631,7 +631,6 @@ OneStmt<out Statement/*!*/ s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | MatchStmt<out s>
-  | ForeachStmt<out s>
   | ParallelStmt<out s>
   | "label"                            (. x = t; .)
     Ident<out id> ":"
@@ -886,36 +885,7 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
   .
 /*------------------------------------------------------------------------*/
-ForeachStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     IToken/*!*/ x, boundVar;
-     Type/*!*/ ty;
-     Expression/*!*/ collection;
-     Expression/*!*/ range;
-     List<PredicateStmt/*!*/> bodyPrefix = new List<PredicateStmt/*!*/>();
-     Statement bodyAssign = null;
-  .)
-  "foreach"                                    (. x = t;
-                                                  range = new LiteralExpr(x, true);
-                                                  ty = new InferredTypeProxy();
-                                               .)
-  "(" Ident<out boundVar>
-      [ ":" Type<out ty> ]
-      "in" Expression<out collection>
-      [ "|" Expression<out range> ]
-  ")"
-  "{"
-    { AssertStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
-    | AssumeStmt<out s>                        (. if (s is PredicateStmt) { bodyPrefix.Add((PredicateStmt)s); } .)
-    }
-    UpdateStmt<out s>                          (. bodyAssign = s; .)
-  "}"                                          (. if (bodyAssign != null) {
-                                                    s = new ForeachStmt(x, new BoundVar(boundVar, boundVar.val, ty), collection, range, bodyPrefix, bodyAssign);
-                                                  } else {
-                                                    s = dummyStmt;  // some error occurred in parsing the bodyAssign
-                                                  }
-                                               .)
-  .
+
 AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
   "assert"                                     (. x = t; .)

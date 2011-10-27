@@ -690,12 +690,6 @@ namespace Microsoft.Dafny {
             CheckHasNoAssumes(s);
           }
         }
-      } else if (stmt is ForeachStmt) {
-        ForeachStmt s = (ForeachStmt)stmt;
-        foreach (PredicateStmt t in s.BodyPrefix) {
-          CheckHasNoAssumes(t);
-        }
-        CheckHasNoAssumes(s.GivenBody);
       } else if (stmt is ParallelStmt) {
         var s = (ParallelStmt)stmt;
         CheckHasNoAssumes(s.Body);
@@ -1030,59 +1024,6 @@ namespace Microsoft.Dafny {
         }
         Indent(indent);
         wr.WriteLine("}");
-
-      } else if (stmt is ForeachStmt) {
-        ForeachStmt s = (ForeachStmt)stmt;
-        // List<Pair<TType,RhsType>> pendingUpdates = new List<Pair<TType,RhsType>>();
-        // foreach (TType x in S) {
-        //   if (Range(x)) {
-        //     assert/assume ...;
-        //     pendingUpdates.Add(new Pair(x,RHS));
-        //   }
-        // }
-        // foreach (Pair<TType,RhsType> p in pendingUpdates) {
-        //   p.Car.m = p.Cdr;
-        // }
-        string pu = "_pendingUpdates" + tmpVarCount;
-        string pr = "_pair" + tmpVarCount;
-        tmpVarCount++;
-        string TType = TypeName(s.BoundVar.Type);
-        string RhsType = TypeName(cce.NonNull(s.BodyAssign.Lhs.Type));
-
-        Indent(indent);
-        wr.WriteLine("List<Pair<{0},{1}>> {2} = new List<Pair<{0},{1}>>();", TType, RhsType, pu);
-
-        Indent(indent);
-        wr.Write("foreach ({0} @{1} in (", TType, s.BoundVar.Name);
-        TrExpr(s.Collection);
-        wr.WriteLine(").Elements) {");
-
-        Indent(indent + IndentAmount);
-        wr.Write("if (");
-        TrExpr(s.Range);
-        wr.WriteLine(") {");
-
-        foreach (PredicateStmt p in s.BodyPrefix) {
-          TrStmt(p, indent + 2*IndentAmount);
-        }
-        Indent(indent + 2*IndentAmount);
-        wr.Write("{0}.Add(new Pair<{1},{2}>(@{3}, ", pu, TType, RhsType, s.BoundVar.Name);
-        ExprRhs rhsExpr = s.BodyAssign.Rhs as ExprRhs;
-        if (rhsExpr != null) {
-          TrExpr(rhsExpr.Expr);
-        } else {
-          wr.Write(DefaultValue(s.BodyAssign.Lhs.Type));
-        }
-        wr.WriteLine("))");
-
-        Indent(indent + IndentAmount);  wr.WriteLine("}");
-        Indent(indent);  wr.WriteLine("}");
-
-        Indent(indent);  wr.WriteLine("foreach (Pair<{0},{1}> {2} in {3}) {{", TType, RhsType, pr, pu);
-        Indent(indent + IndentAmount);
-        FieldSelectExpr fse = (FieldSelectExpr)s.BodyAssign.Lhs;
-        wr.WriteLine("{0}.Car.{1} = {0}.Cdr;", pr, fse.FieldName);
-        Indent(indent);  wr.WriteLine("}");
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;

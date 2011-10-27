@@ -541,27 +541,6 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
 
-      } else if (stmt is ForeachStmt) {
-        ForeachStmt s = (ForeachStmt)stmt;
-        wr.Write("foreach ({0} in ", s.BoundVar.Name);
-        PrintExpression(s.Collection);
-        if (!LiteralExpr.IsTrue(s.Range)) {
-          wr.Write(" | ");
-          PrintExpression(s.Range);
-        }
-        wr.WriteLine(") {");
-        int ind = indent + IndentAmount;
-        foreach (PredicateStmt t in s.BodyPrefix) {
-          Indent(ind);
-          PrintStatement(t, ind);
-          wr.WriteLine();
-        }
-        Indent(ind);
-        PrintStatement(s.GivenBody, ind);
-        wr.WriteLine();
-        Indent(indent);
-        wr.Write("}");
-
       } else if (stmt is ParallelStmt) {
         var s = (ParallelStmt)stmt;
         wr.Write("parallel (");
