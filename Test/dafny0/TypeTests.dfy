@@ -72,11 +72,16 @@ method InitCalls() {
 
 // ---------------------
 
-method ArrayRangeAssignments(a: array<C>)
+method ArrayRangeAssignments(a: array<C>, c: C)
   requires a != null && 10 <= a.Length;
 {
-  a[0..5] := new C;  // this is not allowed
-  a[1..4] := *;  // this is not allowed
+  a[0..5] := new C;  // error: this is not allowed
+  a[1..4] := *;  // error: this is not allowed
+  a[2..3] := c;  // error: this is not allowed
+  var s: seq<C> := [null,null,null,null,null];
+  s[0..5] := new C;  // error: this is not allowed
+  s[1..4] := *;  // error: this is not allowed
+  s[2..3] := c;  // error: this is not allowed
 }
 
 // --------------------- tests of restrictions on subranges (nat)

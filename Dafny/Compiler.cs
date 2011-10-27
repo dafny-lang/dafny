@@ -773,50 +773,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
-        if (s.Lhs is SeqSelectExpr && !((SeqSelectExpr)s.Lhs).SelectOne) {
-          SeqSelectExpr sel = (SeqSelectExpr)s.Lhs;
-          if (!(s.Rhs is HavocRhs)) {
-            // Generate the following:
-            //   tmpArr = sel.Seq;
-            //   tmpLow = sel.E0;  // or 0 if sel.E0==null
-            //   tmpHigh = sel.Eq;  // or arr.Length if sel.E1==null
-            //   tmpRhs = s.Rhs;
-            //   for (int tmpI = tmpLow; tmpI < tmpHigh; tmpI++) {
-            //     tmpArr[tmpI] = tmpRhs;
-            //   }
-            string arr = "_arr" + tmpVarCount;
-            string low = "_low" + tmpVarCount;
-            string high = "_high" + tmpVarCount;
-            string rhs = "_rhs" + tmpVarCount;
-            string i = "_i" + tmpVarCount;
-            tmpVarCount++;
-            Indent(indent); wr.Write("{0} {1} = ", TypeName(cce.NonNull(sel.Seq.Type)), arr); TrExpr(sel.Seq); wr.WriteLine(";");
-            Indent(indent); wr.Write("int {0} = ", low);
-            if (sel.E0 == null) {
-              wr.Write("0");
-            } else {
-              TrExpr(sel.E0);
-            }
-            wr.WriteLine(";");
-            Indent(indent); wr.Write("int {0} = ", high);
-            if (sel.E1 == null) {
-              wr.Write("new BigInteger(arr.Length)");
-            } else {
-              TrExpr(sel.E1);
-            }
-            wr.WriteLine(";");
-            Indent(indent); wr.Write("{0} {1} = ", TypeName(cce.NonNull(sel.Type)), rhs); TrAssignmentRhs(s.Rhs); wr.WriteLine(";");
-            Indent(indent);
-            wr.WriteLine("for (BigInteger {0} = {1}; {0} < {2}; {0}++) {{", i, low, high);
-            Indent(indent + IndentAmount);
-            wr.WriteLine("{0}[(int)({1})] = {2};", arr, i, rhs);
-            Indent(indent);
-            wr.WriteLine(";");
-          }
-
-        } else {
-          TrRhs(null, s.Lhs, s.Rhs, indent);
-        }
+        Contract.Assert(!(s.Lhs is SeqSelectExpr) || ((SeqSelectExpr)s.Lhs).SelectOne);  // multi-element array assignments are not allowed
+        TrRhs(null, s.Lhs, s.Rhs, indent);
 
       } else if (stmt is VarDecl) {
         TrVarDecl((VarDecl)stmt, true, indent);

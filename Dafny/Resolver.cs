@@ -1259,7 +1259,7 @@ namespace Microsoft.Dafny {
         AssignStmt s = (AssignStmt)stmt;
         int prevErrorCount = ErrorCount;
         if (s.Lhs is SeqSelectExpr) {
-          ResolveSeqSelectExpr((SeqSelectExpr)s.Lhs, true, true);  // allow ghosts for now, tighted up below
+          ResolveSeqSelectExpr((SeqSelectExpr)s.Lhs, true, false);  // allow ghosts for now, tighted up below
         } else {
           ResolveExpression(s.Lhs, true);  // allow ghosts for now, tighted up below
         }
@@ -1312,7 +1312,7 @@ namespace Microsoft.Dafny {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
             if (!slhs.SelectOne) {
-              Error(stmt, "cannot assign to multiple array elements (try a foreach).");
+              Error(stmt, "cannot assign to a range of array elements (try the 'parallel' statement)");
             }
           }
 
@@ -1328,7 +1328,7 @@ namespace Microsoft.Dafny {
         s.IsGhost = lvalueIsGhost;
         Type lhsType = s.Lhs.Type;
         if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-          Error(stmt, "cannot assign to multiple array elements (try a foreach).");
+          Error(stmt, "cannot assign to a range of array elements (try the 'parallel' statement)");
           //lhsType = UserDefinedType.ArrayElementType(lhsType);
         } else {
           if (s.Rhs is ExprRhs) {

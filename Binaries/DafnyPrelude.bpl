@@ -489,13 +489,6 @@ axiom (forall r: ref, h: HeapType ::
 function array.Length(a: ref): int;
 axiom (forall o: ref :: 0 <= array.Length(o));
 
-procedure UpdateArrayRange(arr: ref, low: int, high: int, rhs: BoxType);
-  modifies $Heap;
-  ensures $HeapSucc(old($Heap), $Heap);
-  ensures (forall i: int :: { read($Heap, arr, IndexField(i)) } low <= i && i < high ==> read($Heap, arr, IndexField(i)) == rhs);
-  ensures (forall<alpha> o: ref, f: Field alpha :: { read($Heap, o, f) } read($Heap, o, f) == read(old($Heap), o, f) ||
-            (o == arr && FDim(f) == 1 && low <= IndexField_Inverse(f) && IndexField_Inverse(f) < high));
-
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
 // ---------------------------------------------------------------

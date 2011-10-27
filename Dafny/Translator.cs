@@ -3118,33 +3118,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignStmt) {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;
-        var sel = s.Lhs.Resolved as SeqSelectExpr;
-        if (sel != null && !sel.SelectOne) {
-          // check LHS for definedness
-          TrStmt_CheckWellformed(sel, builder, locals, etran, true);
-          // array-range assignment
-          var obj = etran.TrExpr(sel.Seq);
-          Bpl.Expr low = sel.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(sel.E0);
-          Bpl.Expr high = sel.E1 == null ? ArrayLength(s.Tok, obj, 1, 0) : etran.TrExpr(sel.E1);
-          // check frame:
-          // assert (forall i: int :: low <= i && i < high ==> $_Frame[arr,i]);
-          Bpl.Variable iVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$i", Bpl.Type.Int));
-          Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(s.Tok, iVar);
-          Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Le(low, ie), Bpl.Expr.Lt(ie, high));
-          Bpl.Expr fieldName = FunctionCall(s.Tok, BuiltinFunction.IndexField, null, ie);
-          Bpl.Expr cons = Bpl.Expr.SelectTok(s.Tok, etran.TheFrame(s.Tok), obj, fieldName);
-          Bpl.Expr q = new Bpl.ForallExpr(s.Tok, new Bpl.VariableSeq(iVar), Bpl.Expr.Imp(ante, cons));
-          builder.Add(Assert(s.Tok, q, "assignment may update an array element not in the enclosing method's modifies clause"));
-          // compute the RHS
-          Bpl.Expr bRhs = TrAssignmentRhs(s.Tok, null, null, s.Rhs, sel.Type, builder, locals, etran);
-          // do the update:  call UpdateArrayRange(arr, low, high, rhs);
-          builder.Add(new Bpl.CallCmd(s.Tok, "UpdateArrayRange",
-            new Bpl.ExprSeq(obj, low, high, bRhs),
-            new Bpl.IdentifierExprSeq()));
-          builder.Add(CaptureState(s.Tok));
-        } else {
-          TrAssignment(stmt.Tok, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
-        }
+        TrAssignment(stmt.Tok, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
       } else if (stmt is VarDecl) {
         AddComment(builder, stmt, "var-declaration statement");
         VarDecl s = (VarDecl)stmt;
@@ -4556,7 +4530,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(!(lhs is ConcreteSyntaxExpression));
-      Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are handled elsewhere
+      Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'parallel' statements
       Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));
@@ -4592,7 +4566,7 @@ namespace Microsoft.Dafny {
         var lhs = lhss[i];
         // the following assumes are part of the precondition, really
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
-        Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are handled elsewhere
+        Contract.Assume(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // array-range assignments are not allowed
 
         Type lhsType = null;
         if (lhs is IdentifierExpr) {
@@ -4684,7 +4658,7 @@ namespace Microsoft.Dafny {
 
         } else if (lhs is SeqSelectExpr) {
           SeqSelectExpr sel = (SeqSelectExpr)lhs;
-          Contract.Assert(sel.SelectOne);  // array-range assignments are handled elsewhere, see precondition
+          Contract.Assert(sel.SelectOne);  // array-range assignments are not allowed
           Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
           Contract.Assert(sel.E0 != null);
           var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhsCanAffectPreviouslyKnownExpressions,

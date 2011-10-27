@@ -58,7 +58,7 @@ class C {
 Dafny program verifier finished with 0 verified, 0 errors
 
 -------------------- TypeTests.dfy --------------------
-TypeTests.dfy(84,9): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(89,9): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, got D)
 TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
@@ -74,14 +74,25 @@ TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
 TypeTests.dfy(68,17): Error: member F in type C does not refer to a method
 TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
-TypeTests.dfy(78,10): Error: cannot assign to multiple array elements (try a foreach).
-TypeTests.dfy(78,10): Error: cannot assign to multiple array elements (try a foreach).
-TypeTests.dfy(79,10): Error: cannot assign to multiple array elements (try a foreach).
-TypeTests.dfy(79,10): Error: cannot assign to multiple array elements (try a foreach).
-TypeTests.dfy(85,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(86,8): Error: sorry, cannot instantiate 'array' type with a subrange type
-TypeTests.dfy(87,8): Error: sorry, cannot instantiate 'array' type with a subrange type
-23 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(78,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(78,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(79,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(79,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(80,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(80,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(82,2): Error: LHS of array assignment must denote an array element (found seq<C>)
+TypeTests.dfy(82,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(82,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(83,2): Error: LHS of array assignment must denote an array element (found seq<C>)
+TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(84,2): Error: LHS of array assignment must denote an array element (found seq<C>)
+TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+34 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
 NatTypes.dfy(7,5): Error: value assigned to a nat must be non-negative
