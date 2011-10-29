@@ -56,6 +56,23 @@ class IntegerInduction {
   {
   }
 
+  // The following two ghost methods are the same as the previous two, but
+  // here no body is given--and the proof still goes through (thanks to
+  // Dafny's ghost-method induction tactic).
+
+  ghost method Lemma_Auto(n: int)
+    requires 0 <= n;
+    ensures 2 * Gauss(n) == n*(n+1);
+  {
+  }
+
+  ghost method Theorem1_Auto(n: int)
+    requires 0 <= n;
+    ensures SumOfCubes(n) == Gauss(n) * Gauss(n);
+    ensures 2 * Gauss(n) == n*(n+1);
+  {
+  }
+
   // Here is another proof.  It makes use of Dafny's induction heuristics to
   // prove the lemma.
 

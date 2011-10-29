@@ -81,11 +81,11 @@ Dafny program verifier finished with 6 verified, 0 errors
 
 -------------------- Induction.dfy --------------------
 
-Dafny program verifier finished with 29 verified, 0 errors
+Dafny program verifier finished with 33 verified, 0 errors
 
 -------------------- Rippling.dfy --------------------
 
-Dafny program verifier finished with 137 verified, 0 errors
+Dafny program verifier finished with 141 verified, 0 errors
 
 -------------------- MoreInduction.dfy --------------------
 

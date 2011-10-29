@@ -187,3 +187,14 @@ method DuplicateUpdate() {
     }
   }
 }
+
+ghost method DontDoMuch(x: int)
+{
+}
+
+method OmittedRange() {
+  parallel (x) { }
+  parallel (x) {
+    DontDoMuch(x);
+  }
+}

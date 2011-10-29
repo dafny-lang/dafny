@@ -298,248 +298,248 @@ function AlwaysTrueFunction(): FunctionValue
 // -----------------------------------------------------------------------------------
 
 ghost method P1()
-  ensures (forall n, xs :: concat(take(n, xs), drop(n, xs)) == xs);
+  ensures forall n, xs :: concat(take(n, xs), drop(n, xs)) == xs;
 {
 }
 
 ghost method P2()
-  ensures (forall n, xs, ys :: add(count(n, xs), count(n, ys)) == count(n, (concat(xs, ys))));
+  ensures forall n, xs, ys :: add(count(n, xs), count(n, ys)) == count(n, (concat(xs, ys)));
 {
 }
 
 ghost method P3()
-  ensures (forall n, xs, ys :: leq(count(n, xs), count(n, concat(xs, ys))) == True);
+  ensures forall n, xs, ys :: leq(count(n, xs), count(n, concat(xs, ys))) == True;
 {
 }
 
 ghost method P4()
-  ensures (forall n, xs :: add(Suc(Zero), count(n, xs)) == count(n, Cons(n, xs)));
+  ensures forall n, xs :: add(Suc(Zero), count(n, xs)) == count(n, Cons(n, xs));
 {
 }
 
 ghost method P5()
-  ensures (forall n, xs, x ::
+  ensures forall n, xs, x ::
     add(Suc(Zero), count(n, xs)) == count(n, Cons(x, xs))
-    ==> n == x);
+    ==> n == x;
 {
 }
 
 ghost method P6()
-  ensures (forall m, n :: minus(n, add(n, m)) == Zero);
+  ensures forall m, n :: minus(n, add(n, m)) == Zero;
 {
 }
 
 ghost method P7()
-  ensures (forall m, n :: minus(add(n, m), n) == m);
+  ensures forall m, n :: minus(add(n, m), n) == m;
 {
 }
 
 ghost method P8()
-  ensures (forall k, m, n :: minus(add(k, m), add(k, n)) == minus(m, n));
+  ensures forall k, m, n :: minus(add(k, m), add(k, n)) == minus(m, n);
 {
 }
 
 ghost method P9()
-  ensures (forall i, j, k :: minus(minus(i, j), k) == minus(i, add(j, k)));
+  ensures forall i, j, k :: minus(minus(i, j), k) == minus(i, add(j, k));
 {
 }
 
 ghost method P10()
-  ensures (forall m :: minus(m, m) == Zero);
+  ensures forall m :: minus(m, m) == Zero;
 {
 }
 
 ghost method P11()
-  ensures (forall xs :: drop(Zero, xs) == xs);
+  ensures forall xs :: drop(Zero, xs) == xs;
 {
 }
 
 ghost method P12()
-  ensures (forall n, xs, f :: drop(n, map(f, xs)) == map(f, drop(n, xs)));
+  ensures forall n, xs, f :: drop(n, map(f, xs)) == map(f, drop(n, xs));
 {
 }
 
 ghost method P13()
-  ensures (forall n, x, xs :: drop(Suc(n), Cons(x, xs)) == drop(n, xs));
+  ensures forall n, x, xs :: drop(Suc(n), Cons(x, xs)) == drop(n, xs);
 {
 }
 
 ghost method P14()
-  ensures (forall xs, ys, p :: filter(p, concat(xs, ys)) == concat(filter(p, xs), filter(p, ys)));
+  ensures forall xs, ys, p :: filter(p, concat(xs, ys)) == concat(filter(p, xs), filter(p, ys));
 {
 }
 
 ghost method P15()
-  ensures (forall x, xs :: len(ins(x, xs)) == Suc(len(xs)));
+  ensures forall x, xs :: len(ins(x, xs)) == Suc(len(xs));
 {
 }
 
 ghost method P16()
-  ensures (forall x, xs :: xs == Nil ==> last(Cons(x, xs)) == x);
+  ensures forall x, xs :: xs == Nil ==> last(Cons(x, xs)) == x;
 {
 }
 
 ghost method P17()
-  ensures (forall n :: leq(n, Zero) == True <==> n == Zero);
+  ensures forall n :: leq(n, Zero) == True <==> n == Zero;
 {
 }
 
 ghost method P18()
-  ensures (forall i, m :: less(i, Suc(add(i, m))) == True);
+  ensures forall i, m :: less(i, Suc(add(i, m))) == True;
 {
 }
 
 ghost method P19()
-  ensures (forall n, xs :: len(drop(n, xs)) == minus(len(xs), n));
+  ensures forall n, xs :: len(drop(n, xs)) == minus(len(xs), n);
 {
 }
 
 ghost method P20()
-  ensures (forall xs :: len(sort(xs)) == len(xs));
+  ensures forall xs :: len(sort(xs)) == len(xs);
 {
   // proving this theorem requires an additional lemma:
-  assert (forall k, ks :: len(ins(k, ks)) == len(Cons(k, ks)));
+  assert forall k, ks :: len(ins(k, ks)) == len(Cons(k, ks));
   // ...and one manually introduced case study:
-  assert (forall ys ::
+  assert forall ys ::
            sort(ys) == Nil ||
-           (exists z, zs :: sort(ys) == Cons(z, zs)));
+           exists z, zs :: sort(ys) == Cons(z, zs);
 }
 
 ghost method P21()
-  ensures (forall n, m :: leq(n, add(n, m)) == True);
+  ensures forall n, m :: leq(n, add(n, m)) == True;
 {
 }
 
 ghost method P22()
-  ensures (forall a, b, c :: max(max(a, b), c) == max(a, max(b, c)));
+  ensures forall a, b, c :: max(max(a, b), c) == max(a, max(b, c));
 {
 }
 
 ghost method P23()
-  ensures (forall a, b :: max(a, b) == max(b, a));
+  ensures forall a, b :: max(a, b) == max(b, a);
 {
 }
 
 ghost method P24()
-  ensures (forall a, b :: max(a, b) == a <==> leq(b, a) == True);
+  ensures forall a, b :: max(a, b) == a <==> leq(b, a) == True;
 {
 }
 
 ghost method P25()
-  ensures (forall a, b :: max(a, b) == b <==> leq(a, b) == True);
+  ensures forall a, b :: max(a, b) == b <==> leq(a, b) == True;
 {
 }
 
 ghost method P26()
-  ensures (forall x, xs, ys :: mem(x, xs) == True ==> mem(x, concat(xs, ys)) == True);
+  ensures forall x, xs, ys :: mem(x, xs) == True ==> mem(x, concat(xs, ys)) == True;
 {
 }
 
 ghost method P27()
-  ensures (forall x, xs, ys :: mem(x, ys) == True ==> mem(x, concat(xs, ys)) == True);
+  ensures forall x, xs, ys :: mem(x, ys) == True ==> mem(x, concat(xs, ys)) == True;
 {
 }
 
 ghost method P28()
-  ensures (forall x, xs :: mem(x, concat(xs, Cons(x, Nil))) == True);
+  ensures forall x, xs :: mem(x, concat(xs, Cons(x, Nil))) == True;
 {
 }
 
 ghost method P29()
-  ensures (forall x, xs :: mem(x, ins1(x, xs)) == True);
+  ensures forall x, xs :: mem(x, ins1(x, xs)) == True;
 {
 }
 
 ghost method P30()
-  ensures (forall x, xs :: mem(x, ins(x, xs)) == True);
+  ensures forall x, xs :: mem(x, ins(x, xs)) == True;
 {
 }
 
 ghost method P31()
-  ensures (forall a, b, c :: min(min(a, b), c) == min(a, min(b, c)));
+  ensures forall a, b, c :: min(min(a, b), c) == min(a, min(b, c));
 {
 }
 
 ghost method P32()
-  ensures (forall a, b :: min(a, b) == min(b, a));
+  ensures forall a, b :: min(a, b) == min(b, a);
 {
 }
 
 ghost method P33()
-  ensures (forall a, b :: min(a, b) == a <==> leq(a, b) == True);
+  ensures forall a, b :: min(a, b) == a <==> leq(a, b) == True;
 {
 }
 
 ghost method P34()
-  ensures (forall a, b :: min(a, b) == b <==> leq(b, a) == True);
+  ensures forall a, b :: min(a, b) == b <==> leq(b, a) == True;
 {
 }
 
 ghost method P35()
-  ensures (forall xs :: dropWhileAlways(AlwaysFalseFunction(), xs) == xs);
+  ensures forall xs :: dropWhileAlways(AlwaysFalseFunction(), xs) == xs;
 {
 }
 
 ghost method P36()
-  ensures (forall xs :: takeWhileAlways(AlwaysTrueFunction(), xs) == xs);
+  ensures forall xs :: takeWhileAlways(AlwaysTrueFunction(), xs) == xs;
 {
 }
 
 ghost method P37()
-  ensures (forall x, xs :: not(mem(x, delete(x, xs))) == True);
+  ensures forall x, xs :: not(mem(x, delete(x, xs))) == True;
 {
 }
 
 ghost method P38()
-  ensures (forall n, xs :: count(n, concat(xs, Cons(n, Nil))) == Suc(count(n, xs)));
+  ensures forall n, xs :: count(n, concat(xs, Cons(n, Nil))) == Suc(count(n, xs));
 {
 }
 
 ghost method P39()
-  ensures (forall n, x, xs ::
-            add(count(n, Cons(x, Nil)), count(n, xs)) == count(n, Cons(x, xs)));
+  ensures forall n, x, xs ::
+            add(count(n, Cons(x, Nil)), count(n, xs)) == count(n, Cons(x, xs));
 {
 }
 
 ghost method P40()
-  ensures (forall xs :: take(Zero, xs) == Nil);
+  ensures forall xs :: take(Zero, xs) == Nil;
 {
 }
 
 ghost method P41()
-  ensures (forall n, xs, f :: take(n, map(f, xs)) == map(f, take(n, xs)));
+  ensures forall n, xs, f :: take(n, map(f, xs)) == map(f, take(n, xs));
 {
 }
 
 ghost method P42()
-  ensures (forall n, x, xs :: take(Suc(n), Cons(x, xs)) == Cons(x, take(n, xs)));
+  ensures forall n, x, xs :: take(Suc(n), Cons(x, xs)) == Cons(x, take(n, xs));
 {
 }
 
 ghost method P43(p: FunctionValue)
-  ensures (forall xs :: concat(takeWhileAlways(p, xs), dropWhileAlways(p, xs)) == xs);
+  ensures forall xs :: concat(takeWhileAlways(p, xs), dropWhileAlways(p, xs)) == xs;
 {
 }
 
 ghost method P44()
-  ensures (forall x, xs, ys :: zip(Cons(x, xs), ys) == zipConcat(x, xs, ys));
+  ensures forall x, xs, ys :: zip(Cons(x, xs), ys) == zipConcat(x, xs, ys);
 {
 }
 
 ghost method P45()
-  ensures (forall x, xs, y, ys ::
+  ensures forall x, xs, y, ys ::
             zip(Cons(x, xs), Cons(y, ys)) ==
-            PCons(Pair.Pair(x, y), zip(xs, ys)));
+            PCons(Pair.Pair(x, y), zip(xs, ys));
 {
 }
 
 ghost method P46()
-  ensures (forall ys :: zip(Nil, ys) == PNil);
+  ensures forall ys :: zip(Nil, ys) == PNil;
 {
 }
 
 ghost method P47()
-  ensures (forall a :: height(mirror(a)) == height(a));
+  ensures forall a :: height(mirror(a)) == height(a);
 {
   // proving this theorem requires a previously proved lemma:
   P23();
@@ -548,37 +548,50 @@ ghost method P47()
 // ...
 
 ghost method P54()
-  ensures (forall m, n :: minus(add(m, n), n) == m);
+  ensures forall m, n :: minus(add(m, n), n) == m;
 {
   // the proof of this theorem follows from two lemmas:
-  assert (forall m, n :: minus(add(n, m), n) == m);
-  assert (forall m, n :: add(m, n) == add(n, m));
+  assert forall m, n :: minus(add(n, m), n) == m;
+  assert forall m, n :: add(m, n) == add(n, m);
 }
 
 ghost method P65()
-  ensures (forall i, m :: less(i, Suc(add(m, i))) == True);
+  ensures forall i, m :: less(i, Suc(add(m, i))) == True;
 {
   if (*) {
     // the proof of this theorem follows from two lemmas:
-    assert (forall i, m :: less(i, Suc(add(i, m))) == True);
-    assert (forall m, n :: add(m, n) == add(n, m));
+    assert forall i, m :: less(i, Suc(add(i, m))) == True;
+    assert forall m, n :: add(m, n) == add(n, m);
   } else {
     // a different way to prove it uses the following lemma:
-    assert (forall x,y :: add(x, Suc(y)) == Suc(add(x,y)));
+    assert forall x,y :: add(x, Suc(y)) == Suc(add(x,y));
   }
 }
 
 ghost method P67()
-  ensures (forall m, n :: leq(n, add(m, n)) == True);
+  ensures forall m, n :: leq(n, add(m, n)) == True;
 {
   if (*) {
     // the proof of this theorem follows from two lemmas:
-    assert (forall m, n :: leq(n, add(n, m)) == True);
-    assert (forall m, n :: add(m, n) == add(n, m));
+    assert forall m, n :: leq(n, add(n, m)) == True;
+    assert forall m, n :: add(m, n) == add(n, m);
   } else {
     // a different way to prove it uses the following lemma:
-    assert (forall x,y :: add(x, Suc(y)) == Suc(add(x,y)));
+    assert forall x,y :: add(x, Suc(y)) == Suc(add(x,y));
   }
+}
+
+// ---------
+// Here is a alternate way of writing down the proof obligations:
+
+ghost method P1_alt(n: Nat, xs: List)
+  ensures concat(take(n, xs), drop(n, xs)) == xs;
+{
+}
+
+ghost method P2_alt(n: Nat, xs: List, ys: List)
+  ensures add(count(n, xs), count(n, ys)) == count(n, (concat(xs, ys)));
+{
 }
 
 // ---------

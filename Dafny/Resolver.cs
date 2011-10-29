@@ -785,8 +785,36 @@ namespace Microsoft.Dafny {
       ResolveAttributes(m.Attributes, false);
 
       // ... continue resolving specification
+      bool twoState = true;
+      if (m.Mod.Count == 0 && m.Outs.Count == 0) {
+        // In this special case, the current translation of parallel Call statements would be unsound.
+        // The reason is that the parallel Call statement does not advance the heap, so there had better
+        // not be any way to say that the post-heap is definitely different than the pre-heap.  For example,
+        // the following program, is permitted, would unsoundly verify:
+        //     ghost static method M(y: int)
+        //       ensures exists o: object :: o != null && fresh(o);
+        //     {
+        //       var p := new object;
+        //     }
+        //     method Main() {
+        //       parallel (x) { M(x); }
+        //       assert false;
+        //     }
+        // In fact, here is another method M that together with Main above would yield unsound verification:
+        //     class C { ghost var data: int; }
+        //     ghost static method M(y: int)
+        //       ensures exists c: C :: c != null && c.data != old(c.data);
+        //     {
+        //       var c := new C;
+        //       c.data := c.data + 1;
+        //     }
+        // So, it seems best just to disallow two-state postconditions in these cases.  Perhaps the error
+        // message will not explain enough of the reasons for this restriction, but the restriction does
+        // not seem to rule out any useful programs.
+        twoState = false;
+      }
       foreach (MaybeFreeExpression e in m.Ens) {
-        ResolveExpression(e.E, true);
+        ResolveExpression(e.E, twoState);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E.Type, Type.Bool)) {
           Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
@@ -1490,15 +1518,13 @@ namespace Microsoft.Dafny {
           }
           ResolveType(v.tok, v.Type);
         }
-        if (s.Range != null) {
-          ResolveExpression(s.Range, true);
-          Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
-          if (!UnifyTypes(s.Range.Type, Type.Bool)) {
-            Error(stmt, "range restriction in parallel statement must be of type bool (instead got {0})", s.Range.Type);
-          }
+        ResolveExpression(s.Range, true);
+        Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(s.Range.Type, Type.Bool)) {
+          Error(stmt, "range restriction in parallel statement must be of type bool (instead got {0})", s.Range.Type);
         }
         foreach (var ens in s.Ens) {
-          ResolveExpression(ens.E, true);
+          ResolveExpression(ens.E, false);  // Note, two-state features are not allowed (see the resolution of method postconditions in this file, and see the X_ examples in Test/dafny0/ParallelResolveErrors.dfy)
           Contract.Assert(ens.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(ens.E.Type, Type.Bool)) {
             Error(ens.E, "ensures condition is expected to be of type {0}, but is {1}", Type.Bool, ens.E.Type);
@@ -1546,7 +1572,11 @@ namespace Microsoft.Dafny {
               s.Kind = ParallelStmt.ParBodyKind.Call;
             } else {
               s.Kind = ParallelStmt.ParBodyKind.Proof;
-              Warning(s.Tok, "the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause");
+              if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
+                // an empty statement, so don't produce any warning
+              } else {
+                Warning(s.Tok, "the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause");
+              }
             }
           }
           CheckParallelBodyRestrictions(s.Body, s.Kind == ParallelStmt.ParBodyKind.Assign);
@@ -3248,13 +3278,14 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Tries to find a bounded pool for each of the bound variables "bvars" of "expr".  If this process
     /// fails, then "null" is returned and the bound variables for which the process fails are added to "missingBounds".
-    /// Requires "e" to be successfully resolved.
+    /// Requires "expr" to be successfully resolved.
     /// </summary>
     List<QuantifierExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, List<BoundVar> missingBounds) {
       Contract.Requires(tok != null);
       Contract.Requires(bvars != null);
       Contract.Requires(missingBounds != null);
-      Contract.Requires(expr.Type != null);  // a sanity check (but not a complete proof) that "e" has been resolved
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type != null);  // a sanity check (but not a complete proof) that "expr" has been resolved
       Contract.Ensures(
         (Contract.Result<List<QuantifierExpr.BoundedPool>>() != null &&
          Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == bvars.Count &&

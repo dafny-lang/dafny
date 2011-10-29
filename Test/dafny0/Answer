@@ -970,7 +970,11 @@ ParallelResolveErrors.dfy(72,20): Error: trying to break out of more loop levels
 ParallelResolveErrors.dfy(73,20): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(82,24): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(83,24): Error: break label is undefined or not in scope: OutsideLoop
-13 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(94,43): Error: fresh expressions are not allowed in this context
+ParallelResolveErrors.dfy(101,50): Error: old expressions are not allowed in this context
+ParallelResolveErrors.dfy(124,12): Error: old expressions are not allowed in this context
+ParallelResolveErrors.dfy(144,45): Error: fresh expressions are not allowed in this context
+17 resolution/type errors detected in ParallelResolveErrors.dfy
 
 -------------------- Parallel.dfy --------------------
 Parallel.dfy(31,5): Error BP5002: A precondition for this call might not hold.
@@ -1051,7 +1055,7 @@ Execution trace:
     (0,0): anon20_Then
     (0,0): anon5
 
-Dafny program verifier finished with 20 verified, 8 errors
+Dafny program verifier finished with 24 verified, 8 errors
 
 -------------------- TypeParameters.dfy --------------------
 TypeParameters.dfy(44,22): Error: assertion violation

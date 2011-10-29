@@ -959,13 +959,9 @@ namespace Microsoft.Dafny {
         //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
         // }
         Indent(indent + n * IndentAmount);
-        wr.Write("if (");
-        if (s.Range == null) {
-          wr.Write("true");
-        } else {
-          TrExpr(s.Range);
-        }
-        wr.WriteLine(") {");
+        wr.Write("if ");
+        TrParenExpr(s.Range);
+        wr.WriteLine(" {");
 
         Indent(indent + (n + 1) * IndentAmount);
         wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);

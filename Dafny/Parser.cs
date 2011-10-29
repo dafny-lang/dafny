@@ -1233,6 +1233,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		x = t; 
 		Expect(33);
 		QuantifierDomain(out bvars, out attrs, out range);
+		if (range == null) { range = new LiteralExpr(x, true); } 
 		Expect(34);
 		while (la.kind == 29 || la.kind == 31) {
 			isFree = false; 

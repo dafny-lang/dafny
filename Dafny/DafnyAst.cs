@@ -1040,6 +1040,19 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A "ThisSurrogate" is used during translation time to make the treatment of the receiver more similar to
+  /// the treatment of other in-parameters.
+  /// </summary>
+  public class ThisSurrogate : Formal
+  {
+    public ThisSurrogate(IToken tok, Type type)
+      : base(tok, "this", type, true, false) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+    }
+  }
+
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable {
       get {
@@ -2009,7 +2022,6 @@ namespace Microsoft.Dafny {
       : base(tok) {  // represents the Dafny literal "null"
       Contract.Requires(tok != null);
       this.Value = null;
-
     }
 
     public LiteralExpr(IToken tok, BigInteger n)
@@ -2018,7 +2030,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= n.Sign);
 
       this.Value = n;
-
     }
 
     public LiteralExpr(IToken tok, int n) :base(tok){
@@ -2297,7 +2308,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        yield return Receiver;
+        if (!Function.IsStatic) {
+          yield return Receiver;
+        }
         foreach (var e in Args) {
           yield return e;
         }

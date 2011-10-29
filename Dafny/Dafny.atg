@@ -922,6 +922,7 @@ ParallelStmt<out Statement/*!*/ s>
   "parallel"                                (. x = t; .)
   "("
   QuantifierDomain<out bvars, out attrs, out range>
+                                            (. if (range == null) { range = new LiteralExpr(x, true); } .)
   ")"
   {                                         (. isFree = false; .)
     [ "free"                                (. isFree = true; .)
