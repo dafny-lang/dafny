@@ -61,3 +61,37 @@ ghost method Lemma<X>(list: List<X>, ext: List<X>)
       }
   }
 }
+
+// ---------------------------------------------
+
+function NegFac(n: int): int
+  decreases -n;
+{
+  if -1 <= n then -1 else - NegFac(n+1) * n
+}
+
+ghost method LemmaAll()
+  ensures forall n :: NegFac(n) <= -1;  // error: induction heuristic does not give a useful well-founded order, and thus this fails to verify
+{
+}
+
+ghost method LemmaOne(n: int)
+  ensures NegFac(n) <= -1;  // error: induction heuristic does not give a useful well-founded order, and thus this fails to verify
+{
+}
+
+ghost method LemmaAll_Neg()
+  ensures forall n :: NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
+{
+}
+
+ghost method LemmaOne_Neg(n: int)
+  ensures NegFac(-n) <= -1;  // error: fails to verify because of the minus in the trigger
+{
+}
+
+ghost method LemmaOneWithDecreases(n: int)
+  ensures NegFac(n) <= -1;  // here, the programmer gives a good well-founded order, so this verifies
+  decreases -n;
+{
+}

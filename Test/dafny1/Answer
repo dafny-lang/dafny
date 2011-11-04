@@ -88,8 +88,24 @@ Dafny program verifier finished with 33 verified, 0 errors
 Dafny program verifier finished with 141 verified, 0 errors
 
 -------------------- MoreInduction.dfy --------------------
+MoreInduction.dfy(75,1): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(74,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+MoreInduction.dfy(80,1): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(79,21): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+MoreInduction.dfy(85,1): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(84,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+MoreInduction.dfy(90,1): Error BP5003: A postcondition might not hold on this return path.
+MoreInduction.dfy(89,22): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 15 verified, 4 errors
 
 -------------------- Celebrity.dfy --------------------
 

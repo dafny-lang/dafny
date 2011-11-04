@@ -5,7 +5,9 @@ set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set CSC=c:/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
 
-for %%f in (SnapshotableTrees.dfy TreeBarrier.dfy
+for %%f in (
+    Classics.dfy
+    SnapshotableTrees.dfy TreeBarrier.dfy
     COST-verif-comp-2011-1-MaxArray.dfy
     COST-verif-comp-2011-2-MaxTree-class.dfy
     COST-verif-comp-2011-2-MaxTree-datatype.dfy
