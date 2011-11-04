@@ -397,9 +397,8 @@ ghost method P19()
 ghost method P20()
   ensures forall xs :: len(sort(xs)) == len(xs);
 {
-  // proving this theorem requires an additional lemma:
-  assert forall k, ks :: len(ins(k, ks)) == len(Cons(k, ks));
-  // ...and one manually introduced case study:
+  P15();  // use the statement of problem 15 as a lemma
+  // ... and manually introduce a case distinction:
   assert forall ys ::
            sort(ys) == Nil ||
            exists z, zs :: sort(ys) == Cons(z, zs);
