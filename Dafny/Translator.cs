@@ -6660,8 +6660,9 @@ namespace Microsoft.Dafny {
     ///        1    if 'n' occurs as   any subexpression (of 'expr')
     ///        2    if 'n' occurs as   any subexpression of          any index argument of an array/sequence select expression or any                       argument to a recursive function
     ///        3    if 'n' occurs as   a prominent subexpression of  any index argument of an array/sequence select expression or any                       argument to a recursive function
-    ///        4    if 'n' occurs as   a prominent subexpression of                                                               any                       argument to a recursive function
-    ///        5    if 'n' occurs as   a prominent subexpression of                                                               any decreases-influencing argument to a recursive function
+    ///        4    if 'n' occurs as   any subexpression of                                                                       any                       argument to a recursive function
+    ///        5    if 'n' occurs as   a prominent subexpression of                                                               any                       argument to a recursive function
+    ///        6    if 'n' occurs as   a prominent subexpression of                                                               any decreases-influencing argument to a recursive function
     /// Parameter 'n' is allowed to be a ThisSurrogate.
     /// </summary>
     bool VarOccursInArgumentToRecursiveFunction(Expression expr, IVariable n) {
@@ -6683,7 +6684,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(n != null);
 
       // The following variable is what gets passed down to recursive calls if the subexpression does not itself acquire prominent status.
-      var subExprIsProminent = CommandLineOptions.Clo.DafnyInductionHeuristic == 2 ? /*once prominent, always prominent*/exprIsProminent : /*reset the prominent status*/false;
+      var subExprIsProminent = CommandLineOptions.Clo.DafnyInductionHeuristic == 2 || CommandLineOptions.Clo.DafnyInductionHeuristic == 4 ? /*once prominent, always prominent*/exprIsProminent : /*reset the prominent status*/false;
 
       if (expr is ThisExpr) {
         return exprIsProminent && n is ThisSurrogate;
@@ -6709,7 +6710,7 @@ namespace Microsoft.Dafny {
         bool inferredDecreases;  // we don't actually care
         var decr = FunctionDecreasesWithDefault(e.Function, out inferredDecreases);
         bool variantArgument;
-        if (CommandLineOptions.Clo.DafnyInductionHeuristic < 5) {
+        if (CommandLineOptions.Clo.DafnyInductionHeuristic < 6) {
           variantArgument = rec;
         } else {
           // The receiver is considered to be "variant" if the function is recursive and the receiver participates
@@ -6724,7 +6725,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           var f = e.Function.Formals[i];
           var exp = e.Args[i];
-          if (CommandLineOptions.Clo.DafnyInductionHeuristic < 5) {
+          if (CommandLineOptions.Clo.DafnyInductionHeuristic < 6) {
             variantArgument = rec;
           } else {
             // The argument position is considered to be "variant" if the function is recursive and the argument participates
