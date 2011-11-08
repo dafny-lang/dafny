@@ -74,15 +74,65 @@ class A {
   method Q() {
     var a := new int[5];
     a[0],a[1],a[2],a[3],a[4] := 0,1,2,3,4;
-	
-	assert [1,2,3,4] == a[1..];
-	assert [1,2,3,4] == a[1.. a.Length];
-	assert [1] == a[1..2];
-	assert [0,1] == a[..2];
-	assert [0,1] == a[0..2];
-	assert forall i :: 0 <= i <= a.Length ==> [] == a[i..i];
+
+    assert [1,2,3,4] == a[1..];
+    assert [1,2,3,4] == a[1.. a.Length];
+    assert [1] == a[1..2];
+    assert [0,1] == a[..2];
+    assert [0,1] == a[0..2];
+    assert forall i :: 0 <= i <= a.Length ==> [] == a[i..i];
     assert [0,1,2,3,4] == a[..];
     assert forall i :: 0 <= i < a.Length ==> a[i] == i;
+  }
+
+  method ArrayToSequenceTests(a: array<int>, lo: int, hi: int)
+    requires a != null;
+  {
+    if (a.Length == 10) {
+      var s;
+      s := a[2..5];
+      assert |s| == 3;
+      s := a[..5];
+      assert |s| == 5;
+      s := a[2..];
+      assert |s| == 8;
+      s := a[..];
+      assert |s| == 10;
+      s := a[..10] + a[0..];
+    } else {
+      if {
+        case 0 <= lo <= a.Length =>
+          var s := a[lo..] + a[..lo];
+        case 0 <= lo <= a.Length && 0 <= hi <= a.Length =>
+          var s := a[lo..hi];  // error: lo may be greater than hi
+        case true =>
+      }
+    }
+  }
+
+  function BadRangeReads(a: array<int>, all: bool): bool
+  {
+    a != null && a.Length == 10 &&
+    if all then
+      a[..] == []  // error: not allowed to read the elements of a
+    else
+      a[2..5] +       // error: not allowed to read the elements of a
+      a[..5] +        // error: not allowed to read the elements of a
+      a[2..] == []    // error: not allowed to read the elements of a
+  }
+  function GoodRangeReads(a: array<int>, all: bool): bool
+    reads a;
+  {
+    a != null && a.Length == 10 &&
+    if all then
+      a[..] == []  // no prob, since we now have a reads clause
+    else
+      a[2..5] + a[..5] + a[2..] == []  // no prob, since we now have a reads clause
+  }
+  function AnotherGoodRangeReads(a: array<int>, j: int): bool
+  {
+    a != null && 0 <= j && j <= a.Length &&
+    a[j..j] == []
   }
 }
 
