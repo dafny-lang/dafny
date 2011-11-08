@@ -602,7 +602,6 @@ ghost method Lemma_RevConcat(xs: List, ys: List)
     case Nil =>
       assert forall ws :: concat(ws, Nil) == ws;
     case Cons(t, rest) =>
-      Lemma_RevConcat(rest, ys);
       assert forall a, b, c :: concat(a, concat(b, c)) == concat(concat(a, b), c);
   }
 }
@@ -614,6 +613,5 @@ ghost method Theorem(xs: List)
     case Nil =>
     case Cons(t, rest) =>
       Lemma_RevConcat(reverse(rest), Cons(t, Nil));
-      Theorem(rest);
   }
 }
