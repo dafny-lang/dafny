@@ -12,7 +12,8 @@ namespace Demo
         #region 1. Terminals
         NumberLiteral n = TerminalFactory.CreateCSharpNumber("number");
 
-        IdentifierTerminal ident = new IdentifierTerminal("Identifier");
+        IdentifierTerminal ident = new IdentifierTerminal("Identifier", "'_?", "'_?");
+
         StringLiteral stringLiteral = TerminalFactory.CreateCSharpString("String");
 
         this.MarkReservedWords(  // NOTE: these keywords must also appear once more below
@@ -351,7 +352,6 @@ namespace Demo
           | "==>"
           | "<==>"
           | "#"
-          | "?" // this is not an operator, but a possible character in identifiers
           | n
           | stringLiteral
           ;
