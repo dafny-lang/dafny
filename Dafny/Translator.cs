@@ -1514,6 +1514,25 @@ namespace Microsoft.Dafny {
       //   }
       // Here go the postconditions (termination checks included, but no reads checks)
       StmtListBuilder postCheckBuilder = new StmtListBuilder();
+      // Assume the type returned by the call itself respects its type (this matter if the type is "nat", for example)
+      {
+        var args = new Bpl.ExprSeq();
+        args.Add(etran.HeapExpr);
+        if (!f.IsStatic) {
+          args.Add(new Bpl.IdentifierExpr(f.tok, etran.This, predef.RefType));
+        }
+        foreach (var p in f.Formals) {
+          args.Add(new Bpl.IdentifierExpr(p.tok, p.UniqueName, TrType(p.Type)));
+        }
+        Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, FunctionName(f, 1), TrType(f.ResultType));
+        Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), args);
+
+        var wh = GetWhereClause(f.tok, funcAppl, f.ResultType, etran);
+        if (wh != null) {
+          postCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, wh));
+        }
+      }
+      // Now for the ensures clauses
       foreach (Expression p in f.Ens) {
         CheckWellformed(p, new WFOptions(f, f, false), locals, postCheckBuilder, etran);
         // assume the postcondition for the benefit of checking the remaining postconditions
@@ -3109,7 +3128,7 @@ namespace Microsoft.Dafny {
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
-      } else if (type.IsDatatype) {
+      } else if (type.IsDatatype || type is DatatypeProxy) {
         return predef.DatatypeType;
       } else if (type is SetType) {
         return predef.SetType(Token.NoToken, predef.BoxType);

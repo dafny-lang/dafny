@@ -2674,6 +2674,11 @@ namespace Microsoft.Dafny {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
+              } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.IsDatatype) {
+                if (!UnifyTypes(e.E0.Type, new DatatypeProxy())) {
+                  Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
+                }
+                expr.Type = Type.Bool;
               } else {
                 bool err = false;
                 if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
@@ -3768,7 +3773,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           } 
         case BinaryExpr.Opcode.Lt:
-          if (operandType.IsDatatype) {
+          if (operandType.IsDatatype || operandType is DatatypeProxy) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;

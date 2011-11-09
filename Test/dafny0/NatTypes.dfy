@@ -108,3 +108,30 @@ function Abs(x: int): nat
 {
   if 0 <= x then x else -x
 }
+
+// ----- Here are tests that the type of the result value of a function is known by the
+// ----- time the well-formedness of the function's specification is checked.
+
+function TakesANat(n: nat): bool
+{
+  n < 29
+}
+
+function Naturally(): nat
+  ensures TakesANat(Naturally());  // the wellformedness of this check requires 
+{
+  17
+}
+
+function Integrally_Bad(): int
+  ensures TakesANat(Integrally_Bad());  // error: well-formedness check fails
+{
+  17
+}
+
+function Integrally_Good(): int
+  ensures 0 <= Integrally_Good();
+  ensures TakesANat(Integrally_Good());  // here, the needed information follows from the preceding ensures clause
+{
+  17
+}

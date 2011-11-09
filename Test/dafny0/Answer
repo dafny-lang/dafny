@@ -133,8 +133,11 @@ Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
+NatTypes.dfy(127,21): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon3_Then
 
-Dafny program verifier finished with 12 verified, 8 errors
+Dafny program verifier finished with 15 verified, 9 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
