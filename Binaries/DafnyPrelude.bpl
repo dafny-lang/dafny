@@ -326,6 +326,14 @@ axiom (forall<alpha> h: HeapType, o: ref, f: Field alpha, v: alpha, a: ref ::
 axiom (forall h: HeapType, i: int, v: BoxType, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
     0 <= i && i < array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
+/**** Someday:
+axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h, a) }
+    $IsGoodHeap(h) &&
+    a != null && read(h, a, alloc) && dtype(a) == class.array && TypeParams(a, 0) == class.bool
+    ==>
+    (forall i: int :: { Seq#Index(Seq#FromArray(h, a), i) }
+      0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==>  $IsCanonicalBoolBox(Seq#Index(Seq#FromArray(h, a), i))));
+****/
 
 // Commutability of Take and Drop with Update.
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
@@ -379,6 +387,7 @@ const unique class.bool: ClassName;
 const unique class.set: ClassName;
 const unique class.seq: ClassName;
 const unique class.multiset: ClassName;
+const unique class.array: ClassName;
 
 function /*{:never_pattern true}*/ dtype(ref): ClassName;
 function /*{:never_pattern true}*/ TypeParams(ref, int): ClassName;
