@@ -41,3 +41,11 @@ method M1(j: int) returns (n: nat)
   n := (assume 0 <= j; j) + (assert 0 <= j; j);
   assert n == 2*j;
 }
+
+function SpecOnly(): bool { true }
+
+function method FuncMeth(): int {
+  assert SpecOnly();  // this call is allowed, because the .Guard of a
+                      // PredicateExpr is not included in compilation
+  15
+}

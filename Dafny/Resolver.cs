@@ -3027,6 +3027,12 @@ namespace Microsoft.Dafny {
         Error(expr, "allocated expressions are allowed only in specification and ghost contexts");
         return;
 
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        // ignore the guard
+        CheckIsNonGhost(e.Body);
+        return;
+
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
         switch (e.ResolvedOp) {

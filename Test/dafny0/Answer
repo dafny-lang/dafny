@@ -1321,4 +1321,4 @@ PredExpr.dfy(36,17): Error: condition in assert expression might not hold
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 7 verified, 2 errors
+Dafny program verifier finished with 9 verified, 2 errors
