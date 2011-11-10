@@ -2721,7 +2721,52 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ITEExpr : Expression {
+  public abstract class PredicateExpr : Expression
+  {
+    public readonly Expression Guard;
+    public readonly Expression Body;
+    public PredicateExpr(IToken tok, Expression guard, Expression body)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(body != null);
+      Guard = guard;
+      Body = body;
+    }
+    public abstract string Kind { get; }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Guard;
+        yield return Body;
+      }
+    }
+  }
+
+  public class AssertExpr : PredicateExpr
+  {
+    public AssertExpr(IToken tok, Expression guard, Expression body)
+      : base(tok, guard, body) {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(body != null);
+    }
+    public override string Kind { get { return "assert"; } }
+  }
+
+  public class AssumeExpr : PredicateExpr
+  {
+    public AssumeExpr(IToken tok, Expression guard, Expression body)
+      : base(tok, guard, body) {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(body != null);
+    }
+    public override string Kind { get { return "assume"; } }
+  }
+
+  public class ITEExpr : Expression
+  {
     public readonly Expression Test;
     public readonly Expression Thn;
     public readonly Expression Els;

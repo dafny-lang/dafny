@@ -1789,6 +1789,16 @@ namespace Microsoft.Dafny {
           total = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, total));
         }
         return total;
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        Bpl.Expr gTotal = IsTotal(e.Guard, etran);
+        Bpl.Expr g = etran.TrExpr(e.Guard);
+        Bpl.Expr bTotal = IsTotal(e.Body, etran);
+        if (e is AssertExpr) {
+          return BplAnd(gTotal, BplAnd(g, bTotal));
+        } else {
+          return BplAnd(gTotal, Bpl.Expr.Imp(g, bTotal));
+        }
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = IsTotal(e.Test, etran);
@@ -1925,6 +1935,16 @@ namespace Microsoft.Dafny {
           total = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, total));
         }
         return total;
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        Bpl.Expr gCanCall = CanCallAssumption(e.Guard, etran);
+        Bpl.Expr g = etran.TrExpr(e.Guard);
+        Bpl.Expr bCanCall = CanCallAssumption(e.Body, etran);
+        if (e is AssertExpr) {
+          return BplAnd(gCanCall, BplAnd(g, bCanCall));
+        } else {
+          return BplAnd(gCanCall, Bpl.Expr.Imp(g, bCanCall));
+        }
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Test, etran);
@@ -2315,6 +2335,27 @@ namespace Microsoft.Dafny {
           CheckWellformed(body, options, locals, b, etran);
           builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(range), b.Collect(expr.tok), null, null));
         }
+
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        CheckWellformed(e.Guard, options, locals, builder, etran);
+        if (e is AssertExpr) {
+          bool splitHappened;
+          var ss = TrSplitExpr(e.Guard, etran, out splitHappened);
+          if (!splitHappened) {
+            builder.Add(Assert(e.Guard.tok, etran.TrExpr(e.Guard), "condition in assert expression might not hold"));
+          } else {
+            foreach (var split in ss) {
+              if (!split.IsFree) {
+                builder.Add(AssertNS(split.E.tok, split.E, "condition in assert expression might not hold"));
+              }
+            }
+            builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(e.Guard)));
+          }
+        } else {
+          builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(e.Guard)));
+        }
+        CheckWellformed(e.Body, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
@@ -5547,6 +5588,10 @@ namespace Microsoft.Dafny {
 
           return new Bpl.LambdaExpr(expr.tok, new Bpl.TypeVariableSeq(), new VariableSeq(yVar), kv, exst);
 
+        } else if (expr is PredicateExpr) {
+          var e = (PredicateExpr)expr;
+          return TrExpr(e.Body);
+
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
           Bpl.Expr g = TrExpr(e.Test);
@@ -6349,6 +6394,10 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, expandFunctions, etran);
 
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        return TrSplitExpr(e.Body, splits, position, expandFunctions, etran);
+
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.Not) {
@@ -6819,6 +6868,11 @@ namespace Microsoft.Dafny {
         }
         return VarOccursInArgumentToRecursiveFunction(e.E0, n, q) ||
           VarOccursInArgumentToRecursiveFunction(e.E1, n, q);
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        // ignore the guard
+        return VarOccursInArgumentToRecursiveFunction(e.Body, n);
+
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, subExprIsProminent) ||  // test is not "prominent"
@@ -7042,6 +7096,16 @@ namespace Microsoft.Dafny {
           }
         } else {
           Contract.Assume(false);  // unexpected ComprehensionExpr
+        }
+
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        Expression g = Substitute(e.Guard, receiverReplacement, substMap);
+        Expression b = Substitute(e.Body, receiverReplacement, substMap);
+        if (expr is AssertExpr) {
+          newExpr = new AssertExpr(e.tok, g, b);
+        } else {
+          newExpr = new AssumeExpr(e.tok, g, b);
         }
 
       } else if (expr is ITEExpr) {

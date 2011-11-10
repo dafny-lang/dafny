@@ -1054,6 +1054,16 @@ namespace Microsoft.Dafny {
       } else if (expr is WildcardExpr) {
         wr.Write("*");
 
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("{0} ", e.Kind);
+        PrintExpression(e.Guard);
+        wr.Write("; ");
+        PrintExpression(e.Body);
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is ITEExpr) {
         ITEExpr ite = (ITEExpr)expr;
         bool parensNeeded = !isRightmost;

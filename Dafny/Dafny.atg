@@ -1205,13 +1205,19 @@ EndlessExpression<out Expression e>
      Expression e0, e1;
      e = dummyExpr;
   .)
-  ( "if"                                       (. x = t; .)
+  ( "if"                                 (. x = t; .)
     Expression<out e>
     "then" Expression<out e0>
-    "else" Expression<out e1>                  (. e = new ITEExpr(x, e, e0, e1); .)
+    "else" Expression<out e1>            (. e = new ITEExpr(x, e, e0, e1); .)
   | MatchExpression<out e>
   | QuantifierGuts<out e>
   | ComprehensionExpr<out e>
+  | "assert"                             (. x = t; .)
+    Expression<out e0> ";"
+    Expression<out e1>                   (. e = new AssertExpr(x, e0, e1); .)
+  | "assume"                             (. x = t; .)
+    Expression<out e0> ";"
+    Expression<out e1>                   (. e = new AssumeExpr(x, e0, e1); .)
   )
   .
 MatchExpression<out Expression/*!*/ e>

@@ -1311,3 +1311,14 @@ CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost
 -------------------- MultiSets.dfy --------------------
 
 Dafny program verifier finished with 22 verified, 0 errors
+
+-------------------- PredExpr.dfy --------------------
+PredExpr.dfy(23,15): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+PredExpr.dfy(36,17): Error: condition in assert expression might not hold
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 7 verified, 2 errors

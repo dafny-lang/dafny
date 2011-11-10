@@ -1767,6 +1767,10 @@ namespace Microsoft.Dafny {
         wr.Write("return Dafny.Set<{0}>.FromCollection(_coll); ", typeName);
         wr.Write("})()");
 
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        TrExpr(e.Body);
+
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         wr.Write("(");

@@ -1789,7 +1789,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); 
 			break;
 		}
-		case 38: case 55: case 61: case 98: case 99: case 100: case 101: {
+		case 38: case 55: case 61: case 62: case 63: case 98: case 99: case 100: case 101: {
 			EndlessExpression(out e);
 			break;
 		}
@@ -1846,7 +1846,8 @@ List<Expression/*!*/>/*!*/ decreases) {
 		Expression e0, e1;
 		e = dummyExpr;
 		
-		if (la.kind == 55) {
+		switch (la.kind) {
+		case 55: {
 			Get();
 			x = t; 
 			Expression(out e);
@@ -1855,13 +1856,40 @@ List<Expression/*!*/>/*!*/ decreases) {
 			Expect(56);
 			Expression(out e1);
 			e = new ITEExpr(x, e, e0, e1); 
-		} else if (la.kind == 61) {
+			break;
+		}
+		case 61: {
 			MatchExpression(out e);
-		} else if (StartOf(15)) {
+			break;
+		}
+		case 98: case 99: case 100: case 101: {
 			QuantifierGuts(out e);
-		} else if (la.kind == 38) {
+			break;
+		}
+		case 38: {
 			ComprehensionExpr(out e);
-		} else SynErr(133);
+			break;
+		}
+		case 62: {
+			Get();
+			x = t; 
+			Expression(out e0);
+			Expect(17);
+			Expression(out e1);
+			e = new AssertExpr(x, e0, e1); 
+			break;
+		}
+		case 63: {
+			Get();
+			x = t; 
+			Expression(out e0);
+			Expect(17);
+			Expression(out e1);
+			e = new AssumeExpr(x, e0, e1); 
+			break;
+		}
+		default: SynErr(133); break;
+		}
 	}
 
 	void DottedIdentifiersAndFunction(out Expression e) {
@@ -2014,7 +2042,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			Expression(out e);
 			e = new MultiSetFormingExpr(x, e); 
 			Expect(34);
-		} else if (StartOf(16)) {
+		} else if (StartOf(15)) {
 			SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); 
 		} else SynErr(138);
 	}
@@ -2233,7 +2261,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 		Expect(22);
 		Expect(1);
 		aName = t.val; 
-		if (StartOf(17)) {
+		if (StartOf(16)) {
 			AttributeArg(out aArg);
 			aArgs.Add(aArg); 
 			while (la.kind == 19) {
@@ -2263,18 +2291,17 @@ List<Expression/*!*/>/*!*/ decreases) {
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,T,x,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
+		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,T,T,x, x,x,x,T, x,x,x,T, x,x,x,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,x,x,x, x,x,x,T, x,x,x,T, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
-		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
+		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,T,T, x,x,T,T, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
+		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,T,T, x,x,T,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x},
 		{x,x,x,x, x,x,x,T, T,x,x,x, x,x,x,x, T,T,x,T, x,x,x,T, T,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, T,T,x,x, x,T,x,x, T,x,x,x, T,T,T,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, T,T,x,x, x,x,T,T, x,x},
-		{x,T,T,x, T,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x}
+		{x,T,T,x, T,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x}
 
 	};
 } // end Parser

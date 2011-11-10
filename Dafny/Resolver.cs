@@ -2823,6 +2823,17 @@ namespace Microsoft.Dafny {
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
 
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        ResolveExpression(e.Guard, twoState);
+        Contract.Assert(e.Guard.Type != null);  // follows from postcondition of ResolveExpression
+        ResolveExpression(e.Body, twoState);
+        Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Guard.Type, Type.Bool)) {
+          Error(expr, "guard condition in {0} expression must be a boolean (instead got {1})", e.Kind, e.Guard.Type);
+        }
+        expr.Type = e.Body.Type;
+
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         ResolveExpression(e.Test, twoState);
@@ -3932,6 +3943,9 @@ namespace Microsoft.Dafny {
         return (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
       } else if (expr is WildcardExpr) {
         return false;
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        return UsesSpecFeatures(e.Body);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
