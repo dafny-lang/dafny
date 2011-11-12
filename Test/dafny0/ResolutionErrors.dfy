@@ -292,7 +292,7 @@ method ConstructorTests()
 
 // ------------------- datatype destructors ---------------------------------------
 
-datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List);
+datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int);
 
 method DatatypeDestructors(d: DTD_List) {
   if {
@@ -304,6 +304,8 @@ method DatatypeDestructors(d: DTD_List) {
       assert hd == d.Cdr;  // type error
       assert tl == d.Car;  // type error
       assert d.DTD_Cons? == d.Car;  // type error
-      assert d == DTD_Cons(hd, tl);
+      assert d == DTD_Cons(hd, tl, 5);
+      ghost var g0 := d.g;  // fine
+      var g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
 }

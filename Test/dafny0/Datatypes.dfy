@@ -194,6 +194,17 @@ method InjectivityTests(d: XList)
   }
 }
 
+method MatchingDestructor(d: XList) returns (r: XList)
+  ensures r.Car == 5;  // error: specification is not well-formed (since r might not be an XCons)
+{
+  if (*) {
+    var x0 := d.Car;  // error: d might not be an XCons
+  } else if (d.XCons?) {
+    var x1 := d.Car;
+  }
+  r := XCons(5, XNil);
+}
+
 // -------------
 
 method FwdBug(f: Fwd, initialized: bool)

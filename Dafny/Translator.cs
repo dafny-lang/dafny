@@ -1650,6 +1650,9 @@ namespace Microsoft.Dafny {
           var t = IsTotal(e.Obj, etran);
           if (e.Obj.Type.IsRefType) {
             t = BplAnd(t, Bpl.Expr.Neq(etran.TrExpr(e.Obj), predef.Null));
+          } else if (e.Field is DatatypeDestructor) {
+            var dtor = (DatatypeDestructor)e.Field;
+            t = BplAnd(t, FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullName, Bpl.Type.Bool, etran.TrExpr(e.Obj)));
           }
           return t;
         }
@@ -2110,6 +2113,10 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Obj, options, locals, builder, etran);
         if (e.Obj.Type.IsRefType) {
           CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
+        } else if (e.Field is DatatypeDestructor) {
+          var dtor = (DatatypeDestructor)e.Field;
+          builder.Add(Assert(expr.tok, FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullName, Bpl.Type.Bool, etran.TrExpr(e.Obj)),
+            string.Format("destructor '{0}' can only be applied to datatype values constructed by '{1}'", dtor.Name, dtor.EnclosingCtor.Name)));
         }
         if (options.DoReadsChecks && e.Field.IsMutable) {
           builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field", options.AssertKv));

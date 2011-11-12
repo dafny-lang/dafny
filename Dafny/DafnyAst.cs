@@ -867,6 +867,17 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class DatatypeDestructor : SpecialField
+  {
+    public readonly DatatypeCtor EnclosingCtor;
+
+    public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
+      : base(tok, name, compiledName, preString, postString, isGhost, false, type, attributes)
+    {
+      EnclosingCtor = enclosingCtor;
+    }
+  }
+
   public class CouplingInvariant : MemberDecl {
     public readonly Expression Expr;
     public readonly List<IToken/*!*/>/*!*/ Toks;
