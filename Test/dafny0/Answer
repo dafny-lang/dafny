@@ -1321,12 +1321,33 @@ CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost
 Dafny program verifier finished with 22 verified, 0 errors
 
 -------------------- PredExpr.dfy --------------------
-PredExpr.dfy(23,15): Error: value assigned to a nat must be non-negative
+PredExpr.dfy(4,12): Error: condition in assert expression might not hold
+Execution trace:
+    (0,0): anon3_Else
+PredExpr.dfy(36,15): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon6_Else
     (0,0): anon7_Else
-PredExpr.dfy(36,17): Error: condition in assert expression might not hold
+PredExpr.dfy(49,17): Error: condition in assert expression might not hold
 Execution trace:
     (0,0): anon0
+PredExpr.dfy(74,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon3
+    PredExpr.dfy(73,20): anon10_Else
+    (0,0): anon6
 
-Dafny program verifier finished with 9 verified, 2 errors
+Dafny program verifier finished with 11 verified, 4 errors
+
+-------------------- LetExpr.dfy --------------------
+LetExpr.dfy(5,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LetExpr.dfy(104,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+
+Dafny program verifier finished with 13 verified, 2 errors

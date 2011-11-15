@@ -1667,6 +1667,17 @@ namespace Microsoft.Dafny {
           wr.Write(")");
         }
 
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        // Since there are no OldExpr's in an expression to be compiled, we can just do a regular substitution
+        // without having to worry about old-capture.
+        var substMap = new Dictionary<IVariable, Expression>();
+        Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
+        for (int i = 0; i < e.Vars.Count; i++) {
+          substMap.Add(e.Vars[i], e.RHSs[i]);
+        }
+        TrExpr(Translator.Substitute(e.Body, null, substMap));
+
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds

@@ -20,7 +20,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy SplitExpr.dfy
             Refinement.dfy RefinementErrors.dfy LoopModifies.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
-            CallStmtTests.dfy MultiSets.dfy PredExpr.dfy) do (
+            CallStmtTests.dfy MultiSets.dfy PredExpr.dfy LetExpr.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /dprint:out.dfy.tmp %* %%f

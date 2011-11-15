@@ -23,7 +23,7 @@ public class Parser {
 	const bool T = true;
 	const bool x = false;
 	const int minErrDist = 2;
-
+	
 	public Scanner/*!*/ scanner;
 	public Errors/*!*/  errors;
 
@@ -134,10 +134,10 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		if (errDist >= minErrDist) errors.SemErr(t, msg);
 		errDist = 0;
 	}
-
-	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
-	  Contract.Requires(tok != null);
-	  Contract.Requires(msg != null);
+	
+    public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
 	  errors.SemErr(tok, msg);
 	}
 
@@ -150,15 +150,15 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 			la = t;
 		}
 	}
-
+	
 	void Expect (int n) {
 		if (la.kind==n) Get(); else { SynErr(n); }
 	}
-
+	
 	bool StartOf (int s) {
 		return set[s, la.kind];
 	}
-
+	
 	void ExpectWeak (int n, int follow) {
 		if (la.kind == n) Get();
 		else {
@@ -182,7 +182,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
 		}
 	}
 
-
+	
 	void Dafny() {
 		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt;
 		Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
@@ -1100,7 +1100,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 	void VarDeclStatement(out Statement/*!*/ s) {
 		IToken x = null, assignTok = null;  bool isGhost = false;
 		VarDecl/*!*/ d;
-		AssignmentRhs r;  Expression lhs0;
+		AssignmentRhs r;  IdentifierExpr lhs0;
 		List<VarDecl> lhss = new List<VarDecl>();
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
 		
@@ -1119,7 +1119,10 @@ List<Expression/*!*/>/*!*/ decreases) {
 		}
 		if (la.kind == 49) {
 			Get();
-			assignTok = t;  lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name); 
+			assignTok = t;
+			lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name);
+			lhs0.Var = lhss[0];  lhs0.Type = lhss[0].OptionalType;  // resolve here
+			
 			Rhs(out r, lhs0);
 			rhss.Add(r); 
 			while (la.kind == 19) {
@@ -1789,7 +1792,7 @@ List<Expression/*!*/>/*!*/ decreases) {
 			e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); 
 			break;
 		}
-		case 38: case 55: case 61: case 62: case 63: case 98: case 99: case 100: case 101: {
+		case 18: case 38: case 55: case 61: case 62: case 63: case 98: case 99: case 100: case 101: {
 			EndlessExpression(out e);
 			break;
 		}
@@ -1845,6 +1848,8 @@ List<Expression/*!*/>/*!*/ decreases) {
 		IToken/*!*/ x;
 		Expression e0, e1;
 		e = dummyExpr;
+		BoundVar d;
+		List<BoundVar> letVars;  List<Expression> letRHSs;
 		
 		switch (la.kind) {
 		case 55: {
@@ -1886,6 +1891,31 @@ List<Expression/*!*/>/*!*/ decreases) {
 			Expect(17);
 			Expression(out e1);
 			e = new AssumeExpr(x, e0, e1); 
+			break;
+		}
+		case 18: {
+			Get();
+			x = t;
+			letVars = new List<BoundVar>();
+			letRHSs = new List<Expression>(); 
+			IdentTypeOptional(out d);
+			letVars.Add(d); 
+			while (la.kind == 19) {
+				Get();
+				IdentTypeOptional(out d);
+				letVars.Add(d); 
+			}
+			Expect(49);
+			Expression(out e);
+			letRHSs.Add(e); 
+			while (la.kind == 19) {
+				Get();
+				Expression(out e);
+				letRHSs.Add(e); 
+			}
+			Expect(17);
+			Expression(out e);
+			e = new LetExpr(x, letVars, letRHSs, e); 
 			break;
 		}
 		default: SynErr(133); break;
@@ -2277,13 +2307,13 @@ List<Expression/*!*/>/*!*/ decreases) {
 
 	public void Parse() {
 		la = new Token();
-		la.val = "";
+		la.val = "";		
 		Get();
 		Dafny();
 
-		Expect(0);
+    Expect(0);
 	}
-
+	
 	static readonly bool[,]/*!*/ set = {
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,T,x,x, x,T,T,T, T,T,T,x, x,x,T,x, T,x,x,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
@@ -2291,17 +2321,17 @@ List<Expression/*!*/>/*!*/ decreases) {
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,T,x,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
+		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,T,T,x, x,x,x,T, x,x,x,T, x,x,x,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,x,x,x, x,x,x,T, x,x,x,T, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
-		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
+		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,T,T, x,x,T,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
+		{x,T,T,x, x,x,x,T, x,x,x,x, x,x,x,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, T,x,x,x, x,x,T,T, x,x,T,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,T, T,x,x,x, x,x,x,x, T,T,x,T, x,x,x,T, T,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, T,T,x,x, x,T,x,x, T,x,x,x, T,T,T,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, T,T,x,x, x,x,T,T, x,x},
-		{x,T,T,x, T,x,x,T, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x}
+		{x,T,T,x, T,x,x,T, x,x,x,x, x,x,x,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,T, x,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x}
 
 	};
 } // end Parser
@@ -2310,20 +2340,18 @@ List<Expression/*!*/>/*!*/ decreases) {
 public class Errors {
 	public int count = 0;                                    // number of errors detected
 	public System.IO.TextWriter/*!*/ errorStream = Console.Out;   // error messages go to this stream
-	public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
-	public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
-
+  public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
+  public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
+  
 	public void SynErr(string filename, int line, int col, int n) {
-		SynErr(filename, line, col, GetSyntaxErrorString(n));
-	}
-
-	public virtual void SynErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
+    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  }
+	public virtual void SynErr(string filename, int line, int col, string msg) {
+	  Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
-	}
-
-	string GetSyntaxErrorString(int n) {
+  }
+  string GetSyntaxErrorString(int n) {
 		string s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -2473,7 +2501,7 @@ public class Errors {
 
 			default: s = "error " + n; break;
 		}
-		return s;
+    return s;
 	}
 
 	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {  // semantic errors
@@ -2481,9 +2509,8 @@ public class Errors {
 		Contract.Requires(msg != null);
 		SemErr(tok.filename, tok.line, tok.col, msg);
 	}
-
 	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
-		Contract.Requires(msg != null);
+	  Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
 	}

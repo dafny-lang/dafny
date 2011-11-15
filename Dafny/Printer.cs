@@ -1014,6 +1014,23 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        string sep = "";
+        foreach (var v in e.Vars) {
+          wr.Write("{0}{1}", sep, v.Name);
+          PrintType(": ", v.Type);
+          sep = ", ";
+        }
+        wr.Write(" := ");
+        PrintExpressionList(e.RHSs);
+        wr.Write("; ");
+        PrintExpression(e.Body);
+        if (parensNeeded) { wr.Write(")"); }
+
+
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         bool parensNeeded = !isRightmost;
@@ -1106,8 +1123,8 @@ namespace Microsoft.Dafny {
       string sep = "";
       foreach (BoundVar bv in boundVars) {
         wr.Write("{0}{1}", sep, bv.Name);
-        sep = ", ";
         PrintType(": ", bv.Type);
+        sep = ", ";
       }
       PrintAttributes(attrs);
       if (range != null) {

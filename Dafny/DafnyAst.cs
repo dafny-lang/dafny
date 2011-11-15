@@ -2593,6 +2593,27 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class LetExpr : Expression
+  {
+    public readonly List<BoundVar> Vars;
+    public readonly List<Expression> RHSs;
+    public readonly Expression Body;
+    public LetExpr(IToken tok, List<BoundVar> vars, List<Expression> rhss, Expression body)
+      : base(tok) {
+      Vars = vars;
+      RHSs = rhss;
+      Body = body;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var rhs in RHSs) {
+          yield return rhs;
+        }
+        yield return Body;
+      }
+    }
+  }
+
   /// <summary>
   /// A ComprehensionExpr has the form:
   ///   BINDER x Attributes | Range(x) :: Term(x)

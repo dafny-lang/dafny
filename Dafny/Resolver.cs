@@ -2751,6 +2751,30 @@ namespace Microsoft.Dafny {
         }
         e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
 
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        foreach (var rhs in e.RHSs) {
+          ResolveExpression(rhs, twoState);
+        }
+        scope.PushMarker();
+        if (e.Vars.Count != e.RHSs.Count) {
+          Error(expr, "let expression must have same number of bound variables (found {0}) as RHSs (found {1})", e.Vars.Count, e.RHSs.Count);
+        }
+        int i = 0;
+        foreach (var v in e.Vars) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate let-variable name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type);
+          if (i < e.RHSs.Count && !UnifyTypes(v.Type, e.RHSs[i].Type)) {
+            Error(e.RHSs[i].tok, "type of RHS ({0}) does not match type of bound variable ({1})", e.RHSs[i].Type, v.Type);
+          }
+          i++;
+        }
+        ResolveExpression(e.Body, twoState);
+        scope.PopMarker();
+        expr.Type = e.Body.Type;
+
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         int prevErrorCount = ErrorCount;

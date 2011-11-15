@@ -716,7 +716,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
      VarDecl/*!*/ d;
-     AssignmentRhs r;  Expression lhs0;
+     AssignmentRhs r;  IdentifierExpr lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
   .)
@@ -727,7 +727,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
   { ","
     LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); .)
   }
-  [ ":="                           (. assignTok = t;  lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name); .)
+  [ ":="                           (. assignTok = t;
+                                      lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name);
+                                      lhs0.Var = lhss[0];  lhs0.Type = lhss[0].OptionalType;  // resolve here
+                                   .)
     Rhs<out r, lhs0>               (. rhss.Add(r); .)
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
@@ -1204,20 +1207,34 @@ EndlessExpression<out Expression e>
 = (. IToken/*!*/ x;
      Expression e0, e1;
      e = dummyExpr;
+     BoundVar d;
+     List<BoundVar> letVars;  List<Expression> letRHSs;
   .)
-  ( "if"                                 (. x = t; .)
+  ( "if"                            (. x = t; .)
     Expression<out e>
     "then" Expression<out e0>
-    "else" Expression<out e1>            (. e = new ITEExpr(x, e, e0, e1); .)
+    "else" Expression<out e1>       (. e = new ITEExpr(x, e, e0, e1); .)
   | MatchExpression<out e>
   | QuantifierGuts<out e>
   | ComprehensionExpr<out e>
-  | "assert"                             (. x = t; .)
+  | "assert"                        (. x = t; .)
     Expression<out e0> ";"
-    Expression<out e1>                   (. e = new AssertExpr(x, e0, e1); .)
-  | "assume"                             (. x = t; .)
+    Expression<out e1>              (. e = new AssertExpr(x, e0, e1); .)
+  | "assume"                        (. x = t; .)
     Expression<out e0> ";"
-    Expression<out e1>                   (. e = new AssumeExpr(x, e0, e1); .)
+    Expression<out e1>              (. e = new AssumeExpr(x, e0, e1); .)
+  | "var"                           (. x = t;
+                                       letVars = new List<BoundVar>();
+                                       letRHSs = new List<Expression>(); .)
+    IdentTypeOptional<out d>        (. letVars.Add(d); .)
+    { "," IdentTypeOptional<out d>  (. letVars.Add(d); .)
+    }
+    ":="
+    Expression<out e>               (. letRHSs.Add(e); .)
+    { "," Expression<out e>         (. letRHSs.Add(e); .)
+    }
+    ";"
+    Expression<out e>               (. e = new LetExpr(x, letVars, letRHSs, e); .)
   )
   .
 MatchExpression<out Expression/*!*/ e>

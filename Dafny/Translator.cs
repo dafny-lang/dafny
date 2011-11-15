@@ -1738,7 +1738,7 @@ namespace Microsoft.Dafny {
         return r;
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
-        return new Bpl.OldExpr(expr.tok, IsTotal(e.E, etran));
+        return IsTotal(e.E, etran.Old);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         return IsTotal(e.E, etran);
@@ -1780,6 +1780,14 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr r = BplAnd(t0, t1);
         return z == null ? r : BplAnd(r, z);
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        Bpl.Expr total = Bpl.Expr.True;
+        foreach (var rhs in e.RHSs) {
+          total = BplAnd(total, IsTotal(rhs, etran));
+        }
+        return BplAnd(total, IsTotal(etran.GetSubstitutedBody(e), etran));
+
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var total = IsTotal(e.Term, etran);
@@ -1797,7 +1805,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr gTotal = IsTotal(e.Guard, etran);
         Bpl.Expr g = etran.TrExpr(e.Guard);
         Bpl.Expr bTotal = IsTotal(e.Body, etran);
-        if (e is AssertExpr) {
+        if (e is AssertExpr || CommandLineOptions.Clo.DisallowSoundnessCheating) {
           return BplAnd(gTotal, BplAnd(g, bTotal));
         } else {
           return BplAnd(gTotal, Bpl.Expr.Imp(g, bTotal));
@@ -1896,7 +1904,7 @@ namespace Microsoft.Dafny {
         return CanCallAssumption(dtv.Arguments, etran);
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
-        return new Bpl.OldExpr(expr.tok, CanCallAssumption(e.E, etran));
+        return CanCallAssumption(e.E, etran.Old);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         return CanCallAssumption(e.E, etran);
@@ -1926,6 +1934,14 @@ namespace Microsoft.Dafny {
             break;
         }
         return BplAnd(t0, t1);
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        Bpl.Expr canCall = Bpl.Expr.True;
+        foreach (var rhs in e.RHSs) {
+          canCall = BplAnd(canCall, CanCallAssumption(rhs, etran));
+        }
+        return BplAnd(canCall, CanCallAssumption(etran.GetSubstitutedBody(e), etran));
+
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var total = CanCallAssumption(e.Term, etran);
@@ -1941,11 +1957,11 @@ namespace Microsoft.Dafny {
       } else if (expr is PredicateExpr) {
         var e = (PredicateExpr)expr;
         Bpl.Expr gCanCall = CanCallAssumption(e.Guard, etran);
-        Bpl.Expr g = etran.TrExpr(e.Guard);
         Bpl.Expr bCanCall = CanCallAssumption(e.Body, etran);
-        if (e is AssertExpr) {
-          return BplAnd(gCanCall, BplAnd(g, bCanCall));
+        if (e is AssertExpr || CommandLineOptions.Clo.DisallowSoundnessCheating) {
+          return BplAnd(gCanCall, bCanCall);
         } else {
+          Bpl.Expr g = etran.TrExpr(e.Guard);
           return BplAnd(gCanCall, Bpl.Expr.Imp(g, bCanCall));
         }
       } else if (expr is ITEExpr) {
@@ -2328,6 +2344,13 @@ namespace Microsoft.Dafny {
             break;
         }
 
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        foreach (var rhs in e.RHSs) {
+          CheckWellformed(rhs, options, locals, builder, etran);
+        }
+        CheckWellformedWithResult(etran.GetSubstitutedBody(e), options, result, resultType, locals, builder, etran);
+
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran);
@@ -2346,7 +2369,7 @@ namespace Microsoft.Dafny {
       } else if (expr is PredicateExpr) {
         var e = (PredicateExpr)expr;
         CheckWellformed(e.Guard, options, locals, builder, etran);
-        if (e is AssertExpr) {
+        if (e is AssertExpr || CommandLineOptions.Clo.DisallowSoundnessCheating) {
           bool splitHappened;
           var ss = TrSplitExpr(e.Guard, etran, out splitHappened);
           if (!splitHappened) {
@@ -4146,7 +4169,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver);
+      Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
       Bpl.ExprSeq ins = new Bpl.ExprSeq();
       if (!method.IsStatic) {
         if (bReceiver == null) {
@@ -5002,11 +5025,13 @@ namespace Microsoft.Dafny {
     internal class BoogieWrapper : Expression
     {
       public readonly Bpl.Expr Expr;
-      public BoogieWrapper(Bpl.Expr expr)
+      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
         : base(expr.tok)
       {
         Contract.Requires(expr != null);
+        Contract.Requires(dafnyType != null);
         Expr = expr;
+        Type = dafnyType;  // resolve immediately
       }
     }
 
@@ -5016,7 +5041,7 @@ namespace Microsoft.Dafny {
       public readonly PredefinedDecls predef;
       public readonly Translator translator;
       public readonly string This;
-      public readonly string modifiesFrame = "$_Frame"; // the name of the context's frame variable.
+      public readonly string modifiesFrame; // the name of the context's frame variable.
       readonly Function applyLimited_CurrentFunction;
       public readonly int layerOffset = 0;
       public int Statistics_CustomLayerFunctionCount = 0;
@@ -5027,66 +5052,60 @@ namespace Microsoft.Dafny {
         Contract.Invariant(predef != null);
         Contract.Invariant(translator != null);
         Contract.Invariant(This != null);
+        Contract.Invariant(modifiesFrame != null);
         Contract.Invariant(layerOffset == 0 || layerOffset == 1);
         Contract.Invariant(0 <= Statistics_CustomLayerFunctionCount);
       }
 
-      public ExpressionTranslator(Translator translator, PredefinedDecls predef, IToken heapToken) {
-        Contract.Requires(translator != null);
-        Contract.Requires(predef != null);
-        Contract.Requires(heapToken != null);
-        this.translator = translator;
-        this.predef = predef;
-        this.HeapExpr = new Bpl.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType);
-        this.This = "this";
-      }
+      /// <summary>
+      /// This is the most general constructor.  It is private and takes all the parameters.  Whenever
+      /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
+      /// </summary>
+      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
+        Function applyLimited_CurrentFunction, int layerOffset, string modifiesFrame) {
 
-      public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap) {
-        Contract.Requires(translator != null);
-        Contract.Requires(predef != null);
-        Contract.Requires(heap != null);
-        this.translator = translator;
-        this.predef = predef;
-        this.HeapExpr = heap;
-        this.This = "this";
-      }
-
-      public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar) {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
         Contract.Requires(thisVar != null);
+        Contract.Invariant(layerOffset == 0 || layerOffset == 1);
+        Contract.Invariant(modifiesFrame != null);
+
         this.translator = translator;
         this.predef = predef;
         this.HeapExpr = heap;
         this.This = thisVar;
+        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
+        this.layerOffset = layerOffset;
+        this.modifiesFrame = modifiesFrame;
       }
 
-      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Function applyLimited_CurrentFunction, int layerOffset)
-      {
-          Contract.Requires(translator != null);
-          Contract.Requires(predef != null);
-          Contract.Requires(heap != null);
-          this.translator = translator;
-          this.predef = predef;
-          this.HeapExpr = heap;
-          this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
-          this.This = "this";
-          this.layerOffset = layerOffset;
+      public ExpressionTranslator(Translator translator, PredefinedDecls predef, IToken heapToken)
+        : this(translator, predef, new Bpl.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType)) {
+        Contract.Requires(translator != null);
+        Contract.Requires(predef != null);
+        Contract.Requires(heapToken != null);
+      }
+
+      public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap)
+        : this(translator, predef, heap, "this") {
+        Contract.Requires(translator != null);
+        Contract.Requires(predef != null);
+        Contract.Requires(heap != null);
+      }
+
+      public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar)
+        : this(translator, predef, heap, thisVar, null, 0, "$_Frame") {
+        Contract.Requires(translator != null);
+        Contract.Requires(predef != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(thisVar != null);
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, string modifiesFrame)
-      {
-          Contract.Requires(etran != null);
-          Contract.Requires(modifiesFrame != null);
-          this.translator = etran.translator;
-          this.HeapExpr = etran.HeapExpr;
-          this.predef = etran.predef;
-          this.This = etran.This;
-          this.applyLimited_CurrentFunction = etran.applyLimited_CurrentFunction;
-          this.layerOffset = etran.layerOffset;
-          this.oldEtran = etran.oldEtran;
-          this.modifiesFrame = modifiesFrame;
+        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerOffset, modifiesFrame) {
+        Contract.Requires(etran != null);
+        Contract.Requires(modifiesFrame != null);
       }
 
       ExpressionTranslator oldEtran;
@@ -5095,7 +5114,7 @@ namespace Microsoft.Dafny {
           Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), applyLimited_CurrentFunction, layerOffset);
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerOffset, modifiesFrame);
           }
           return oldEtran;
         }
@@ -5111,7 +5130,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(applyLimited_CurrentFunction != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction, layerOffset);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset, modifiesFrame);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
@@ -5119,7 +5138,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerOffset + offset <= 1);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, applyLimited_CurrentFunction, layerOffset + offset);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame);
       }
 
       public Bpl.IdentifierExpr TheFrame(IToken tok)
@@ -5131,7 +5150,7 @@ namespace Microsoft.Dafny {
         Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "beta");
         Bpl.Type fieldAlpha = predef.FieldName(tok, alpha);
         Bpl.Type ty = new Bpl.MapType(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.TypeSeq(predef.RefType, fieldAlpha), Bpl.Type.Bool);
-        return new Bpl.IdentifierExpr(tok, this.modifiesFrame ?? "$_Frame", ty);
+        return new Bpl.IdentifierExpr(tok, this.modifiesFrame, ty);
       }
 
       public Bpl.IdentifierExpr Tick() {
@@ -5141,23 +5160,32 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "$Tick", predef.TickType);
       }
 
-      public Bpl.IdentifierExpr ModuleContextHeight()
-        {
-       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
+      public Bpl.IdentifierExpr ModuleContextHeight() {
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
         return new Bpl.IdentifierExpr(Token.NoToken, "$ModuleContextHeight", Bpl.Type.Int);
       }
 
-      public Bpl.IdentifierExpr FunctionContextHeight()
-        {
-       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
+      public Bpl.IdentifierExpr FunctionContextHeight() {
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
         return new Bpl.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Bpl.Type.Int);
       }
 
-      public Bpl.IdentifierExpr InMethodContext()
-        {
-       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
+      public Bpl.IdentifierExpr InMethodContext() {
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
         return new Bpl.IdentifierExpr(Token.NoToken, "$InMethodContext", Bpl.Type.Bool);
       }
+
+      public Expression GetSubstitutedBody(LetExpr e) {
+        Contract.Requires(e != null);
+        var substMap = new Dictionary<IVariable, Expression>();
+        Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
+        for (int i = 0; i < e.Vars.Count; i++) {
+          Expression rhs = e.RHSs[i];
+          substMap.Add(e.Vars[i], new BoogieWrapper(TrExpr(rhs), rhs.Type));
+        }
+        return Translator.Substitute(e.Body, null, substMap);
+      }
+
 
       /// <summary>
       /// Translates Dafny expression "expr" into a Boogie expression.  If the type of "expr" can be a boolean, then the
@@ -5329,7 +5357,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is OldExpr) {
           OldExpr e = (OldExpr)expr;
-          return new Bpl.OldExpr(expr.tok, TrExpr(e.E));
+          return Old.TrExpr(e.E);
 
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
@@ -5344,7 +5372,6 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FreshExpr) {
           FreshExpr e = (FreshExpr)expr;
-          Bpl.Expr oldHeap = new Bpl.OldExpr(expr.tok, HeapExpr);
           if (e.E.Type is SetType) {
             // generate:  (forall $o: ref :: $o != null && X[Box($o)] ==> !old($Heap)[$o,alloc])
             // TODO: trigger?
@@ -5352,7 +5379,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
             Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
             Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)e.E.Type).Arg);
-            Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, o, oldHeap));
+            Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, o));
             Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), body);
           } else if (e.E.Type is SeqType) {
@@ -5362,14 +5389,14 @@ namespace Microsoft.Dafny {
             Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
             Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
             Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
-            Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, XsubI, oldHeap));
+            Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, XsubI));
             Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI), predef.Null);
             Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(iVar), body);
           } else {
             // generate:  x == null || !old($Heap)[x]
             Bpl.Expr oNull = Bpl.Expr.Eq(TrExpr(e.E), predef.Null);
-            Bpl.Expr oIsFresh = Bpl.Expr.Not(IsAlloced(expr.tok, TrExpr(e.E), oldHeap));
+            Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
             return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Or, oNull, oIsFresh);
           }
 
@@ -5545,6 +5572,10 @@ namespace Microsoft.Dafny {
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
           }
           return Bpl.Expr.Binary(expr.tok, bOpcode, e0, e1);
+
+        } else if (expr is LetExpr) {
+          var e = (LetExpr)expr;
+          return TrExpr(GetSubstitutedBody(e));
 
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
@@ -5930,16 +5961,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-        return IsAlloced(tok, e, HeapExpr);
-      }
-
-      Bpl.Expr IsAlloced(IToken tok, Bpl.Expr e, Bpl.Expr heap) {
-        Contract.Requires(tok != null);
-        Contract.Requires(e != null);
-        Contract.Requires(heap != null);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-        return ReadHeap(tok, heap, e, predef.Alloc(tok));
+        return ReadHeap(tok, HeapExpr, e, predef.Alloc(tok));
       }
 
       public Bpl.Expr GoodRef(IToken tok, Bpl.Expr e, Type type) {
@@ -6401,9 +6423,9 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, expandFunctions, etran);
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        return TrSplitExpr(e.Body, splits, position, expandFunctions, etran);
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        return TrSplitExpr(etran.GetSubstitutedBody(e), splits, position, expandFunctions, etran);
 
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
@@ -6474,15 +6496,33 @@ namespace Microsoft.Dafny {
           return true;
         }
 
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        // For a predicate expression in split position, the predicate can be used as an assumption.  Unfortunately,
+        // this assumption is not generated in non-split positions (because I don't know how.)
+        // So, treat "assert/assume P; E" like "P ==> E".
+        if (position) {
+          var guard = etran.TrExpr(e.Guard);
+          var ss = new List<SplitExprInfo>();
+          TrSplitExpr(e.Body, ss, position, expandFunctions, etran);
+          foreach (var s in ss) {
+            // as the source location in the following implication, use that of the translated "s"
+            splits.Add(new SplitExprInfo(s.IsFree, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, guard, s.E)));
+          }
+        } else {
+          var ss = new List<SplitExprInfo>();
+          TrSplitExpr(e.Guard, ss, !position, expandFunctions, etran);
+          var rhs = etran.TrExpr(e.Body);
+          foreach (var s in ss) {
+            // as the source location in the following implication, use that of the translated "s"
+            splits.Add(new SplitExprInfo(s.IsFree, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
+          }
+        }
+        return true;
+
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        var ss = new List<SplitExprInfo>();
-        if (TrSplitExpr(e.E, ss, position, expandFunctions, etran)) {
-          foreach (var s in ss) {
-            splits.Add(new SplitExprInfo(s.IsFree, new Bpl.OldExpr(s.E.tok, s.E)));
-          }
-          return true;
-        }
+        return TrSplitExpr(e.E, splits, position, expandFunctions, etran.Old);
 
       } else if (expandFunctions && position && expr is FunctionCallExpr) {
         var fexp = (FunctionCallExpr)expr;
@@ -6845,9 +6885,6 @@ namespace Microsoft.Dafny {
         var e = (DatatypeValue)expr;
         var q = n.Type.IsDatatype ? exprIsProminent : subExprIsProminent;  // prominent status continues, if we're looking for a variable whose type is a datatype
         return e.Arguments.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, q));
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        return VarOccursInArgumentToRecursiveFunction(e.E, n, exprIsProminent);  // prominent status continues
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         // both Not and SeqLength preserve prominence
@@ -6965,7 +7002,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {
+    public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
@@ -7051,7 +7088,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
-        Expression se = Substitute(e.E, receiverReplacement, substMap);  // TODO: whoa, won't this do improper variable capture?
+        // Note, it is up to the caller to avoid variable capture.  In most cases, this is not a
+        // problem, since variables have unique declarations.  However, it is an issue if the substitution
+        // takes place inside an OldExpr.  In those cases (see LetExpr), the caller can use a
+        // BoogieWrapper before calling Substitute.
+        Expression se = Substitute(e.E, receiverReplacement, substMap);
         if (se != e.E) {
           newExpr = new OldExpr(expr.tok, se);
         }
@@ -7083,6 +7124,22 @@ namespace Microsoft.Dafny {
           newExpr = newBin;
         }
 
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        var rhss = new List<Expression>();
+        bool anythingChanged = false;
+        foreach (var rhs in e.RHSs) {
+          var r = Substitute(rhs, receiverReplacement, substMap);
+          if (r != rhs) {
+            anythingChanged = true;
+          }
+          rhss.Add(r);
+        }
+        var body = Substitute(e.Body, receiverReplacement, substMap);
+        if (anythingChanged || body != e.Body) {
+          newExpr = new LetExpr(e.tok, e.Vars, rhss, body);
+        }
+
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         Expression newRange = e.Range == null ? null : Substitute(e.Range, receiverReplacement, substMap);
@@ -7109,10 +7166,12 @@ namespace Microsoft.Dafny {
         var e = (PredicateExpr)expr;
         Expression g = Substitute(e.Guard, receiverReplacement, substMap);
         Expression b = Substitute(e.Body, receiverReplacement, substMap);
-        if (expr is AssertExpr) {
-          newExpr = new AssertExpr(e.tok, g, b);
-        } else {
-          newExpr = new AssumeExpr(e.tok, g, b);
+        if (g != e.Guard || b != e.Body) {
+          if (expr is AssertExpr) {
+            newExpr = new AssertExpr(e.tok, g, b);
+          } else {
+            newExpr = new AssumeExpr(e.tok, g, b);
+          }
         }
 
       } else if (expr is ITEExpr) {
