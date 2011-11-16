@@ -154,6 +154,7 @@
     <Compile Include="Compiler.cs" />
     <Compile Include="DafnyAst.cs" />
     <Compile Include="DafnyMain.cs" />
+    <Compile Include="DafnyOptions.cs" />
     <Compile Include="Printer.cs" />
     <Compile Include="Resolver.cs" />
     <Compile Include="SccGraph.cs" />

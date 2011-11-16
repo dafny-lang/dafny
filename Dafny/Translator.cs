@@ -259,7 +259,7 @@ namespace Microsoft.Dafny {
     }
 
     static Bpl.Program ReadPrelude() {
-      string preludePath = Bpl.CommandLineOptions.Clo.DafnyPrelude;
+      string preludePath = DafnyOptions.O.DafnyPrelude;
       if (preludePath == null)
       {
           //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
@@ -1054,7 +1054,7 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
-        if (3 <= CommandLineOptions.Clo.DafnyInduction && m.IsGhost && m.Mod.Count == 0 && m.Outs.Count == 0) {
+        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Count == 0 && m.Outs.Count == 0) {
           var posts = new List<Expression>();
           m.Ens.ForEach(mfe => posts.Add(mfe.E));
           var allIns = new List<Formal>();
@@ -1805,7 +1805,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr gTotal = IsTotal(e.Guard, etran);
         Bpl.Expr g = etran.TrExpr(e.Guard);
         Bpl.Expr bTotal = IsTotal(e.Body, etran);
-        if (e is AssertExpr || CommandLineOptions.Clo.DisallowSoundnessCheating) {
+        if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
           return BplAnd(gTotal, BplAnd(g, bTotal));
         } else {
           return BplAnd(gTotal, Bpl.Expr.Imp(g, bTotal));
@@ -1958,7 +1958,7 @@ namespace Microsoft.Dafny {
         var e = (PredicateExpr)expr;
         Bpl.Expr gCanCall = CanCallAssumption(e.Guard, etran);
         Bpl.Expr bCanCall = CanCallAssumption(e.Body, etran);
-        if (e is AssertExpr || CommandLineOptions.Clo.DisallowSoundnessCheating) {
+        if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
           return BplAnd(gCanCall, bCanCall);
         } else {
           Bpl.Expr g = etran.TrExpr(e.Guard);
@@ -2369,7 +2369,7 @@ namespace Microsoft.Dafny {
       } else if (expr is PredicateExpr) {
         var e = (PredicateExpr)expr;
         CheckWellformed(e.Guard, options, locals, builder, etran);
-        if (e is AssertExpr || CommandLineOptions.Clo.DisallowSoundnessCheating) {
+        if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
           bool splitHappened;
           var ss = TrSplitExpr(e.Guard, etran, out splitHappened);
           if (!splitHappened) {
@@ -2843,7 +2843,7 @@ namespace Microsoft.Dafny {
       if (!wellformednessProc) {
         string comment = "user-defined preconditions";
         foreach (MaybeFreeExpression p in m.Req) {
-          if (p.IsFree && !CommandLineOptions.Clo.DisallowSoundnessCheating) {
+          if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
@@ -2856,7 +2856,7 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         if (!skipEnsures) foreach (MaybeFreeExpression p in m.Ens) {
-          if (p.IsFree && !CommandLineOptions.Clo.DisallowSoundnessCheating) {
+          if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
@@ -3330,7 +3330,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(currentMethod != null && predef != null);
       if (stmt is PredicateStmt) {
-        if (stmt is AssertStmt || CommandLineOptions.Clo.DisallowSoundnessCheating) {
+        if (stmt is AssertStmt || DafnyOptions.O.DisallowSoundnessCheating) {
           AddComment(builder, stmt, "assert statement");
           PredicateStmt s = (PredicateStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
@@ -3958,7 +3958,7 @@ namespace Microsoft.Dafny {
         invDefinednessBuilder.Add(new Bpl.AssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
         invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
-        if (loopInv.IsFree && !CommandLineOptions.Clo.DisallowSoundnessCheating) {
+        if (loopInv.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
           invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
         } else {
           bool splitHappened;
@@ -6578,7 +6578,7 @@ namespace Microsoft.Dafny {
       } else if ((position && expr is ForallExpr) || (!position && expr is ExistsExpr)) {
         var e = (QuantifierExpr)expr;
         var inductionVariables = ApplyInduction(e);
-        if (2 <= CommandLineOptions.Clo.DafnyInduction && inductionVariables.Count != 0) {
+        if (2 <= DafnyOptions.O.Induction && inductionVariables.Count != 0) {
           // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
           //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
           // For an existential (exists n :: P(n)), it is
@@ -6689,7 +6689,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tracePrinter != null);
       Contract.Ensures(Contract.Result<List<VarType>>() != null);
 
-      if (CommandLineOptions.Clo.DafnyInduction == 0) {
+      if (DafnyOptions.O.Induction == 0) {
         return new List<VarType>();  // don't apply induction
       }
 
@@ -6774,7 +6774,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (CommandLineOptions.Clo.DafnyInduction < 2) {
+      if (DafnyOptions.O.Induction < 2) {
         return new List<VarType>();  // don't apply induction
       }
 
@@ -6809,7 +6809,7 @@ namespace Microsoft.Dafny {
     /// Parameter 'n' is allowed to be a ThisSurrogate.
     /// </summary>
     bool VarOccursInArgumentToRecursiveFunction(Expression expr, IVariable n) {
-      switch (CommandLineOptions.Clo.DafnyInductionHeuristic) {
+      switch (DafnyOptions.O.InductionHeuristic) {
         case 0: return true;
         case 1: return ContainsFreeVariable(expr, false, n);
         default: return VarOccursInArgumentToRecursiveFunction(expr, n, false);
@@ -6827,7 +6827,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(n != null);
 
       // The following variable is what gets passed down to recursive calls if the subexpression does not itself acquire prominent status.
-      var subExprIsProminent = CommandLineOptions.Clo.DafnyInductionHeuristic == 2 || CommandLineOptions.Clo.DafnyInductionHeuristic == 4 ? /*once prominent, always prominent*/exprIsProminent : /*reset the prominent status*/false;
+      var subExprIsProminent = DafnyOptions.O.InductionHeuristic == 2 || DafnyOptions.O.InductionHeuristic == 4 ? /*once prominent, always prominent*/exprIsProminent : /*reset the prominent status*/false;
 
       if (expr is ThisExpr) {
         return exprIsProminent && n is ThisSurrogate;
@@ -6836,13 +6836,13 @@ namespace Microsoft.Dafny {
         return exprIsProminent && e.Var == n;
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
-        var q = CommandLineOptions.Clo.DafnyInductionHeuristic < 4 || subExprIsProminent;
+        var q = DafnyOptions.O.InductionHeuristic < 4 || subExprIsProminent;
         return VarOccursInArgumentToRecursiveFunction(e.Seq, n, subExprIsProminent) ||  // this subexpression does not acquire "prominent" status
           (e.E0 != null && VarOccursInArgumentToRecursiveFunction(e.E0, n, q)) ||  // this one does (unless arrays/sequences are excluded)
           (e.E1 != null && VarOccursInArgumentToRecursiveFunction(e.E1, n, q));    // ditto
       } else if (expr is MultiSelectExpr) {
         var e = (MultiSelectExpr)expr;
-        var q = CommandLineOptions.Clo.DafnyInductionHeuristic < 4 || subExprIsProminent;
+        var q = DafnyOptions.O.InductionHeuristic < 4 || subExprIsProminent;
         return VarOccursInArgumentToRecursiveFunction(e.Array, n, subExprIsProminent) ||
           e.Indices.Exists(exp => VarOccursInArgumentToRecursiveFunction(exp, n, q));
       } else if (expr is FunctionCallExpr) {
@@ -6853,7 +6853,7 @@ namespace Microsoft.Dafny {
         bool inferredDecreases;  // we don't actually care
         var decr = FunctionDecreasesWithDefault(e.Function, out inferredDecreases);
         bool variantArgument;
-        if (CommandLineOptions.Clo.DafnyInductionHeuristic < 6) {
+        if (DafnyOptions.O.InductionHeuristic < 6) {
           variantArgument = rec;
         } else {
           // The receiver is considered to be "variant" if the function is recursive and the receiver participates
@@ -6868,7 +6868,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           var f = e.Function.Formals[i];
           var exp = e.Args[i];
-          if (CommandLineOptions.Clo.DafnyInductionHeuristic < 6) {
+          if (DafnyOptions.O.InductionHeuristic < 6) {
             variantArgument = rec;
           } else {
             // The argument position is considered to be "variant" if the function is recursive and the argument participates

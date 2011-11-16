@@ -4,11 +4,11 @@
 //
 //-----------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
-// OnlyDafny OnlyDafny.ssc
+// DafnyDriver
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-namespace Microsoft.Boogie
+namespace Microsoft.Dafny
 {
   using System;
   using System.IO;
@@ -17,30 +17,27 @@ namespace Microsoft.Boogie
   using System.Diagnostics.Contracts;
   using PureCollections;
   using Microsoft.Boogie;
+  using Bpl = Microsoft.Boogie;
   using Microsoft.Boogie.AbstractInterpretation;
   using System.Diagnostics;
   using VC;
   using AI = Microsoft.AbstractInterpretationFramework;
 
-/*
-  The following assemblies are referenced because they are needed at runtime, not at compile time:
-    BaseTypes
-    Provers.Z3
-    System.Compiler.Framework
-*/
-
-  public class OnlyDafny
+  public class DafnyDriver
   {
     // ------------------------------------------------------------------------
     // Main
 
-    public static int Main (string[] args)
-    {Contract.Requires(cce.NonNullElements(args));
+    public static int Main(string[] args)
+    {
+      Contract.Requires(cce.NonNullElements(args));
+
+      DafnyOptions.Install(new DafnyOptions());
+
       //assert forall{int i in (0:args.Length); args[i] != null};
       ExitValue exitValue = ExitValue.VERIFIED;
       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
-      if (CommandLineOptions.Clo.Parse(args) != 1)
-      {
+      if (!CommandLineOptions.Clo.Parse(args)) {
         exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
@@ -84,7 +81,6 @@ namespace Microsoft.Boogie
             goto END;
         }
       }
-      CommandLineOptions.Clo.RunningBoogieOnSsc = false;
       exitValue = ProcessFiles(CommandLineOptions.Clo.Files);
 
       END:
@@ -155,7 +151,7 @@ namespace Microsoft.Boogie
           ErrorWriteLine(err);
         } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
           Dafny.Translator translator = new Dafny.Translator();
-          Program boogieProgram = translator.Translate(dafnyProgram);
+          Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
           {
             PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false);
@@ -176,12 +172,12 @@ namespace Microsoft.Boogie
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-              if ((CommandLineOptions.Clo.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || CommandLineOptions.Clo.ForceCompile)
+              if ((DafnyOptions.O.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
                 CompileDafnyProgram(dafnyProgram);
               break;
             case PipelineOutcome.Done:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-              if (CommandLineOptions.Clo.ForceCompile)
+              if (DafnyOptions.O.ForceCompile)
                 CompileDafnyProgram(dafnyProgram);
               break;
             default:
@@ -209,7 +205,7 @@ namespace Microsoft.Boogie
       }
     }
 
-    static void PrintBplFile (string filename, Program program, bool allowPrintDesugaring)
+    static void PrintBplFile (string filename, Bpl.Program program, bool allowPrintDesugaring)
     {
       Contract.Requires(filename != null);
       Contract.Requires(program != null);
@@ -230,7 +226,7 @@ namespace Microsoft.Boogie
     }
 
 
-    static bool ProgramHasDebugInfo (Program program)
+    static bool ProgramHasDebugInfo (Bpl.Program program)
     {
       Contract.Requires(program != null);
         // We inspect the last declaration because the first comes from the prelude and therefore always has source context.
@@ -251,7 +247,7 @@ namespace Microsoft.Boogie
     static void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories){
       Contract.Requires(0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories);
       Console.WriteLine();
-      Console.Write("{0} finished with {1} verified, {2} error{3}", CommandLineOptions.Clo.ToolName, verified, errors, errors == 1 ? "" : "s");
+      Console.Write("{0} finished with {1} verified, {2} error{3}", CommandLineOptions.Clo.DescriptiveToolName, verified, errors, errors == 1 ? "" : "s");
       if (inconclusives != 0) {
         Console.Write(", {0} inconclusive{1}", inconclusives, inconclusives == 1 ? "" : "s");
       }
@@ -291,11 +287,11 @@ namespace Microsoft.Boogie
     /// Parse the given files into one Boogie program.  If an I/O or parse error occurs, an error will be printed
     /// and null will be returned.  On success, a non-null program is returned.
     /// </summary>
-    static Program ParseBoogieProgram(List<string/*!*/>/*!*/ fileNames, bool suppressTraceOutput)
+    static Bpl.Program ParseBoogieProgram(List<string/*!*/>/*!*/ fileNames, bool suppressTraceOutput)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
       //BoogiePL.Errors.count = 0;
-      Program program = null;
+      Bpl.Program program = null;
       bool okay = true;
       foreach (string bplFileName in fileNames) {
         if (!suppressTraceOutput) {
@@ -307,7 +303,7 @@ namespace Microsoft.Boogie
           }
         }
 
-        Program programSnippet;
+        Bpl.Program programSnippet;
         int errorCount;
         try {
           errorCount = Microsoft.Boogie.Parser.Parse(bplFileName, null, out programSnippet);
@@ -330,7 +326,7 @@ namespace Microsoft.Boogie
       if (!okay) {
         return null;
       } else if (program == null) {
-        return new Program();
+        return new Bpl.Program();
       } else {
         return program;
       }
@@ -344,7 +340,7 @@ namespace Microsoft.Boogie
     /// The method prints errors for resolution and type checking errors, but still returns
     /// their error code.
     /// </summary>
-    static PipelineOutcome BoogiePipelineWithRerun (Program/*!*/ program, string/*!*/ bplFileName,
+    static PipelineOutcome BoogiePipelineWithRerun (Bpl.Program/*!*/ program, string/*!*/ bplFileName,
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {Contract.Requires(program != null);
     Contract.Requires(bplFileName != null);
@@ -367,7 +363,7 @@ namespace Microsoft.Boogie
 
             List<string/*!*/>/*!*/ fileNames = new List<string/*!*/>();
             fileNames.Add(bplFileName);
-            Program reparsedProgram = ParseBoogieProgram(fileNames, true);
+            Bpl.Program reparsedProgram = ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
               ResolveAndTypecheck(reparsedProgram, bplFileName);
             }
@@ -394,7 +390,7 @@ namespace Microsoft.Boogie
     ///  - TypeCheckingError if a type checking error occurred
     ///  - ResolvedAndTypeChecked if both resolution and type checking succeeded
     /// </summary>
-    static PipelineOutcome ResolveAndTypecheck (Program program, string bplFileName)
+    static PipelineOutcome ResolveAndTypecheck (Bpl.Program program, string bplFileName)
     {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
@@ -435,7 +431,7 @@ namespace Microsoft.Boogie
     ///  - VerificationCompleted if inference and verification completed, in which the out
     ///    parameters contain meaningful values
     /// </summary>
-    static PipelineOutcome InferAndVerify (Program program,
+    static PipelineOutcome InferAndVerify (Bpl.Program program,
                                            out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {Contract.Requires(program != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
@@ -491,7 +487,7 @@ namespace Microsoft.Boogie
       }
 
       var decls = program.TopLevelDeclarations.ToArray();
-      foreach ( Declaration decl in decls )
+      foreach (var decl in decls )
       {Contract.Assert(decl != null);
         Implementation impl = decl as Implementation;
         if (impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine(cce.NonNull(impl.Name)) && !impl.SkipVerification)

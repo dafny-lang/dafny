@@ -49,8 +49,8 @@ namespace Microsoft.Dafny {
 
       program = new Program(programName, modules, builtIns);
 
-      if (Bpl.CommandLineOptions.Clo.DafnyPrintFile != null) {
-        string filename = Bpl.CommandLineOptions.Clo.DafnyPrintFile;
+      if (DafnyOptions.O.DafnyPrintFile != null) {
+        string filename = DafnyOptions.O.DafnyPrintFile;
         if (filename == "-") {
           Printer pr = new Printer(System.Console.Out);
           pr.PrintProgram(program);
