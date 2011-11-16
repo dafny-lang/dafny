@@ -12,7 +12,12 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Resolver {
     public int ErrorCount = 0;
-    void Error(IToken tok, string msg, params object[] args) {
+    public virtual void HereIsASillyTest() {
+    }
+    /// <summary>
+    /// This method is virtual, because it is overridden in the VSX plug-in for Dafny.
+    /// </summary>
+    protected virtual void Error(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       ConsoleColor col = Console.ForegroundColor;

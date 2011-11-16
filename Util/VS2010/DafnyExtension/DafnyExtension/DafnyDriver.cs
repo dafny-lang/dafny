@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 // Here come the Dafny/Boogie specific imports
 //using PureCollections;
-using Microsoft.Boogie;
+using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
 using Microsoft.Boogie.AbstractInterpretation;
 using VC;
@@ -112,10 +112,9 @@ namespace DafnyLanguage
     }
 
     static void Initialize() {
-      CommandLineOptions.Clo.RunningBoogieOnSsc = false;
-      CommandLineOptions.Clo.TheProverFactory = ProverFactory.Load("Z3");
-      CommandLineOptions.Clo.ProverName = "Z3";
-      CommandLineOptions.Clo.vcVariety = CommandLineOptions.Clo.TheProverFactory.DefaultVCVariety;
+      if (Dafny.DafnyOptions.O == null) {
+        Dafny.DafnyOptions.Install(new Dafny.DafnyOptions());
+      }
     }
 
     public Dafny.Program Process() {
