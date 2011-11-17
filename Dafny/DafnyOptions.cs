@@ -33,8 +33,6 @@ namespace Microsoft.Dafny
     public bool ForceCompile = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
-      Contract.Requires(name != null);
-      Contract.Requires(ps != null);
       var args = ps.args;  // convenient synonym
 
       switch (name) {

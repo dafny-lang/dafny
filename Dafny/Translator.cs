@@ -5068,8 +5068,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
         Contract.Requires(thisVar != null);
-        Contract.Invariant(layerOffset == 0 || layerOffset == 1);
-        Contract.Invariant(modifiesFrame != null);
+        Contract.Requires(layerOffset == 0 || layerOffset == 1);
+        Contract.Requires(modifiesFrame != null);
 
         this.translator = translator;
         this.predef = predef;
