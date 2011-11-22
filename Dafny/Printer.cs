@@ -62,7 +62,13 @@ namespace Microsoft.Dafny {
       int i = 0;
       foreach (TopLevelDecl d in classes) {
         Contract.Assert(d != null);
-        if (d is DatatypeDecl) {
+        if (d is ArbitraryTypeDecl) {
+          var at = (ArbitraryTypeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          Indent(indent);
+          PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
+          wr.WriteLine(";");
+        } else if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
           PrintDatatype((DatatypeDecl)d, indent);
         } else {

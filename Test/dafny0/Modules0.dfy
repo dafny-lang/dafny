@@ -188,3 +188,17 @@ function NestedMatch3(tree: Tree): int
       case Nil => 0
       case Cons(h1,l1,r1) => h + h0 + h1
 }
+
+// ---------------------- more duplicates
+
+module Wazzup {
+  class WazzupA { }
+  class WazzupA { }  // error: duplicate type
+  datatype WazzupA = W_A_X;  // error: duplicate type
+  type WazzupA;  // error: duplicate type
+
+  type WazzupB;
+  type WazzupB;  // error: duplicate type
+  class WazzupB { }  // error: duplicate type
+  datatype WazzupB = W_B_X;  // error: duplicate type
+}

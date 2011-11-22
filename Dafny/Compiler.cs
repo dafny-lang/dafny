@@ -74,7 +74,10 @@ namespace Microsoft.Dafny {
         }
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           wr.WriteLine();
-          if (d is DatatypeDecl) {
+          if (d is ArbitraryTypeDecl) {
+            var at = (ArbitraryTypeDecl)d;
+            Error("Arbitrary type ('{0}') cannot be compiled", at.Name);
+          } else if (d is DatatypeDecl) {
             DatatypeDecl dt = (DatatypeDecl)d;
             Indent(indent);
             wr.Write("public abstract class Base_{0}", dt.Name);

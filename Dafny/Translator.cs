@@ -302,7 +302,9 @@ namespace Microsoft.Dafny {
       }
 
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
-        if (d is DatatypeDecl) {
+        if (d is ArbitraryTypeDecl) {
+          // nothing to do--this is treated just like a type parameter
+        } else if (d is DatatypeDecl) {
           AddDatatype((DatatypeDecl)d);
         } else {
           AddClassMembers((ClassDecl)d);
@@ -310,7 +312,9 @@ namespace Microsoft.Dafny {
       }
       foreach (ModuleDecl m in program.Modules) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
-          if (d is DatatypeDecl) {
+          if (d is ArbitraryTypeDecl) {
+            // nothing to do--this is treated just like a type parameter
+          } else if (d is DatatypeDecl) {
             AddDatatype((DatatypeDecl)d);
           } else {
             AddClassMembers((ClassDecl)d);

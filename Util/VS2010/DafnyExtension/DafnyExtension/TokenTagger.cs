@@ -287,6 +287,7 @@ namespace DafnyLanguage
                 case "then":
                 case "this":
                 case "true":
+                case "type":
                 case "unlimited":
                 case "var":
                 case "while":
