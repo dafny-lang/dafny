@@ -31,6 +31,7 @@ namespace Microsoft.Dafny
     public string DafnyPrintFile = null;
     public bool Compile = true;
     public bool ForceCompile = false;
+    public bool SpillTargetCode = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -51,8 +52,17 @@ namespace Microsoft.Dafny
         case "compile": {
             int compile = 0;
             if (ps.GetNumericArgument(ref compile, 3)) {
+              // convert option to two booleans
               Compile = compile == 1 || compile == 2;
               ForceCompile = compile == 2;
+            }
+            return true;
+          }
+
+        case "spillTargetCode": {
+            int spill = 0;
+            if (ps.GetNumericArgument(ref spill, 2)) {
+              SpillTargetCode = spill != 0;  // convert to a boolean
             }
             return true;
           }
@@ -108,6 +118,10 @@ namespace Microsoft.Dafny
                     program, compile Dafny program to C# program out.cs
                 2 - always attempt to compile Dafny program to C# program
                     out.cs, regardless of verification outcome
+  /spillTargetCode:<n>
+                0 (default) - don't write the compiled Dafny program (but
+                    still compile it, if /compile indicates to do so)
+                1 - write the compiled Dafny program as a .cs file
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
                 1 - treat all assumptions as asserts, and drop free.

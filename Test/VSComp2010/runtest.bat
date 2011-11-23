@@ -11,7 +11,5 @@ for %%f in (Problem1-SumMax.dfy Problem2-Invert.dfy
             Problem5-DoubleEndedQueue.dfy) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% %* %%f
-
-  IF NOT "%COMPILEDAFNY%"=="" %CSC% /nologo /debug /t:library /out:out.dll /r:System.Numerics.dll out.cs
+  %DAFNY_EXE% /compile:0 %* %%f
 )
