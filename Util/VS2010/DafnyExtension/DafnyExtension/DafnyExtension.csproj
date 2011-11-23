@@ -57,20 +57,27 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\Binaries\DafnyPipeline.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Binaries\FSharp.Core.dll</HintPath>
+    <Reference Include="Graph">
+      <HintPath>..\..\..\..\Binaries\Graph.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.PowerPack, Version=1.9.9.9, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Binaries\FSharp.PowerPack.dll</HintPath>
+    <Reference Include="Houdini">
+      <HintPath>..\..\..\..\Binaries\Houdini.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Contracts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\Binaries\Microsoft.Contracts.dll</HintPath>
     </Reference>
+    <Reference Include="Model">
+      <HintPath>..\..\..\..\Binaries\Model.dll</HintPath>
+    </Reference>
+    <Reference Include="ParserHelper">
+      <HintPath>..\..\..\..\Binaries\ParserHelper.dll</HintPath>
+    </Reference>
     <Reference Include="Provers.Z3">
       <HintPath>..\..\..\..\Binaries\Provers.Z3.dll</HintPath>
+    </Reference>
+    <Reference Include="VCExpr">
+      <HintPath>..\..\..\..\Binaries\VCExpr.dll</HintPath>
     </Reference>
     <Reference Include="VCGeneration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
