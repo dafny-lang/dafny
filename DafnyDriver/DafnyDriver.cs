@@ -21,6 +21,7 @@ namespace Microsoft.Dafny
   using Microsoft.Boogie.AbstractInterpretation;
   using System.Diagnostics;
   using VC;
+  using System.CodeDom.Compiler;
   using AI = Microsoft.AbstractInterpretationFramework;
 
   public class DafnyDriver
@@ -173,12 +174,12 @@ namespace Microsoft.Dafny
             case PipelineOutcome.VerificationCompleted:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
               if ((DafnyOptions.O.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
-                CompileDafnyProgram(dafnyProgram);
+                CompileDafnyProgram(dafnyProgram, fileNames[0]);
               break;
             case PipelineOutcome.Done:
               WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
               if (DafnyOptions.O.ForceCompile)
-                CompileDafnyProgram(dafnyProgram);
+                CompileDafnyProgram(dafnyProgram, fileNames[0]);
               break;
             default:
               // error has already been reported to user
@@ -190,17 +191,52 @@ namespace Microsoft.Dafny
       return exitValue;
     }
 
-    private static void CompileDafnyProgram(Dafny.Program dafnyProgram)
+    private static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
     {
-      string targetFilename = "out.cs";
-      using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
-        Dafny.Compiler compiler = new Dafny.Compiler(target);
-        compiler.Compile(dafnyProgram);
-        if (compiler.ErrorCount == 0) {
-          Console.WriteLine("Compiled program written to {0}", targetFilename);
+      // Compile the Dafny program into a string that contains the C# program
+      StringWriter sw = new StringWriter();
+      Dafny.Compiler compiler = new Dafny.Compiler(sw);
+      compiler.Compile(dafnyProgram);
+      var csharpProgram = sw.ToString();
+      bool completeProgram = compiler.ErrorCount == 0;
+
+      // blurt out the code to a file
+      if (DafnyOptions.O.SpillTargetCode) {
+        string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
+        using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
+          target.Write(csharpProgram);
+          if (completeProgram) {
+            Console.WriteLine("Compiled program written to {0}", targetFilename);
+          } else {
+            Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
+          }
         }
-        else {
-          Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
+      }
+
+      // compile the program into an assembly
+      if (!completeProgram) {
+        // don't compile
+      } else if (!CodeDomProvider.IsDefinedLanguage("CSharp")) {
+        Console.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
+      } else {
+        var provider = CodeDomProvider.CreateProvider("CSharp");
+        var cp = new System.CodeDom.Compiler.CompilerParameters();
+        cp.GenerateExecutable = true;
+        // TODO: an improvement would be to generate a .dll if there is no Main method
+        cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
+        cp.GenerateInMemory = false;
+        cp.ReferencedAssemblies.Add("System.Numerics.dll");
+        cp.CompilerOptions = "/debug";
+
+        var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
+        if (cr.Errors.Count == 0) {
+          Console.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
+        } else {
+          Console.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
+          foreach (var ce in cr.Errors) {
+            Console.WriteLine(ce.ToString());
+            Console.WriteLine();
+          }
         }
       }
     }
