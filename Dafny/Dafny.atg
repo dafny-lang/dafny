@@ -191,6 +191,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
   .)
+  SYNC
   "class"
   { Attribute<ref attrs> }
   Ident<out id>
@@ -234,6 +235,7 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
   .)
+  SYNC
   "datatype"
   { Attribute<ref attrs> }
   Ident<out id>
@@ -241,7 +243,7 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
   "="                                      (. bodyStart = t; .)
   DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
-  ";"
+  SYNC ";"
   (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
@@ -263,6 +265,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
   .)
+  SYNC
   "var"
   (. if (mmod.IsUnlimited) { SemErr(t, "fields cannot be declared 'unlimited'"); }
      if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
@@ -271,7 +274,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   { "," IdentType<out id, out ty>                   (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
-  ";"
+  SYNC ";"
   .
 CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
@@ -379,6 +382,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
+  SYNC
   ( "method"
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
@@ -423,16 +427,17 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
 = (. Contract.Requires(cce.NonNullElements(req)); Contract.Requires(cce.NonNullElements(mod)); Contract.Requires(cce.NonNullElements(ens)); Contract.Requires(cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe;  bool isFree = false;
   .)
+  SYNC
   ( "modifies" [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
-               ] ";"
+               ] SYNC ";"
   | [ "free"                                                 (. isFree = true; .)
     ]
-    ( "requires" Expression<out e> ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
-    | "ensures" Expression<out e> ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
+    ( "requires" Expression<out e> SYNC ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
+    | "ensures" Expression<out e> SYNC ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
     )
-  | "decreases" DecreasesList<decreases, false> ";"
+  | "decreases" DecreasesList<decreases, false> SYNC ";"
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.>
@@ -555,13 +560,15 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
 FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
-  ( "requires" Expression<out e> ";"      (. reqs.Add(e); .)
+  (
+    SYNC
+    "requires" Expression<out e> SYNC ";"      (. reqs.Add(e); .)
   | "reads" [ PossiblyWildFrameExpression<out fe>              (. reads.Add(fe); .)
               { "," PossiblyWildFrameExpression<out fe>        (. reads.Add(fe); .)
               }
-            ] ";"
-  | "ensures" Expression<out e> ";"      (. ens.Add(e); .)
-  | "decreases" DecreasesList<decreases, false> ";"
+            ] SYNC ";"
+  | "ensures" Expression<out e> SYNC ";"      (. ens.Add(e); .)
+  | "decreases" DecreasesList<decreases, false> SYNC ";"
   )
   .
 PossiblyWildExpression<out Expression/*!*/ e>
@@ -622,6 +629,7 @@ OneStmt<out Statement/*!*/ s>
      int breakCount;
   .)
   /* This list does not contain BlockStmt, see comment above in Stmt production. */
+  SYNC
   ( BlockStmt<out s, out bodyStart, out bodyEnd>
   | AssertStmt<out s>
   | AssumeStmt<out s>
@@ -640,6 +648,7 @@ OneStmt<out Statement/*!*/ s>
     | { "break"                        (. breakCount++; .)
       }
     )
+    SYNC
     ";"                                (. s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); .)
   | ReturnStmt<out s>
   )
@@ -814,24 +823,28 @@ WhileStmt<out Statement/*!*/ stmt>
   )
   .
 LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod.>
-= (. bool isFree;  Expression/*!*/ e; FrameExpression/*!*/ fe;
+= (. FrameExpression/*!*/ fe;
      invariants = new List<MaybeFreeExpression/*!*/>();
+     MaybeFreeExpression invariant = null;
      decreases = new List<Expression/*!*/>();
      mod = null;
   .)
-  {                         (. isFree = false; .)
-    [ "free"                (. isFree = true; .)
-    ]
-    "invariant"
-    Expression<out e>       (. invariants.Add(new MaybeFreeExpression(e, isFree)); .)
-    ";"
-  | "decreases" DecreasesList<decreases, true> ";"
-  | "modifies" (. mod = mod ?? new List<FrameExpression>(); .)
+  {
+    Invariant<out invariant> SYNC ";"   (. invariants.Add(invariant); .)
+  | SYNC "decreases" DecreasesList<decreases, true> SYNC ";"
+  | SYNC "modifies" (. mod = mod ?? new List<FrameExpression>(); .)
                [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
-               ] ";"
+               ] SYNC ";"
   }
+  .
+Invariant<out MaybeFreeExpression/*!*/ invariant>
+= (. bool isFree = false; Expression/*!*/ e; invariant = null; .)
+    SYNC
+    ["free"                                 (. isFree = true; .)
+    ]
+    "invariant" Expression<out e>           (. invariant = new MaybeFreeExpression(e, isFree); .)
   .
 DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
 = (. Expression/*!*/ e; .)
@@ -1310,8 +1323,8 @@ Suffix<ref Expression/*!*/ e>
           }
         )
       | ".."                                   (. anyDots = true; .)
-	    [ Expression<out ee>                   (. e1 = ee; .)
-	    ]
+        [ Expression<out ee>                   (. e1 = ee; .)
+        ]
       )
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
