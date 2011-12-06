@@ -378,10 +378,10 @@ namespace Microsoft.Dafny
     /// </summary>
     static PipelineOutcome BoogiePipelineWithRerun (Bpl.Program/*!*/ program, string/*!*/ bplFileName,
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
-    {Contract.Requires(program != null);
-    Contract.Requires(bplFileName != null);
+    {
+      Contract.Requires(program != null);
+      Contract.Requires(bplFileName != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
-
 
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
       PipelineOutcome oc = ResolveAndTypecheck(program, bplFileName);
@@ -407,6 +407,7 @@ namespace Microsoft.Dafny
           return oc;
 
         case PipelineOutcome.ResolvedAndTypeChecked:
+          EliminateDeadVariablesAndInline(program);
           return InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
 
         default:
@@ -414,6 +415,55 @@ namespace Microsoft.Dafny
       }
     }
 
+    static void EliminateDeadVariablesAndInline(Bpl.Program program) {
+      Contract.Requires(program != null);
+      // Eliminate dead variables
+      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
+
+      // Collect mod sets
+      if (CommandLineOptions.Clo.DoModSetAnalysis) {
+        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
+      }
+
+      // Coalesce blocks
+      if (CommandLineOptions.Clo.CoalesceBlocks) {
+        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
+      }
+
+      // Inline
+      var TopLevelDeclarations = program.TopLevelDeclarations;
+
+      if (CommandLineOptions.Clo.ProcedureInlining != CommandLineOptions.Inlining.None) {
+        bool inline = false;
+        foreach (var d in TopLevelDeclarations) {
+          if (d.FindExprAttribute("inline") != null) {
+            inline = true;
+          }
+        }
+        if (inline && CommandLineOptions.Clo.LazyInlining == 0 && CommandLineOptions.Clo.StratifiedInlining == 0) {
+          foreach (var d in TopLevelDeclarations) {
+            var impl = d as Implementation;
+            if (impl != null) {
+              impl.OriginalBlocks = impl.Blocks;
+              impl.OriginalLocVars = impl.LocVars;
+            }
+          }
+          foreach (var d in TopLevelDeclarations) {
+            var impl = d as Implementation;
+            if (impl != null && !impl.SkipVerification) {
+              Inliner.ProcessImplementation(program, impl);
+            }
+          }
+          foreach (var d in TopLevelDeclarations) {
+            var impl = d as Implementation;
+            if (impl != null) {
+              impl.OriginalBlocks = null;
+              impl.OriginalLocVars = null;
+            }
+          }
+        }
+      }
+    }
 
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
     enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
@@ -477,7 +527,11 @@ namespace Microsoft.Dafny
       // ---------- Infer invariants --------------------------------------------------------
 
       // Abstract interpretation -> Always use (at least) intervals, if not specified otherwise (e.g. with the "/noinfer" switch)
-      Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
+      if (CommandLineOptions.Clo.Ai.J_Intervals || CommandLineOptions.Clo.Ai.J_Trivial) {
+        Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
+      } else {
+        Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
+      }
 
       if (CommandLineOptions.Clo.LoopUnrollCount != -1) {
         program.UnrollLoops(CommandLineOptions.Clo.LoopUnrollCount);

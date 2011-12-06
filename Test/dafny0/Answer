@@ -307,7 +307,6 @@ Execution trace:
     (0,0): anon0
 Definedness.dfy(105,15): Error: possible division by zero
 Execution trace:
-    (0,0): anon0
     Definedness.dfy(105,5): anon8_LoopHead
     (0,0): anon8_LoopBody
     Definedness.dfy(105,5): anon9_Else
@@ -799,13 +798,11 @@ Execution trace:
     ControlStructures.dfy(194,3): anon63_Else
     (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
-    (0,0): anon5
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
     (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon10
     (0,0): anon71_Then
     ControlStructures.dfy(210,9): anon72_LoopHead
     (0,0): anon72_LoopBody
@@ -821,20 +818,17 @@ Execution trace:
     ControlStructures.dfy(194,3): anon63_Else
     (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
-    (0,0): anon5
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
     (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon10
     (0,0): anon71_Then
     ControlStructures.dfy(210,9): anon72_LoopHead
     (0,0): anon72_LoopBody
     ControlStructures.dfy(210,9): anon73_Else
     (0,0): anon20
     ControlStructures.dfy(210,9): anon74_Else
-    (0,0): anon22
     (0,0): anon75_Then
     (0,0): after_4
     ControlStructures.dfy(221,7): anon77_LoopHead
@@ -842,7 +836,6 @@ Execution trace:
     ControlStructures.dfy(221,7): anon78_Else
     (0,0): anon33
     ControlStructures.dfy(221,7): anon79_Else
-    (0,0): anon35
     (0,0): anon81_Then
     (0,0): anon38
     (0,0): after_9
@@ -856,13 +849,11 @@ Execution trace:
     ControlStructures.dfy(194,3): anon63_Else
     (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
-    (0,0): anon5
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
     (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon10
     (0,0): anon68_Then
     (0,0): after_5
     (0,0): anon87_Then
@@ -876,20 +867,17 @@ Execution trace:
     ControlStructures.dfy(194,3): anon63_Else
     (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
-    (0,0): anon5
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
     (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon10
     (0,0): anon71_Then
     ControlStructures.dfy(210,9): anon72_LoopHead
     (0,0): anon72_LoopBody
     ControlStructures.dfy(210,9): anon73_Else
     (0,0): anon20
     ControlStructures.dfy(210,9): anon74_Else
-    (0,0): anon22
     (0,0): anon75_Then
     (0,0): after_4
     ControlStructures.dfy(221,7): anon77_LoopHead
@@ -897,7 +885,6 @@ Execution trace:
     ControlStructures.dfy(221,7): anon78_Else
     (0,0): anon33
     ControlStructures.dfy(221,7): anon79_Else
-    (0,0): anon35
     (0,0): anon82_Then
     (0,0): anon85_Then
     (0,0): after_8
@@ -915,7 +902,6 @@ Execution trace:
     Termination.dfy(105,3): anon8_Else
     (0,0): anon3
     Termination.dfy(105,3): anon9_Else
-    (0,0): anon5
 Termination.dfy(113,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
@@ -925,7 +911,6 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon5
     Termination.dfy(113,3): anon12_Else
-    (0,0): anon7
 Termination.dfy(122,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
@@ -935,7 +920,6 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon5
     Termination.dfy(122,3): anon12_Else
-    (0,0): anon7
 Termination.dfy(123,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Execution trace:
     (0,0): anon0
@@ -945,7 +929,6 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon5
     Termination.dfy(122,3): anon12_Else
-    (0,0): anon7
 Termination.dfy(251,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon6_Else
@@ -959,7 +942,6 @@ Execution trace:
     Termination.dfy(291,3): anon11_Else
     Termination.dfy(291,3): anon12_Else
     (0,0): anon13_Else
-    (0,0): anon8
 
 Dafny program verifier finished with 45 verified, 6 errors
 
@@ -1131,7 +1113,6 @@ Execution trace:
     TypeParameters.dfy(153,3): anon22_Else
     (0,0): anon13
     TypeParameters.dfy(153,3): anon24_Else
-    (0,0): anon15
 
 Dafny program verifier finished with 35 verified, 5 errors
 
@@ -1224,7 +1205,6 @@ Execution trace:
     LoopModifies.dfy(14,4): anon10_Else
     (0,0): anon5
     LoopModifies.dfy(14,4): anon12_Else
-    (0,0): anon7
 LoopModifies.dfy(46,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1233,7 +1213,6 @@ Execution trace:
     LoopModifies.dfy(42,4): anon10_Else
     (0,0): anon5
     LoopModifies.dfy(42,4): anon12_Else
-    (0,0): anon7
 LoopModifies.dfy(61,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1242,7 +1221,6 @@ Execution trace:
     LoopModifies.dfy(57,4): anon10_Else
     (0,0): anon5
     LoopModifies.dfy(57,4): anon12_Else
-    (0,0): anon7
 LoopModifies.dfy(74,4): Error: loop modifies clause may violate context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1254,7 +1232,6 @@ Execution trace:
     LoopModifies.dfy(90,4): anon10_Else
     (0,0): anon5
     LoopModifies.dfy(90,4): anon12_Else
-    (0,0): anon7
 LoopModifies.dfy(146,11): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1263,13 +1240,11 @@ Execution trace:
     LoopModifies.dfy(134,4): anon18_Else
     (0,0): anon5
     LoopModifies.dfy(134,4): anon20_Else
-    (0,0): anon7
     LoopModifies.dfy(139,7): anon21_LoopHead
     (0,0): anon21_LoopBody
     LoopModifies.dfy(139,7): anon22_Else
     (0,0): anon12
     LoopModifies.dfy(139,7): anon24_Else
-    (0,0): anon14
 LoopModifies.dfy(197,10): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1278,7 +1253,6 @@ Execution trace:
     LoopModifies.dfy(193,4): anon10_Else
     (0,0): anon5
     LoopModifies.dfy(193,4): anon12_Else
-    (0,0): anon7
 LoopModifies.dfy(285,13): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1287,13 +1261,11 @@ Execution trace:
     LoopModifies.dfy(273,4): anon18_Else
     (0,0): anon5
     LoopModifies.dfy(273,4): anon20_Else
-    (0,0): anon7
     LoopModifies.dfy(281,7): anon21_LoopHead
     (0,0): anon21_LoopBody
     LoopModifies.dfy(281,7): anon22_Else
     (0,0): anon12
     LoopModifies.dfy(281,7): anon24_Else
-    (0,0): anon14
 
 Dafny program verifier finished with 23 verified, 9 errors
 
