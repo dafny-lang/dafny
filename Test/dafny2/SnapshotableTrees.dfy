@@ -250,7 +250,6 @@ class Node
       0 <= pos < |r.Contents| == |n.Contents| + 1 &&
       r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
     decreases if n == null then {} else n.Repr;
-/*  Commented out while performance issues with the prover and going into SMTLib2 mode are being investigated.
   {
     if (n == null) {
       r := new Node.Init(x);
@@ -287,7 +286,7 @@ class Node
       r, pos := n, -1;
     }
   }
-*/
+
   method MutatingInsert(x: int) returns (ghost pos: int)
     requires Valid();
     modifies Repr;
