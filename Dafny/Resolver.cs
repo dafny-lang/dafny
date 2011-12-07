@@ -12,8 +12,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Resolver {
     public int ErrorCount = 0;
-    public virtual void HereIsASillyTest() {
-    }
+
     /// <summary>
     /// This method is virtual, because it is overridden in the VSX plug-in for Dafny.
     /// </summary>
@@ -593,7 +592,10 @@ namespace Microsoft.Dafny {
     void ResolveAttributes(Attributes attrs, bool twoState) {
       // order does not matter for resolution, so resolve them in reverse order
       for (; attrs != null; attrs = attrs.Prev) {
-        ResolveAttributeArgs(attrs.Args, twoState);
+        if (attrs.Args != null)
+        {
+          ResolveAttributeArgs(attrs.Args, twoState);
+        }
       }
     }
 
@@ -680,7 +682,8 @@ namespace Microsoft.Dafny {
           Error(r, "Postcondition must be a boolean (got {0})", r.Type);
         }
       }
-      foreach (Expression r in f.Decreases) {
+      foreach (Expression r in f.Decreases.Expressions)
+      {
         ResolveExpression(r, false);
         // any type is fine
       }
@@ -761,6 +764,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
+
       // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
       scope.PushMarker();
       if (m.IsStatic) {
@@ -778,10 +782,13 @@ namespace Microsoft.Dafny {
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
       }
-      foreach (FrameExpression fe in m.Mod) {
+
+      foreach (FrameExpression fe in m.Mod.Expressions) {
         ResolveFrameExpression(fe, "modifies");
       }
-      foreach (Expression e in m.Decreases) {
+
+      foreach (Expression e in m.Decreases.Expressions)
+      {
         ResolveExpression(e, false);
         // any type is fine
       }
@@ -798,7 +805,7 @@ namespace Microsoft.Dafny {
 
       // ... continue resolving specification
       bool twoState = true;
-      if (m.Mod.Count == 0 && m.Outs.Count == 0) {
+      if (m.Mod.Expressions.Count == 0 && m.Outs.Count == 0) {
         // In this special case, the current translation of parallel Call statements would be unsound.
         // The reason is that the parallel Call statement does not advance the heap, so there had better
         // not be any way to say that the post-heap is definitely different than the pre-heap.  For example,
@@ -828,7 +835,8 @@ namespace Microsoft.Dafny {
       foreach (MaybeFreeExpression e in m.Ens) {
         ResolveExpression(e.E, twoState);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+        if (!UnifyTypes(e.E.Type, Type.Bool))
+        {
           Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
         }
       }
@@ -1208,6 +1216,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(method != null);
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
+        ResolveAttributes(s.Attributes, false);
         s.IsGhost = true;
         ResolveExpression(s.Expr, true);
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
@@ -1476,22 +1485,28 @@ namespace Microsoft.Dafny {
             bodyMustBeSpecOnly = UsesSpecFeatures(s.Guard);
           }
         }
-        foreach (MaybeFreeExpression inv in s.Invariants) {
+
+        foreach (MaybeFreeExpression inv in s.Invariants)
+        {
           ResolveExpression(inv.E, true);
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(inv.E.Type, Type.Bool)) {
             Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
           }
         }
-        foreach (Expression e in s.Decreases) {
+
+        foreach (Expression e in s.Decreases.Expressions)
+        {
           ResolveExpression(e, true);
           if (bodyMustBeSpecOnly && e is WildcardExpr) {
             Error(e, "'decreases *' is not allowed on ghost loops");
           }
           // any type is fine
         }
-        if(s.Mod != null) {
-          foreach (FrameExpression fe in s.Mod) {
+
+        if (s.Mod.Expressions != null) {
+          foreach (FrameExpression fe in s.Mod.Expressions)
+          {
             ResolveFrameExpression(fe, "modifies");
           }
         }
@@ -1500,6 +1515,7 @@ namespace Microsoft.Dafny {
         if (s.Labels == null) {  // otherwise, "s" is already in "inSpecOnlyContext" map
           inSpecOnlyContext.Add(s, specContextOnly);
         }
+
         ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
         loopStack.RemoveAt(loopStack.Count-1);  // pop
 
@@ -1513,7 +1529,9 @@ namespace Microsoft.Dafny {
             Error(inv.E, "invariant is expected to be of type {0}, but is {1}", Type.Bool, inv.E.Type);
           }
         }
-        foreach (Expression e in s.Decreases) {
+
+        foreach (Expression e in s.Decreases.Expressions)
+        {
           ResolveExpression(e, true);
           if (s.IsGhost && e is WildcardExpr) {
             Error(e, "'decreases *' is not allowed on ghost loops");
@@ -1558,7 +1576,7 @@ namespace Microsoft.Dafny {
         }
         s.IsGhost = bodyMustBeSpecOnly;
 
-        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a parallel statement 
+        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a parallel statement
         var prevLblStmts = labeledStatements;
         var prevLoopStack = loopStack;
         labeledStatements = new Scope<Statement>();
@@ -2105,7 +2123,7 @@ namespace Microsoft.Dafny {
             Error(stmt, "the body of the enclosing parallel statement may not update heap locations");
           }
         }
-        if (s.Method.Mod.Count != 0) {
+        if (s.Method.Mod.Expressions.Count != 0) {
           Error(s, "in the body of a parallel statement, every method called must have an empty modifies list");
         }
 
@@ -3826,7 +3844,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.MultiSetDisjoint;
           } else {
             return BinaryExpr.ResolvedOpcode.Disjoint;
-          } 
+          }
         case BinaryExpr.Opcode.Lt:
           if (operandType.IsDatatype || operandType is DatatypeProxy) {
             return BinaryExpr.ResolvedOpcode.RankLt;

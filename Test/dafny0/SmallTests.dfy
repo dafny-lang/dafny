@@ -412,3 +412,58 @@ function F(b: bool): int
 {
   5
 }
+
+// ----------------------- test attributes on method specification constructs (assert, ensures, modifies, decreases, invariant) --------
+
+class AttributeTests {
+  var f: int;
+
+  method testAttributes0()
+    ensures {:boolAttr true} true;
+    ensures {:boolAttr false} true;
+    ensures {:intAttr 0} true;
+    ensures {:intAttr 1} true;
+    free ensures {:boolAttr true} true;
+    free ensures {:boolAttr false} true;
+    free ensures {:intAttr 0} true;
+    free ensures {:intAttr 1} true;
+    modifies {:boolAttr true} this`f;
+    modifies {:boolAttr false} this`f;
+    modifies {:intAttr 0} this`f;
+    modifies {:intAttr 1} this`f;
+    modifies {:boolAttr true} this;
+    modifies {:boolAttr false} this;
+    modifies {:intAttr 0} this;
+    modifies {:intAttr 1} this;
+    decreases {:boolAttr true} f;
+    decreases {:boolAttr false} f;
+    decreases {:intAttr 0} f;
+    decreases {:intAttr 1} f;
+  {
+    assert {:boolAttr true} true;
+    assert {:boolAttr false} true;
+    assert {:intAttr 0} true;
+    assert {:intAttr 1} true;
+
+    while (false)
+      invariant {:boolAttr true} true;
+      invariant {:boolAttr false} true;
+      invariant {:intAttr 0} true;
+      invariant {:intAttr 1} true;
+      free invariant {:boolAttr true} true;
+      free invariant {:boolAttr false} true;
+      free invariant {:intAttr 0} true;
+      free invariant {:intAttr 1} true;
+      modifies {:boolAttr true} this`f;
+      modifies {:boolAttr false} this`f;
+      modifies {:intAttr 0} this`f;
+      modifies {:intAttr 1} this`f;
+      decreases {:boolAttr true} f;
+      decreases {:boolAttr false} f;
+      decreases {:intAttr 0} f;
+      decreases {:intAttr 1} f;
+    {
+
+    }
+  }
+}

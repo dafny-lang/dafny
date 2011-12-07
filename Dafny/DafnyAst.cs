@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression/*!*/>/*!*/ Req;
     public readonly List<FrameExpression/*!*/>/*!*/ Reads;
     public readonly List<Expression/*!*/>/*!*/ Ens;
-    public readonly List<Expression/*!*/>/*!*/ Decreases;
+    public readonly Specification<Expression>/*!*/ Decreases;
     public readonly Expression Body;  // an extended expression
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1113,13 +1113,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Req));
       Contract.Invariant(cce.NonNullElements(Reads));
       Contract.Invariant(cce.NonNullElements(Ens));
-      Contract.Invariant(cce.NonNullElements(Decreases));
+      Contract.Invariant(Decreases != null);
     }
 
 
     public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                     [Captured] List<Formal/*!*/>/*!*/ formals, Type/*!*/ resultType, List<Expression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ reads,
-                    List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases, Expression body, Attributes attributes)
+                    List<Expression/*!*/>/*!*/ ens, Specification<Expression>/*!*/ decreases, Expression body, Attributes attributes)
       : base(tok, name, isStatic, attributes) {
 
       Contract.Requires(tok != null);
@@ -1130,7 +1130,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(req));
       Contract.Requires(cce.NonNullElements(reads));
       Contract.Requires(cce.NonNullElements(ens));
-      Contract.Requires(cce.NonNullElements(decreases));
+      Contract.Requires(decreases != null);
       this.IsGhost = isGhost;
       this.IsUnlimited = isUnlimited;
       this.TypeArgs = typeArgs;
@@ -1150,28 +1150,29 @@ namespace Microsoft.Dafny {
     public readonly List<Formal/*!*/>/*!*/ Ins;
     public readonly List<Formal/*!*/>/*!*/ Outs;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Req;
-    public readonly List<FrameExpression/*!*/>/*!*/ Mod;
+    public readonly Specification<FrameExpression>/*!*/ Mod;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
-    public readonly List<Expression/*!*/>/*!*/ Decreases;
+    public readonly Specification<Expression>/*!*/ Decreases;
     public readonly BlockStmt Body;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
       Contract.Invariant(cce.NonNullElements(Ins));
       Contract.Invariant(cce.NonNullElements(Outs));
       Contract.Invariant(cce.NonNullElements(Req));
-      Contract.Invariant(cce.NonNullElements(Mod));
+      Contract.Invariant(Mod != null);
       Contract.Invariant(cce.NonNullElements(Ens));
-      Contract.Invariant(cce.NonNullElements(Decreases));
+      Contract.Invariant(Decreases != null);
     }
 
     public Method(IToken tok, string name,
                   bool isStatic, bool isGhost,
                   [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                   [Captured] List<Formal/*!*/>/*!*/ ins, [Captured] List<Formal/*!*/>/*!*/ outs,
-                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] List<FrameExpression/*!*/>/*!*/ mod,
+                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] Specification<FrameExpression>/*!*/ mod,
                   [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
-                  [Captured] List<Expression/*!*/>/*!*/ decreases,
+                  [Captured] Specification<Expression>/*!*/ decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes)
       : base(tok, name, isStatic, attributes) {
@@ -1181,9 +1182,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ins));
       Contract.Requires(cce.NonNullElements(outs));
       Contract.Requires(cce.NonNullElements(req));
-      Contract.Requires(cce.NonNullElements(mod));
+      Contract.Requires(mod != null);
       Contract.Requires(cce.NonNullElements(ens));
-      Contract.Requires(cce.NonNullElements(decreases));
+      Contract.Requires(decreases != null);
       this.IsGhost = isGhost;
       this.TypeArgs = typeArgs;
       this.Ins = ins;
@@ -1201,9 +1202,9 @@ namespace Microsoft.Dafny {
     public Constructor(IToken tok, string name,
                   [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                   [Captured] List<Formal/*!*/>/*!*/ ins,
-                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] List<FrameExpression/*!*/>/*!*/ mod,
+                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] Specification<FrameExpression>/*!*/ mod,
                   [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
-                  [Captured] List<Expression/*!*/>/*!*/ decreases,
+                  [Captured] Specification<Expression>/*!*/ decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes)
       : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes) {
@@ -1212,9 +1213,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ins));
       Contract.Requires(cce.NonNullElements(req));
-      Contract.Requires(cce.NonNullElements(mod));
+      Contract.Requires(mod != null);
       Contract.Requires(cce.NonNullElements(ens));
-      Contract.Requires(cce.NonNullElements(decreases));
+      Contract.Requires(decreases != null);
     }
   }
 
@@ -1225,9 +1226,9 @@ namespace Microsoft.Dafny {
                   bool isStatic, bool isGhost,
                   [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                   [Captured] List<Formal/*!*/>/*!*/ ins, [Captured] List<Formal/*!*/>/*!*/ outs,
-                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] List<FrameExpression/*!*/>/*!*/ mod,
+                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] Specification<FrameExpression>/*!*/ mod,
                   [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
-                  [Captured] List<Expression/*!*/>/*!*/ decreases,
+                  [Captured] Specification<Expression>/*!*/ decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes)
       : base(tok, name, isStatic, isGhost, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes) {
@@ -1237,9 +1238,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ins));
       Contract.Requires(cce.NonNullElements(outs));
       Contract.Requires(cce.NonNullElements(req));
-      Contract.Requires(cce.NonNullElements(mod));
+      Contract.Requires(mod != null);
       Contract.Requires(cce.NonNullElements(ens));
-      Contract.Requires(cce.NonNullElements(decreases));
+      Contract.Requires(decreases != null);
     }
   }
 
@@ -1249,13 +1250,35 @@ namespace Microsoft.Dafny {
     public readonly IToken Tok;
     public LabelNode Labels;  // mutable during resolution
 
+    private Attributes attributes;
+    public Attributes Attributes {
+      get {
+        return attributes;
+      }
+      set {
+        attributes = value;
+      }
+    }
+
+    public bool HasAttributes() {
+      return Attributes != null;
+    }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
     }
 
     public bool IsGhost;  // filled in by resolution
-    public Statement(IToken tok) {
+
+    public Statement(IToken tok, Attributes attrs) {
+      Contract.Requires(tok != null);
+      this.Tok = tok;
+      this.attributes = attrs;
+    }
+
+    public Statement(IToken tok)
+      : this(tok, null) {
       Contract.Requires(tok != null);
       this.Tok = tok;
     }
@@ -1288,8 +1311,18 @@ namespace Microsoft.Dafny {
     }
 
     [Captured]
+    public PredicateStmt(IToken tok, Expression expr, Attributes attrs)
+      : base(tok, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Ensures(cce.Owner.Same(this, expr));
+      cce.Owner.AssignSame(this, expr);
+      this.Expr = expr;
+    }
+
+    [Captured]
     public PredicateStmt(IToken tok, Expression expr)
-      : base(tok) {
+      : this(tok, expr, null) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Ensures(cce.Owner.Same(this, expr));
@@ -1300,12 +1333,19 @@ namespace Microsoft.Dafny {
 
   public class AssertStmt : PredicateStmt {
     [Captured]
-    public AssertStmt(IToken/*!*/ tok, Expression/*!*/ expr)
-      : base(tok, expr) {
+    public AssertStmt(IToken/*!*/ tok, Expression/*!*/ expr, Attributes attrs)
+      : base(tok, expr, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Ensures(cce.Owner.Same(this, expr));
+    }
 
+    [Captured]
+    public AssertStmt(IToken/*!*/ tok, Expression/*!*/ expr)
+      : this(tok, expr, null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Ensures(cce.Owner.Same(this, expr));
     }
   }
 
@@ -1432,7 +1472,7 @@ namespace Microsoft.Dafny {
     public override bool CanAffectPreviouslyKnownExpressions {
       get {
         if (InitCall != null) {
-          foreach (var mod in InitCall.Method.Mod) {
+          foreach (var mod in InitCall.Method.Mod.Expressions) {
             if (!(mod.E is ThisExpr)) {
               return true;
             }
@@ -1472,7 +1512,7 @@ namespace Microsoft.Dafny {
     // TODO: Investigate this. For an initialization, this is true. But for existing objects, this is not true.
     public override bool CanAffectPreviouslyKnownExpressions {
       get {
-        foreach (var mod in Method.Mod) {
+        foreach (var mod in Method.Mod.Expressions) {
           if (!(mod.E is ThisExpr)) {
             return true;
           }
@@ -1732,21 +1772,21 @@ namespace Microsoft.Dafny {
   public abstract class LoopStmt : Statement
   {
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Invariants;
-    public readonly List<Expression/*!*/>/*!*/ Decreases;
-    public readonly List<FrameExpression/*!*/>/*!*/ Mod;
+    public readonly Specification<Expression>/*!*/ Decreases;
+    public readonly Specification<FrameExpression>/*!*/ Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Invariants));
-      Contract.Invariant(cce.NonNullElements(Decreases));
-      Contract.Invariant(Mod == null || cce.NonNullElements(Mod));
+      Contract.Invariant(Decreases != null);
+      Contract.Invariant(Mod != null);
     }
-    public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/>/*!*/ mod)
+    public LoopStmt(IToken tok, List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod)
     : base(tok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(invariants));
-      Contract.Requires(cce.NonNullElements(decreases));
-      Contract.Requires(mod == null || cce.NonNullElements(mod));
+      Contract.Requires(decreases != null);
+      Contract.Requires(mod != null);
 
       this.Invariants = invariants;
       this.Decreases = decreases;
@@ -1764,7 +1804,7 @@ namespace Microsoft.Dafny {
     }
 
     public WhileStmt(IToken tok, Expression guard,
-                     List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/> mod,
+                     List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod,
                      Statement/*!*/ body)
       : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
@@ -1782,7 +1822,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Alternatives != null);
     }
     public AlternativeLoopStmt(IToken tok,
-                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, List<Expression/*!*/>/*!*/ decreases, List<FrameExpression/*!*/> mod,
+                               List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod,
                                List<GuardedAlternative> alternatives)
       : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
@@ -1794,7 +1834,6 @@ namespace Microsoft.Dafny {
   public class ParallelStmt : Statement
   {
     public readonly List<BoundVar/*!*/> BoundVars;
-    public readonly Attributes Attributes;
     public readonly Expression/*!*/ Range;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
     public readonly Statement Body;  // used only until resolution; afterwards, use BodyAssign
@@ -2970,20 +3009,50 @@ namespace Microsoft.Dafny {
     }
   }
 
+
   public class MaybeFreeExpression {
     public readonly Expression E;
+    public readonly bool IsFree;
+    
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
     }
 
-    public readonly bool IsFree;
-    public MaybeFreeExpression(Expression e, bool isFree) {
+    private Attributes attributes;
+    public Attributes Attributes {
+      get {
+        return attributes;
+      }
+      set {
+        attributes = value;
+      }
+    }
+
+    public bool HasAttributes() {
+      return Attributes != null;
+    }
+
+    public MaybeFreeExpression(Expression e)
+      : this(e, false, null)
+    {
+      Contract.Requires(e != null);
+    }
+
+    public MaybeFreeExpression(Expression e, bool isFree)
+      : this(e, isFree, null)
+    {
+      Contract.Requires(e != null);
+    }
+
+    public MaybeFreeExpression(Expression e, bool isFree, Attributes attrs) {
       Contract.Requires(e != null);
       E = e;
       IsFree = isFree;
+      Attributes = attrs;
     }
   }
+
 
   public class FrameExpression {
     public readonly Expression E;  // may be a WildcardExpr
@@ -3068,4 +3137,43 @@ namespace Microsoft.Dafny {
       Arguments = args;
     }
   }
+
+
+  public class Specification<T> where T : class
+  {
+    public List<T/*!*/> Expressions;
+
+    [ContractInvariantMethod]
+    private void ObjectInvariant()
+    {
+      Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
+    }
+
+
+    public Specification(List<T/*!*/> exprs, Attributes attrs)
+    {
+      Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
+      Expressions = exprs;
+      Attributes = attrs;
+    }
+
+    private Attributes attributes;
+    public Attributes Attributes
+    {
+      get
+      {
+        return attributes;
+      }
+      set
+      {
+        attributes = value;
+      }
+    }
+
+    public bool HasAttributes()
+    {
+      return Attributes != null;
+    }
+  }
+
 }

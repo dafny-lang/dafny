@@ -1058,7 +1058,7 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
-        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Count == 0 && m.Outs.Count == 0) {
+        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0) {
           var posts = new List<Expression>();
           m.Ens.ForEach(mfe => posts.Add(mfe.E));
           var allIns = new List<Formal>();
@@ -1186,14 +1186,16 @@ namespace Microsoft.Dafny {
         // be that the syntax was not rich enough for programmers to specify modifies clauses and always being
         // absolutely well-defined.
         // check well-formedness of the decreases clauses
-        foreach (Expression p in m.Decreases) {
+        foreach (Expression p in m.Decreases.Expressions)
+        {
           CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
         }
 
         // play havoc with the heap according to the modifies clause
         builder.Add(new Bpl.HavocCmd(m.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
         // assume the usual two-state boilerplate information
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, currentMethod.Mod, etran.Old, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, currentMethod.Mod.Expressions, etran.Old, etran, etran.Old))
+        {
           if (tri.IsFree) {
             builder.Add(new Bpl.AssumeCmd(m.tok, tri.Expr));
           }
@@ -1241,7 +1243,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
 
       // set up the information used to verify the method's modifies clause
-      DefineFrame(m.tok, m.Mod, builder, localVariables, null);
+      DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
     }
 
     Bpl.Cmd CaptureState(IToken tok, string/*?*/ additionalInfo) {
@@ -1520,7 +1522,8 @@ namespace Microsoft.Dafny {
       // be that the syntax was not rich enough for programmers to specify reads clauses and always being
       // absolutely well-defined.
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
-      foreach (Expression p in f.Decreases) {
+      foreach (Expression p in f.Decreases.Expressions)
+      {
         CheckWellformed(p, new WFOptions(f, null, false), locals, builder, etran);
       }
       // Generate:
@@ -2462,7 +2465,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
 
       inferredDecreases = false;
-      List<Expression> decr = m.Decreases;
+      List<Expression> decr = m.Decreases.Expressions;
       if (decr.Count == 0) {
         decr = new List<Expression>();
         foreach (Formal p in m.Ins) {
@@ -2481,7 +2484,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
 
       inferredDecreases = false;
-      List<Expression> decr = f.Decreases;
+      List<Expression> decr = f.Decreases.Expressions;
       if (decr.Count == 0) {
         decr = new List<Expression>();
         if (f.Reads.Count == 0) {
@@ -2811,6 +2814,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(!skipEnsures || !wellformednessProc);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
 
+      currentMethod = m;
+
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
 
       Bpl.VariableSeq inParams = new Bpl.VariableSeq();
@@ -2864,20 +2869,28 @@ namespace Microsoft.Dafny {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened))
+            {
               ens.Add(Ensures(s.E.tok, s.IsFree, s.E, null, null));
             }
           }
           comment = null;
         }
-        if (!skipEnsures) foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod, etran.Old, etran, etran.Old)) {
-          ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+        if (!skipEnsures)
+        {
+          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, etran.Old, etran, etran.Old))
+          {
+            ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+          }
         }
       }
 
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
       string name = wellformednessProc ? "CheckWellformed$$" + m.FullName : m.FullName;
       Bpl.Procedure proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
+
+      currentMethod = null;
+
       return proc;
     }
 
@@ -3129,7 +3142,7 @@ namespace Microsoft.Dafny {
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
     Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
-     {
+    {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
       Contract.Requires(etranPre != null);
@@ -3303,7 +3316,7 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.StmtList TrStmt2StmtList(Statement block, Bpl.VariableSeq locals, ExpressionTranslator etran)
-     {
+    {
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
@@ -3314,7 +3327,7 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.StmtList TrStmt2StmtList(Bpl.StmtListBuilder builder, Statement block, Bpl.VariableSeq locals, ExpressionTranslator etran)
-     {
+    {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -3677,7 +3690,7 @@ namespace Microsoft.Dafny {
 
       definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
 
-      // Now for the translation of the update itself 
+      // Now for the translation of the update itself
 
       Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Tok, locals);
       var prevEtran = new ExpressionTranslator(this, predef, prevHeap);
@@ -3909,7 +3922,9 @@ namespace Microsoft.Dafny {
       return description;
     }
 
+
     delegate void BodyTranslator(Bpl.StmtListBuilder builder, ExpressionTranslator etran);
+
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator bodyTr,
                 Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
@@ -3924,7 +3939,7 @@ namespace Microsoft.Dafny {
 
       // use simple heuristics to create a default decreases clause, if none is given
       bool inferredDecreases;
-      List<Expression> theDecreases = LoopDecreasesWithDefault(s.Tok, Guard, s.Decreases, out inferredDecreases);
+      List<Expression> theDecreases = LoopDecreasesWithDefault(s.Tok, Guard, s.Decreases.Expressions, out inferredDecreases);
 
       Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
       locals.Add(preLoopHeapVar);
@@ -3932,14 +3947,14 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "#_Frame#" + loopId;
-      if(s.Mod != null)
+      if(s.Mod.Expressions != null)
         updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
       else
         updatedFrameEtran = etran;
 
-      if (s.Mod != null) { // check that the modifies is a strict subset
-          CheckFrameSubset(s.Tok, s.Mod, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
-          DefineFrame(s.Tok, s.Mod, builder, locals, loopFrameName);
+      if (s.Mod.Expressions != null) { // check that the modifies is a strict subset
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
+        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
@@ -3988,7 +4003,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
       // include boilerplate invariants
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, currentMethod.Mod, etranPreLoop, etran, etran.Old))
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, currentMethod.Mod.Expressions, etranPreLoop, etran, etran.Old))
       {
           if (tri.IsFree) {
               invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
@@ -4209,7 +4224,7 @@ namespace Microsoft.Dafny {
       }
 
       // Check modifies clause of a subcall is a subset of the current frame.
-      CheckFrameSubset(tok, method.Mod, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+      CheckFrameSubset(tok, method.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
 
       // Check termination
       ModuleDecl module = cce.NonNull(method.EnclosingClass).Module;
@@ -4244,6 +4259,7 @@ namespace Microsoft.Dafny {
       // Make the call
       Bpl.CallCmd call = new Bpl.CallCmd(tok, method.FullName, ins, outs);
       builder.Add(call);
+
       // Unbox results as needed
       for (int i = 0; i < Lhss.Count; i++) {
         Bpl.IdentifierExpr bLhs = Lhss[i];

@@ -95,6 +95,10 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
   theBuiltIns = oldBuiltIns;
   return parser.errors.count;
 }
+bool IsAttribute() {
+  Token x = scanner.Peek();
+  return la.kind == _lbrace && x.kind == _colon;
+}
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -128,6 +132,9 @@ TOKENS
   digits = digit {digit}.
   arrayToken = 'a' 'r' 'r' 'a' 'y' [posDigit {digit}].
   string = quote {nonquote} quote.
+  colon = ':'.
+  lbrace = '{'.
+  rbrace = '}'.
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -387,6 +394,8 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
      List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
+     Attributes decAttrs = null;
+     Attributes modAttrs = null;
      Statement/*!*/ bb;  BlockStmt body = null;
      bool isConstructor = false;
      bool isRefinement = false;
@@ -420,35 +429,36 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
     Formals<false, !mmod.IsGhost, outs>
   ]
-  { MethodSpec<req, mod, ens, dec> }
+  { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
   ]
   (. if (isRefinement)
-       m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
+       m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
      else if (isConstructor)
-       m = new Constructor(id, id.val, typeArgs, ins, req, mod, ens, dec, body, attrs);
+       m = new Constructor(id, id.val, typeArgs, ins, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
      else
-       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, mod, ens, dec, body, attrs);
+       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
  .)
   .
 MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ mod, List<MaybeFreeExpression/*!*/>/*!*/ ens,
-           List<Expression/*!*/>/*!*/ decreases.>
+           List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes modAttrs.>
 = (. Contract.Requires(cce.NonNullElements(req)); Contract.Requires(cce.NonNullElements(mod)); Contract.Requires(cce.NonNullElements(ens)); Contract.Requires(cce.NonNullElements(decreases));
-     Expression/*!*/ e;  FrameExpression/*!*/ fe;  bool isFree = false;
+     Expression/*!*/ e;  FrameExpression/*!*/ fe;  bool isFree = false; Attributes ensAttrs = null;
   .)
   SYNC
-  ( "modifies" [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+  ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
+               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
                ] SYNC ";"
   | [ "free"                                                 (. isFree = true; .)
     ]
     ( "requires" Expression<out e> SYNC ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
-    | "ensures" Expression<out e> SYNC ";"                        (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
+    | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> } Expression<out e> SYNC ";"          (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
-  | "decreases" DecreasesList<decreases, false> SYNC ";"
+  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, false> SYNC ";"
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.>
@@ -563,7 +573,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   ]
-  (. f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, decreases, body, attrs);
+  (. f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
   .)
@@ -815,6 +825,8 @@ WhileStmt<out Statement/*!*/ stmt>
      Expression guard;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
+     Attributes decAttrs = null;
+     Attributes modAttrs = null;
      List<FrameExpression/*!*/> mod = null;
      Statement/*!*/ body;
      IToken bodyStart, bodyEnd;
@@ -824,16 +836,16 @@ WhileStmt<out Statement/*!*/ stmt>
   "while"                    (. x = t; .)
   (
     Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    LoopSpec<out invariants, out decreases, out mod>
+    LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
     BlockStmt<out body, out bodyStart, out bodyEnd>
-    (. stmt = new WhileStmt(x, guard, invariants, decreases, mod, body); .)
+    (. stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body); .)
   |
-    LoopSpec<out invariants, out decreases, out mod>
+    LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<out alternatives>
-    (. stmt = new AlternativeLoopStmt(x, invariants, decreases, mod, alternatives); .)
+    (. stmt = new AlternativeLoopStmt(x, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
   )
   .
-LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod.>
+LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
 = (. FrameExpression/*!*/ fe;
      invariants = new List<MaybeFreeExpression/*!*/>();
      MaybeFreeExpression invariant = null;
@@ -842,8 +854,8 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
   .)
   {
     Invariant<out invariant> SYNC ";"   (. invariants.Add(invariant); .)
-  | SYNC "decreases" DecreasesList<decreases, true> SYNC ";"
-  | SYNC "modifies" (. mod = mod ?? new List<FrameExpression>(); .)
+  | SYNC "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
+  | SYNC "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
                [ FrameExpression<out fe>                     (. mod.Add(fe); .)
                  { "," FrameExpression<out fe>               (. mod.Add(fe); .)
                  }
@@ -851,11 +863,11 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
   }
   .
 Invariant<out MaybeFreeExpression/*!*/ invariant>
-= (. bool isFree = false; Expression/*!*/ e; invariant = null; .)
+= (. bool isFree = false; Expression/*!*/ e; List<string> ids = new List<string>(); invariant = null; Attributes attrs = null; .)
     SYNC
     ["free"                                 (. isFree = true; .)
     ]
-    "invariant" Expression<out e>           (. invariant = new MaybeFreeExpression(e, isFree); .)
+    "invariant" { IF(IsAttribute()) Attribute<ref attrs> } Expression<out e>           (. invariant = new MaybeFreeExpression(e, isFree, attrs); .)
   .
 DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
 = (. Expression/*!*/ e; .)
@@ -912,11 +924,11 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   (. c = new MatchCaseStmt(x, id.val, arguments, body); .)
   .
 /*------------------------------------------------------------------------*/
-
 AssertStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
-  "assert"                                     (. x = t; .)
-  Expression<out e> ";"                        (. s = new AssertStmt(x, e); .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; Attributes attrs = null; .)
+  "assert"                                     (. x = t; s = null;.)
+  { IF(IsAttribute()) Attribute<ref attrs> } Expression<out e> (. s = new AssertStmt(x, e, attrs); .)
+  ";"
   .
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)

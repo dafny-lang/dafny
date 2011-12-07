@@ -11,8 +11,9 @@ using System.Numerics;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  class Printer {
+  public class Printer {
     TextWriter wr;
+
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
@@ -143,7 +144,9 @@ namespace Microsoft.Dafny {
       if (kind.Length != 0) {
         wr.Write(kind);
       }
+
       PrintAttributes(attrs);
+
       wr.Write(" {0}", name);
       if (typeArgs.Count != 0) {
         wr.Write("<");
@@ -182,7 +185,10 @@ namespace Microsoft.Dafny {
         PrintAttributes(a.Prev);
 
         wr.Write(" {{:{0}", a.Name);
-        PrintAttributeArgs(a.Args);
+        if (a.Args != null)
+        {
+          PrintAttributeArgs(a.Args);
+        }
         wr.Write("}");
       }
     }
@@ -246,9 +252,9 @@ namespace Microsoft.Dafny {
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
-      PrintFrameSpecLine("reads", f.Reads, ind);
+      PrintFrameSpecLine("reads", f.Reads, ind, null);
       PrintSpec("ensures", f.Ens, ind);
-      PrintSpecLine("decreases", f.Decreases, ind);
+      PrintDecreasesSpec(f.Decreases, ind);
       if (f.Body != null) {
         Indent(indent);
         wr.WriteLine("{");
@@ -273,6 +279,7 @@ namespace Microsoft.Dafny {
 
     public void PrintMethod(Method method, int indent) {
       Contract.Requires(method != null);
+
       Indent(indent);
       string k = method is MethodRefinement ? "refines" : method is Constructor ? "constructor" : "method";
       if (method.IsStatic) { k = "static " + k; }
@@ -293,9 +300,12 @@ namespace Microsoft.Dafny {
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
-      PrintFrameSpecLine("modifies", method.Mod, ind);
+      if (method.Mod.Expressions != null)
+      {
+        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+      }
       PrintSpec("ensures", method.Ens, ind);
-      PrintSpecLine("decreases", method.Decreases, ind);
+      PrintDecreasesSpec(method.Decreases, ind);
 
       if (method.Body != null) {
         Indent(indent);
@@ -340,23 +350,31 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintSpecLine(string kind, List<Expression/*!*/>/*!*/ ee, int indent) {
-      Contract.Requires(ee != null);
-      Contract.Requires(kind!=null);
-      if (ee.Count != 0) {
+    void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
+      Contract.Requires(decs != null);
+      if (decs.Expressions.Count != 0) {
         Indent(indent);
-        wr.Write("{0} ", kind);
-        PrintExpressionList(ee);
+        wr.Write("decreases");
+        if (decs.HasAttributes())
+        {
+          PrintAttributes(decs.Attributes);
+        }
+        wr.Write(" ");
+        PrintExpressionList(decs.Expressions);
         wr.WriteLine(";");
       }
     }
 
-    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/>/*!*/ ee, int indent) {
+    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/>/*!*/ ee, int indent, Attributes attrs) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
       if (ee.Count != 0) {
         Indent(indent);
-        wr.Write("{0} ", kind);
+        wr.Write("{0}", kind);
+        if (attrs != null) {
+            PrintAttributes(attrs);
+        }
+        wr.Write(" ");
         PrintFrameExpressionList(ee);
         wr.WriteLine(";");
       }
@@ -365,11 +383,20 @@ namespace Microsoft.Dafny {
     void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
-      foreach (MaybeFreeExpression e in ee) {
+      foreach (MaybeFreeExpression e in ee)
+      {
         Contract.Assert(e != null);
         Indent(indent);
-        wr.Write("{0}{1} ", e.IsFree ? "free " : "", kind);
+        wr.Write("{0}{1}", e.IsFree ? "free " : "", kind);
+
+        if (e.HasAttributes())
+        {
+          PrintAttributes(e.Attributes);
+        }
+
+        wr.Write(" ");
         PrintExpression(e.E);
+
         wr.WriteLine(";");
       }
     }
@@ -407,8 +434,18 @@ namespace Microsoft.Dafny {
       }
 
       if (stmt is AssertStmt) {
-        wr.Write("assert ");
-        PrintExpression(((AssertStmt)stmt).Expr);
+        Expression expr = ((AssertStmt)stmt).Expr;
+
+        wr.Write("assert");
+
+        if (stmt.HasAttributes())
+        {
+          PrintAttributes(stmt.Attributes);
+        }
+
+        wr.Write(" ");
+        PrintExpression(expr);
+
         wr.Write(";");
 
       } else if (stmt is AssumeStmt) {
@@ -527,10 +564,10 @@ namespace Microsoft.Dafny {
         wr.WriteLine(")");
 
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
-        PrintSpecLine("decreases", s.Decreases, indent + IndentAmount);
-        if (s.Mod != null)
+        PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
+        if (s.Mod.Expressions != null)
         {
-            PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
+            PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
         }
         Indent(indent);
         PrintStatement(s.Body, indent);
@@ -539,7 +576,7 @@ namespace Microsoft.Dafny {
         var s = (AlternativeLoopStmt)stmt;
         wr.WriteLine("while");
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
-        PrintSpecLine("decreases", s.Decreases, indent + IndentAmount);
+        PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
 
         Indent(indent);
         wr.WriteLine("{");
