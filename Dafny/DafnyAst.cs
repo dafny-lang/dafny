@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
       this.Arg = arg;
     }
   }
-  
+
   public class SetType : CollectionType {
     public SetType(Type arg) : base(arg) {
       Contract.Requires(arg != null);
@@ -2149,7 +2149,7 @@ namespace Microsoft.Dafny {
       get { return Elements; }
     }
   }
-  
+
   public class SetDisplayExpr : DisplayExpression {
     public SetDisplayExpr(IToken tok, List<Expression/*!*/>/*!*/ elements)
       : base(tok, elements) {

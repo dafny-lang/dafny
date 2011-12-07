@@ -213,12 +213,15 @@ Execution trace:
     (0,0): anon0
     SmallTests.dfy(266,19): anon3_Else
     (0,0): anon2
-SmallTests.dfy(366,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(376,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
+SmallTests.dfy(386,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(396,6): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
 SmallTests.dfy(306,3): Error BP5003: A postcondition might not hold on this return path.
 SmallTests.dfy(300,11): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -237,8 +240,11 @@ Execution trace:
 SmallTests.dfy(354,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
+SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 47 verified, 18 errors
+Dafny program verifier finished with 47 verified, 20 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero

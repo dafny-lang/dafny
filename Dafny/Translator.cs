@@ -1499,7 +1499,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       req.Add(Requires(f.tok, true, context, null, null));
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
-        req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq());
+        req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq(), etran.TrAttributes(f.Attributes, null));
       sink.TopLevelDeclarations.Add(proc);
 
       VariableSeq implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);

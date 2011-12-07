@@ -368,7 +368,7 @@ namespace Microsoft.Dafny
       }
     }
 
-        /// <summary>
+    /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
     /// The intention is that this Boogie program has been produced by translation from something
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
