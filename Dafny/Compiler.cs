@@ -1367,7 +1367,7 @@ namespace Microsoft.Dafny {
         Type elType = cce.NonNull((MultiSetType)e.Type).Arg;
         wr.Write("{0}<{1}>.FromElements", DafnyMultiSetClass, TypeName(elType));
         TrExprList(e.Elements);
-        
+
       } else if (expr is SeqDisplayExpr) {
         SeqDisplayExpr e = (SeqDisplayExpr)expr;
         Type elType = cce.NonNull((SeqType)e.Type).Arg;

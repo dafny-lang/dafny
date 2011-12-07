@@ -359,6 +359,16 @@ method {:verify false} test1()
   assert false;
 }
 
+function test2() : bool
+{
+  !test2()  // error
+}
+
+function {:verify false} test3() : bool
+{
+  !test3()
+}
+
 class Test {
 
   method test0()
@@ -379,6 +389,16 @@ class Test {
   constructor {:verify false} init1()
   {
     assert false;
+  }
+
+  function test2() : bool
+  {
+    !test2()  // error
+  }
+
+  function {:verify false} test3() : bool
+  {
+    !test3()
   }
 
 }
