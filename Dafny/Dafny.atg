@@ -285,6 +285,7 @@ ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
   "type"
   { Attribute<ref attrs> }
   Ident<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
+  SYNC ";"
   .
 CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
