@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
           return true;
         } else {
           UserDefinedType udt = this as UserDefinedType;
-          return udt != null && udt.ResolvedParam == null && !(udt.ResolvedClass is DatatypeDecl);
+          return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl;
         }
       }
     }
@@ -201,7 +201,6 @@ namespace Microsoft.Dafny {
     }
     public bool IsTypeParameter {
       get {
-        Contract.Ensures(!Contract.Result<bool>() || this is UserDefinedType && ((UserDefinedType)this).ResolvedParam != null);
         UserDefinedType ct = this as UserDefinedType;
         return ct != null && ct.ResolvedParam != null;
       }
@@ -601,7 +600,6 @@ namespace Microsoft.Dafny {
       : base(tok, name, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-
     }
   }
 
@@ -652,7 +650,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Module != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
-
 
     public TopLevelDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs, Attributes attributes)
       : base(tok, name, attributes) {
@@ -917,6 +914,23 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < Toks.Count; i++)
         result[i] = Toks[i].val;
       return result;
+    }
+  }
+
+  public class ArbitraryTypeDecl : TopLevelDecl, TypeParameter.ParentType
+  {
+    public readonly TypeParameter TheType;
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(TheType != null && Name == TheType.Name);
+    }
+
+    public ArbitraryTypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      TheType = new TypeParameter(tok, name);
     }
   }
 

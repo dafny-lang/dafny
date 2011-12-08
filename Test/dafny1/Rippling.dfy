@@ -278,11 +278,11 @@ function mirror(t: Tree): Tree
 // Function parameters
 
 // Dafny currently does not support passing functions as arguments.  To simulate
-// arbitrary functions, the following type (declared as a class) and Apply function
-// play the role of applying some prescribed function (here, an instance of the class)
+// arbitrary functions, the following type and Apply function play the role of
+// applying some prescribed function (here, a value of the type)
 // to some argument.
 
-class FunctionValue { }
+type FunctionValue;
 function Apply(f: FunctionValue, x: Nat): Nat  // this function is left uninterpreted
 
 // The following functions stand for the constant "false" and "true" functions,

@@ -195,7 +195,10 @@ namespace Microsoft.Dafny {
           classes.Add(d.Name, d);
         }
 
-        if (d is ClassDecl) {
+        if (d is ArbitraryTypeDecl) {
+          // nothing more to register
+
+        } else if (d is ClassDecl) {
           ClassDecl cl = (ClassDecl)d;
 
           // register the names of the class members
@@ -293,7 +296,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
-        if (d is ClassDecl) {
+        if (d is ArbitraryTypeDecl) {
+          // nothing to do
+        } else if (d is ClassDecl) {
           ResolveClassMemberTypes((ClassDecl)d);
         } else {
           ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
@@ -309,7 +314,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
-        if (d is ClassDecl) {
+        if (d is ArbitraryTypeDecl) {
+          // nothing to do
+        } else if (d is ClassDecl) {
           ResolveClassMemberBodies((ClassDecl)d);
         } else {
           DatatypeDecl dtd = (DatatypeDecl)d;
@@ -872,10 +879,12 @@ namespace Microsoft.Dafny {
           TopLevelDecl d;
           if (!classes.TryGetValue(t.Name, out d)) {
             Error(t.tok, "Undeclared top-level type or type parameter: {0}", t.Name);
-          } else if (cce.NonNull(d).TypeArgs.Count == t.TypeArgs.Count) {
-            t.ResolvedClass = d;
-          } else {
+          } else if (d.TypeArgs.Count != t.TypeArgs.Count) {
             Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
+          } else if (d is ArbitraryTypeDecl) {
+            t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve as type parameter
+          } else {
+            t.ResolvedClass = d;
           }
         }
 

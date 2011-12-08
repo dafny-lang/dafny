@@ -134,7 +134,7 @@ IGNORE cr + lf + tab
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 Dafny
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt;
+= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
      Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
      ModuleDecl module;
@@ -157,11 +157,13 @@ Dafny
     "{"                                  (. module.BodyStartTok = t; .)
       { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
       | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
+      | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
       }
     "}"                                  (. module.BodyEndTok = t;
                                             theModules.Add(module); .)
-  | ClassDecl<defaultModule, out c>      (. defaultModule.TopLevelDecls.Add(c); .)
-  | DatatypeDecl<defaultModule, out dt>  (. defaultModule.TopLevelDecls.Add(dt); .)
+  | ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
+  | DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
+  | ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
   | ClassMemberDecl<membersDefaultClass, false>
   }
   (. if (defaultModuleCreatedHere) {
@@ -275,6 +277,14 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   { "," IdentType<out id, out ty>                   (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
   SYNC ";"
+  .
+ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
+= (. IToken/*!*/ id;
+     Attributes attrs = null;
+  .)
+  "type"
+  { Attribute<ref attrs> }
+  Ident<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
   .
 CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));

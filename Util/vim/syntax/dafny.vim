@@ -6,7 +6,7 @@
 syntax clear
 syntax case match
 syntax keyword dafnyFunction function method constructor
-syntax keyword dafnyTypeDef class datatype 
+syntax keyword dafnyTypeDef class datatype type
 syntax keyword dafnyConditional if then else match case 
 syntax keyword dafnyRepeat while parallel
 syntax keyword dafnyStatement havoc assume assert return new print break label
