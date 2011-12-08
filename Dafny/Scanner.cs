@@ -232,7 +232,6 @@ public class Scanner {
 	Token/*!*/ t;          // current token
 	int ch;           // current input character
 	int pos;          // byte position of current character
-	int charPos;
 	int col;          // column number of current character
 	int line;         // line number of current character
 	int oldEols;      // EOLs that appeared in a comment;
@@ -440,7 +439,7 @@ public class Scanner {
 
 
 	bool Comment0() {
-		int level = 1, pos0 = pos, line0 = line, col0 = col, charPos0 = charPos;
+		int level = 1, pos0 = pos, line0 = line, col0 = col;
 		NextCh();
 		if (ch == '/') {
 			NextCh();
@@ -453,13 +452,13 @@ public class Scanner {
 				else NextCh();
 			}
 		} else {
-			buffer.Pos = pos0; NextCh(); line = line0; col = col0; charPos = charPos0;
+			buffer.Pos = pos0; NextCh(); line = line0; col = col0;
 		}
 		return false;
 	}
 
 	bool Comment1() {
-		int level = 1, pos0 = pos, line0 = line, col0 = col, charPos0 = charPos;
+		int level = 1, pos0 = pos, line0 = line, col0 = col;
 		NextCh();
 		if (ch == '*') {
 			NextCh();
@@ -480,7 +479,7 @@ public class Scanner {
 				else NextCh();
 			}
 		} else {
-			buffer.Pos = pos0; NextCh(); line = line0; col = col0; charPos = charPos0;
+			buffer.Pos = pos0; NextCh(); line = line0; col = col0;
 		}
 		return false;
 	}
