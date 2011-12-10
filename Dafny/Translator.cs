@@ -6483,7 +6483,7 @@ namespace Microsoft.Dafny {
         var ssThen = new List<SplitExprInfo>();
         var ssElse = new List<SplitExprInfo>();
         // Note: The following lines intentionally uses | instead of ||, because we need both calls to TrSplitExpr
-        if (TrSplitExpr(ite.Thn, ssThen, position, expandFunctions, etran) | TrSplitExpr(ite.Thn, ssElse, position, expandFunctions, etran)) {
+        if (TrSplitExpr(ite.Thn, ssThen, position, expandFunctions, etran) | TrSplitExpr(ite.Els, ssElse, position, expandFunctions, etran)) {
           var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
           var test = etran.TrExpr(ite.Test);
           foreach (var s in ssThen) {

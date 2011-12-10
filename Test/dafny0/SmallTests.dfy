@@ -402,3 +402,13 @@ class Test {
   }
 
 }
+
+// ------ an if-then-else regression test
+
+function F(b: bool): int
+  // The if-then-else in the following line was once translated incorrectly,
+  // incorrectly causing the postcondition to verify
+  ensures if b then F(b) == 5 else F(b) == 6;
+{
+  5
+}

@@ -243,8 +243,11 @@ Execution trace:
 SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
+SmallTests.dfy(411,41): Error: possible violation of function postcondition
+Execution trace:
+    (0,0): anon6_Else
 
-Dafny program verifier finished with 47 verified, 20 errors
+Dafny program verifier finished with 47 verified, 21 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
