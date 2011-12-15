@@ -250,8 +250,8 @@ namespace Microsoft.Dafny
           CommandLineOptions.Clo.PrintDesugarings = false;
         }
         using (TokenTextWriter writer = filename == "-" ?
-                                        new TokenTextWriter("<console>", Console.Out) :
-                                        new TokenTextWriter(filename))
+                                        new TokenTextWriter("<console>", Console.Out, false) :
+                                        new TokenTextWriter(filename, false))
         {
             writer.WriteLine("// " + CommandLineOptions.Clo.Version);
             writer.WriteLine("// " + CommandLineOptions.Clo.Environment);
