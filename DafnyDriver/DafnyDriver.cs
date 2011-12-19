@@ -222,11 +222,15 @@ namespace Microsoft.Dafny
         var provider = CodeDomProvider.CreateProvider("CSharp");
         var cp = new System.CodeDom.Compiler.CompilerParameters();
         cp.GenerateExecutable = true;
-        // TODO: an improvement would be to generate a .dll if there is no Main method
-        cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
+        if (compiler.HasMain(dafnyProgram)) {
+          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
+          cp.CompilerOptions = "/debug";
+        } else {
+          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
+          cp.CompilerOptions = "/debug /target:library";
+        }
         cp.GenerateInMemory = false;
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
-        cp.CompilerOptions = "/debug";
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
         if (cr.Errors.Count == 0) {

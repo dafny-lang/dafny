@@ -389,6 +389,25 @@ namespace Microsoft.Dafny {
       return cce.NonNull(ctor.EnclosingDatatype).Name + "_" + ctor.Name;
     }
 
+    public bool HasMain(Program program) {
+      foreach (var module in program.Modules) {
+        foreach (var decl in module.TopLevelDecls) {
+          var c = decl as ClassDecl;
+          if (c != null) {
+            foreach (var member in c.Members) {
+              var m = member as Method;
+              if (m != null) {
+                if (!m.IsGhost && m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     void CompileClassMembers(ClassDecl c, int indent)
     {
       Contract.Requires(c != null);
