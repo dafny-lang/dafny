@@ -205,6 +205,24 @@ method MatchingDestructor(d: XList) returns (r: XList)
   r := XCons(5, XNil);
 }
 
+datatype Triple = T(a: int, b: int, c: int);  // just one constructor
+datatype TripleAndMore = T'(a: int, b: int, c: int) | NotATriple;
+
+method Rotate0(t: Triple) returns (u: Triple)
+{
+  u := T(t.c, t.a, t.b);
+}
+
+method Rotate1(t: TripleAndMore) returns (u: TripleAndMore)
+{
+  if {
+    case t.T'? =>
+      u := T'(t.c, t.a, t.b);
+    case true =>
+      u := T'(t.c, t.a, t.b);  // error: t may be NotATriple
+  }
+}
+
 // -------------
 
 method FwdBug(f: Fwd, initialized: bool)

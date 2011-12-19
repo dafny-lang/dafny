@@ -2138,8 +2138,14 @@ namespace Microsoft.Dafny {
           CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
         } else if (e.Field is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Field;
-          builder.Add(Assert(expr.tok, FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullName, Bpl.Type.Bool, etran.TrExpr(e.Obj)),
-            string.Format("destructor '{0}' can only be applied to datatype values constructed by '{1}'", dtor.Name, dtor.EnclosingCtor.Name)));
+          var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
+          if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
+            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+            builder.Add(new Bpl.AssumeCmd(expr.tok, correctConstructor));
+          } else {
+            builder.Add(Assert(expr.tok, correctConstructor,
+              string.Format("destructor '{0}' can only be applied to datatype values constructed by '{1}'", dtor.Name, dtor.EnclosingCtor.Name)));
+          }
         }
         if (options.DoReadsChecks && e.Field.IsMutable) {
           builder.Add(Assert(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field", options.AssertKv));
