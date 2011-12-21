@@ -418,6 +418,26 @@ function F(b: bool): int
 class AttributeTests {
   var f: int;
 
+  method m0()
+  {
+
+  }
+
+  method m1() returns (r: bool)
+  {
+    r := false;
+  }
+
+  function method m2() : bool
+  {
+    true
+  }
+
+  constructor C()
+  {
+
+  }
+
   method testAttributes0()
     ensures {:boolAttr true} true;
     ensures {:boolAttr false} true;
@@ -465,5 +485,25 @@ class AttributeTests {
     {
 
     }
+
+    m0() {:boolAttr true};
+    m0() {:boolAttr false};
+    m0() {:intAttr 0};
+    m0() {:intAttr 1};
+
+    var b1 := m1() {:boolAttr true};
+    b1 := m1() {:boolAttr false};
+    b1 := m1() {:intAttr 0};
+    b1 := m1() {:intAttr 1};
+
+    var b2 := m2() {:boolAttr true};
+    b2 := m2() {:boolAttr false};
+    b2 := m2() {:intAttr 0};
+    b2 := m2() {:intAttr 1};
+
+    var c := new AttributeTests.C() {:boolAttr true};
+    c := new AttributeTests.C() {:boolAttr false};
+    c := new AttributeTests.C() {:intAttr 0};
+    c := new AttributeTests.C() {:intAttr 1};
   }
 }

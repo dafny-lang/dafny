@@ -1567,7 +1567,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Lhss));
       Contract.Invariant(cce.NonNullElements(Rhss));
     }
-    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss)
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, Attributes attrs = null)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -1577,8 +1577,9 @@ namespace Microsoft.Dafny {
       Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = false;
+      Attributes = attrs;
     }
-    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate, Attributes attrs = null)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -1588,6 +1589,7 @@ namespace Microsoft.Dafny {
       Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = mutate;
+      Attributes = attrs;
     }
   }
 

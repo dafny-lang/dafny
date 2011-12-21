@@ -694,9 +694,11 @@ UpdateStmt<out Statement/*!*/ s>
      Expression e;  AssignmentRhs r;
      Expression lhs0;
      IToken x;
+     Attributes attrs = null;
   .)
   Lhs<out e>                       (. x = e.tok; .)
-  ( ";"                            (. rhss.Add(new ExprRhs(e)); .)
+  ( { IF(IsAttribute()) Attribute<ref attrs> }
+    ";"                            (. rhss.Add(new ExprRhs(e)); .)
   |                                (. lhss.Add(e);  lhs0 = e; .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
@@ -704,10 +706,11 @@ UpdateStmt<out Statement/*!*/ s>
     Rhs<out r, lhs0>               (. rhss.Add(r); .)
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
+    { IF(IsAttribute()) Attribute<ref attrs> }
     ";"
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
-  (. s = new UpdateStmt(x, lhss, rhss); .)
+  (. s = new UpdateStmt(x, lhss, rhss, attrs); .)
   .
 Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 = (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
@@ -749,6 +752,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;  IdentifierExpr lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+     Attributes attrs = null;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
@@ -764,6 +768,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Rhs<out r, lhs0>               (. rhss.Add(r); .)
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
+    { IF(IsAttribute()) Attribute<ref attrs> }
   ]
   ";"
   (. UpdateStmt update;
@@ -774,7 +779,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        foreach (var lhs in lhss) {
          ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
        }
-       update = new UpdateStmt(assignTok, ies, rhss);
+       update = new UpdateStmt(assignTok, ies, rhss, attrs);
      }
      s = new VarDeclStmt(x, lhss, update);
   .)

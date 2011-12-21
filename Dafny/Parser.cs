@@ -1126,11 +1126,15 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expression e;  AssignmentRhs r;
 		Expression lhs0;
 		IToken x;
+		Attributes attrs = null;
 		
 		Lhs(out e);
 		x = e.tok; 
-		if (la.kind == 18) {
-			Get();
+		if (la.kind == 6 || la.kind == 18) {
+			while (IsAttribute()) {
+				Attribute(ref attrs);
+			}
+			Expect(18);
 			rhss.Add(new ExprRhs(e)); 
 		} else if (la.kind == 20 || la.kind == 50) {
 			lhss.Add(e);  lhs0 = e; 
@@ -1148,12 +1152,15 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Rhs(out r, lhs0);
 				rhss.Add(r); 
 			}
+			while (IsAttribute()) {
+				Attribute(ref attrs);
+			}
 			Expect(18);
 		} else if (la.kind == 5) {
 			Get();
 			SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); 
 		} else SynErr(136);
-		s = new UpdateStmt(x, lhss, rhss); 
+		s = new UpdateStmt(x, lhss, rhss, attrs); 
 	}
 
 	void VarDeclStatement(out Statement/*!*/ s) {
@@ -1162,6 +1169,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		AssignmentRhs r;  IdentifierExpr lhs0;
 		List<VarDecl> lhss = new List<VarDecl>();
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+		Attributes attrs = null;
 		
 		if (la.kind == 12) {
 			Get();
@@ -1189,6 +1197,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Rhs(out r, lhs0);
 				rhss.Add(r); 
 			}
+			while (IsAttribute()) {
+				Attribute(ref attrs);
+			}
 		}
 		Expect(18);
 		UpdateStmt update;
@@ -1199,7 +1210,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		 foreach (var lhs in lhss) {
 		   ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
 		 }
-		 update = new UpdateStmt(assignTok, ies, rhss);
+		 update = new UpdateStmt(assignTok, ies, rhss, attrs);
 		}
 		s = new VarDeclStmt(x, lhss, update);
 		
