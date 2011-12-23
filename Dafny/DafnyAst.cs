@@ -1412,8 +1412,28 @@ namespace Microsoft.Dafny {
 
   public abstract class AssignmentRhs {
     public readonly IToken Tok;
-    internal AssignmentRhs(IToken tok) {
+
+    private Attributes attributes;
+    public Attributes Attributes
+    {
+      get
+      {
+        return attributes;
+      }
+      set
+      {
+        attributes = value;
+      }
+    }
+
+    public bool HasAttributes()
+    {
+      return Attributes != null;
+    }
+
+    internal AssignmentRhs(IToken tok, Attributes attrs = null) {
       Tok = tok;
+      Attributes = attrs;
     }
     public abstract bool CanAffectPreviouslyKnownExpressions { get; }
   }
@@ -1426,8 +1446,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Expr != null);
     }
 
-    public ExprRhs(Expression expr)
-      : base(expr.tok)
+    public ExprRhs(Expression expr, Attributes attrs = null)
+      : base(expr.tok, attrs)
     {
       Contract.Requires(expr != null);
       Expr = expr;
@@ -1567,7 +1587,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Lhss));
       Contract.Invariant(cce.NonNullElements(Rhss));
     }
-    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, Attributes attrs = null)
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -1577,9 +1597,8 @@ namespace Microsoft.Dafny {
       Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = false;
-      Attributes = attrs;
     }
-    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate, Attributes attrs = null)
+    public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -1589,7 +1608,6 @@ namespace Microsoft.Dafny {
       Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = mutate;
-      Attributes = attrs;
     }
   }
 

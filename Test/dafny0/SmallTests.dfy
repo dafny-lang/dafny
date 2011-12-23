@@ -438,7 +438,7 @@ class AttributeTests {
 
   }
 
-  method testAttributes0()
+  method testAttributes0() returns (r: AttributeTests)
     ensures {:boolAttr true} true;
     ensures {:boolAttr false} true;
     ensures {:intAttr 0} true;
@@ -491,19 +491,30 @@ class AttributeTests {
     m0() {:intAttr 0};
     m0() {:intAttr 1};
 
+    this.m0() {:boolAttr true};
+    this.m0() {:boolAttr false};
+    this.m0() {:intAttr 0};
+    this.m0() {:intAttr 1};
+
     var b1 := m1() {:boolAttr true};
     b1 := m1() {:boolAttr false};
     b1 := m1() {:intAttr 0};
     b1 := m1() {:intAttr 1};
 
-    var b2 := m2() {:boolAttr true};
-    b2 := m2() {:boolAttr false};
-    b2 := m2() {:intAttr 0};
-    b2 := m2() {:intAttr 1};
+    var b2, b2' := m2() {:boolAttr true}, m2() {:boolAttr true};
+    b2, b2' := m2() {:boolAttr false}, m2() {:boolAttr false};
+    b2, b2' := m2() {:intAttr 0}, m2() {:boolAttr false};
+    b2, b2' := m2() {:intAttr 1}, m2() {:boolAttr false};
 
     var c := new AttributeTests.C() {:boolAttr true};
     c := new AttributeTests.C() {:boolAttr false};
     c := new AttributeTests.C() {:intAttr 0};
     c := new AttributeTests.C() {:intAttr 1};
+
+    if (*) {
+      return new AttributeTests.C() {:boolAttr true};
+    } else {
+      return new AttributeTests.C() {:intAttr 0};
+    }
   }
 }

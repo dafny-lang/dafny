@@ -698,7 +698,7 @@ UpdateStmt<out Statement/*!*/ s>
   .)
   Lhs<out e>                       (. x = e.tok; .)
   ( { IF(IsAttribute()) Attribute<ref attrs> }
-    ";"                            (. rhss.Add(new ExprRhs(e)); .)
+    ";"                            (. rhss.Add(new ExprRhs(e, attrs)); .)
   |                                (. lhss.Add(e);  lhs0 = e; .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
@@ -706,11 +706,10 @@ UpdateStmt<out Statement/*!*/ s>
     Rhs<out r, lhs0>               (. rhss.Add(r); .)
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
-    { IF(IsAttribute()) Attribute<ref attrs> }
     ";"
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
-  (. s = new UpdateStmt(x, lhss, rhss, attrs); .)
+  (. s = new UpdateStmt(x, lhss, rhss); .)
   .
 Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 = (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
@@ -719,6 +718,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
      CallStmt initCall = null;
      List<Expression> args;
      r = null;  // to please compiler
+     Attributes attrs = null;
   .)
   ( "new"                              (. newToken = t; .)
     TypeAndToken<out x, out ty>
@@ -745,6 +745,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
   | "*"                                (. r = new HavocRhs(t); .)
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
+  { IF(IsAttribute()) Attribute<ref attrs> }     (. r.Attributes = attrs; .)
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
@@ -752,7 +753,6 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;  IdentifierExpr lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-     Attributes attrs = null;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
@@ -768,7 +768,6 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Rhs<out r, lhs0>               (. rhss.Add(r); .)
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
-    { IF(IsAttribute()) Attribute<ref attrs> }
   ]
   ";"
   (. UpdateStmt update;
@@ -779,7 +778,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        foreach (var lhs in lhss) {
          ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
        }
-       update = new UpdateStmt(assignTok, ies, rhss, attrs);
+       update = new UpdateStmt(assignTok, ies, rhss);
      }
      s = new VarDeclStmt(x, lhss, update);
   .)

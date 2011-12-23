@@ -641,11 +641,6 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
 
-        if (stmt.HasAttributes())
-        {
-          PrintAttributes(stmt.Attributes);
-        }
-
         wr.Write(";");
 
       } else if (stmt is VarDeclStmt) {
@@ -667,11 +662,6 @@ namespace Microsoft.Dafny {
             wr.Write(sep);
             PrintRhs(rhs);
             sep = ", ";
-          }
-
-          if (s.Update.HasAttributes())
-          {
-            PrintAttributes(s.Update.Attributes);
           }
         }
         wr.Write(";");
@@ -722,6 +712,11 @@ namespace Microsoft.Dafny {
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+      }
+
+      if (rhs.HasAttributes())
+      {
+        PrintAttributes(rhs.Attributes);
       }
     }
 

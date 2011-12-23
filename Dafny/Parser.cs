@@ -1135,7 +1135,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Attribute(ref attrs);
 			}
 			Expect(18);
-			rhss.Add(new ExprRhs(e)); 
+			rhss.Add(new ExprRhs(e, attrs)); 
 		} else if (la.kind == 20 || la.kind == 50) {
 			lhss.Add(e);  lhs0 = e; 
 			while (la.kind == 20) {
@@ -1152,15 +1152,12 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Rhs(out r, lhs0);
 				rhss.Add(r); 
 			}
-			while (IsAttribute()) {
-				Attribute(ref attrs);
-			}
 			Expect(18);
 		} else if (la.kind == 5) {
 			Get();
 			SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); 
 		} else SynErr(136);
-		s = new UpdateStmt(x, lhss, rhss, attrs); 
+		s = new UpdateStmt(x, lhss, rhss); 
 	}
 
 	void VarDeclStatement(out Statement/*!*/ s) {
@@ -1169,7 +1166,6 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		AssignmentRhs r;  IdentifierExpr lhs0;
 		List<VarDecl> lhss = new List<VarDecl>();
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-		Attributes attrs = null;
 		
 		if (la.kind == 12) {
 			Get();
@@ -1197,9 +1193,6 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Rhs(out r, lhs0);
 				rhss.Add(r); 
 			}
-			while (IsAttribute()) {
-				Attribute(ref attrs);
-			}
 		}
 		Expect(18);
 		UpdateStmt update;
@@ -1210,7 +1203,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		 foreach (var lhs in lhss) {
 		   ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
 		 }
-		 update = new UpdateStmt(assignTok, ies, rhss, attrs);
+		 update = new UpdateStmt(assignTok, ies, rhss);
 		}
 		s = new VarDeclStmt(x, lhss, update);
 		
@@ -1352,6 +1345,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		CallStmt initCall = null;
 		List<Expression> args;
 		r = null;  // to please compiler
+		Attributes attrs = null;
 		
 		if (la.kind == 51) {
 			Get();
@@ -1396,6 +1390,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e);
 			r = new ExprRhs(e); 
 		} else SynErr(140);
+		while (IsAttribute()) {
+			Attribute(ref attrs);
+		}
+		r.Attributes = attrs; 
 	}
 
 	void Lhs(out Expression e) {
