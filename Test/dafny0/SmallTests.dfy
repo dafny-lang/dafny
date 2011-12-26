@@ -518,3 +518,20 @@ class AttributeTests {
     }
   }
 }
+
+// ----------------------- Pretty printing of !(!expr) --------
+
+static method TestNotNot()
+{
+  assert !(!true);  // Shouldn't pretty print as "!!true".
+
+  assert !(true == false);
+
+  assert !(if true then false else false);
+
+  assert !if true then false else false;
+
+  assert !if !(!true) then false else false;
+
+  assert true == !(!true);
+}

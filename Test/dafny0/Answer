@@ -247,7 +247,7 @@ SmallTests.dfy(411,41): Error: possible violation of function postcondition
 Execution trace:
     (0,0): anon6_Else
 
-Dafny program verifier finished with 56 verified, 21 errors
+Dafny program verifier finished with 58 verified, 21 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -1342,3 +1342,221 @@ Execution trace:
     (0,0): anon11_Then
 
 Dafny program verifier finished with 13 verified, 2 errors
+
+-------------------- SmallTests.dfy --------------------
+SmallTests.dfy(30,11): Error: index out of range
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(61,36): Error: possible division by zero
+Execution trace:
+    (0,0): anon12_Then
+SmallTests.dfy(62,51): Error: possible division by zero
+Execution trace:
+    (0,0): anon12_Else
+    (0,0): anon3
+    (0,0): anon13_Else
+SmallTests.dfy(63,22): Error: target object may be null
+Execution trace:
+    (0,0): anon12_Then
+    (0,0): anon3
+    (0,0): anon13_Then
+    (0,0): anon6
+SmallTests.dfy(82,24): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(81,5): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    (0,0): anon10_Then
+SmallTests.dfy(116,5): Error: call may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+    (0,0): anon3
+SmallTests.dfy(129,9): Error: call may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+SmallTests.dfy(131,9): Error: call may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+SmallTests.dfy(171,9): Error: assignment may update an object field not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon22_Else
+    (0,0): anon5
+    (0,0): anon24_Else
+    (0,0): anon11
+    (0,0): anon26_Else
+    (0,0): anon16
+    (0,0): anon28_Then
+    (0,0): anon29_Then
+    (0,0): anon19
+SmallTests.dfy(199,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+SmallTests.dfy(206,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon3
+    (0,0): anon13_Then
+SmallTests.dfy(226,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon3
+    (0,0): anon13_Else
+    (0,0): anon6
+    (0,0): anon14_Then
+    (0,0): anon11
+SmallTests.dfy(271,24): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(249,30): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(266,19): anon3_Else
+    (0,0): anon2
+SmallTests.dfy(376,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(386,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(396,6): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
+SmallTests.dfy(306,3): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(300,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon18_Else
+    (0,0): anon11
+    (0,0): anon23_Then
+    (0,0): anon24_Then
+    (0,0): anon15
+    (0,0): anon25_Else
+SmallTests.dfy(347,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon7
+SmallTests.dfy(354,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
+SmallTests.dfy(411,41): Error: possible violation of function postcondition
+Execution trace:
+    (0,0): anon6_Else
+
+Dafny program verifier finished with 58 verified, 21 errors
+out.tmp.dfy(33,11): Error: index out of range
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(69,37): Error: possible division by zero
+Execution trace:
+    (0,0): anon12_Then
+out.tmp.dfy(70,52): Error: possible division by zero
+Execution trace:
+    (0,0): anon12_Else
+    (0,0): anon3
+    (0,0): anon13_Else
+out.tmp.dfy(71,22): Error: target object may be null
+Execution trace:
+    (0,0): anon12_Then
+    (0,0): anon3
+    (0,0): anon13_Then
+    (0,0): anon6
+out.tmp.dfy(88,24): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    out.tmp.dfy(87,5): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    (0,0): anon10_Then
+out.tmp.dfy(122,5): Error: call may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+    (0,0): anon3
+out.tmp.dfy(135,9): Error: call may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+out.tmp.dfy(137,9): Error: call may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+out.tmp.dfy(177,9): Error: assignment may update an object field not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon22_Else
+    (0,0): anon5
+    (0,0): anon24_Else
+    (0,0): anon11
+    (0,0): anon26_Else
+    (0,0): anon16
+    (0,0): anon28_Then
+    (0,0): anon29_Then
+    (0,0): anon19
+out.tmp.dfy(202,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+out.tmp.dfy(208,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon3
+    (0,0): anon13_Then
+out.tmp.dfy(229,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon3
+    (0,0): anon13_Else
+    (0,0): anon6
+    (0,0): anon14_Then
+    (0,0): anon11
+out.tmp.dfy(266,24): Error BP5002: A precondition for this call might not hold.
+out.tmp.dfy(247,30): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    out.tmp.dfy(263,19): anon3_Else
+    (0,0): anon2
+out.tmp.dfy(286,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(296,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(306,6): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
+out.tmp.dfy(422,3): Error BP5003: A postcondition might not hold on this return path.
+out.tmp.dfy(416,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon18_Else
+    (0,0): anon11
+    (0,0): anon23_Then
+    (0,0): anon24_Then
+    (0,0): anon15
+    (0,0): anon25_Else
+out.tmp.dfy(446,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon7
+out.tmp.dfy(451,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(461,4): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
+out.tmp.dfy(470,41): Error: possible violation of function postcondition
+Execution trace:
+    (0,0): anon6_Else
+
+Dafny program verifier finished with 58 verified, 21 errors

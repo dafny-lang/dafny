@@ -25,3 +25,10 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f
 )
+
+for %%f in (SmallTests.dfy) do (
+  echo.
+  echo -------------------- %%f --------------------
+  %DAFNY_EXE% /compile:0 /dprint:out.tmp.dfy %* %%f
+  %DAFNY_EXE% /compile:0 %* out.tmp.dfy
+)

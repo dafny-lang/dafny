@@ -976,9 +976,13 @@ namespace Microsoft.Dafny {
           bool parensNeeded = opBindingStrength < contextBindingStrength ||
             (fragileContext && opBindingStrength == contextBindingStrength);
 
+          bool containsNestedNot = e.E is ParensExpression &&
+                                ((ParensExpression)e.E).E is UnaryExpr &&
+                                ((UnaryExpr)((ParensExpression)e.E).E).Op == UnaryExpr.Opcode.Not;
+
           if (parensNeeded) { wr.Write("("); }
           wr.Write(op);
-          PrintExpr(e.E, opBindingStrength, false, parensNeeded || isRightmost, -1);
+          PrintExpr(e.E, opBindingStrength, containsNestedNot, parensNeeded || isRightmost, -1);
           if (parensNeeded) { wr.Write(")"); }
         }
 
