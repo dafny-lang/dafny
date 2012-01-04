@@ -434,7 +434,7 @@ namespace Microsoft.Dafny {
             wr.Write("(");
             WriteFormals("", f.Formals);
             wr.WriteLine(") {");
-            CompileReturnBody(f.Body, indent);
+            CompileReturnBody(f.Body, indent + IndentAmount);
             Indent(indent);  wr.WriteLine("}");
           }
 
@@ -511,6 +511,7 @@ namespace Microsoft.Dafny {
         //   ...
         // }
 
+        SpillLetVariableDecls(me.Source, indent);
         string source = "_source" + tmpVarCount;
         tmpVarCount++;
         Indent(indent);
@@ -533,10 +534,28 @@ namespace Microsoft.Dafny {
         }
 
       } else {
-        Indent(indent + IndentAmount);
+        SpillLetVariableDecls(body, indent);
+        Indent(indent);
         wr.Write("return ");
         TrExpr(body);
         wr.WriteLine(";");
+      }
+    }
+
+    void SpillLetVariableDecls(Expression expr, int indent) {
+      Contract.Requires(0 <= indent);
+      if (expr == null) {
+        // allow "null" as an argument; nothing to do
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        foreach (var v in e.Vars) {
+          Indent(indent);
+          wr.WriteLine("{0} @{1};", TypeName(v.Type), v.Name);
+        }
+      } else {
+        foreach (var ee in expr.SubExpressions) {
+          SpillLetVariableDecls(ee, indent);
+        }
       }
     }
 
@@ -736,6 +755,7 @@ namespace Microsoft.Dafny {
       if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         foreach (Attributes.Argument arg in s.Args) {
+          SpillLetVariableDecls(arg.E, indent);
           Indent(indent);
           wr.Write("System.Console.Write(");
           if (arg.S != null) {
@@ -806,23 +826,37 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
-        Indent(indent);
         if (s.Guard == null) {
-          wr.WriteLine("if (true)");
+          // we can compile the branch of our choice
+          if (s.Els == null) {
+            // let's compile the "else" branch, since that involves no work
+            // (still, let's leave a marker in the source code to indicate that this is what we did)
+            Indent(indent);
+            wr.WriteLine("if (!false) { }");
+          } else {
+            // let's compile the "then" branch
+            Indent(indent);
+            wr.WriteLine("if (true)");
+            TrStmt(s.Thn, indent);
+          }
         } else {
-          wr.Write("if (");
+          SpillLetVariableDecls(s.Guard, indent);
+          Indent(indent);  wr.Write("if (");
           TrExpr(s.Guard);
           wr.WriteLine(")");
-        }
 
-        TrStmt(s.Thn, indent);
-        if (s.Els != null && s.Guard != null) {
-          Indent(indent);  wr.WriteLine("else");
-          TrStmt(s.Els, indent);
+          TrStmt(s.Thn, indent);
+          if (s.Els != null) {
+            Indent(indent);  wr.WriteLine("else");
+            TrStmt(s.Els, indent);
+          }
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
+        foreach (var alternative in s.Alternatives) {
+          SpillLetVariableDecls(alternative.Guard, indent);
+        }
         Indent(indent);
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
@@ -840,6 +874,7 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.WriteLine("while (false) { }");
         } else {
+          SpillLetVariableDecls(s.Guard, indent);
           Indent(indent);
           wr.Write("while (");
           TrExpr(s.Guard);
@@ -853,6 +888,9 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.WriteLine("while (true) {");
           int ind = indent + IndentAmount;
+          foreach (var alternative in s.Alternatives) {
+            SpillLetVariableDecls(alternative.Guard, ind);
+          }
           Indent(ind);
           foreach (var alternative in s.Alternatives) {
             wr.Write("if (");
@@ -949,13 +987,17 @@ namespace Microsoft.Dafny {
         var n = s.BoundVars.Count;
         Contract.Assert(s.Bounds.Count == n);
         for (int i = 0; i < n; i++) {
-          Indent(indent + i * IndentAmount);
+          var ind = indent + i * IndentAmount;
           var bound = s.Bounds[i];
           var bv = s.BoundVars[i];
           if (bound is QuantifierExpr.BoolBoundedPool) {
+            Indent(ind);
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.Name);
           } else if (bound is QuantifierExpr.IntBoundedPool) {
             var b = (QuantifierExpr.IntBoundedPool)bound;
+            SpillLetVariableDecls(b.LowerBound, ind);
+            SpillLetVariableDecls(b.UpperBound, ind);
+            Indent(ind);
             wr.Write("for (var @{0} = ", bv.Name);
             TrExpr(b.LowerBound);
             wr.Write("; @{0} < ", bv.Name);
@@ -963,11 +1005,15 @@ namespace Microsoft.Dafny {
             wr.Write("; @{0}++) {{ ", bv.Name);
           } else if (bound is QuantifierExpr.SetBoundedPool) {
             var b = (QuantifierExpr.SetBoundedPool)bound;
+            SpillLetVariableDecls(b.Set, ind);
+            Indent(ind);
             wr.Write("foreach (var @{0} in (", bv.Name);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
           } else if (bound is QuantifierExpr.SeqBoundedPool) {
             var b = (QuantifierExpr.SeqBoundedPool)bound;
+            SpillLetVariableDecls(b.Seq, ind);
+            Indent(ind);
             wr.Write("foreach (var @{0} in (", bv.Name);
             TrExpr(b.Seq);
             wr.Write(").UniqueElements) { ");
@@ -980,12 +1026,16 @@ namespace Microsoft.Dafny {
         // if (range) {
         //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
         // }
+        SpillLetVariableDecls(s.Range, indent + n * IndentAmount);
         Indent(indent + n * IndentAmount);
         wr.Write("if ");
         TrParenExpr(s.Range);
         wr.WriteLine(" {");
 
-        Indent(indent + (n + 1) * IndentAmount);
+        var indFinal = indent + (n + 1) * IndentAmount;
+        SpillLetVariableDecls(s0.Lhs, indFinal);
+        SpillLetVariableDecls(rhs, indFinal);
+        Indent(indFinal);
         wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
         if (s0.Lhs is FieldSelectExpr) {
           var lhs = (FieldSelectExpr)s0.Lhs;
@@ -1056,6 +1106,7 @@ namespace Microsoft.Dafny {
         //   ...
         // }
         if (s.Cases.Count != 0) {
+          SpillLetVariableDecls(s.Source, indent);
           string source = "_source" + tmpVarCount;
           tmpVarCount++;
           Indent(indent);
@@ -1085,6 +1136,7 @@ namespace Microsoft.Dafny {
 
     string CreateLvalue(Expression lhs, int indent) {
       lhs = lhs.Resolved;
+      SpillLetVariableDecls(lhs, indent);
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         return "@" + ll.Var.Name;
@@ -1138,8 +1190,12 @@ namespace Microsoft.Dafny {
 
     void TrRhs(string target, Expression targetExpr, AssignmentRhs rhs, int indent) {
       Contract.Requires((target == null) != (targetExpr == null));
+      SpillLetVariableDecls(targetExpr, indent);
       var tRhs = rhs as TypeRhs;
       if (tRhs != null && tRhs.InitCall != null) {
+        foreach (Expression dim in tRhs.ArrayDimensions) {
+          SpillLetVariableDecls(dim, indent);
+        }
         string nw = "_nw" + tmpVarCount;
         tmpVarCount++;
         Indent(indent);
@@ -1155,6 +1211,9 @@ namespace Microsoft.Dafny {
         }
         wr.WriteLine(" = {0};", nw);
       } else if (!(rhs is HavocRhs)) {
+        if (rhs is ExprRhs) {
+          SpillLetVariableDecls(((ExprRhs)rhs).Expr, indent);
+        }
         Indent(indent);
         if (target != null) {
           wr.Write(target);
@@ -1172,8 +1231,12 @@ namespace Microsoft.Dafny {
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
 
       var lvalues = new List<string>();
-      foreach (var lhs in s.Lhs) {
-        lvalues.Add(CreateLvalue(lhs, indent));
+      Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
+      for (int i = 0; i < s.Method.Outs.Count; i++) {
+        Formal p = s.Method.Outs[i];
+        if (!p.IsGhost) {
+          lvalues.Add(CreateLvalue(s.Lhs[i], indent));
+        }
       }
       var outTmps = new List<string>();
       for (int i = 0; i < s.Method.Outs.Count; i++) {
@@ -1186,13 +1249,23 @@ namespace Microsoft.Dafny {
           wr.WriteLine("{0} {1};", TypeName(s.Lhs[i].Type), target);
         }
       }
+      Contract.Assert(lvalues.Count == outTmps.Count);
 
-      Indent(indent);
+      for (int i = 0; i < s.Method.Ins.Count; i++) {
+        Formal p = s.Method.Ins[i];
+        if (!p.IsGhost) {
+          SpillLetVariableDecls(s.Args[i], indent);
+        }
+      }
       if (receiverReplacement != null) {
+        Indent(indent);
         wr.Write("@" + receiverReplacement);
       } else if (s.Method.IsStatic) {
+        Indent(indent);
         wr.Write(TypeName(cce.NonNull(s.Receiver.Type)));
       } else {
+        SpillLetVariableDecls(s.Receiver, indent);
+        Indent(indent);
         TrParenExpr(s.Receiver);
       }
       wr.Write(".@{0}(", s.Method.Name);
@@ -1214,21 +1287,17 @@ namespace Microsoft.Dafny {
       wr.WriteLine(");");
 
       // assign to the actual LHSs
-      int j = 0;
-      for (int i = 0; i < s.Method.Outs.Count; i++) {
-        Formal p = s.Method.Outs[i];
-        if (!p.IsGhost) {
-          Indent(indent);
-          TrExpr(s.Lhs[i]);
-          wr.WriteLine(" = {0};", outTmps[j]);
-          j++;
-        }
+      for (int j = 0; j < lvalues.Count; j++) {
+        Indent(indent);
+        wr.WriteLine("{0} = {1};", lvalues[j], outTmps[j]);
       }
-      Contract.Assert(j == outTmps.Count);
     }
 
     int tmpVarCount = 0;
 
+    /// <summary>
+    /// Before calling TrAssignmentRhs(rhs), the caller must have spilled the let variables declared in "rhs".
+    /// </summary>
     void TrAssignmentRhs(AssignmentRhs rhs) {
       Contract.Requires(rhs != null);
       Contract.Requires(!(rhs is HavocRhs));
@@ -1325,6 +1394,9 @@ namespace Microsoft.Dafny {
 
     // ----- Expression ---------------------------------------------------------------------------
 
+    /// <summary>
+    /// Before calling TrParenExpr(expr), the caller must have spilled the let variables declared in "expr".
+    /// </summary>
     void TrParenExpr(string prefix, Expression expr) {
       Contract.Requires(prefix != null);
       Contract.Requires(expr != null);
@@ -1332,6 +1404,9 @@ namespace Microsoft.Dafny {
       TrParenExpr(expr);
     }
 
+    /// <summary>
+    /// Before calling TrParenExpr(expr), the caller must have spilled the let variables declared in "expr".
+    /// </summary>
     void TrParenExpr(Expression expr) {
       Contract.Requires(expr != null);
       wr.Write("(");
@@ -1339,6 +1414,9 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
+    /// <summary>
+    /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
+    /// </summary>
     void TrExprList(List<Expression/*!*/>/*!*/ exprs) {
       Contract.Requires(cce.NonNullElements(exprs));
       wr.Write("(");
@@ -1351,6 +1429,9 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
+    /// <summary>
+    /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
+    /// </summary>
     void TrExpr(Expression expr)
     {
       Contract.Requires(expr != null);
@@ -1691,14 +1772,21 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        // Since there are no OldExpr's in an expression to be compiled, we can just do a regular substitution
-        // without having to worry about old-capture.
-        var substMap = new Dictionary<IVariable, Expression>();
+        // The Dafny "let" expression
+        //    var x := G; E
+        // is translated into C# as:
+        //    ExpressionSequence(x = G, E)
+        // preceded by the declaration of x.
         Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
         for (int i = 0; i < e.Vars.Count; i++) {
-          substMap.Add(e.Vars[i], e.RHSs[i]);
+          wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = ", e.Vars[i].Name);
+          TrExpr(e.RHSs[i]);
+          wr.Write(", ");
         }
-        TrExpr(Translator.Substitute(e.Body, null, substMap));
+        TrExpr(e.Body);
+        for (int i = 0; i < e.Vars.Count; i++) {
+          wr.Write(")");
+        }
 
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
