@@ -1200,19 +1200,6 @@ Dafny program verifier finished with 12 verified, 3 errors
 
 Dafny program verifier finished with 5 verified, 0 errors
 
--------------------- Refinement.dfy --------------------
-
-Dafny program verifier finished with 53 verified, 0 errors
-
--------------------- RefinementErrors.dfy --------------------
-RefinementErrors.dfy(1,6): Error: Detected a cyclic refinement declaration: C -> B -> A
-RefinementErrors.dfy(27,11): Error: Coupling invariants can only be declared in refinement classes
-RefinementErrors.dfy(40,6): Error: Refined class has a member with the same name as in the refinement class: x
-RefinementErrors.dfy(42,9): Error: Refined class has a member with the same name as in the refinement class: M
-RefinementErrors.dfy(12,10): Error: Refinement methods can only be declared in refinement classes: M
-RefinementErrors.dfy(34,10): Error: Different number of output variables
-6 resolution/type errors detected in RefinementErrors.dfy
-
 -------------------- LoopModifies.dfy --------------------
 LoopModifies.dfy(6,5): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
