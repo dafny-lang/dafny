@@ -590,21 +590,24 @@ namespace Microsoft.Dafny {
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {
-      // order does not matter for resolution, so resolve them in reverse order
+      // order does not matter much for resolution, so resolve them in reverse order
       for (; attrs != null; attrs = attrs.Prev) {
         if (attrs.Args != null)
         {
-          ResolveAttributeArgs(attrs.Args, twoState);
+          ResolveAttributeArgs(attrs.Args, twoState, true);
         }
       }
     }
 
-    void ResolveAttributeArgs(List<Attributes.Argument/*!*/>/*!*/ args, bool twoState) {
+    void ResolveAttributeArgs(List<Attributes.Argument/*!*/>/*!*/ args, bool twoState, bool allowGhosts) {
       Contract.Requires(args != null);
       foreach (Attributes.Argument aa in args) {
         Contract.Assert(aa != null);
         if (aa.E != null) {
           ResolveExpression(aa.E, twoState);
+          if (!allowGhosts) {
+            CheckIsNonGhost(aa.E);
+          }
         }
       }
     }
@@ -1226,7 +1229,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
-        ResolveAttributeArgs(s.Args, false);
+        ResolveAttributeArgs(s.Args, false, false);
         if (specContextOnly) {
           Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
         }

@@ -493,7 +493,8 @@ ResolutionErrors.dfy(304,16): Error: arguments must have the same type (got int 
 ResolutionErrors.dfy(305,16): Error: arguments must have the same type (got DTD_List and int)
 ResolutionErrors.dfy(306,25): Error: arguments must have the same type (got bool and int)
 ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specification contexts
-45 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
+46 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator

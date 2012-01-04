@@ -309,3 +309,11 @@ method DatatypeDestructors(d: DTD_List) {
       var g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
 }
+
+// ------------------- print statements ---------------------------------------
+
+method PrintOnlyNonGhosts(a: int, ghost b: int)
+{
+  print "a: ", a, "\n";
+  print "b: ", b, "\n";  // error: print statement cannot take ghosts
+}
