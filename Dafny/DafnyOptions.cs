@@ -139,6 +139,7 @@ namespace Microsoft.Dafny
                     how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
                 6 (default) - most discriminating
 ");
+      base.Usage();  // also print the Boogie options
     }
   }
 }
