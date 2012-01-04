@@ -239,7 +239,6 @@ namespace DafnyLanguage
                 case "assume":
                 case "bool":
                 case "break":
-                case "by":
                 case "case":
                 case "choose":
                 case "class":
@@ -276,7 +275,6 @@ namespace DafnyLanguage
                 case "print":
                 case "reads":
                 case "refines":
-                case "replaces":
                 case "requires":
                 case "result":
                 case "return":

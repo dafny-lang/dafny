@@ -80,8 +80,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
 
-    bool checkRefinements = true; // used to indicate a cycle in refinements
-
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
       // register modules
@@ -95,7 +93,6 @@ namespace Microsoft.Dafny {
       }
       // resolve imports and register top-level declarations
       RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
-      Graph<TopLevelDecl> refines = new Graph<TopLevelDecl>();
       foreach (ModuleDecl m in prog.Modules) {
         importGraph.AddVertex(m);
         foreach (string imp in m.Imports) {
@@ -110,7 +107,6 @@ namespace Microsoft.Dafny {
           }
         }
         RegisterTopLevelDecls(m.TopLevelDecls);
-        foreach (TopLevelDecl decl in m.TopLevelDecls) {Contract.Assert(decl != null); refines.AddVertex(decl);}
       }
       // check for cycles in the import graph
       List<ModuleDecl> cycle = importGraph.TryFindCycle();
@@ -131,28 +127,6 @@ namespace Microsoft.Dafny {
           m.Height = h;
           h++;
         }
-      }
-
-      // resolve top-level declarations of refinements
-      foreach (ModuleDecl m in prog.Modules)
-        foreach (TopLevelDecl decl in m.TopLevelDecls)
-          if (decl is ClassRefinementDecl) {
-            ClassRefinementDecl rdecl = (ClassRefinementDecl) decl;
-            ResolveTopLevelRefinement(rdecl);
-            if (rdecl.Refined != null) refines.AddEdge(rdecl, rdecl.Refined);
-          }
-
-      // attempt finding refinement cycles
-      List<TopLevelDecl> refinesCycle = refines.TryFindCycle();
-      if (refinesCycle != null) {
-        string cy = "";
-        string sep = "";
-        foreach (TopLevelDecl decl in refinesCycle) {
-          cy = decl + sep + cy;
-          sep = " -> ";
-        }
-        Error(refinesCycle[0], "Detected a cyclic refinement declaration: {0}", cy);
-        checkRefinements = false;
       }
 
       // resolve top-level declarations
@@ -273,21 +247,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ResolveTopLevelRefinement(ClassRefinementDecl decl) {
-      Contract.Requires(decl != null);
-      if (!classes.ContainsKey(decl.RefinedClass.val)) {
-        Error(decl.RefinedClass, "Refined class declaration is missing: {0}", decl.RefinedClass.val);
-      } else {
-        TopLevelDecl a = classes[decl.RefinedClass.val];
-        if (!(a is ClassDecl)) {
-          Error(a, "Refined declaration is not a class declaration: {0}", a.Name);
-          return;
-        }
-        decl.Refined = cce.NonNull((ClassDecl) a);
-        // TODO: copy over remaining members of a
-      }
-    }
-
     public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<DatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
@@ -365,48 +324,8 @@ namespace Microsoft.Dafny {
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
 
-        } else if (member is CouplingInvariant) {
-          CouplingInvariant inv = (CouplingInvariant)member;
-          if (currentClass is ClassRefinementDecl) {
-            ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;
-            if (refined != null) {
-              Contract.Assert(classMembers.ContainsKey(refined));
-              Dictionary<string,MemberDecl> members = classMembers[refined];
-
-              // resolve abstracted fields in the refined class
-              List<Field> fields = new List<Field>();
-              foreach (IToken tok in inv.Toks) {
-                if (!members.ContainsKey(tok.val))
-                  Error(tok, "Refined class does not declare a field: {0}", tok.val);
-                else {
-                  MemberDecl field = members[tok.val];
-                  if (!(field is Field))
-                    Error(tok, "Coupling invariant refers to a non-field member: {0}", tok.val);
-                  else if (fields.Contains(cce.NonNull((Field)field)))
-                    Error(tok, "Duplicate reference to a field in the refined class: {0}", tok.val);
-                  else
-                    fields.Add(cce.NonNull((Field)field));
-                }
-              }
-              inv.Refined = fields;
-            }
-
-          } else {
-            Error(member, "Coupling invariants can only be declared in refinement classes");
-          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
-        }
-
-        if (currentClass is ClassRefinementDecl) {
-          ClassDecl refined = ((ClassRefinementDecl)currentClass).Refined;
-          if (refined != null) {
-            Contract.Assert(classMembers.ContainsKey(refined));
-
-            // there is a member with the same name in refined class if and only if the member is a refined method
-            if ((member is MethodRefinement) != (classMembers[refined].ContainsKey(member.Name)))
-              Error(member, "Refined class has a member with the same name as in the refinement class: {0}", member.Name);
-          }
         }
       }
       currentClass = null;
@@ -441,48 +360,6 @@ namespace Microsoft.Dafny {
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
-
-          // check if signature of the refined method matches the refinement method
-          if (member is MethodRefinement) {
-            MethodRefinement mf = (MethodRefinement)member;
-            if (currentClass is ClassRefinementDecl) {
-              // should have already been resolved
-              if (((ClassRefinementDecl)currentClass).Refined != null) {
-                MemberDecl d = classMembers[((ClassRefinementDecl)currentClass).Refined][mf.Name];
-                if (d is Method) {
-                  mf.Refined = (Method)d;
-                  if (mf.Ins.Count != mf.Refined.Ins.Count)
-                    Error(mf, "Different number of input variables");
-                  if (mf.Outs.Count != mf.Refined.Outs.Count)
-                    Error(mf, "Different number of output variables");
-                  if (mf.IsStatic || mf.Refined.IsStatic)
-                    Error(mf, "Refined methods cannot be static");
-                } else {
-                  Error(member, "Refined class has a non-method member with the same name: {0}", member.Name);
-                }
-              }
-            } else {
-              Error(member, "Refinement methods can only be declared in refinement classes: {0}", member.Name);
-            }
-          }
-
-        } else if (member is CouplingInvariant) {
-          CouplingInvariant inv = (CouplingInvariant)member;
-          ResolveAttributes(member.Attributes, false);
-          if (inv.Refined != null) {
-            inv.Formals = new List<Formal>();
-            scope.PushMarker();
-            for (int i = 0; i < inv.Refined.Count; i++) {
-              Field field = inv.Refined[i];
-              Contract.Assert(field != null);
-              Formal formal = new Formal(inv.Toks[i], field.Name, field.Type, true, field.IsGhost);
-              Contract.Assert(formal != null);
-              inv.Formals.Add(formal);
-              scope.Push(inv.Toks[i].val, formal);
-            }
-            ResolveExpression(inv.Expr, false);
-            scope.PopMarker();
-          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
@@ -616,13 +493,6 @@ namespace Microsoft.Dafny {
 
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
-      // push type arguments of the refined class
-      if (checkRefinements && parent is ClassRefinementDecl) {
-        ClassDecl refined = ((ClassRefinementDecl)parent).Refined;
-        if (refined != null)
-          ResolveTypeParameters(refined.TypeArgs, false, refined);
-      }
-
       // push non-duplicated type parameter names
       foreach (TypeParameter tp in tparams) {
         Contract.Assert(tp != null);

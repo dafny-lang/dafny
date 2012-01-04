@@ -195,8 +195,6 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
      IToken/*!*/ id;
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
-     IToken/*!*/ idRefined;
-     IToken optionalId = null;
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
   .)
@@ -205,16 +203,11 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  [ "refines" Ident<out idRefined>               (. optionalId = idRefined; .)
-  ]
   "{"                                            (. bodyStart = t; .)
   { ClassMemberDecl<members, true>
   }
   "}"
-  (. if (optionalId == null)
-       c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
-     else
-       c = new ClassRefinementDecl(id, id.val, module, typeArgs, members, attrs, optionalId);
+  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
   .)
@@ -232,7 +225,6 @@ ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
   ( FieldDecl<mmod, mm>
   | FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
   | MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
-  | CouplingInvDecl<mmod, mm>
   )
   .
 DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
@@ -293,27 +285,6 @@ ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
   { Attribute<ref attrs> }
   Ident<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
   SYNC ";"
-  .
-CouplingInvDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
-= (. Contract.Requires(cce.NonNullElements(mm));
-     Attributes attrs = null;
-     List<IToken/*!*/> ids = new List<IToken/*!*/>();;
-     IToken/*!*/ id;
-     Expression/*!*/ e;
-  .)
-  "replaces"
-  (. if (mmod.IsUnlimited) { SemErr(t, "coupling invariants cannot be declared 'unlimited'"); }
-     if (mmod.IsStatic) { SemErr(t, "coupling invariants cannot be declared 'static'"); }
-     if (mmod.IsGhost) { SemErr(t, "coupling invariants cannot be declared 'ghost'"); }
-  .)
-  { Attribute<ref attrs> }
-  Ident<out id>                                     (. ids.Add(id); .)
-  { "," Ident<out id>                               (. ids.Add(id); .)
-  }
-  "by"
-  Expression<out e>
-  ";"
-  (. mm.Add(new CouplingInvariant(ids, e, attrs)); .)
   .
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
 /* isGhost always returns as false if allowGhostKeyword is false */
@@ -398,7 +369,6 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      Attributes modAttrs = null;
      Statement/*!*/ bb;  BlockStmt body = null;
      bool isConstructor = false;
-     bool isRefinement = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
@@ -410,7 +380,6 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
                                          SemErr(t, "constructors are only allowed in classes");
                                        }
                                     .)
-  | "refines"                       (. isRefinement = true; .)
   )
   (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
      if (isConstructor) {
@@ -432,9 +401,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
   ]
-  (. if (isRefinement)
-       m = new MethodRefinement(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
-     else if (isConstructor)
+  (. if (isConstructor)
        m = new Constructor(id, id.val, typeArgs, ins, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
      else
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);

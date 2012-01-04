@@ -689,27 +689,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ClassRefinementDecl : ClassDecl {
-    public readonly IToken/*!*/ RefinedClass;
-    public ClassDecl Refined; // filled in during resolution
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(RefinedClass != null);
-    }
-
-    public ClassRefinementDecl(IToken tok, string name, ModuleDecl module, List<TypeParameter/*!*/>/*!*/ typeArgs,
-      [Captured] List<MemberDecl/*!*/>/*!*/ members, Attributes attributes, IToken/*!*/ refinedClass)
-      : base(tok, name, module, typeArgs, members, attributes) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(module != null);
-      Contract.Requires(cce.NonNullElements(typeArgs));
-      Contract.Requires(cce.NonNullElements(members));
-      Contract.Requires(refinedClass != null);
-      RefinedClass = refinedClass;
-    }
-  }
-
   public class DefaultClassDecl : ClassDecl {
     public DefaultClassDecl(DefaultModuleDecl/*!*/ module, [Captured] List<MemberDecl/*!*/>/*!*/ members)
       : base(Token.NoToken, "_default", module, new List<TypeParameter/*!*/>(), members, null) {
@@ -872,48 +851,6 @@ namespace Microsoft.Dafny {
       : base(tok, name, compiledName, preString, postString, isGhost, false, type, attributes)
     {
       EnclosingCtor = enclosingCtor;
-    }
-  }
-
-  public class CouplingInvariant : MemberDecl {
-    public readonly Expression Expr;
-    public readonly List<IToken/*!*/>/*!*/ Toks;
-    public List<Formal/*!*/> Formals; // filled in during resolution
-    public List<Field/*!*/> Refined; // filled in during resolution
-
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Expr != null);
-      Contract.Invariant(cce.NonNullElements(Toks));
-      Contract.Invariant(Formals == null || cce.NonNullElements(Formals));
-      Contract.Invariant(Refined == null || cce.NonNullElements(Refined));
-    }
-
-
-    public CouplingInvariant(List<IToken/*!*/>/*!*/ toks, Expression/*!*/ expr, Attributes attributes)
-      : base(toks[0], "_coupling_invariant" + getNames(toks), false, attributes) {
-      Contract.Requires(toks.Count > 0);
-      Expr = expr;
-      Toks = toks;
-    }
-
-    private static string getNames(List<IToken> toks) {
-      Contract.Requires(toks != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      StringBuilder sb = new StringBuilder();
-      foreach (IToken tok in toks) {
-        Contract.Assert(tok != null);
-        sb.Append("_").Append(tok.val);
-      }
-      return sb.ToString();
-    }
-
-    public string[] Tokens() {
-      string[] result = new string[Toks.Count];
-      for (int i = 0; i < Toks.Count; i++)
-        result[i] = Toks[i].val;
-      return result;
     }
   }
 
@@ -1212,31 +1149,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ins));
-      Contract.Requires(cce.NonNullElements(req));
-      Contract.Requires(mod != null);
-      Contract.Requires(cce.NonNullElements(ens));
-      Contract.Requires(decreases != null);
-    }
-  }
-
-  public class MethodRefinement : Method
-  {
-    public Method Refined; // filled in during resolution
-    public MethodRefinement(IToken/*!*/ tok, string/*!*/ name,
-                  bool isStatic, bool isGhost,
-                  [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
-                  [Captured] List<Formal/*!*/>/*!*/ ins, [Captured] List<Formal/*!*/>/*!*/ outs,
-                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] Specification<FrameExpression>/*!*/ mod,
-                  [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
-                  [Captured] Specification<Expression>/*!*/ decreases,
-                  [Captured] BlockStmt body,
-                  Attributes attributes)
-      : base(tok, name, isStatic, isGhost, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(cce.NonNullElements(typeArgs));
-      Contract.Requires(cce.NonNullElements(ins));
-      Contract.Requires(cce.NonNullElements(outs));
       Contract.Requires(cce.NonNullElements(req));
       Contract.Requires(mod != null);
       Contract.Requires(cce.NonNullElements(ens));

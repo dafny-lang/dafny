@@ -91,10 +91,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(c != null);
       Indent(indent);
       PrintClassMethodHelper("class", c.Attributes, c.Name, c.TypeArgs);
-      if (c is ClassRefinementDecl) {
-        wr.Write(" refines ");
-        wr.Write(((ClassRefinementDecl)c).RefinedClass.val);
-      }
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -123,10 +119,6 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent);
-          state = 2;
-        } else if (m is CouplingInvariant) {
-          wr.WriteLine();
-          PrintCouplingInvariant((CouplingInvariant)m, indent);
           state = 2;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -222,21 +214,6 @@ namespace Microsoft.Dafny {
       wr.WriteLine(";");
     }
 
-    public void PrintCouplingInvariant(CouplingInvariant inv, int indent) {
-      Contract.Requires(inv != null);
-      Indent(indent);
-      wr.Write("replaces");
-      string sep = " ";
-      foreach (string tok in inv.Tokens()) {
-        wr.Write(sep);
-        wr.Write(tok);
-        sep = ", ";
-      }
-      wr.Write(" by ");
-      PrintExpression(inv.Expr);
-      wr.WriteLine(";");
-    }
-
     public void PrintFunction(Function f, int indent) {
       Contract.Requires(f != null);
       Indent(indent);
@@ -281,7 +258,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(method != null);
 
       Indent(indent);
-      string k = method is MethodRefinement ? "refines" : method is Constructor ? "constructor" : "method";
+      string k = method is Constructor ? "constructor" : "method";
       if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
