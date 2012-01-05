@@ -10,44 +10,45 @@ using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public class Resolver {
+  public class ResolutionErrorReporter
+  {
     public int ErrorCount = 0;
 
     /// <summary>
     /// This method is virtual, because it is overridden in the VSX plug-in for Dafny.
     /// </summary>
-    protected virtual void Error(IToken tok, string msg, params object[] args) {
+    public virtual void Error(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
       Console.WriteLine("{0}({1},{2}): Error: {3}",
-          tok.filename, tok.line, tok.col-1,
+          tok.filename, tok.line, tok.col - 1,
           string.Format(msg, args));
       Console.ForegroundColor = col;
       ErrorCount++;
     }
-    void Error(Declaration d, string msg, params object[] args) {
+    public void Error(Declaration d, string msg, params object[] args) {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
       Error(d.tok, msg, args);
     }
-    void Error(Statement s, string msg, params object[] args) {
+    public void Error(Statement s, string msg, params object[] args) {
       Contract.Requires(s != null);
       Contract.Requires(msg != null);
       Error(s.Tok, msg, args);
     }
-    void Error(NonglobalVariable v, string msg, params object[] args) {
+    public void Error(NonglobalVariable v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Error(v.tok, msg, args);
     }
-    void Error(Expression e, string msg, params object[] args) {
+    public void Error(Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Error(e.tok, msg, args);
     }
-    void Warning(IToken tok, string msg, params object[] args) {
+    public void Warning(IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       ConsoleColor col = Console.ForegroundColor;
@@ -57,7 +58,9 @@ namespace Microsoft.Dafny {
           string.Format(msg, args));
       Console.ForegroundColor = col;
     }
+  }
 
+  public class Resolver : ResolutionErrorReporter {
     readonly BuiltIns builtIns;
 
     Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes;  // can map to AmbiguousTopLevelDecl
@@ -171,6 +174,10 @@ namespace Microsoft.Dafny {
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
       var moduleNameInfo = new ModuleNameInformation[h];
       foreach (var m in mm) {
+        if (m.RefinementBase != null) {
+          var transformer = new RefinementTransformer(this);
+          transformer.Construct(m);
+        }
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
       }
 
@@ -188,6 +195,7 @@ namespace Microsoft.Dafny {
         classes = null;
         allDatatypeCtors = null;
       }
+
       // compute IsRecursive bit for mutually recursive functions
       foreach (ModuleDecl m in mm) {
         foreach (TopLevelDecl decl in m.TopLevelDecls) {
