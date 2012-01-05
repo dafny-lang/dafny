@@ -1,54 +1,74 @@
+// ---------------------- duplicate types within a module
+
+module Wazzup {
+  class WazzupA { }
+  class WazzupA { }  // error: duplicate type
+  datatype WazzupA = W_A_X;  // error: duplicate type
+  type WazzupA;  // error: duplicate type
+
+  type WazzupB;
+  type WazzupB;  // error: duplicate type
+  class WazzupB { }  // error: duplicate type
+  datatype WazzupB = W_B_X;  // error: duplicate type
+}
+
+// ---------------------- duplicate types across modules
+
 module M {
   class T { }
   class U { }
 }
 
 module N {
-  class T { } // error: duplicate class name
+  class T { }
 }
 
-module U imports N {  // fine, despite the fact that a class is called U--module names are in their own name space
+module U imports N {  // fine, despite the fact that a class is called U,
+                      // since module names are in their own name space
 }
 
-module V imports T {  // error: T is not a module
+module UU imports N, U, N, N {  // duplicates are allowed
 }
 
-module A imports B, M {
-  class Y { }
+module N_left imports N { }
+module N_right imports N { }
+module Diamond imports N_left, N_right {  // this imports N.T twice, but that's okay
 }
 
-module B imports N, M {
-  class X { }
+module A imports N, M {  // Note, this has the effect of importing two different T's,
+                         // but that's okay as long as the module doesn't try to access
+                         // one of them
+  class X {
+    var t: T;  // error: use of the ambiguous name T
+    function F(x: T):  // error: use of the ambiguous name T
+               T  // error: use of the ambiguous name T
+    { x }
+    method M(x: T)  // error: use of the ambiguous name T
+      returns (y: T)  // error: use of the ambiguous name T
+    { var g := new T; }  // error: use of the ambiguous name T
+  }
 }
 
-module G imports A, M, A, H, B {  // error: cycle in import graph
+module B0 imports A {
+  class BadUse {
+    var b0: T;  // error: T is not directly accessible
+  }
 }
 
-module H imports A, N, I {
-}
-
-module I imports J {
-}
-
-module J imports G, M {
+module B1 imports A, N {
+  class GoodUse {
+    var b1: T;  // fine
+  }
 }
 
 // --------------- calls
 
-module X2 imports X1 {
-  class MyClass2 {
-    method Down(x1: MyClass1, x0: MyClass0) {
-      x1.Down(x0);
+module X0 {
+  class MyClass0 {
+    method Down() {
     }
-    method WayDown(x0: MyClass0, g: ClassG) {
-      x0.Down();
-      g.T();  // allowed, because this follows import relation
-      var t := g.TFunc();  // allowed, because this follows import relation
-    }
-    method Up() {
-    }
-    method Somewhere(y: MyClassY) {
-      y.M();  // error: does not follow import relation
+    method Up(x1: MyClass1,  // error: MyClass1 is not in scope
+              x2: MyClass2) {  // error: MyClass2 is not in scope
     }
   }
 }
@@ -58,18 +78,23 @@ module X1 imports X0 {
     method Down(x0: MyClass0) {
       x0.Down();
     }
-    method Up(x2: MyClass2) {
-      x2.Up();  // error: does not follow import relation
+    method Up(x2: MyClass2) {  // error: class MyClass2 is not in scope
     }
   }
 }
 
-module X0 {
-  class MyClass0 {
-    method Down() {
+module X2 imports X0, X1, YY {
+  class MyClass2 {
+    method Down(x1: MyClass1, x0: MyClass0) {
+      x1.Down(x0);
     }
-    method Up(x1: MyClass1, x2: MyClass2) {
-      x1.Up(x2);  // error: does not follow import relation
+    method WayDown(x0: MyClass0) {
+      x0.Down();
+    }
+    method Up() {
+    }
+    method Somewhere(y: MyClassY) {
+      y.M();
     }
   }
 }
@@ -77,9 +102,7 @@ module X0 {
 module YY {
   class MyClassY {
     method M() { }
-    method P(g: ClassG) {
-      g.T();  // allowed, because this follows import relation
-      var t := g.TFunc();  // allowed, because this follows import relation
+    method P(g: ClassG) {  // error: ClassG is not in scope
     }
   }
 }
@@ -87,8 +110,9 @@ module YY {
 class ClassG {
   method T() { }
   function method TFunc(): int { 10 }
-  method V(y: MyClassY) {
-    y.M();  // error: does not follow import relation
+  method V(y: MyClassY) {  // Note, MyClassY is in scope, since we are in the _default
+                           // module, which imports everything
+    y.M();
   }
 }
 
@@ -189,16 +213,91 @@ function NestedMatch3(tree: Tree): int
       case Cons(h1,l1,r1) => h + h0 + h1
 }
 
-// ---------------------- more duplicates
+// ---------------------- direct imports are not transitive
 
-module Wazzup {
-  class WazzupA { }
-  class WazzupA { }  // error: duplicate type
-  datatype WazzupA = W_A_X;  // error: duplicate type
-  type WazzupA;  // error: duplicate type
+module ATr {
+  class X {
+    method M() returns (q: int)
+    {
+      q := 16;
+    }
+    static method Q() returns (q: int)
+    {
+      q := 18;
+    }
+  }
+}
 
-  type WazzupB;
-  type WazzupB;  // error: duplicate type
-  class WazzupB { }  // error: duplicate type
-  datatype WazzupB = W_B_X;  // error: duplicate type
+module BTr imports ATr {
+  class Y {
+    method N() returns (x: X)
+      ensures x != null;
+    {
+      x := new X;
+    }
+  }
+}
+
+module CTr imports BTr {
+  class Z {
+    var b: Y;  // fine
+    var a: X;  // error: imports don't reach name name X explicitly
+    method P() {
+      var y := new Y;
+      var x := y.N();  // this is allowed and will correctly infer the type of x to
+                       // be X, but X could not have been mentioned explicitly
+      var q := x.M();
+      var r := X.Q();  // error: X is not in scope
+      var s := x.DoesNotExist();  // error: method not declared in class X
+    }
+  }
+}
+
+// ---------------------- module-local declarations override imported declarations
+
+module NonLocalA {
+  class A {
+    method M() { }
+  }
+  class Common {
+    method P() { }
+  }
+}
+
+module NonLocalB {
+  class B {
+    method N() { }
+  }
+  class D {
+    method K() returns (b: B)
+      ensures b != null;
+    {
+      return new B;
+    }
+  }
+  class Common {
+    method P() { }
+  }
+}
+
+module Local imports NonLocalA, NonLocalB {
+  class MyClass {
+    method MyMethod()
+    {
+      var b := new B;
+      var c := new Common;
+      var d := new D;
+      c.Q();  // this is fine, since c's type is the local class Common
+      b.R();  // fine, since B refers to the locally declared class
+      var nonLocalB := d.K();
+      nonLocalB.N();
+      nonLocalB.R();  // error: this is not the local type B
+    }
+  }
+  class B {
+    method R() { }
+  }
+  class Common {
+    method Q() { }
+  }
 }

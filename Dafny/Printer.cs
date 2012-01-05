@@ -40,9 +40,12 @@ namespace Microsoft.Dafny {
           wr.Write("module");
           PrintAttributes(module.Attributes);
           wr.Write(" {0} ", module.Name);
-          if (module.Imports.Count != 0) {
+          if (module.RefinementBaseName != null) {
+            wr.Write("refines {0} ", module.RefinementBaseName);
+          }
+          if (module.ImportNames.Count != 0) {
             string sep = "imports ";
-            foreach (string imp in module.Imports) {
+            foreach (string imp in module.ImportNames) {
               wr.Write("{0}{1}", sep, imp);
               sep = ", ";
             }

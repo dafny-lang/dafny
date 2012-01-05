@@ -156,11 +156,13 @@ Dafny
        defaultModuleCreatedHere = true;
        defaultModule = new DefaultModuleDecl();
      }
+     IToken idRefined = null;
   .)
   { "module"                             (. attrs = null;  theImports = new List<string/*!*/>(); .)
     { Attribute<ref attrs> }
-    Ident<out id>
-    [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, theImports, attrs); .)
+    Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
+    [ "refines" Ident<out idRefined> ]
+    [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, idRefined == null ? null : idRefined.val, theImports, attrs); .)
     "{"                                  (. module.BodyStartTok = t; .)
       { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
       | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)

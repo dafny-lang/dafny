@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", new List<string>(), null);
+    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", null, new List<string>(), null);
     Dictionary<int, ClassDecl/*!*/> arrayTypeDecls = new Dictionary<int, ClassDecl>();
 
     public BuiltIns() {
@@ -604,26 +604,34 @@ namespace Microsoft.Dafny {
   }
 
   public class ModuleDecl : Declaration {
-    public readonly List<string/*!*/>/*!*/ Imports;
+    public readonly string RefinementBaseName;  // null if no refinement base
+    public ModuleDecl RefinementBase;  // filled in during resolution (null if no refinement base)
+    public readonly List<string/*!*/>/*!*/ ImportNames;  // contains no duplicates
+    public readonly List<ModuleDecl>/*!*/ Imports = new List<ModuleDecl>();  // filled in during resolution, contains no duplicates
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(cce.NonNullElements(Imports));
+      Contract.Invariant(cce.NonNullElements(ImportNames));
       Contract.Invariant(cce.NonNullElements(TopLevelDecls));
       Contract.Invariant(CallGraph != null);
     }
 
-
-    public ModuleDecl(IToken tok, string name, [Captured] List<string/*!*/>/*!*/ imports, Attributes attributes)
+    public ModuleDecl(IToken tok, string name, string refinementBase, [Captured] List<string/*!*/>/*!*/ imports, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(imports));
-      Imports = imports;
-
+      RefinementBaseName = refinementBase;
+      // set "ImportNames" to "imports" minus any duplicates
+      ImportNames = new List<string>();
+      foreach (var nm in imports) {
+        if (!ImportNames.Contains(nm)) {
+          ImportNames.Add(nm);
+        }
+      }
     }
     public virtual bool IsDefaultModule {
       get {
@@ -633,7 +641,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDecl {
-    public DefaultModuleDecl() : base(Token.NoToken, "_default", new List<string/*!*/>(), null) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_default", null, new List<string/*!*/>(), null) {
     }
     public override bool IsDefaultModule {
       get {

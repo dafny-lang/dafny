@@ -646,27 +646,43 @@ Execution trace:
 
 Dafny program verifier finished with 7 verified, 1 error
 
+-------------------- ModulesCycle.dfy --------------------
+ModulesCycle.dfy(12,7): Error: module T named among imports does not exist
+ModulesCycle.dfy(23,7): Error: import graph contains a cycle: H -> I -> J -> G
+2 resolution/type errors detected in ModulesCycle.dfy
+
 -------------------- Modules0.dfy --------------------
-Modules0.dfy(7,8): Error: Duplicate name of top-level declaration: T
-Modules0.dfy(13,7): Error: module T named among imports does not exist
-Modules0.dfy(196,8): Error: Duplicate name of top-level declaration: WazzupA
-Modules0.dfy(197,11): Error: Duplicate name of top-level declaration: WazzupA
-Modules0.dfy(198,7): Error: Duplicate name of top-level declaration: WazzupA
-Modules0.dfy(201,7): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(202,8): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(203,11): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(24,7): Error: import graph contains a cycle: H -> I -> J -> G
-Modules0.dfy(51,8): Error: inter-module calls must follow the module import relation (so module X2 must transitively import YY)
-Modules0.dfy(62,9): Error: inter-module calls must follow the module import relation (so module X1 must transitively import X2)
-Modules0.dfy(72,9): Error: inter-module calls must follow the module import relation (so module X0 must transitively import X1)
-Modules0.dfy(91,6): Error: inter-module calls must follow the module import relation (so module _default must transitively import YY)
-Modules0.dfy(116,11): Error: ghost variables are allowed only in specification contexts
-Modules0.dfy(130,11): Error: old expressions are allowed only in specification and ghost contexts
-Modules0.dfy(131,11): Error: fresh expressions are allowed only in specification and ghost contexts
-Modules0.dfy(132,11): Error: allocated expressions are allowed only in specification and ghost contexts
-Modules0.dfy(148,10): Error: match source expression 'tree' has already been used as a match source expression in this context
-Modules0.dfy(187,12): Error: match source expression 'l' has already been used as a match source expression in this context
-19 resolution/type errors detected in Modules0.dfy
+Modules0.dfy(5,8): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(6,11): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(7,7): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(11,8): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(12,11): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(43,13): Error: Function body type mismatch (expected T, got T)
+Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(48,12): Error: new can be applied only to reference types (got T)
+Modules0.dfy(54,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
+Modules0.dfy(70,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
+Modules0.dfy(71,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(81,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(105,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
+Modules0.dfy(244,11): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
+Modules0.dfy(250,15): Error: unresolved identifier: X
+Modules0.dfy(251,17): Error: member DoesNotExist does not exist in class X
+Modules0.dfy(294,16): Error: member R does not exist in class B
+Modules0.dfy(294,6): Error: expected method call, found expression
+Modules0.dfy(140,11): Error: ghost variables are allowed only in specification contexts
+Modules0.dfy(154,11): Error: old expressions are allowed only in specification and ghost contexts
+Modules0.dfy(155,11): Error: fresh expressions are allowed only in specification and ghost contexts
+Modules0.dfy(156,11): Error: allocated expressions are allowed only in specification and ghost contexts
+Modules0.dfy(172,10): Error: match source expression 'tree' has already been used as a match source expression in this context
+Modules0.dfy(211,12): Error: match source expression 'l' has already been used as a match source expression in this context
+30 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
 Modules1.dfy(52,3): Error: decreases expression must be bounded below by 0

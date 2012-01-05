@@ -59,11 +59,37 @@ namespace Microsoft.Dafny {
     }
 
     readonly BuiltIns builtIns;
-    readonly Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes = new Dictionary<string/*!*/,TopLevelDecl/*!*/>();
-    readonly Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/,Dictionary<string/*!*/,MemberDecl/*!*/>/*!*/>();
+
+    Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes;  // can map to AmbiguousTopLevelDecl
+    class AmbiguousTopLevelDecl : TopLevelDecl  // only used with "classes"
+    {
+      readonly TopLevelDecl A;
+      readonly TopLevelDecl B;
+      public AmbiguousTopLevelDecl(ModuleDecl m, TopLevelDecl a, TopLevelDecl b)
+        : base(a.tok, a.Name + "/" + b.Name, m, new List<TypeParameter>(), null) {
+        A = a;
+        B = b;
+      }
+      public string ModuleNames() {
+        string nm;
+        if (A is AmbiguousTopLevelDecl) {
+          nm = ((AmbiguousTopLevelDecl)A).ModuleNames();
+        } else {
+          nm = A.Module.Name;
+        }
+        if (B is AmbiguousTopLevelDecl) {
+          nm += ", " + ((AmbiguousTopLevelDecl)B).ModuleNames();
+        } else {
+          nm += ", " + B.Module.Name;
+        }
+        return nm;
+      }
+    }
+    Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors;
+
+    readonly Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ datatypeMembers = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>();
-    readonly Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ importGraph = new Graph<ModuleDecl/*!*/>();
 
     public Resolver(Program prog) {
@@ -83,19 +109,30 @@ namespace Microsoft.Dafny {
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
       // register modules
-      Dictionary<string,ModuleDecl> modules = new Dictionary<string,ModuleDecl>();
-      foreach (ModuleDecl m in prog.Modules) {
+      var modules = new Dictionary<string,ModuleDecl>();
+      foreach (var m in prog.Modules) {
         if (modules.ContainsKey(m.Name)) {
           Error(m, "Duplicate module name: {0}", m.Name);
         } else {
           modules.Add(m.Name, m);
         }
       }
-      // resolve imports and register top-level declarations
-      RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
-      foreach (ModuleDecl m in prog.Modules) {
+      // resolve refines and imports
+      foreach (var m in prog.Modules) {
         importGraph.AddVertex(m);
-        foreach (string imp in m.Imports) {
+        if (m.RefinementBaseName != null) {
+          ModuleDecl other;
+          if (!modules.TryGetValue(m.RefinementBaseName, out other)) {
+            Error(m, "module {0} named as refinement base does not exist", m.RefinementBaseName);
+          } else if (other == m) {
+            Error(m, "module cannot refine itself: {0}", m.RefinementBaseName);
+          } else {
+            Contract.Assert(other != null);  // follows from postcondition of TryGetValue
+            importGraph.AddEdge(m, other);
+            m.RefinementBase = other;
+          }
+        }
+        foreach (string imp in m.ImportNames) {
           ModuleDecl other;
           if (!modules.TryGetValue(imp, out other)) {
             Error(m, "module {0} named among imports does not exist", imp);
@@ -104,9 +141,9 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(other != null);  // follows from postcondition of TryGetValue
             importGraph.AddEdge(m, other);
+            m.Imports.Add(other);
           }
         }
-        RegisterTopLevelDecls(m.TopLevelDecls);
       }
       // check for cycles in the import graph
       List<ModuleDecl> cycle = importGraph.TryFindCycle();
@@ -118,27 +155,41 @@ namespace Microsoft.Dafny {
           sep = " -> ";
         }
         Error(cycle[0], "import graph contains a cycle: {0}", cy);
-      } else {
-        // fill in module heights
-        List<ModuleDecl> mm = importGraph.TopologicallySortedComponents();
-        Contract.Assert(mm.Count == prog.Modules.Count);  // follows from the fact that there are no cycles
-        int h = 0;
-        foreach (ModuleDecl m in mm) {
-          m.Height = h;
-          h++;
-        }
+        return;  // give up on trying to resolve anything else
+      }
+
+      // fill in module heights
+      List<ModuleDecl> mm = importGraph.TopologicallySortedComponents();
+      Contract.Assert(mm.Count == prog.Modules.Count);  // follows from the fact that there are no cycles
+      int h = 0;
+      foreach (ModuleDecl m in mm) {
+        m.Height = h;
+        h++;
+      }
+
+      // register top-level declarations
+      var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
+      var moduleNameInfo = new ModuleNameInformation[h];
+      foreach (var m in mm) {
+        moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
       }
 
       // resolve top-level declarations
       Graph<DatatypeDecl> datatypeDependencies = new Graph<DatatypeDecl>();
-      foreach (ModuleDecl m in prog.Modules) {
+      foreach (ModuleDecl m in mm) {
+        // set up environment
+        ModuleNameInformation info = ModuleNameInformation.Merge(m, systemNameInfo, moduleNameInfo);
+        classes = info.Classes;
+        allDatatypeCtors = info.Ctors;
+        // resolve
         ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
-      }
-      foreach (ModuleDecl m in prog.Modules) {
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+        // tear down
+        classes = null;
+        allDatatypeCtors = null;
       }
       // compute IsRecursive bit for mutually recursive functions
-      foreach (ModuleDecl m in prog.Modules) {
+      foreach (ModuleDecl m in mm) {
         foreach (TopLevelDecl decl in m.TopLevelDecls) {
           ClassDecl cl = decl as ClassDecl;
           if (cl != null) {
@@ -157,15 +208,67 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void RegisterTopLevelDecls(List<TopLevelDecl> declarations) {
+    class ModuleNameInformation
+    {
+      public readonly Dictionary<string, TopLevelDecl> Classes = new Dictionary<string, TopLevelDecl>();
+      public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string,Tuple<DatatypeCtor,bool>>();
+
+      public static ModuleNameInformation Merge(ModuleDecl m, ModuleNameInformation system, ModuleNameInformation[] modules) {
+        var info = new ModuleNameInformation();
+        // add the system-declared information, among which we know there are no duplicates
+        foreach (var kv in system.Classes) {
+          info.Classes.Add(kv.Key, kv.Value);
+        }
+        foreach (var kv in system.Ctors) {
+          info.Ctors.Add(kv.Key, kv.Value);
+        }
+        // for each imported module, add its information, noting any duplicates
+        foreach (var im in m.Imports) {
+          Contract.Assume(0 <= im.Height && im.Height < m.Height);
+          var import = modules[im.Height];
+          // classes:
+          foreach (var kv in import.Classes) {
+            TopLevelDecl d;
+            if (info.Classes.TryGetValue(kv.Key, out d)) {
+              info.Classes[kv.Key] = new AmbiguousTopLevelDecl(m, d, kv.Value);
+            } else {
+              info.Classes.Add(kv.Key, kv.Value);
+            }
+          }
+          // constructors:
+          foreach (var kv in import.Ctors) {
+            Tuple<DatatypeCtor, bool> pair;
+            if (info.Ctors.TryGetValue(kv.Key, out pair)) {
+              // mark it as a duplicate
+              info.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+            } else {
+              // add new
+              info.Ctors.Add(kv.Key, kv.Value);
+            }
+          }
+        }
+        // finally, for the module itself, let its information override whatever is imported
+        foreach (var kv in modules[m.Height].Classes) {
+          info.Classes[kv.Key] = kv.Value;
+        }
+        foreach (var kv in modules[m.Height].Ctors) {
+          info.Ctors[kv.Key] = kv.Value;
+        }
+        return info;
+      }
+    }
+
+    ModuleNameInformation RegisterTopLevelDecls(List<TopLevelDecl> declarations) {
       Contract.Requires(declarations != null);
+      var info = new ModuleNameInformation();
+
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         // register the class/datatype name
-        if (classes.ContainsKey(d.Name)) {
+        if (info.Classes.ContainsKey(d.Name)) {
           Error(d, "Duplicate name of top-level declaration: {0}", d.Name);
         } else {
-          classes.Add(d.Name, d);
+          info.Classes.Add(d.Name, d);
         }
 
         if (d is ArbitraryTypeDecl) {
@@ -218,12 +321,12 @@ namespace Microsoft.Dafny {
 
               // also register the constructor name globally
               Tuple<DatatypeCtor, bool> pair;
-              if (allDatatypeCtors.TryGetValue(ctor.Name, out pair)) {
+              if (info.Ctors.TryGetValue(ctor.Name, out pair)) {
                 // mark it as a duplicate
-                allDatatypeCtors[ctor.Name] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+                info.Ctors[ctor.Name] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
               } else {
                 // add new
-                allDatatypeCtors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
+                info.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
               }
             }
           }
@@ -245,6 +348,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      return info;
     }
 
     public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<DatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
@@ -759,7 +863,9 @@ namespace Microsoft.Dafny {
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d;
           if (!classes.TryGetValue(t.Name, out d)) {
-            Error(t.tok, "Undeclared top-level type or type parameter: {0}", t.Name);
+            Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
+          } else if (d is AmbiguousTopLevelDecl) {
+            Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
           } else if (d.TypeArgs.Count != t.TypeArgs.Count) {
             Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
           } else if (d is ArbitraryTypeDecl) {
@@ -1906,12 +2012,8 @@ namespace Microsoft.Dafny {
           if (callerModule == calleeModule) {
             // intra-module call; this is allowed; add edge in module's call graph
             callerModule.CallGraph.AddEdge(method, callee);
-          } else if (calleeModule.IsDefaultModule) {
-            // all is fine: everything implicitly imports the default module
-          } else if (importGraph.Reaches(callerModule, calleeModule)) {
-            // all is fine: the callee is downstream of the caller
           } else {
-            Error(s, "inter-module calls must follow the module import relation (so module {0} must transitively import {1})", callerModule.Name, calleeModule.Name);
+            Contract.Assert(importGraph.Reaches(callerModule, calleeModule));
           }
         }
       }
@@ -2322,6 +2424,8 @@ namespace Microsoft.Dafny {
         TopLevelDecl d;
         if (!classes.TryGetValue(dtv.DatatypeName, out d)) {
           Error(expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
+        } else if (d is AmbiguousTopLevelDecl) {
+          Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", dtv.DatatypeName, ((AmbiguousTopLevelDecl)d).ModuleNames());
         } else if (!(d is DatatypeDecl)) {
           Error(expr.tok, "Expected datatype, found class: {0}", dtv.DatatypeName);
         } else {
@@ -3067,12 +3171,8 @@ namespace Microsoft.Dafny {
             if (currentFunction == function) {
               currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
             }
-          } else if (calleeModule.IsDefaultModule) {
-            // all is fine: everything implicitly imports the default module
-          } else if (importGraph.Reaches(callerModule, calleeModule)) {
-            // all is fine: the callee is downstream of the caller
           } else {
-            Error(e, "inter-module calls must follow the module import relation (so module {0} must transitively import {1})", callerModule.Name, calleeModule.Name);
+            Contract.Assert(importGraph.Reaches(callerModule, calleeModule));
           }
         }
       }
@@ -3086,7 +3186,7 @@ namespace Microsoft.Dafny {
     CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool allowMethodCall) {
       // Look up "id" as follows:
       //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
-      //  - type name (class or datatype)
+      //  - unamibugous type name (class or datatype or arbitrary-type) (if two imported types have the same name, an error message is produced here)
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
       //  - field name (with implicit receiver) (if the field is ocluded by anything above, one can use an explicit "this.")
       // Note, at present, modules do not give rise to new namespaces, which is something that should
@@ -3106,7 +3206,9 @@ namespace Microsoft.Dafny {
         r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, out call);
 
       } else if (classes.TryGetValue(id.val, out decl)) {
-        if (e.Tokens.Count == 1 && e.Arguments == null) {
+        if (decl is AmbiguousTopLevelDecl) {
+          Error(id, "The name {0} ambiguously refers to a type in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+        } else  if (e.Tokens.Count == 1 && e.Arguments == null) {
           Error(id, "name of type ('{0}') is used as a variable", id.val);
         } else if (e.Tokens.Count == 1 && e.Arguments != null) {
           Error(id, "name of type ('{0}') is used as a function", id.val);
