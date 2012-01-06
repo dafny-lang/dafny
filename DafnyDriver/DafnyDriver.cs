@@ -523,7 +523,8 @@ namespace Microsoft.Dafny
     /// </summary>
     static PipelineOutcome InferAndVerify (Bpl.Program program,
                                            out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
-    {Contract.Requires(program != null);
+    {
+      Contract.Requires(program != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
 
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
@@ -531,10 +532,17 @@ namespace Microsoft.Dafny
       // ---------- Infer invariants --------------------------------------------------------
 
       // Abstract interpretation -> Always use (at least) intervals, if not specified otherwise (e.g. with the "/noinfer" switch)
-      if (CommandLineOptions.Clo.Ai.J_Intervals || CommandLineOptions.Clo.Ai.J_Trivial) {
-        Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
-      } else {
-        Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
+      if (CommandLineOptions.Clo.UseAbstractInterpretation) {
+        if (CommandLineOptions.Clo.Ai.J_Intervals || CommandLineOptions.Clo.Ai.J_Trivial) {
+          Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
+        } else if (CommandLineOptions.Clo.Ai.AnySet) {
+          // run one of the old domains
+          Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
+        } else {
+          // use /infer:j as the default
+          CommandLineOptions.Clo.Ai.J_Intervals = true;
+          Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
+        }
       }
 
       if (CommandLineOptions.Clo.LoopUnrollCount != -1) {
