@@ -29,6 +29,7 @@ namespace Microsoft.Dafny
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
+    public string DafnyPrintResolvedFile = null;
     public bool Compile = true;
     public bool ForceCompile = false;
     public bool SpillTargetCode = false;
@@ -46,6 +47,12 @@ namespace Microsoft.Dafny
         case "dprint":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintFile = args[ps.i];
+          }
+          return true;
+
+        case "rprint":
+          if (ps.ConfirmArgumentCount(1)) {
+            DafnyPrintResolvedFile = args[ps.i];
           }
           return true;
 
@@ -112,6 +119,9 @@ namespace Microsoft.Dafny
                 choose Dafny prelude file
   /dprint:<file>
                 print Dafny program after parsing it
+                (use - as <file> to print to console)
+  /rprint:<file>
+                print Dafny program after resolving it
                 (use - as <file> to print to console)
   /compile:<n>  0 - do not compile Dafny program
                 1 (default) - upon successful verification of the Dafny

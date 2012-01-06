@@ -317,7 +317,7 @@ axiom (forall<T> s, t: Seq T ::
 function Seq#FromArray(h: HeapType, a: ref): Seq BoxType;
 axiom (forall h: HeapType, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
-    Seq#Length(Seq#FromArray(h, a)) == array.Length(a));
+    Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
 axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h,a): Seq BoxType }
    (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
 axiom (forall<alpha> h: HeapType, o: ref, f: Field alpha, v: alpha, a: ref ::
@@ -325,11 +325,11 @@ axiom (forall<alpha> h: HeapType, o: ref, f: Field alpha, v: alpha, a: ref ::
     o != a ==> Seq#FromArray(update(h, o, f, v), a) == Seq#FromArray(h, a) );
 axiom (forall h: HeapType, i: int, v: BoxType, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
-    0 <= i && i < array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
+    0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
 /**** Someday:
 axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h, a) }
     $IsGoodHeap(h) &&
-    a != null && read(h, a, alloc) && dtype(a) == class.array && TypeParams(a, 0) == class.bool
+    a != null && read(h, a, alloc) && dtype(a) == class._System.array && TypeParams(a, 0) == class._System.bool
     ==>
     (forall i: int :: { Seq#Index(Seq#FromArray(h, a), i) }
       0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==>  $IsCanonicalBoolBox(Seq#Index(Seq#FromArray(h, a), i))));
@@ -351,7 +351,7 @@ axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
 // Extension axiom, triggers only on Takes from arrays.
 axiom (forall h: HeapType, a: ref, n0, n1: int ::
   { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
-    n0 + 1 == n1 && 0 <= n0 && n1 <= array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field BoxType)) );
+    n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field BoxType)) );
 // drop commutes with build.
 axiom (forall<T> s: Seq T, v: T, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }
@@ -382,12 +382,12 @@ axiom (forall b: BoxType :: { $Unbox(b): bool } $IsCanonicalBoolBox(b) ==> $Box(
 // ---------------------------------------------------------------
 
 type ClassName;
-const unique class.int: ClassName;
-const unique class.bool: ClassName;
-const unique class.set: ClassName;
-const unique class.seq: ClassName;
-const unique class.multiset: ClassName;
-const unique class.array: ClassName;
+const unique class._System.int: ClassName;
+const unique class._System.bool: ClassName;
+const unique class._System.set: ClassName;
+const unique class._System.seq: ClassName;
+const unique class._System.multiset: ClassName;
+const unique class._System.array: ClassName;
 
 function /*{:never_pattern true}*/ dtype(ref): ClassName;
 function /*{:never_pattern true}*/ TypeParams(ref, int): ClassName;
@@ -495,8 +495,8 @@ axiom (forall r: ref, h: HeapType ::
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------
 
-function array.Length(a: ref): int;
-axiom (forall o: ref :: 0 <= array.Length(o));
+function _System.array.Length(a: ref): int;
+axiom (forall o: ref :: 0 <= _System.array.Length(o));
 
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------

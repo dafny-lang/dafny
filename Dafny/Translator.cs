@@ -208,7 +208,7 @@ namespace Microsoft.Dafny {
           Bpl.Constant c = (Bpl.Constant)d;
           if (c.Name == "alloc") {
             allocField = c;
-          } else if (c.Name == "class.array") {
+          } else if (c.Name == "class._System.array") {
             classDotArray = c;
           }
         } else if (d is Bpl.GlobalVariable) {
@@ -218,7 +218,7 @@ namespace Microsoft.Dafny {
           }
         } else if (d is Bpl.Function) {
           var f = (Bpl.Function)d;
-          if (f.Name == "array.Length")
+          if (f.Name == "_System.array.Length")
             arrayLength = f;
         }
       }
@@ -229,7 +229,7 @@ namespace Microsoft.Dafny {
       } else if (multiSetTypeCtor == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
       } else if (arrayLength == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function array.Length");
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (fieldNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
       } else if (allocField == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else if (classDotArray == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of class.array");
+        Console.WriteLine("Error: Dafny prelude is missing declaration of class._System.array");
       } else {
         return new PredefinedDecls(refType, boxType, tickType,
                                    setTypeCtor, multiSetTypeCtor, arrayLength, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
@@ -505,7 +505,7 @@ namespace Microsoft.Dafny {
         cases_body = cases_body == null ? disj : Bpl.Expr.Or(cases_body, disj);
       }
       var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-      var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.Name, new Bpl.VariableSeq(cases_dBv), cases_resType);
+      var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullName, new Bpl.VariableSeq(cases_dBv), cases_resType);
       cases_fn.Body = cases_body;
       sink.TopLevelDeclarations.Add(cases_fn);
     }
@@ -1073,7 +1073,7 @@ namespace Microsoft.Dafny {
             foreach (var inFormal in m.Ins) {
               var dt = inFormal.Type.AsDatatype;
               if (dt != null) {
-                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(inFormal.tok, "$IsA#" + dt.Name, Bpl.Type.Bool));
+                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(inFormal.tok, "$IsA#" + dt.FullName, Bpl.Type.Bool));
                 var f = new Bpl.IdentifierExpr(inFormal.tok, inFormal.UniqueName, TrType(inFormal.Type));
                 builder.Add(new Bpl.AssumeCmd(inFormal.tok, new Bpl.NAryExpr(inFormal.tok, funcID, new Bpl.ExprSeq(f))));
               }
@@ -2646,7 +2646,7 @@ namespace Microsoft.Dafny {
       if (classes.TryGetValue(cl, out cc)) {
         Contract.Assert(cc != null);
       } else {
-        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.Name, predef.ClassNameType), true);
+        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.FullName, predef.ClassNameType), true);
         classes.Add(cl, cc);
       }
       return cc;
@@ -2671,18 +2671,18 @@ namespace Microsoft.Dafny {
       }
 
       if (type is BoolType) {
-        return new Bpl.IdentifierExpr(tok, "class.bool", predef.ClassNameType);
+        return new Bpl.IdentifierExpr(tok, "class._System.bool", predef.ClassNameType);
       } else if (type is IntType) {
-        return new Bpl.IdentifierExpr(tok, "class.int", predef.ClassNameType);
+        return new Bpl.IdentifierExpr(tok, "class._System.int", predef.ClassNameType);
       } else if (type is ObjectType) {
-        return new Bpl.IdentifierExpr(tok, "class.object", predef.ClassNameType);
+        return new Bpl.IdentifierExpr(tok, "class._System.object", predef.ClassNameType);
       } else if (type is CollectionType) {
         CollectionType ct = (CollectionType)type;
         Bpl.Expr a = GetTypeExpr(tok, ct.Arg);
         if (a == null) {
          return null;
         }
-        Bpl.Expr t = new Bpl.IdentifierExpr(tok, ct is SetType ? "class.set" : (ct is SeqType ? "class.seq" : "class.multiset"), predef.ClassNameType); // ^^^ todo: this needs to talk about multisets too.
+        Bpl.Expr t = new Bpl.IdentifierExpr(tok, ct is SetType ? "class._System.set" : (ct is SeqType ? "class._System.seq" : "class._System.multiset"), predef.ClassNameType); // ^^^ todo: this needs to talk about multisets too.
         return FunctionCall(tok, BuiltinFunction.TypeTuple, null, t, a);
       } else {
         UserDefinedType ct = (UserDefinedType)type;
@@ -4785,9 +4785,9 @@ namespace Microsoft.Dafny {
           // array allocation
           List<Type> typeArgs = new List<Type>();
           typeArgs.Add(tRhs.EType);
-          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class." + BuiltIns.ArrayClassName(tRhs.ArrayDimensions.Count), predef.ClassNameType), typeArgs, true);
+          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class._System." + BuiltIns.ArrayClassName(tRhs.ArrayDimensions.Count), predef.ClassNameType), typeArgs, true);
         } else if (tRhs.EType is ObjectType) {
-          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class.object", predef.ClassNameType), new List<Type>(), true);
+          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class._System.object", predef.ClassNameType), new List<Type>(), true);
         } else {
           rightType = etran.GoodRef_Class(tok, nw, (UserDefinedType)tRhs.EType, true);
         }
@@ -6204,7 +6204,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(1 <= totalDims);
       Contract.Requires(0 <= dim && dim < totalDims);
 
-      string name = BuiltIns.ArrayClassName(totalDims) + ".Length";
+      string name = "_System." + BuiltIns.ArrayClassName(totalDims) + ".Length";
       if (totalDims != 1) {
         name += dim;
       }

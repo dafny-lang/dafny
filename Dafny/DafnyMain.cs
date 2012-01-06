@@ -66,6 +66,18 @@ namespace Microsoft.Dafny {
 
       Dafny.Resolver r = new Dafny.Resolver(program);
       r.ResolveProgram(program);
+      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        string filename = DafnyOptions.O.DafnyPrintResolvedFile;
+        if (filename == "-") {
+          Printer pr = new Printer(System.Console.Out);
+          pr.PrintProgram(program);
+        } else {
+          using (TextWriter writer = new System.IO.StreamWriter(filename)) {
+            Printer pr = new Printer(writer);
+            pr.PrintProgram(program);
+          }
+        }
+      }
       if (r.ErrorCount != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", r.ErrorCount, programName);
       }

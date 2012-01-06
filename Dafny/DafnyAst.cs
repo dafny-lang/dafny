@@ -570,7 +570,6 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string ToString() {
       Contract.Ensures(Contract.Result<string>() != null);
-
       return Name;
     }
   }
@@ -667,6 +666,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Module = module;
       TypeArgs = typeArgs;
+    }
+
+    public string FullName {
+      get {
+        return Module.Name + "." + Name;
+      }
     }
   }
 
@@ -776,7 +781,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingDatatype != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return "#" + EnclosingDatatype.Name + "." + Name;
+        return "#" + EnclosingDatatype.FullName + "." + Name;
       }
     }
   }
@@ -799,7 +804,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.Name + "." + Name;
+        return EnclosingClass.FullName + "." + Name;
       }
     }
   }
