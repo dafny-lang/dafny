@@ -177,11 +177,6 @@ namespace Microsoft.Dafny {
           var transformer = new RefinementTransformer(this);
           transformer.Construct(m);
         }
-#if TEST_REFINEMENT_TRANSFORMATION
-        var tm = new ModuleDecl(m.tok, "CloneTesting_" + m.Name, m.Name, new List<string>(), null);
-        tm.RefinementBase = m;
-        new RefinementTransformer(this).Construct(tm);
-#endif
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
       }
 
