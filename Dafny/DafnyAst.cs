@@ -3086,7 +3086,7 @@ namespace Microsoft.Dafny {
 
   public class Specification<T> where T : class
   {
-    public List<T/*!*/> Expressions;
+    public List<T> Expressions;
 
     [ContractInvariantMethod]
     private void ObjectInvariant()
@@ -3095,7 +3095,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    public Specification(List<T/*!*/> exprs, Attributes attrs)
+    public Specification(List<T> exprs, Attributes attrs)
     {
       Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
       Expressions = exprs;

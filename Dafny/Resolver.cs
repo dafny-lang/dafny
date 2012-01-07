@@ -177,6 +177,11 @@ namespace Microsoft.Dafny {
           var transformer = new RefinementTransformer(this);
           transformer.Construct(m);
         }
+#if TEST_REFINEMENT_TRANSFORMATION
+        var tm = new ModuleDecl(m.tok, "CloneTesting_" + m.Name, m.Name, new List<string>(), null);
+        tm.RefinementBase = m;
+        new RefinementTransformer(this).Construct(tm);
+#endif
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
       }
 
@@ -1267,7 +1272,7 @@ namespace Microsoft.Dafny {
               ident.Type = ident.Var.Type;
               Contract.Assert(f.Type != null);
               formals.Add(ident);
-              // link the reciever parameter properly:
+              // link the receiver parameter properly:
               if (s.rhss[i] is TypeRhs) {
                 var r = (TypeRhs)s.rhss[i];
                 if (r.InitCall != null) {
@@ -1759,70 +1764,60 @@ namespace Microsoft.Dafny {
         if (s.Lhss.Count == 0) {
           Contract.Assert(s.Rhss.Count == 1);  // guaranteed by the parser
           Error(s, "expected method call, found expression");
-        }
-        else if (s.Lhss.Count != s.Rhss.Count) {
+        } else if (s.Lhss.Count != s.Rhss.Count) {
           Error(s, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
-        }
-        else if (arrayRangeLhs != null && s.Lhss.Count != 1) {
+        } else if (arrayRangeLhs != null && s.Lhss.Count != 1) {
           Error(arrayRangeLhs, "array-range may not be used as LHS of multi-assignment; use separate assignment statements for each array-range assignment");
-        }
-        else if (ErrorCount == prevErrorCount) {
+        } else if (ErrorCount == prevErrorCount) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
           for (int i = 0; i < s.Lhss.Count; i++) {
             var a = new AssignStmt(s.Tok, s.Lhss[i].Resolved, s.Rhss[i]);
             s.ResolvedStatements.Add(a);
           }
         }
-      }
-      else {
-        if (s.CanMutateKnownState) {
-          if (1 < s.Rhss.Count)
-            Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
-          else { // it might be ok, if it is a TypeExpr
-            Contract.Assert(s.Rhss.Count == 1);
-            if (callRhs != null) {
-              Error(callRhs.Tok, "cannot have method call in return statement.");
-            }
-            else {
-              // we have a TypeExpr
-              Contract.Assert(s.Rhss[0] is TypeRhs);
-              var tr = (TypeRhs)s.Rhss[0];
-              Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
-              if (tr.CanAffectPreviouslyKnownExpressions) {
-                Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
-              }
+
+      } else if (s.CanMutateKnownState) {
+        if (1 < s.Rhss.Count) {
+          Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
+        } else { // it might be ok, if it is a TypeRhs
+          Contract.Assert(s.Rhss.Count == 1);
+          if (callRhs != null) {
+            Error(callRhs.Tok, "cannot have method call in return statement.");
+          } else {
+            // we have a TypeRhs
+            Contract.Assert(s.Rhss[0] is TypeRhs);
+            var tr = (TypeRhs)s.Rhss[0];
+            Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
+            if (tr.CanAffectPreviouslyKnownExpressions) {
+              Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
             }
           }
         }
-        else {
-          // if there was an effectful RHS, that must be the only RHS
-          if (s.Rhss.Count != 1) {
-            Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+
+      } else {
+        // if there was an effectful RHS, that must be the only RHS
+        if (s.Rhss.Count != 1) {
+          Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+        } else if (arrayRangeLhs != null) {
+          Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
+        } else if (callRhs == null) {
+          // must be a single TypeRhs
+          if (s.Lhss.Count != 1) {
+            Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+            Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
+          } else if (ErrorCount == prevErrorCount) {
+            var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, s.Rhss[0]);
+            s.ResolvedStatements.Add(a);
           }
-          else if (arrayRangeLhs != null) {
-            Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
-          }
-          else if (callRhs == null) {
-            // must be a single TypeRhs
-            if (s.Lhss.Count != 1) {
-              Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-              Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
+        } else {
+          // a call statement
+          if (ErrorCount == prevErrorCount) {
+            var resolvedLhss = new List<Expression>();
+            foreach (var ll in s.Lhss) {
+              resolvedLhss.Add(ll.Resolved);
             }
-            else if (ErrorCount == prevErrorCount) {
-              var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, s.Rhss[0]);
-              s.ResolvedStatements.Add(a);
-            }
-          }
-          else {
-            // a call statement
-            if (ErrorCount == prevErrorCount) {
-              var resolvedLhss = new List<Expression>();
-              foreach (var ll in s.Lhss) {
-                resolvedLhss.Add(ll.Resolved);
-              }
-              var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
-              s.ResolvedStatements.Add(a);
-            }
+            var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+            s.ResolvedStatements.Add(a);
           }
         }
       }
