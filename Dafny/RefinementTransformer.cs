@@ -104,11 +104,7 @@ namespace Microsoft.Dafny {
           } else if (nw is ArbitraryTypeDecl) {
             reporter.Error(nw, "an arbitrary type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
           } else if (nw is DatatypeDecl) {
-            if (d is ClassDecl) {
-              reporter.Error(nw, "a datatype declaration ({0}) in a refining module cannot replace a class declaration in the refinement base", nw.Name);
-            } else {
-              m.TopLevelDecls[index] = MergeDatatype((DatatypeDecl)nw, (DatatypeDecl)d);
-            }
+            reporter.Error(nw, "a datatype declaration ({0}) in a refinement module can only replace an arbitrary-type declaration", nw.Name);
           } else {
             Contract.Assert(nw is ClassDecl);
             if (d is DatatypeDecl) {
@@ -501,11 +497,6 @@ namespace Microsoft.Dafny {
     }
 
     // -------------------------------------------------- Merging ---------------------------------------------------------------
-
-    DatatypeDecl MergeDatatype(DatatypeDecl nw, DatatypeDecl prev) {
-      // TODO
-      return nw;
-    }
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       // TODO
