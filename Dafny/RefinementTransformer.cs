@@ -21,10 +21,17 @@ using IToken = Microsoft.Boogie.IToken;
 namespace Microsoft.Dafny {
   public class RefinementToken : IToken
   {
-    IToken tok;
-    public RefinementToken(IToken tok)
+    readonly IToken tok;
+    public readonly ModuleDecl InheritingModule;
+    public RefinementToken(IToken tok, ModuleDecl m)
     {
       this.tok = tok;
+      this.InheritingModule = m;
+    }
+
+    public static bool IsInherited(IToken tok, ModuleDecl m) {
+      var rtok = tok as RefinementToken;
+      return rtok != null && rtok.InheritingModule == m;
     }
 
     public int kind {
@@ -32,7 +39,7 @@ namespace Microsoft.Dafny {
       set { throw new NotSupportedException(); }
     }
     public string filename {
-      get { return tok.filename; }
+      get { return tok.filename + "[" + InheritingModule.Name + "]"; }
       set { throw new NotSupportedException(); }
     }
     public int pos {
@@ -64,10 +71,14 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
     }
 
+    private ModuleDecl moduleUnderConstruction;  // non-null for the duration of Construct calls
+
     public void Construct(ModuleDecl m) {
       Contract.Requires(m != null);
       Contract.Requires(m.RefinementBase != null);
 
+      Contract.Assert(moduleUnderConstruction == null);
+      moduleUnderConstruction = m;
       var prev = m.RefinementBase;
 
       // Include the imports of the base.  Note, prev is itself NOT added as an import
@@ -115,10 +126,13 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      Contract.Assert(moduleUnderConstruction == m);
+      moduleUnderConstruction = null;
     }
 
     IToken Tok(IToken tok) {
-      return new RefinementToken(tok);
+      return new RefinementToken(tok, moduleUnderConstruction);
     }
 
     // -------------------------------------------------- Cloning ---------------------------------------------------------------
@@ -197,11 +211,11 @@ namespace Microsoft.Dafny {
     }
 
     Formal CloneFormal(Formal formal) {
-      return new Formal(Tok(formal.tok), formal.Name, formal.Type, formal.InParam, formal.IsGhost);
+      return new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
     }
 
     BoundVar CloneBoundVar(BoundVar bv) {
-      return new BoundVar(Tok(bv.tok), bv.Name, bv.Type);
+      return new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
     }
 
     Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
@@ -374,17 +388,17 @@ namespace Microsoft.Dafny {
     AssignmentRhs CloneRHS(AssignmentRhs rhs) {
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        return new ExprRhs(r.Expr);
+        return new ExprRhs(CloneExpr(r.Expr));
       } else if (rhs is HavocRhs) {
         return new HavocRhs(Tok(rhs.Tok));
       } else {
         var r = (TypeRhs)rhs;
         if (r.ArrayDimensions != null) {
-          return new TypeRhs(Tok(r.Tok), r.EType, r.ArrayDimensions.ConvertAll(CloneExpr));
+          return new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
         } else if (r.InitCall != null) {
-          return new TypeRhs(Tok(r.Tok), r.EType, (CallStmt)CloneStmt(r.InitCall));
+          return new TypeRhs(Tok(r.Tok), CloneType(r.EType), (CallStmt)CloneStmt(r.InitCall));
         } else {
-          return new TypeRhs(Tok(r.Tok), r.EType);
+          return new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         }
       }
     }
@@ -405,11 +419,11 @@ namespace Microsoft.Dafny {
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), s.Expr);
+        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr));
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(Tok(s.Tok), s.Expr);
+        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr));
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -433,7 +447,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDecl) {
         var s = (VarDecl)stmt;
-        r = new VarDecl(Tok(s.Tok), s.Name, s.OptionalType, s.IsGhost);
+        r = new VarDecl(Tok(s.Tok), s.Name, CloneType(s.OptionalType), s.IsGhost);
 
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
