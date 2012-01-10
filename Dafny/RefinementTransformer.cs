@@ -177,9 +177,7 @@ namespace Microsoft.Dafny {
         return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
       } else if (member is Function) {
         var f = (Function)member;
-        var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
-        return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.Formals.ConvertAll(CloneFormal), CloneType(f.ResultType),
-          f.Req.ConvertAll(CloneExpr), f.Reads.ConvertAll(CloneFrameExpr), f.Ens.ConvertAll(CloneExpr), CloneSpecExpr(f.Decreases), CloneExpr(f.Body), null);
+        return CloneFunction(f, null, null);
       } else {
         var m = (Method)member;
         var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
@@ -511,6 +509,32 @@ namespace Microsoft.Dafny {
       return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
+    Function CloneFunction(Function f, List<Expression> moreEnsures, Expression moreBody) {
+      Contract.Requires(moreBody == null || f is Predicate);
+
+      var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
+      var formals = f.Formals.ConvertAll(CloneFormal);
+      var req = f.Req.ConvertAll(CloneExpr);
+      var reads = f.Reads.ConvertAll(CloneFrameExpr);
+      var ens = f.Ens.ConvertAll(CloneExpr);
+      if (moreEnsures != null) {
+        ens.AddRange(moreEnsures);
+      }
+      var decreases = CloneSpecExpr(f.Decreases);
+      var body = CloneExpr(f.Body);
+      if (moreBody != null) {
+        body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, body, moreBody);
+      }
+
+      if (f is Predicate) {
+        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, formals,
+          req, reads, ens, decreases, body, null);
+      } else {
+        return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, formals, CloneType(f.ResultType),
+          req, reads, ens, decreases, body, null);
+      }
+    }
+
     // -------------------------------------------------- Merging ---------------------------------------------------------------
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
@@ -535,27 +559,27 @@ namespace Microsoft.Dafny {
 
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
-            if (!(member is Function)) {
-              reporter.Error(nwMember, "a function declaration ({0}) can only refine a function", nwMember.Name);
+            bool isPredicate = f is Predicate;
+            string s = isPredicate ? "predicate" : "function";
+            if (!(member is Function) || isPredicate && !(member is Predicate)) {
+              reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", s, nwMember.Name);
             } else {
-              var clone = (Function)CloneMember(member);
               if (f.Decreases.Expressions.Count != 0) {
-                reporter.Error(nwMember, "decreases clause on refining function not supported");
+                reporter.Error(nwMember, "decreases clause on refining {0} not supported", s);
               }
               if (f.Reads.Count != 0) {
-                reporter.Error(nwMember, "a refining function is not allowed to extend the reads clause");
+                reporter.Error(nwMember, "a refining {0} is not allowed to extend the reads clause", s);
               }
               if (f.Req.Count != 0) {
-                reporter.Error(nwMember, "a refining function is not allowed to add preconditions");
+                reporter.Error(nwMember, "a refining {0} is not allowed to add preconditions", s);
               }
               // TODO: check agreement for f.TypeArgs, f.ResultType, f.Formals, and flags.  For now, they are ignored and assumed to be the same.
-              foreach (var e in f.Ens) {
-                clone.Ens.Add(e);
+              var newBody = f.Body;
+              if (newBody != null && !isPredicate) {
+                reporter.Error(nwMember, "a refining function is not allowed to provided a body");
+                newBody = null;
               }
-              if (f.Body != null) {
-                reporter.Error(nwMember, "body of refining function is not yet supported");  // TODO
-              }
-              nw.Members[index] = clone;
+              nw.Members[index] = CloneFunction((Function)member, f.Ens, f.Body);
             }
 
           } else {

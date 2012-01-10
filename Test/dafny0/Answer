@@ -1364,6 +1364,15 @@ Execution trace:
 
 Dafny program verifier finished with 13 verified, 2 errors
 
+-------------------- Predicates.dfy --------------------
+Predicates.dfy[B](18,5): Error BP5003: A postcondition might not hold on this return path.
+Predicates.dfy[B](17,15): Related location: This is the postcondition that might not hold.
+Predicates.dfy(28,9): Related location: Related location
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 9 verified, 1 error
+
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
 Execution trace:

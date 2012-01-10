@@ -24,7 +24,7 @@ namespace Demo
           "break", "label", "return", "parallel", "havoc", "print",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
           "bool", "nat", "int", "false", "true", "null",
-          "function", "free",
+          "function", "predicate", "free",
           "in", "forall", "exists",
           "seq", "set", "multiset", "array", "array2", "array3",
           "match", "case",
@@ -301,6 +301,7 @@ namespace Demo
           | "true"
           | "null"
           | "function"
+          | "predicate"
           | "free"
           | "in"
           | "forall"

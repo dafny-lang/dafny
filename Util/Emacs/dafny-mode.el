@@ -30,7 +30,7 @@
 ]\\)*" . font-lock-comment-face)
 
    `(,(dafny-regexp-opt '(
-        "class" "datatype" "type" "function" "ghost" "var" "method" "constructor" "unlimited"
+        "class" "datatype" "type" "function" "predicate" "ghost" "var" "method" "constructor" "unlimited"
         "module" "imports" "static" "refines"
         "returns" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"

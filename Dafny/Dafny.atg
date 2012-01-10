@@ -518,31 +518,40 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      IToken/*!*/ id;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
-     Type/*!*/ returnType;
+     Type/*!*/ returnType = new BoolType();
      List<Expression/*!*/> reqs = new List<Expression/*!*/>();
      List<Expression/*!*/> ens = new List<Expression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Expression/*!*/ bb;  Expression body = null;
+     bool isPredicate = false;
      bool isFunctionMethod = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
-  "function"
+  ( "function"
+  | "predicate"              (. isPredicate = true; .)
+  )
   [ "method"                 (. isFunctionMethod = true; .)
   ]
-  (. if (mmod.IsGhost) { SemErr(t, "functions cannot be declared 'ghost' (they are ghost by default)"); }
+  (. if (mmod.IsGhost) { SemErr(t, (isPredicate ? "predicate" : "function") + "s cannot be declared 'ghost' (they are ghost by default)"); }
   .)
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
   Formals<true, isFunctionMethod, formals>
-  ":"
-  Type<out returnType>
+  ( ":"                                (. if (isPredicate) { SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); } .)
+    Type<out returnType>
+  |                                    (. if (!isPredicate) { SemErr(la, "functions must declare a return type; expecting \":\""); } .)
+  )
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   ]
-  (. f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+  (. if (isPredicate) {
+       f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+     } else {
+       f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+     }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
   .)

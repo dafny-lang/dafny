@@ -1066,7 +1066,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-
     public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
                     [Captured] List<Formal/*!*/>/*!*/ formals, Type/*!*/ resultType, List<Expression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ reads,
                     List<Expression/*!*/>/*!*/ ens, Specification<Expression>/*!*/ decreases, Expression body, Attributes attributes)
@@ -1094,7 +1093,17 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Method : MemberDecl, TypeParameter.ParentType {
+  public class Predicate : Function
+  {
+    public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, List<TypeParameter> typeArgs,
+                     List<Formal> formals, List<Expression> req, List<FrameExpression> reads,
+                     List<Expression> ens, Specification<Expression> decreases, Expression body, Attributes attributes)
+      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes) {
+    }
+  }
+
+  public class Method : MemberDecl, TypeParameter.ParentType
+  {
     public readonly bool IsGhost;
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly List<Formal/*!*/>/*!*/ Ins;

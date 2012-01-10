@@ -219,15 +219,18 @@ namespace Microsoft.Dafny {
 
     public void PrintFunction(Function f, int indent) {
       Contract.Requires(f != null);
+      var isPredicate = f is Predicate;
       Indent(indent);
-      string k = "function";
+      string k = isPredicate ? "predicate" : "function";
       if (f.IsUnlimited) { k = "unlimited " + k; }
       if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       PrintFormals(f.Formals);
-      wr.Write(": ");
-      PrintType(f.ResultType);
+      if (!isPredicate) {
+        wr.Write(": ");
+        PrintType(f.ResultType);
+      }
       wr.WriteLine();
 
       int ind = indent + IndentAmount;
