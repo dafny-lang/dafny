@@ -18,7 +18,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             Comprehensions.dfy Basics.dfy ControlStructures.dfy
             Termination.dfy DTypes.dfy ParallelResolveErrors.dfy Parallel.dfy
             TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy SplitExpr.dfy
-            LoopModifies.dfy
+            LoopModifies.dfy Refinement.dfy RefinementErrors.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
             CallStmtTests.dfy MultiSets.dfy PredExpr.dfy LetExpr.dfy) do (
   echo.

@@ -104,6 +104,7 @@ namespace Microsoft.Dafny {
       }
 
       // Merge the declarations of prev into the declarations of m
+
       foreach (var d in prev.TopLevelDecls) {
         int index;
         if (!declaredNames.TryGetValue(d.Name, out index)) {
@@ -513,7 +514,78 @@ namespace Microsoft.Dafny {
     // -------------------------------------------------- Merging ---------------------------------------------------------------
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
-      // TODO
+      // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
+      var declaredNames = new Dictionary<string, int>();
+      for (int i = 0; i < nw.Members.Count; i++) {
+        var member = nw.Members[i];
+        if (!declaredNames.ContainsKey(member.Name)) {
+          declaredNames.Add(member.Name, i);
+        }
+      }
+
+      // Merge the declarations of prev into the declarations of m
+      foreach (var member in prev.Members) {
+        int index;
+        if (!declaredNames.TryGetValue(member.Name, out index)) {
+          nw.Members.Add(CloneMember(member));
+        } else {
+          var nwMember = nw.Members[index];
+          if (nwMember is Field) {
+            reporter.Error(nwMember, "a field declaration ({0}) in a refining class ({1}) is not allowed replace an existing declaration in the refinement base", nwMember.Name, nw.Name);
+
+          } else if (nwMember is Function) {
+            var f = (Function)nwMember;
+            if (!(member is Function)) {
+              reporter.Error(nwMember, "a function declaration ({0}) can only refine a function", nwMember.Name);
+            } else {
+              var clone = (Function)CloneMember(member);
+              if (f.Decreases.Expressions.Count != 0) {
+                reporter.Error(nwMember, "decreases clause on refining function not supported");
+              }
+              if (f.Reads.Count != 0) {
+                reporter.Error(nwMember, "a refining function is not allowed to extend the reads clause");
+              }
+              if (f.Req.Count != 0) {
+                reporter.Error(nwMember, "a refining function is not allowed to add preconditions");
+              }
+              // TODO: check agreement for f.TypeArgs, f.ResultType, f.Formals, and flags.  For now, they are ignored and assumed to be the same.
+              foreach (var e in f.Ens) {
+                clone.Ens.Add(e);
+              }
+              if (f.Body != null) {
+                reporter.Error(nwMember, "body of refining function is not yet supported");  // TODO
+              }
+              nw.Members[index] = clone;
+            }
+
+          } else {
+            var m = (Method)nwMember;
+            if (!(member is Method)) {
+              reporter.Error(nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
+            } else {
+              var clone = (Method)CloneMember(member);
+              if (m.Decreases.Expressions.Count != 0) {
+                reporter.Error(nwMember, "decreases clause on refining method not supported");
+              }
+              if (m.Mod.Expressions.Count != 0) {
+                reporter.Error(nwMember, "a refining method is not allowed to extend the modifies clause");
+              }
+              if (m.Req.Count != 0) {
+                reporter.Error(nwMember, "a refining method is not allowed to add preconditions");
+              }
+              // TODO: check agreement for m.TypeArgs, m.Ins, m.Outs, and flags.  For now, they are ignored and assumed to be the same.
+              foreach (var e in m.Ens) {
+                clone.Ens.Add(e);
+              }
+              if (m.Body != null) {
+                reporter.Error(nwMember, "body of refining method is not yet supported");  // TODO
+              }
+              nw.Members[index] = clone;
+            }
+          }
+        }
+      }
+
       return nw;
     }
   }

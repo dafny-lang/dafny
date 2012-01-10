@@ -1292,6 +1292,23 @@ Execution trace:
 
 Dafny program verifier finished with 23 verified, 9 errors
 
+-------------------- Refinement.dfy --------------------
+Refinement.dfy(12,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(11,17): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Refinement.dfy[B](12,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(30,20): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 8 verified, 2 errors
+
+-------------------- RefinementErrors.dfy --------------------
+RefinementErrors.dfy(13,11): Error: a refining method is not allowed to extend the modifies clause
+RefinementErrors.dfy(13,11): Error: a refining method is not allowed to add preconditions
+2 resolution/type errors detected in RefinementErrors.dfy
+
 -------------------- ReturnErrors.dfy --------------------
 ReturnErrors.dfy(30,10): Error: cannot have method call in return statement.
 ReturnErrors.dfy(36,10): Error: cannot have effectful parameter in multi-return statement.

@@ -1,57 +1,18 @@
-class A refines C {
-}
-
-class B refines A {
-}
-
-class C refines B {
-}
-
-
-class D {
-  refines M()
-  {
+module A {
+  class C {
+    method M(y: int) returns (x: int)
+    {
+      x := 6;
+    }
   }
 }
 
-class E {
-  var x: int;
-  
-  method M() 
-  {
-    x := 0;
+module B refines A {
+  class C {
+    var k: int;
+    method M(y: int) returns (x: int)
+      requires 0 <= y;  // error: cannot add a precondition
+      modifies this;  // error: cannot add a modifies clause
+      ensures 0 <= x;  // fine
   }
 }
-
-class F {  
-  replaces M by x == y;
-}
-
-class G refines E {
-  var y: int;
-  replaces x by x == y;
-  
-  refines M() returns (i: int)
-  {
-  }
-}
-
-class H refines E {
-  var x: int;
-
-  method M() 
-  {
-  }
-}
-
-class J refines E {
-  var y: int;
-  replaces x by x == y;
-
-  refines M()
-  {
-    y := 1;
-  }
-}
-
-
