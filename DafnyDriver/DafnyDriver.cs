@@ -590,7 +590,8 @@ namespace Microsoft.Dafny
 
       var decls = program.TopLevelDeclarations.ToArray();
       foreach (var decl in decls )
-      {Contract.Assert(decl != null);
+      {
+        Contract.Assert(decl != null);
         Implementation impl = decl as Implementation;
         if (impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine(cce.NonNull(impl.Name)) && !impl.SkipVerification)
         {
@@ -612,6 +613,7 @@ namespace Microsoft.Dafny
             }
 
             ConditionGeneration.Outcome outcome;
+            int prevAssertionCount = vcgen.CumulativeAssertionCount;
             try
             {
                 outcome = vcgen.VerifyImplementation(impl, program, out errors);
@@ -636,7 +638,7 @@ namespace Microsoft.Dafny
             {
                 if (CommandLineOptions.Clo.Trace)
                 {
-                    timeIndication = string.Format("  [{0} s]  ", elapsed.TotalSeconds);
+                    timeIndication = string.Format("  [{0} s, {1} proof obligations]  ", elapsed.TotalSeconds, vcgen.CumulativeAssertionCount - prevAssertionCount);
                 }
             }
 
