@@ -2482,6 +2482,20 @@ namespace Microsoft.Dafny {
           expr.Type = new SeqType(elementType);
         }
 
+      } else if (expr is ExprDotName) {
+        var e = (ExprDotName)expr;
+        ResolveExpression(e.Obj, twoState);
+        Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
+        Expression resolved = ResolvePredicateOrField(expr.tok, e.Obj, e.SuffixName);
+        if (resolved == null) {
+          // error has already been reported by ResolvePredicateOrField
+        } else {
+          // the following will cause e.Obj to be resolved again, but that's still correct
+          e.ResolvedExpression = resolved;
+          ResolveExpression(e.ResolvedExpression, twoState);
+          e.Type = e.ResolvedExpression.Type;
+        }
+
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
         ResolveExpression(e.Obj, twoState);
@@ -3292,8 +3306,10 @@ namespace Microsoft.Dafny {
       call = null;
       int nonCallArguments = e.Arguments == null ? e.Tokens.Count : e.Tokens.Count - 1;
       for (; p < nonCallArguments; p++) {
-        r = new FieldSelectExpr(e.Tokens[p], r, e.Tokens[p].val);
-        ResolveExpression(r, twoState);
+        r = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
+        if (r != null) {
+          ResolveExpression(r, twoState);
+        }
       }
 
       if (p < e.Tokens.Count) {
@@ -3311,7 +3327,7 @@ namespace Microsoft.Dafny {
           call = new CallRhs(e.Tokens[p], r, e.Tokens[p].val, e.Arguments);
           r = null;
         } else {
-          r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.Arguments);
+          r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.OpenParen, e.Arguments);
           ResolveExpression(r, twoState);
         }
       } else if (e.Arguments != null) {
@@ -3323,6 +3339,32 @@ namespace Microsoft.Dafny {
         }
       }
       return r;
+    }
+
+    /// <summary>
+    /// Resolves "obj . suffixName" to either a parameter-less predicate invocation or a field selection.
+    /// Expects "obj" already to have been resolved.
+    /// On success, returns the result of the resolution--as an un-resolved expression.
+    /// On failure, returns null (in which case an error has been reported to the user).
+    /// </summary>
+    Expression/*?*/ ResolvePredicateOrField(IToken tok, Expression obj, string suffixName) {
+      Contract.Requires(tok != null);
+      Contract.Requires(obj != null);
+      Contract.Requires(obj.Type != null);  // obj is expected already to have been resolved
+      Contract.Requires(suffixName != null);
+
+      NonProxyType nptype;
+      MemberDecl member = ResolveMember(tok, obj.Type, suffixName, out nptype);
+      if (member == null) {
+        // error has already been reported by ResolveMember
+        return null;
+      } else if (member is Predicate && ((Predicate)member).Formals.Count == 0) {
+        // parameter-less predicates are allowed to be used without parentheses
+        return new FunctionCallExpr(tok, suffixName, obj, null, new List<Expression>());
+      } else {
+        // assume it's a field and let the resolution of the FieldSelectExpr check any further problems
+        return new FieldSelectExpr(tok, obj, suffixName);
+      }
     }
 
     /// <summary>

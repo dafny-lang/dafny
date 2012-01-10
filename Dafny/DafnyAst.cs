@@ -1048,6 +1048,7 @@ namespace Microsoft.Dafny {
     public readonly bool IsUnlimited;
     public bool IsRecursive;  // filled in during resolution
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
+    public readonly IToken OpenParen;  // can be null (for predicates), if there are no formals
     public readonly List<Formal/*!*/>/*!*/ Formals;
     public readonly Type/*!*/ ResultType;
     public readonly List<Expression/*!*/>/*!*/ Req;
@@ -1066,9 +1067,10 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-    public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
-                    [Captured] List<Formal/*!*/>/*!*/ formals, Type/*!*/ resultType, List<Expression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ reads,
-                    List<Expression/*!*/>/*!*/ ens, Specification<Expression>/*!*/ decreases, Expression body, Attributes attributes)
+    public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
+                    List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals, Type resultType,
+                    List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                    Expression body, Attributes attributes)
       : base(tok, name, isStatic, attributes) {
 
       Contract.Requires(tok != null);
@@ -1083,6 +1085,7 @@ namespace Microsoft.Dafny {
       this.IsGhost = isGhost;
       this.IsUnlimited = isUnlimited;
       this.TypeArgs = typeArgs;
+      this.OpenParen = openParen;
       this.Formals = formals;
       this.ResultType = resultType;
       this.Req = req;
@@ -1095,10 +1098,11 @@ namespace Microsoft.Dafny {
 
   public class Predicate : Function
   {
-    public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited, List<TypeParameter> typeArgs,
-                     List<Formal> formals, List<Expression> req, List<FrameExpression> reads,
-                     List<Expression> ens, Specification<Expression> decreases, Expression body, Attributes attributes)
-      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, formals, new BoolType(), req, reads, ens, decreases, body, attributes) {
+    public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
+                     List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
+                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     Expression body, Attributes attributes)
+      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes) {
     }
   }
 
@@ -2294,10 +2298,10 @@ namespace Microsoft.Dafny {
 
   public class FunctionCallExpr : Expression {
     public readonly string/*!*/ Name;
-    [Peer]
     public readonly Expression/*!*/ Receiver;
-    [Peer]
+    public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression/*!*/>/*!*/ Args;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
@@ -2308,19 +2312,20 @@ namespace Microsoft.Dafny {
     public Function Function;  // filled in by resolution
 
     [Captured]
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, [Captured] List<Expression/*!*/>/*!*/ args)
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression/*!*/>/*!*/ args)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
       Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(openParen != null || args.Count == 0);
       Contract.Ensures(type == null);
       Contract.Ensures(cce.Owner.Same(this, receiver));
-
 
       this.Name = fn;
       cce.Owner.AssignSame(this, receiver);
       this.Receiver = receiver;
+      this.OpenParen = openParen;
       this.Args = args;
     }
 
@@ -3072,6 +3077,30 @@ namespace Microsoft.Dafny {
       Operands = operands;
       Operators = operators;
       E = desugaring;
+    }
+  }
+
+  /// <summary>
+  /// An ExprDotName desugars into either a FieldSelectExpr or a FunctionCallExpr (with a parameterless predicate function).
+  /// </summary>
+  public class ExprDotName : ConcreteSyntaxExpression
+  {
+    public readonly Expression Obj;
+    public readonly string SuffixName;
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Obj != null);
+      Contract.Invariant(SuffixName != null);
+    }
+
+    public ExprDotName(IToken tok, Expression obj, string suffixName)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(obj != null);
+      Contract.Requires(suffixName != null);
+      this.Obj = obj;
+      this.SuffixName = suffixName;
     }
   }
 

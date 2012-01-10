@@ -27,16 +27,6 @@ struct MemberModifiers {
   public bool IsUnlimited;
 }
 // helper routine for parsing call statements
-private static Expression/*!*/ ConvertToLocal(Expression/*!*/ e)
-{
-Contract.Requires(e != null);
-Contract.Ensures(Contract.Result<Expression>() != null);
-  FieldSelectExpr fse = e as FieldSelectExpr;
-  if (fse != null && fse.Obj is ImplicitThisExpr) {
-    return new IdentifierExpr(fse.tok, fse.FieldName);
-  }
-  return e;  // cannot convert to IdentifierExpr (or is already an IdentifierExpr)
-}
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "modules".
@@ -361,6 +351,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      IToken/*!*/ id;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
+     IToken openParen;
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
      List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
@@ -396,9 +387,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
-  Formals<true, !mmod.IsGhost, ins>
+  Formals<true, !mmod.IsGhost, ins, out openParen>
   [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-    Formals<false, !mmod.IsGhost, outs>
+    Formals<false, !mmod.IsGhost, outs, out openParen>
   ]
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
@@ -430,9 +421,9 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
   | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, false> SYNC ";"
   )
   .
-Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals.>
+Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals, out IToken openParen.>
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  bool isGhost; .)
-  "("
+  "("                                                                  (. openParen = t; .)
   [
     GIdentType<allowGhostKeyword, out id, out ty, out isGhost>         (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
     { "," GIdentType<allowGhostKeyword, out id, out ty, out isGhost>   (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost)); .)
@@ -515,7 +506,7 @@ GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
 FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
      Attributes attrs = null;
-     IToken/*!*/ id;
+     IToken/*!*/ id = Token.NoToken;  // to please compiler
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
      Type/*!*/ returnType = new BoolType();
@@ -526,31 +517,45 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      Expression/*!*/ bb;  Expression body = null;
      bool isPredicate = false;
      bool isFunctionMethod = false;
+     IToken openParen = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
+  /* ----- function ----- */
   ( "function"
-  | "predicate"              (. isPredicate = true; .)
-  )
-  [ "method"                 (. isFunctionMethod = true; .)
-  ]
-  (. if (mmod.IsGhost) { SemErr(t, (isPredicate ? "predicate" : "function") + "s cannot be declared 'ghost' (they are ghost by default)"); }
-  .)
-  { Attribute<ref attrs> }
-  Ident<out id>
-  [ GenericParameters<typeArgs> ]
-  Formals<true, isFunctionMethod, formals>
-  ( ":"                                (. if (isPredicate) { SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); } .)
+    [ "method"                 (. isFunctionMethod = true; .)
+    ]
+    (. if (mmod.IsGhost) { SemErr(t, "functions cannot be declared 'ghost' (they are ghost by default)"); }
+    .)
+    { Attribute<ref attrs> }
+    Ident<out id>
+    [ GenericParameters<typeArgs> ]
+    Formals<true, isFunctionMethod, formals, out openParen>
+    ":"
     Type<out returnType>
-  |                                    (. if (!isPredicate) { SemErr(la, "functions must declare a return type; expecting \":\""); } .)
+
+  /* ----- predicate ----- */
+  | "predicate"                (. isPredicate = true; .)
+    [ "method"                 (. isFunctionMethod = true; .)
+    ]
+    (. if (mmod.IsGhost) { SemErr(t, "predicates cannot be declared 'ghost' (they are ghost by default)"); }
+    .)
+    { Attribute<ref attrs> }
+    Ident<out id>
+    [ GenericParameters<typeArgs> ]
+    [ Formals<true, isFunctionMethod, formals, out openParen>
+      [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+      ]
+    ]
   )
+
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   ]
   (. if (isPredicate) {
-       f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+       f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
      } else {
-       f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+       f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -1308,10 +1313,10 @@ Suffix<ref Expression/*!*/ e>
   .)
   ( "."
     Ident<out id>
-    [ "("                                      (. args = new List<Expression/*!*/>();  func = true; .)
+    [ "("                                      (. IToken openParen = t;  args = new List<Expression/*!*/>();  func = true; .)
         [ Expressions<args> ]
-      ")"                                      (. e = new FunctionCallExpr(id, id.val, e, args); .)
-    ]                                          (. if (!func) { e = new FieldSelectExpr(id, e, id.val); } .)
+      ")"                                      (. e = new FunctionCallExpr(id, id.val, e, openParen, args); .)
+    ]                                          (. if (!func) { e = new ExprDotName(id, e, id.val); } .)
   | "["                                        (. x = t; .)
       ( Expression<out ee>                     (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)

@@ -300,7 +300,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.Args.ConvertAll(CloneExpr));
+        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Args.ConvertAll(CloneExpr));
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
@@ -527,10 +527,10 @@ namespace Microsoft.Dafny {
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, formals,
+        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, null);
       } else {
-        return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, formals, CloneType(f.ResultType),
+        return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null);
       }
     }

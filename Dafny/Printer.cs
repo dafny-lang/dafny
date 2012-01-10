@@ -226,7 +226,11 @@ namespace Microsoft.Dafny {
       if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
-      PrintFormals(f.Formals);
+      if (f.OpenParen != null) {
+        PrintFormals(f.Formals);
+      } else {
+        Contract.Assert(isPredicate);
+      }
       if (!isPredicate) {
         wr.Write(": ");
         PrintType(f.ResultType);
@@ -822,6 +826,22 @@ namespace Microsoft.Dafny {
         PrintExpressionList(e.Elements);
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "}" : "]");
 
+      } else if (expr is ExprDotName) {
+        var e = (ExprDotName)expr;
+        // determine if parens are needed
+        int opBindingStrength = 0x70;
+        bool parensNeeded = !(e.Obj is ImplicitThisExpr) &&
+          opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+
+        if (parensNeeded) { wr.Write("("); }
+        if (!(e.Obj is ImplicitThisExpr)) {
+          PrintExpr(e.Obj, opBindingStrength, false, false, -1);
+          wr.Write(".");
+        }
+        wr.Write(e.SuffixName);
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         // determine if parens are needed
@@ -899,7 +919,7 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
+        var e = (FunctionCallExpr)expr;
         // determine if parens are needed
         int opBindingStrength = 0x70;
         bool parensNeeded = !(e.Receiver is ImplicitThisExpr) &&
@@ -912,9 +932,13 @@ namespace Microsoft.Dafny {
           wr.Write(".");
         }
         wr.Write(e.Name);
-        wr.Write("(");
-        PrintExpressionList(e.Args);
-        wr.Write(")");
+        if (e.OpenParen == null) {
+          Contract.Assert(e.Args.Count == 0);
+        } else {
+          wr.Write("(");
+          PrintExpressionList(e.Args);
+          wr.Write(")");
+        }
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is OldExpr) {

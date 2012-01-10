@@ -6969,7 +6969,7 @@ namespace Microsoft.Dafny {
         Expression receiver = Substitute(e.Receiver, receiverReplacement, substMap);
         List<Expression> newArgs = SubstituteExprList(e.Args, receiverReplacement, substMap);
         if (receiver != e.Receiver || newArgs != e.Args) {
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, newArgs);
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
           newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
           newExpr = newFce;
         }
