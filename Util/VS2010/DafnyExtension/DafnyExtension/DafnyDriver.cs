@@ -167,7 +167,7 @@ namespace DafnyLanguage
         : base(program) {
         this.dd = dd;
       }
-      protected override void Error(Bpl.IToken tok, string msg, params object[] args) {
+      public override void Error(Bpl.IToken tok, string msg, params object[] args) {
         string s = string.Format(msg, args);
         dd.RecordError(tok.line - 1, tok.col - 1, ErrorCategory.ResolveError, s);
         ErrorCount++;
