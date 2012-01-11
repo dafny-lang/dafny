@@ -196,12 +196,12 @@ bool IsAttribute() {
 		  defaultModuleCreatedHere = true;
 		  defaultModule = new DefaultModuleDecl();
 		}
-		IToken idRefined = null;
+		IToken idRefined;
 		
 		while (StartOf(1)) {
 			if (la.kind == 8) {
 				Get();
-				attrs = null;  theImports = new List<string/*!*/>(); 
+				attrs = null;  idRefined = null;  theImports = new List<string/*!*/>(); 
 				while (la.kind == 6) {
 					Attribute(ref attrs);
 				}

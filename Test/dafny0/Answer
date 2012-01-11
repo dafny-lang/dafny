@@ -1370,8 +1370,14 @@ Predicates.dfy[B](17,15): Related location: This is the postcondition that might
 Predicates.dfy(28,9): Related location: Related location
 Execution trace:
     (0,0): anon0
+Predicates.dfy(85,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Predicates.dfy(89,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 9 verified, 1 error
+Dafny program verifier finished with 26 verified, 3 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

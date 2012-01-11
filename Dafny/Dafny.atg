@@ -146,9 +146,9 @@ Dafny
        defaultModuleCreatedHere = true;
        defaultModule = new DefaultModuleDecl();
      }
-     IToken idRefined = null;
+     IToken idRefined;
   .)
-  { "module"                             (. attrs = null;  theImports = new List<string/*!*/>(); .)
+  { "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>(); .)
     { Attribute<ref attrs> }
     Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
     [ "refines" Ident<out idRefined> ]

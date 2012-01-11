@@ -31,3 +31,74 @@ module B refines A {
                           // inherited method body
   }
 }
+
+// ------------------------------------------------
+/*  SOON
+module Abstract {
+  class MyNumber {
+    var N: int;
+    ghost var Repr: set<object>;
+    predicate Valid
+      reads this, Repr;
+    {
+      this in Repr && null !in Repr
+    }
+    constructor Init()
+      modifies this;
+      ensures N == 0;
+      ensures Valid && fresh(Repr - {this});
+    {
+      N, Repr := 0, {this};
+    }
+    method Inc()
+      requires Valid;
+      modifies Repr;
+      ensures N == old(N) + 1;
+      ensures Valid && fresh(Repr - old(Repr));
+    {
+      N := N + 1;
+    }
+    method Get() returns (n: int)
+      requires Valid;
+      ensures n == N;
+    {
+      n := N;
+    }
+  }
+}
+
+module Concrete refines Abstract {
+  class MyNumber {
+    var a: int;
+    var b: int;
+    predicate Valid
+    {
+      N == a - b
+    }
+    constructor Init()
+    {
+      a := b;
+    }
+    method Inc()
+    {
+      if (*) { a := a + 1; } else { b := b - 1; }
+    }
+    method Get() returns (n: int)
+    {
+      n := a - b;
+    }
+  }
+}
+
+module Client imports Concrete {
+  class TheClient {
+    method Main() {
+      var n := new MyNumber.Init();
+      n.Inc();
+      n.Inc();
+      var k := n.Get();
+      assert k == 2;
+    }
+  }
+}
+*/
