@@ -57,3 +57,35 @@ method Botch1(x: int)
 {
   Botch0(x);  // error: failure to decrease termination metric
 }
+
+// ------ modules ------------------------------------------------
+
+module A_Visibility {
+  class C {
+    static predicate P(x: int)
+    {
+      0 <= x
+    }
+  }
+  method Main() {
+    var y;
+    if (C.P(y)) {
+      assert 0 <= y;  // this much is known of C.P
+      assert 2 <= y;  // error
+    } else {
+      assert C.P(8);  // this is fine
+    }
+  }
+}
+
+module B_Visibility imports A_Visibility {
+  method Main() {
+    var y;
+    if (C.P(y)) {
+      assert 0 <= y;  // this much is known of C.P
+      assert 2 <= y;  // error
+    } else {
+      assert C.P(8);  // error: C.P cannot be established outside the declaring module
+    }
+  }
+}

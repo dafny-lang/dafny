@@ -685,6 +685,18 @@ Modules0.dfy(211,12): Error: match source expression 'l' has already been used a
 30 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
+Modules1.dfy(74,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Modules1.dfy(86,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Modules1.dfy(88,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 Modules1.dfy(52,3): Error: decreases expression must be bounded below by 0
 Execution trace:
     (0,0): anon0
@@ -692,7 +704,7 @@ Modules1.dfy(58,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 16 verified, 2 errors
+Dafny program verifier finished with 19 verified, 5 errors
 
 -------------------- BadFunction.dfy --------------------
 BadFunction.dfy(6,3): Error: failure to decrease termination measure

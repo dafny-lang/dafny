@@ -565,11 +565,9 @@ namespace Microsoft.Dafny {
             var body = f.Body == null ? null : f.Body.Resolved;
             if (body is MatchExpr) {
               AddFunctionAxiomCase(f, (MatchExpr)body, null, layerOffset);
-              Bpl.Axiom axPost = FunctionAxiom(f, null, f.Ens, null, layerOffset);
-              sink.TopLevelDeclarations.Add(axPost);
+              AddFunctionAxiom(f, null, f.Ens, null, layerOffset);
             } else {
-              Bpl.Axiom ax = FunctionAxiom(f, body, f.Ens, null, layerOffset);
-              sink.TopLevelDeclarations.Add(ax);
+              AddFunctionAxiom(f, body, f.Ens, null, layerOffset);
             }
             if (!f.IsRecursive || f.IsUnlimited) { break; }
           }
@@ -617,8 +615,7 @@ namespace Microsoft.Dafny {
         if (body is MatchExpr) {
           AddFunctionAxiomCase(f, (MatchExpr)body, s, layerOffset);
         } else {
-          Bpl.Axiom ax = FunctionAxiom(f, body, new List<Expression>(), s, layerOffset);
-          sink.TopLevelDeclarations.Add(ax);
+          AddFunctionAxiom(f, body, new List<Expression>(), s, layerOffset);
         }
       }
     }
@@ -685,7 +682,21 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
+    void AddFunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
+      if (f is Predicate) {
+        var ax = FunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, body, ens, specialization, layerOffset);
+        sink.TopLevelDeclarations.Add(ax);
+        ax = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, body, ens, specialization, layerOffset);
+        sink.TopLevelDeclarations.Add(ax);
+      } else {
+        var ax = FunctionAxiom(f, FunctionAxiomVisibility.All, body, ens, specialization, layerOffset);
+        sink.TopLevelDeclarations.Add(ax);
+      }
+    }
+
+    enum FunctionAxiomVisibility { All, IntraModuleOnly, ForeignModuleOnly }
+
+    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, FunctionAxiomVisibility visibility, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
       Contract.Requires(f != null);
       Contract.Requires(ens != null);
       Contract.Requires(layerOffset == 0 || (layerOffset == 1 && f.IsRecursive && !f.IsUnlimited));
@@ -695,18 +706,18 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
 
       // axiom
-      //   mh < ModuleContextHeight ||
-      //   (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
+      //   mh < ModuleContextHeight ||                                                                    // (a)
+      //   (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))                // (b)
       //   ==>
       //   (forall $Heap, formals ::
       //       { f(args) }
       //       f#canCall(args) ||
-      //       ( (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext) &&
+      //       ( (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext) &&         // (c)
       //         $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
       //         Pre($Heap,args))
       //       ==>
       //       body-can-make-its-calls &&                         // generated only for layerOffset==0
-      //       f(args) == body &&
+      //       f(args) == body &&                                                                         // (d)
       //       ens &&                                             // generated only for layerOffset==0
       //       f(args)-has-the-expected-type);                    // generated only for layerOffset==0
       //
@@ -721,6 +732,11 @@ namespace Microsoft.Dafny {
       // The translation of "body" uses the #limited form whenever the callee is in the same SCC of the call graph.
       //
       // if layerOffset==1, then the names f#2 and f are used instead of f and f#limited.
+      //
+      // Visibility:  The above description is for visibility==All.  If visibility==IntraModuleOnly, then
+      // disjunct (a) is dropped (which also has a simplifying effect on (c)).  Finally, if visibility==ForeignModuleOnly,
+      // then disjunct (b) is dropped (which also has a simplify effect on(c)); furthermore, if f is a Predicate,
+      // then the equality in (d) is replaced by an implication.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
@@ -779,13 +795,16 @@ namespace Microsoft.Dafny {
 
       // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
       ModuleDecl mod = f.EnclosingClass.Module;
-      Bpl.Expr activate = Bpl.Expr.Or(
-        Bpl.Expr.Lt(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
+      var activateForeign = Bpl.Expr.Lt(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight());
+      var activateIntra = 
         Bpl.Expr.And(
           Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
           Bpl.Expr.Or(
             Bpl.Expr.Le(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
-            etran.InMethodContext())));
+            etran.InMethodContext()));
+      Bpl.Expr activate =
+        visibility == FunctionAxiomVisibility.All ? Bpl.Expr.Or(activateForeign, activateIntra) :
+        visibility == FunctionAxiomVisibility.IntraModuleOnly ? activateIntra : activateForeign;
 
       var substMap = new Dictionary<IVariable, Expression>();
       if (specialization != null) {
@@ -799,9 +818,11 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext)
-      Bpl.Expr useViaContext =
+      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? Bpl.Expr.True :
         Bpl.Expr.Or(Bpl.Expr.Or(
-          Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
+          visibility == FunctionAxiomVisibility.IntraModuleOnly ?
+            (Bpl.Expr)Bpl.Expr.False :
+            Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
           Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight())),
           etran.InMethodContext());
       // useViaCanCall: f#canCall(args)
@@ -821,9 +842,13 @@ namespace Microsoft.Dafny {
         if (layerOffset == 0) {
           meat = Bpl.Expr.And(
             CanCallAssumption(bodyWithSubst, etran),
-            Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)));
+            visibility == FunctionAxiomVisibility.ForeignModuleOnly && f is Predicate ?
+              Bpl.Expr.Imp(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)) :
+              Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)));
         } else {
-          meat = Bpl.Expr.Eq(funcAppl, etran.TrExpr(bodyWithSubst));
+          meat = visibility == FunctionAxiomVisibility.ForeignModuleOnly && f is Predicate ?
+            Bpl.Expr.Imp(funcAppl, etran.TrExpr(bodyWithSubst)) :
+            Bpl.Expr.Eq(funcAppl, etran.TrExpr(bodyWithSubst));
         }
       }
       if (layerOffset == 0) {
@@ -836,6 +861,11 @@ namespace Microsoft.Dafny {
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, meat));
       string comment = "definition axiom for " + FunctionName(f, 1+layerOffset);
+      if (visibility == FunctionAxiomVisibility.IntraModuleOnly) {
+        comment += " (intra-module)";
+      } else if (visibility == FunctionAxiomVisibility.ForeignModuleOnly) {
+        comment += " (foreign modules)";
+      }
       if (specialization != null) {
         string sep = "{0}, specialized for '{1}'";
         foreach (var formal in specialization.Formals) {
@@ -6424,7 +6454,9 @@ namespace Microsoft.Dafny {
       } else if (expandFunctions && position && expr is FunctionCallExpr) {
         var fexp = (FunctionCallExpr)expr;
         Contract.Assert(fexp.Function != null);  // filled in during resolution
-        if (fexp.Function.Body != null && !(fexp.Function.Body.Resolved is MatchExpr)) {
+        if (fexp.Function is Predicate && fexp.Function.EnclosingClass.Module != currentModule) {
+          // don't trace into foreign predicates
+        } else if (fexp.Function.Body != null && !(fexp.Function.Body.Resolved is MatchExpr)) {
           // inline this body
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
           Contract.Assert(fexp.Args.Count == fexp.Function.Formals.Count);
