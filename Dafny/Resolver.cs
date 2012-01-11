@@ -1870,10 +1870,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(method != null);
       bool isInitCall = receiverType != null;
 
-      // resolve receiver, unless told otherwise
+      // resolve receiver
+      ResolveReceiver(s.Receiver, true);
+      Contract.Assert(s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       if (receiverType == null) {
-        ResolveReceiver(s.Receiver, true);
-        Contract.Assert(s.Receiver.Type != null);  // follows from postcondition of ResolveExpression
         receiverType = s.Receiver.Type;
       }
       // resolve the method name

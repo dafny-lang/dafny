@@ -4048,7 +4048,7 @@ namespace Microsoft.Dafny {
       Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
 
       Contract.Requires(tok != null);
-      Contract.Requires((dafnyReceiver != null) || (bReceiver != null));
+      Contract.Requires(dafnyReceiver != null || bReceiver != null);
       Contract.Requires(method != null);
       Contract.Requires(cce.NonNullElements(Args));
       Contract.Requires(cce.NonNullElements(Lhss));

@@ -1190,14 +1190,11 @@ namespace Microsoft.Dafny {
       SpillLetVariableDecls(targetExpr, indent);
       var tRhs = rhs as TypeRhs;
       if (tRhs != null && tRhs.InitCall != null) {
-        foreach (Expression dim in tRhs.ArrayDimensions) {
-          SpillLetVariableDecls(dim, indent);
-        }
         string nw = "_nw" + tmpVarCount;
         tmpVarCount++;
         Indent(indent);
         wr.Write("var {0} = ", nw);
-        TrAssignmentRhs(rhs);
+        TrAssignmentRhs(rhs);  // in this case, this call will not require us to spill any let variables first
         wr.WriteLine(";");
         TrCallStmt(tRhs.InitCall, nw, indent);
         Indent(indent);
@@ -1207,9 +1204,15 @@ namespace Microsoft.Dafny {
           TrExpr(targetExpr);
         }
         wr.WriteLine(" = {0};", nw);
-      } else if (!(rhs is HavocRhs)) {
+      } else if (rhs is HavocRhs) {
+        // do nothing
+      } else {
         if (rhs is ExprRhs) {
           SpillLetVariableDecls(((ExprRhs)rhs).Expr, indent);
+        } else if (tRhs != null) {
+          foreach (Expression dim in tRhs.ArrayDimensions) {
+            SpillLetVariableDecls(dim, indent);
+          }
         }
         Indent(indent);
         if (target != null) {
@@ -1217,7 +1220,7 @@ namespace Microsoft.Dafny {
         } else {
           TrExpr(targetExpr);
         }
-        wr.Write(" = ", target);
+        wr.Write(" = ");
         TrAssignmentRhs(rhs);
         wr.WriteLine(";");
       }

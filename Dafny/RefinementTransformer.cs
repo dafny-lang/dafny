@@ -181,8 +181,19 @@ namespace Microsoft.Dafny {
       } else {
         var m = (Method)member;
         var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
-        return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, m.Ins.ConvertAll(CloneFormal), m.Outs.ConvertAll(CloneFormal),
-          m.Req.ConvertAll(CloneMayBeFreeExpr), CloneSpecFrameExpr(m.Mod), m.Ens.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(m.Decreases), CloneBlockStmt(m.Body), null);
+        var ins = m.Ins.ConvertAll(CloneFormal);
+        var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
+        var mod = CloneSpecFrameExpr(m.Mod);
+        var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
+        var decreases = CloneSpecExpr(m.Decreases);
+        var body = CloneBlockStmt(m.Body);
+        if (member is Constructor) {
+          return new Constructor(Tok(m.tok), m.Name, tps, ins,
+            req, mod, ens, decreases, body, null);
+        } else {
+          return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+            req, mod, ens, decreases, body, null);
+        }
       }
     }
 
@@ -282,6 +293,10 @@ namespace Microsoft.Dafny {
           return new SeqDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
         }
 
+      } else if (expr is ExprDotName) {
+        var e = (ExprDotName)expr;
+        return new ExprDotName(Tok(e.tok), CloneExpr(e.Obj), e.SuffixName);
+
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
         return new FieldSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.FieldName);
@@ -372,7 +387,7 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
         var aa = e.Arguments == null ? null : e.Arguments.ConvertAll(CloneExpr);
-        return new IdentifierSequence(e.Tokens.ConvertAll(tk => Tok(tk)), Tok(e.OpenParen), aa);
+        return new IdentifierSequence(e.Tokens.ConvertAll(tk => Tok(tk)), e.OpenParen == null ? null : Tok(e.OpenParen), aa);
 
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
