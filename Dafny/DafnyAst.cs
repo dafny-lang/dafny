@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultClassDecl : ClassDecl {
-    public DefaultClassDecl(DefaultModuleDecl/*!*/ module, [Captured] List<MemberDecl/*!*/>/*!*/ members)
+    public DefaultClassDecl(ModuleDecl/*!*/ module, [Captured] List<MemberDecl/*!*/>/*!*/ members)
       : base(Token.NoToken, "_default", module, new List<TypeParameter/*!*/>(), members, null) {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(members));

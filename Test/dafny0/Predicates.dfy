@@ -79,27 +79,23 @@ module Tight refines Loose {
 }
 
 module UnawareClient imports Loose {
-  class Client {
-    method Main() {
-      var n := new MyNumber.Init();
-      assert n.N == 0;  // error: this is not known
-      n.Inc();
-      n.Inc();
-      var k := n.Get();
-      assert k == 4;  // error: this is not known
-    }
+  method Main() {
+    var n := new MyNumber.Init();
+    assert n.N == 0;  // error: this is not known
+    n.Inc();
+    n.Inc();
+    var k := n.Get();
+    assert k == 4;  // error: this is not known
   }
 }
 
 module AwareClient imports Tight {
-  class Client {
-    method Main() {
-      var n := new MyNumber.Init();
-      assert n.N == 0;
-      n.Inc();
-      n.Inc();
-      var k := n.Get();
-      assert k == 4;
-    }
+  method Main() {
+    var n := new MyNumber.Init();
+    assert n.N == 0;
+    n.Inc();
+    n.Inc();
+    var k := n.Get();
+    assert k == 4;
   }
 }

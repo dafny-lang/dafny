@@ -134,6 +134,7 @@ Dafny
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
      Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
+     List<MemberDecl/*!*/> namedModuleDefaultClassMembers;
      ModuleDecl module;
      // to support multiple files, create a default module only if theModules doesn't already contain one
      DefaultModuleDecl defaultModule = null;
@@ -148,7 +149,9 @@ Dafny
      }
      IToken idRefined;
   .)
-  { "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>(); .)
+  { "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>();
+                                            namedModuleDefaultClassMembers = new List<MemberDecl>();
+                                         .)
     { Attribute<ref attrs> }
     Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
     [ "refines" Ident<out idRefined> ]
@@ -157,8 +160,10 @@ Dafny
       { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
       | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
       | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
+      | ClassMemberDecl<namedModuleDefaultClassMembers, false>
       }
     "}"                                  (. module.BodyEndTok = t;
+                                            module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
                                             theModules.Add(module); .)
   | ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
   | DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)

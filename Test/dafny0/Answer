@@ -1301,8 +1301,11 @@ Refinement.dfy[B](12,5): Error BP5003: A postcondition might not hold on this re
 Refinement.dfy(30,20): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+Refinement.dfy(61,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 8 verified, 2 errors
+Dafny program verifier finished with 15 verified, 3 errors
 
 -------------------- RefinementErrors.dfy --------------------
 RefinementErrors.dfy(13,11): Error: a refining method is not allowed to extend the modifies clause
@@ -1370,10 +1373,10 @@ Predicates.dfy[B](17,15): Related location: This is the postcondition that might
 Predicates.dfy(28,9): Related location: Related location
 Execution trace:
     (0,0): anon0
-Predicates.dfy(85,18): Error: assertion violation
+Predicates.dfy(84,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Predicates.dfy(89,16): Error: assertion violation
+Predicates.dfy(88,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

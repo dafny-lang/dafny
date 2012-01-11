@@ -33,6 +33,36 @@ module B refines A {
 }
 
 // ------------------------------------------------
+
+module A_AnonymousClass {
+  var x: int;
+  method Increment(d: int)
+    modifies this;
+  {
+    x := x + d;
+  }
+}
+
+module B_AnonymousClass refines A_AnonymousClass {
+  method Increment(d: int)
+    ensures x <= old(x) + d;
+}
+
+module C_AnonymousClass refines B_AnonymousClass {
+  method Increment(d: int)
+    ensures old(x) + d <= x;
+  method Main()
+    modifies this;
+  {
+    x := 25;
+    Increment(30);
+    assert x == 55;
+    Increment(12);
+    assert x == 66;  // error: it's 67
+  }
+}
+
+// ------------------------------------------------
 /*  SOON
 module Abstract {
   class MyNumber {
