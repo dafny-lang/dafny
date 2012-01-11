@@ -3306,8 +3306,9 @@ namespace Microsoft.Dafny {
       call = null;
       int nonCallArguments = e.Arguments == null ? e.Tokens.Count : e.Tokens.Count - 1;
       for (; p < nonCallArguments; p++) {
-        r = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
-        if (r != null) {
+        var resolved = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
+        if (resolved != null) {
+          r = resolved;
           ResolveExpression(r, twoState);
         }
       }

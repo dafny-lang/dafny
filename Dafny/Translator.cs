@@ -3114,7 +3114,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Requires(errorMessage != null);
-      Contract.Ensures(Contract.Result<Bpl.AssertCmd>() != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
       if (RefinementToken.IsInherited(tok, currentModule)) {
         // produce an assume instead
@@ -3131,7 +3131,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
       Contract.Requires(condition != null);
-      Contract.Ensures(Contract.Result<Bpl.AssertCmd>() != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
       if (RefinementToken.IsInherited(tok, currentModule)) {
         // produce a "skip" instead
@@ -3150,7 +3150,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
       Contract.Requires(condition != null);
-      Contract.Ensures(Contract.Result<Bpl.AssertCmd>() != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
       if (RefinementToken.IsInherited(tok, currentModule)) {
         // produce an assume instead
