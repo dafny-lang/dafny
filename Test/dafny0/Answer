@@ -1391,8 +1391,14 @@ Execution trace:
 Predicates.dfy(88,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Predicates.dfy[Tricky_Full](121,5): Error BP5003: A postcondition might not hold on this return path.
+Predicates.dfy[Tricky_Full](120,15): Related location: This is the postcondition that might not hold.
+Predicates.dfy(131,7): Related location: Related location
+Predicates.dfy[Tricky_Full](111,9): Related location: Related location
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 26 verified, 3 errors
+Dafny program verifier finished with 33 verified, 4 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

@@ -30,6 +30,16 @@ namespace Microsoft.Dafny {
     }
 
     public static bool IsInherited(IToken tok, ModuleDecl m) {
+      while (tok is NestedToken) {
+        var n = (NestedToken)tok;
+        // check Outer
+        var r = n.Outer as RefinementToken;
+        if (r == null || r.InheritingModule != m) {
+          return false;
+        }
+        // continue to check Inner
+        tok = n.Inner;
+      }
       var rtok = tok as RefinementToken;
       return rtok != null && rtok.InheritingModule == m;
     }

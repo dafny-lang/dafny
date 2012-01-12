@@ -99,3 +99,36 @@ module AwareClient imports Tight {
     assert k == 4;
   }
 }
+
+// -------- Tricky refinement inheritance ----------------------------------------
+
+module Tricky_Base {
+  class Tree {
+    var x: int;
+    predicate Constrained
+      reads this;
+    {
+      x < 10
+    }
+    predicate Valid
+      reads this;
+    {
+      x < 100
+    }
+    method Init()
+      modifies this;
+      ensures Valid;
+    {
+      x := 20;
+    }
+  }
+}
+
+module Tricky_Full refines Tricky_Base {
+  class Tree {
+    predicate Valid
+    {
+      Constrained  // this causes an error to be generated for the inherited Init
+    }
+  }
+}
