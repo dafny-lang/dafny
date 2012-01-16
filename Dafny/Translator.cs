@@ -3139,6 +3139,23 @@ namespace Microsoft.Dafny {
 
     // ----- Statement ----------------------------------------------------------------------------
 
+    /// <summary>
+    /// A ForceCheckToken is a token wrapper whose purpose is to hide inheritance.
+    /// </summary>
+    public class ForceCheckToken : TokenWrapper
+    {
+      public ForceCheckToken(IToken tok)
+        : base(tok) {
+        Contract.Requires(tok != null);
+      }
+      public static IToken Unwrap(IToken tok) {
+        Contract.Requires(tok != null);
+        Contract.Ensures(Contract.Result<IToken>() != null);
+        var ftok = tok as ForceCheckToken;
+        return ftok != null ? ftok.WrappedToken : tok;
+      }
+    }
+
     Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage)
     {
       Contract.Requires(tok != null);
@@ -3150,7 +3167,7 @@ namespace Microsoft.Dafny {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition);
       } else {
-        var cmd = new Bpl.AssertCmd(tok, condition);
+        var cmd = new Bpl.AssertCmd(ForceCheckToken.Unwrap(tok), condition);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
@@ -3167,6 +3184,7 @@ namespace Microsoft.Dafny {
         // produce a "skip" instead
         return new Bpl.AssumeCmd(tok, Bpl.Expr.True);
       } else {
+        tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "subsumption", args, null);
@@ -3186,7 +3204,7 @@ namespace Microsoft.Dafny {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition, kv);
       } else {
-        var cmd = new Bpl.AssertCmd(tok, condition, kv);
+        var cmd = new Bpl.AssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
@@ -3198,7 +3216,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      Bpl.Ensures ens = new Bpl.Ensures(tok, free, condition, comment);
+      Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
       if (errorMessage != null) {
         ens.ErrorData = errorMessage;
       }
@@ -3209,7 +3227,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
-      Bpl.Requires req = new Bpl.Requires(tok, free, condition, comment);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
       if (errorMessage != null) {
         req.ErrorData = errorMessage;
       }
@@ -6597,14 +6615,25 @@ namespace Microsoft.Dafny {
         }
       }
 
+      Bpl.Expr translatedExpression;
+      bool splitHappened;
       if ((position && expr is ExistsExpr) || (!position && expr is ForallExpr)) {
-        splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
-        return false;
+        translatedExpression = etran.TrExpr(expr);
+        splitHappened = false;
       } else {
         etran = etran.LayerOffset(1);
-        splits.Add(new SplitExprInfo(false, etran.TrExpr(expr)));
-        return etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
+        translatedExpression = etran.TrExpr(expr);
+        splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
+      if (RefinementToken.IsInherited(expr.tok, currentModule) && RefinementTransformer.ContainsChange(expr, currentModule)) {
+        // If "expr" contains a subexpression that has changed from the inherited expression, we'll destructively
+        // change the token of the translated expression to make it look like it's not inherited.  This will cause "e" to
+        // be verified again in the refining module.
+        translatedExpression.tok = new ForceCheckToken(expr.tok);
+        splitHappened = true;  // count this as a split, so this translated expression is not ignored
+      }
+      splits.Add(new SplitExprInfo(false, translatedExpression));
+      return splitHappened;
     }
 
     List<BoundVar> ApplyInduction(QuantifierExpr e) {

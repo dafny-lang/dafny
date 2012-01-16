@@ -132,3 +132,49 @@ module Tricky_Full refines Tricky_Base {
     }
   }
 }
+
+// -------- Quantifiers ----------------------------------------
+
+module Q0 {
+  class C {
+    var x: int;
+    predicate P
+      reads this;
+    {
+      true
+    }
+    method M()
+      modifies this;
+      ensures forall c: C :: c != null ==> c.P;
+    {
+    }
+    predicate Q
+      reads this;
+    {
+      x < 100
+    }
+    method N()
+      modifies this;
+      ensures forall c :: c == this ==> c.Q;
+    {
+      x := 102;  // error: fails to establish postcondition (but this error should not be repeated in Q1 below)
+    }
+    predicate R reads this;  // a body-less predicate
+  }
+}
+
+module Q1 refines Q0 {
+  class C {
+    predicate P
+    {
+      x == 18
+    }
+    predicate R  // no body yet
+  }
+}
+
+module Q2 refines Q1 {
+  class C {
+    predicate R { x % 3 == 2 }  // finally, give it a body
+  }
+}

@@ -19,13 +19,14 @@ using System.Diagnostics.Contracts;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
-  public class RefinementToken : IToken
+  public class RefinementToken : TokenWrapper
   {
-    readonly IToken tok;
     public readonly ModuleDecl InheritingModule;
     public RefinementToken(IToken tok, ModuleDecl m)
+      : base(tok)
     {
-      this.tok = tok;
+      Contract.Requires(tok != null);
+      Contract.Requires(m != null);
       this.InheritingModule = m;
     }
 
@@ -43,33 +44,9 @@ namespace Microsoft.Dafny {
       var rtok = tok as RefinementToken;
       return rtok != null && rtok.InheritingModule == m;
     }
-
-    public int kind {
-      get { return tok.kind; }
+    public override string filename {
+      get { return WrappedToken.filename + "[" + InheritingModule.Name + "]"; }
       set { throw new NotSupportedException(); }
-    }
-    public string filename {
-      get { return tok.filename + "[" + InheritingModule.Name + "]"; }
-      set { throw new NotSupportedException(); }
-    }
-    public int pos {
-      get { return tok.pos; }
-      set { throw new NotSupportedException(); }
-    }
-    public int col {
-      get { return tok.col; }
-      set { throw new NotSupportedException(); }
-    }
-    public int line {
-      get { return tok.line; }
-      set { throw new NotSupportedException(); }
-    }
-    public string/*!*/ val {
-      get { return tok.val; }
-      set { throw new NotSupportedException(); }
-    }
-    public bool IsValid {
-      get { return tok.IsValid; }
     }
   }
 
@@ -548,12 +525,16 @@ namespace Microsoft.Dafny {
       var decreases = CloneSpecExpr(f.Decreases);
       var body = CloneExpr(f.Body);
       if (moreBody != null) {
-        body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, body, moreBody);
+        if (body == null) {
+          body = moreBody;
+        } else {
+          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, body, moreBody);
+        }
       }
 
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, null);
+          req, reads, ens, decreases, body, moreBody != null, null);
       } else {
         return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null);
@@ -604,7 +585,7 @@ namespace Microsoft.Dafny {
                 reporter.Error(nwMember, "a refining function is not allowed to provided a body");
                 newBody = null;
               }
-              nw.Members[index] = CloneFunction((Function)member, f.Ens, f.Body);
+              nw.Members[index] = CloneFunction((Function)member, f.Ens, newBody);
             }
 
           } else {
@@ -636,6 +617,30 @@ namespace Microsoft.Dafny {
       }
 
       return nw;
+    }
+
+    // ---------------------- additional methods -----------------------------------------------------------------------------
+
+    public static bool ContainsChange(Expression expr, ModuleDecl m) {
+      Contract.Requires(expr != null);
+      Contract.Requires(m != null);
+
+      if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        if (e.Function.EnclosingClass.Module == m) {
+          var p = e.Function as Predicate;
+          if (p != null && p.BodyIsExtended) {
+            return true;
+          }
+        }
+      }
+
+      foreach (var ee in expr.SubExpressions) {
+        if (ContainsChange(ee, m)) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 }

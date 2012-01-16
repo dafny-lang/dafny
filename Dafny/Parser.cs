@@ -504,7 +504,7 @@ bool IsAttribute() {
 			body = bb; 
 		}
 		if (isPredicate) {
-		 f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+		 f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs);
 		} else {
 		  f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
 		}

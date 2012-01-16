@@ -1098,11 +1098,14 @@ namespace Microsoft.Dafny {
 
   public class Predicate : Function
   {
+    public readonly bool BodyIsExtended;  // says that this predicate definition is a refinement extension of a predicate definition is a refining module
     public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes)
+                     Expression body, bool bodyIsExtended, Attributes attributes)
       : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes) {
+      Contract.Requires(!bodyIsExtended || body != null);
+      BodyIsExtended = bodyIsExtended;
     }
   }
 
@@ -1908,42 +1911,54 @@ namespace Microsoft.Dafny {
 
   // ------------------------------------------------------------------------------------------------------
 
-  public class NestedToken : IToken
+  public abstract class TokenWrapper : IToken
   {
-    public NestedToken(IToken outer, IToken inner) {
-      Outer = outer;
-      Inner = inner;
+    protected readonly IToken WrappedToken;
+    protected TokenWrapper(IToken wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+      WrappedToken = wrappedToken;
     }
-    public readonly IToken Outer;
-    public readonly IToken Inner;
 
     public int col {
-      get { return Outer.col; }
-      set { Outer.col = value; }
+      get { return WrappedToken.col; }
+      set { throw new NotSupportedException(); }
     }
-    public string filename {
-      get { return Outer.filename; }
-      set { Outer.filename = value; }
+    public virtual string filename {
+      get { return WrappedToken.filename; }
+      set { throw new NotSupportedException(); }
     }
     public bool IsValid {
-      get { return Outer.IsValid; }
+      get { return WrappedToken.IsValid; }
     }
     public int kind {
-      get { return Outer.kind; }
-      set { Outer.kind = value; }
+      get { return WrappedToken.kind; }
+      set { throw new NotSupportedException(); }
     }
     public int line {
-      get { return Outer.line; }
-      set { Outer.line = value; }
+      get { return WrappedToken.line; }
+      set { throw new NotSupportedException(); }
     }
     public int pos {
-      get { return Outer.pos; }
-      set { Outer.pos = value; }
+      get { return WrappedToken.pos; }
+      set { throw new NotSupportedException(); }
     }
     public string val {
-      get { return Outer.val; }
-      set { Outer.val = value; }
+      get { return WrappedToken.val; }
+      set { throw new NotSupportedException(); }
     }
+  }
+
+  public class NestedToken : TokenWrapper
+  {
+    public NestedToken(IToken outer, IToken inner)
+      : base(outer)
+    {
+      Contract.Requires(outer != null);
+      Contract.Requires(inner != null);
+      Inner = inner;
+    }
+    public IToken Outer { get { return WrappedToken; } }
+    public readonly IToken Inner;
   }
 
   // ------------------------------------------------------------------------------------------------------
