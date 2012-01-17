@@ -1178,7 +1178,7 @@ namespace Microsoft.Dafny {
               }
             }
             // construct an expression (generator) for:  VF' << VF
-            ExpressionConverter decrCheck = delegate(Dictionary<IVariable, Expression> decrSubstMap) {
+            ExpressionConverter decrCheck = delegate(Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran) {
               var decrToks = new List<IToken>();
               var decrTypes = new List<Type>();
               var decrCallee = new List<Bpl.Expr>();
@@ -1187,12 +1187,12 @@ namespace Microsoft.Dafny {
               foreach (var ee in MethodDecreasesWithDefault(m, out decrInferred)) {
                 decrToks.Add(ee.tok);
                 decrTypes.Add(ee.Type);
-                decrCaller.Add(etran.TrExpr(ee));
+                decrCaller.Add(exprTran.TrExpr(ee));
                 Expression es = Substitute(ee, receiverReplacement, substMap);
                 es = Substitute(es, null, decrSubstMap);
-                decrCallee.Add(etran.TrExpr(es));
+                decrCallee.Add(exprTran.TrExpr(es));
               }
-              return DecreasesCheck(decrToks, decrTypes, decrCallee, decrCaller, etran, null, null, false, true);
+              return DecreasesCheck(decrToks, decrTypes, decrCallee, decrCaller, exprTran, null, null, false, true);
             };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_PARALLEL_RANGE
@@ -2906,7 +2906,7 @@ namespace Microsoft.Dafny {
           etran.InMethodContext());
         req.Add(Requires(m.tok, true, context, null, null));
       }
-      mod.Add(etran.HeapExpr);
+      mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
 
       if (kind != 0) {
@@ -3665,7 +3665,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap);
+    delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
     void TrParallelCall(IToken tok, List<BoundVar> boundVars, Expression range, ExpressionConverter additionalRange, CallStmt s0,
       Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
@@ -3693,9 +3693,13 @@ namespace Microsoft.Dafny {
       //     Tr( Call );
       //     assume false;
       //   } else {
-      //     assume (forall x,y :: Range(x,y) && additionalRange ==> Post( E(x,y), Args(x,y) ));
+      //     initHeap := $Heap;
+      //     advance $Heap, Tick;
+      //     assume (forall x,y :: (Range(x,y) && additionalRange)[INIT] &&
+      //                           ==> Post[old($Heap) := initHeap]( E(x,y)[INIT], Args(x,y)[INIT] ));
       //   }
-      // where Post(this,args) is the postcondition of method M.
+      // where Post(this,args) is the postcondition of method M and
+      // INIT is the substitution [old($Heap),$Heap := old($Heap),initHeap].
 
       if (definedness != null) {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
@@ -3713,7 +3717,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(range, definedness, locals, etran, false);
         definedness.Add(new Bpl.AssumeCmd(range.tok, etran.TrExpr(range)));
         if (additionalRange != null) {
-          var es = additionalRange(new Dictionary<IVariable, Expression>());
+          var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
           definedness.Add(new Bpl.AssumeCmd(es.tok, es));
         }
 
@@ -3724,24 +3728,51 @@ namespace Microsoft.Dafny {
 
       // Now for the other branch, where the postcondition of the call is exported.
       {
-        var bvars = new Bpl.VariableSeq();
-        Dictionary<IVariable, Expression> substMap;
-        var ante = etran.TrBoundVariablesRename(boundVars, bvars, out substMap);
-        ante = BplAnd(ante, etran.TrExpr(Substitute(range, null, substMap)));
-        if (additionalRange != null) {
-          ante = BplAnd(ante, additionalRange(substMap));
+        var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$initHeapParallelStmt#" + otherTmpVarCount, predef.HeapType));
+        otherTmpVarCount++;
+        locals.Add(initHeapVar);
+        var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
+        var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
+        // initHeap := $Heap;
+        exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
+        if (s0.Method.Ens.Exists(ens => MentionsOldState(ens.E))) {
+          // advance $Heap, Tick;
+          exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick())));
+          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), initEtran, etran, initEtran)) {
+            if (tri.IsFree) {
+              exporter.Add(new Bpl.AssumeCmd(tok, tri.Expr));
+            }
+          }
+        } else {
+          // As an optimization, create the illusion that the $Heap is unchanged by the parallel body.
+          exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(etran.Tick())));
         }
 
+        var bvars = new Bpl.VariableSeq();
+        Dictionary<IVariable, Expression> substMap;
+        var ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
+        if (additionalRange != null) {
+          ante = BplAnd(ante, additionalRange(substMap, initEtran));
+        }
+
+        // Note, in the following, we need to do a bit of a song and dance.  The actual arguements of the
+        // call should be translated using "initEtran", whereas the method postcondition should be translated
+        // using "callEtran".  To accomplish this, we translate the argument and then tuck the resulting
+        // Boogie expressions into BoogieExprWrappers that are used in the DafnyExpr-to-DafnyExpr substitution.
+        // TODO
         var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
         Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
         for (int i = 0; i < s0.Method.Ins.Count; i++) {
-          argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
+          var arg = Substitute(s0.Args[i], null, substMap);  // substitute the renamed bound variables for the declared ones
+          argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
         }
+        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap)), s0.Receiver.Type);
+        var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
         Bpl.Expr post = Bpl.Expr.True;
         foreach (var ens in s0.Method.Ens) {
-          var p = Substitute(ens.E, s0.Receiver, argsSubstMap);  // substitute the call's actuals for the method's formals
-          p = Substitute(p, null, substMap);  // substitute the renamed bound variables for the declared ones
-          post = BplAnd(post, etran.TrExpr(p));
+          var p = Substitute(ens.E, receiver, argsSubstMap);  // substitute the call's actuals for the method's formals
+          post = BplAnd(post, callEtran.TrExpr(p));
         }
 
         Bpl.Expr qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));
@@ -3767,7 +3798,9 @@ namespace Microsoft.Dafny {
       //     assert Post;
       //     assume false;
       //   } else {
-      //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
+      //     initHeap := $Heap;
+      //     advance $Heap, Tick;
+      //     assume (forall x,y :: Range(x,y)[old($Heap),$Heap := old($Heap),initHeap] ==> Post(x,y));
       //   }
 
       // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
@@ -3804,11 +3837,31 @@ namespace Microsoft.Dafny {
 
       // Now for the other branch, where the ensures clauses are exported.
 
+      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapParallelStmt#" + otherTmpVarCount, predef.HeapType));
+      otherTmpVarCount++;
+      locals.Add(initHeapVar);
+      var initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
+      var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
+      // initHeap := $Heap;
+      exporter.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
+      if (s.Ens.Exists(ens => MentionsOldState(ens.E))) {
+        // advance $Heap;
+        exporter.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick())));
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, new List<FrameExpression>(), initEtran, etran, initEtran)) {
+          if (tri.IsFree) {
+            exporter.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
+          }
+        }
+      } else {
+        // As an optimization, create the illusion that the $Heap is unchanged by the parallel body.
+        exporter.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq(etran.Tick())));
+      }
+
       bvars = new Bpl.VariableSeq();
       Dictionary<IVariable, Expression> substMap;
-      ante = etran.TrBoundVariablesRename(s.BoundVars, bvars, out substMap);
+      ante = initEtran.TrBoundVariablesRename(s.BoundVars, bvars, out substMap);
       var range = Substitute(s.Range, null, substMap);
-      ante = BplAnd(ante, etran.TrExpr(range));
+      ante = BplAnd(ante, initEtran.TrExpr(range));
 
       Bpl.Expr post = Bpl.Expr.True;
       foreach (var ens in s.Ens) {
@@ -5039,6 +5092,19 @@ namespace Microsoft.Dafny {
         Contract.Requires(heap != null);
       }
 
+      public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, Bpl.Expr oldHeap)
+        : this(translator, predef, heap, "this") {
+        Contract.Requires(translator != null);
+        Contract.Requires(predef != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(oldHeap != null);
+
+        var old = new ExpressionTranslator(translator, predef, oldHeap);
+        old.oldEtran = old;
+        this.oldEtran = old;
+
+      }
+
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar)
         : this(translator, predef, heap, thisVar, null, 0, "$_Frame") {
         Contract.Requires(translator != null);
@@ -5060,6 +5126,7 @@ namespace Microsoft.Dafny {
 
           if (oldEtran == null) {
             oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerOffset, modifiesFrame);
+            oldEtran.oldEtran = oldEtran;
           }
           return oldEtran;
         }
@@ -6966,6 +7033,22 @@ namespace Microsoft.Dafny {
         }
         return false;
       }
+    }
+
+    /// <summary>
+    /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old(...)" or "fresh(...)".
+    /// </summary>
+    static bool MentionsOldState(Expression expr) {
+      Contract.Requires(expr != null);
+      if (expr is OldExpr || expr is FreshExpr) {
+        return true;
+      }
+      foreach (var ee in expr.SubExpressions) {
+        if (MentionsOldState(ee)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {

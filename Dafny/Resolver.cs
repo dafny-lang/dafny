@@ -788,36 +788,8 @@ namespace Microsoft.Dafny {
       ResolveAttributes(m.Attributes, false);
 
       // ... continue resolving specification
-      bool twoState = true;
-      if (m.Mod.Expressions.Count == 0 && m.Outs.Count == 0) {
-        // In this special case, the current translation of parallel Call statements would be unsound.
-        // The reason is that the parallel Call statement does not advance the heap, so there had better
-        // not be any way to say that the post-heap is definitely different than the pre-heap.  For example,
-        // the following program, is permitted, would unsoundly verify:
-        //     ghost static method M(y: int)
-        //       ensures exists o: object :: o != null && fresh(o);
-        //     {
-        //       var p := new object;
-        //     }
-        //     method Main() {
-        //       parallel (x) { M(x); }
-        //       assert false;
-        //     }
-        // In fact, here is another method M that together with Main above would yield unsound verification:
-        //     class C { ghost var data: int; }
-        //     ghost static method M(y: int)
-        //       ensures exists c: C :: c != null && c.data != old(c.data);
-        //     {
-        //       var c := new C;
-        //       c.data := c.data + 1;
-        //     }
-        // So, it seems best just to disallow two-state postconditions in these cases.  Perhaps the error
-        // message will not explain enough of the reasons for this restriction, but the restriction does
-        // not seem to rule out any useful programs.
-        twoState = false;
-      }
       foreach (MaybeFreeExpression e in m.Ens) {
-        ResolveExpression(e.E, twoState);
+        ResolveExpression(e.E, true);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E.Type, Type.Bool))
         {
@@ -1542,7 +1514,7 @@ namespace Microsoft.Dafny {
           Error(stmt, "range restriction in parallel statement must be of type bool (instead got {0})", s.Range.Type);
         }
         foreach (var ens in s.Ens) {
-          ResolveExpression(ens.E, false);  // Note, two-state features are not allowed (see the resolution of method postconditions in this file, and see the X_ examples in Test/dafny0/ParallelResolveErrors.dfy)
+          ResolveExpression(ens.E, true);
           Contract.Assert(ens.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(ens.E.Type, Type.Bool)) {
             Error(ens.E, "ensures condition is expected to be of type {0}, but is {1}", Type.Bool, ens.E.Type);
@@ -1597,7 +1569,7 @@ namespace Microsoft.Dafny {
               }
             }
           }
-          CheckParallelBodyRestrictions(s.Body, s.Kind == ParallelStmt.ParBodyKind.Assign);
+          CheckParallelBodyRestrictions(s.Body, s.Kind);
         }
 
       } else if (stmt is MatchStmt) {
@@ -2045,22 +2017,22 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This method performs some additional checks on the body "stmt" of a parallel statement
+    /// This method performs some additional checks on the body "stmt" of a parallel statement of kind "kind".
     /// </summary>
-    public void CheckParallelBodyRestrictions(Statement stmt, bool allowHeapUpdates) {
+    public void CheckParallelBodyRestrictions(Statement stmt, ParallelStmt.ParBodyKind kind) {
       Contract.Requires(stmt != null);
       if (stmt is PredicateStmt) {
         // cool
       } else if (stmt is PrintStmt) {
         Error(stmt, "print statement is not allowed inside a parallel statement");
       } else if (stmt is BreakStmt) {
-        // this case can be checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
+        // this case is checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
       } else if (stmt is ReturnStmt) {
         Error(stmt, "return statement is not allowed inside a parallel statement");
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         foreach (var ss in s.ResolvedStatements) {
-          CheckParallelBodyRestrictions(ss, allowHeapUpdates);
+          CheckParallelBodyRestrictions(ss, kind);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -2069,16 +2041,23 @@ namespace Microsoft.Dafny {
           if (scope.ContainsDecl(idExpr.Var)) {
             Error(stmt, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
           }
-        } else if (!allowHeapUpdates) {
-          Error(stmt, "the body of the enclosing parallel statement may not update heap locations");
+        } else if (kind != ParallelStmt.ParBodyKind.Assign) {
+          Error(stmt, "the body of the enclosing parallel statement is not allowed to update heap locations");
         }
         var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
         if (rhs is TypeRhs) {
-          Error(rhs.Tok, "new allocation not supported in parallel statements");
+          if (kind == ParallelStmt.ParBodyKind.Assign) {
+            Error(rhs.Tok, "new allocation not supported in parallel statements");
+          } else {
+            var t = (TypeRhs)rhs;
+            if (t.InitCall != null) {
+              CheckParallelBodyRestrictions(t.InitCall, kind);
+            }
+          }
         } else if (rhs is ExprRhs) {
           var r = ((ExprRhs)rhs).Expr.Resolved;
-          if (r is UnaryExpr && ((UnaryExpr)r).Op == UnaryExpr.Opcode.SetChoose) {
-            Error(r, "set choose operator not supported inside parallel statement");
+          if (kind == ParallelStmt.ParBodyKind.Assign && r is UnaryExpr && ((UnaryExpr)r).Op == UnaryExpr.Opcode.SetChoose) {
+            Error(r, "set choose operator not supported inside the enclosing parallel statement");
           }
         }
       } else if (stmt is VarDecl) {
@@ -2092,45 +2071,50 @@ namespace Microsoft.Dafny {
               Error(stmt, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
             }
           } else {
-            Error(stmt, "the body of the enclosing parallel statement may not update heap locations");
+            Error(stmt, "the body of the enclosing parallel statement is not allowed to update heap locations");
           }
         }
-        if (s.Method.Mod.Expressions.Count != 0) {
-          Error(s, "in the body of a parallel statement, every method called must have an empty modifies list");
+        if (!s.Method.IsGhost) {
+          // The reason for this restriction is that the compiler is going to omit the parallel statement altogether--it has
+          // no effect.  However, print effects are not documented, so to make sure that the compiler does not omit a call to
+          // a method that prints something, all calls to non-ghost methods are disallowed.  (Note, if this restriction
+          // is somehow lifted in the future, then it is still necessary to enforce s.Method.Mod.Expressions.Count != 0 for
+          // calls to non-ghost methods.)
+          Error(s, "the body of the enclosing parallel statement is not allowed to call non-ghost methods");
         }
 
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         scope.PushMarker();
         foreach (var ss in s.Body) {
-          CheckParallelBodyRestrictions(ss, allowHeapUpdates);
+          CheckParallelBodyRestrictions(ss, kind);
         }
         scope.PopMarker();
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        CheckParallelBodyRestrictions(s.Thn, allowHeapUpdates);
+        CheckParallelBodyRestrictions(s.Thn, kind);
         if (s.Els != null) {
-          CheckParallelBodyRestrictions(s.Els, allowHeapUpdates);
+          CheckParallelBodyRestrictions(s.Els, kind);
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckParallelBodyRestrictions(ss, allowHeapUpdates);
+            CheckParallelBodyRestrictions(ss, kind);
           }
         }
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
-        CheckParallelBodyRestrictions(s.Body, allowHeapUpdates);
+        CheckParallelBodyRestrictions(s.Body, kind);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckParallelBodyRestrictions(ss, allowHeapUpdates);
+            CheckParallelBodyRestrictions(ss, kind);
           }
         }
 
@@ -2153,7 +2137,7 @@ namespace Microsoft.Dafny {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
           foreach (var ss in kase.Body) {
-            CheckParallelBodyRestrictions(ss, allowHeapUpdates);
+            CheckParallelBodyRestrictions(ss, kind);
           }
         }
 

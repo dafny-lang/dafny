@@ -1,5 +1,14 @@
 class C {
   var data: int;
+  ghost var gdata: int;
+  ghost method Init_ModifyNothing() { }
+  ghost method Init_ModifyThis() modifies this;
+  {
+    data := 6;  // error: assignment to a non-ghost field
+    gdata := 7;
+  }
+  ghost method Init_ModifyStuff(c: C) modifies this, c; { }
+  method NonGhostMethod() { print "hello\n"; }
 }
 
 method M0(IS: set<int>)
@@ -50,7 +59,12 @@ method M0(IS: set<int>)
   parallel (i | 0 <= i < 20)
     ensures true;
   {
-    var c := new C;  // error: new allocation not allowed
+    var c := new C;  // allowed
+    var d := new C.Init_ModifyNothing();
+    var e := new C.Init_ModifyThis();
+    var f := new C.Init_ModifyStuff(e);
+    c.Init_ModifyStuff(d);
+    c.NonGhostMethod();  // error: only allowed to call ghost methods (because of possible 'print' statements, sigh)
   }
 }
 
@@ -85,67 +99,3 @@ method M1() {
     }
   }
 }
-
-// -------------------------------------------------------------------------------------
-// Some soundness considerations
-// -------------------------------------------------------------------------------------
-
-ghost static method X_M0(y: int)
-  ensures exists o: object :: o != null && fresh(o);  // error: not allowed 'fresh' here
-{
-  var p := new object;
-}
-
-class X_C { ghost var data: int; }
-ghost static method X_M1(y: int)
-  ensures exists c: X_C :: c != null && c.data != old(c.data);  // error: not allowed 'old' here
-{
-  var c := new X_C;
-  c.data := c.data + 1;
-}
-
-method X_Main() {
-  if (*) {
-    parallel (x) { X_M0(x); }
-  } else {
-    parallel (x) { X_M1(x); }
-  }
-  assert false;
-}
-
-
-// The following seems to be a legitimate use of a two-state predicate in the postcondition of the parallel statement
-method X_Legit(c: X_C)
-  requires c != null;
-  modifies c;
-{
-  c.data := c.data + 1;
-  parallel (x | c.data <= x)
-    ensures old(c.data) < x;  // error: not allowed 'old' here
-  {
-  }
-}
-
-// X_M2 is like X_M0, but with an out-parameter
-ghost static method X_M2(y: int) returns (r: int)
-  ensures exists o: object :: o != null && fresh(o);  // 'fresh' is allowed here (because there's something coming "out" of this ghost method, namely 'r'
-{
-  var p := new object;
-}
-
-// The following method exhibits a case where M2 and a two-state parallel ensures would lead to an unsoundness
-// with the current translation.
-method X_AnotherMain(c: X_C)
-  requires c != null;
-  modifies c;
-{
-  c.data := c.data + 1;
-  parallel (x: int)
-    ensures exists o: object :: o != null && fresh(o);  // error: not allowed 'fresh' here
-  {
-    var s := X_M2(x);
-  }
-  assert false;
-}
-
-// -------------------------------------------------------------------------------------
