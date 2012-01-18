@@ -3409,23 +3409,31 @@ namespace Microsoft.Dafny {
         var s = (ParallelStmt)stmt;
         if (s.Kind == ParallelStmt.ParBodyKind.Assign) {
           Contract.Assert(s.Ens.Count == 0);
-          var s0 = (AssignStmt)s.S0;
-          var definedness = new Bpl.StmtListBuilder();
-          var updater = new Bpl.StmtListBuilder();
-          TrParallelAssign(s, s0, definedness, updater, locals, etran);
-          // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
-          builder.Add(CaptureState(stmt.Tok));
+          if (s.BoundVars.Count == 0) {
+            TrStmt(s.Body, builder, locals, etran);
+          } else {
+            var s0 = (AssignStmt)s.S0;
+            var definedness = new Bpl.StmtListBuilder();
+            var updater = new Bpl.StmtListBuilder();
+            TrParallelAssign(s, s0, definedness, updater, locals, etran);
+            // All done, so put the two pieces together
+            builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
+            builder.Add(CaptureState(stmt.Tok));
+          }
 
         } else if (s.Kind == ParallelStmt.ParBodyKind.Call) {
           Contract.Assert(s.Ens.Count == 0);
-          var s0 = (CallStmt)s.S0;
-          var definedness = new Bpl.StmtListBuilder();
-          var exporter = new Bpl.StmtListBuilder();
-          TrParallelCall(s.Tok, s.BoundVars, s.Range, null, s0, definedness, exporter, locals, etran);
-          // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
-          builder.Add(CaptureState(stmt.Tok));
+          if (s.BoundVars.Count == 0) {
+            TrStmt(s.Body, builder, locals, etran);
+          } else {
+            var s0 = (CallStmt)s.S0;
+            var definedness = new Bpl.StmtListBuilder();
+            var exporter = new Bpl.StmtListBuilder();
+            TrParallelCall(s.Tok, s.BoundVars, s.Range, null, s0, definedness, exporter, locals, etran);
+            // All done, so put the two pieces together
+            builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
+            builder.Add(CaptureState(stmt.Tok));
+          }
 
         } else if (s.Kind == ParallelStmt.ParBodyKind.Proof) {
           var definedness = new Bpl.StmtListBuilder();
@@ -3869,7 +3877,10 @@ namespace Microsoft.Dafny {
         post = BplAnd(post, etran.TrExpr(p));
       }
 
-      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, bvars, Bpl.Expr.Imp(ante, post));
+      Bpl.Expr qq = Bpl.Expr.Imp(ante, post);
+      if (bvars.Length != 0) {
+        qq = new Bpl.ForallExpr(s.Tok, bvars, qq);
+      }
       exporter.Add(new Bpl.AssumeCmd(s.Tok, qq));
     }
 

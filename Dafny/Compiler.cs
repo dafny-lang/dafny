@@ -907,6 +907,10 @@ namespace Microsoft.Dafny {
         if (s.Kind != ParallelStmt.ParBodyKind.Assign) {
           // Call and Proof have no side effects, so they can simply be optimized away.
           return;
+        } else if (s.BoundVars.Count == 0) {
+          // the bound variables just spell out a single point, so the parallel statement is equivalent to one execution of the body
+          TrStmt(s.Body, indent);
+          return;
         }
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {

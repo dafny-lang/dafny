@@ -269,3 +269,40 @@ method TwoState_Main3()
   }
   assert false;  // error: this location is indeed reachable (if the translation before it is sound)
 }
+
+// ------- empty parallel statement -----------------------------------------
+
+var emptyPar: int;
+
+method Empty_Parallel0()
+  modifies this;
+  ensures emptyPar == 8;
+{
+  parallel () {
+    this.emptyPar := 8;
+  }
+}
+
+function EmptyPar_P(x: int): bool
+ghost method EmptyPar_Lemma(x: int)
+  ensures EmptyPar_P(x);
+
+method Empty_Parallel1()
+  ensures EmptyPar_P(8);
+{
+  parallel () {
+    EmptyPar_Lemma(8);
+  }
+}
+
+method Empty_Parallel2()
+{
+  parallel ()
+    ensures exists k :: EmptyPar_P(k);
+  {
+    var y := 8;
+    assume EmptyPar_P(y);
+  }
+  assert exists k :: EmptyPar_P(k);  // yes
+  assert EmptyPar_P(8);  // error: the parallel statement's ensures clause does not promise this
+}

@@ -1277,9 +1277,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void ParallelStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		IToken/*!*/ x;
-		List<BoundVar/*!*/> bvars;
-		Attributes attrs;
-		Expression range;
+		List<BoundVar/*!*/> bvars = null;
+		Attributes attrs = null;
+		Expression range = null;
 		var ens = new List<MaybeFreeExpression/*!*/>();
 		bool isFree;
 		Expression/*!*/ e;
@@ -1289,8 +1289,15 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(65);
 		x = t; 
 		Expect(32);
-		QuantifierDomain(out bvars, out attrs, out range);
-		if (range == null) { range = new LiteralExpr(x, true); } 
+		if (la.kind == 1) {
+			List<BoundVar/*!*/> bvarsX;  Attributes attrsX;  Expression rangeX; 
+			QuantifierDomain(out bvarsX, out attrsX, out rangeX);
+			bvars = bvarsX; attrs = attrsX; range = rangeX;
+			
+		}
+		if (bvars == null) { bvars = new List<BoundVar>(); }
+		if (range == null) { range = new LiteralExpr(x, true); }
+		
 		Expect(33);
 		while (la.kind == 28 || la.kind == 30) {
 			isFree = false; 

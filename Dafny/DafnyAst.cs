@@ -1794,7 +1794,7 @@ namespace Microsoft.Dafny {
 
   public class ParallelStmt : Statement
   {
-    public readonly List<BoundVar/*!*/> BoundVars;
+    public readonly List<BoundVar/*!*/> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
     public readonly Expression/*!*/ Range;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
     public readonly Statement Body;  // used only until resolution; afterwards, use BodyAssign
@@ -1826,6 +1826,7 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(BoundVars != null);
       Contract.Invariant(Range != null);
+      Contract.Invariant(BoundVars.Count != 0 || LiteralExpr.IsTrue(Range));
       Contract.Invariant(Ens != null);
       Contract.Invariant(Body != null);
     }
@@ -1835,6 +1836,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(boundVars));
       Contract.Requires(range != null);
+      Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(body != null);
       this.BoundVars = boundVars;

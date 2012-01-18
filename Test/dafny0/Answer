@@ -1133,8 +1133,13 @@ Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon5
+Parallel.dfy(307,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+    (0,0): anon3
 
-Dafny program verifier finished with 34 verified, 12 errors
+Dafny program verifier finished with 41 verified, 13 errors
 
 -------------------- TypeParameters.dfy --------------------
 TypeParameters.dfy(44,22): Error: assertion violation
