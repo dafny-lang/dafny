@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
         return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
       } else if (member is Function) {
         var f = (Function)member;
-        return CloneFunction(f, f.IsGhost, null, null, null);
+        return CloneFunction(Tok(f.tok), f, f.IsGhost, null, null, null);
       } else {
         var m = (Method)member;
         return CloneMethod(m, null, null);
@@ -502,7 +502,7 @@ namespace Microsoft.Dafny {
       return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
-    Function CloneFunction(Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody) {
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
@@ -534,10 +534,10 @@ namespace Microsoft.Dafny {
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals,
+        return new Predicate(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, moreBody != null, null);
       } else {
-        return new Function(Tok(f.tok), f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null);
       }
     }
@@ -635,7 +635,7 @@ namespace Microsoft.Dafny {
               } else if (f.Body != null) {
                 reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
-              nw.Members[index] = CloneFunction(prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody);
+              nw.Members[index] = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody);
             }
 
           } else {

@@ -243,7 +243,8 @@ Execution trace:
 SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-SmallTests.dfy(411,41): Error: possible violation of function postcondition
+SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
 
@@ -407,7 +408,8 @@ Execution trace:
     Definedness.dfy(191,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     (0,0): anon8_Then
-Definedness.dfy(214,46): Error: possible violation of function postcondition
+Definedness.dfy(212,10): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(214,46): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
@@ -416,7 +418,8 @@ Execution trace:
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Definedness.dfy(237,24): Error: possible violation of function postcondition
+Definedness.dfy(234,10): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(237,24): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon7_Then
     (0,0): anon2
@@ -425,15 +428,16 @@ Execution trace:
 Dafny program verifier finished with 22 verified, 36 errors
 
 -------------------- FunctionSpecifications.dfy --------------------
-FunctionSpecifications.dfy(28,13): Error: possible violation of function postcondition
+FunctionSpecifications.dfy(32,3): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(28,13): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon9_Else
     (0,0): anon10_Else
-    (0,0): anon11_Else
-    (0,0): anon12_Then
-    (0,0): anon13_Else
+    (0,0): anon11_Then
+    (0,0): anon12_Else
     (0,0): anon7
-    (0,0): anon9
-FunctionSpecifications.dfy(37,24): Error: possible violation of function postcondition
+FunctionSpecifications.dfy(35,10): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(37,24): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon12_Else
     (0,0): anon15_Else
@@ -1341,7 +1345,8 @@ Execution trace:
 Refinement.dfy(71,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Refinement.dfy(69,15): Error: possible violation of function postcondition
+Refinement.dfy(90,12): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(69,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon3_Else
 Refinement.dfy(93,3): Error BP5003: A postcondition might not hold on this return path.
@@ -1554,7 +1559,8 @@ Execution trace:
 SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-SmallTests.dfy(411,41): Error: possible violation of function postcondition
+SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
 
@@ -1662,7 +1668,8 @@ Execution trace:
 out.tmp.dfy(461,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-out.tmp.dfy(470,41): Error: possible violation of function postcondition
+out.tmp.dfy(469,10): Error BP5003: A postcondition might not hold on this return path.
+out.tmp.dfy(470,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
 

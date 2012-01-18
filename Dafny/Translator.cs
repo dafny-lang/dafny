@@ -1542,8 +1542,18 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
         Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       req.Add(Requires(f.tok, true, context, null, null));
+      // check that postconditions hold
+      var ens = new Bpl.EnsuresSeq();
+      foreach (Expression p in f.Ens) {
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
+          if (!s.IsFree) {
+            ens.Add(Ensures(s.E.tok, s.IsFree, s.E, null, null));
+          }
+        }
+      }
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
-        req, new Bpl.IdentifierExprSeq(), new Bpl.EnsuresSeq(), etran.TrAttributes(f.Attributes, null));
+        req, new Bpl.IdentifierExprSeq(), ens, etran.TrAttributes(f.Attributes, null));
       sink.TopLevelDeclarations.Add(proc);
 
       VariableSeq implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -1567,8 +1577,10 @@ namespace Microsoft.Dafny {
       // Generate:
       //   if (*) {
       //     check well-formedness of postcondition
+      //     assume false;  // don't go on to check the postconditions
       //   } else {
-      //     check well-formedness of body and check the postconditions themselves
+      //     check well-formedness of body
+      //     // fall through to check the postconditions themselves
       //   }
       // Here go the postconditions (termination checks included, but no reads checks)
       StmtListBuilder postCheckBuilder = new StmtListBuilder();
@@ -1598,7 +1610,10 @@ namespace Microsoft.Dafny {
       }
       // Here goes the body (and include both termination checks and reads checks)
       StmtListBuilder bodyCheckBuilder = new StmtListBuilder();
-      if (f.Body != null) {
+      if (f.Body == null) {
+        // don't fall through to postcondition checks
+        bodyCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.False));
+      } else {
         Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
         Bpl.ExprSeq args = new Bpl.ExprSeq();
         args.Add(etran.HeapExpr);
@@ -1609,18 +1624,9 @@ namespace Microsoft.Dafny {
 
         DefineFrame(f.tok, f.Reads, bodyCheckBuilder, locals, null);
         CheckWellformedWithResult(f.Body, new WFOptions(f, null, true), funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
-
-        // check that postconditions hold
-        foreach (Expression p in f.Ens) {
-          bool splitHappened;  // we actually don't care
-          foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
-            if (!s.IsFree) {
-              bodyCheckBuilder.Add(Assert(s.E.tok, s.E, "possible violation of function postcondition"));
-            }
-          }
-        }
       }
-      // Combine the two
+      // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
+      postCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.False));
       builder.Add(new Bpl.IfCmd(f.tok, null, postCheckBuilder.Collect(f.tok), null, bodyCheckBuilder.Collect(f.tok)));
 
       Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,

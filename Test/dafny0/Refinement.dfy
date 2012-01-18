@@ -88,7 +88,7 @@ module SomeBody refines BodyFree {
 
 module FullBodied refines BodyFree {
   function F(x: int): int
-  { x } // error: does not meet the inherited postcondition (note, confusing error-message location)
+  { x } // error: does not meet the inherited postcondition
   method M() returns (a: int, b: int)
   {  // error: does not establish postcondition
     a := b + 1;
