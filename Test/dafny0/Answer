@@ -1338,11 +1338,18 @@ Execution trace:
 Refinement.dfy(61,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Refinement.dfy(70,17): Error: assertion violation
+Refinement.dfy(71,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(69,15): Error: possible violation of function postcondition
+Execution trace:
+    (0,0): anon3_Else
+Refinement.dfy(93,3): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(74,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 29 verified, 4 errors
+Dafny program verifier finished with 28 verified, 6 errors
 
 -------------------- RefinementErrors.dfy --------------------
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions

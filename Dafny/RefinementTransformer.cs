@@ -120,7 +120,11 @@ namespace Microsoft.Dafny {
     }
 
     IToken Tok(IToken tok) {
-      return new RefinementToken(tok, moduleUnderConstruction);
+      if (moduleUnderConstruction == null) {
+        return tok;
+      } else {
+        return new RefinementToken(tok, moduleUnderConstruction);
+      }
     }
 
     // -------------------------------------------------- Cloning ---------------------------------------------------------------
@@ -164,29 +168,10 @@ namespace Microsoft.Dafny {
         return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
       } else if (member is Function) {
         var f = (Function)member;
-        return CloneFunction(f, f.IsGhost, null, null);
+        return CloneFunction(f, f.IsGhost, null, null, null);
       } else {
         var m = (Method)member;
-        return CloneMethod(m, CloneBlockStmt(m.Body));
-      }
-    }
-
-    Method CloneMethod(Method m, BlockStmt body) {
-      Contract.Requires(m != null);
-      Contract.Requires(body != null);
-
-      var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
-      var ins = m.Ins.ConvertAll(CloneFormal);
-      var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
-      var mod = CloneSpecFrameExpr(m.Mod);
-      var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
-      var decreases = CloneSpecExpr(m.Decreases);
-      if (m is Constructor) {
-        return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, null);
-      } else {
-        return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, null);
+        return CloneMethod(m, null, null);
       }
     }
 
@@ -517,25 +502,35 @@ namespace Microsoft.Dafny {
       return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
-    Function CloneFunction(Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody) {
+    Function CloneFunction(Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody) {
       Contract.Requires(moreBody == null || f is Predicate);
+      Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
       var req = f.Req.ConvertAll(CloneExpr);
       var reads = f.Reads.ConvertAll(CloneFrameExpr);
+      var decreases = CloneSpecExpr(f.Decreases);
+
+      var previousModuleUnderConstruction = moduleUnderConstruction;
+      if (moreBody != null || replacementBody != null) { moduleUnderConstruction = null; }
       var ens = f.Ens.ConvertAll(CloneExpr);
+      moduleUnderConstruction = previousModuleUnderConstruction;
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
-      var decreases = CloneSpecExpr(f.Decreases);
-      var body = CloneExpr(f.Body);
-      if (moreBody != null) {
-        if (body == null) {
+
+      Expression body;
+      if (replacementBody != null) {
+        body = replacementBody;
+      } else if (moreBody != null) {
+        if (f.Body == null) {
           body = moreBody;
         } else {
-          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, body, moreBody);
+          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, CloneExpr(f.Body), moreBody);
         }
+      } else {
+        body = CloneExpr(f.Body);
       }
 
       if (f is Predicate) {
@@ -544,6 +539,33 @@ namespace Microsoft.Dafny {
       } else {
         return new Function(Tok(f.tok), f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null);
+      }
+    }
+
+    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, BlockStmt replacementBody) {
+      Contract.Requires(m != null);
+
+      var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
+      var ins = m.Ins.ConvertAll(CloneFormal);
+      var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
+      var mod = CloneSpecFrameExpr(m.Mod);
+      var decreases = CloneSpecExpr(m.Decreases);
+
+      var previousModuleUnderConstruction = moduleUnderConstruction;
+      if (replacementBody != null) { moduleUnderConstruction = null; }
+      var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
+      if (replacementBody != null) { moduleUnderConstruction = previousModuleUnderConstruction; }
+      if (moreEnsures != null) {
+        ens.AddRange(moreEnsures);
+      }
+
+      var body = replacementBody ?? CloneBlockStmt(m.Body);
+      if (m is Constructor) {
+        return new Constructor(Tok(m.tok), m.Name, tps, ins,
+          req, mod, ens, decreases, body, null);
+      } else {
+        return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, ens, decreases, body, null);
       }
     }
 
@@ -603,17 +625,17 @@ namespace Microsoft.Dafny {
               if (!TypesAreEqual(prevFunction.ResultType, f.ResultType)) {
                 reporter.Error(f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
               }
-              
-              var newBody = f.Body;
-              if (newBody != null) {
-                if (prevFunction.Body == null || isPredicate) {
-                  // cool
-                } else {
-                  reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
-                  newBody = null;
-                }
+
+              Expression moreBody = null;
+              Expression replacementBody = null;
+              if (isPredicate) {
+                moreBody = f.Body;
+              } else if (prevFunction.Body == null) {
+                replacementBody = f.Body;
+              } else if (f.Body != null) {
+                reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
-              nw.Members[index] = CloneFunction(prevFunction, f.IsGhost, f.Ens, newBody);
+              nw.Members[index] = CloneFunction(prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody);
             }
 
           } else {
@@ -644,20 +666,16 @@ namespace Microsoft.Dafny {
               CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
               CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
 
-              var newBody = m.Body;
-              if (newBody != null) {
+              var replacementBody = m.Body;
+              if (replacementBody != null) {
                 if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  reporter.Error(m, "body of refining method is not yet supported");  // TODO
-                  newBody = null;
+                  reporter.Error(m, "body of refining method is not yet supported");  // TODO (merge the new body into the old)
+                  replacementBody = null;
                 }
               }
-              var clone = CloneMethod(prevMethod, newBody ?? CloneBlockStmt(prevMethod.Body));
-              foreach (var e in m.Ens) {
-                clone.Ens.Add(e);
-              }
-              nw.Members[index] = clone;
+              nw.Members[index] = CloneMethod(prevMethod, m.Ens, replacementBody);
             }
           }
         }

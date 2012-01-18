@@ -2047,6 +2047,7 @@ namespace Microsoft.Dafny {
   public class LiteralExpr : Expression {
     public readonly object Value;
 
+    [Pure]
     public static bool IsTrue(Expression e) {
       Contract.Requires(e != null);
       if (e is LiteralExpr) {

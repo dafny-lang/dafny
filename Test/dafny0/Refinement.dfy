@@ -66,6 +66,7 @@ module C_AnonymousClass refines B_AnonymousClass {
 
 module BodyFree {
   function F(x: int): int
+    ensures 0 <= F(x);
   method TestF() {
     assert F(6) == F(7);  // error: no information about F so far
   }
@@ -86,10 +87,12 @@ module SomeBody refines BodyFree {
 }
 
 module FullBodied refines BodyFree {
-//SOON:  method M() returns (a: int, b: int)
-//  {  // error: does not establish postcondition
-//    a := b + 1;
-//  }
+  function F(x: int): int
+  { x } // error: does not meet the inherited postcondition (note, confusing error-message location)
+  method M() returns (a: int, b: int)
+  {  // error: does not establish postcondition
+    a := b + 1;
+  }
 }
 
 // ------------------------------------------------
