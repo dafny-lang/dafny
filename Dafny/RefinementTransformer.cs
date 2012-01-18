@@ -164,23 +164,29 @@ namespace Microsoft.Dafny {
         return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
       } else if (member is Function) {
         var f = (Function)member;
-        return CloneFunction(f, null, null);
+        return CloneFunction(f, f.IsGhost, null, null);
       } else {
         var m = (Method)member;
-        var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
-        var ins = m.Ins.ConvertAll(CloneFormal);
-        var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
-        var mod = CloneSpecFrameExpr(m.Mod);
-        var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
-        var decreases = CloneSpecExpr(m.Decreases);
-        var body = CloneBlockStmt(m.Body);
-        if (member is Constructor) {
-          return new Constructor(Tok(m.tok), m.Name, tps, ins,
-            req, mod, ens, decreases, body, null);
-        } else {
-          return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-            req, mod, ens, decreases, body, null);
-        }
+        return CloneMethod(m, CloneBlockStmt(m.Body));
+      }
+    }
+
+    Method CloneMethod(Method m, BlockStmt body) {
+      Contract.Requires(m != null);
+      Contract.Requires(body != null);
+
+      var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
+      var ins = m.Ins.ConvertAll(CloneFormal);
+      var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
+      var mod = CloneSpecFrameExpr(m.Mod);
+      var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
+      var decreases = CloneSpecExpr(m.Decreases);
+      if (m is Constructor) {
+        return new Constructor(Tok(m.tok), m.Name, tps, ins,
+          req, mod, ens, decreases, body, null);
+      } else {
+        return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, ens, decreases, body, null);
       }
     }
 
@@ -511,7 +517,7 @@ namespace Microsoft.Dafny {
       return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
-    Function CloneFunction(Function f, List<Expression> moreEnsures, Expression moreBody) {
+    Function CloneFunction(Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody) {
       Contract.Requires(moreBody == null || f is Predicate);
 
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
@@ -533,10 +539,10 @@ namespace Microsoft.Dafny {
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.OpenParen, formals,
+        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, moreBody != null, null);
       } else {
-        return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
+        return new Function(Tok(f.tok), f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null);
       }
     }
@@ -570,22 +576,44 @@ namespace Microsoft.Dafny {
             if (!(member is Function) || isPredicate && !(member is Predicate)) {
               reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", s, nwMember.Name);
             } else {
-              if (f.Decreases.Expressions.Count != 0) {
-                reporter.Error(nwMember, "decreases clause on refining {0} not supported", s);
+              var prevFunction = (Function)member;
+              if (f.Req.Count != 0) {
+                reporter.Error(f.Req[0].tok, "a refining {0} is not allowed to add preconditions", s);
               }
               if (f.Reads.Count != 0) {
-                reporter.Error(nwMember, "a refining {0} is not allowed to extend the reads clause", s);
+                reporter.Error(f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", s);
               }
-              if (f.Req.Count != 0) {
-                reporter.Error(nwMember, "a refining {0} is not allowed to add preconditions", s);
+              if (f.Decreases.Expressions.Count != 0) {
+                reporter.Error(f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", s);
               }
-              // TODO: check agreement for f.TypeArgs, f.ResultType, f.Formals, and flags.  For now, they are ignored and assumed to be the same.
+
+              if (prevFunction.IsStatic != f.IsStatic) {
+                reporter.Error(f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
+              }
+              if (prevFunction.IsUnlimited != f.IsUnlimited) {
+                reporter.Error(f, "a function in a refining module cannot be changed from unlimited to limited or vice versa: {0}", f.Name);
+              }
+              if (!prevFunction.IsGhost && f.IsGhost) {
+                reporter.Error(f, "a function method cannot be changed into a (ghost) function in a refining module: {0}", f.Name);
+              } else if (prevFunction.IsGhost && !f.IsGhost && prevFunction.Body != null) {
+                reporter.Error(f, "a function can be changed into a function method in a refining module only if the function has not yet been given a body: {0}", f.Name);
+              }
+              CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
+              CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
+              if (!TypesAreEqual(prevFunction.ResultType, f.ResultType)) {
+                reporter.Error(f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+              }
+              
               var newBody = f.Body;
-              if (newBody != null && !isPredicate) {
-                reporter.Error(nwMember, "a refining function is not allowed to provided a body");
-                newBody = null;
+              if (newBody != null) {
+                if (prevFunction.Body == null || isPredicate) {
+                  // cool
+                } else {
+                  reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
+                  newBody = null;
+                }
               }
-              nw.Members[index] = CloneFunction((Function)member, f.Ens, newBody);
+              nw.Members[index] = CloneFunction(prevFunction, f.IsGhost, f.Ens, newBody);
             }
 
           } else {
@@ -593,22 +621,41 @@ namespace Microsoft.Dafny {
             if (!(member is Method)) {
               reporter.Error(nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
             } else {
-              var clone = (Method)CloneMember(member);
-              if (m.Decreases.Expressions.Count != 0) {
-                reporter.Error(nwMember, "decreases clause on refining method not supported");
+              var prevMethod = (Method)member;
+              if (m.Req.Count != 0) {
+                reporter.Error(m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
               }
               if (m.Mod.Expressions.Count != 0) {
-                reporter.Error(nwMember, "a refining method is not allowed to extend the modifies clause");
+                reporter.Error(m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
               }
-              if (m.Req.Count != 0) {
-                reporter.Error(nwMember, "a refining method is not allowed to add preconditions");
+              if (m.Decreases.Expressions.Count != 0) {
+                reporter.Error(m.Decreases.Expressions[0].tok, "decreases clause on refining method not supported");
               }
-              // TODO: check agreement for m.TypeArgs, m.Ins, m.Outs, and flags.  For now, they are ignored and assumed to be the same.
+
+              if (prevMethod.IsStatic != m.IsStatic) {
+                reporter.Error(m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
+              }
+              if (prevMethod.IsGhost && !m.IsGhost) {
+                reporter.Error(m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
+              } else if (!prevMethod.IsGhost && m.IsGhost) {
+                reporter.Error(m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
+              }
+              CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
+              CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
+              CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
+
+              var newBody = m.Body;
+              if (newBody != null) {
+                if (prevMethod.Body == null) {
+                  // cool
+                } else {
+                  reporter.Error(m, "body of refining method is not yet supported");  // TODO
+                  newBody = null;
+                }
+              }
+              var clone = CloneMethod(prevMethod, newBody ?? CloneBlockStmt(prevMethod.Body));
               foreach (var e in m.Ens) {
                 clone.Ens.Add(e);
-              }
-              if (m.Body != null) {
-                reporter.Error(nwMember, "body of refining method is not yet supported");  // TODO
               }
               nw.Members[index] = clone;
             }
@@ -617,6 +664,57 @@ namespace Microsoft.Dafny {
       }
 
       return nw;
+    }
+
+    void CheckAgreement_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing) {
+      Contract.Requires(tok != null);
+      Contract.Requires(old != null);
+      Contract.Requires(nw != null);
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      if (old.Count != nw.Count) {
+        reporter.Error(tok, "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than the corresponding {0} in the module it refines", thing, name, nw.Count, old.Count);
+      } else {
+        for (int i = 0; i < old.Count; i++) {
+          var o = old[i];
+          var n = nw[i];
+          if (o.Name != n.Name) {
+            reporter.Error(n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
+          }
+        }
+      }
+    }
+
+    void CheckAgreement_Parameters(IToken tok, List<Formal> old, List<Formal> nw, string name, string thing, string parameterKind) {
+      Contract.Requires(tok != null);
+      Contract.Requires(old != null);
+      Contract.Requires(nw != null);
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      Contract.Requires(parameterKind != null);
+      if (old.Count != nw.Count) {
+        reporter.Error(tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it refines", thing, name, parameterKind, nw.Count, old.Count);
+      } else {
+        for (int i = 0; i < old.Count; i++) {
+          var o = old[i];
+          var n = nw[i];
+          if (o.Name != n.Name) {
+            reporter.Error(n.tok, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
+          } else if (!o.IsGhost && n.IsGhost) {
+            reporter.Error(n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
+          } else if (o.IsGhost && !n.IsGhost) {
+            reporter.Error(n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+          } else if (!TypesAreEqual(o.Type, n.Type)) {
+            reporter.Error(n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
+          }
+        }
+      }
+    }
+
+    bool TypesAreEqual(Type t, Type u) {
+      Contract.Requires(t != null);
+      Contract.Requires(u != null);
+      return t.ToString() == u.ToString();
     }
 
     // ---------------------- additional methods -----------------------------------------------------------------------------

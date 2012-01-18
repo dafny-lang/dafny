@@ -63,6 +63,36 @@ module C_AnonymousClass refines B_AnonymousClass {
 }
 
 // ------------------------------------------------
+
+module BodyFree {
+  function F(x: int): int
+  method TestF() {
+    assert F(6) == F(7);  // error: no information about F so far
+  }
+  method M() returns (a: int, b: int)
+    ensures a == b;
+}
+
+module SomeBody refines BodyFree {
+  function F(x: int): int
+  { if x < 0 then 2 else 3 }
+  method TestFAgain() {
+    assert F(6) == F(7);
+  }
+  method M() returns (a: int, b: int)
+  {
+    a := b;  // good
+  }
+}
+
+module FullBodied refines BodyFree {
+//SOON:  method M() returns (a: int, b: int)
+//  {  // error: does not establish postcondition
+//    a := b + 1;
+//  }
+}
+
+// ------------------------------------------------
 /*  SOON
 module Abstract {
   class MyNumber {
