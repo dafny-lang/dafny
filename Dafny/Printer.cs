@@ -1080,6 +1080,7 @@ namespace Microsoft.Dafny {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
+        wr.Write("var ");
         string sep = "";
         foreach (var v in e.Vars) {
           wr.Write("{0}{1}", sep, v.Name);

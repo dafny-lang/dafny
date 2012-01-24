@@ -1674,3 +1674,23 @@ Execution trace:
     (0,0): anon6_Else
 
 Dafny program verifier finished with 58 verified, 21 errors
+
+-------------------- LetExpr.dfy --------------------
+LetExpr.dfy(5,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LetExpr.dfy(104,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+
+Dafny program verifier finished with 13 verified, 2 errors
+out.tmp.dfy(10,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(101,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+
+Dafny program verifier finished with 13 verified, 2 errors

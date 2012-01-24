@@ -27,7 +27,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f
 )
 
-for %%f in (SmallTests.dfy) do (
+for %%f in (SmallTests.dfy LetExpr.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /dprint:out.tmp.dfy %* %%f

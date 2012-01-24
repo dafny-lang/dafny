@@ -1,5 +1,5 @@
 method M0(n: int)
-  requires var f := 100; n < f;
+  requires var f := 100; n < f; requires var t, f := true, false; (t && f) || n < 100;
 {
   assert n < 200;
   assert 0 <= n;  // error
