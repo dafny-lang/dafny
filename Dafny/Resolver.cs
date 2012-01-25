@@ -1758,6 +1758,8 @@ namespace Microsoft.Dafny {
             if (tr.CanAffectPreviouslyKnownExpressions) {
               Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
             }
+            var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, tr);
+            s.ResolvedStatements.Add(a);
           }
         }
 
