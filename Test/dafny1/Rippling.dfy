@@ -303,7 +303,7 @@ ghost method P1()
 }
 
 ghost method P2()
-  ensures forall n, xs, ys :: add(count(n, xs), count(n, ys)) == count(n, (concat(xs, ys)));
+  ensures forall n, xs, ys :: add(count(n, xs), count(n, ys)) == count(n, concat(xs, ys));
 {
 }
 

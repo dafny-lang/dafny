@@ -545,16 +545,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= indent);
       if (expr == null) {
         // allow "null" as an argument; nothing to do
-      } else if (expr is LetExpr) {
+        return;
+      }
+      if (expr is LetExpr) {
         var e = (LetExpr)expr;
         foreach (var v in e.Vars) {
           Indent(indent);
           wr.WriteLine("{0} @{1};", TypeName(v.Type), v.Name);
         }
-      } else {
-        foreach (var ee in expr.SubExpressions) {
-          SpillLetVariableDecls(ee, indent);
-        }
+      }
+      foreach (var ee in expr.SubExpressions) {
+        SpillLetVariableDecls(ee, indent);
       }
     }
 
