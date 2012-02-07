@@ -1,0 +1,63 @@
+interface DList[T] {
+  var list: seq[T]
+
+  constructor Empty()
+    ensures list = []
+
+  constructor Singleton(t: T)
+    ensures list = [t]
+
+  constructor Double(p: T, q: T)
+    ensures list = [p q]
+}
+
+datamodel DList[T] {
+  var root: DNode[T]
+
+  frame
+    root
+
+  invariant
+    root = null ==> |list| = 0
+    root != null ==> list = root.list
+}
+
+interface DNode[T] {
+  var list: seq[T]
+
+  invariant
+    |list| > 0
+
+  constructor Init(t: T)
+    ensures list = [t]
+
+  constructor Double(p: T, q: T)
+    ensures list = [p q]
+
+  method List() returns (ret: seq[T])
+    ensures ret = list
+
+  method Size() returns (ret: int)
+    ensures ret = |list|
+
+  method Get(idx: int) returns (ret: T)
+    requires idx >= 0 && idx < |list|
+    ensures ret = list[idx]
+
+  method Find(n: T) returns (ret: bool)
+    ensures ret = (n in list)
+}
+
+datamodel DNode[T] {
+  var data: T
+  var next: DNode[T]
+  var prev: DNode[T]
+  
+  frame 
+    next
+
+  invariant
+    next = null ==> list = [data]
+    next != null ==> (list = [data] + next.list  &&  next.prev = this)
+	prev != null ==> prev.next = this
+} 
