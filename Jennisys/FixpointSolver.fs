@@ -208,7 +208,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
       let lenExpr = SeqLength(lst)
       match lst with
       | BinaryExpr(_,"+",lhs,rhs) -> 
-          BinaryAdd (__fff lhs) (__fff rhs)          
+          BinaryAdd (__fff lhs) (__fff rhs)  //TODO: this ought to be incorrect!          
       | SequenceExpr(elist) -> 
           IntLiteral(List.length elist)
       | _ -> lenExpr
@@ -216,7 +216,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
 
   let BinaryInCombiner lhs rhs =
     // distribute the "in" operation if possible
-    let rec __fff lhs rhs = 
+    let __fff lhs rhs = 
       //Logger.TraceLine ("In fff for " + (PrintExpr 0 lhs) + " and " + (PrintExpr 0 rhs))
       let binInExpr = BinaryIn lhs rhs
 //      match rhs with

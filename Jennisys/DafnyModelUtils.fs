@@ -39,16 +39,6 @@ let GetElemFullName (elem: Model.Element) =
   elem.Names |> Seq.filter (fun ft -> ft.Func.Arity = 0)
              |> Seq.choose (fun ft -> Some(ft.Func.Name))
              |> Utils.SeqToOption
-           
-let GetElemName (elem: Model.Element) = 
-  let fullNameOpt = GetElemFullName elem
-  match fullNameOpt with
-  | Some(fullName) ->
-      let dotIdx = fullName.LastIndexOf(".")
-      let fldName = fullName.Substring(dotIdx + 1)
-      let clsName = if dotIdx = -1 then "" else fullName.Substring(0, dotIdx)
-      Some(clsName, fldName)
-  | None -> None
                                                    
 let GetRefName (ref: Model.Element) = 
   match ref with
@@ -73,13 +63,20 @@ let GetBool (elem: Model.Element) =
   | :? Model.Boolean as bval -> bval.Value
   | _ -> failwith ("not a bool element: " + elem.ToString())
 
+let LastDotSplit (str: string) = 
+  let dotIdx = str.LastIndexOf(".")
+  let s1 = if dotIdx = -1 then "" else str.Substring(0, dotIdx)
+  let s2 = str.Substring(dotIdx + 1)
+  s1,s2
+
 let GetType (e: Model.Element) prog = 
   let fNameOpt = GetElemFullName e
   match fNameOpt with
   | Some(fname) -> match fname with
                    | "intType"               -> Some(IntType)
                    | Prefix "class." clsName -> 
-                       match FindComponent prog clsName with
+                       let _,shortClsName = LastDotSplit clsName
+                       match FindComponent prog shortClsName with
                        | Some(comp) -> Some(GetClassType comp)
                        | None -> None
                    | _ -> None
@@ -155,9 +152,8 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         let fld = ft.Args.[2]
                         assert (Seq.length fld.Names = 1)
                         let fldFullName = (Seq.nth 0 fld.Names).Func.Name
-                        let dotIdx = fldFullName.LastIndexOf(".")
-                        let fldName = fldFullName.Substring(dotIdx + 1)
-                        let clsName = if dotIdx = -1 then "" else fldFullName.Substring(0, dotIdx)
+                        let pfix,fldName = LastDotSplit fldFullName
+                        let _,clsName = LastDotSplit pfix
                         let refVal = ft.Result
                         let refObj = Unresolved(GetRefName ref)
                         let nonebuilder = CascadingBuilder<_>(None)

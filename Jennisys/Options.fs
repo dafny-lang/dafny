@@ -76,6 +76,7 @@ let cfgOptions = [
   { optionName = "noRecValid";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with recursiveValid         = not (CheckBool v "noRecValid")});    descr = "unroll Valid() function"; }
   { optionName = "break";           optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with breakIntoDebugger      =      CheckBool v "break"});          descr = "launches debugger upon start-up"; }
   { optionName = "minGuards";       optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with minimizeGuards         =      CheckBool v "minGuards"});      descr = "tries to remove unnecessary clauses from the inferred guards"; }
+  { optionName = "noMinGuards";     optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with minimizeGuards         = not (CheckBool v "noMinGuards")});   descr = "don't minimize guards"; }
 ]
 
 let cfgOptMap = cfgOptions |> List.fold (fun acc o -> acc |> Map.add o.optionName o) Map.empty

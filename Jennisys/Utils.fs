@@ -207,11 +207,11 @@ let ListContains elem lst =
 let ListRemove elem lst = 
   lst |> List.choose (fun e -> if e = elem then None else Some(e))
 
-let rec ListRemoveNth n lst = 
-  if n = 0 then
+let rec ListRemoveIdx idx lst = 
+  if idx = 0 then
     List.tail lst
-  else
-    List.head lst :: ListRemoveNth (n-1) (List.tail lst)
+  else 
+    List.head lst :: ListRemoveIdx (idx - 1) (List.tail lst)  
 
 //  ===============================================================
 /// ensures: |ret| = max(|lst| - cnt, 0)

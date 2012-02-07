@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Debug\Language.XML</DocumentationFile>
-    <StartArguments>examples/List.jen /method:Node.Find</StartArguments>
+    <StartArguments>examples/DList.jen /method:DNode.Init /noGenMod</StartArguments>
     <StartWorkingDirectory>C:\boogie\Jennisys\Jennisys\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
@@ -80,6 +80,9 @@
     <Compile Include="Jennisys.fs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Boogie">
+      <HintPath>..\..\Binaries\Boogie.exe</HintPath>
+    </Reference>
     <Reference Include="FSharp.PowerPack">
       <HintPath>C:\Program Files\FSharpPowerPack-1.9.9.9\bin\FSharp.PowerPack.dll</HintPath>
     </Reference>

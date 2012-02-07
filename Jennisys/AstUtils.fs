@@ -613,11 +613,11 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
           | SequenceExpr(elist) -> IntLiteral(List.length elist) 
           | _ -> SeqLength(e') 
       | SequenceExpr(elist) -> 
-          let elist' = elist |> List.fold (fun acc e -> (__EvalSym resolverFunc returnFunc ctx e) :: acc) [] |> List.rev
+          let elist' = elist |> List.map (__EvalSym resolverFunc returnFunc ctx) // List.fold (fun acc e -> (__EvalSym resolverFunc returnFunc ctx e) :: acc) [] |> List.rev 
           SequenceExpr(elist') 
       | SetExpr(elist) -> 
-          let eset' = elist |> List.fold (fun acc e -> Set.add (__EvalSym resolverFunc returnFunc ctx e) acc) Set.empty
-          SetExpr(Set.toList eset') 
+          let elist' = elist |> List.map (__EvalSym resolverFunc returnFunc ctx) //List.fold (fun acc e -> Set.add (__EvalSym resolverFunc returnFunc ctx e) acc) Set.empty 
+          SetExpr(elist' |> Set.ofList |> Set.toList) 
       | MethodOutSelect(e,name) -> 
           MethodOutSelect(__EvalSym resolverFunc returnFunc ctx e, name)
       | MethodCall(rcv,cname, mname,aparams) ->
@@ -670,8 +670,6 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
           | "<" -> 
               match e1'.Force(), e2'.Force() with
               | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 < n2)
-              | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) < (List.length s2))
-              | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) < (List.length s2))
               | _ -> recomposed.Force()
           | "<=" -> 
               let e1'' = e1'.Force()
@@ -681,14 +679,10 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
               | Some(true) -> TrueLiteral
               | _ -> match e1'', e2'' with
                      | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 <= n2)
-                     | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) <= (List.length s2))
-                     | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) <= (List.length s2))
                      | _ -> recomposed.Force()
           | ">" -> 
               match e1'.Force(), e2'.Force() with
               | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 > n2)
-              | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) > (List.length s2))
-              | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) > (List.length s2))
               | _ -> recomposed.Force()
           | ">=" -> 
               let e1'' = e1'.Force()
@@ -698,8 +692,6 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
               | Some(true) -> TrueLiteral
               | _ -> match e1'', e2'' with
                      | IntLiteral(n1), IntLiteral(n2)     -> BoolLiteral(n1 >= n2)
-                     | SetExpr(s1), SetExpr(s2)           -> BoolLiteral((List.length s1) >= (List.length s2))
-                     | SequenceExpr(s1), SequenceExpr(s2) -> BoolLiteral((List.length s1) >= (List.length s2))
                      | _ -> recomposed.Force()
           | ".." ->
               let e1'' = e1'.Force()
@@ -764,7 +756,6 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
               | BoolLiteral(false) -> BoolLiteral(false)
               | _ ->
                   match e1'.Force(), e2'.Force() with
-                  | BoolLiteral(false), _            -> BoolLiteral(false)
                   | _, BoolLiteral(false)            -> BoolLiteral(false)
                   | BoolLiteral(b1), BoolLiteral(b2) -> BoolLiteral(b1 && b2)
                   | _ -> BinaryAnd (e1'.Force()) (e2'.Force())
@@ -774,7 +765,6 @@ let EvalSym2 fullResolverFunc otherResolverFunc returnFunc ctx expr =
               | BoolLiteral(true) -> BoolLiteral(true)
               | _ ->
                   match e1'.Force(), e2'.Force() with
-                  | BoolLiteral(true), _             -> BoolLiteral(true)
                   | _, BoolLiteral(true)             -> BoolLiteral(true)
                   | BoolLiteral(b1), BoolLiteral(b2) -> BoolLiteral(b1 || b2)
                   | _ -> BinaryOr (e1'.Force()) (e2'.Force())

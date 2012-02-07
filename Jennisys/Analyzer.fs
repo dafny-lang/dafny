@@ -406,7 +406,7 @@ let FindClauses trueOnly resolverFunc heapInst expr =
               let exprAllResolved = EvalFull heapInst expr
               match exprAllResolved with
               | BoolLiteral(true) -> acc @ (exprEval |> SplitIntoConjunts)
-              | BoolLiteral(false) -> if trueOnly then acc else acc @ (UnaryNot exprEval |> SplitIntoConjunts)
+              | BoolLiteral(false) -> acc //if trueOnly then acc else acc @ (UnaryNot exprEval |> SplitIntoConjunts)
               | _ -> acc
     with
     | _ -> acc
@@ -416,24 +416,6 @@ let FindClauses trueOnly resolverFunc heapInst expr =
 /// Descends down a given expression and returns all sub-expressions that evaluate to TrueLiteral
 let FindTrueClauses resolverFunc heapInst expr = 
   FindClauses true resolverFunc heapInst expr
-//  let MyFun expr acc =
-//    try
-//      match expr with
-//      // skip binary logical operators because we want to find smallest sub-expressions
-//      | BinaryExpr(_,op,_,_) when IsLogicalOp op -> acc 
-//      | _ ->
-//          let exprEval = EvalAndCheckTrue heapInst resolverFunc expr
-//          match exprEval with
-//          | _ when exprEval = TrueLiteral -> acc
-//          | _ ->
-//              let exprAllResolved = EvalFull heapInst expr
-//              match exprAllResolved with
-//              | BoolLiteral(true) -> acc @ [exprEval]
-//              | _ -> acc
-//    with
-//    | _ -> acc
-//  (* --- function body starts here --- *)
-//  DescendExpr2 MyFun expr []
 
 /// Returns a list of boolean expressions obtained by combining (in some way) 
 /// the two given list of conditions conditions
@@ -455,6 +437,42 @@ let GetAllPossibleConditions specConds argConds aliasingConds =
   let allConds = aliasing @ specConj @ argsIndi @ specIndi @ argsConj
   allConds |> List.filter (fun e -> not (e = TrueLiteral)) 
            |> Utils.ListDeduplicate
+
+// check whther a given solution (in the form of heapInst) verifies assuming a given guard
+let rec CheckGuard prog comp m candCond indent idt heapInst callGraph =
+  let rec __MinGuard guard idx m2 sol = 
+    let conjs = SplitIntoConjunts guard
+    let len = List.length conjs
+    if idx >= 0 && idx < len && len > 1 then
+      let guard' = conjs |> Utils.ListRemoveIdx (len - idx - 1) |> List.fold BinaryAnd TrueLiteral
+      match CheckGuard prog comp m guard' indent idt heapInst callGraph with
+      | Some(x) -> x
+      | None -> __MinGuard guard (idx+1) m2 sol
+    else
+      guard, m2, sol
+
+  let m2 = AddPrecondition m candCond
+  let sol = MakeModular (indent+2) prog comp m2 candCond heapInst callGraph
+  Logger.Info (idt + "    - verifying partial solution ... ")
+  let verified = 
+    if Options.CONFIG.verifyPartialSolutions then
+      VerifySolution prog sol Options.CONFIG.genRepr
+    else 
+      true
+  if verified then
+    if Options.CONFIG.verifyPartialSolutions then Logger.InfoLine "VERIFIED" else Logger.InfoLine "SKIPPED"
+    if Options.CONFIG.minimizeGuards then
+      Logger.InfoLine(idt + "    - minimizing guard ... " + (PrintExpr 0 candCond))
+      Some(__MinGuard candCond 0 m2 sol)
+    else
+      Some(candCond,m2,sol)
+  else 
+    Logger.InfoLine ("NOT VERIFIED")
+    None
+        
+// iteratively tries to remove conjunts and check whether the solutions still verifies
+//let MinimizeGuard guard prog comp m heapInst callGraph indent = 
+
 
 //  ============================================================================
 /// Attempts to synthesize the initialization code for the given constructor "m"
@@ -733,32 +751,6 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph premises =
   let loggerFunc = fun e -> Logger.TraceLine (sprintf "%s    --> %s" idt (PrintExpr 0 e))
   let methodArgs = GetMethodInArgs m
 
-  /// Tries to minimize the guard for a given (already verified) solution
-  let rec __MinimizeGuard oldGuard guard c m sol i = 
-    let guardList = SplitIntoConjunts guard
-    Logger.TraceLine (sprintf "Minimizing guard: %s [%i]" (PrintExpr 0 guard) i)
-    let ___ReplaceGuard newGuard sol =  
-      let lst = sol |> Map.find (c,m)
-      let newLst = lst |> List.map (fun (g,hInst) -> if g = guard then (newGuard,hInst) else (g,hInst))
-      if newLst = lst then 
-        Logger.TraceLine "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa lst aaaaaaaaaaaaaaaaaaaaaaa" else ()
-      let newMeth = SetPrecondition m (BinaryAnd oldGuard newGuard)
-      let newSol = sol |> Utils.MapReplaceKey (c,m) (c,newMeth) newLst
-      if newSol = sol then Logger.TraceLine "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa sol aaaaaaaaaaaaaaaaaaaaaaaaaa" else ()
-      newMeth,newSol
-    if i >= List.length guardList || List.length guardList <= 1 then
-      guard,m,sol
-    else
-      let newGuardList = Utils.ListRemoveNth i guardList
-      let newGuard = newGuardList |> List.fold BinaryAnd TrueLiteral
-      let m',sol' = ___ReplaceGuard newGuard sol
-      let verified = VerifySolution prog sol' Options.CONFIG.genRepr
-      if verified then
-        Logger.TraceLine (sprintf "clause %s successfully removed" (PrintExpr 0 (List.nth guardList i)))
-        __MinimizeGuard oldGuard newGuard c m' sol' 0
-      else 
-        __MinimizeGuard oldGuard guard c m sol (i+1)
-
   /// Iterates through a given list of boolean conditions and checks
   /// which one suffices.  If it finds such a condition, it returns
   /// the following three things: 
@@ -777,30 +769,9 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph premises =
         Logger.InfoLine (sprintf "%s    candidate pre-condition: %s" idt (PrintExpr 0 candCond))
         Logger.InfoLine (sprintf "%s    ------------------------" idt)
         let idt = idt + "  "
-        let oldPrecondition = GetMethodPre m
-        let m2 = AddPrecondition m candCond
-        let sol = MakeModular (indent+2) prog comp m2 candCond heapInst callGraph
-        Logger.Info (idt + "    - verifying partial solution ... ")
-        let verified = 
-          if Options.CONFIG.verifyPartialSolutions then
-            VerifySolution prog sol Options.CONFIG.genRepr
-          else 
-            true
-        if verified then
-          if Options.CONFIG.verifyPartialSolutions then 
-            Logger.InfoLine "VERIFIED" 
-            let g',m',sol' = 
-              if Options.CONFIG.minimizeGuards then
-                __MinimizeGuard oldPrecondition candCond comp m2 sol 0
-              else 
-                candCond,m2,sol
-            Some(g',m',sol')
-          else 
-            Logger.InfoLine "SKIPPED"
-            Some(candCond,m2,sol)
-        else 
-          Logger.InfoLine "NOT VERIFIED"
-          __TryOutConditions heapInst rest
+        match CheckGuard prog comp m candCond indent idt heapInst callGraph with
+        | Some(guard, m2, sol) -> Some(guard, m2, sol)
+        | None -> __TryOutConditions heapInst rest        
 
   if IsSolution1stLevelOnly heapInst then
     // try to find a non-recursive solution
@@ -828,6 +799,7 @@ and TryInferConditionals indent prog comp m unifs heapInst callGraph premises =
 
     match __TryOutConditions heapInst allConds with
     | Some(candCond,m2,sol) ->
+        Logger.InfoLine (idt + " - guard found: " + (PrintExpr 0 candCond))
         let solThis = match TryFindExistingAndConvertToSolution indent comp m2 candCond callGraph with
                       | Some(sol2) -> sol2
                       | None -> sol 

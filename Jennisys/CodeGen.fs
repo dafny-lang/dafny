@@ -9,6 +9,7 @@ open TypeChecker
 open PrintUtils
 open DafnyPrinter
 open DafnyModelUtils
+open Options
 
 let validFuncName = "Valid()"
 let validSelfFuncName = "Valid_self()"
@@ -48,19 +49,22 @@ let GetFieldValidExpr flds validFunName numUnrolls =
   // add the recursive definition as well
   let recExprs = 
     if not (validFunName = validFuncName) && Options.CONFIG.recursiveValid then
-      flds |> List.map (fun var -> 
+      flds //|> List.filter (fun var -> not ((GetExtVarName var).StartsWith("_back_"))) //don't use back pointers
+           |> List.map (fun var -> 
                           let name = GetExtVarName var
                           BinaryImplies (BinaryNeq (IdLiteral(name)) NullLiteral) (Dot(IdLiteral(name), validFuncName)))
     else
       []
   recExprs @ unrolledExprs
 
-let GetFieldsForValidExpr allFields prog : VarDecl list =
+let GetFieldsForValidExpr allFields prog comp : VarDecl list =
+  let frameVars = GetFrameFields comp
   allFields |> List.filter (fun var -> IsUserType prog (GetVarType var))
+            |> List.filter (fun var -> Utils.ListContains var frameVars)
 
 let GetFieldsValidExprList clsName allFields prog : Expr list =
-  let fields = GetFieldsForValidExpr allFields prog
-  let fieldsByType = GroupFieldsByType fields
+  let fields = GetFieldsForValidExpr allFields prog (FindComponent prog clsName |> ExtractOption)
+  let fieldsByType = GroupFieldsByType fields 
   fieldsByType |> Map.fold (fun acc t varSet ->
                               let validFunName, numUnrolls = 
                                 match t with
@@ -234,26 +238,48 @@ let PrintReprAssignments prog heapInst indent =
                                   |> Set.toList
                                   |> Utils.TopSort __FollowsFunc
                                   |> List.rev
+  let rec __GetReprConcrete obj = 
+    let expr = SetExpr([ObjLiteral(obj.name)])
+    let builder = CascadingBuilder<_>(expr)
+    builder {
+      let typeName = GetTypeShortName obj.objType
+      let! comp = FindComponent prog typeName
+      let vars = GetFrameFields comp
+      let nonNullVars = vars |> List.choose (fun v -> 
+                                               let lst = heapInst.assignments |> List.choose (function FieldAssignment(x,y) -> Some(x,y) | _ -> None)
+                                               match Utils.ListMapTryFind (obj,v) lst with
+                                               | Some(ObjLiteral(n)) when not (n = "null" || n = obj.name) -> Some(v,n)
+                                               | _ -> None)      
+      return nonNullVars  |> List.map (fun (var,objName) -> var,(Map.find objName heapInst.objs))
+                          |> List.fold (fun acc (var,varValObj) -> 
+                                         if Options.CONFIG.genMod then
+                                            BinaryAdd acc (Dot(Dot(ObjLiteral(obj.name), (GetVarName var)), "Repr"))
+                                          else
+                                            BinaryAdd acc (__GetReprConcrete varValObj)
+                                       ) expr
+    }
+
   let reprGetsList = objs |> List.fold (fun acc obj -> 
-                                          let expr = SetExpr([ObjLiteral(obj.name)])
-                                          let builder = CascadingBuilder<_>(expr)
-                                          let fullRhs = builder {
-                                            let typeName = GetTypeShortName obj.objType
-                                            let! comp = FindComponent prog typeName
-                                            let vars = GetFrameFields comp
-                                            let nonNullVars = vars |> List.filter (fun v -> 
-                                                                                      let lst = heapInst.assignments |> List.choose (function FieldAssignment(x,y) -> Some(x,y) | _ -> None)
-                                                                                      match Utils.ListMapTryFind (obj,v) lst with
-                                                                                      | Some(ObjLiteral(n)) when not (n = "null") -> true
-                                                                                      | _ -> false)
-                                            return nonNullVars |> List.fold (fun a v -> 
-                                                                                BinaryAdd a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
-                                                                            ) expr
-                                          }
-                                          let fullReprExpr = BinaryGets (Dot(ObjLiteral(obj.name), "Repr")) fullRhs 
-                                          fullReprExpr :: acc
+                                          let objStmt = BinaryGets (Dot(ObjLiteral(obj.name), "Repr")) (__GetReprConcrete obj)
+                                          objStmt :: acc
+//                                          let expr = SetExpr([ObjLiteral(obj.name)])
+//                                          let builder = CascadingBuilder<_>(expr)
+//                                          let fullRhs = builder {
+//                                            let typeName = GetTypeShortName obj.objType
+//                                            let! comp = FindComponent prog typeName
+//                                            let vars = GetFrameFields comp
+//                                            let nonNullVars = vars |> List.filter (fun v -> 
+//                                                                                      let lst = heapInst.assignments |> List.choose (function FieldAssignment(x,y) -> Some(x,y) | _ -> None)
+//                                                                                      match Utils.ListMapTryFind (obj,v) lst with
+//                                                                                      | Some(ObjLiteral(n)) when not (n = "null") -> true
+//                                                                                      | _ -> false)
+//                                            return nonNullVars |> List.fold (fun a v -> 
+//                                                                                BinaryAdd a (Dot(Dot(ObjLiteral(obj.name), (GetVarName v)), "Repr"))
+//                                                                            ) expr
+//                                          }
+//                                          let fullReprExpr = BinaryGets (Dot(ObjLiteral(obj.name), "Repr")) fullRhs 
+//                                          fullReprExpr :: acc
                                         ) []
-  let reprValidExpr = GetAllocObjects heapInst |> Set.fold (fun acc obj -> BinaryAnd acc (Dot(ObjLiteral(obj.name), validFuncName))) TrueLiteral
   
   let reprStr = if not (reprGetsList = []) then
                   idt + "// repr stuff" + newline + 
@@ -261,6 +287,8 @@ let PrintReprAssignments prog heapInst indent =
                 else
                   ""
 
+  let reprValidExpr = GetAllocObjects heapInst |> Set.fold (fun acc obj -> BinaryAnd acc (Dot(ObjLiteral(obj.name), validFuncName))) TrueLiteral
+ 
   let assertValidStr = if not (reprValidExpr = TrueLiteral) then
                          idt + "// assert repr objects are valid (helps verification)" + newline +
                          (PrintStmt (ExprStmt(AssertExpr(reprValidExpr))) indent true)
