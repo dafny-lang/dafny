@@ -419,7 +419,7 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          ResolveType(member.tok, ((Field)member).Type);
+          ResolveType(member.tok, ((Field)member).Type, null, false);
 
         } else if (member is Function) {
           Function f = (Function)member;
@@ -490,7 +490,7 @@ namespace Microsoft.Dafny {
         ctor.EnclosingDatatype = dt;
 
         allTypeParameters.PushMarker();
-        ResolveCtorSignature(ctor);
+        ResolveCtorSignature(ctor, dt.TypeArgs);
         allTypeParameters.PopMarker();
 
         foreach (Formal p in ctor.Formals) {
@@ -623,13 +623,14 @@ namespace Microsoft.Dafny {
     void ResolveFunctionSignature(Function f) {
       Contract.Requires(f != null);
       scope.PushMarker();
+      var defaultTypeArguments = f.TypeArgs.Count == 0 ? f.TypeArgs : null;
       foreach (Formal p in f.Formals) {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.tok, p.Type);
+        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
       }
-      ResolveType(f.tok, f.ResultType);
+      ResolveType(f.tok, f.ResultType, defaultTypeArguments, true);
       scope.PopMarker();
     }
 
@@ -726,19 +727,20 @@ namespace Microsoft.Dafny {
     void ResolveMethodSignature(Method m) {
       Contract.Requires(m != null);
       scope.PushMarker();
+      var defaultTypeArguments = m.TypeArgs.Count == 0 ? m.TypeArgs : null;
       // resolve in-parameters
       foreach (Formal p in m.Ins) {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.tok, p.Type);
+        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         if (!scope.Push(p.Name, p)) {
           Error(p, "Duplicate parameter name: {0}", p.Name);
         }
-        ResolveType(p.tok, p.Type);
+        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
       }
       scope.PopMarker();
     }
@@ -806,28 +808,40 @@ namespace Microsoft.Dafny {
       scope.PopMarker();  // for the in-parameters
     }
 
-    void ResolveCtorSignature(DatatypeCtor ctor) {
+    void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
+      Contract.Requires(dtTypeArguments != null);
       foreach (Formal p in ctor.Formals) {
-        ResolveType(p.tok, p.Type);
+        ResolveType(p.tok, p.Type, dtTypeArguments, false);
       }
     }
 
-    public void ResolveType(IToken tok, Type type) {
+    /// <summary>
+    /// If ResolveType encounters a type "T" that takes type arguments but wasn't given any, then:
+    /// * If "defaultTypeArguments" is non-null and "defaultTypeArgument.Count" equals the number
+    ///   of type arguments that "T" expects, then use these default type arguments as "T"'s arguments.
+    /// * If "allowAutoTypeArguments" is true, then infer "T"'s arguments.
+    /// * If "defaultTypeArguments" is non-null AND "allowAutoTypeArguments" is true, then enough
+    ///   type parameters will be added to "defaultTypeArguments" to have at least as many type
+    ///   parameters as "T" expects, and then a prefix of the "defaultTypeArguments" will be supplied
+    ///   as arguments to "T".
+    /// </summary>
+    public void ResolveType(IToken tok, Type type, List<TypeParameter> defaultTypeArguments, bool allowAutoTypeArguments) {
+      Contract.Requires(tok != null);
       Contract.Requires(type != null);
       if (type is BasicType) {
         // nothing to resolve
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
         var argType = t.Arg;
-        ResolveType(tok, argType);
+        ResolveType(tok, argType, defaultTypeArguments, allowAutoTypeArguments);
         if (argType.IsSubrangeType) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
       } else if (type is UserDefinedType) {
         UserDefinedType t = (UserDefinedType)type;
         foreach (Type tt in t.TypeArgs) {
-          ResolveType(t.tok, tt);
+          ResolveType(t.tok, tt, defaultTypeArguments, allowAutoTypeArguments);
           if (tt.IsSubrangeType) {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
@@ -845,19 +859,47 @@ namespace Microsoft.Dafny {
             Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
           } else if (d is AmbiguousTopLevelDecl) {
             Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
-          } else if (d.TypeArgs.Count != t.TypeArgs.Count) {
-            Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
           } else if (d is ArbitraryTypeDecl) {
-            t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve as type parameter
+            t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve like a type parameter
           } else {
+            // d is a class or datatype, and it may have type parameters
             t.ResolvedClass = d;
+            if (d.TypeArgs.Count != t.TypeArgs.Count && t.TypeArgs.Count == 0) {
+              if (allowAutoTypeArguments && defaultTypeArguments == null) {
+                // add type arguments that will be inferred
+                for (int i = 0; i < d.TypeArgs.Count; i++) {
+                  t.TypeArgs.Add(new InferredTypeProxy());
+                }
+              } else if (defaultTypeArguments != null) {
+                // add specific type arguments, drawn from defaultTypeArguments (which may have to be extended)
+                if (allowAutoTypeArguments) {
+                  // add to defaultTypeArguments the necessary number of arguments
+                  for (int i = defaultTypeArguments.Count; i < d.TypeArgs.Count; i++) {
+                    defaultTypeArguments.Add(new TypeParameter(t.tok, "T$" + i));
+                  }
+                }
+                if (allowAutoTypeArguments || d.TypeArgs.Count == defaultTypeArguments.Count) {
+                  Contract.Assert(d.TypeArgs.Count <= defaultTypeArguments.Count);
+                  // automatically supply a prefix of the arguments from defaultTypeArguments
+                  for (int i = 0; i < d.TypeArgs.Count; i++) {
+                    var typeArg = new UserDefinedType(t.tok, defaultTypeArguments[i].Name, new List<Type>());
+                    typeArg.ResolvedParam = defaultTypeArguments[i];  // resolve "typeArg" here
+                    t.TypeArgs.Add(typeArg);
+                  }
+                }
+              }
+            }
+            // defaults and auto have been applied; check if we now have the right number of arguments
+            if (d.TypeArgs.Count != t.TypeArgs.Count) {
+              Error(t.tok, "Wrong number of type arguments ({0} instead of {1}) passed to class/datatype: {2}", t.TypeArgs.Count, d.TypeArgs.Count, t.Name);
+            }
           }
         }
 
       } else if (type is TypeProxy) {
         TypeProxy t = (TypeProxy)type;
         if (t.T != null) {
-          ResolveType(tok, t.T);
+          ResolveType(tok, t.T, defaultTypeArguments, allowAutoTypeArguments);
         }
 
       } else {
@@ -1382,7 +1424,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDecl) {
         VarDecl s = (VarDecl)stmt;
         if (s.OptionalType != null) {
-          ResolveType(stmt.Tok, s.OptionalType);
+          ResolveType(stmt.Tok, s.OptionalType, null, true);
           s.type = s.OptionalType;
         }
         // now that the declaration has been processed, add the name to the scope
@@ -1506,7 +1548,7 @@ namespace Microsoft.Dafny {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type);
+          ResolveType(v.tok, v.Type, null, true);
         }
         ResolveExpression(s.Range, true);
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -1631,7 +1673,7 @@ namespace Microsoft.Dafny {
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type);
+            ResolveType(v.tok, v.Type, null, true);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -2155,7 +2197,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Type>() != null);
 
       if (rr.Type == null) {
-        ResolveType(stmt.Tok, rr.EType);
+        ResolveType(stmt.Tok, rr.EType, null, true);
         if (rr.ArrayDimensions == null) {
           if (!rr.EType.IsRefType) {
             Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
@@ -2423,7 +2465,7 @@ namespace Microsoft.Dafny {
             subst.Add(dt.TypeArgs[i], t);
           }
           expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
-          ResolveType(expr.tok, expr.Type);
+          ResolveType(expr.tok, expr.Type, null, true);
 
           DatatypeCtor ctor;
           if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
@@ -2771,7 +2813,7 @@ namespace Microsoft.Dafny {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate let-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type);
+          ResolveType(v.tok, v.Type, null, true);
           if (i < e.RHSs.Count && !UnifyTypes(v.Type, e.RHSs[i].Type)) {
             Error(e.RHSs[i].tok, "type of RHS ({0}) does not match type of bound variable ({1})", e.RHSs[i].Type, v.Type);
           }
@@ -2789,7 +2831,7 @@ namespace Microsoft.Dafny {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type);
+          ResolveType(v.tok, v.Type, null, true);
         }
         if (e.Range != null) {
           ResolveExpression(e.Range, twoState);
@@ -2825,7 +2867,7 @@ namespace Microsoft.Dafny {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type);
+          ResolveType(v.tok, v.Type, null, true);
         }
         ResolveExpression(e.Range, twoState);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -2949,7 +2991,7 @@ namespace Microsoft.Dafny {
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type);
+            ResolveType(v.tok, v.Type, null, true);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);

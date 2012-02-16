@@ -317,3 +317,40 @@ method PrintOnlyNonGhosts(a: int, ghost b: int)
   print "a: ", a, "\n";
   print "b: ", b, "\n";  // error: print statement cannot take ghosts
 }
+
+// ------------------- auto-added type arguments ------------------------------
+
+class GenericClass<T> { var data: T; }
+
+method MG0(a: GenericClass, b: GenericClass)
+  requires a != null && b != null;
+  modifies a;
+{
+  a.data := b.data;  // allowed, since both a and b get the same auto type argument
+}
+
+method G_Caller()
+{
+  var x := new GenericClass;
+  MG0(x, x);  // fine
+  var y := new GenericClass;
+  MG0(x, y);  // also fine (and now y's type argument is constrained to be that of x's)
+  var z := new GenericClass<int>;
+  y.data := z.data;  // this will have the effect of unifying all type args so far to be 'int'
+  assert x.data == 5;  // this is type correct
+
+  var w := new GenericClass<bool>;
+  MG0(x, w);  // error: types don't match up
+}
+
+datatype GList<T> = GNil | GCons(hd: T, tl: GList);
+
+method MG1(l: GList, n: nat)
+{
+  if (n != 0) {
+    MG1(l, n-1);
+    MG1(GCons(12, GCons(20, GNil)), n-1);
+  }
+  var t := GCons(100, GNil);
+  t := GCons(120, l);  // error: types don't match up (List<T$0> versus List<int>)
+}
