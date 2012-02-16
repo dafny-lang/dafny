@@ -1216,7 +1216,7 @@ namespace Microsoft.Dafny {
       } else {
         if (rhs is ExprRhs) {
           SpillLetVariableDecls(((ExprRhs)rhs).Expr, indent);
-        } else if (tRhs != null) {
+        } else if (tRhs != null && tRhs.ArrayDimensions != null) {
           foreach (Expression dim in tRhs.ArrayDimensions) {
             SpillLetVariableDecls(dim, indent);
           }
@@ -1582,7 +1582,11 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
-        wr.Write("new {0}(new {1}", dtv.DatatypeName, DtCtorName(dtv.Ctor));
+        wr.Write("new {0}", dtv.DatatypeName);
+        if (dtv.InferredTypeArgs.Count != 0) {
+          wr.Write("<{0}>", TypeNames(dtv.InferredTypeArgs));
+        }
+        wr.Write("(new {0}", DtCtorName(dtv.Ctor));
         if (dtv.InferredTypeArgs.Count != 0) {
           wr.Write("<{0}>", TypeNames(dtv.InferredTypeArgs));
         }
