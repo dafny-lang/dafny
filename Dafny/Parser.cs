@@ -26,7 +26,7 @@ public class Parser {
 	const bool T = true;
 	const bool x = false;
 	const int minErrDist = 2;
-	
+
 	public Scanner/*!*/ scanner;
 	public Errors/*!*/  errors;
 
@@ -131,10 +131,10 @@ bool IsAttribute() {
 		if (errDist >= minErrDist) errors.SemErr(t, msg);
 		errDist = 0;
 	}
-	
-    public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
-      Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
+
+	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {
+	  Contract.Requires(tok != null);
+	  Contract.Requires(msg != null);
 	  errors.SemErr(tok, msg);
 	}
 
@@ -147,15 +147,15 @@ bool IsAttribute() {
 			la = t;
 		}
 	}
-	
+
 	void Expect (int n) {
 		if (la.kind==n) Get(); else { SynErr(n); }
 	}
-	
+
 	bool StartOf (int s) {
 		return set[s, la.kind];
 	}
-	
+
 	void ExpectWeak (int n, int follow) {
 		if (la.kind == n) Get();
 		else {
@@ -179,7 +179,7 @@ bool IsAttribute() {
 		}
 	}
 
-	
+
 	void Dafny() {
 		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
 		Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
@@ -189,13 +189,13 @@ bool IsAttribute() {
 		// to support multiple files, create a default module only if theModules doesn't already contain one
 		DefaultModuleDecl defaultModule = null;
 		foreach (ModuleDecl mdecl in theModules) {
-		  defaultModule = mdecl as DefaultModuleDecl;
-		  if (defaultModule != null) { break; }
+		 defaultModule = mdecl as DefaultModuleDecl;
+		 if (defaultModule != null) { break; }
 		}
 		bool defaultModuleCreatedHere = false;
 		if (defaultModule == null) {
-		  defaultModuleCreatedHere = true;
-		  defaultModule = new DefaultModuleDecl();
+		 defaultModuleCreatedHere = true;
+		 defaultModule = new DefaultModuleDecl();
 		}
 		IToken idRefined;
 		
@@ -256,14 +256,14 @@ bool IsAttribute() {
 		 defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
 		 theModules.Add(defaultModule);
 		} else {
-		  // find the default class in the default module, then append membersDefaultClass to its member list
-		  foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
-		    DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
-		    if (defaultClass != null) {
-		      defaultClass.Members.AddRange(membersDefaultClass);
-		      break;
-		    }
-		  }
+		 // find the default class in the default module, then append membersDefaultClass to its member list
+		 foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
+		   DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
+		   if (defaultClass != null) {
+		     defaultClass.Members.AddRange(membersDefaultClass);
+		     break;
+		   }
+		 }
 		}
 		
 		Expect(0);
@@ -506,7 +506,7 @@ bool IsAttribute() {
 		if (isPredicate) {
 		 f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs);
 		} else {
-		  f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+		 f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
 		}
 		f.BodyStartTok = bodyStart;
 		f.BodyEndTok = bodyEnd;
@@ -540,18 +540,18 @@ bool IsAttribute() {
 			if (allowConstructor) {
 			 isConstructor = true;
 			} else {
-			  SemErr(t, "constructors are only allowed in classes");
+			 SemErr(t, "constructors are only allowed in classes");
 			}
 			
 		} else SynErr(114);
 		if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
 		if (isConstructor) {
-		  if (mmod.IsGhost) {
-		    SemErr(t, "constructors cannot be declared 'ghost'");
-		  }
-		  if (mmod.IsStatic) {
-		    SemErr(t, "constructors cannot be declared 'static'");
-		  }
+		 if (mmod.IsGhost) {
+		   SemErr(t, "constructors cannot be declared 'ghost'");
+		 }
+		 if (mmod.IsStatic) {
+		   SemErr(t, "constructors cannot be declared 'static'");
+		 }
 		}
 		
 		while (la.kind == 6) {
@@ -577,7 +577,7 @@ bool IsAttribute() {
 		if (isConstructor)
 		 m = new Constructor(id, id.val, typeArgs, ins, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
 		else
-		  m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
+		 m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
 		m.BodyStartTok = bodyStart;
 		m.BodyEndTok = bodyEnd;
 		
@@ -675,9 +675,9 @@ bool IsAttribute() {
 			Get();
 			UserDefinedType udt = ty as UserDefinedType;
 			if (udt != null && udt.TypeArgs.Count == 0) {
-			  name = udt.Name;
+			 name = udt.Name;
 			} else {
-			  SemErr(id, "invalid formal-parameter name in datatype constructor");
+			 SemErr(id, "invalid formal-parameter name in datatype constructor");
 			}
 			
 			Type(out ty);
@@ -685,7 +685,7 @@ bool IsAttribute() {
 		if (name != null) {
 		 identName = name;
 		} else {
-		  identName = "#" + anonymousIds++;
+		 identName = "#" + anonymousIds++;
 		}
 		
 	}
@@ -856,7 +856,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (!allowWildcard && e is WildcardExpr) {
 		 SemErr(e.tok, "'decreases *' is only allowed on loops");
 		} else {
-		  decreases.Add(e);
+		 decreases.Add(e);
 		}
 		
 		while (la.kind == 20) {
@@ -865,7 +865,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (!allowWildcard && e is WildcardExpr) {
 			 SemErr(e.tok, "'decreases *' is only allowed on loops");
 			} else {
-			  decreases.Add(e);
+			 decreases.Add(e);
 			}
 			
 		}
@@ -901,7 +901,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			int dims = 1;
 			if (tok.val.Length != 5) {
-			  dims = int.Parse(tok.val.Substring(5));
+			 dims = int.Parse(tok.val.Substring(5));
 			}
 			ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
 			
@@ -1186,13 +1186,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(18);
 		UpdateStmt update;
 		if (rhss.Count == 0) {
-		  update = null;
+		 update = null;
 		} else {
-		  var ies = new List<Expression>();
-		  foreach (var lhs in lhss) {
-		    ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
-		  }
-		  update = new UpdateStmt(assignTok, ies, rhss);
+		 var ies = new List<Expression>();
+		 foreach (var lhs in lhss) {
+		   ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
+		 }
+		 update = new UpdateStmt(assignTok, ies, rhss);
 		}
 		s = new VarDeclStmt(x, lhss, update);
 		
@@ -1371,7 +1371,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (ee != null) {
 			 r = new TypeRhs(newToken, ty, ee);
 			} else {
-			  r = new TypeRhs(newToken, ty, initCall);
+			 r = new TypeRhs(newToken, ty, initCall);
 			}
 			
 		} else if (la.kind == 54) {
@@ -1648,10 +1648,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		List<Expression> chain = null;
 		List<BinaryExpr.Opcode> ops = null;
 		int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
-		               // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
-		               // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
-		               // 3 ("illegal")     indicates illegal chain
-		               // 4 ("disjoint")    indicates chain of disjoint set operators
+		              // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
+		              // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
+		              // 3 ("illegal")     indicates illegal chain
+		              // 4 ("disjoint")    indicates chain of disjoint set operators
 		bool hasSeenNeq = false;
 		
 		Term(out e0);
@@ -1662,7 +1662,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Term(out e1);
 			e = new BinaryExpr(x, op, e0, e1);
 			if (op == BinaryExpr.Opcode.Disjoint)
-			  acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+			 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
 			
 			while (StartOf(17)) {
 				if (chain == null) {
@@ -1718,11 +1718,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Term(out e1);
 				ops.Add(op); chain.Add(e1);
 				if (op == BinaryExpr.Opcode.Disjoint) {
-				  e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
-				  acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
+				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
+				 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
 				}
 				else
-				  e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
 				
 			}
 		}
@@ -1814,10 +1814,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (y == Token.NoToken) {
 			 SemErr(x, "invalid RelOp");
 			} else if (y.pos != x.pos + 1) {
-			  SemErr(x, "invalid RelOp (perhaps you intended \"!in\" with no intervening whitespace?)");
+			 SemErr(x, "invalid RelOp (perhaps you intended \"!in\" with no intervening whitespace?)");
 			} else {
-			  x.val = "!in";
-			  op = BinaryExpr.Opcode.NotIn;
+			 x.val = "!in";
+			 op = BinaryExpr.Opcode.NotIn;
 			}
 			
 			break;
@@ -2093,21 +2093,21 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 // make sure an array class with this dimensionality exists
 			 UserDefinedType tmp = theBuiltIns.ArrayType(x, multipleIndices.Count, new IntType(), true);
 			} else {
-			  if (!anyDots && e0 == null) {
-			    /* a parsing error occurred */
-			    e0 = dummyExpr;
-			  }
-			  Contract.Assert(anyDots || e0 != null);
-			  if (anyDots) {
-			    //Contract.Assert(e0 != null || e1 != null);
-			    e = new SeqSelectExpr(x, false, e, e0, e1);
-			  } else if (e1 == null) {
-			    Contract.Assert(e0 != null);
-			    e = new SeqSelectExpr(x, true, e, e0, null);
-			  } else {
-			    Contract.Assert(e0 != null);
-			    e = new SeqUpdateExpr(x, e, e0, e1);
-			  }
+			 if (!anyDots && e0 == null) {
+			   /* a parsing error occurred */
+			   e0 = dummyExpr;
+			 }
+			 Contract.Assert(anyDots || e0 != null);
+			 if (anyDots) {
+			   //Contract.Assert(e0 != null || e1 != null);
+			   e = new SeqSelectExpr(x, false, e, e0, e1);
+			 } else if (e1 == null) {
+			   Contract.Assert(e0 != null);
+			   e = new SeqSelectExpr(x, true, e, e0, null);
+			 } else {
+			   Contract.Assert(e0 != null);
+			   e = new SeqUpdateExpr(x, e, e0, e1);
+			 }
 			}
 			
 			Expect(52);
@@ -2247,8 +2247,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		try {
 		 n = BigInteger.Parse(t.val);
 		} catch (System.FormatException) {
-		  SemErr("incorrectly formatted number");
-		  n = BigInteger.Zero;
+		 SemErr("incorrectly formatted number");
+		 n = BigInteger.Zero;
 		}
 		
 	}
@@ -2288,7 +2288,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (univ) {
 		 q = new ForallExpr(x, bvars, range, body, attrs);
 		} else {
-		  q = new ExistsExpr(x, bvars, range, body, attrs);
+		 q = new ExistsExpr(x, bvars, range, body, attrs);
 		}
 		
 	}
@@ -2394,13 +2394,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	public void Parse() {
 		la = new Token();
-		la.val = "";		
+		la.val = "";
 		Get();
 		Dafny();
+		Expect(0);
 
-    Expect(0);
+		Expect(0);
 	}
-	
+
 	static readonly bool[,]/*!*/ set = {
 		{T,T,T,x, x,x,T,x, x,x,x,T, T,x,x,T, x,T,T,T, x,x,x,x, T,T,x,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,x,x,x, x,x,x,T, x,x,x,T, T,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, T,x,x,T, T,T,T,T, x,x,x,T, x,T,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
@@ -2430,18 +2431,20 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 public class Errors {
 	public int count = 0;                                    // number of errors detected
 	public System.IO.TextWriter/*!*/ errorStream = Console.Out;   // error messages go to this stream
-  public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
-  public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
-  
+	public string errMsgFormat = "{0}({1},{2}): error: {3}"; // 0=filename, 1=line, 2=column, 3=text
+	public string warningMsgFormat = "{0}({1},{2}): warning: {3}"; // 0=filename, 1=line, 2=column, 3=text
+
 	public void SynErr(string filename, int line, int col, int n) {
-    SynErr(filename, line, col, GetSyntaxErrorString(n));
-  }
-	public virtual void SynErr(string filename, int line, int col, string msg) {
-	  Contract.Requires(msg != null);
+		SynErr(filename, line, col, GetSyntaxErrorString(n));
+	}
+
+	public virtual void SynErr(string filename, int line, int col, string/*!*/ msg) {
+		Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
-  }
-  string GetSyntaxErrorString(int n) {
+	}
+
+	string GetSyntaxErrorString(int n) {
 		string s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
@@ -2617,7 +2620,7 @@ public class Errors {
 
 			default: s = "error " + n; break;
 		}
-    return s;
+		return s;
 	}
 
 	public void SemErr(IToken/*!*/ tok, string/*!*/ msg) {  // semantic errors
@@ -2625,8 +2628,9 @@ public class Errors {
 		Contract.Requires(msg != null);
 		SemErr(tok.filename, tok.line, tok.col, msg);
 	}
+
 	public virtual void SemErr(string filename, int line, int col, string/*!*/ msg) {
-	  Contract.Requires(msg != null);
+		Contract.Requires(msg != null);
 		errorStream.WriteLine(errMsgFormat, filename, line, col, msg);
 		count++;
 	}
@@ -2641,5 +2645,6 @@ public class Errors {
 public class FatalError: Exception {
 	public FatalError(string m): base(m) {}
 }
+
 
 }
