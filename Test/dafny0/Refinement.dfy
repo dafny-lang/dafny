@@ -25,7 +25,7 @@ module B refines A {
     }
     method M(x: int) returns (y: int)
       ensures y % 2 == 0;  // add a postcondition
-    method Q() returns (q: int, r: int, s: int)
+    method Q ...
       ensures 12 <= r;
       ensures 1200 <= s;  // error: postcondition is not established by
                           // inherited method body
@@ -44,7 +44,7 @@ module A_AnonymousClass {
 }
 
 module B_AnonymousClass refines A_AnonymousClass {
-  method Increment(d: int)
+  method Increment...
     ensures x <= old(x) + d;
 }
 

@@ -226,16 +226,20 @@ namespace Microsoft.Dafny {
       if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
-      if (f.OpenParen != null) {
-        PrintFormals(f.Formals);
+      if (f.SignatureIsOmitted) {
+        wr.WriteLine(" ...");
       } else {
-        Contract.Assert(isPredicate);
+        if (f.OpenParen != null) {
+          PrintFormals(f.Formals);
+        } else {
+          Contract.Assert(isPredicate);
+        }
+        if (!isPredicate) {
+          wr.Write(": ");
+          PrintType(f.ResultType);
+        }
+        wr.WriteLine();
       }
-      if (!isPredicate) {
-        wr.Write(": ");
-        PrintType(f.ResultType);
-      }
-      wr.WriteLine();
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
@@ -272,18 +276,22 @@ namespace Microsoft.Dafny {
       if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
-      PrintFormals(method.Ins);
-      if (method.Outs.Count != 0) {
-        if (method.Ins.Count + method.Outs.Count <= 3) {
-          wr.Write(" returns ");
-        } else {
-          wr.WriteLine();
-          Indent(3 * IndentAmount);
-          wr.Write("returns ");
+      if (method.SignatureIsOmitted) {
+        wr.WriteLine(" ...");
+      } else {
+        PrintFormals(method.Ins);
+        if (method.Outs.Count != 0) {
+          if (method.Ins.Count + method.Outs.Count <= 3) {
+            wr.Write(" returns ");
+          } else {
+            wr.WriteLine();
+            Indent(3 * IndentAmount);
+            wr.Write("returns ");
+          }
+          PrintFormals(method.Outs);
         }
-        PrintFormals(method.Outs);
+        wr.WriteLine();
       }
-      wr.WriteLine();
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);

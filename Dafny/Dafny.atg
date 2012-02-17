@@ -367,6 +367,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      Attributes modAttrs = null;
      Statement/*!*/ bb;  BlockStmt body = null;
      bool isConstructor = false;
+     bool signatureOmitted = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
@@ -391,18 +392,24 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   .)
   { Attribute<ref attrs> }
   Ident<out id>
-  [ GenericParameters<typeArgs> ]
-  Formals<true, !mmod.IsGhost, ins, out openParen>
-  [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-    Formals<false, !mmod.IsGhost, outs, out openParen>
-  ]
+  (
+    [ GenericParameters<typeArgs> ]
+    Formals<true, !mmod.IsGhost, ins, out openParen>
+    [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
+      Formals<false, !mmod.IsGhost, outs, out openParen>
+    ]
+  | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
+  )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
   ]
-  (. if (isConstructor)
-       m = new Constructor(id, id.val, typeArgs, ins, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
-     else
-       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
+  (. if (isConstructor) {
+       m = new Constructor(id, id.val, typeArgs, ins,
+                           req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+     } else {
+       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
+                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+     }
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
  .)
@@ -525,6 +532,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      IToken openParen = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
+     bool signatureOmitted = false;
   .)
   /* ----- function ----- */
   ( "function"
@@ -534,10 +542,14 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     .)
     { Attribute<ref attrs> }
     Ident<out id>
-    [ GenericParameters<typeArgs> ]
-    Formals<true, isFunctionMethod, formals, out openParen>
-    ":"
-    Type<out returnType>
+    (
+      [ GenericParameters<typeArgs> ]
+      Formals<true, isFunctionMethod, formals, out openParen>
+      ":"
+      Type<out returnType>
+    | "..."                    (. signatureOmitted = true;
+                                  openParen = Token.NoToken; .)
+    )
 
   /* ----- predicate ----- */
   | "predicate"                (. isPredicate = true; .)
@@ -547,20 +559,26 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     .)
     { Attribute<ref attrs> }
     Ident<out id>
-    [ GenericParameters<typeArgs> ]
-    [ Formals<true, isFunctionMethod, formals, out openParen>
-      [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+    (
+      [ GenericParameters<typeArgs> ]
+      [ Formals<true, isFunctionMethod, formals, out openParen>
+        [ ":"                  (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+        ]
       ]
-    ]
+    | "..."                    (. signatureOmitted = true;
+                                  openParen = Token.NoToken; .)
+    )
   )
 
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
   ]
   (. if (isPredicate) {
-       f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs);
+        f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals,
+                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs, signatureOmitted);
      } else {
-       f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+        f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType,
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -637,7 +655,6 @@ OneStmt<out Statement/*!*/ s>
      IToken bodyStart, bodyEnd;
      int breakCount;
   .)
-  /* This list does not contain BlockStmt, see comment above in Stmt production. */
   SYNC
   ( BlockStmt<out s, out bodyStart, out bodyEnd>
   | AssertStmt<out s>

@@ -535,10 +535,10 @@ namespace Microsoft.Dafny {
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, moreBody != null, null);
+          req, reads, ens, decreases, body, moreBody != null, null, false);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, null);
+          req, reads, ens, decreases, body, null, false);
       }
     }
 
@@ -562,10 +562,10 @@ namespace Microsoft.Dafny {
       var body = replacementBody ?? CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, null);
+          req, mod, ens, decreases, body, null, false);
       } else {
         return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, null);
+          req, mod, ens, decreases, body, null, false);
       }
     }
 
@@ -620,10 +620,15 @@ namespace Microsoft.Dafny {
               } else if (prevFunction.IsGhost && !f.IsGhost && prevFunction.Body != null) {
                 reporter.Error(f, "a function can be changed into a function method in a refining module only if the function has not yet been given a body: {0}", f.Name);
               }
-              CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
-              CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
-              if (!TypesAreEqual(prevFunction.ResultType, f.ResultType)) {
-                reporter.Error(f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+              if (f.SignatureIsOmitted) {
+                Contract.Assert(f.TypeArgs.Count == 0);
+                Contract.Assert(f.Formals.Count == 0);
+              } else {
+                CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
+                CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
+                if (!TypesAreEqual(prevFunction.ResultType, f.ResultType)) {
+                  reporter.Error(f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+                }
               }
 
               Expression moreBody = null;
@@ -662,17 +667,22 @@ namespace Microsoft.Dafny {
               } else if (!prevMethod.IsGhost && m.IsGhost) {
                 reporter.Error(m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
               }
-              CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
-              CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
-              CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
+              if (m.SignatureIsOmitted) {
+                Contract.Assert(m.TypeArgs.Count == 0);
+                Contract.Assert(m.Ins.Count == 0);
+                Contract.Assert(m.Outs.Count == 0);
+              } else {
+                CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
+                CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
+                CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
+              }
 
               var replacementBody = m.Body;
               if (replacementBody != null) {
                 if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  reporter.Error(m, "body of refining method is not yet supported");  // TODO (merge the new body into the old)
-                  replacementBody = null;
+                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
               nw.Members[index] = CloneMethod(prevMethod, m.Ens, replacementBody);
@@ -733,6 +743,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       return t.ToString() == u.ToString();
+    }
+
+    BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+      reporter.Error(skeleton.Tok, "body of refining method is not yet supported");  // TODO (merge the new body into the old)
+      return null;
     }
 
     // ---------------------- additional methods -----------------------------------------------------------------------------

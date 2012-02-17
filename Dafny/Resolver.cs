@@ -623,6 +623,9 @@ namespace Microsoft.Dafny {
     void ResolveFunctionSignature(Function f) {
       Contract.Requires(f != null);
       scope.PushMarker();
+      if (f.SignatureIsOmitted) {
+        Error(f, "function signature can be omitted only in refining functions");
+      }
       var defaultTypeArguments = f.TypeArgs.Count == 0 ? f.TypeArgs : null;
       foreach (Formal p in f.Formals) {
         if (!scope.Push(p.Name, p)) {
@@ -727,6 +730,9 @@ namespace Microsoft.Dafny {
     void ResolveMethodSignature(Method m) {
       Contract.Requires(m != null);
       scope.PushMarker();
+      if (m.SignatureIsOmitted) {
+        Error(m, "method signature can be omitted only in refining methods");
+      }
       var defaultTypeArguments = m.TypeArgs.Count == 0 ? m.TypeArgs : null;
       // resolve in-parameters
       foreach (Formal p in m.Ins) {
