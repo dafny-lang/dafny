@@ -1915,6 +1915,40 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// The class represents several possible scenarios:
+  /// * ...;
+  ///   S == null
+  /// * assert ...
+  ///   ConditionOmitted == true
+  /// * if ... { Stmt }
+  ///   if ... { Stmt } else ElseStmt
+  ///   ConditionOmitted == true
+  /// * while ... invariant J;
+  ///   ConditionOmitted == true && BodyOmitted == true
+  /// * while ... invariant J; { Stmt }
+  ///   ConditionOmitted == true && BodyOmitted == false
+  /// </summary>
+  public class SkeletonStatement : Statement
+  {
+    public readonly Statement S;
+    public readonly bool ConditionOmitted;
+    public readonly bool BodyOmitted;
+    public SkeletonStatement(IToken tok)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+    }
+    public SkeletonStatement(Statement s, bool conditionOmitted, bool bodyOmitted)
+      : base(s.Tok)
+    {
+      Contract.Requires(s != null);
+      S = s;
+      ConditionOmitted = conditionOmitted;
+      BodyOmitted = bodyOmitted;
+    }
+  }
+
   // ------------------------------------------------------------------------------------------------------
 
   public abstract class TokenWrapper : IToken

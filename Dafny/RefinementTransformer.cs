@@ -748,8 +748,97 @@ namespace Microsoft.Dafny {
     BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
-      reporter.Error(skeleton.Tok, "body of refining method is not yet supported");  // TODO (merge the new body into the old)
-      return null;
+
+      var body = new List<Statement>();
+      int i = 0, j = 0;
+      while (i < skeleton.Body.Count) {
+        var cur = skeleton.Body[i];
+        if (j == oldStmt.Body.Count) {
+          if (!(cur is SkeletonStatement)) {
+            MergeAddStatement(cur, body);
+          } else if (((SkeletonStatement)cur).S == null) {
+            // the "..." matches the empty statement sequence
+          } else {
+            reporter.Error(cur.Tok, "skeleton statement does not match old statement");
+          }
+          i++;
+        } else {
+          var oldS = oldStmt.Body[j];
+          /* See how the two statements match up.
+           *   cur                         oldS                         result
+           *   ------                      ------                       ------
+           *   assert ...;                 assume E;                    assert E;
+           *   assert ...;                 assert E;                    assert E;
+           *   assert E;                                                assert E;
+           *   
+           *   var x:=E;                   var x;                       var x:=E;
+           *   var VarProduction;                                       var VarProduction;
+           *   
+           *   if ... Then else Else       if (G) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
+           *   if (G) Then else Else       if (*) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
+           *
+           *   while ... LoopSpec ...      while (G) LoopSpec' Body     while (G) Merge(LoopSpec,LoopSpec') Body
+           *   while ... LoopSpec Body     while (G) LoopSpec' Body'    while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   while (G) LoopSpec ...      while (*) LoopSpec' Body     while (G) Merge(LoopSpec,LoopSpec') Body
+           *   while (G) LoopSpec Body     while (*) LoopSpec' Body'    while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   
+           *   ...; S                      StmtThatDoesNotMatchS; S'    StatementThatDoesNotMatchS; Merge( ...;S , S')
+           * 
+           * Note, LoopSpec must contain only invariant declarations (as the parser ensures for the first three cases).
+           * Note, there is an implicit "...;" at the end of every block in a skeleton.
+           *   
+           * TODO:  should also handle labels and some form of new "replace" statement
+           */
+          if (cur is SkeletonStatement) {
+            var ass = ((SkeletonStatement)cur).S as AssertStmt;
+            if (ass != null) {
+              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              var oldAssume = oldS as PredicateStmt;
+              if (oldAssume == null) {
+                reporter.Error(cur.Tok, "assert template does not match old statement");
+              } else {
+                body.Add(new AssertStmt(ass.Tok, CloneExpr(oldAssume.Expr)));
+              }
+              i++; j++;
+            } else {
+              reporter.Error(cur.Tok, "sorry, this skeleton statement is not yet supported");
+              i++;
+            }
+          } else {
+            var cNew = cur as VarDeclStmt;
+            var cOld = oldS as VarDeclStmt;
+            if (cNew != null && cOld != null && cNew.Lhss.Count == 1 && cOld.Lhss.Count == 1 &&
+              cNew.Lhss[0].Name == cOld.Lhss[0].Name && cOld.Update == null) {
+              body.Add(cNew);  // TODO:  there should perhaps be some more validity checks here first
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+          }
+        }
+      }
+      // implement the implicit "...;" at the end of each block statement skeleton
+      for (; j < oldStmt.Body.Count; j++) {
+        MergeAddStatement(CloneStmt(oldStmt.Body[j]), body);
+      }
+      return new BlockStmt(skeleton.Tok, body);
+    }
+
+    /// <summary>
+    /// Add "s" to "stmtList", but complain if "s" contains further occurrences of "..." or if "s" assigns to a
+    /// variable that was not declared in the refining module.
+    /// TODO: and what about new control flow?
+    /// </summary>
+    void MergeAddStatement(Statement s, List<Statement> stmtList) {
+      Contract.Requires(s != null);
+      Contract.Requires(stmtList != null);
+      if (s is AssertStmt) {
+        // this is fine to add
+      } else {
+        // TODO: validity checks
+      }
+      stmtList.Add(s);
     }
 
     // ---------------------- additional methods -----------------------------------------------------------------------------

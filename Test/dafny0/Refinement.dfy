@@ -96,10 +96,10 @@ module FullBodied refines BodyFree {
 }
 
 // ------------------------------------------------
-/*  SOON
+
 module Abstract {
   class MyNumber {
-    var N: int;
+    ghost var N: int;
     ghost var Repr: set<object>;
     predicate Valid
       reads this, Repr;
@@ -125,7 +125,8 @@ module Abstract {
       requires Valid;
       ensures n == N;
     {
-      n := N;
+      var k;  assume k == N;
+      n := k;
     }
   }
 }
@@ -148,7 +149,8 @@ module Concrete refines Abstract {
     }
     method Get() returns (n: int)
     {
-      n := a - b;
+      var k := a - b;
+      assert ...;
     }
   }
 }
@@ -164,4 +166,3 @@ module Client imports Concrete {
     }
   }
 }
-*/

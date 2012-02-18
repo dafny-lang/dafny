@@ -1709,6 +1709,13 @@ namespace Microsoft.Dafny {
         }
 
 
+      } else if (stmt is SkeletonStatement) {
+        var s = (SkeletonStatement)stmt;
+        Error(s.Tok, "skeleton statements are allowed only in refining methods");
+        // nevertheless, resolve the underlying statement; hey, why not
+        if (s.S != null) {
+          ResolveStatement(s.S, specContextOnly, method);
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }

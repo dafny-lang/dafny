@@ -677,6 +677,8 @@ OneStmt<out Statement/*!*/ s>
     SYNC
     ";"                                (. s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); .)
   | ReturnStmt<out s>
+  | "..."                              (. s = new SkeletonStatement(t); .)
+    ";"
   )
   .
 ReturnStmt<out Statement/*!*/ s>
@@ -702,7 +704,7 @@ UpdateStmt<out Statement/*!*/ s>
      Attributes attrs = null;
   .)
   Lhs<out e>                       (. x = e.tok; .)
-  ( { IF(IsAttribute()) Attribute<ref attrs> }
+  ( { Attribute<ref attrs> }
     ";"                            (. rhss.Add(new ExprRhs(e, attrs)); .)
   |                                (. lhss.Add(e);  lhs0 = e; .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
@@ -750,7 +752,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
   | "*"                                (. r = new HavocRhs(t); .)
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
-  { IF(IsAttribute()) Attribute<ref attrs> }     (. r.Attributes = attrs; .)
+  { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
@@ -790,7 +792,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
   .
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-     Expression guard;
+     Expression guard = null;  bool guardOmitted = false;
      Statement/*!*/ thn;
      Statement/*!*/ s;
      Statement els = null;
@@ -800,14 +802,21 @@ IfStmt<out Statement/*!*/ ifStmt>
   .)
   "if"                       (. x = t; .)
   (
-    Guard<out guard>
+    ( Guard<out guard>
+    | "..."                  (. guardOmitted = true; .)
+    )
     BlockStmt<out thn, out bodyStart, out bodyEnd>
     [ "else"
       ( IfStmt<out s>                                 (. els = s; .)
       | BlockStmt<out s, out bodyStart, out bodyEnd>  (. els = s; .)
       )
     ]
-    (. ifStmt = new IfStmt(x, guard, thn, els); .)
+    (. if (guardOmitted) {
+         ifStmt = new SkeletonStatement(new IfStmt(x, guard, thn, els), true, false);
+       } else {
+         ifStmt = new IfStmt(x, guard, thn, els);
+       }
+    .)
   |
     AlternativeBlock<out alternatives>
     (. ifStmt = new AlternativeStmt(x, alternatives); .)
@@ -831,23 +840,43 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives.>
   .
 WhileStmt<out Statement/*!*/ stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
-     Expression guard;
+     Expression guard = null;  bool guardOmitted = false;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression/*!*/> mod = null;
-     Statement/*!*/ body;
-     IToken bodyStart, bodyEnd;
+     Statement/*!*/ body = null;  bool bodyOmitted = false;
+     IToken bodyStart = null, bodyEnd = null;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
   .)
   "while"                    (. x = t; .)
   (
-    Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    | "..."                      (. guardOmitted = true; .)
+    )
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
-    BlockStmt<out body, out bodyStart, out bodyEnd>
-    (. stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body); .)
+    ( BlockStmt<out body, out bodyStart, out bodyEnd>
+    | "..."                      (. bodyOmitted = true; .)
+    )
+    (.
+      if (guardOmitted || bodyOmitted) {
+        if (decreases.Count != 0) {
+          SemErr(decreases[0].tok, "'decreases' clauses are not allowed on refining loops");
+        }
+        if (mod != null) {
+          SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
+        }
+        if (body == null) {
+          body = new AssertStmt(x, new LiteralExpr(x, true), null);
+        }
+        stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(null, null), new Specification<FrameExpression>(null, null), body);
+        stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
+      } else {
+        stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
+      }
+    .)
   |
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<out alternatives>
@@ -863,12 +892,15 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
   .)
   {
     Invariant<out invariant> SYNC ";"   (. invariants.Add(invariant); .)
-  | SYNC "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
-  | SYNC "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
-               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
-                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
-                 }
-               ] SYNC ";"
+  | SYNC "decreases"
+    { IF(IsAttribute()) Attribute<ref decAttrs> }
+    DecreasesList<decreases, true> SYNC ";"
+  | SYNC "modifies"
+    { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
+    [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+      { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+      }
+    ] SYNC ";"
   }
   .
 Invariant<out MaybeFreeExpression/*!*/ invariant>
@@ -934,10 +966,21 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   .
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; Attributes attrs = null; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
+     Expression/*!*/ e = null; Attributes attrs = null;
+  .)
   "assert"                                     (. x = t; s = null;.)
-  { IF(IsAttribute()) Attribute<ref attrs> } Expression<out e> (. s = new AssertStmt(x, e, attrs); .)
+  { IF(IsAttribute()) Attribute<ref attrs> }
+  ( Expression<out e>                 
+  | "..."
+  )
   ";"
+  (. if (e == null) {
+       s = new SkeletonStatement(new AssertStmt(x, new LiteralExpr(x, true), attrs), true, false);
+     } else {
+       s = new AssertStmt(x, e, attrs);
+     }
+  .)
   .
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)

@@ -1360,7 +1360,7 @@ Refinement.dfy(74,15): Related location: This is the postcondition that might no
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 28 verified, 6 errors
+Dafny program verifier finished with 44 verified, 6 errors
 
 -------------------- RefinementErrors.dfy --------------------
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions
@@ -1373,9 +1373,8 @@ RefinementErrors.dfy(35,11): Error: type parameters are not allowed to be rename
 RefinementErrors.dfy(35,13): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'C', found 'B')
 RefinementErrors.dfy(36,23): Error: the type of parameter 'z' is different from the type of the same parameter in the corresponding function in the module it refines ('seq<C>' instead of 'set<C>')
 RefinementErrors.dfy(37,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
-RefinementErrors.dfy(47,4): Error: body of refining method is not yet supported
 RefinementErrors.dfy(54,20): Error: a function can be changed into a function method in a refining module only if the function has not yet been given a body: G
-12 resolution/type errors detected in RefinementErrors.dfy
+11 resolution/type errors detected in RefinementErrors.dfy
 
 -------------------- ReturnErrors.dfy --------------------
 ReturnErrors.dfy(30,10): Error: cannot have method call in return statement.
