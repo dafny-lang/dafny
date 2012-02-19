@@ -1359,8 +1359,24 @@ Refinement.dfy(93,3): Error BP5003: A postcondition might not hold on this retur
 Refinement.dfy(74,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+Refinement.dfy(179,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(112,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(176,9): Related location: Related location
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(183,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(120,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(176,9): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Refinement.dfy(189,7): Error: assertion violation
+Refinement.dfy[IncorrectConcrete](128,24): Related location: Related location
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 44 verified, 6 errors
+Dafny program verifier finished with 48 verified, 9 errors
 
 -------------------- RefinementErrors.dfy --------------------
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions

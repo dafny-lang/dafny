@@ -797,7 +797,12 @@ namespace Microsoft.Dafny {
               if (oldAssume == null) {
                 reporter.Error(cur.Tok, "assert template does not match old statement");
               } else {
-                body.Add(new AssertStmt(ass.Tok, CloneExpr(oldAssume.Expr)));
+                // Clone the expression, but among the new assert's attributes, indicate
+                // that this assertion is supposed to be translated into a check.  That is,
+                // it is not allowed to be just assumed in the translation, despite the fact
+                // that the condition is inherited.
+                var e = CloneExpr(oldAssume.Expr);
+                body.Add(new AssertStmt(ass.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
               }
               i++; j++;
             } else {

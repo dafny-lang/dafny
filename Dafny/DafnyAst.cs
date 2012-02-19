@@ -101,7 +101,18 @@ namespace Microsoft.Dafny {
       Prev = prev;
     }
 
-    public class Argument {
+    public static bool Contains(Attributes attrs, string nm) {
+      Contract.Requires(nm != null);
+      for (; attrs != null; attrs = attrs.Prev) {
+        if (attrs.Name == nm) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public class Argument
+    {
       public readonly IToken Tok;
       public readonly string S;
       public readonly Expression E;

@@ -166,3 +166,27 @@ module Client imports Concrete {
     }
   }
 }
+
+module IncorrectConcrete refines Abstract {
+  class MyNumber {
+    var a: int;
+    var b: int;
+    predicate Valid
+    {
+      N == 2*a - b
+    }
+    constructor Init()
+    {  // error: postcondition violation
+      a := b;
+    }
+    method Inc()
+    {  // error: postcondition violation
+      if (*) { a := a + 1; } else { b := b - 1; }
+    }
+    method Get() returns (n: int)
+    {
+      var k := a - b;
+      assert ...;  // error: assertion violation
+    }
+  }
+}

@@ -3276,14 +3276,20 @@ namespace Microsoft.Dafny {
           AddComment(builder, stmt, "assert statement");
           PredicateStmt s = (PredicateStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+          IToken enclosingToken = null;
+          if (Attributes.Contains(stmt.Attributes, "prependAssertToken")) {
+            enclosingToken = stmt.Tok;
+          }
           bool splitHappened;
           var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
           if (!splitHappened) {
-            builder.Add(Assert(s.Expr.tok, etran.TrExpr(s.Expr), "assertion violation"));
+            var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
+            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation"));
           } else {
             foreach (var split in ss) {
               if (!split.IsFree) {
-                builder.Add(AssertNS(split.E.tok, split.E, "assertion violation"));
+                var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
+                builder.Add(AssertNS(tok, split.E, "assertion violation"));
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
