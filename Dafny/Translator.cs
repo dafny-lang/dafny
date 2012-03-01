@@ -2406,10 +2406,21 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        foreach (var rhs in e.RHSs) {
-          CheckWellformed(rhs, options, locals, builder, etran);
+
+        var substMap = new Dictionary<IVariable, Expression>();
+        Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
+        for (int i = 0; i < e.Vars.Count; i++) {
+          var vr = e.Vars[i];
+          var tp = TrType(vr.Type);
+          var v = new Bpl.LocalVariable(vr.tok, new Bpl.TypedIdent(vr.tok, vr.UniqueName, tp));
+          locals.Add(v);
+          var lhs = new Bpl.IdentifierExpr(vr.tok, vr.UniqueName, tp);
+
+          CheckWellformedWithResult(e.RHSs[i], options, lhs, vr.Type, locals, builder, etran);
+          substMap.Add(vr, new BoogieWrapper(lhs, vr.Type));
         }
-        CheckWellformedWithResult(etran.GetSubstitutedBody(e), options, result, resultType, locals, builder, etran);
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
+        result = null;
 
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
