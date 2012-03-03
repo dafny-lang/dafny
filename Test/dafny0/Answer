@@ -1445,7 +1445,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 13 verified, 2 errors
+Dafny program verifier finished with 19 verified, 2 errors
 
 -------------------- Predicates.dfy --------------------
 Predicates.dfy[B](18,5): Error BP5003: A postcondition might not hold on this return path.
@@ -1719,7 +1719,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 13 verified, 2 errors
+Dafny program verifier finished with 19 verified, 2 errors
 out.tmp.dfy(10,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -1728,4 +1728,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 13 verified, 2 errors
+Dafny program verifier finished with 19 verified, 2 errors
