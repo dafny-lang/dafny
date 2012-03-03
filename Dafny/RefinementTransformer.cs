@@ -450,7 +450,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        r = new IfStmt(Tok(s.Tok), CloneExpr(s.Guard), CloneStmt(s.Thn), CloneStmt(s.Els));
+        r = new IfStmt(Tok(s.Tok), CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
@@ -458,7 +458,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -790,60 +790,258 @@ namespace Microsoft.Dafny {
            * TODO:  should also handle labels and some form of new "replace" statement
            */
           if (cur is SkeletonStatement) {
-            var ass = ((SkeletonStatement)cur).S as AssertStmt;
-            if (ass != null) {
+            var S = ((SkeletonStatement)cur).S;
+            if (S == null) {
+              if (i + 1 == skeleton.Body.Count) {
+                // this "...;" is the last statement of the skeleton, so treat it like the default case
+              } else {
+                var nxt = skeleton.Body[i+1];
+                if (nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
+                  // "...; ...;" is the same as just "...;", so skip this one
+                } else {
+                  // skip up until the next thing that matches "nxt"
+                  while (!PotentialMatch(nxt, oldS)) {
+                    // loop invariant:  oldS == oldStmt.Body[j]
+                    body.Add(CloneStmt(oldS));
+                    j++;
+                    if (j == oldStmt.Body.Count) { break; }
+                    oldS = oldStmt.Body[j];
+                  }
+                }
+              }
+              i++;
+
+            } else if (S is AssertStmt) {
+              var skel = (AssertStmt)S;
               Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
               var oldAssume = oldS as PredicateStmt;
               if (oldAssume == null) {
-                reporter.Error(cur.Tok, "assert template does not match old statement");
+                reporter.Error(cur.Tok, "assert template does not match inherited statement");
+                i++;
               } else {
                 // Clone the expression, but among the new assert's attributes, indicate
                 // that this assertion is supposed to be translated into a check.  That is,
                 // it is not allowed to be just assumed in the translation, despite the fact
                 // that the condition is inherited.
                 var e = CloneExpr(oldAssume.Expr);
-                body.Add(new AssertStmt(ass.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                body.Add(new AssertStmt(skel.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                i++; j++;
               }
-              i++; j++;
+
+            } else if (S is IfStmt) {
+              var skel = (IfStmt)S;
+              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              var oldIf = oldS as IfStmt;
+              if (oldIf == null) {
+                reporter.Error(cur.Tok, "if-statement template does not match inherited statement");
+                i++;
+              } else {
+                var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
+                var resultingElse = MergeElse(skel.Els, oldIf.Els);
+                var r = new IfStmt(skel.Tok, skel.Guard, resultingThen, resultingElse);
+                body.Add(r);
+                i++; j++;
+              }
+
+            } else if (S is WhileStmt) {
+              var skel = (WhileStmt)S;
+              var oldWhile = oldS as WhileStmt;
+              if (oldWhile == null) {
+                reporter.Error(cur.Tok, "while-statement template does not match inherited statement");
+                i++;
+              } else {
+                Expression guard;
+                if (((SkeletonStatement)cur).ConditionOmitted) {
+                  guard = CloneExpr(oldWhile.Guard);
+                } else {
+                  if (oldWhile.Guard != null) {
+                    reporter.Error(skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
+                  }
+                  guard = skel.Guard;
+                }
+                // Note, if the loop body is omitted in the skeleton, the parser will have set the loop body to an empty block,
+                // which has the same merging behavior.
+                var r = MergeWhileStmt(skel, oldWhile, guard);
+                body.Add(r);
+                i++; j++;
+              }
+
             } else {
-              reporter.Error(cur.Tok, "sorry, this skeleton statement is not yet supported");
-              i++;
+              Contract.Assume(false);  // unexpected skeleton statement
             }
-          } else {
-            var cNew = cur as VarDeclStmt;
+
+          } else if (cur is AssertStmt) {
+            MergeAddStatement(cur, body);
+            i++;
+
+          } else if (cur is VarDeclStmt) {
+            var cNew = (VarDeclStmt)cur;
             var cOld = oldS as VarDeclStmt;
-            if (cNew != null && cOld != null && cNew.Lhss.Count == 1 && cOld.Lhss.Count == 1 &&
-              cNew.Lhss[0].Name == cOld.Lhss[0].Name && cOld.Update == null) {
-              body.Add(cNew);  // TODO:  there should perhaps be some more validity checks here first
+            if (cOld != null && cNew.Lhss.Count == 1 && cOld.Lhss.Count == 1 && cNew.Lhss[0].Name == cOld.Lhss[0].Name && cOld.Update == null) {
+              // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
+              // Go ahead with the merge:
+              body.Add(cNew);
               i++; j++;
             } else {
               MergeAddStatement(cur, body);
               i++;
             }
+
+          } else if (cur is IfStmt) {
+            var cNew = (IfStmt)cur;
+            var cOld = oldS as IfStmt;
+            if (cOld != null && cOld.Guard == null) {
+              var r = new IfStmt(cNew.Tok, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              body.Add(r);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+
+          } else if (cur is WhileStmt) {
+            var cNew = (WhileStmt)cur;
+            var cOld = oldS as WhileStmt;
+            if (cOld != null && cOld.Guard == null) {
+              var r = MergeWhileStmt(cNew, cOld, cNew.Guard);
+              body.Add(r);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+
+          } else {
+            MergeAddStatement(cur, body);
+            i++;
           }
         }
       }
       // implement the implicit "...;" at the end of each block statement skeleton
       for (; j < oldStmt.Body.Count; j++) {
-        MergeAddStatement(CloneStmt(oldStmt.Body[j]), body);
+        body.Add(CloneStmt(oldStmt.Body[j]));
       }
       return new BlockStmt(skeleton.Tok, body);
     }
 
+    bool PotentialMatch(Statement nxt, Statement other) {
+      Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
+      Contract.Requires(other != null);
+
+      if (nxt is SkeletonStatement) {
+        var S = ((SkeletonStatement)nxt).S;
+        if (S is AssertStmt) {
+          return other is PredicateStmt;
+        } else if (S is IfStmt) {
+          return other is IfStmt;
+        } else if (S is WhileStmt) {
+          return other is WhileStmt;
+        } else {
+          Contract.Assume(false);  // unexpected skeleton
+        }
+
+      } else if (nxt is IfStmt) {
+        var oth = other as IfStmt;
+        return oth != null && oth.Guard == null;
+      } else if (nxt is WhileStmt) {
+        var oth = other as WhileStmt;
+        return oth != null && oth.Guard == null;
+      }
+
+      // not a potential match
+      return false;
+    }
+
+    WhileStmt MergeWhileStmt(WhileStmt cNew, WhileStmt cOld, Expression guard) {
+      Contract.Requires(cNew != null);
+      Contract.Requires(cOld != null);
+
+      // Note, the parser produces errors if there are any decreases or modifies clauses (and it creates
+      // the Specification structures with a null list).
+      Contract.Assume(cNew.Decreases.Expressions == null);
+      Contract.Assume(cNew.Mod.Expressions == null);
+
+      var invs = cOld.Invariants.ConvertAll(CloneMayBeFreeExpr);
+      invs.AddRange(cNew.Invariants);
+      var r = new WhileStmt(cNew.Tok, guard, invs, CloneSpecExpr(cOld.Decreases), CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
+      return r;
+    }
+
+    Statement MergeElse(Statement skeleton, Statement oldStmt) {
+      Contract.Requires(skeleton == null || skeleton is BlockStmt || skeleton is IfStmt);
+      Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt);
+
+      if (skeleton == null) {
+        return CloneStmt(oldStmt);
+      } else if (skeleton is IfStmt) {
+        // wrap a block statement around the if statement
+        skeleton = new BlockStmt(skeleton.Tok, new List<Statement>() { skeleton });
+      }
+
+      if (oldStmt == null) {
+        // make it into an empty block statement
+        oldStmt = new BlockStmt(skeleton.Tok, new List<Statement>());
+      } else if (oldStmt is IfStmt) {
+        // wrap a block statement around the if statement
+        oldStmt = new BlockStmt(oldStmt.Tok, new List<Statement>() { oldStmt });
+      }
+
+      Contract.Assert(skeleton is BlockStmt && oldStmt is BlockStmt);
+      return MergeBlockStmt((BlockStmt)skeleton, (BlockStmt)oldStmt);
+    }
+
     /// <summary>
-    /// Add "s" to "stmtList", but complain if "s" contains further occurrences of "..." or if "s" assigns to a
-    /// variable that was not declared in the refining module.
-    /// TODO: and what about new control flow?
+    /// Add "s" to "stmtList", but complain if "s" contains further occurrences of "...", if "s" assigns to a
+    /// variable that was not declared in the refining module, or if "s" has some control flow that jumps to a
+    /// place outside "s".
     /// </summary>
     void MergeAddStatement(Statement s, List<Statement> stmtList) {
       Contract.Requires(s != null);
       Contract.Requires(stmtList != null);
-      if (s is AssertStmt) {
-        // this is fine to add
-      } else {
-        // TODO: validity checks
+      var prevErrorCount = reporter.ErrorCount;
+      CheckIsOkayNewStatement(s, new Stack<string>(), 0);
+      if (reporter.ErrorCount == prevErrorCount) {
+        stmtList.Add(s);
       }
-      stmtList.Add(s);
+    }
+
+    /// <summary>
+    /// See comment on MergeAddStatement.
+    /// </summary>
+    void CheckIsOkayNewStatement(Statement s, Stack<string> labels, int loopLevels) {
+      Contract.Requires(s != null);
+      Contract.Requires(labels != null);
+      Contract.Requires(0 <= loopLevels);
+
+      for (LabelNode n = s.Labels; n != null; n = n.Next) {
+        labels.Push(n.Label);
+      }
+
+      if (s is SkeletonStatement) {
+        reporter.Error(s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
+      } else if (s is ReturnStmt) {
+        reporter.Error(s, "return statements are not allowed in skeletons");
+      } else if (s is BreakStmt) {
+        var b = (BreakStmt)s;
+        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel) : loopLevels < b.BreakCount) {
+          reporter.Error(s, "break statement in skeleton is not allowed to break outside the skeleton fragment");
+        }
+      } else if (s is AssignStmt) {
+        // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
+        // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
+        // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
+      } else {
+        if (s is WhileStmt || s is AlternativeLoopStmt) {
+          loopLevels++;
+        }
+        foreach (var ss in s.SubStatements) {
+          CheckIsOkayNewStatement(ss, labels, loopLevels);
+        }
+      }
+
+      for (LabelNode n = s.Labels; n != null; n = n.Next) {
+        labels.Pop();
+      }
     }
 
     // ---------------------- additional methods -----------------------------------------------------------------------------

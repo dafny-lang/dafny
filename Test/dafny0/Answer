@@ -1476,6 +1476,20 @@ Execution trace:
 
 Dafny program verifier finished with 52 verified, 6 errors
 
+-------------------- Skeletons.dfy --------------------
+Skeletons.dfy(42,3): Error BP5003: A postcondition might not hold on this return path.
+Skeletons.dfy(41,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    Skeletons.dfy[C0](29,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    Skeletons.dfy[C0](29,5): anon13_Else
+    (0,0): anon9
+    Skeletons.dfy[C0](34,19): anon16_Else
+    (0,0): anon11
+
+Dafny program verifier finished with 9 verified, 1 error
+
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
 Execution trace:

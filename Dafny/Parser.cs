@@ -447,7 +447,7 @@ bool IsAttribute() {
 		List<Expression/*!*/> ens = new List<Expression/*!*/>();
 		List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
 		List<Expression/*!*/> decreases = new List<Expression/*!*/>();
-		Expression/*!*/ bb;  Expression body = null;
+		Expression body = null;
 		bool isPredicate = false;
 		bool isFunctionMethod = false;
 		IToken openParen = null;
@@ -513,8 +513,7 @@ bool IsAttribute() {
 			FunctionSpec(reqs, reads, ens, decreases);
 		}
 		if (la.kind == 6) {
-			FunctionBody(out bb, out bodyStart, out bodyEnd);
-			body = bb; 
+			FunctionBody(out body, out bodyStart, out bodyEnd);
 		}
 		if (isPredicate) {
 		  f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals,
@@ -542,7 +541,7 @@ bool IsAttribute() {
 		List<Expression/*!*/> dec = new List<Expression/*!*/>();
 		Attributes decAttrs = null;
 		Attributes modAttrs = null;
-		Statement/*!*/ bb;  BlockStmt body = null;
+		BlockStmt body = null;
 		bool isConstructor = false;
 		bool signatureOmitted = false;
 		IToken bodyStart = Token.NoToken;
@@ -592,8 +591,7 @@ bool IsAttribute() {
 			MethodSpec(req, mod, ens, dec, ref decAttrs, ref modAttrs);
 		}
 		if (la.kind == 6) {
-			BlockStmt(out bb, out bodyStart, out bodyEnd);
-			body = (BlockStmt)bb; 
+			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
 		if (isConstructor) {
 		 m = new Constructor(id, id.val, typeArgs, ins,
@@ -845,7 +843,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else SynErr(126);
 	}
 
-	void BlockStmt(out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd) {
+	void BlockStmt(out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd) {
 		Contract.Ensures(Contract.ValueAtReturn(out block) != null);
 		List<Statement/*!*/> body = new List<Statement/*!*/>();
 		
@@ -1016,13 +1014,15 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void OneStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
 		s = dummyStmt;  /* to please the compiler */
+		BlockStmt bs;
 		IToken bodyStart, bodyEnd;
 		int breakCount;
 		
 		while (!(StartOf(12))) {SynErr(136); Get();}
 		switch (la.kind) {
 		case 6: {
-			BlockStmt(out s, out bodyStart, out bodyEnd);
+			BlockStmt(out bs, out bodyStart, out bodyEnd);
+			s = bs; 
 			break;
 		}
 		case 63: {
@@ -1242,7 +1242,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void IfStmt(out Statement/*!*/ ifStmt) {
 		Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
 		Expression guard = null;  bool guardOmitted = false;
-		Statement/*!*/ thn;
+		BlockStmt/*!*/ thn;
+		BlockStmt/*!*/ bs;
 		Statement/*!*/ s;
 		Statement els = null;
 		IToken bodyStart, bodyEnd;
@@ -1265,8 +1266,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					IfStmt(out s);
 					els = s; 
 				} else if (la.kind == 6) {
-					BlockStmt(out s, out bodyStart, out bodyEnd);
-					els = s; 
+					BlockStmt(out bs, out bodyStart, out bodyEnd);
+					els = bs; 
 				} else SynErr(142);
 			}
 			if (guardOmitted) {
@@ -1289,7 +1290,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Attributes decAttrs = null;
 		Attributes modAttrs = null;
 		List<FrameExpression/*!*/> mod = null;
-		Statement/*!*/ body = null;  bool bodyOmitted = false;
+		BlockStmt/*!*/ body = null;  bool bodyOmitted = false;
 		IToken bodyStart = null, bodyEnd = null;
 		List<GuardedAlternative> alternatives;
 		stmt = dummyStmt;  // to please the compiler
@@ -1319,7 +1320,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			   SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
 			 }
 			 if (body == null) {
-			   body = new AssertStmt(x, new LiteralExpr(x, true), null);
+			   body = new BlockStmt(x, new List<Statement>());
 			 }
 			 stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(null, null), new Specification<FrameExpression>(null, null), body);
 			 stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
@@ -1359,7 +1360,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		var ens = new List<MaybeFreeExpression/*!*/>();
 		bool isFree;
 		Expression/*!*/ e;
-		Statement/*!*/ block;
+		BlockStmt/*!*/ block;
 		IToken bodyStart, bodyEnd;
 		
 		Expect(66);

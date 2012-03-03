@@ -347,7 +347,7 @@ namespace Microsoft.Dafny {
 
     void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
-      if (decs.Expressions.Count != 0) {
+      if (decs.Expressions != null && decs.Expressions.Count != 0) {
         Indent(indent);
         wr.Write("decreases");
         if (decs.HasAttributes())
@@ -360,14 +360,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/>/*!*/ ee, int indent, Attributes attrs) {
+    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
-      if (ee.Count != 0) {
+      if (ee != null && ee.Count != 0) {
         Indent(indent);
         wr.Write("{0}", kind);
         if (attrs != null) {
-            PrintAttributes(attrs);
+          PrintAttributes(attrs);
         }
         wr.Write(" ");
         PrintFrameExpressionList(ee);

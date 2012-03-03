@@ -1238,6 +1238,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       this.Tok = tok;
     }
+
+    /// <summary>
+    /// Returns the non-null substatements of the Statements.
+    /// </summary>
+    public virtual IEnumerable<Statement> SubStatements {
+      get { yield break; }
+    }
   }
 
   public class LabelNode
@@ -1512,6 +1519,10 @@ namespace Microsoft.Dafny {
     public ConcreteSyntaxStatement(IToken tok)
       : base(tok) {
     }
+
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
   }
 
   public class VarDeclStmt : ConcreteSyntaxStatement
@@ -1583,6 +1594,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       this.Lhs = lhs;
       this.Rhs = rhs;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        var trhs = Rhs as TypeRhs;
+        if (trhs != null && trhs.InitCall != null) {
+          yield return trhs.InitCall;
+        }
+      }
     }
   }
 
@@ -1684,20 +1704,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(body));
       this.Body = body;
+    }
 
+    public override IEnumerable<Statement> SubStatements {
+      get { return Body; }
     }
   }
 
   public class IfStmt : Statement {
     public readonly Expression Guard;
-    public readonly Statement Thn;
+    public readonly BlockStmt Thn;
     public readonly Statement Els;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Thn != null);
       Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt);
     }
-    public IfStmt(IToken tok, Expression guard, Statement thn, Statement els)
+    public IfStmt(IToken tok, Expression guard, BlockStmt thn, Statement els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(thn != null);
@@ -1705,6 +1728,14 @@ namespace Microsoft.Dafny {
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Thn;
+        if (Els != null) {
+          yield return Els;
+        }
+      }
     }
   }
 
@@ -1743,6 +1774,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
     }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        foreach (var alt in Alternatives) {
+          foreach (var s in alt.Body) {
+            yield return s;
+          }
+        }
+      }
+    }
   }
 
   public abstract class LoopStmt : Statement
@@ -1773,7 +1813,7 @@ namespace Microsoft.Dafny {
   public class WhileStmt : LoopStmt
   {
     public readonly Expression Guard;
-    public readonly Statement/*!*/ Body;
+    public readonly BlockStmt/*!*/ Body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Body != null);
@@ -1781,12 +1821,18 @@ namespace Microsoft.Dafny {
 
     public WhileStmt(IToken tok, Expression guard,
                      List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod,
-                     Statement/*!*/ body)
+                     BlockStmt/*!*/ body)
       : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(body != null);
       this.Guard = guard;
       this.Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Body;
+      }
     }
   }
 
@@ -1804,6 +1850,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        foreach (var alt in Alternatives) {
+          foreach (var s in alt.Body) {
+            yield return s;
+          }
+        }
+      }
     }
   }
 
@@ -1880,6 +1935,12 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Body;
+      }
+    }
   }
 
   public class MatchStmt : Statement
@@ -1902,7 +1963,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+    }
 
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        foreach (var kase in Cases) {
+          foreach (var s in kase.Body) {
+            yield return s;
+          }
+        }
+      }
     }
   }
 
@@ -1957,6 +2027,19 @@ namespace Microsoft.Dafny {
       S = s;
       ConditionOmitted = conditionOmitted;
       BodyOmitted = bodyOmitted;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        // The SkeletonStatement is really a modification of its inner statement S.  Therefore,
+        // we don't consider S to be a substatement.  Instead, the substatements of S are the
+        // substatements of the SkeletonStatement.  In the case the SkeletonStatement modifies
+        // S by omitting its body (which is true only for loops), there are no substatements.
+        if (!BodyOmitted) {
+          foreach (var s in S.SubStatements) {
+            yield return s;
+          }
+        }
+      }
     }
   }
 

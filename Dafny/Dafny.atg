@@ -365,7 +365,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
-     Statement/*!*/ bb;  BlockStmt body = null;
+     BlockStmt body = null;
      bool isConstructor = false;
      bool signatureOmitted = false;
      IToken bodyStart = Token.NoToken;
@@ -401,7 +401,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
   )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
-  [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
+  [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isConstructor) {
        m = new Constructor(id, id.val, typeArgs, ins,
@@ -526,7 +526,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<Expression/*!*/> ens = new List<Expression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
-     Expression/*!*/ bb;  Expression body = null;
+     Expression body = null;
      bool isPredicate = false;
      bool isFunctionMethod = false;
      IToken openParen = null;
@@ -571,7 +571,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   )
 
   { FunctionSpec<reqs, reads, ens, decreases> }
-  [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
+  [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isPredicate) {
         f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals,
@@ -634,7 +634,7 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
   "}"                         (. bodyEnd = t; .)
   .
 /*------------------------------------------------------------------------*/
-BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
+BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
@@ -652,11 +652,12 @@ Stmt<.List<Statement/*!*/>/*!*/ ss.>
 OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
+     BlockStmt bs;
      IToken bodyStart, bodyEnd;
      int breakCount;
   .)
   SYNC
-  ( BlockStmt<out s, out bodyStart, out bodyEnd>
+  ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
   | AssertStmt<out s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
@@ -793,7 +794,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
      Expression guard = null;  bool guardOmitted = false;
-     Statement/*!*/ thn;
+     BlockStmt/*!*/ thn;
+     BlockStmt/*!*/ bs;
      Statement/*!*/ s;
      Statement els = null;
      IToken bodyStart, bodyEnd;
@@ -808,7 +810,7 @@ IfStmt<out Statement/*!*/ ifStmt>
     BlockStmt<out thn, out bodyStart, out bodyEnd>
     [ "else"
       ( IfStmt<out s>                                 (. els = s; .)
-      | BlockStmt<out s, out bodyStart, out bodyEnd>  (. els = s; .)
+      | BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; .)
       )
     ]
     (. if (guardOmitted) {
@@ -846,7 +848,7 @@ WhileStmt<out Statement/*!*/ stmt>
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression/*!*/> mod = null;
-     Statement/*!*/ body = null;  bool bodyOmitted = false;
+     BlockStmt/*!*/ body = null;  bool bodyOmitted = false;
      IToken bodyStart = null, bodyEnd = null;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
@@ -869,7 +871,7 @@ WhileStmt<out Statement/*!*/ stmt>
           SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
         }
         if (body == null) {
-          body = new AssertStmt(x, new LiteralExpr(x, true), null);
+          body = new BlockStmt(x, new List<Statement>());
         }
         stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(null, null), new Specification<FrameExpression>(null, null), body);
         stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
@@ -1007,7 +1009,7 @@ ParallelStmt<out Statement/*!*/ s>
      var ens = new List<MaybeFreeExpression/*!*/>();
      bool isFree;
      Expression/*!*/ e;
-     Statement/*!*/ block;
+     BlockStmt/*!*/ block;
      IToken bodyStart, bodyEnd;
   .)
   "parallel"                                (. x = t; .)
