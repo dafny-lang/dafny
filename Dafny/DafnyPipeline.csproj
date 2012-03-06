@@ -158,6 +158,7 @@
     <Compile Include="Printer.cs" />
     <Compile Include="RefinementTransformer.cs" />
     <Compile Include="Resolver.cs" />
+    <Compile Include="Rewriter.cs" />
     <Compile Include="SccGraph.cs" />
     <Compile Include="Translator.cs" />
     <Compile Include="..\version.cs" />

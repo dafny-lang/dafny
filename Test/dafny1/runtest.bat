@@ -12,7 +12,8 @@ for %%f in (BQueue.bpl) do (
   %BPLEXE% %* %%f
 )
 
-for %%f in (Queue.dfy PriorityQueue.dfy ExtensibleArray.dfy
+for %%f in (Queue.dfy PriorityQueue.dfy
+            ExtensibleArray.dfy ExtensibleArrayAuto.dfy
             BinaryTree.dfy
             UnboundedStack.dfy
             SeparationLogicList.dfy

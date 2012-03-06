@@ -111,6 +111,28 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    /// <summary>
+    /// Returns true if "nm" is a specified attribute.  If it is, then:
+    /// - if the attribute is {:nm true}, then value==true
+    /// - if the attribute is {:nm false}, then value==false
+    /// - if the attribute is anything else, then value returns as whatever it was passed in as.
+    /// </summary>
+    public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
+      Contract.Requires(nm != null);
+      for (; attrs != null; attrs = attrs.Prev) {
+        if (attrs.Name == nm) {
+          if (attrs.Args.Count == 1) {
+            var arg = attrs.Args[0].E as LiteralExpr;
+            if (arg != null && arg.Value is bool) {
+              value = (bool)arg.Value;
+            }
+          }
+          return true;
+        }
+      }
+      return false;
+    }
+
     public class Argument
     {
       public readonly IToken Tok;
@@ -1066,7 +1088,7 @@ namespace Microsoft.Dafny {
     public readonly List<FrameExpression/*!*/>/*!*/ Reads;
     public readonly List<Expression/*!*/>/*!*/ Ens;
     public readonly Specification<Expression>/*!*/ Decreases;
-    public readonly Expression Body;  // an extended expression
+    public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
     public readonly bool SignatureIsOmitted;  // is "false" for all Function objects that survive into resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1133,7 +1155,7 @@ namespace Microsoft.Dafny {
     public readonly Specification<FrameExpression>/*!*/ Mod;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
     public readonly Specification<Expression>/*!*/ Decreases;
-    public readonly BlockStmt Body;
+    public BlockStmt Body;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -2682,6 +2704,88 @@ namespace Microsoft.Dafny {
       RankGt
     }
     public ResolvedOpcode ResolvedOp;  // filled in by resolution
+
+    public static Opcode ResolvedOp2SyntacticOp(ResolvedOpcode rop) {
+      switch (rop) {
+        case ResolvedOpcode.Iff: return Opcode.Iff;
+        case ResolvedOpcode.Imp: return Opcode.Imp;
+        case ResolvedOpcode.And: return Opcode.And;
+        case ResolvedOpcode.Or: return Opcode.Or;
+
+        case ResolvedOpcode.EqCommon:
+        case ResolvedOpcode.SetEq:
+        case ResolvedOpcode.MultiSetEq:
+        case ResolvedOpcode.SeqEq:
+          return Opcode.Eq;
+
+        case ResolvedOpcode.NeqCommon:
+        case ResolvedOpcode.SetNeq:
+        case ResolvedOpcode.MultiSetNeq:
+        case ResolvedOpcode.SeqNeq:
+          return Opcode.Neq;
+
+        case ResolvedOpcode.Lt:
+        case ResolvedOpcode.ProperSubset:
+        case ResolvedOpcode.ProperMultiSuperset:
+        case ResolvedOpcode.ProperPrefix:
+        case ResolvedOpcode.RankLt:
+          return Opcode.Lt;
+
+        case ResolvedOpcode.Le:
+        case ResolvedOpcode.Subset:
+        case ResolvedOpcode.MultiSubset:
+        case ResolvedOpcode.Prefix:
+          return Opcode.Le;
+
+        case ResolvedOpcode.Ge:
+        case ResolvedOpcode.Superset:
+        case ResolvedOpcode.MultiSuperset:
+          return Opcode.Ge;
+
+        case ResolvedOpcode.Gt:
+        case ResolvedOpcode.ProperSuperset:
+        case ResolvedOpcode.ProperMultiSubset:
+        case ResolvedOpcode.RankGt:
+          return Opcode.Gt;
+
+        case ResolvedOpcode.Add:
+        case ResolvedOpcode.Union:
+        case ResolvedOpcode.MultiSetUnion:
+        case ResolvedOpcode.Concat:
+          return Opcode.Add;
+
+        case ResolvedOpcode.Sub:
+        case ResolvedOpcode.SetDifference:
+        case ResolvedOpcode.MultiSetDifference:
+          return Opcode.Sub;
+
+        case ResolvedOpcode.Mul:
+        case ResolvedOpcode.Intersection:
+        case ResolvedOpcode.MultiSetIntersection:
+          return Opcode.Mul;
+
+        case ResolvedOpcode.Div: return Opcode.Div;
+        case ResolvedOpcode.Mod: return Opcode.Mod;
+
+        case ResolvedOpcode.Disjoint:
+        case ResolvedOpcode.MultiSetDisjoint:
+          return Opcode.Disjoint;
+
+        case ResolvedOpcode.InSet:
+        case ResolvedOpcode.InMultiSet:
+        case ResolvedOpcode.InSeq:
+          return Opcode.In;
+
+        case ResolvedOpcode.NotInSet:
+        case ResolvedOpcode.NotInMultiSet:
+        case ResolvedOpcode.NotInSeq:
+          return Opcode.NotIn;
+
+        default:
+          Contract.Assert(false);  // unexpected ResolvedOpcode
+          return Opcode.Add;  // please compiler
+      }
+    }
 
     public static string OpcodeString(Opcode op) {
       Contract.Ensures(Contract.Result<string>() != null);

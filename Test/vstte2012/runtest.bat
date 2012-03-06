@@ -8,7 +8,7 @@ set CSC=c:/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
 for %%f in (
     Two-Way-Sort.dfy
     Combinators.dfy
-    RingBuffer.dfy
+    RingBuffer.dfy RingBufferAuto.dfy
     Tree.dfy
     BreadthFirstSearch.dfy
   ) do (
