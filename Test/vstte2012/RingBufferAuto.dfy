@@ -65,7 +65,7 @@ class {:autocontracts} RingBuffer<T>
 
 method TestHarness(x: int, y: int, z: int)
 {
-  var b := new RingBuffer<int>.Create(2);
+  var b := new RingBuffer.Create(2);
   b.Enqueue(x);
   b.Enqueue(y);
   var h := b.Dequeue();  assert h == x;
