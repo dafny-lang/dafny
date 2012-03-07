@@ -488,11 +488,11 @@ public class Scanner {
 
 	void CheckLiteral() {
 		switch (t.val) {
-			case "module": t.kind = 8; break;
-			case "refines": t.kind = 9; break;
-			case "imports": t.kind = 10; break;
-			case "class": t.kind = 11; break;
-			case "ghost": t.kind = 12; break;
+			case "ghost": t.kind = 8; break;
+			case "module": t.kind = 9; break;
+			case "refines": t.kind = 10; break;
+			case "imports": t.kind = 11; break;
+			case "class": t.kind = 12; break;
 			case "static": t.kind = 13; break;
 			case "unlimited": t.kind = 14; break;
 			case "datatype": t.kind = 15; break;

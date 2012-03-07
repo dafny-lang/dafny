@@ -173,6 +173,7 @@ namespace Microsoft.Dafny {
       Rewriter rewriter = new AutoContractsRewriter();
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
       var moduleNameInfo = new ModuleNameInformation[h];
+      var datatypeDependencies = new Graph<DatatypeDecl>();
       foreach (var m in mm) {
         rewriter.PreResolve(m);
         if (m.RefinementBase != null) {
@@ -180,11 +181,10 @@ namespace Microsoft.Dafny {
           transformer.Construct(m);
         }
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
-      }
+//      }
 
       // resolve top-level declarations
-      Graph<DatatypeDecl> datatypeDependencies = new Graph<DatatypeDecl>();
-      foreach (ModuleDecl m in mm) {
+//      foreach (ModuleDecl m in mm) {
         // set up environment
         ModuleNameInformation info = ModuleNameInformation.Merge(m, systemNameInfo, moduleNameInfo);
         classes = info.Classes;

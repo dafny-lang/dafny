@@ -285,8 +285,10 @@ namespace Microsoft.Dafny
     }
 
     bool IsSimpleQueryMethod(Method m) {
-      // A simple query method has out parameters and its body has no effect other than to assign to them
-      return m.Outs.Count != 0 && m.Body != null && LocalAssignsOnly(m.Body);
+      // A simple query method has out parameters, its body has no effect other than to assign to them,
+      // and the postcondition does not explicitly mention the pre-state.
+      return m.Outs.Count != 0 && m.Body != null && LocalAssignsOnly(m.Body) &&
+        m.Ens.TrueForAll(mfe => !Translator.MentionsOldState(mfe.E));
     }
 
     bool LocalAssignsOnly(Statement s) {

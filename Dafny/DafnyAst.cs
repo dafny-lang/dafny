@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", null, new List<string>(), null);
+    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", false, null, new List<string>(), null);
     Dictionary<int, ClassDecl/*!*/> arrayTypeDecls = new Dictionary<int, ClassDecl>();
 
     public BuiltIns() {
@@ -347,6 +347,16 @@ namespace Microsoft.Dafny {
     [Rep]
     public readonly List<Type/*!*/>/*!*/ TypeArgs;
 
+    public string FullName {
+      get {
+        if (ResolvedClass != null) {
+          return ResolvedClass.Module.Name + "." + Name;
+        } else {
+          return Name;
+        }
+      }
+    }
+
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
@@ -643,6 +653,7 @@ namespace Microsoft.Dafny {
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
+    public readonly bool IsGhost;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -651,7 +662,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDecl(IToken tok, string name, string refinementBase, [Captured] List<string/*!*/>/*!*/ imports, Attributes attributes)
+    public ModuleDecl(IToken tok, string name, bool isGhost, string refinementBase, [Captured] List<string/*!*/>/*!*/ imports, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -664,6 +675,7 @@ namespace Microsoft.Dafny {
           ImportNames.Add(nm);
         }
       }
+      IsGhost = isGhost;
     }
     public virtual bool IsDefaultModule {
       get {
@@ -673,7 +685,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDecl {
-    public DefaultModuleDecl() : base(Token.NoToken, "_default", null, new List<string/*!*/>(), null) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_default", false, null, new List<string/*!*/>(), null) {
     }
     public override bool IsDefaultModule {
       get {

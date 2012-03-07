@@ -7072,7 +7072,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old(...)" or "fresh(...)".
     /// </summary>
-    static bool MentionsOldState(Expression expr) {
+    public static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
       if (expr is OldExpr || expr is FreshExpr) {
         return true;

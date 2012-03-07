@@ -494,7 +494,11 @@ namespace Microsoft.Dafny {
     void AddStmtLabels(Statement s, LabelNode node) {
       if (node != null) {
         AddStmtLabels(s, node.Next);
-        s.Labels = new LabelNode(Tok(node.Tok), node.Label, s.Labels);
+        if (node.Label == null) {
+          // this indicates an implicit-target break statement that has been resolved; don't add it
+        } else {
+          s.Labels = new LabelNode(Tok(node.Tok), node.Label, s.Labels);
+        }
       }
     }
 

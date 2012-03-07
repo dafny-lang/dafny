@@ -148,27 +148,35 @@ Dafny
        defaultModule = new DefaultModuleDecl();
      }
      IToken idRefined;
+     bool isGhost;
   .)
-  { "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>();
-                                            namedModuleDefaultClassMembers = new List<MemberDecl>();
-                                         .)
-    { Attribute<ref attrs> }
-    Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
-    [ "refines" Ident<out idRefined> ]
-    [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, idRefined == null ? null : idRefined.val, theImports, attrs); .)
-    "{"                                  (. module.BodyStartTok = t; .)
-      { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
-      | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
-      | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
-      | ClassMemberDecl<namedModuleDefaultClassMembers, false>
-      }
-    "}"                                  (. module.BodyEndTok = t;
-                                            module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                            theModules.Add(module); .)
-  | ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
-  | DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
-  | ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
-  | ClassMemberDecl<membersDefaultClass, false>
+  { (. isGhost = false; .)
+    [ "ghost"  (. isGhost = true; .) ]
+
+    ( "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>();
+                                              namedModuleDefaultClassMembers = new List<MemberDecl>();
+                                           .)
+      { Attribute<ref attrs> }
+      Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
+      [ "refines" Ident<out idRefined> ]
+      [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, isGhost, idRefined == null ? null : idRefined.val, theImports, attrs); .)
+      "{"                                  (. module.BodyStartTok = t; .)
+        { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
+        | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
+        | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, false>
+        }
+      "}"                                  (. module.BodyEndTok = t;
+                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+                                              theModules.Add(module); .)
+    | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
+      ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
+    | (. if (isGhost) { SemErr(t, "a datatype is not allowed to be declared as 'ghost'"); } .)
+      DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
+    | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
+      ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
+    | ClassMemberDecl<membersDefaultClass, isGhost, false>
+    )
   }
   (. if (defaultModuleCreatedHere) {
        defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
@@ -201,7 +209,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   Ident<out id>
   [ GenericParameters<typeArgs> ]
   "{"                                            (. bodyStart = t; .)
-  { ClassMemberDecl<members, true>
+  { ClassMemberDecl<members, false, true>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
@@ -209,11 +217,12 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
      c.BodyEndTok = t;
   .)
   .
-ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
+ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool isAlreadyGhost, bool allowConstructors.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
      MemberModifiers mmod = new MemberModifiers();
+     mmod.IsGhost = isAlreadyGhost;
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; .)

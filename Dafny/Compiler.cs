@@ -67,6 +67,10 @@ namespace Microsoft.Dafny {
       CompileBuiltIns(program.BuiltIns);
 
       foreach (ModuleDecl m in program.Modules) {
+        if (m.IsGhost) {
+          // the purpose of a ghost module is to skip compilation
+          continue;
+        }
         int indent = 0;
         if (!m.IsDefaultModule) {
           wr.WriteLine("namespace @{0} {{", m.Name);
@@ -599,7 +603,7 @@ namespace Microsoft.Dafny {
         return name + "]";
       } else if (type is UserDefinedType) {
         UserDefinedType udt = (UserDefinedType)type;
-        string s = "@" + udt.Name;
+        string s = "@" + udt.FullName;
         if (udt.TypeArgs.Count != 0) {
           if (Contract.Exists(udt.TypeArgs, argType =>argType is ObjectType)) {
             Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
