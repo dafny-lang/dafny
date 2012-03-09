@@ -349,7 +349,7 @@ namespace Microsoft.Dafny {
 
     public string FullName {
       get {
-        if (ResolvedClass != null) {
+        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
           return ResolvedClass.Module.Name + "." + Name;
         } else {
           return Name;
