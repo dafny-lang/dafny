@@ -346,7 +346,7 @@ namespace Microsoft.Dafny
         Bpl.Program programSnippet;
         int errorCount;
         try {
-          errorCount = Microsoft.Boogie.Parser.Parse(bplFileName, null, out programSnippet);
+          errorCount = Microsoft.Boogie.Parser.Parse(bplFileName, (List<string>)null, out programSnippet);
           if (programSnippet == null || errorCount != 0) {
             Console.WriteLine("{0} parse errors detected in {1}", errorCount, bplFileName);
             okay = false;
