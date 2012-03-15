@@ -15,6 +15,7 @@ for %%f in (
     COST-verif-comp-2011-3-TwoDuplicates.dfy
     COST-verif-comp-2011-4-FloydCycleDetect.dfy
     Intervals.dfy
+    StoreAndRetrieve.dfy
   ) do (
   echo.
   echo -------------------- %%f --------------------

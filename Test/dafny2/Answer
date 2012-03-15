@@ -30,3 +30,7 @@ Dafny program verifier finished with 23 verified, 0 errors
 -------------------- Intervals.dfy --------------------
 
 Dafny program verifier finished with 5 verified, 0 errors
+
+-------------------- StoreAndRetrieve.dfy --------------------
+
+Dafny program verifier finished with 22 verified, 0 errors
