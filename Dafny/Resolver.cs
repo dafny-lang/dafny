@@ -2097,6 +2097,11 @@ namespace Microsoft.Dafny {
         // this case is checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
       } else if (stmt is ReturnStmt) {
         Error(stmt, "return statement is not allowed inside a parallel statement");
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        foreach (var lhs in s.Lhss) {
+          CheckParallelBodyLhs(s.Tok, lhs.Resolved, kind);
+        }
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         foreach (var ss in s.ResolvedStatements) {
@@ -2104,14 +2109,7 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        var idExpr = s.Lhs.Resolved as IdentifierExpr;
-        if (idExpr != null) {
-          if (scope.ContainsDecl(idExpr.Var)) {
-            Error(stmt, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
-          }
-        } else if (kind != ParallelStmt.ParBodyKind.Assign) {
-          Error(stmt, "the body of the enclosing parallel statement is not allowed to update heap locations");
-        }
+        CheckParallelBodyLhs(s.Tok, s.Lhs.Resolved, kind);
         var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
         if (rhs is TypeRhs) {
           if (kind == ParallelStmt.ParBodyKind.Assign) {
@@ -2211,6 +2209,17 @@ namespace Microsoft.Dafny {
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
+      }
+    }
+
+    void CheckParallelBodyLhs(IToken tok, Expression lhs, ParallelStmt.ParBodyKind kind) {
+      var idExpr = lhs as IdentifierExpr;
+      if (idExpr != null) {
+        if (scope.ContainsDecl(idExpr.Var)) {
+          Error(tok, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
+        }
+      } else if (kind != ParallelStmt.ParBodyKind.Assign) {
+        Error(tok, "the body of the enclosing parallel statement is not allowed to update heap locations");
       }
     }
 
