@@ -18,7 +18,7 @@ module A imports Library {
       ensures Contents == old(Contents);
       ensures thing in Contents && Function.Apply(matchCriterion, thing);
     {
-      var k;  assume k in Contents && Function.Apply(matchCriterion, k);
+      var k :| k in Contents && Function.Apply(matchCriterion, k);
       thing := k;
     }
   }
@@ -49,7 +49,7 @@ module B refines A {
         if (Function.Apply(matchCriterion, arr[i])) { break; }
         i := i + 1;
       }
-      var k := arr[i];  assert ...;
+      var k := arr[i];
     }
   }
 }
