@@ -535,3 +535,71 @@ static method TestNotNot()
 
   assert true == !(!true);
 }
+
+// ----------------------- Assign-such-that statements -------
+
+method AssignSuchThat0(a: int, b: int) returns (x: int, y: int)
+  ensures x == a && y == b;
+{
+  if (*) {
+    x, y :| a <= x < a + 1 && b + a <= y + a && y <= b;
+  } else {
+    var xx, yy :| a <= xx < a + 1 && b + a <= yy + a && yy <= b;
+    x, y := xx, yy;
+  }
+}
+
+method AssignSuchThat1(a: int, b: int) returns (x: int, y: int)
+{
+  var k :| 0 <= k < a - b;  // this acts like an 'assume 0 < a - b;'
+  assert b < a;
+  k :| k == old(2*k);  // note, the 'old' has no effect on local variables like k
+  assert k == 0;
+  var S := {2, 4, 7};
+  var T :| T <= S;
+  assert 3 !in T;
+  assert T == {};  // error: T may be larger
+}
+
+method AssignSuchThat2(i: int, j: int, ghost S: set<Node>)
+  modifies S;
+{
+  var n := new Node;
+  var a := new int[25];
+  var t;
+  if (0 <= i < j < 25) {
+    a[i], t, a[j], n.next, n :| true;
+  }
+  if (n != null && n.next != null) {
+    assume n in S && n.next in S;
+    n.next.next, n.next :| n != null && n.next != null && n.next.next == n.next;  // error: n.next may equal n (thus aliasing n.next.next and n.next)
+  } else if (0 <= i < 25 && 0 <= j < 25) {
+    t, a[i], a[j] :| t < a[i] < a[j];  // error: i may equal j (thus aliasing a[i] and a[j])
+  }
+}
+
+method AssignSuchThat3()
+{
+  var n := new Node;
+  n, n.next :| n.next == n;  // error: RHS is not well defined (RHS is evaluated after the havocking of the LHS)
+}
+
+method AssignSuchThat4()
+{
+  var n := new Node;
+  n, n.next :| n != null && n.next == n;  // that's the ticket
+}
+
+method AssignSuchThat5()
+{
+  var n := new Node;
+  n :| fresh(n);  // fine
+  assert false;  // error
+}
+
+method AssignSuchThat6()
+{
+  var n: Node;
+  n :| n != null && fresh(n);  // there is no non-null fresh object, so this amounts to 'assume false;'
+  assert false;  // no problemo
+}

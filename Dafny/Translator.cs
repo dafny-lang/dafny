@@ -3331,6 +3331,25 @@ namespace Microsoft.Dafny {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
         }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        AddComment(builder, s, "assign-such-that statement");
+        // treat like a parallel havoc, followed by an assume
+        // Here comes the havoc part
+        var lhss = new List<Expression>();
+        var havocRhss = new List<AssignmentRhs>();
+        foreach (var lhs in s.Lhss) {
+          lhss.Add(lhs.Resolved);
+          havocRhss.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
+        }
+        List<AssignToLhs> lhsBuilder;
+        List<Bpl.IdentifierExpr> bLhss;
+        ProcessLhss(lhss, false, builder, locals, etran, out lhsBuilder, out bLhss);
+        ProcessRhss(lhsBuilder, bLhss, lhss, havocRhss, builder, locals, etran);
+        // End by doing the assume
+        TrStmt(s.Assume, builder, locals, etran);
+        builder.Add(CaptureState(s.Tok));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
+
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or

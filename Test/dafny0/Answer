@@ -247,8 +247,47 @@ SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this ret
 SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
+SmallTests.dfy(561,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+SmallTests.dfy(575,20): Error: left-hand sides 0 and 1 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon4
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Then
+    (0,0): anon32_Then
+    (0,0): anon12
+SmallTests.dfy(577,15): Error: left-hand sides 1 and 2 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    SmallTests.dfy(570,18): anon28_Else
+    (0,0): anon4
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Else
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon22
+    (0,0): anon38_Then
+SmallTests.dfy(584,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(597,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 58 verified, 21 errors
+Dafny program verifier finished with 68 verified, 26 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -1598,8 +1637,47 @@ SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this ret
 SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
+SmallTests.dfy(561,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+SmallTests.dfy(575,20): Error: left-hand sides 0 and 1 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon4
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Then
+    (0,0): anon32_Then
+    (0,0): anon12
+SmallTests.dfy(577,15): Error: left-hand sides 1 and 2 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    SmallTests.dfy(570,18): anon28_Else
+    (0,0): anon4
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Else
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon22
+    (0,0): anon38_Then
+SmallTests.dfy(584,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(597,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 58 verified, 21 errors
+Dafny program verifier finished with 68 verified, 26 errors
 out.tmp.dfy(33,11): Error: index out of range
 Execution trace:
     (0,0): anon0
@@ -1707,8 +1785,47 @@ out.tmp.dfy(469,10): Error BP5003: A postcondition might not hold on this return
 out.tmp.dfy(470,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
+out.tmp.dfy(507,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+out.tmp.dfy(521,20): Error: left-hand sides 0 and 1 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon4
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Then
+    (0,0): anon32_Then
+    (0,0): anon12
+out.tmp.dfy(523,15): Error: left-hand sides 1 and 2 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    out.tmp.dfy(516,18): anon28_Else
+    (0,0): anon4
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Else
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon22
+    (0,0): anon38_Then
+out.tmp.dfy(530,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(543,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 58 verified, 21 errors
+Dafny program verifier finished with 68 verified, 26 errors
 
 -------------------- LetExpr.dfy --------------------
 LetExpr.dfy(5,12): Error: assertion violation

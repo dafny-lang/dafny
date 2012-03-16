@@ -1308,8 +1308,8 @@ namespace Microsoft.Dafny {
         else {// this is a regular return statement.
           s.hiddenUpdate = null;
         }
-      } else if (stmt is UpdateStmt) {
-        ResolveUpdateStmt((UpdateStmt)stmt, specContextOnly, method);
+      } else if (stmt is ConcreteUpdateStatement) {
+        ResolveUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, method);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var vd in s.Lhss) {
@@ -1725,7 +1725,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveUpdateStmt(UpdateStmt s, bool specContextOnly, Method method)
+    private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, Method method)
     {
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
@@ -1743,32 +1743,38 @@ namespace Microsoft.Dafny {
       }
       IToken firstEffectfulRhs = null;
       CallRhs callRhs = null;
+      var update = s as UpdateStmt;
       // Resolve RHSs
-      foreach (var rhs in s.Rhss) {
-        bool isEffectful;
-        if (rhs is TypeRhs) {
-          var tr = (TypeRhs)rhs;
-          ResolveTypeRhs(tr, s, specContextOnly, method);
-          isEffectful = tr.InitCall != null;
-        } else if (rhs is HavocRhs) {
-          isEffectful = false;
-        } else {
-          var er = (ExprRhs)rhs;
-          if (er.Expr is IdentifierSequence) {
-            var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, true, true);
-            isEffectful = cRhs != null;
-            callRhs = callRhs ?? cRhs;
-          } else if (er.Expr is FunctionCallExpr) {
-            var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, true, true);
-            isEffectful = cRhs != null;
-            callRhs = callRhs ?? cRhs;
-          } else {
-            ResolveExpression(er.Expr, true);
+      if (update == null) {
+        var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
+        s.ResolvedStatements.Add(suchThat.Assume);
+      } else {
+        foreach (var rhs in update.Rhss) {
+          bool isEffectful;
+          if (rhs is TypeRhs) {
+            var tr = (TypeRhs)rhs;
+            ResolveTypeRhs(tr, s, specContextOnly, method);
+            isEffectful = tr.InitCall != null;
+          } else if (rhs is HavocRhs) {
             isEffectful = false;
+          } else {
+            var er = (ExprRhs)rhs;
+            if (er.Expr is IdentifierSequence) {
+              var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, true, true);
+              isEffectful = cRhs != null;
+              callRhs = callRhs ?? cRhs;
+            } else if (er.Expr is FunctionCallExpr) {
+              var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, true, true);
+              isEffectful = cRhs != null;
+              callRhs = callRhs ?? cRhs;
+            } else {
+              ResolveExpression(er.Expr, true);
+              isEffectful = false;
+            }
           }
-        }
-        if (isEffectful && firstEffectfulRhs == null) {
-          firstEffectfulRhs = rhs.Tok;
+          if (isEffectful && firstEffectfulRhs == null) {
+            firstEffectfulRhs = rhs.Tok;
+          }
         }
       }
       // check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
@@ -1784,67 +1790,69 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // figure out what kind of UpdateStmt this is
-      if (firstEffectfulRhs == null) {
-        if (s.Lhss.Count == 0) {
-          Contract.Assert(s.Rhss.Count == 1);  // guaranteed by the parser
-          Error(s, "expected method call, found expression");
-        } else if (s.Lhss.Count != s.Rhss.Count) {
-          Error(s, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
-        } else if (arrayRangeLhs != null && s.Lhss.Count != 1) {
-          Error(arrayRangeLhs, "array-range may not be used as LHS of multi-assignment; use separate assignment statements for each array-range assignment");
-        } else if (ErrorCount == prevErrorCount) {
-          // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
-          for (int i = 0; i < s.Lhss.Count; i++) {
-            var a = new AssignStmt(s.Tok, s.Lhss[i].Resolved, s.Rhss[i]);
-            s.ResolvedStatements.Add(a);
-          }
-        }
-
-      } else if (s.CanMutateKnownState) {
-        if (1 < s.Rhss.Count) {
-          Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
-        } else { // it might be ok, if it is a TypeRhs
-          Contract.Assert(s.Rhss.Count == 1);
-          if (callRhs != null) {
-            Error(callRhs.Tok, "cannot have method call in return statement.");
-          } else {
-            // we have a TypeRhs
-            Contract.Assert(s.Rhss[0] is TypeRhs);
-            var tr = (TypeRhs)s.Rhss[0];
-            Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
-            if (tr.CanAffectPreviouslyKnownExpressions) {
-              Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
-            }
-            var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, tr);
-            s.ResolvedStatements.Add(a);
-          }
-        }
-
-      } else {
-        // if there was an effectful RHS, that must be the only RHS
-        if (s.Rhss.Count != 1) {
-          Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
-        } else if (arrayRangeLhs != null) {
-          Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
-        } else if (callRhs == null) {
-          // must be a single TypeRhs
-          if (s.Lhss.Count != 1) {
-            Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-            Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, s.Rhss.Count);
+      if (update != null) {
+        // figure out what kind of UpdateStmt this is
+        if (firstEffectfulRhs == null) {
+          if (s.Lhss.Count == 0) {
+            Contract.Assert(update.Rhss.Count == 1);  // guaranteed by the parser
+            Error(s, "expected method call, found expression");
+          } else if (s.Lhss.Count != update.Rhss.Count) {
+            Error(s, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, update.Rhss.Count);
+          } else if (arrayRangeLhs != null && s.Lhss.Count != 1) {
+            Error(arrayRangeLhs, "array-range may not be used as LHS of multi-assignment; use separate assignment statements for each array-range assignment");
           } else if (ErrorCount == prevErrorCount) {
-            var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, s.Rhss[0]);
-            s.ResolvedStatements.Add(a);
-          }
-        } else {
-          // a call statement
-          if (ErrorCount == prevErrorCount) {
-            var resolvedLhss = new List<Expression>();
-            foreach (var ll in s.Lhss) {
-              resolvedLhss.Add(ll.Resolved);
+            // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
+            for (int i = 0; i < s.Lhss.Count; i++) {
+              var a = new AssignStmt(s.Tok, s.Lhss[i].Resolved, update.Rhss[i]);
+              s.ResolvedStatements.Add(a);
             }
-            var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
-            s.ResolvedStatements.Add(a);
+          }
+
+        } else if (update.CanMutateKnownState) {
+          if (1 < update.Rhss.Count) {
+            Error(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
+          } else { // it might be ok, if it is a TypeRhs
+            Contract.Assert(update.Rhss.Count == 1);
+            if (callRhs != null) {
+              Error(callRhs.Tok, "cannot have method call in return statement.");
+            } else {
+              // we have a TypeRhs
+              Contract.Assert(update.Rhss[0] is TypeRhs);
+              var tr = (TypeRhs)update.Rhss[0];
+              Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
+              if (tr.CanAffectPreviouslyKnownExpressions) {
+                Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
+              }
+              var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, tr);
+              s.ResolvedStatements.Add(a);
+            }
+          }
+
+        } else {
+          // if there was an effectful RHS, that must be the only RHS
+          if (update.Rhss.Count != 1) {
+            Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+          } else if (arrayRangeLhs != null) {
+            Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
+          } else if (callRhs == null) {
+            // must be a single TypeRhs
+            if (s.Lhss.Count != 1) {
+              Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+              Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, update.Rhss.Count);
+            } else if (ErrorCount == prevErrorCount) {
+              var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, update.Rhss[0]);
+              s.ResolvedStatements.Add(a);
+            }
+          } else {
+            // a call statement
+            if (ErrorCount == prevErrorCount) {
+              var resolvedLhss = new List<Expression>();
+              foreach (var ll in s.Lhss) {
+                resolvedLhss.Add(ll.Resolved);
+              }
+              var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+              s.ResolvedStatements.Add(a);
+            }
           }
         }
       }

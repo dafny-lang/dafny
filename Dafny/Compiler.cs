@@ -710,40 +710,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       if (stmt is AssumeStmt) {
         Error("an assume statement cannot be compiled (line {0})", stmt.Tok.line);
-      } else if (stmt is BlockStmt) {
-        foreach (Statement s in ((BlockStmt)stmt).Body) {
-          CheckHasNoAssumes(s);
-        }
-      } else if (stmt is IfStmt) {
-        IfStmt s = (IfStmt)stmt;
-        CheckHasNoAssumes(s.Thn);
-        if (s.Els != null) {
-          CheckHasNoAssumes(s.Els);
-        }
-      } else if (stmt is AlternativeStmt) {
-        foreach (var alternative in ((AlternativeStmt)stmt).Alternatives) {
-          foreach (Statement s in alternative.Body) {
-            CheckHasNoAssumes(s);
-          }
-        }
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
-        CheckHasNoAssumes(s.Body);
-      } else if (stmt is AlternativeLoopStmt) {
-        foreach (var alternative in ((AlternativeLoopStmt)stmt).Alternatives) {
-          foreach (Statement s in alternative.Body) {
-            CheckHasNoAssumes(s);
-          }
-        }
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
-        CheckHasNoAssumes(s.Body);
-      } else if (stmt is MatchStmt) {
-        MatchStmt s = (MatchStmt)stmt;
-        foreach (MatchCaseStmt mc in s.Cases) {
-          foreach (Statement bs in mc.Body) {
-            CheckHasNoAssumes(bs);
-          }
+      } else if (stmt is AssignSuchThatStmt) {
+        Error("an assign-such-that statement cannot be compiled (line {0})", stmt.Tok.line);
+      } else {
+        foreach (var ss in stmt.SubStatements) {
+          CheckHasNoAssumes(ss);
         }
       }
     }

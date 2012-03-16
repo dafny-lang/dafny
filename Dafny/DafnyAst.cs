@@ -1562,13 +1562,13 @@ namespace Microsoft.Dafny {
   public class VarDeclStmt : ConcreteSyntaxStatement
   {
     public readonly List<VarDecl> Lhss;
-    public readonly UpdateStmt Update;
+    public readonly ConcreteUpdateStatement Update;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
     }
 
-    public VarDeclStmt(IToken tok, List<VarDecl> lhss, UpdateStmt update)
+    public VarDeclStmt(IToken tok, List<VarDecl> lhss, ConcreteUpdateStatement update)
       : base(tok)
     {
       Contract.Requires(lhss != null);
@@ -1578,9 +1578,35 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class UpdateStmt : ConcreteSyntaxStatement
+  /// <summary>
+  /// Common superclass of UpdateStmt and AssignSuchThatStmt.
+  /// </summary>
+  public abstract class ConcreteUpdateStatement : ConcreteSyntaxStatement
   {
     public readonly List<Expression> Lhss;
+    public ConcreteUpdateStatement(IToken tok, List<Expression> lhss)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Lhss = lhss;
+    }
+  }
+
+  public class AssignSuchThatStmt : ConcreteUpdateStatement
+  {
+    public readonly AssumeStmt Assume;
+    public AssignSuchThatStmt(IToken tok, List<Expression> lhss, Expression expr)
+      : base(tok, lhss) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(lhss.Count != 0);
+      Contract.Requires(expr != null);
+      Assume = new AssumeStmt(tok, expr);
+    }
+  }
+
+  public class UpdateStmt : ConcreteUpdateStatement
+  {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
     [ContractInvariantMethod]
@@ -1589,24 +1615,22 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Rhss));
     }
     public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss)
-      : base(tok)
+      : base(tok, lhss)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(cce.NonNullElements(rhss));
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-      Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = false;
     }
     public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-      : base(tok)
+      : base(tok, lhss)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(cce.NonNullElements(rhss));
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-      Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = mutate;
     }

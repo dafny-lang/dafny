@@ -595,23 +595,15 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
 
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
+      } else if (stmt is ConcreteUpdateStatement) {
+        var s = (ConcreteUpdateStatement)stmt;
         string sep = "";
         foreach (var lhs in s.Lhss) {
           wr.Write(sep);
           PrintExpression(lhs);
           sep = ", ";
         }
-        if (s.Lhss.Count != 0) {
-          sep = " := ";
-        }
-        foreach (var rhs in s.Rhss) {
-          wr.Write(sep);
-          PrintRhs(rhs);
-          sep = ", ";
-        }
-
+        PrintUpdateRHS(s);
         wr.Write(";");
 
       } else if (stmt is VarDeclStmt) {
@@ -627,13 +619,7 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
         if (s.Update != null) {
-          wr.Write(" := ");
-          sep = "";
-          foreach (var rhs in s.Update.Rhss) {
-            wr.Write(sep);
-            PrintRhs(rhs);
-            sep = ", ";
-          }
+          PrintUpdateRHS(s.Update);
         }
         wr.Write(";");
 
@@ -654,6 +640,31 @@ namespace Microsoft.Dafny {
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    /// <summary>
+    /// Does not print LHS
+    /// </summary>
+    void PrintUpdateRHS(ConcreteUpdateStatement s) {
+      Contract.Requires(s != null);
+      if (s is UpdateStmt) {
+        var update = (UpdateStmt)s;
+        if (update.Lhss.Count != 0) {
+          wr.Write(" := ");
+        }
+        var sep = "";
+        foreach (var rhs in update.Rhss) {
+          wr.Write(sep);
+          PrintRhs(rhs);
+          sep = ", ";
+        }
+      } else if (s is AssignSuchThatStmt) {
+        var update = (AssignSuchThatStmt)s;
+        wr.Write(" :| ");
+        PrintExpression(update.Assume.Expr);
+      } else {
+        Contract.Assert(s == null);  // otherwise, unknown type
       }
     }
 

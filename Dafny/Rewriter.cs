@@ -296,8 +296,8 @@ namespace Microsoft.Dafny
       if (s is AssignStmt) {
         var ss = (AssignStmt)s;
         return ss.Lhs.Resolved is IdentifierExpr;
-      } else if (s is UpdateStmt) {
-        var ss = (UpdateStmt)s;
+      } else if (s is ConcreteUpdateStatement) {
+        var ss = (ConcreteUpdateStatement)s;
         return ss.Lhss.TrueForAll(e => e.Resolved is IdentifierExpr);
       } else if (s is CallStmt) {
         return false;
