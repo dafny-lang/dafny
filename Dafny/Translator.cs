@@ -7045,13 +7045,14 @@ namespace Microsoft.Dafny {
           List<Bpl.Expr> args;
           CreateBoundVariables(ctor.Formals, out bvs, out args);
           Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-          // (exists args :: args-have-the-expected-types ==> ct(args) == expr)
+          // (exists args :: args-have-the-expected-types && ct(args) == expr)
           Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Length != 0) {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
             foreach (Formal arg in ctor.Formals) {
-              Bpl.Expr wh = GetWhereClause(arg.tok, args[i], Resolver.SubstType(arg.Type, subst), etran);
+              var instantiatedArgType = Resolver.SubstType(arg.Type, subst);
+              Bpl.Expr wh = GetWhereClause(arg.tok, etran.CondApplyUnbox(arg.tok, args[i], arg.Type, instantiatedArgType), instantiatedArgType, etran);
               if (wh != null) {
                 typeAntecedent = BplAnd(typeAntecedent, wh);
               }
