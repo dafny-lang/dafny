@@ -173,7 +173,6 @@ namespace Microsoft.Dafny {
       Rewriter rewriter = new AutoContractsRewriter();
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
       var moduleNameInfo = new ModuleNameInformation[h];
-      var datatypeDependencies = new Graph<DatatypeDecl>();
       foreach (var m in mm) {
         rewriter.PreResolve(m);
         if (m.RefinementBase != null) {
@@ -181,15 +180,13 @@ namespace Microsoft.Dafny {
           transformer.Construct(m);
         }
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
-//      }
 
-      // resolve top-level declarations
-//      foreach (ModuleDecl m in mm) {
         // set up environment
         ModuleNameInformation info = ModuleNameInformation.Merge(m, systemNameInfo, moduleNameInfo);
         classes = info.Classes;
         allDatatypeCtors = info.Ctors;
         // resolve
+        var datatypeDependencies = new Graph<IndDatatypeDecl>();
         ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
         // tear down
@@ -362,9 +359,9 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<DatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
+    public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
-      Contract.Requires(cce.NonNullElements(datatypeDependencies));
+      Contract.Requires(datatypeDependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(datatypeDependencies));
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
@@ -380,25 +377,27 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<DatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
+    public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
+
+      // Resolve the meat of classes, and the type parameters of all top-level type declarations
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
-        if (d is ArbitraryTypeDecl) {
-          // nothing to do
-        } else if (d is ClassDecl) {
+        if (d is ClassDecl) {
           ResolveClassMemberBodies((ClassDecl)d);
-        } else {
-          DatatypeDecl dtd = (DatatypeDecl)d;
-          if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
-            // do the following check once per SCC, so call it on each SCC representative
-            SccStratosphereCheck(dtd, datatypeDependencies);
-          }
         }
         allTypeParameters.PopMarker();
+      }
+
+      // Perform the stratosphere check on inductive datatypes
+      foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
+        if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
+          // do the following check once per SCC, so call it on each SCC representative
+          SccStratosphereCheck(dtd, datatypeDependencies);
+        }
       }
     }
 
@@ -485,10 +484,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveCtorTypes(DatatypeDecl/*!*/ dt, Graph<DatatypeDecl/*!*/>/*!*/ dependencies)
+    void ResolveCtorTypes(DatatypeDecl/*!*/ dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies)
     {
       Contract.Requires(dt != null);
-      Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
       foreach (DatatypeCtor ctor in dt.Ctors) {
 
         ctor.EnclosingDatatype = dt;
@@ -497,11 +496,24 @@ namespace Microsoft.Dafny {
         ResolveCtorSignature(ctor, dt.TypeArgs);
         allTypeParameters.PopMarker();
 
-        foreach (Formal p in ctor.Formals) {
-          DatatypeDecl dependee = p.Type.AsDatatype;
-          if (dependee != null) {
-            dependencies.AddEdge(dt, dependee);
+        if (dt is IndDatatypeDecl) {
+          foreach (Formal p in ctor.Formals) {
+            AddDatatypeDependencyEdge((IndDatatypeDecl)dt, p.Type, dependencies);
           }
+        }
+      }
+    }
+
+    void AddDatatypeDependencyEdge(IndDatatypeDecl/*!*/ dt, Type/*!*/ tp, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+      Contract.Requires(dt != null);
+      Contract.Requires(tp != null);
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+
+      var dependee = tp.AsIndDatatype;
+      if (dependee != null && dt.Module == dependee.Module) {
+        dependencies.AddEdge((IndDatatypeDecl)dt, dependee);
+        foreach (var ta in ((UserDefinedType)tp).TypeArgs) {
+          AddDatatypeDependencyEdge(dt, ta, dependencies);
         }
       }
     }
@@ -511,33 +523,45 @@ namespace Microsoft.Dafny {
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
     /// deemed to be rather small, this seems okay.
+    /// 
+    /// As a side effect of this checking, the DefaultCtor field is filled in (for every inductive datatype
+    /// that passes the check).  It may be that several constructors could be used as the default, but
+    /// only the first one encountered as recorded.  This particular choice is slightly more than an
+    /// implementation detail, because it affects how certain cycles among inductive datatypes (having
+    /// to do with the types used to instantiate type parameters of datatypes) are used.
+    /// 
+    /// The role of the SCC here is simply to speed up this method.  It would still be correct if the
+    /// equivalence classes in the given SCC were unions of actual SCC's.  In particular, this method
+    /// would still work if "dependencies" consisted of one large SCC containing all the inductive
+    /// datatypes in the module.
     /// </summary>
-    void SccStratosphereCheck(DatatypeDecl startingPoint, Graph<DatatypeDecl/*!*/>/*!*/ dependencies)
+    void SccStratosphereCheck(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies)
     {
       Contract.Requires(startingPoint != null);
-      Contract.Requires(cce.NonNullElements(dependencies));
-      List<DatatypeDecl> scc = dependencies.GetSCC(startingPoint);
-      List<DatatypeDecl> cleared = new List<DatatypeDecl>();  // this is really a set
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+
+      var scc = dependencies.GetSCC(startingPoint);
+      int totalCleared = 0;
       while (true) {
         int clearedThisRound = 0;
-        foreach (DatatypeDecl dt in scc) {
-          if (cleared.Contains(dt)) {
+        foreach (var dt in scc) {
+          if (dt.DefaultCtor != null) {
             // previously cleared
-          } else if (StratosphereCheck(dt, dependencies, cleared)) {
+          } else if (ComputeDefaultCtor(dt)) {
+            Contract.Assert(dt.DefaultCtor != null);  // should have been set by the successful call to StratosphereCheck)
             clearedThisRound++;
-            cleared.Add(dt);
-            // (it would be nice if the List API allowed us to remove 'dt' from 'scc' here; then we wouldn't have to check 'cleared.Contains(dt)' above and below)
+            totalCleared++;
           }
         }
-        if (cleared.Count == scc.Count) {
+        if (totalCleared == scc.Count) {
           // all is good
           return;
         } else if (clearedThisRound != 0) {
           // some progress was made, so let's keep going
         } else {
           // whatever is in scc-cleared now failed to pass the test
-          foreach (DatatypeDecl dt in scc) {
-            if (!cleared.Contains(dt)) {
+          foreach (var dt in scc) {
+            if (dt.DefaultCtor == null) {
               Error(dt, "because of cyclic dependencies among constructor argument types, no instances of datatype '{0}' can be constructed", dt.Name);
             }
           }
@@ -547,38 +571,58 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Check that the datatype has some constructor all whose argument types go to a lower stratum, which means
-    /// go to a different SCC or to a type in 'goodOnes'.
+    /// Check that the datatype has some constructor all whose argument types can be constructed.
     /// Returns 'true' and sets dt.DefaultCtor if that is the case.
     /// </summary>
-    bool StratosphereCheck(DatatypeDecl dt, Graph<DatatypeDecl/*!*/>/*!*/ dependencies, List<DatatypeDecl/*!*/>/*!*/ goodOnes) {
+    bool ComputeDefaultCtor(IndDatatypeDecl dt) {
       Contract.Requires(dt != null);
-      Contract.Requires(cce.NonNullElements(dependencies));
-      Contract.Requires(cce.NonNullElements(goodOnes));
+      Contract.Requires(dt.DefaultCtor == null);  // the intention is that this method be called only when DefaultCtor hasn't already been set
+      Contract.Ensures(!Contract.Result<bool>() || dt.DefaultCtor != null);
+
       // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
-      DatatypeDecl stratumRepresentative = dependencies.GetSCCRepresentative(dt);
       foreach (DatatypeCtor ctor in dt.Ctors) {
+        var typeParametersUsed = new List<TypeParameter>();
         foreach (Formal p in ctor.Formals) {
-          DatatypeDecl dependee = p.Type.AsDatatype;
-          if (dependee == null) {
-            // the type is not a datatype, which means it's in the lowest stratum (below all datatypes)
-          } else if (dependencies.GetSCCRepresentative(dependee) != stratumRepresentative) {
-            // the argument type goes to a different stratum, which must be a "lower" one, so this argument is fine
-          } else if (goodOnes.Contains(dependee)) {
-            // the argument type is in the same SCC, but has already passed the test, so it is to be considered as
-            // being in a lower stratum
-          } else {
-            // the argument type is in the same stratum as 'dt', so this constructor is not what we're looking for
+          if (!CheckCanBeConstructed(p.Type, typeParametersUsed)) {
+            // the argument type (has a component which) is not yet known to be constructable
             goto NEXT_OUTER_ITERATION;
           }
         }
         // this constructor satisfies the requirements, so the datatype is allowed
         dt.DefaultCtor = ctor;
+        dt.TypeParametersUsedInConstructionByDefaultCtor = new bool[dt.TypeArgs.Count];
+        for (int i = 0; i < dt.TypeArgs.Count; i++) {
+          dt.TypeParametersUsedInConstructionByDefaultCtor[i] = typeParametersUsed.Contains(dt.TypeArgs[i]);
+        }
         return true;
         NEXT_OUTER_ITERATION: {}
       }
       // no constructor satisfied the requirements, so this is an illegal datatype declaration
       return false;
+    }
+
+    bool CheckCanBeConstructed(Type tp, List<TypeParameter> typeParametersUsed) {
+      var dependee = tp.AsIndDatatype;
+      if (dependee == null) {
+        // the type is not an inductive datatype, which means it is always possible to construct it
+        if (tp.IsTypeParameter) {
+          typeParametersUsed.Add(((UserDefinedType)tp).ResolvedParam);
+        }
+        return true;
+      } else if (dependee.DefaultCtor == null) {
+        // the type is an inductive datatype that we don't yet know how to construct
+        return false;
+      }
+      // also check the type arguments of the inductive datatype
+      Contract.Assert(((UserDefinedType)tp).TypeArgs.Count == dependee.TypeParametersUsedInConstructionByDefaultCtor.Length);
+      var i = 0;
+      foreach (var ta in ((UserDefinedType)tp).TypeArgs) {  // note, "tp" is known to be a UserDefinedType, because that follows from tp being an inductive datatype
+        if (dependee.TypeParametersUsedInConstructionByDefaultCtor[i] && !CheckCanBeConstructed(ta, typeParametersUsed)) {
+          return false;
+        }
+        i++;
+      }
+      return true;
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {

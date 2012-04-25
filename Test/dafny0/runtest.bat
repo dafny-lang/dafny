@@ -17,8 +17,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             ModulesCycle.dfy Modules0.dfy Modules1.dfy BadFunction.dfy
             Comprehensions.dfy Basics.dfy ControlStructures.dfy
             Termination.dfy DTypes.dfy ParallelResolveErrors.dfy Parallel.dfy
-            TypeParameters.dfy Datatypes.dfy TypeAntecedents.dfy NoTypeArgs.dfy
-            SplitExpr.dfy
+            TypeParameters.dfy Datatypes.dfy Coinductive.dfy
+            TypeAntecedents.dfy NoTypeArgs.dfy SplitExpr.dfy
             LoopModifies.dfy Refinement.dfy RefinementErrors.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
             CallStmtTests.dfy MultiSets.dfy PredExpr.dfy LetExpr.dfy
@@ -34,3 +34,5 @@ for %%f in (SmallTests.dfy LetExpr.dfy) do (
   %DAFNY_EXE% /compile:0 /dprint:out.tmp.dfy %* %%f
   %DAFNY_EXE% /compile:0 %* out.tmp.dfy
 )
+
+%DAFNY_EXE% %* Compilation.dfy

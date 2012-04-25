@@ -136,11 +136,17 @@ namespace Microsoft.Dafny {
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, null);
-      } else if (d is DatatypeDecl) {
-        var dd = (DatatypeDecl)d;
+      } else if (d is IndDatatypeDecl) {
+        var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new DatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
+        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
+        return dt;
+      } else if (d is CoDatatypeDecl) {
+        var dd = (CoDatatypeDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var ctors = dd.Ctors.ConvertAll(CloneCtor);
+        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
         return dt;
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;

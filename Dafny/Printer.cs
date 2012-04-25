@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
     public void PrintDatatype(DatatypeDecl dt, int indent) {
       Contract.Requires(dt != null);
       Indent(indent);
-      PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
+      PrintClassMethodHelper(dt is IndDatatypeDecl ? "datatype" : "codatatype", dt.Attributes, dt.Name, dt.TypeArgs);
       wr.Write(" =");
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {

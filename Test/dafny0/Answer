@@ -66,7 +66,6 @@ TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, g
 TypeTests.dfy(11,15): Error: incorrect type of method in-parameter 0 (expected int, got bool)
 TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 0 (expected int, got C)
 TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 1 (expected C, got int)
-TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 TypeTests.dfy(44,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 TypeTests.dfy(53,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(55,6): Error: Duplicate local-variable name: x
@@ -92,6 +91,7 @@ TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the
 TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 34 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
@@ -1263,6 +1263,12 @@ Execution trace:
 
 Dafny program verifier finished with 32 verified, 6 errors
 
+-------------------- Coinductive.dfy --------------------
+Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
+Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
+Coinductive.dfy(51,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
+3 resolution/type errors detected in Coinductive.dfy
+
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
 Execution trace:
@@ -1848,3 +1854,6 @@ Execution trace:
     (0,0): anon11_Then
 
 Dafny program verifier finished with 19 verified, 2 errors
+
+Dafny program verifier finished with 2 verified, 0 errors
+Compiled assembly into Compilation.dll

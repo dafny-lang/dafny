@@ -232,6 +232,21 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public bool IsIndDatatype {
+      get {
+        return AsIndDatatype != null;
+      }
+    }
+    public IndDatatypeDecl AsIndDatatype {
+      get {
+        UserDefinedType udt = this as UserDefinedType;
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as IndDatatypeDecl;
+        }
+      }
+    }
     public bool IsTypeParameter {
       get {
         UserDefinedType ct = this as UserDefinedType;
@@ -774,15 +789,13 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DatatypeDecl : TopLevelDecl {
+  public abstract class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor/*!*/>/*!*/ Ctors;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Ctors));
       Contract.Invariant(1 <= Ctors.Count);
     }
-
-    public DatatypeCtor DefaultCtor;  // set during resolution
 
     public DatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
       [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
@@ -797,7 +810,39 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+  public class IndDatatypeDecl : DatatypeDecl
+  {
+    public DatatypeCtor DefaultCtor;  // set during resolution
+    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as
+
+    public IndDatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
+      [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
+      : base(tok, name, module, typeArgs, ctors, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(1 <= ctors.Count);
+    }
+  }
+
+  public class CoDatatypeDecl : DatatypeDecl
+  {
+    public CoDatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
+      [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
+      : base(tok, name, module, typeArgs, ctors, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(1 <= ctors.Count);
+    }
+  }
+
+  public class DatatypeCtor : Declaration, TypeParameter.ParentType
+  {
     public readonly List<Formal/*!*/>/*!*/ Formals;
     [ContractInvariantMethod]
     void ObjectInvariant() {

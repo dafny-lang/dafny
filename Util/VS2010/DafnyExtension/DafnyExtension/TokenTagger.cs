@@ -242,6 +242,7 @@ namespace DafnyLanguage
                 case "case":
                 case "choose":
                 case "class":
+                case "codatatype":
                 case "constructor":
                 case "datatype":
                 case "decreases":

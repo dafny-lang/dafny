@@ -171,7 +171,7 @@ Dafny
                                               theModules.Add(module); .)
     | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
       ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
-    | (. if (isGhost) { SemErr(t, "a datatype is not allowed to be declared as 'ghost'"); } .)
+    | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
       DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
     | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
       ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
@@ -241,9 +241,12 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
+     bool co = false;
   .)
   SYNC
-  "datatype"
+  ( "datatype"
+  | "codatatype"     (. co = true; .)
+  )
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
@@ -251,7 +254,11 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
   DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
   SYNC ";"
-  (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+  (. if (co) {
+       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+     } else {
+       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+     }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
   .)
