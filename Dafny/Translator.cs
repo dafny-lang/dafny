@@ -433,62 +433,65 @@ namespace Microsoft.Dafny {
           lhs = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), lhs);
           q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Eq(lhs, args[i]));
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
-            // for datatype:             axiom (forall params :: DtRank(params_i) < DtRank(#dt.ctor(params)));
-            // for type-parameter type:  axiom (forall params :: DtRank(Unbox(params_i)) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-              arg.Type.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          } else if (arg.Type is SeqType) {
-            // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
-            // that is:
-            // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
-            bvs.Add(iVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
-            Bpl.Expr ante = Bpl.Expr.And(
-              Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
-              Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-              FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType,
-                FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie)));
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          } else if (arg.Type is SetType) {
-            // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            // that is:
-            // axiom (forall params, d: Datatype :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-            bvs.Add(dVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Bpl.Expr ante = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          } else if (arg.Type is MultiSetType) {
-            // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            // that is:
-            // axiom (forall params, d: Datatype :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-            bvs.Add(dVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Bpl.Expr ante = Bpl.Expr.Gt(Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie)), Bpl.Expr.Literal(0));
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+
+          if (dt is IndDatatypeDecl) {
+            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
+              // for datatype:             axiom (forall params :: DtRank(params_i) < DtRank(#dt.ctor(params)));
+              // for type-parameter type:  axiom (forall params :: DtRank(Unbox(params_i)) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+                arg.Type.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            } else if (arg.Type is SeqType) {
+              // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
+              // that is:
+              // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
+              bvs.Add(iVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
+              Bpl.Expr ante = Bpl.Expr.And(
+                Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
+                Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+                FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType,
+                  FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie)));
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            } else if (arg.Type is SetType) {
+              // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              // that is:
+              // axiom (forall params, d: Datatype :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+              bvs.Add(dVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+              Bpl.Expr ante = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            } else if (arg.Type is MultiSetType) {
+              // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              // that is:
+              // axiom (forall params, d: Datatype :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+              bvs.Add(dVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+              Bpl.Expr ante = Bpl.Expr.Gt(Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie)), Bpl.Expr.Literal(0));
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            }
           }
           i++;
         }
@@ -7030,7 +7033,7 @@ namespace Microsoft.Dafny {
     }
 
     IEnumerable<Bpl.Expr> InductionCases(Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
-      DatatypeDecl dt = ty.AsDatatype;
+      IndDatatypeDecl dt = ty.AsIndDatatype;
       if (dt == null) {
         yield return Bpl.Expr.True;
       } else {
