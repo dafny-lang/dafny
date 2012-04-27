@@ -497,8 +497,10 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
 
         if (dt is IndDatatypeDecl) {
+          var idt = (IndDatatypeDecl)dt;
+          dependencies.AddVertex(idt);
           foreach (Formal p in ctor.Formals) {
-            AddDatatypeDependencyEdge((IndDatatypeDecl)dt, p.Type, dependencies);
+            AddDatatypeDependencyEdge(idt, p.Type, dependencies);
           }
         }
       }
