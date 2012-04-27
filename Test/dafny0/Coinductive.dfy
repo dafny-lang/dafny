@@ -26,6 +26,16 @@ module TestInductiveDatatypes
   datatype List<T> = Nil | Cons(T, List);
 }
 
+module MoreInductive {
+  datatype Tree<G> = Node(G, List<Tree<G>>);
+  datatype List<T> = Nil | Cons(T, List<T>);
+
+  datatype M = All(List<M>);
+  datatype H<'a> = HH('a, Tree<'a>);
+  datatype K<'a> = KK('a, Tree<K<'a>>);  // error
+  datatype L<'a> = LL('a, Tree<List<L<'a>>>);
+}
+
 // --------------------------------------------------
 
 module TestCoinductiveDatatypes
