@@ -138,3 +138,54 @@ class MyClass<T> {
     }
   }
 }
+
+// The following functions test what was once a soundness problem
+module DependencyOnAllAllocatedObjects {
+  function AllObjects0(): bool
+  {
+    forall c: SomeClass :: c != null ==> c.f == 0  // error: not allowed to dependend on which objects are allocated
+  }
+  function AllObjects1(): bool
+  {
+    forall c: SomeClass :: true  // error: not allowed to dependend on which objects are allocated
+  }
+  function AllObjects10(): bool
+    reads *;
+  {
+    forall c: SomeClass :: c != null ==> c.f == 0  // error: not allowed to dependend on which objects are allocated
+  }
+  function AllObjects11(): bool
+    reads *;
+  {
+    forall c: SomeClass :: true  // error: not allowed to dependend on which objects are allocated
+  }
+  function method AllObjects20(): bool
+  {
+    forall c: SomeClass :: c != null ==> c.f == 0  // error: not allowed to dependend on which objects are allocated
+  }
+  function method AllObjects21(): bool
+  {
+    forall c: SomeClass :: true  // error: not allowed to dependend on which objects are allocated
+  }
+  function method AllObjects30(): bool
+    reads *;
+  {
+    forall c: SomeClass :: c != null ==> c.f == 0  // error: not allowed to dependend on which objects are allocated
+  }
+  function method AllObjects31(): bool
+    reads *;
+  {
+    forall c: SomeClass :: true  // error: not allowed to dependend on which objects are allocated
+  }
+
+  method M()
+  {
+    var b := forall c: SomeClass :: c != null ==> c.f == 0;  // error: non-ghost code requires bounds
+    ghost var g := forall c: SomeClass :: c != null ==> c.f == 0;  // cool (this is in a ghost context
+                                                                   // outside a function)
+  }
+
+  class SomeClass {
+    var f: int;
+  }
+}

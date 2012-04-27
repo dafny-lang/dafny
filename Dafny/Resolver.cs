@@ -2934,7 +2934,21 @@ namespace Microsoft.Dafny {
           var missingBounds = new List<BoundVar>();
           e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.LogicalBody(), e is ExistsExpr, missingBounds);
           if (missingBounds.Count != 0) {
-            e.MissingBounds = missingBounds;
+            // Report errors here about quantifications that depend on the allocation state.
+            var mb = missingBounds;
+            if (currentFunction != null) {
+              mb = new List<BoundVar>();  // (who cares if we allocate another array; this happens only in the case of a resolution error anyhow)
+              foreach (var bv in missingBounds) {
+                if (bv.Type.IsRefType) {
+                  Error(expr, "a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{0}'", bv.Name);
+                } else {
+                  mb.Add(bv);
+                }
+              }
+            }
+            if (mb.Count != 0) {
+              e.MissingBounds = mb;
+            }
           }
         }
 
@@ -3501,7 +3515,7 @@ namespace Microsoft.Dafny {
           // easy
           bounds.Add(new QuantifierExpr.BoolBoundedPool());
         } else {
-          // Go through the conjuncts of the range expression look for bounds.
+          // Go through the conjuncts of the range expression to look for bounds.
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
           foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
