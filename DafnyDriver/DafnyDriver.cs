@@ -444,7 +444,7 @@ namespace Microsoft.Dafny
             inline = true;
           }
         }
-        if (inline && CommandLineOptions.Clo.LazyInlining == 0 && CommandLineOptions.Clo.StratifiedInlining == 0) {
+        if (inline && CommandLineOptions.Clo.StratifiedInlining == 0) {
           foreach (var d in TopLevelDeclarations) {
             var impl = d as Implementation;
             if (impl != null) {
