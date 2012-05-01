@@ -2319,7 +2319,7 @@ namespace Microsoft.Dafny {
             CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function", options.AssertKv);
           }
 
-          if (options.Decr != null) {
+          if (options.Decr != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
             // check that the decreases measure goes down
             ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
             if (module == cce.NonNull(options.Decr.EnclosingClass).Module) {
@@ -2338,7 +2338,8 @@ namespace Microsoft.Dafny {
                     allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.UniqueName, TrType(ff.Type))));
                   }
                 }
-                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, builder, contextDecrInferred);
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, builder,
+                  contextDecrInferred, e.CoCall == FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects);
               }
             }
           }
@@ -4261,7 +4262,7 @@ namespace Microsoft.Dafny {
           bool contextDecrInferred, calleeDecrInferred;
           List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
           List<Expression> calleeDecreases = MethodDecreasesWithDefault(method, out calleeDecrInferred);
-          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred);
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred, false);
         }
       }
 
@@ -4431,7 +4432,7 @@ namespace Microsoft.Dafny {
     void CheckCallTermination(IToken/*!*/ tok, List<Expression/*!*/>/*!*/ contextDecreases, List<Expression/*!*/>/*!*/ calleeDecreases,
                               Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap,
-                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases) {
+                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases, bool wouldBeCoCallButCallHasSideEffects) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
       Contract.Requires(cce.NonNullElements(calleeDecreases));
@@ -4467,7 +4468,11 @@ namespace Microsoft.Dafny {
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
-      builder.Add(Assert(tok, decrExpr, inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure"));
+      var msg = inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure";
+      if (wouldBeCoCallButCallHasSideEffects) {
+        msg += " (note that only functions without side effects can called co-recursively)";
+      }
+      builder.Add(Assert(tok, decrExpr, msg));
     }
 
     /// <summary>
@@ -6938,7 +6943,7 @@ namespace Microsoft.Dafny {
         var e = (FunctionCallExpr)expr;
         // For recursive functions:  arguments are "prominent"
         // For non-recursive function:  arguments are "prominent" if the call is
-        var rec = e.Function.IsRecursive;
+        var rec = e.Function.IsRecursive && e.CoCall != FunctionCallExpr.CoCallResolution.Yes;
         bool inferredDecreases;  // we don't actually care
         var decr = FunctionDecreasesWithDefault(e.Function, out inferredDecreases);
         bool variantArgument;

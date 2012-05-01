@@ -538,7 +538,7 @@ ResolutionErrors.dfy(306,25): Error: arguments must have the same type (got bool
 ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
-ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<T$0>, expected GList<int>)
+ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
 48 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
@@ -1279,6 +1279,13 @@ Coinductive.dfy(35,11): Error: because of cyclic dependencies among constructor 
 Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
 4 resolution/type errors detected in Coinductive.dfy
 
+-------------------- Corecursion.dfy --------------------
+Corecursion.dfy(15,13): Error: failure to decrease termination measure (note that only functions without side effects can called co-recursively)
+Execution trace:
+    (0,0): anon3_Else
+
+Dafny program verifier finished with 2 verified, 1 error
+
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
 Execution trace:
@@ -1865,5 +1872,5 @@ Execution trace:
 
 Dafny program verifier finished with 19 verified, 2 errors
 
-Dafny program verifier finished with 2 verified, 0 errors
-Compiled assembly into Compilation.dll
+Dafny program verifier finished with 6 verified, 0 errors
+Compiled assembly into Compilation.exe

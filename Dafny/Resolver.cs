@@ -727,7 +727,7 @@ namespace Microsoft.Dafny {
       }
       if (f.Body != null) {
         List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
-        ResolveExpression(f.Body, false, matchVarContext);
+        ResolveExpression(f.Body, false, matchVarContext, null);
         if (!f.IsGhost) {
           CheckIsNonGhost(f.Body);
         }
@@ -931,7 +931,7 @@ namespace Microsoft.Dafny {
                 if (allowAutoTypeArguments) {
                   // add to defaultTypeArguments the necessary number of arguments
                   for (int i = defaultTypeArguments.Count; i < d.TypeArgs.Count; i++) {
-                    defaultTypeArguments.Add(new TypeParameter(t.tok, "T$" + i));
+                    defaultTypeArguments.Add(new TypeParameter(t.tok, "_T" + i));
                   }
                 }
                 if (allowAutoTypeArguments || d.TypeArgs.Count == defaultTypeArguments.Count) {
@@ -1806,11 +1806,11 @@ namespace Microsoft.Dafny {
           } else {
             var er = (ExprRhs)rhs;
             if (er.Expr is IdentifierSequence) {
-              var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, true, true);
+              var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, true, true, null);
               isEffectful = cRhs != null;
               callRhs = callRhs ?? cRhs;
             } else if (er.Expr is FunctionCallExpr) {
-              var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, true, true);
+              var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, true, true, null);
               isEffectful = cRhs != null;
               callRhs = callRhs ?? cRhs;
             } else {
@@ -2459,14 +2459,14 @@ namespace Microsoft.Dafny {
     /// "twoState" implies that "old" and "fresh" expressions are allowed
     /// </summary>
     void ResolveExpression(Expression expr, bool twoState) {
-      ResolveExpression(expr, twoState, null);
+      ResolveExpression(expr, twoState, null, null);
     }
 
     /// <summary>
     /// "matchVarContext" says which variables are allowed to be used as the source expression in a "match" expression;
     /// if null, no "match" expression will be allowed.
     /// </summary>
-    void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext) {
+    void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext, DatatypeValue coContext) {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
@@ -2482,7 +2482,7 @@ namespace Microsoft.Dafny {
 
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
-        ResolveExpression(e.E, twoState, matchVarContext);  // allow "match" expressions inside e.E if the parenthetic expression had been allowed to be a "match" expression
+        ResolveExpression(e.E, twoState, matchVarContext, coContext);  // allow "match" expressions inside e.E if the parenthetic expression had been allowed to be a "match" expression
         e.ResolvedExpression = e.E;
         e.Type = e.E.Type;
 
@@ -2494,7 +2494,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
-        ResolveIdentifierSequence(e, twoState, false);
+        ResolveIdentifierSequence(e, twoState, false, coContext);
 
       } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -2559,7 +2559,7 @@ namespace Microsoft.Dafny {
           int j = 0;
           foreach (Expression arg in dtv.Arguments) {
             Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
-            ResolveExpression(arg, twoState);
+            ResolveExpression(arg, twoState, null, ctor != null && ctor.EnclosingDatatype is CoDatatypeDecl ? dtv : null);
             Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
             if (formal != null) {
               Type st = SubstType(formal.Type, subst);
@@ -2681,14 +2681,14 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        ResolveFunctionCallExpr(e, twoState, false);
+        ResolveFunctionCallExpr(e, twoState, false, coContext);
 
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         if (!twoState) {
           Error(expr, "old expressions are not allowed in this context");
         }
-        ResolveExpression(e.E, twoState);
+        ResolveExpression(e.E, twoState, null, coContext);
         expr.Type = e.E.Type;
 
       } else if (expr is MultiSetFormingExpr) {
@@ -3100,7 +3100,7 @@ namespace Microsoft.Dafny {
             innerMatchVarContext.Remove(goodMatchVariable);  // this variable is no longer available for matching
           }
           innerMatchVarContext.AddRange(mc.Arguments);
-          ResolveExpression(mc.Body, twoState, innerMatchVarContext);
+          ResolveExpression(mc.Body, twoState, innerMatchVarContext, null);
           Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(expr.Type, mc.Body.Type)) {
             Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
@@ -3228,8 +3228,9 @@ namespace Microsoft.Dafny {
     /// If "!allowMethodCall" or if what is being called does not refer to a method, resolves "e" and returns "null".
     /// Otherwise (that is, if "allowMethodCall" and what is being called refers to a method), resolves the receiver
     /// of "e" but NOT the arguments, and returns a CallRhs corresponding to the call.
+    /// "coContext" is to be non-null if this function call is a direct argument to a co-constructor.
     /// </summary>
-    CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, bool allowMethodCall) {
+    CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, bool allowMethodCall, DatatypeValue coContext) {
       ResolveReceiver(e.Receiver, twoState);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -3294,17 +3295,25 @@ namespace Microsoft.Dafny {
         }
 
         // Resolution termination check
-        if (currentFunction != null && currentFunction.EnclosingClass != null && function.EnclosingClass != null) {
-          ModuleDecl callerModule = currentFunction.EnclosingClass.Module;
-          ModuleDecl calleeModule = function.EnclosingClass.Module;
-          if (callerModule == calleeModule) {
-            // intra-module call; this is allowed; add edge in module's call graph
-            callerModule.CallGraph.AddEdge(currentFunction, function);
-            if (currentFunction == function) {
-              currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+        if (coContext != null && function.Reads.Count == 0) {
+          e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+          coContext.IsCoCall = true;
+        } else {
+          if (coContext != null) {
+            e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects;
+          }
+          if (currentFunction != null && currentFunction.EnclosingClass != null && function.EnclosingClass != null) {
+            ModuleDecl callerModule = currentFunction.EnclosingClass.Module;
+            ModuleDecl calleeModule = function.EnclosingClass.Module;
+            if (callerModule == calleeModule) {
+              // intra-module call; this is allowed; add edge in module's call graph
+              callerModule.CallGraph.AddEdge(currentFunction, function);
+              if (currentFunction == function) {
+                currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+              }
+            } else {
+              Contract.Assert(importGraph.Reaches(callerModule, calleeModule));
             }
-          } else {
-            Contract.Assert(importGraph.Reaches(callerModule, calleeModule));
           }
         }
       }
@@ -3315,7 +3324,7 @@ namespace Microsoft.Dafny {
     /// If "!allowMethodCall", or if "e" does not designate a method call, resolves "e" and returns "null".
     /// Otherwise, resolves all sub-parts of "e" and returns a (resolved) CallRhs expression representing the call.
     /// </summary>
-    CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool allowMethodCall) {
+    CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool allowMethodCall, DatatypeValue coContext) {
       // Look up "id" as follows:
       //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
       //  - unamibugous type name (class or datatype or arbitrary-type) (if two imported types have the same name, an error message is produced here)
@@ -3335,7 +3344,7 @@ namespace Microsoft.Dafny {
         // ----- root is a local variable, parameter, or bound variable
         r = new IdentifierExpr(id, id.val);
         ResolveExpression(r, twoState);
-        r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, out call);
+        r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, coContext, out call);
 
       } else if (classes.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
@@ -3351,7 +3360,7 @@ namespace Microsoft.Dafny {
         } else if (decl is ClassDecl) {
           // ----- root is a class
           var cd = (ClassDecl)decl;
-          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, allowMethodCall, out call);
+          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, allowMethodCall, coContext, out call);
 
         } else {
           // ----- root is a datatype
@@ -3360,7 +3369,7 @@ namespace Microsoft.Dafny {
           r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
           ResolveExpression(r, twoState);
           if (e.Tokens.Count != 2) {
-            r = ResolveSuffix(r, e, 2, twoState, allowMethodCall, out call);
+            r = ResolveSuffix(r, e, 2, twoState, allowMethodCall, coContext, out call);
           }
         }
 
@@ -3374,7 +3383,7 @@ namespace Microsoft.Dafny {
           r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
           ResolveExpression(r, twoState);
           if (e.Tokens.Count != 1) {
-            r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, out call);
+            r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, coContext, out call);
           }
         }
 
@@ -3391,7 +3400,7 @@ namespace Microsoft.Dafny {
           receiver = new ImplicitThisExpr(id);
           receiver.Type = GetThisType(id, currentClass);  // resolve here
         }
-        r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, out call);
+        r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, coContext, out call);
 
       } else {
         Error(id, "unresolved identifier: {0}", id.val);
@@ -3417,7 +3426,7 @@ namespace Microsoft.Dafny {
     /// Except, if "allowMethodCall" is "true" and the would-be-returned value designates a method
     /// call, instead returns null and returns "call" as a non-null value.
     /// </summary>
-    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool allowMethodCall, out CallRhs call) {
+    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool allowMethodCall, DatatypeValue coContext, out CallRhs call) {
       Contract.Requires(r != null);
       Contract.Requires(e != null);
       Contract.Requires(0 <= p && p <= e.Tokens.Count);
@@ -3430,7 +3439,7 @@ namespace Microsoft.Dafny {
         var resolved = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
         if (resolved != null) {
           r = resolved;
-          ResolveExpression(r, twoState);
+          ResolveExpression(r, twoState, null, p == e.Tokens.Count - 1 ? coContext : null);
         }
       }
 
@@ -3450,7 +3459,7 @@ namespace Microsoft.Dafny {
           r = null;
         } else {
           r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.OpenParen, e.Arguments);
-          ResolveExpression(r, twoState);
+          ResolveExpression(r, twoState, null, coContext);
         }
       } else if (e.Arguments != null) {
         Contract.Assert(p == e.Tokens.Count);

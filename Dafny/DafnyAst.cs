@@ -2328,6 +2328,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression/*!*/>/*!*/ Arguments;
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<Type/*!*/> InferredTypeArgs = new List<Type>();  // filled in by resolution
+    public bool IsCoCall;  // filled in by resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(DatatypeName != null);
@@ -2554,6 +2555,8 @@ namespace Microsoft.Dafny {
     public readonly Expression/*!*/ Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression/*!*/>/*!*/ Args;
+    public enum CoCallResolution { No, Yes, NoBecauseFunctionHasSideEffects }
+    public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call; filled in by resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
