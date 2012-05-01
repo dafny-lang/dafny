@@ -228,6 +228,9 @@ namespace Microsoft.Dafny {
         //   public override int GetHashCode() {
         //     return base.GetHashCode();  // surely this can be improved
         //   }
+        //   public override string ToString() {  // only for inductive datatypes
+        //     // ...
+        //   }
         // }
         Indent(indent);
         wr.Write("public class {0}", DtCtorName(ctor, dt.TypeArgs));
@@ -284,6 +287,27 @@ namespace Microsoft.Dafny {
         Indent(ind + IndentAmount); wr.WriteLine("return base.GetHashCode();  // surely this can be improved");
         Indent(ind); wr.WriteLine("}");
 
+        if (dt is IndDatatypeDecl) {
+          Indent(ind); wr.WriteLine("public override string ToString() {");
+          Indent(ind + IndentAmount); wr.WriteLine("string s = \"{0}\";", ctor.FullName.Substring(1)/*skip the #*/);
+          if (ctor.Formals.Count != 0) {
+            Indent(ind + IndentAmount); wr.WriteLine("s += \"(\";");
+            i = 0;
+            foreach (var arg in ctor.Formals) {
+              if (!arg.IsGhost) {
+                if (i != 0) {
+                  Indent(ind + IndentAmount); wr.WriteLine("s += \", \";");
+                }
+                Indent(ind + IndentAmount); wr.WriteLine("s += @{0}.ToString();", FormalName(arg, i));
+                i++;
+              }
+            }
+            Indent(ind + IndentAmount); wr.WriteLine("s += \")\";");
+          }
+          Indent(ind + IndentAmount); wr.WriteLine("return s;");
+          Indent(ind); wr.WriteLine("}");
+        }
+
         Indent(indent);  wr.WriteLine("}");
       }
     }
@@ -317,6 +341,7 @@ namespace Microsoft.Dafny {
       //     return other is Dt<T> && _D.Equals(((Dt<T>)other)._D);
       //   }
       //   public override int GetHashCode() { return _D.GetHashCode(); }
+      //   public override string ToString() { return _D.ToString(); }  // only for inductive datatypes
       //
       //   public bool _Ctor0 { get { return _D is Dt_Ctor0; } }
       //   ...
@@ -406,6 +431,10 @@ namespace Microsoft.Dafny {
 
       Indent(ind);
       wr.WriteLine("public override int GetHashCode() { return _D.GetHashCode(); }");
+      if (dt is IndDatatypeDecl) {
+        Indent(ind);
+        wr.WriteLine("public override string ToString() { return _D.ToString(); }");
+      }
 
       // query properties
       foreach (var ctor in dt.Ctors) {
