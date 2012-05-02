@@ -2529,6 +2529,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns true if it is known how to meaningfully compare the type's inhabitants.
+    /// </summary>
+    bool IsOrdered(Type t) {
+      return !t.IsTypeParameter && !t.IsCoDatatype;
+    }
+
     List<Expression> MethodDecreasesWithDefault(Method m, out bool inferredDecreases) {
       Contract.Requires(m != null);
 
@@ -2537,7 +2544,7 @@ namespace Microsoft.Dafny {
       if (decr.Count == 0) {
         decr = new List<Expression>();
         foreach (Formal p in m.Ins) {
-          if (!p.Type.IsTypeParameter) {
+          if (IsOrdered(p.Type)) {
             IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
             ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
             decr.Add(ie);  // use the method's first parameter instead
@@ -2557,7 +2564,7 @@ namespace Microsoft.Dafny {
         decr = new List<Expression>();
         if (f.Reads.Count == 0) {
           foreach (Formal p in f.Formals) {
-            if (!p.Type.IsTypeParameter) {
+            if (IsOrdered(p.Type)) {
               IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
               ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
               decr.Add(ie);  // use the function's first parameter instead

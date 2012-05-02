@@ -247,6 +247,21 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public bool IsCoDatatype {
+      get {
+        return AsCoDatatype != null;
+      }
+    }
+    public CoDatatypeDecl AsCoDatatype {
+      get {
+        UserDefinedType udt = this as UserDefinedType;
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as CoDatatypeDecl;
+        }
+      }
+    }
     public bool IsTypeParameter {
       get {
         UserDefinedType ct = this as UserDefinedType;

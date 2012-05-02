@@ -289,7 +289,8 @@ namespace Microsoft.Dafny {
 
         if (dt is IndDatatypeDecl) {
           Indent(ind); wr.WriteLine("public override string ToString() {");
-          Indent(ind + IndentAmount); wr.WriteLine("string s = \"{0}\";", ctor.FullName.Substring(1)/*skip the #*/);
+          string nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          Indent(ind + IndentAmount); wr.WriteLine("string s = \"{0}\";", nm);
           if (ctor.Formals.Count != 0) {
             Indent(ind + IndentAmount); wr.WriteLine("s += \"(\";");
             i = 0;
