@@ -136,11 +136,17 @@ namespace Microsoft.Dafny {
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, null);
-      } else if (d is DatatypeDecl) {
-        var dd = (DatatypeDecl)d;
+      } else if (d is IndDatatypeDecl) {
+        var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new DatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
+        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
+        return dt;
+      } else if (d is CoDatatypeDecl) {
+        var dd = (CoDatatypeDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var ctors = dd.Ctors.ConvertAll(CloneCtor);
+        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
         return dt;
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
@@ -450,7 +456,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        r = new IfStmt(Tok(s.Tok), CloneExpr(s.Guard), CloneStmt(s.Thn), CloneStmt(s.Els));
+        r = new IfStmt(Tok(s.Tok), CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
@@ -458,7 +464,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -473,13 +479,17 @@ namespace Microsoft.Dafny {
         r = new MatchStmt(Tok(s.Tok), CloneExpr(s.Source),
           s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))));
 
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Assume.Expr));
+
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         r = new UpdateStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        r = new VarDeclStmt(Tok(s.Tok), s.Lhss.ConvertAll(c => (VarDecl)CloneStmt(c)), (UpdateStmt)CloneStmt(s.Update));
+        r = new VarDeclStmt(Tok(s.Tok), s.Lhss.ConvertAll(c => (VarDecl)CloneStmt(c)), (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
@@ -494,7 +504,11 @@ namespace Microsoft.Dafny {
     void AddStmtLabels(Statement s, LabelNode node) {
       if (node != null) {
         AddStmtLabels(s, node.Next);
-        s.Labels = new LabelNode(Tok(node.Tok), node.Label, s.Labels);
+        if (node.Label == null) {
+          // this indicates an implicit-target break statement that has been resolved; don't add it
+        } else {
+          s.Labels = new LabelNode(Tok(node.Tok), node.Label, s.Labels);
+        }
       }
     }
 
@@ -535,10 +549,10 @@ namespace Microsoft.Dafny {
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, moreBody != null, null);
+          req, reads, ens, decreases, body, moreBody != null, null, false);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, null);
+          req, reads, ens, decreases, body, null, false);
       }
     }
 
@@ -562,10 +576,10 @@ namespace Microsoft.Dafny {
       var body = replacementBody ?? CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, null);
+          req, mod, ens, decreases, body, null, false);
       } else {
         return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, null);
+          req, mod, ens, decreases, body, null, false);
       }
     }
 
@@ -620,10 +634,15 @@ namespace Microsoft.Dafny {
               } else if (prevFunction.IsGhost && !f.IsGhost && prevFunction.Body != null) {
                 reporter.Error(f, "a function can be changed into a function method in a refining module only if the function has not yet been given a body: {0}", f.Name);
               }
-              CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
-              CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
-              if (!TypesAreEqual(prevFunction.ResultType, f.ResultType)) {
-                reporter.Error(f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+              if (f.SignatureIsOmitted) {
+                Contract.Assert(f.TypeArgs.Count == 0);
+                Contract.Assert(f.Formals.Count == 0);
+              } else {
+                CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
+                CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
+                if (!TypesAreEqual(prevFunction.ResultType, f.ResultType)) {
+                  reporter.Error(f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+                }
               }
 
               Expression moreBody = null;
@@ -662,17 +681,22 @@ namespace Microsoft.Dafny {
               } else if (!prevMethod.IsGhost && m.IsGhost) {
                 reporter.Error(m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
               }
-              CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
-              CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
-              CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
+              if (m.SignatureIsOmitted) {
+                Contract.Assert(m.TypeArgs.Count == 0);
+                Contract.Assert(m.Ins.Count == 0);
+                Contract.Assert(m.Outs.Count == 0);
+              } else {
+                CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
+                CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
+                CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
+              }
 
               var replacementBody = m.Body;
               if (replacementBody != null) {
                 if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  reporter.Error(m, "body of refining method is not yet supported");  // TODO (merge the new body into the old)
-                  replacementBody = null;
+                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
               nw.Members[index] = CloneMethod(prevMethod, m.Ens, replacementBody);
@@ -733,6 +757,356 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       return t.ToString() == u.ToString();
+    }
+
+    BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+
+      var body = new List<Statement>();
+      int i = 0, j = 0;
+      while (i < skeleton.Body.Count) {
+        var cur = skeleton.Body[i];
+        if (j == oldStmt.Body.Count) {
+          if (!(cur is SkeletonStatement)) {
+            MergeAddStatement(cur, body);
+          } else if (((SkeletonStatement)cur).S == null) {
+            // the "..." matches the empty statement sequence
+          } else {
+            reporter.Error(cur.Tok, "skeleton statement does not match old statement");
+          }
+          i++;
+        } else {
+          var oldS = oldStmt.Body[j];
+          /* See how the two statements match up.
+           *   cur                         oldS                         result
+           *   ------                      ------                       ------
+           *   assert ...;                 assume E;                    assert E;
+           *   assert ...;                 assert E;                    assert E;
+           *   assert E;                                                assert E;
+           *   
+           *   var x := E;                 var x;                       var x := E;
+           *   var x := E;                 var x := *;                  var x := E;
+           *   var x := E1;                var x :| E0;                 var x := E1; assert E0;
+           *   var VarProduction;                                       var VarProduction;
+           *   
+           *   x := E;                     x := *;                      x := E;
+           *   
+           *   if ... Then else Else       if (G) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
+           *   if (G) Then else Else       if (*) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
+           *
+           *   while ... LoopSpec ...      while (G) LoopSpec' Body     while (G) Merge(LoopSpec,LoopSpec') Body
+           *   while ... LoopSpec Body     while (G) LoopSpec' Body'    while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   while (G) LoopSpec ...      while (*) LoopSpec' Body     while (G) Merge(LoopSpec,LoopSpec') Body
+           *   while (G) LoopSpec Body     while (*) LoopSpec' Body'    while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   
+           *   ...; S                      StmtThatDoesNotMatchS; S'    StatementThatDoesNotMatchS; Merge( ...;S , S')
+           * 
+           * Note, LoopSpec must contain only invariant declarations (as the parser ensures for the first three cases).
+           * Note, there is an implicit "...;" at the end of every block in a skeleton.
+           *   
+           * TODO:  should also handle labels and some form of new "replace" statement
+           */
+          if (cur is SkeletonStatement) {
+            var S = ((SkeletonStatement)cur).S;
+            if (S == null) {
+              if (i + 1 == skeleton.Body.Count) {
+                // this "...;" is the last statement of the skeleton, so treat it like the default case
+              } else {
+                var nxt = skeleton.Body[i+1];
+                if (nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
+                  // "...; ...;" is the same as just "...;", so skip this one
+                } else {
+                  // skip up until the next thing that matches "nxt"
+                  while (!PotentialMatch(nxt, oldS)) {
+                    // loop invariant:  oldS == oldStmt.Body[j]
+                    body.Add(CloneStmt(oldS));
+                    j++;
+                    if (j == oldStmt.Body.Count) { break; }
+                    oldS = oldStmt.Body[j];
+                  }
+                }
+              }
+              i++;
+
+            } else if (S is AssertStmt) {
+              var skel = (AssertStmt)S;
+              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              var oldAssume = oldS as PredicateStmt;
+              if (oldAssume == null) {
+                reporter.Error(cur.Tok, "assert template does not match inherited statement");
+                i++;
+              } else {
+                // Clone the expression, but among the new assert's attributes, indicate
+                // that this assertion is supposed to be translated into a check.  That is,
+                // it is not allowed to be just assumed in the translation, despite the fact
+                // that the condition is inherited.
+                var e = CloneExpr(oldAssume.Expr);
+                body.Add(new AssertStmt(skel.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                i++; j++;
+              }
+
+            } else if (S is IfStmt) {
+              var skel = (IfStmt)S;
+              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              var oldIf = oldS as IfStmt;
+              if (oldIf == null) {
+                reporter.Error(cur.Tok, "if-statement template does not match inherited statement");
+                i++;
+              } else {
+                var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
+                var resultingElse = MergeElse(skel.Els, oldIf.Els);
+                var r = new IfStmt(skel.Tok, skel.Guard, resultingThen, resultingElse);
+                body.Add(r);
+                i++; j++;
+              }
+
+            } else if (S is WhileStmt) {
+              var skel = (WhileStmt)S;
+              var oldWhile = oldS as WhileStmt;
+              if (oldWhile == null) {
+                reporter.Error(cur.Tok, "while-statement template does not match inherited statement");
+                i++;
+              } else {
+                Expression guard;
+                if (((SkeletonStatement)cur).ConditionOmitted) {
+                  guard = CloneExpr(oldWhile.Guard);
+                } else {
+                  if (oldWhile.Guard != null) {
+                    reporter.Error(skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
+                  }
+                  guard = skel.Guard;
+                }
+                // Note, if the loop body is omitted in the skeleton, the parser will have set the loop body to an empty block,
+                // which has the same merging behavior.
+                var r = MergeWhileStmt(skel, oldWhile, guard);
+                body.Add(r);
+                i++; j++;
+              }
+
+            } else {
+              Contract.Assume(false);  // unexpected skeleton statement
+            }
+
+          } else if (cur is AssertStmt) {
+            MergeAddStatement(cur, body);
+            i++;
+
+          } else if (cur is VarDeclStmt) {
+            var cNew = (VarDeclStmt)cur;
+            var cOld = oldS as VarDeclStmt;
+            bool doMerge = false;
+            Expression addedAssert = null;
+            if (cOld != null && cNew.Lhss.Count == 1 && cOld.Lhss.Count == 1 && cNew.Lhss[0].Name == cOld.Lhss[0].Name) {
+              var update = cNew.Update as UpdateStmt;
+              if (update != null && update.Rhss.Count == 1 && update.Rhss[0] is ExprRhs) {
+                // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
+                if (cOld.Update == null) {
+                  doMerge = true;
+                } else if (cOld.Update is AssignSuchThatStmt) {
+                  doMerge = true;
+                  addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Assume.Expr);
+                } else {
+                  var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
+                  if (updateOld.Rhss.Count == 1 && updateOld.Rhss[0] is HavocRhs) {
+                    doMerge = true;
+                  }
+                }
+              }
+            }
+            if (doMerge) {
+              // Go ahead with the merge:
+              body.Add(cNew);
+              i++; j++;
+              if (addedAssert != null) {
+                body.Add(new AssertStmt(addedAssert.tok, addedAssert));
+              }
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+
+          } else if (cur is AssignStmt) {
+            var cNew = (AssignStmt)cur;
+            var cOld = oldS as AssignStmt;
+            if (cOld == null && oldS is UpdateStmt) {
+              var us = (UpdateStmt)oldS;
+              if (us.ResolvedStatements.Count == 1) {
+                cOld = us.ResolvedStatements[0] as AssignStmt;
+              }
+            }
+            bool doMerge = false;
+            if (cOld != null && cNew.Lhs.Resolved is IdentifierExpr && cOld.Lhs.Resolved is IdentifierExpr) {
+              if (((IdentifierExpr)cNew.Lhs.Resolved).Name == ((IdentifierExpr)cOld.Lhs.Resolved).Name) {
+                if (!(cNew.Rhs is TypeRhs) && cOld.Rhs is HavocRhs) {
+                  doMerge = true;
+                }
+              }
+            }
+            if (doMerge) {
+              // Go ahead with the merge:
+              body.Add(cNew);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+
+          } else if (cur is IfStmt) {
+            var cNew = (IfStmt)cur;
+            var cOld = oldS as IfStmt;
+            if (cOld != null && cOld.Guard == null) {
+              var r = new IfStmt(cNew.Tok, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              body.Add(r);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+
+          } else if (cur is WhileStmt) {
+            var cNew = (WhileStmt)cur;
+            var cOld = oldS as WhileStmt;
+            if (cOld != null && cOld.Guard == null) {
+              var r = MergeWhileStmt(cNew, cOld, cNew.Guard);
+              body.Add(r);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
+
+          } else {
+            MergeAddStatement(cur, body);
+            i++;
+          }
+        }
+      }
+      // implement the implicit "...;" at the end of each block statement skeleton
+      for (; j < oldStmt.Body.Count; j++) {
+        body.Add(CloneStmt(oldStmt.Body[j]));
+      }
+      return new BlockStmt(skeleton.Tok, body);
+    }
+
+    bool PotentialMatch(Statement nxt, Statement other) {
+      Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
+      Contract.Requires(other != null);
+
+      if (nxt is SkeletonStatement) {
+        var S = ((SkeletonStatement)nxt).S;
+        if (S is AssertStmt) {
+          return other is PredicateStmt;
+        } else if (S is IfStmt) {
+          return other is IfStmt;
+        } else if (S is WhileStmt) {
+          return other is WhileStmt;
+        } else {
+          Contract.Assume(false);  // unexpected skeleton
+        }
+
+      } else if (nxt is IfStmt) {
+        var oth = other as IfStmt;
+        return oth != null && oth.Guard == null;
+      } else if (nxt is WhileStmt) {
+        var oth = other as WhileStmt;
+        return oth != null && oth.Guard == null;
+      }
+
+      // not a potential match
+      return false;
+    }
+
+    WhileStmt MergeWhileStmt(WhileStmt cNew, WhileStmt cOld, Expression guard) {
+      Contract.Requires(cNew != null);
+      Contract.Requires(cOld != null);
+
+      // Note, the parser produces errors if there are any decreases or modifies clauses (and it creates
+      // the Specification structures with a null list).
+      Contract.Assume(cNew.Decreases.Expressions == null);
+      Contract.Assume(cNew.Mod.Expressions == null);
+
+      var invs = cOld.Invariants.ConvertAll(CloneMayBeFreeExpr);
+      invs.AddRange(cNew.Invariants);
+      var r = new WhileStmt(cNew.Tok, guard, invs, CloneSpecExpr(cOld.Decreases), CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
+      return r;
+    }
+
+    Statement MergeElse(Statement skeleton, Statement oldStmt) {
+      Contract.Requires(skeleton == null || skeleton is BlockStmt || skeleton is IfStmt);
+      Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt);
+
+      if (skeleton == null) {
+        return CloneStmt(oldStmt);
+      } else if (skeleton is IfStmt) {
+        // wrap a block statement around the if statement
+        skeleton = new BlockStmt(skeleton.Tok, new List<Statement>() { skeleton });
+      }
+
+      if (oldStmt == null) {
+        // make it into an empty block statement
+        oldStmt = new BlockStmt(skeleton.Tok, new List<Statement>());
+      } else if (oldStmt is IfStmt) {
+        // wrap a block statement around the if statement
+        oldStmt = new BlockStmt(oldStmt.Tok, new List<Statement>() { oldStmt });
+      }
+
+      Contract.Assert(skeleton is BlockStmt && oldStmt is BlockStmt);
+      return MergeBlockStmt((BlockStmt)skeleton, (BlockStmt)oldStmt);
+    }
+
+    /// <summary>
+    /// Add "s" to "stmtList", but complain if "s" contains further occurrences of "...", if "s" assigns to a
+    /// variable that was not declared in the refining module, or if "s" has some control flow that jumps to a
+    /// place outside "s".
+    /// </summary>
+    void MergeAddStatement(Statement s, List<Statement> stmtList) {
+      Contract.Requires(s != null);
+      Contract.Requires(stmtList != null);
+      var prevErrorCount = reporter.ErrorCount;
+      CheckIsOkayNewStatement(s, new Stack<string>(), 0);
+      if (reporter.ErrorCount == prevErrorCount) {
+        stmtList.Add(s);
+      }
+    }
+
+    /// <summary>
+    /// See comment on MergeAddStatement.
+    /// </summary>
+    void CheckIsOkayNewStatement(Statement s, Stack<string> labels, int loopLevels) {
+      Contract.Requires(s != null);
+      Contract.Requires(labels != null);
+      Contract.Requires(0 <= loopLevels);
+
+      for (LabelNode n = s.Labels; n != null; n = n.Next) {
+        labels.Push(n.Label);
+      }
+
+      if (s is SkeletonStatement) {
+        reporter.Error(s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
+      } else if (s is ReturnStmt) {
+        reporter.Error(s, "return statements are not allowed in skeletons");
+      } else if (s is BreakStmt) {
+        var b = (BreakStmt)s;
+        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel) : loopLevels < b.BreakCount) {
+          reporter.Error(s, "break statement in skeleton is not allowed to break outside the skeleton fragment");
+        }
+      } else if (s is AssignStmt) {
+        // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
+        // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
+        // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
+      } else {
+        if (s is WhileStmt || s is AlternativeLoopStmt) {
+          loopLevels++;
+        }
+        foreach (var ss in s.SubStatements) {
+          CheckIsOkayNewStatement(ss, labels, loopLevels);
+        }
+      }
+
+      for (LabelNode n = s.Labels; n != null; n = n.Next) {
+        labels.Pop();
+      }
     }
 
     // ---------------------- additional methods -----------------------------------------------------------------------------

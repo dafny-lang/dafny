@@ -25,7 +25,7 @@ module B refines A {
     }
     method M(x: int) returns (y: int)
       ensures y % 2 == 0;  // add a postcondition
-    method Q() returns (q: int, r: int, s: int)
+    method Q ...
       ensures 12 <= r;
       ensures 1200 <= s;  // error: postcondition is not established by
                           // inherited method body
@@ -44,7 +44,7 @@ module A_AnonymousClass {
 }
 
 module B_AnonymousClass refines A_AnonymousClass {
-  method Increment(d: int)
+  method Increment...
     ensures x <= old(x) + d;
 }
 
@@ -96,10 +96,10 @@ module FullBodied refines BodyFree {
 }
 
 // ------------------------------------------------
-/*  SOON
+
 module Abstract {
   class MyNumber {
-    var N: int;
+    ghost var N: int;
     ghost var Repr: set<object>;
     predicate Valid
       reads this, Repr;
@@ -125,7 +125,8 @@ module Abstract {
       requires Valid;
       ensures n == N;
     {
-      n := N;
+      var k;  assume k == N;
+      n := k;
     }
   }
 }
@@ -148,7 +149,8 @@ module Concrete refines Abstract {
     }
     method Get() returns (n: int)
     {
-      n := a - b;
+      var k := a - b;
+      assert ...;
     }
   }
 }
@@ -164,4 +166,27 @@ module Client imports Concrete {
     }
   }
 }
-*/
+
+module IncorrectConcrete refines Abstract {
+  class MyNumber {
+    var a: int;
+    var b: int;
+    predicate Valid
+    {
+      N == 2*a - b
+    }
+    constructor Init()
+    {  // error: postcondition violation
+      a := b;
+    }
+    method Inc()
+    {  // error: postcondition violation
+      if (*) { a := a + 1; } else { b := b - 1; }
+    }
+    method Get() returns (n: int)
+    {
+      var k := a - b;
+      assert ...;  // error: assertion violation
+    }
+  }
+}

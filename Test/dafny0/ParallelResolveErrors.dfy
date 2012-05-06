@@ -99,3 +99,10 @@ method M1() {
     }
   }
 }
+
+method M2() {
+  var a := new int[100];
+  parallel (x | 0 <= x < 100) {
+    a[x] :| a[x] > 0;  // error: not allowed to update heap location in a parallel statement with a(n implicit) assume
+  }
+}

@@ -269,7 +269,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Program prelude;
-      int errorCount = Bpl.Parser.Parse(preludePath, null, out prelude);
+      int errorCount = Bpl.Parser.Parse(preludePath, (List<string>)null, out prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
@@ -433,62 +433,65 @@ namespace Microsoft.Dafny {
           lhs = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), lhs);
           q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Eq(lhs, args[i]));
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
-            // for datatype:             axiom (forall params :: DtRank(params_i) < DtRank(#dt.ctor(params)));
-            // for type-parameter type:  axiom (forall params :: DtRank(Unbox(params_i)) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-              arg.Type.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          } else if (arg.Type is SeqType) {
-            // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
-            // that is:
-            // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
-            bvs.Add(iVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
-            Bpl.Expr ante = Bpl.Expr.And(
-              Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
-              Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-              FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType,
-                FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie)));
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          } else if (arg.Type is SetType) {
-            // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            // that is:
-            // axiom (forall params, d: Datatype :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-            bvs.Add(dVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Bpl.Expr ante = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
-          } else if (arg.Type is MultiSetType) {
-            // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            // that is:
-            // axiom (forall params, d: Datatype :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-            CreateBoundVariables(ctor.Formals, out bvs, out args);
-            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-            bvs.Add(dVar);
-            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-            Bpl.Expr ante = Bpl.Expr.Gt(Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie)), Bpl.Expr.Literal(0));
-            lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-            Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-            rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
-            q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-            sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+
+          if (dt is IndDatatypeDecl) {
+            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter) {
+              // for datatype:             axiom (forall params :: DtRank(params_i) < DtRank(#dt.ctor(params)));
+              // for type-parameter type:  axiom (forall params :: DtRank(Unbox(params_i)) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+                arg.Type.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            } else if (arg.Type is SeqType) {
+              // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
+              // that is:
+              // axiom (forall params, i: int :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
+              bvs.Add(iVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
+              Bpl.Expr ante = Bpl.Expr.And(
+                Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
+                Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+                FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType,
+                  FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie)));
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            } else if (arg.Type is SetType) {
+              // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              // that is:
+              // axiom (forall params, d: Datatype :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+              bvs.Add(dVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+              Bpl.Expr ante = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            } else if (arg.Type is MultiSetType) {
+              // axiom (forall params, d: Datatype :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              // that is:
+              // axiom (forall params, d: Datatype :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+              bvs.Add(dVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+              Bpl.Expr ante = Bpl.Expr.Gt(Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie)), Bpl.Expr.Literal(0));
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+              Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+            }
           }
           i++;
         }
@@ -2316,7 +2319,7 @@ namespace Microsoft.Dafny {
             CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function", options.AssertKv);
           }
 
-          if (options.Decr != null) {
+          if (options.Decr != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
             // check that the decreases measure goes down
             ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
             if (module == cce.NonNull(options.Decr.EnclosingClass).Module) {
@@ -2335,7 +2338,8 @@ namespace Microsoft.Dafny {
                     allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.UniqueName, TrType(ff.Type))));
                   }
                 }
-                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, builder, contextDecrInferred);
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, builder,
+                  contextDecrInferred, e.CoCall == FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects);
               }
             }
           }
@@ -2406,10 +2410,21 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        foreach (var rhs in e.RHSs) {
-          CheckWellformed(rhs, options, locals, builder, etran);
+
+        var substMap = new Dictionary<IVariable, Expression>();
+        Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
+        for (int i = 0; i < e.Vars.Count; i++) {
+          var vr = e.Vars[i];
+          var tp = TrType(vr.Type);
+          var v = new Bpl.LocalVariable(vr.tok, new Bpl.TypedIdent(vr.tok, vr.UniqueName, tp));
+          locals.Add(v);
+          var lhs = new Bpl.IdentifierExpr(vr.tok, vr.UniqueName, tp);
+
+          CheckWellformedWithResult(e.RHSs[i], options, lhs, vr.Type, locals, builder, etran);
+          substMap.Add(vr, new BoogieWrapper(lhs, vr.Type));
         }
-        CheckWellformedWithResult(etran.GetSubstitutedBody(e), options, result, resultType, locals, builder, etran);
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
+        result = null;
 
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -3276,14 +3291,20 @@ namespace Microsoft.Dafny {
           AddComment(builder, stmt, "assert statement");
           PredicateStmt s = (PredicateStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+          IToken enclosingToken = null;
+          if (Attributes.Contains(stmt.Attributes, "prependAssertToken")) {
+            enclosingToken = stmt.Tok;
+          }
           bool splitHappened;
           var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
           if (!splitHappened) {
-            builder.Add(Assert(s.Expr.tok, etran.TrExpr(s.Expr), "assertion violation"));
+            var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
+            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation"));
           } else {
             foreach (var split in ss) {
               if (!split.IsFree) {
-                builder.Add(AssertNS(split.E.tok, split.E, "assertion violation"));
+                var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
+                builder.Add(AssertNS(tok, split.E, "assertion violation"));
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
@@ -3314,6 +3335,25 @@ namespace Microsoft.Dafny {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
         }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        AddComment(builder, s, "assign-such-that statement");
+        // treat like a parallel havoc, followed by an assume
+        // Here comes the havoc part
+        var lhss = new List<Expression>();
+        var havocRhss = new List<AssignmentRhs>();
+        foreach (var lhs in s.Lhss) {
+          lhss.Add(lhs.Resolved);
+          havocRhss.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
+        }
+        List<AssignToLhs> lhsBuilder;
+        List<Bpl.IdentifierExpr> bLhss;
+        ProcessLhss(lhss, false, builder, locals, etran, out lhsBuilder, out bLhss);
+        ProcessRhss(lhsBuilder, bLhss, lhss, havocRhss, builder, locals, etran);
+        // End by doing the assume
+        TrStmt(s.Assume, builder, locals, etran);
+        builder.Add(CaptureState(s.Tok));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
+
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
@@ -4222,7 +4262,7 @@ namespace Microsoft.Dafny {
           bool contextDecrInferred, calleeDecrInferred;
           List<Expression> contextDecreases = MethodDecreasesWithDefault(currentMethod, out contextDecrInferred);
           List<Expression> calleeDecreases = MethodDecreasesWithDefault(method, out calleeDecrInferred);
-          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred);
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred, false);
         }
       }
 
@@ -4392,7 +4432,7 @@ namespace Microsoft.Dafny {
     void CheckCallTermination(IToken/*!*/ tok, List<Expression/*!*/>/*!*/ contextDecreases, List<Expression/*!*/>/*!*/ calleeDecreases,
                               Bpl.Expr allowance,
                               Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap,
-                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases) {
+                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases, bool wouldBeCoCallButCallHasSideEffects) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
       Contract.Requires(cce.NonNullElements(calleeDecreases));
@@ -4428,7 +4468,11 @@ namespace Microsoft.Dafny {
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
-      builder.Add(Assert(tok, decrExpr, inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure"));
+      var msg = inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure";
+      if (wouldBeCoCallButCallHasSideEffects) {
+        msg += " (note that only functions without side effects can called co-recursively)";
+      }
+      builder.Add(Assert(tok, decrExpr, msg));
     }
 
     /// <summary>
@@ -6899,7 +6943,7 @@ namespace Microsoft.Dafny {
         var e = (FunctionCallExpr)expr;
         // For recursive functions:  arguments are "prominent"
         // For non-recursive function:  arguments are "prominent" if the call is
-        var rec = e.Function.IsRecursive;
+        var rec = e.Function.IsRecursive && e.CoCall != FunctionCallExpr.CoCallResolution.Yes;
         bool inferredDecreases;  // we don't actually care
         var decr = FunctionDecreasesWithDefault(e.Function, out inferredDecreases);
         bool variantArgument;
@@ -6994,7 +7038,7 @@ namespace Microsoft.Dafny {
     }
 
     IEnumerable<Bpl.Expr> InductionCases(Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
-      DatatypeDecl dt = ty.AsDatatype;
+      IndDatatypeDecl dt = ty.AsIndDatatype;
       if (dt == null) {
         yield return Bpl.Expr.True;
       } else {
@@ -7009,13 +7053,14 @@ namespace Microsoft.Dafny {
           List<Bpl.Expr> args;
           CreateBoundVariables(ctor.Formals, out bvs, out args);
           Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-          // (exists args :: args-have-the-expected-types ==> ct(args) == expr)
+          // (exists args :: args-have-the-expected-types && ct(args) == expr)
           Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Length != 0) {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
             foreach (Formal arg in ctor.Formals) {
-              Bpl.Expr wh = GetWhereClause(arg.tok, args[i], Resolver.SubstType(arg.Type, subst), etran);
+              var instantiatedArgType = Resolver.SubstType(arg.Type, subst);
+              Bpl.Expr wh = GetWhereClause(arg.tok, etran.CondApplyUnbox(arg.tok, args[i], arg.Type, instantiatedArgType), instantiatedArgType, etran);
               if (wh != null) {
                 typeAntecedent = BplAnd(typeAntecedent, wh);
               }
@@ -7055,7 +7100,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old(...)" or "fresh(...)".
     /// </summary>
-    static bool MentionsOldState(Expression expr) {
+    public static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
       if (expr is OldExpr || expr is FreshExpr) {
         return true;

@@ -66,7 +66,6 @@ TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, g
 TypeTests.dfy(11,15): Error: incorrect type of method in-parameter 0 (expected int, got bool)
 TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 0 (expected int, got C)
 TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 1 (expected C, got int)
-TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 TypeTests.dfy(44,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 TypeTests.dfy(53,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(55,6): Error: Duplicate local-variable name: x
@@ -92,6 +91,7 @@ TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the
 TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 34 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
@@ -247,8 +247,47 @@ SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this ret
 SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
+SmallTests.dfy(561,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+SmallTests.dfy(575,20): Error: left-hand sides 0 and 1 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon4
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Then
+    (0,0): anon32_Then
+    (0,0): anon12
+SmallTests.dfy(577,15): Error: left-hand sides 1 and 2 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    SmallTests.dfy(570,18): anon28_Else
+    (0,0): anon4
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Else
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon22
+    (0,0): anon38_Then
+SmallTests.dfy(584,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(597,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 58 verified, 21 errors
+Dafny program verifier finished with 68 verified, 26 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -498,7 +537,9 @@ ResolutionErrors.dfy(305,16): Error: arguments must have the same type (got DTD_
 ResolutionErrors.dfy(306,25): Error: arguments must have the same type (got bool and int)
 ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
-46 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
+ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
+48 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -629,6 +670,15 @@ Execution trace:
 Dafny program verifier finished with 8 verified, 2 errors
 
 -------------------- NonGhostQuantifiers.dfy --------------------
+NonGhostQuantifiers.dfy(146,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(150,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(155,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(160,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(164,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(168,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(173,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(178,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(183,13): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'c'
 NonGhostQuantifiers.dfy(13,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
 NonGhostQuantifiers.dfy(42,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
 NonGhostQuantifiers.dfy(46,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'd'
@@ -640,7 +690,7 @@ NonGhostQuantifiers.dfy(103,5): Error: quantifiers in non-ghost contexts must be
 NonGhostQuantifiers.dfy(111,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
 NonGhostQuantifiers.dfy(120,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
 NonGhostQuantifiers.dfy(137,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-11 resolution/type errors detected in NonGhostQuantifiers.dfy
+20 resolution/type errors detected in NonGhostQuantifiers.dfy
 
 -------------------- AdvancedLHS.dfy --------------------
 AdvancedLHS.dfy(32,23): Error: target object may be null
@@ -1037,7 +1087,9 @@ ParallelResolveErrors.dfy(86,20): Error: trying to break out of more loop levels
 ParallelResolveErrors.dfy(87,20): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(96,24): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(97,24): Error: break label is undefined or not in scope: OutsideLoop
-14 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(105,2): Warning: the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause
+ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing parallel statement is not allowed to update heap locations
+15 resolution/type errors detected in ParallelResolveErrors.dfy
 
 -------------------- Parallel.dfy --------------------
 Parallel.dfy(31,5): Error BP5002: A precondition for this call might not hold.
@@ -1220,6 +1272,20 @@ Execution trace:
 
 Dafny program verifier finished with 32 verified, 6 errors
 
+-------------------- Coinductive.dfy --------------------
+Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
+Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
+Coinductive.dfy(35,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'K' can be constructed
+Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
+4 resolution/type errors detected in Coinductive.dfy
+
+-------------------- Corecursion.dfy --------------------
+Corecursion.dfy(15,13): Error: failure to decrease termination measure (note that only functions without side effects can called co-recursively)
+Execution trace:
+    (0,0): anon3_Else
+
+Dafny program verifier finished with 2 verified, 1 error
+
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
 Execution trace:
@@ -1249,6 +1315,10 @@ Execution trace:
     (0,0): anon27_Else
 
 Dafny program verifier finished with 12 verified, 3 errors
+
+-------------------- NoTypeArgs.dfy --------------------
+
+Dafny program verifier finished with 12 verified, 0 errors
 
 -------------------- SplitExpr.dfy --------------------
 
@@ -1353,8 +1423,24 @@ Refinement.dfy(93,3): Error BP5003: A postcondition might not hold on this retur
 Refinement.dfy(74,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+Refinement.dfy(179,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(112,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(176,9): Related location: Related location
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(183,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(120,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(176,9): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Refinement.dfy(189,7): Error: assertion violation
+Refinement.dfy[IncorrectConcrete](128,24): Related location: Related location
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 28 verified, 6 errors
+Dafny program verifier finished with 48 verified, 9 errors
 
 -------------------- RefinementErrors.dfy --------------------
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions
@@ -1367,9 +1453,8 @@ RefinementErrors.dfy(35,11): Error: type parameters are not allowed to be rename
 RefinementErrors.dfy(35,13): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'C', found 'B')
 RefinementErrors.dfy(36,23): Error: the type of parameter 'z' is different from the type of the same parameter in the corresponding function in the module it refines ('seq<C>' instead of 'set<C>')
 RefinementErrors.dfy(37,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
-RefinementErrors.dfy(46,11): Error: body of refining method is not yet supported
 RefinementErrors.dfy(54,20): Error: a function can be changed into a function method in a refining module only if the function has not yet been given a body: G
-12 resolution/type errors detected in RefinementErrors.dfy
+11 resolution/type errors detected in RefinementErrors.dfy
 
 -------------------- ReturnErrors.dfy --------------------
 ReturnErrors.dfy(30,10): Error: cannot have method call in return statement.
@@ -1424,7 +1509,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 13 verified, 2 errors
+Dafny program verifier finished with 19 verified, 2 errors
 
 -------------------- Predicates.dfy --------------------
 Predicates.dfy[B](18,5): Error BP5003: A postcondition might not hold on this return path.
@@ -1454,6 +1539,20 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 52 verified, 6 errors
+
+-------------------- Skeletons.dfy --------------------
+Skeletons.dfy(42,3): Error BP5003: A postcondition might not hold on this return path.
+Skeletons.dfy(41,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    Skeletons.dfy[C0](29,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    Skeletons.dfy[C0](29,5): anon13_Else
+    (0,0): anon9
+    Skeletons.dfy[C0](34,19): anon16_Else
+    (0,0): anon11
+
+Dafny program verifier finished with 9 verified, 1 error
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
@@ -1563,8 +1662,47 @@ SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this ret
 SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
+SmallTests.dfy(561,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+SmallTests.dfy(575,20): Error: left-hand sides 0 and 1 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon4
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Then
+    (0,0): anon32_Then
+    (0,0): anon12
+SmallTests.dfy(577,15): Error: left-hand sides 1 and 2 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    SmallTests.dfy(570,18): anon28_Else
+    (0,0): anon4
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Else
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon22
+    (0,0): anon38_Then
+SmallTests.dfy(584,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+SmallTests.dfy(597,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 58 verified, 21 errors
+Dafny program verifier finished with 68 verified, 26 errors
 out.tmp.dfy(33,11): Error: index out of range
 Execution trace:
     (0,0): anon0
@@ -1672,8 +1810,47 @@ out.tmp.dfy(469,10): Error BP5003: A postcondition might not hold on this return
 out.tmp.dfy(470,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
+out.tmp.dfy(507,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+out.tmp.dfy(521,20): Error: left-hand sides 0 and 1 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon4
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Then
+    (0,0): anon32_Then
+    (0,0): anon12
+out.tmp.dfy(523,15): Error: left-hand sides 1 and 2 may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+    out.tmp.dfy(516,18): anon28_Else
+    (0,0): anon4
+    (0,0): anon29_Else
+    (0,0): anon7
+    (0,0): anon30_Then
+    (0,0): anon9
+    (0,0): anon31_Else
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon22
+    (0,0): anon38_Then
+out.tmp.dfy(530,18): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+out.tmp.dfy(543,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 58 verified, 21 errors
+Dafny program verifier finished with 68 verified, 26 errors
 
 -------------------- LetExpr.dfy --------------------
 LetExpr.dfy(5,12): Error: assertion violation
@@ -1684,7 +1861,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 13 verified, 2 errors
+Dafny program verifier finished with 19 verified, 2 errors
 out.tmp.dfy(10,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -1693,4 +1870,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 13 verified, 2 errors
+Dafny program verifier finished with 19 verified, 2 errors
+
+Dafny program verifier finished with 6 verified, 0 errors
+Compiled assembly into Compilation.exe

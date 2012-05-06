@@ -44,7 +44,7 @@ module B refines A {
     {  // yes, can give it a body
     }
     method FullBodied(x: int) returns (y: bool, k: seq<set<object>>)
-    {  // error: not allowed to change body (not yet implemented)
+    {
     }
   }
 }

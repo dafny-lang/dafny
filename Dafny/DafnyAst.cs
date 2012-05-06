@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", null, new List<string>(), null);
+    public readonly ModuleDecl SystemModule = new ModuleDecl(Token.NoToken, "_System", false, null, new List<string>(), null);
     Dictionary<int, ClassDecl/*!*/> arrayTypeDecls = new Dictionary<int, ClassDecl>();
 
     public BuiltIns() {
@@ -101,7 +101,40 @@ namespace Microsoft.Dafny {
       Prev = prev;
     }
 
-    public class Argument {
+    public static bool Contains(Attributes attrs, string nm) {
+      Contract.Requires(nm != null);
+      for (; attrs != null; attrs = attrs.Prev) {
+        if (attrs.Name == nm) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /// <summary>
+    /// Returns true if "nm" is a specified attribute.  If it is, then:
+    /// - if the attribute is {:nm true}, then value==true
+    /// - if the attribute is {:nm false}, then value==false
+    /// - if the attribute is anything else, then value returns as whatever it was passed in as.
+    /// </summary>
+    public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
+      Contract.Requires(nm != null);
+      for (; attrs != null; attrs = attrs.Prev) {
+        if (attrs.Name == nm) {
+          if (attrs.Args.Count == 1) {
+            var arg = attrs.Args[0].E as LiteralExpr;
+            if (arg != null && arg.Value is bool) {
+              value = (bool)arg.Value;
+            }
+          }
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public class Argument
+    {
       public readonly IToken Tok;
       public readonly string S;
       public readonly Expression E;
@@ -196,6 +229,21 @@ namespace Microsoft.Dafny {
           return null;
         } else {
           return udt.ResolvedClass as DatatypeDecl;
+        }
+      }
+    }
+    public bool IsIndDatatype {
+      get {
+        return AsIndDatatype != null;
+      }
+    }
+    public IndDatatypeDecl AsIndDatatype {
+      get {
+        UserDefinedType udt = this as UserDefinedType;
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as IndDatatypeDecl;
         }
       }
     }
@@ -313,6 +361,16 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     [Rep]
     public readonly List<Type/*!*/>/*!*/ TypeArgs;
+
+    public string FullName {
+      get {
+        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
+          return ResolvedClass.Module.Name + "." + Name;
+        } else {
+          return Name;
+        }
+      }
+    }
 
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
@@ -610,6 +668,7 @@ namespace Microsoft.Dafny {
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
+    public readonly bool IsGhost;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -618,7 +677,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDecl(IToken tok, string name, string refinementBase, [Captured] List<string/*!*/>/*!*/ imports, Attributes attributes)
+    public ModuleDecl(IToken tok, string name, bool isGhost, string refinementBase, [Captured] List<string/*!*/>/*!*/ imports, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -631,6 +690,7 @@ namespace Microsoft.Dafny {
           ImportNames.Add(nm);
         }
       }
+      IsGhost = isGhost;
     }
     public virtual bool IsDefaultModule {
       get {
@@ -640,7 +700,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDecl {
-    public DefaultModuleDecl() : base(Token.NoToken, "_default", null, new List<string/*!*/>(), null) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_default", false, null, new List<string/*!*/>(), null) {
     }
     public override bool IsDefaultModule {
       get {
@@ -729,15 +789,13 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DatatypeDecl : TopLevelDecl {
+  public abstract class DatatypeDecl : TopLevelDecl {
     public readonly List<DatatypeCtor/*!*/>/*!*/ Ctors;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Ctors));
       Contract.Invariant(1 <= Ctors.Count);
     }
-
-    public DatatypeCtor DefaultCtor;  // set during resolution
 
     public DatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
       [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
@@ -752,7 +810,39 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+  public class IndDatatypeDecl : DatatypeDecl
+  {
+    public DatatypeCtor DefaultCtor;  // set during resolution
+    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as
+
+    public IndDatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
+      [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
+      : base(tok, name, module, typeArgs, ctors, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(1 <= ctors.Count);
+    }
+  }
+
+  public class CoDatatypeDecl : DatatypeDecl
+  {
+    public CoDatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
+      [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
+      : base(tok, name, module, typeArgs, ctors, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(1 <= ctors.Count);
+    }
+  }
+
+  public class DatatypeCtor : Declaration, TypeParameter.ParentType
+  {
     public readonly List<Formal/*!*/>/*!*/ Formals;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1055,7 +1145,8 @@ namespace Microsoft.Dafny {
     public readonly List<FrameExpression/*!*/>/*!*/ Reads;
     public readonly List<Expression/*!*/>/*!*/ Ens;
     public readonly Specification<Expression>/*!*/ Decreases;
-    public readonly Expression Body;  // an extended expression
+    public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    public readonly bool SignatureIsOmitted;  // is "false" for all Function objects that survive into resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
@@ -1070,7 +1161,7 @@ namespace Microsoft.Dafny {
     public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
                     List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals, Type resultType,
                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                    Expression body, Attributes attributes)
+                    Expression body, Attributes attributes, bool signatureOmitted)
       : base(tok, name, isStatic, attributes) {
 
       Contract.Requires(tok != null);
@@ -1093,6 +1184,7 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
+      this.SignatureIsOmitted = signatureOmitted;
     }
   }
 
@@ -1102,8 +1194,8 @@ namespace Microsoft.Dafny {
     public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, bool bodyIsExtended, Attributes attributes)
-      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes) {
+                     Expression body, bool bodyIsExtended, Attributes attributes, bool signatureOmitted)
+      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
       Contract.Requires(!bodyIsExtended || body != null);
       BodyIsExtended = bodyIsExtended;
     }
@@ -1112,6 +1204,7 @@ namespace Microsoft.Dafny {
   public class Method : MemberDecl, TypeParameter.ParentType
   {
     public readonly bool IsGhost;
+    public readonly bool SignatureIsOmitted;
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly List<Formal/*!*/>/*!*/ Ins;
     public readonly List<Formal/*!*/>/*!*/ Outs;
@@ -1119,7 +1212,7 @@ namespace Microsoft.Dafny {
     public readonly Specification<FrameExpression>/*!*/ Mod;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
     public readonly Specification<Expression>/*!*/ Decreases;
-    public readonly BlockStmt Body;
+    public BlockStmt Body;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1140,7 +1233,7 @@ namespace Microsoft.Dafny {
                   [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
                   [Captured] Specification<Expression>/*!*/ decreases,
                   [Captured] BlockStmt body,
-                  Attributes attributes)
+                  Attributes attributes, bool signatureOmitted)
       : base(tok, name, isStatic, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1160,6 +1253,7 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
+      this.SignatureIsOmitted = signatureOmitted;
     }
   }
 
@@ -1172,8 +1266,8 @@ namespace Microsoft.Dafny {
                   [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
                   [Captured] Specification<Expression>/*!*/ decreases,
                   [Captured] BlockStmt body,
-                  Attributes attributes)
-      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes) {
+                  Attributes attributes, bool signatureOmitted)
+      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureOmitted) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1222,6 +1316,13 @@ namespace Microsoft.Dafny {
       : this(tok, null) {
       Contract.Requires(tok != null);
       this.Tok = tok;
+    }
+
+    /// <summary>
+    /// Returns the non-null substatements of the Statements.
+    /// </summary>
+    public virtual IEnumerable<Statement> SubStatements {
+      get { yield break; }
     }
   }
 
@@ -1497,18 +1598,22 @@ namespace Microsoft.Dafny {
     public ConcreteSyntaxStatement(IToken tok)
       : base(tok) {
     }
+
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
   }
 
   public class VarDeclStmt : ConcreteSyntaxStatement
   {
     public readonly List<VarDecl> Lhss;
-    public readonly UpdateStmt Update;
+    public readonly ConcreteUpdateStatement Update;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
     }
 
-    public VarDeclStmt(IToken tok, List<VarDecl> lhss, UpdateStmt update)
+    public VarDeclStmt(IToken tok, List<VarDecl> lhss, ConcreteUpdateStatement update)
       : base(tok)
     {
       Contract.Requires(lhss != null);
@@ -1518,9 +1623,35 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class UpdateStmt : ConcreteSyntaxStatement
+  /// <summary>
+  /// Common superclass of UpdateStmt and AssignSuchThatStmt.
+  /// </summary>
+  public abstract class ConcreteUpdateStatement : ConcreteSyntaxStatement
   {
     public readonly List<Expression> Lhss;
+    public ConcreteUpdateStatement(IToken tok, List<Expression> lhss)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Lhss = lhss;
+    }
+  }
+
+  public class AssignSuchThatStmt : ConcreteUpdateStatement
+  {
+    public readonly AssumeStmt Assume;
+    public AssignSuchThatStmt(IToken tok, List<Expression> lhss, Expression expr)
+      : base(tok, lhss) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(lhss.Count != 0);
+      Contract.Requires(expr != null);
+      Assume = new AssumeStmt(tok, expr);
+    }
+  }
+
+  public class UpdateStmt : ConcreteUpdateStatement
+  {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
     [ContractInvariantMethod]
@@ -1529,24 +1660,22 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Rhss));
     }
     public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss)
-      : base(tok)
+      : base(tok, lhss)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(cce.NonNullElements(rhss));
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-      Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = false;
     }
     public UpdateStmt(IToken tok, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-      : base(tok)
+      : base(tok, lhss)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(cce.NonNullElements(rhss));
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-      Lhss = lhss;
       Rhss = rhss;
       CanMutateKnownState = mutate;
     }
@@ -1568,6 +1697,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       this.Lhs = lhs;
       this.Rhs = rhs;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        var trhs = Rhs as TypeRhs;
+        if (trhs != null && trhs.InitCall != null) {
+          yield return trhs.InitCall;
+        }
+      }
     }
   }
 
@@ -1669,20 +1807,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(body));
       this.Body = body;
+    }
 
+    public override IEnumerable<Statement> SubStatements {
+      get { return Body; }
     }
   }
 
   public class IfStmt : Statement {
     public readonly Expression Guard;
-    public readonly Statement Thn;
+    public readonly BlockStmt Thn;
     public readonly Statement Els;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Thn != null);
       Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt);
     }
-    public IfStmt(IToken tok, Expression guard, Statement thn, Statement els)
+    public IfStmt(IToken tok, Expression guard, BlockStmt thn, Statement els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(thn != null);
@@ -1690,6 +1831,14 @@ namespace Microsoft.Dafny {
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Thn;
+        if (Els != null) {
+          yield return Els;
+        }
+      }
     }
   }
 
@@ -1728,6 +1877,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
     }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        foreach (var alt in Alternatives) {
+          foreach (var s in alt.Body) {
+            yield return s;
+          }
+        }
+      }
+    }
   }
 
   public abstract class LoopStmt : Statement
@@ -1758,7 +1916,7 @@ namespace Microsoft.Dafny {
   public class WhileStmt : LoopStmt
   {
     public readonly Expression Guard;
-    public readonly Statement/*!*/ Body;
+    public readonly BlockStmt/*!*/ Body;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Body != null);
@@ -1766,12 +1924,18 @@ namespace Microsoft.Dafny {
 
     public WhileStmt(IToken tok, Expression guard,
                      List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod,
-                     Statement/*!*/ body)
+                     BlockStmt/*!*/ body)
       : base(tok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
       Contract.Requires(body != null);
       this.Guard = guard;
       this.Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Body;
+      }
     }
   }
 
@@ -1789,6 +1953,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        foreach (var alt in Alternatives) {
+          foreach (var s in alt.Body) {
+            yield return s;
+          }
+        }
+      }
     }
   }
 
@@ -1865,6 +2038,12 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        yield return Body;
+      }
+    }
   }
 
   public class MatchStmt : Statement
@@ -1887,7 +2066,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+    }
 
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        foreach (var kase in Cases) {
+          foreach (var s in kase.Body) {
+            yield return s;
+          }
+        }
+      }
     }
   }
 
@@ -1908,6 +2096,53 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
       this.Body = body;
+    }
+  }
+
+  /// <summary>
+  /// The class represents several possible scenarios:
+  /// * ...;
+  ///   S == null
+  /// * assert ...
+  ///   ConditionOmitted == true
+  /// * if ... { Stmt }
+  ///   if ... { Stmt } else ElseStmt
+  ///   ConditionOmitted == true
+  /// * while ... invariant J;
+  ///   ConditionOmitted == true && BodyOmitted == true
+  /// * while ... invariant J; { Stmt }
+  ///   ConditionOmitted == true && BodyOmitted == false
+  /// </summary>
+  public class SkeletonStatement : Statement
+  {
+    public readonly Statement S;
+    public readonly bool ConditionOmitted;
+    public readonly bool BodyOmitted;
+    public SkeletonStatement(IToken tok)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+    }
+    public SkeletonStatement(Statement s, bool conditionOmitted, bool bodyOmitted)
+      : base(s.Tok)
+    {
+      Contract.Requires(s != null);
+      S = s;
+      ConditionOmitted = conditionOmitted;
+      BodyOmitted = bodyOmitted;
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        // The SkeletonStatement is really a modification of its inner statement S.  Therefore,
+        // we don't consider S to be a substatement.  Instead, the substatements of S are the
+        // substatements of the SkeletonStatement.  In the case the SkeletonStatement modifies
+        // S by omitting its body (which is true only for loops), there are no substatements.
+        if (!BodyOmitted) {
+          foreach (var s in S.SubStatements) {
+            yield return s;
+          }
+        }
+      }
     }
   }
 
@@ -2093,6 +2328,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression/*!*/>/*!*/ Arguments;
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<Type/*!*/> InferredTypeArgs = new List<Type>();  // filled in by resolution
+    public bool IsCoCall;  // filled in by resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(DatatypeName != null);
@@ -2319,6 +2555,8 @@ namespace Microsoft.Dafny {
     public readonly Expression/*!*/ Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression/*!*/>/*!*/ Args;
+    public enum CoCallResolution { No, Yes, NoBecauseFunctionHasSideEffects }
+    public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call; filled in by resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -2550,6 +2788,88 @@ namespace Microsoft.Dafny {
       RankGt
     }
     public ResolvedOpcode ResolvedOp;  // filled in by resolution
+
+    public static Opcode ResolvedOp2SyntacticOp(ResolvedOpcode rop) {
+      switch (rop) {
+        case ResolvedOpcode.Iff: return Opcode.Iff;
+        case ResolvedOpcode.Imp: return Opcode.Imp;
+        case ResolvedOpcode.And: return Opcode.And;
+        case ResolvedOpcode.Or: return Opcode.Or;
+
+        case ResolvedOpcode.EqCommon:
+        case ResolvedOpcode.SetEq:
+        case ResolvedOpcode.MultiSetEq:
+        case ResolvedOpcode.SeqEq:
+          return Opcode.Eq;
+
+        case ResolvedOpcode.NeqCommon:
+        case ResolvedOpcode.SetNeq:
+        case ResolvedOpcode.MultiSetNeq:
+        case ResolvedOpcode.SeqNeq:
+          return Opcode.Neq;
+
+        case ResolvedOpcode.Lt:
+        case ResolvedOpcode.ProperSubset:
+        case ResolvedOpcode.ProperMultiSuperset:
+        case ResolvedOpcode.ProperPrefix:
+        case ResolvedOpcode.RankLt:
+          return Opcode.Lt;
+
+        case ResolvedOpcode.Le:
+        case ResolvedOpcode.Subset:
+        case ResolvedOpcode.MultiSubset:
+        case ResolvedOpcode.Prefix:
+          return Opcode.Le;
+
+        case ResolvedOpcode.Ge:
+        case ResolvedOpcode.Superset:
+        case ResolvedOpcode.MultiSuperset:
+          return Opcode.Ge;
+
+        case ResolvedOpcode.Gt:
+        case ResolvedOpcode.ProperSuperset:
+        case ResolvedOpcode.ProperMultiSubset:
+        case ResolvedOpcode.RankGt:
+          return Opcode.Gt;
+
+        case ResolvedOpcode.Add:
+        case ResolvedOpcode.Union:
+        case ResolvedOpcode.MultiSetUnion:
+        case ResolvedOpcode.Concat:
+          return Opcode.Add;
+
+        case ResolvedOpcode.Sub:
+        case ResolvedOpcode.SetDifference:
+        case ResolvedOpcode.MultiSetDifference:
+          return Opcode.Sub;
+
+        case ResolvedOpcode.Mul:
+        case ResolvedOpcode.Intersection:
+        case ResolvedOpcode.MultiSetIntersection:
+          return Opcode.Mul;
+
+        case ResolvedOpcode.Div: return Opcode.Div;
+        case ResolvedOpcode.Mod: return Opcode.Mod;
+
+        case ResolvedOpcode.Disjoint:
+        case ResolvedOpcode.MultiSetDisjoint:
+          return Opcode.Disjoint;
+
+        case ResolvedOpcode.InSet:
+        case ResolvedOpcode.InMultiSet:
+        case ResolvedOpcode.InSeq:
+          return Opcode.In;
+
+        case ResolvedOpcode.NotInSet:
+        case ResolvedOpcode.NotInMultiSet:
+        case ResolvedOpcode.NotInSeq:
+          return Opcode.NotIn;
+
+        default:
+          Contract.Assert(false);  // unexpected ResolvedOpcode
+          return Opcode.Add;  // please compiler
+      }
+    }
 
     public static string OpcodeString(Opcode op) {
       Contract.Ensures(Contract.Result<string>() != null);

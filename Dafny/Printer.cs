@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
     public void PrintDatatype(DatatypeDecl dt, int indent) {
       Contract.Requires(dt != null);
       Indent(indent);
-      PrintClassMethodHelper("datatype", dt.Attributes, dt.Name, dt.TypeArgs);
+      PrintClassMethodHelper(dt is IndDatatypeDecl ? "datatype" : "codatatype", dt.Attributes, dt.Name, dt.TypeArgs);
       wr.Write(" =");
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {
@@ -226,16 +226,20 @@ namespace Microsoft.Dafny {
       if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
-      if (f.OpenParen != null) {
-        PrintFormals(f.Formals);
+      if (f.SignatureIsOmitted) {
+        wr.WriteLine(" ...");
       } else {
-        Contract.Assert(isPredicate);
+        if (f.OpenParen != null) {
+          PrintFormals(f.Formals);
+        } else {
+          Contract.Assert(isPredicate);
+        }
+        if (!isPredicate) {
+          wr.Write(": ");
+          PrintType(f.ResultType);
+        }
+        wr.WriteLine();
       }
-      if (!isPredicate) {
-        wr.Write(": ");
-        PrintType(f.ResultType);
-      }
-      wr.WriteLine();
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
@@ -272,18 +276,22 @@ namespace Microsoft.Dafny {
       if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
       PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
-      PrintFormals(method.Ins);
-      if (method.Outs.Count != 0) {
-        if (method.Ins.Count + method.Outs.Count <= 3) {
-          wr.Write(" returns ");
-        } else {
-          wr.WriteLine();
-          Indent(3 * IndentAmount);
-          wr.Write("returns ");
+      if (method.SignatureIsOmitted) {
+        wr.WriteLine(" ...");
+      } else {
+        PrintFormals(method.Ins);
+        if (method.Outs.Count != 0) {
+          if (method.Ins.Count + method.Outs.Count <= 3) {
+            wr.Write(" returns ");
+          } else {
+            wr.WriteLine();
+            Indent(3 * IndentAmount);
+            wr.Write("returns ");
+          }
+          PrintFormals(method.Outs);
         }
-        PrintFormals(method.Outs);
+        wr.WriteLine();
       }
-      wr.WriteLine();
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
@@ -339,7 +347,7 @@ namespace Microsoft.Dafny {
 
     void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
-      if (decs.Expressions.Count != 0) {
+      if (decs.Expressions != null && decs.Expressions.Count != 0) {
         Indent(indent);
         wr.Write("decreases");
         if (decs.HasAttributes())
@@ -352,14 +360,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/>/*!*/ ee, int indent, Attributes attrs) {
+    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
-      if (ee.Count != 0) {
+      if (ee != null && ee.Count != 0) {
         Indent(indent);
         wr.Write("{0}", kind);
         if (attrs != null) {
-            PrintAttributes(attrs);
+          PrintAttributes(attrs);
         }
         wr.Write(" ");
         PrintFrameExpressionList(ee);
@@ -520,22 +528,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
-        while (true) {
-          wr.Write("if (");
-          PrintGuard(s.Guard);
-          wr.Write(") ");
-          PrintStatement(s.Thn, indent);
-          if (s.Els == null) {
-            break;
-          }
-          wr.Write(" else ");
-          if (s.Els is IfStmt) {
-            s = (IfStmt)s.Els;
-          } else {
-            PrintStatement(s.Els, indent);
-            break;
-          }
-        }
+        PrintIfStatement(indent, s, false);
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
@@ -546,18 +539,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
-        wr.Write("while (");
-        PrintGuard(s.Guard);
-        wr.WriteLine(")");
-
-        PrintSpec("invariant", s.Invariants, indent + IndentAmount);
-        PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-        if (s.Mod.Expressions != null)
-        {
-            PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
-        }
-        Indent(indent);
-        PrintStatement(s.Body, indent);
+        PrintWhileStatement(indent, s, false, false);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -613,23 +595,15 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
 
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
+      } else if (stmt is ConcreteUpdateStatement) {
+        var s = (ConcreteUpdateStatement)stmt;
         string sep = "";
         foreach (var lhs in s.Lhss) {
           wr.Write(sep);
           PrintExpression(lhs);
           sep = ", ";
         }
-        if (s.Lhss.Count != 0) {
-          sep = " := ";
-        }
-        foreach (var rhs in s.Rhss) {
-          wr.Write(sep);
-          PrintRhs(rhs);
-          sep = ", ";
-        }
-
+        PrintUpdateRHS(s);
         wr.Write(";");
 
       } else if (stmt is VarDeclStmt) {
@@ -645,18 +619,97 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
         if (s.Update != null) {
-          wr.Write(" := ");
-          sep = "";
-          foreach (var rhs in s.Update.Rhss) {
-            wr.Write(sep);
-            PrintRhs(rhs);
-            sep = ", ";
-          }
+          PrintUpdateRHS(s.Update);
         }
         wr.Write(";");
 
+      } else if (stmt is SkeletonStatement) {
+        var s = (SkeletonStatement)stmt;
+        if (s.S == null) {
+          wr.Write("...;");
+        } else if (s.S is AssertStmt) {
+          Contract.Assert(s.ConditionOmitted);
+          wr.Write("assert ...;");
+        } else if (s.S is IfStmt) {
+          PrintIfStatement(indent, (IfStmt)s.S, s.ConditionOmitted);
+        } else if (s.S is WhileStmt) {
+          PrintWhileStatement(indent, (WhileStmt)s.S, s.ConditionOmitted, s.BodyOmitted);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected skeleton statement
+        }
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    /// <summary>
+    /// Does not print LHS
+    /// </summary>
+    void PrintUpdateRHS(ConcreteUpdateStatement s) {
+      Contract.Requires(s != null);
+      if (s is UpdateStmt) {
+        var update = (UpdateStmt)s;
+        if (update.Lhss.Count != 0) {
+          wr.Write(" := ");
+        }
+        var sep = "";
+        foreach (var rhs in update.Rhss) {
+          wr.Write(sep);
+          PrintRhs(rhs);
+          sep = ", ";
+        }
+      } else if (s is AssignSuchThatStmt) {
+        var update = (AssignSuchThatStmt)s;
+        wr.Write(" :| ");
+        PrintExpression(update.Assume.Expr);
+      } else {
+        Contract.Assert(s == null);  // otherwise, unknown type
+      }
+    }
+
+    void PrintIfStatement(int indent, IfStmt s, bool omitGuard) {
+      while (true) {
+        if (omitGuard) {
+          wr.Write("if ... ");
+        } else {
+          wr.Write("if (");
+          PrintGuard(s.Guard);
+          wr.Write(") ");
+        }
+        PrintStatement(s.Thn, indent);
+        if (s.Els == null) {
+          break;
+        }
+        wr.Write(" else ");
+        if (s.Els is IfStmt) {
+          s = (IfStmt)s.Els;
+        } else {
+          PrintStatement(s.Els, indent);
+          break;
+        }
+      }
+    }
+
+    void PrintWhileStatement(int indent, WhileStmt s, bool omitGuard, bool omitBody) {
+      if (omitGuard) {
+        wr.WriteLine("while ...");
+      } else {
+        wr.Write("while (");
+        PrintGuard(s.Guard);
+        wr.WriteLine(")");
+      }
+
+      PrintSpec("invariant", s.Invariants, indent + IndentAmount);
+      PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
+      if (s.Mod.Expressions != null) {
+        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
+      }
+      Indent(indent);
+      if (omitBody) {
+        wr.WriteLine("...;");
+      } else {
+        PrintStatement(s.Body, indent);
       }
     }
 

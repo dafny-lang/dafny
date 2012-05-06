@@ -148,27 +148,35 @@ Dafny
        defaultModule = new DefaultModuleDecl();
      }
      IToken idRefined;
+     bool isGhost;
   .)
-  { "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>();
-                                            namedModuleDefaultClassMembers = new List<MemberDecl>();
-                                         .)
-    { Attribute<ref attrs> }
-    Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
-    [ "refines" Ident<out idRefined> ]
-    [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, idRefined == null ? null : idRefined.val, theImports, attrs); .)
-    "{"                                  (. module.BodyStartTok = t; .)
-      { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
-      | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
-      | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
-      | ClassMemberDecl<namedModuleDefaultClassMembers, false>
-      }
-    "}"                                  (. module.BodyEndTok = t;
-                                            module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                            theModules.Add(module); .)
-  | ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
-  | DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
-  | ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
-  | ClassMemberDecl<membersDefaultClass, false>
+  { (. isGhost = false; .)
+    [ "ghost"  (. isGhost = true; .) ]
+
+    ( "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>();
+                                              namedModuleDefaultClassMembers = new List<MemberDecl>();
+                                           .)
+      { Attribute<ref attrs> }
+      Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
+      [ "refines" Ident<out idRefined> ]
+      [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, isGhost, idRefined == null ? null : idRefined.val, theImports, attrs); .)
+      "{"                                  (. module.BodyStartTok = t; .)
+        { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
+        | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
+        | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false, false>
+        }
+      "}"                                  (. module.BodyEndTok = t;
+                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+                                              theModules.Add(module); .)
+    | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
+      ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
+    | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
+      DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
+    | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
+      ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
+    | ClassMemberDecl<membersDefaultClass, isGhost, false>
+    )
   }
   (. if (defaultModuleCreatedHere) {
        defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
@@ -201,7 +209,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   Ident<out id>
   [ GenericParameters<typeArgs> ]
   "{"                                            (. bodyStart = t; .)
-  { ClassMemberDecl<members, true>
+  { ClassMemberDecl<members, false, true>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
@@ -209,11 +217,12 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
      c.BodyEndTok = t;
   .)
   .
-ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
+ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool isAlreadyGhost, bool allowConstructors.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
      MemberModifiers mmod = new MemberModifiers();
+     mmod.IsGhost = isAlreadyGhost;
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; .)
@@ -232,9 +241,12 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
+     bool co = false;
   .)
   SYNC
-  "datatype"
+  ( "datatype"
+  | "codatatype"     (. co = true; .)
+  )
   { Attribute<ref attrs> }
   Ident<out id>
   [ GenericParameters<typeArgs> ]
@@ -242,7 +254,11 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
   DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
   SYNC ";"
-  (. dt = new DatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+  (. if (co) {
+       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+     } else {
+       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+     }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
   .)
@@ -365,8 +381,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
-     Statement/*!*/ bb;  BlockStmt body = null;
+     BlockStmt body = null;
      bool isConstructor = false;
+     bool signatureOmitted = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
@@ -391,18 +408,24 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   .)
   { Attribute<ref attrs> }
   Ident<out id>
-  [ GenericParameters<typeArgs> ]
-  Formals<true, !mmod.IsGhost, ins, out openParen>
-  [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-    Formals<false, !mmod.IsGhost, outs, out openParen>
-  ]
+  (
+    [ GenericParameters<typeArgs> ]
+    Formals<true, !mmod.IsGhost, ins, out openParen>
+    [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
+      Formals<false, !mmod.IsGhost, outs, out openParen>
+    ]
+  | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
+  )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
-  [ BlockStmt<out bb, out bodyStart, out bodyEnd>    (. body = (BlockStmt)bb; .)
+  [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (isConstructor)
-       m = new Constructor(id, id.val, typeArgs, ins, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
-     else
-       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs, req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs);
+  (. if (isConstructor) {
+       m = new Constructor(id, id.val, typeArgs, ins,
+                           req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+     } else {
+       m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
+                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+     }
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
  .)
@@ -519,12 +542,13 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<Expression/*!*/> ens = new List<Expression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
-     Expression/*!*/ bb;  Expression body = null;
+     Expression body = null;
      bool isPredicate = false;
      bool isFunctionMethod = false;
      IToken openParen = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
+     bool signatureOmitted = false;
   .)
   /* ----- function ----- */
   ( "function"
@@ -534,10 +558,14 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     .)
     { Attribute<ref attrs> }
     Ident<out id>
-    [ GenericParameters<typeArgs> ]
-    Formals<true, isFunctionMethod, formals, out openParen>
-    ":"
-    Type<out returnType>
+    (
+      [ GenericParameters<typeArgs> ]
+      Formals<true, isFunctionMethod, formals, out openParen>
+      ":"
+      Type<out returnType>
+    | "..."                    (. signatureOmitted = true;
+                                  openParen = Token.NoToken; .)
+    )
 
   /* ----- predicate ----- */
   | "predicate"                (. isPredicate = true; .)
@@ -547,20 +575,26 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     .)
     { Attribute<ref attrs> }
     Ident<out id>
-    [ GenericParameters<typeArgs> ]
-    [ Formals<true, isFunctionMethod, formals, out openParen>
-      [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+    (
+      [ GenericParameters<typeArgs> ]
+      [ Formals<true, isFunctionMethod, formals, out openParen>
+        [ ":"                  (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+        ]
       ]
-    ]
+    | "..."                    (. signatureOmitted = true;
+                                  openParen = Token.NoToken; .)
+    )
   )
 
   { FunctionSpec<reqs, reads, ens, decreases> }
-  [ FunctionBody<out bb, out bodyStart, out bodyEnd>  (. body = bb; .)
+  [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isPredicate) {
-       f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs);
+        f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals,
+                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs, signatureOmitted);
      } else {
-       f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType, reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs);
+        f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType,
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -616,7 +650,7 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
   "}"                         (. bodyEnd = t; .)
   .
 /*------------------------------------------------------------------------*/
-BlockStmt<out Statement/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
+BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
@@ -634,12 +668,12 @@ Stmt<.List<Statement/*!*/>/*!*/ ss.>
 OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
+     BlockStmt bs;
      IToken bodyStart, bodyEnd;
      int breakCount;
   .)
-  /* This list does not contain BlockStmt, see comment above in Stmt production. */
   SYNC
-  ( BlockStmt<out s, out bodyStart, out bodyEnd>
+  ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
   | AssertStmt<out s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
@@ -660,6 +694,8 @@ OneStmt<out Statement/*!*/ s>
     SYNC
     ";"                                (. s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); .)
   | ReturnStmt<out s>
+  | "..."                              (. s = new SkeletonStatement(t); .)
+    ";"
   )
   .
 ReturnStmt<out Statement/*!*/ s>
@@ -683,21 +719,30 @@ UpdateStmt<out Statement/*!*/ s>
      Expression lhs0;
      IToken x;
      Attributes attrs = null;
+     Expression suchThat = null;
   .)
   Lhs<out e>                       (. x = e.tok; .)
-  ( { IF(IsAttribute()) Attribute<ref attrs> }
+  ( { Attribute<ref attrs> }
     ";"                            (. rhss.Add(new ExprRhs(e, attrs)); .)
   |                                (. lhss.Add(e);  lhs0 = e; .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
-    ":="                           (. x = t; .)
-    Rhs<out r, lhs0>               (. rhss.Add(r); .)
-    { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
-    }
+    ( ":="                         (. x = t; .)
+      Rhs<out r, lhs0>             (. rhss.Add(r); .)
+      { "," Rhs<out r, lhs0>       (. rhss.Add(r); .)
+      }
+    | ":|"                         (. x = t; .)
+      Expression<out suchThat>
+    )
     ";"
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
-  (. s = new UpdateStmt(x, lhss, rhss); .)
+  (. if (suchThat != null) {
+       s = new AssignSuchThatStmt(x, lhss, suchThat);
+     } else {
+       s = new UpdateStmt(x, lhss, rhss);
+     }
+  .)
   .
 Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 = (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
@@ -733,7 +778,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
   | "*"                                (. r = new HavocRhs(t); .)
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
-  { IF(IsAttribute()) Attribute<ref attrs> }     (. r.Attributes = attrs; .)
+  { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
@@ -741,6 +786,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;  IdentifierExpr lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+     Expression suchThat = null;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
@@ -756,10 +802,18 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Rhs<out r, lhs0>               (. rhss.Add(r); .)
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
+  | ":|"                           (. assignTok = t; .)
+    Expression<out suchThat>
   ]
   ";"
-  (. UpdateStmt update;
-     if (rhss.Count == 0) {
+  (. ConcreteUpdateStatement update;
+     if (suchThat != null) {
+       var ies = new List<Expression>();
+       foreach (var lhs in lhss) {
+         ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+       }
+       update = new AssignSuchThatStmt(assignTok, ies, suchThat);
+     } else if (rhss.Count == 0) {
        update = null;
      } else {
        var ies = new List<Expression>();
@@ -773,8 +827,9 @@ VarDeclStatement<.out Statement/*!*/ s.>
   .
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-     Expression guard;
-     Statement/*!*/ thn;
+     Expression guard = null;  bool guardOmitted = false;
+     BlockStmt/*!*/ thn;
+     BlockStmt/*!*/ bs;
      Statement/*!*/ s;
      Statement els = null;
      IToken bodyStart, bodyEnd;
@@ -783,14 +838,21 @@ IfStmt<out Statement/*!*/ ifStmt>
   .)
   "if"                       (. x = t; .)
   (
-    Guard<out guard>
+    ( Guard<out guard>
+    | "..."                  (. guardOmitted = true; .)
+    )
     BlockStmt<out thn, out bodyStart, out bodyEnd>
     [ "else"
       ( IfStmt<out s>                                 (. els = s; .)
-      | BlockStmt<out s, out bodyStart, out bodyEnd>  (. els = s; .)
+      | BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; .)
       )
     ]
-    (. ifStmt = new IfStmt(x, guard, thn, els); .)
+    (. if (guardOmitted) {
+         ifStmt = new SkeletonStatement(new IfStmt(x, guard, thn, els), true, false);
+       } else {
+         ifStmt = new IfStmt(x, guard, thn, els);
+       }
+    .)
   |
     AlternativeBlock<out alternatives>
     (. ifStmt = new AlternativeStmt(x, alternatives); .)
@@ -814,23 +876,43 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives.>
   .
 WhileStmt<out Statement/*!*/ stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
-     Expression guard;
+     Expression guard = null;  bool guardOmitted = false;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression/*!*/> mod = null;
-     Statement/*!*/ body;
-     IToken bodyStart, bodyEnd;
+     BlockStmt/*!*/ body = null;  bool bodyOmitted = false;
+     IToken bodyStart = null, bodyEnd = null;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
   .)
   "while"                    (. x = t; .)
   (
-    Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    | "..."                      (. guardOmitted = true; .)
+    )
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
-    BlockStmt<out body, out bodyStart, out bodyEnd>
-    (. stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body); .)
+    ( BlockStmt<out body, out bodyStart, out bodyEnd>
+    | "..."                      (. bodyOmitted = true; .)
+    )
+    (.
+      if (guardOmitted || bodyOmitted) {
+        if (decreases.Count != 0) {
+          SemErr(decreases[0].tok, "'decreases' clauses are not allowed on refining loops");
+        }
+        if (mod != null) {
+          SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
+        }
+        if (body == null) {
+          body = new BlockStmt(x, new List<Statement>());
+        }
+        stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(null, null), new Specification<FrameExpression>(null, null), body);
+        stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
+      } else {
+        stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
+      }
+    .)
   |
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<out alternatives>
@@ -846,12 +928,15 @@ LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*
   .)
   {
     Invariant<out invariant> SYNC ";"   (. invariants.Add(invariant); .)
-  | SYNC "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
-  | SYNC "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
-               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
-                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
-                 }
-               ] SYNC ";"
+  | SYNC "decreases"
+    { IF(IsAttribute()) Attribute<ref decAttrs> }
+    DecreasesList<decreases, true> SYNC ";"
+  | SYNC "modifies"
+    { IF(IsAttribute()) Attribute<ref modAttrs> } (. mod = mod ?? new List<FrameExpression>(); .)
+    [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+      { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+      }
+    ] SYNC ";"
   }
   .
 Invariant<out MaybeFreeExpression/*!*/ invariant>
@@ -917,10 +1002,21 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   .
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; Attributes attrs = null; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
+     Expression/*!*/ e = null; Attributes attrs = null;
+  .)
   "assert"                                     (. x = t; s = null;.)
-  { IF(IsAttribute()) Attribute<ref attrs> } Expression<out e> (. s = new AssertStmt(x, e, attrs); .)
+  { IF(IsAttribute()) Attribute<ref attrs> }
+  ( Expression<out e>                 
+  | "..."
+  )
   ";"
+  (. if (e == null) {
+       s = new SkeletonStatement(new AssertStmt(x, new LiteralExpr(x, true), attrs), true, false);
+     } else {
+       s = new AssertStmt(x, e, attrs);
+     }
+  .)
   .
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
@@ -947,7 +1043,7 @@ ParallelStmt<out Statement/*!*/ s>
      var ens = new List<MaybeFreeExpression/*!*/>();
      bool isFree;
      Expression/*!*/ e;
-     Statement/*!*/ block;
+     BlockStmt/*!*/ block;
      IToken bodyStart, bodyEnd;
   .)
   "parallel"                                (. x = t; .)
