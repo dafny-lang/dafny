@@ -26,6 +26,21 @@ open Utils
 
 open Microsoft.Boogie
 
+let HEAP_SELECT_FNAME = "MapType1Select"
+let SEQ_BUILD_FNAME = "Seq#Build"
+let SEQ_APPEND_FNAME = "Seq#Append"
+let SEQ_LENGTH_FNAME = "Seq#Length"
+let SEQ_INDEX_FNAME = "Seq#Index"
+let SET_EMPTY_FNAME = "Set#Empty"
+let SET_SELECT_FNAME = "MapType0Select"
+let UNBOX_FNAME = "$Unbox"
+let BOOL_2_U_FNAME = "bool_2_U"
+let U_2_BOOL_FNAME = "U_2_bool"
+let INT_2_U_FNAME = "int_2_U"
+let U_2_INT_FNAME = "U_2_int"
+let DTYPE_FNAME = "dtype"
+let NULL_FNAME = "null"
+
 type HeapModel = {
    heap : Map<Const * VarDecl, Const>; 
    env  : Map<Const, Const>; 
@@ -44,24 +59,45 @@ let GetRefName (ref: Model.Element) =
   match ref with
   | :? Model.Uninterpreted as uref -> uref.Name
   | _ -> failwith ("not a ref (Uninterpreted) but: " + ref.GetType().Name)
-  
-let ConvertValue (model: Model) (refVal: Model.Element) = 
+
+let GetInt (elem: Model.Element) = 
+  let __NotIntFail e = failwith ("not an int element: " + elem.ToString())
+  let rec __GetIntStrict (e: Model.Element) cont = 
+      match e with
+      | :? Model.Number as ival -> ival.AsInt()
+      | _ -> cont e
+  __GetIntStrict elem (fun e ->
+                          let f = e.Model.MkFunc(U_2_INT_FNAME, 1)
+                          let matches = f.Apps |> Seq.filter (fun ft -> ft.Args.[0] = e) |> Seq.map (fun ft -> ft.Result)
+                          if matches |> Seq.isEmpty then
+                              __NotIntFail e
+                          else 
+                              __GetIntStrict (matches |> Seq.nth 0) __NotIntFail)
+
+let GetBool (elem: Model.Element) = 
+  let __NotBoolFail e = failwith ("not a bool element: " + elem.ToString())
+  let rec __GetBoolStrict (e: Model.Element) cont = 
+      match e with
+      | :? Model.Boolean as bval -> bval.Value
+      | _ -> cont e
+  __GetBoolStrict elem (fun e ->
+                          let f = e.Model.MkFunc(U_2_BOOL_FNAME, 1)
+                          let matches = f.Apps |> Seq.filter (fun ft -> ft.Args.[0] = e) |> Seq.map (fun ft -> ft.Result)
+                          if matches |> Seq.isEmpty then
+                              __NotBoolFail e
+                          else 
+                              __GetBoolStrict (matches |> Seq.nth 0) __NotBoolFail)
+            
+let ConvertValue (refVal: Model.Element) = 
   match refVal with 
   | :? Model.Number        as ival -> IntConst(ival.AsInt())
   | :? Model.Boolean       as bval -> BoolConst(bval.Value)
   | :? Model.Array         as aval -> failwith "reading array values from model not implemented"
-  | :? Model.Uninterpreted as uval -> Unresolved(uval.Name) (* just a symbolic name for now, which we'll hopefully resolve later*)
+  | :? Model.Uninterpreted as uval -> 
+        try BoolConst(GetBool refVal) 
+        with _ -> try IntConst(GetInt refVal)
+                  with _ -> Unresolved(uval.Name) (* just a symbolic name for now, which we'll hopefully resolve later*)
   | _ -> failwith ("unexpected model element kind: " + refVal.ToString())
-
-let GetInt (elem: Model.Element) = 
-  match elem with
-  | :? Model.Number as ival -> ival.AsInt()
-  | _ -> failwith ("not an int element: " + elem.ToString())
-
-let GetBool (elem: Model.Element) = 
-  match elem with
-  | :? Model.Boolean as bval -> bval.Value
-  | _ -> failwith ("not a bool element: " + elem.ToString())
 
 let LastDotSplit (str: string) = 
   let dotIdx = str.LastIndexOf(".")
@@ -135,16 +171,16 @@ let rec UpdateContext lst1 lst2 ctx =
   | _ -> failwith "lists are not of the same length"   
 
 let UnboxIfNeeded (model: Microsoft.Boogie.Model) (e: Model.Element) = 
-  let f_unbox = model.MkFunc("$Unbox", 2)
+  let f_unbox = model.MkFunc(UNBOX_FNAME, 2)
   let unboxed = f_unbox.Apps |> Seq.filter (fun ft -> if (GetLoc ft.Args.[1]) = (GetLoc e) then true else false)
                              |> Seq.choose (fun ft -> Some(ft.Result))
                              |> Utils.SeqToOption
   match unboxed with
-  | Some(e) -> ConvertValue model e
+  | Some(e) -> ConvertValue e
   | None    -> GetLoc e
 
 let ReadHeap (model: Microsoft.Boogie.Model) prog = 
-  let f_heap_select = model.MkFunc("[3]", 3)
+  let f_heap_select = model.MkFunc(HEAP_SELECT_FNAME, 3)
   let values = f_heap_select.Apps
   values |> Seq.fold (fun acc ft -> 
                         assert (ft.Args.Length = 3)
@@ -169,7 +205,7 @@ let ReadHeap (model: Microsoft.Boogie.Model) prog =
                         match fldVarOpt with
                         | Some(fldVar) ->
                             let fldType = GetVarType fldVar 
-                            let fldVal = ConvertValue model refVal
+                            let fldVal = ConvertValue refVal
                             acc |> Map.add (refObj, fldVar) fldVal
                         | None -> acc
                       ) Map.empty
@@ -189,7 +225,7 @@ let rec ReadArgValues (model: Microsoft.Boogie.Model) args =
           let fldVar = v
           assert (Seq.length func.Apps = 1)
           let ft = Seq.head func.Apps
-          let fldVal = ConvertValue model (ft.Result)
+          let fldVal = ConvertValue (ft.Result)
           ReadArgValues model rest |> Map.add (VarConst(name)) fldVal
       | None -> failwith ("cannot find corresponding function for parameter " + name)
   | [] -> Map.empty
@@ -258,8 +294,8 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
 
   // keeps reading from Seq#Build and Seq#Append until fixpoint
   let rec __ReadUntilFixpoint hmodel = 
-    let f_seq_bld = model.MkFunc("Seq#Build", 2)
-    let f_seq_app = model.MkFunc("Seq#Append", 2)
+    let f_seq_bld = model.MkFunc(SEQ_BUILD_FNAME, 2)
+    let f_seq_app = model.MkFunc(SEQ_APPEND_FNAME, 2)
     let hmodel' = hmodel |> __ReadSeqBuild model (List.ofSeq f_seq_bld.Apps)
                        |> __ReadSeqAppend model (List.ofSeq f_seq_app.Apps)               
     if hmodel' = hmodel then
@@ -267,8 +303,8 @@ let ReadSeq (model: Microsoft.Boogie.Model) (envMap,ctx) =
     else
       __ReadUntilFixpoint hmodel'
 
-  let f_seq_len = model.MkFunc("Seq#Length", 1)
-  let f_seq_idx = model.MkFunc("Seq#Index", 2)
+  let f_seq_len = model.MkFunc(SEQ_LENGTH_FNAME, 1)
+  let f_seq_idx = model.MkFunc(SEQ_INDEX_FNAME, 2)
   let hmodel = (envMap,ctx)
   let hmodel' = hmodel |> __ReadSeqLen model (List.ofSeq f_seq_len.Apps)
                        |> __ReadSeqIndex model (List.ofSeq f_seq_idx.Apps)
@@ -305,8 +341,8 @@ let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
           __ReadSetMembership rest (env,ctx)
     | [] -> (env,ctx)
 
-  let t_set_empty = Seq.toList (model.MkFunc("Set#Empty", 1).Apps)    
-  let t_set = Seq.toList (model.MkFunc("[2]", 2).Apps)
+  let t_set_empty = Seq.toList (model.MkFunc(SET_EMPTY_FNAME, 1).Apps)    
+  let t_set = Seq.toList (model.MkFunc(SET_SELECT_FNAME, 2).Apps)
   (envMap,ctx) |> __ReadSetEmpty t_set_empty
                |> __ReadSetMembership t_set
 
@@ -383,7 +419,7 @@ let ReadSet (model: Microsoft.Boogie.Model) (envMap,ctx) =
 /// and adds it to the given "envMap" map and "ctx" set. 
 //  ======================================================
 let ReadNull (model: Microsoft.Boogie.Model) (envMap,ctx) = 
-  let f_null = model.MkFunc("null", 0)
+  let f_null = model.MkFunc(NULL_FNAME, 0)
   assert (f_null.AppCount = 1)
   let e = (f_null.Apps |> Seq.nth 0).Result
   let newEnv = envMap |> Map.add (GetLoc e) NullConst
@@ -396,7 +432,7 @@ let ReadNull (model: Microsoft.Boogie.Model) (envMap,ctx) =
 /// and then proceeds by reading stuff about the null constant, about sequences, and about sets.
 //  ============================================================================================
 let ReadEnv (model: Microsoft.Boogie.Model) prog = 
-  let f_dtype = model.MkFunc("dtype", 1)
+  let f_dtype = model.MkFunc(DTYPE_FNAME, 1)
   let refs = f_dtype.Apps |> Seq.choose (fun ft -> Some(ft.Args.[0]))
   let envMap = f_dtype.Apps |> Seq.fold (fun acc ft -> 
                                            let locName = GetRefName ft.Args.[0]

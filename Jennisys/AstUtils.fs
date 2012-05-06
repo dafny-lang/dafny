@@ -290,11 +290,17 @@ let rec DescendExpr2BU visitorFunc expr acc =
   | SequenceExpr(exs)                
   | SetExpr(exs)                     -> __Pipe exs
 
+//TODO: if names in dafny models contain funky characters, 
+//      these gensym variables might not be valid identifiers
 let PrintGenSym (name: string) =
   if name.StartsWith("gensym") then
     name
-  else
-    sprintf "gensym%s" name
+  else 
+    let idx = name.LastIndexOf("!")
+    if idx <> -1 then
+      sprintf "gensym%s" (name.Substring(idx+1))
+    else
+      sprintf "gensym%s" name
 
 //  =====================
 /// Returns TRUE literal
