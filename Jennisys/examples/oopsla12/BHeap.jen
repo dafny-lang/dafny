@@ -1,0 +1,34 @@
+interface BHeap {
+  var elems: set[int]
+
+  constructor Singleton(x: int)
+    elems := {x}
+
+  constructor Dupleton(a: int, b: int)
+    requires a != b
+    elems := {a b}
+
+  constructor Tripleton(x: int, y: int, z: int)
+    requires x != y && y != z && z != x
+    elems := {x y z}
+
+  method Find(n: int) returns (ret: bool)
+    ret := n in elems
+}
+
+datamodel BHeap {
+  var data: int
+  var left: BHeap
+  var right: BHeap
+
+  frame 
+    left * right
+
+  invariant
+    elems = {data} + (left != null ? left.elems : {}) 
+                 + (right != null ? right.elems : {})
+    left != null  ==> forall e :: e in left.elems ==> e < data
+    right != null ==> forall e :: e in right.elems ==> e < data
+    left = null ==> right = null
+    left != null && right = null ==> left.elems = {left.data}
+} 

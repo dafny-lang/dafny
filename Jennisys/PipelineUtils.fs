@@ -7,6 +7,8 @@
 
 module PipelineUtils
   
+open Logger
+
 let dafnyScratchSuffix = "scratch"
 let dafnyVerifySuffix = "verify"
 let dafnyUnifSuffix = "unif"
@@ -24,6 +26,7 @@ let CreateEmptyModelFile modelFile =
 /// the resulting model to the given "modelFile"
 //  =======================================================
 let RunDafny inputFile modelFile =
+  //TraceLine "\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Running Dafny @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
   CreateEmptyModelFile modelFile
   async {
     use proc = new System.Diagnostics.Process()

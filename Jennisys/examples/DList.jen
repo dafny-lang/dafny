@@ -1,27 +1,3 @@
-interface DList[T] {
-  var list: seq[T]
-
-  constructor Empty()
-    ensures list = []
-
-  constructor Singleton(t: T)
-    ensures list = [t]
-
-  constructor Double(p: T, q: T)
-    ensures list = [p q]
-}
-
-datamodel DList[T] {
-  var root: DNode[T]
-
-  frame
-    root
-
-  invariant
-    root = null ==> |list| = 0
-    root != null ==> list = root.list
-}
-
 interface DNode[T] {
   var list: seq[T]
 

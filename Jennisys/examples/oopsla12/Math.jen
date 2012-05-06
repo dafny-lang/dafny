@@ -1,0 +1,20 @@
+interface Math {
+  method Min2(a: int, b: int) returns (ret: int)
+    ensures a < b ==> ret = a
+    ensures a >= b ==> ret = b
+
+  method Min3Sum(a: int, b: int, c: int) 
+      returns (ret: int)
+    ensures ret in {a+b a+c b+c}
+    ensures forall x :: x in {a+b a+c b+c} ==> ret <= x
+
+  method Min4(a: int, b: int, c: int, d: int) 
+      returns (ret: int)
+    ensures ret in {a b c d}
+    ensures forall x :: x in {a b c d} ==> ret <= x
+
+  method Abs(a: int) returns (ret: int)
+    ensures ret in {a (-a)} && ret >= 0
+}
+
+datamodel Math {}
