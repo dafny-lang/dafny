@@ -1,0 +1,40 @@
+interface DList[T] {
+  var list: seq[T]
+
+  invariant
+    |list| > 0
+
+  constructor Init(t: T)
+    list := [t]
+
+  constructor Double(p: T, q: T)
+    list := [p q]
+
+  method List() returns (ret: seq[T])
+    ret := list
+
+  method Size() returns (ret: int)
+    ret := |list|
+
+  method Get(idx: int) returns (ret: T)
+    requires 0 <= idx && idx < |list|
+    ret := list[idx]
+
+  method Find(n: T) returns (ret: bool)
+    ret := n in list
+}
+
+datamodel DList[T] {
+  var data: T
+  var next: DList[T]
+  var prev: DList[T]
+
+  frame
+    next
+
+  invariant
+    next = null ==> list = [data]
+    next != null ==> (list = [data] + next.list  
+                      &&  next.prev = this)
+    prev != null ==> prev.next = this
+}

@@ -150,26 +150,26 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   let FindMatches expr except premises =
     //Logger.TraceLine ("finding matches for: " + (PrintExpr 0 expr) + "; #premises = " + (Set.count premises |> sprintf "%i"))
     let okToUnifyFunc = fun (varName: string) -> varName.StartsWith("$")
-    let matches = 
-      premises |> Set.toList
-               |> List.choose (function BinaryExpr(_,"=",lhs,rhs) -> 
-                                          if lhs = expr && not (rhs = except) then 
-                                            Some(rhs)
-                                          elif rhs = expr && not (lhs = except) then
-                                            Some(lhs)
-                                          else 
-                                            if expr = TrueLiteral then 
-                                              None
-                                            else
-                                               match SelectiveUnifyImplies okToUnifyFunc lhs expr LTR Map.empty with
-                                               | Some(unifs) -> Some(ApplyUnifs unifs rhs)
-                                               | None -> 
-                                                   match SelectiveUnifyImplies okToUnifyFunc rhs expr LTR Map.empty with
-                                                   | Some(unifs) -> Some(ApplyUnifs unifs lhs)
-                                                   | None -> None
-                                        | _ -> None)
-    //Logger.TraceLine (sprintf "Number of matches for %s: %i" (PrintExpr 0 expr) (List.length matches))
-    matches
+    if expr = TrueLiteral then
+        []
+    else
+        let matches = 
+          premises |> Set.toList
+                   |> List.choose (function BinaryExpr(_,"=",lhs,rhs) -> 
+                                              if lhs = expr && not (rhs = except) then 
+                                                Some(rhs)
+                                              elif rhs = expr && not (lhs = except) then
+                                                Some(lhs)
+                                              else
+                                                match SelectiveUnifyImplies okToUnifyFunc lhs expr LTR Map.empty with
+                                                | Some(unifs) -> Some(ApplyUnifs unifs rhs)
+                                                | None -> 
+                                                    match SelectiveUnifyImplies okToUnifyFunc rhs expr LTR Map.empty with
+                                                    | Some(unifs) -> Some(ApplyUnifs unifs lhs)
+                                                    | None -> None
+                                            | _ -> None)
+        //Logger.TraceLine (sprintf "Number of matches for %s: %i" (PrintExpr 0 expr) (List.length matches))
+        matches
   
   let MySetAdd expr set =
     let x = Printer.PrintExpr 0 expr
@@ -216,7 +216,7 @@ let rec ComputeClosure heapInst expandExprFunc premises =
 
   let BinaryInCombiner lhs rhs =
     // distribute the "in" operation if possible
-    let __fff lhs rhs = 
+    let rec __fff lhs rhs = 
       //Logger.TraceLine ("In fff for " + (PrintExpr 0 lhs) + " and " + (PrintExpr 0 rhs))
       let binInExpr = BinaryIn lhs rhs
 //      match rhs with
@@ -244,7 +244,8 @@ let rec ComputeClosure heapInst expandExprFunc premises =
           | BoolLiteral(true) -> [opt1]
           | _ -> match EvalFull heapInst opt2 with
                  | BoolLiteral(true) -> [opt2]
-                 | _ -> [BinaryOr (BinaryIn lhs l)(BinaryIn lhs r)]
+                 | _ -> Utils.ListCombine BinaryOr (__fff lhs l) (__fff lhs r)
+                        //[BinaryOr (BinaryIn lhs l)(BinaryIn lhs r)]
       | SequenceExpr(elist) -> 
           let len = elist |> List.length
           if len = 0 then
@@ -256,8 +257,9 @@ let rec ComputeClosure heapInst expandExprFunc premises =
             let lst0Val = EvalFull heapInst elist.[0]
             if lhsVal = lst0Val then 
               [BinaryEq lhs elist.[0]]
-            else 
-              [BinaryIn lhs (SequenceExpr(elist |> List.tail))]
+            else
+              __fff lhs (SequenceExpr(elist |> List.tail))
+              //[BinaryIn lhs (SequenceExpr(elist |> List.tail))]
       | SetExpr(elist) -> 
           let evalElist = elist |> List.map (EvalFull heapInst)
           let evalLhs = EvalFull heapInst lhs
@@ -296,7 +298,8 @@ let rec ComputeClosure heapInst expandExprFunc premises =
             let lhsVal = EvalFull heapInst lhs
             let lst0Val = EvalFull heapInst elist.[0]
             [BinaryNeq lhs elist.[0]] @
-            [BinaryNotIn lhs (SequenceExpr(elist |> List.tail))]
+            __fff lhs (SequenceExpr(elist |> List.tail))
+            //[BinaryNotIn lhs (SequenceExpr(elist |> List.tail))]
       | _ -> [binNotInExpr] 
     __fff lhs rhs
 
@@ -358,8 +361,8 @@ let rec ComputeClosure heapInst expandExprFunc premises =
   // TODO: iterate only 3 times, instead of to full closure
   let p1 = iterOnceFunc premises 
   let p2 = p1 |> iterOnceFunc 
-  let p3 = p2 |> iterOnceFunc
-  p3
+  //let p3 = p2 |> iterOnceFunc
+  p2
 //  let premises' = iterOnceFunc premises 
 //  if premises' = premises then
 //    premises'

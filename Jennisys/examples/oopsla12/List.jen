@@ -1,0 +1,29 @@
+interface List[T] {
+  var list: seq[T]
+  invariant |list| > 0
+
+  constructor Singleton(t: T)
+    list := [t]
+  constructor Dupleton(p: T, q: T)
+    list := [p q]
+  method Elems() returns (ret: seq[T])
+    ret := list
+  method Get(idx: int) returns (ret: T)
+    requires 0 <= idx && idx < |list|
+    ret := list[idx]
+  method Find(n: T) returns (ret: bool)
+    ret := n in list
+  method Size() returns (ret: int)
+    ret := |list|
+}
+    
+datamodel List[T] {    
+  var data: T
+  var next: List[T]
+
+  frame next
+  
+  invariant
+    next = null  ==> list = [data]
+    next != null ==> list = [data] + next.list
+}
