@@ -25,3 +25,28 @@ module CoRecursion {
 }
 
 // --------------------------------------------------
+
+module CoRecursionNotUsed {
+  codatatype Stream<T> = More(T, Stream);
+
+  function F(s: Stream, n: nat): Stream
+    decreases n, true;
+  {
+    G(s, n)
+  }
+  function G(s: Stream, n: nat): Stream
+    decreases n, false;
+  {
+    if n == 0 then s else Tail(F(s, n-1))
+  }
+
+  function Tail(s: Stream): Stream
+  {
+    match s case More(hd, tl) => tl
+  }
+
+  function Diverge(n: nat): nat
+  {
+    Diverge(n)  // error: cannot prove termination
+  }
+}

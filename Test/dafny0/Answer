@@ -1283,8 +1283,11 @@ Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor 
 Corecursion.dfy(15,13): Error: failure to decrease termination measure (note that only functions without side effects can called co-recursively)
 Execution trace:
     (0,0): anon3_Else
+Corecursion.dfy(50,5): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 2 verified, 1 error
+Dafny program verifier finished with 5 verified, 2 errors
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation

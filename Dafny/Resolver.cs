@@ -381,6 +381,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
 
+      int prevErrorCount = ErrorCount;
+
       // Resolve the meat of classes, and the type parameters of all top-level type declarations
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
@@ -397,6 +399,32 @@ namespace Microsoft.Dafny {
         if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
           // do the following check once per SCC, so call it on each SCC representative
           SccStratosphereCheck(dtd, datatypeDependencies);
+        }
+      }
+      // Perform the guardedness check on co-datatypes
+      if (ErrorCount == prevErrorCount) {  // because CheckCoCalls requires the given expression to have been successfully resolved
+        foreach (var decl in declarations) {
+          var cl = decl as ClassDecl;
+          if (cl != null) {
+            foreach (var member in cl.Members) {
+              var fn = member as Function;
+              if (fn != null && fn.Body != null && cl.Module.CallGraph.GetSCCRepresentative(fn) == fn) {
+                bool dealsWithCodatatypes = false;
+                foreach (var m in cl.Module.CallGraph.GetSCC(fn)) {
+                  var f = (Function)m;
+                  if (f.ResultType.InvolvesCoDatatype) {
+                    dealsWithCodatatypes = true;
+                    break;
+                  }
+                }
+                foreach (var m in cl.Module.CallGraph.GetSCC(fn)) {
+                  var f = (Function)m;
+                  var checker = new CoCallResolution(f, dealsWithCodatatypes);
+                  checker.CheckCoCalls(f.Body);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -726,8 +754,9 @@ namespace Microsoft.Dafny {
         // any type is fine
       }
       if (f.Body != null) {
+        var prevErrorCount = ErrorCount;
         List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
-        ResolveExpression(f.Body, false, matchVarContext, null);
+        ResolveExpression(f.Body, false, matchVarContext);
         if (!f.IsGhost) {
           CheckIsNonGhost(f.Body);
         }
@@ -849,8 +878,7 @@ namespace Microsoft.Dafny {
       foreach (MaybeFreeExpression e in m.Ens) {
         ResolveExpression(e.E, true);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool))
-        {
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
           Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
         }
       }
@@ -1806,11 +1834,11 @@ namespace Microsoft.Dafny {
           } else {
             var er = (ExprRhs)rhs;
             if (er.Expr is IdentifierSequence) {
-              var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, true, true, null);
+              var cRhs = ResolveIdentifierSequence((IdentifierSequence)er.Expr, true, true);
               isEffectful = cRhs != null;
               callRhs = callRhs ?? cRhs;
             } else if (er.Expr is FunctionCallExpr) {
-              var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, true, true, null);
+              var cRhs = ResolveFunctionCallExpr((FunctionCallExpr)er.Expr, true, true);
               isEffectful = cRhs != null;
               callRhs = callRhs ?? cRhs;
             } else {
@@ -2456,17 +2484,17 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "twoState" implies that "old" and "fresh" expressions are allowed
+    /// "twoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
     void ResolveExpression(Expression expr, bool twoState) {
-      ResolveExpression(expr, twoState, null, null);
+      ResolveExpression(expr, twoState, null);
     }
 
     /// <summary>
     /// "matchVarContext" says which variables are allowed to be used as the source expression in a "match" expression;
     /// if null, no "match" expression will be allowed.
     /// </summary>
-    void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext, DatatypeValue coContext) {
+    void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext) {
       Contract.Requires(expr != null);
       Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
@@ -2482,7 +2510,7 @@ namespace Microsoft.Dafny {
 
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
-        ResolveExpression(e.E, twoState, matchVarContext, coContext);  // allow "match" expressions inside e.E if the parenthetic expression had been allowed to be a "match" expression
+        ResolveExpression(e.E, twoState, matchVarContext);  // allow "match" expressions inside e.E if the parenthetic expression had been allowed to be a "match" expression
         e.ResolvedExpression = e.E;
         e.Type = e.E.Type;
 
@@ -2494,7 +2522,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
-        ResolveIdentifierSequence(e, twoState, false, coContext);
+        ResolveIdentifierSequence(e, twoState, false);
 
       } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -2559,7 +2587,7 @@ namespace Microsoft.Dafny {
           int j = 0;
           foreach (Expression arg in dtv.Arguments) {
             Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
-            ResolveExpression(arg, twoState, null, ctor != null && ctor.EnclosingDatatype is CoDatatypeDecl ? dtv : null);
+            ResolveExpression(arg, twoState, null);
             Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
             if (formal != null) {
               Type st = SubstType(formal.Type, subst);
@@ -2591,6 +2619,9 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
+        // The following call to ResolveExpression is just preliminary.  If it succeeds, it is redone below on the resolved expression.  Thus,
+        // it's okay to be more lenient here and use coLevel (instead of trying to use CoLevel_Dec(coLevel), which is needed when .Name denotes a
+        // destructor for a co-datatype).
         ResolveExpression(e.Obj, twoState);
         Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
         Expression resolved = ResolvePredicateOrField(expr.tok, e.Obj, e.SuffixName);
@@ -2681,14 +2712,14 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        ResolveFunctionCallExpr(e, twoState, false, coContext);
+        ResolveFunctionCallExpr(e, twoState, false);
 
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         if (!twoState) {
           Error(expr, "old expressions are not allowed in this context");
         }
-        ResolveExpression(e.E, twoState, null, coContext);
+        ResolveExpression(e.E, twoState, null);
         expr.Type = e.E.Type;
 
       } else if (expr is MultiSetFormingExpr) {
@@ -3100,7 +3131,7 @@ namespace Microsoft.Dafny {
             innerMatchVarContext.Remove(goodMatchVariable);  // this variable is no longer available for matching
           }
           innerMatchVarContext.AddRange(mc.Arguments);
-          ResolveExpression(mc.Body, twoState, innerMatchVarContext, null);
+          ResolveExpression(mc.Body, twoState, innerMatchVarContext);
           Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(expr.Type, mc.Body.Type)) {
             Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
@@ -3228,9 +3259,8 @@ namespace Microsoft.Dafny {
     /// If "!allowMethodCall" or if what is being called does not refer to a method, resolves "e" and returns "null".
     /// Otherwise (that is, if "allowMethodCall" and what is being called refers to a method), resolves the receiver
     /// of "e" but NOT the arguments, and returns a CallRhs corresponding to the call.
-    /// "coContext" is to be non-null if this function call is a direct argument to a co-constructor.
     /// </summary>
-    CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, bool allowMethodCall, DatatypeValue coContext) {
+    CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, bool allowMethodCall) {
       ResolveReceiver(e.Receiver, twoState);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -3295,25 +3325,17 @@ namespace Microsoft.Dafny {
         }
 
         // Resolution termination check
-        if (coContext != null && function.Reads.Count == 0) {
-          e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-          coContext.IsCoCall = true;
-        } else {
-          if (coContext != null) {
-            e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects;
-          }
-          if (currentFunction != null && currentFunction.EnclosingClass != null && function.EnclosingClass != null) {
-            ModuleDecl callerModule = currentFunction.EnclosingClass.Module;
-            ModuleDecl calleeModule = function.EnclosingClass.Module;
-            if (callerModule == calleeModule) {
-              // intra-module call; this is allowed; add edge in module's call graph
-              callerModule.CallGraph.AddEdge(currentFunction, function);
-              if (currentFunction == function) {
-                currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-              }
-            } else {
-              Contract.Assert(importGraph.Reaches(callerModule, calleeModule));
+        if (currentFunction != null && currentFunction.EnclosingClass != null && function.EnclosingClass != null) {
+          ModuleDecl callerModule = currentFunction.EnclosingClass.Module;
+          ModuleDecl calleeModule = function.EnclosingClass.Module;
+          if (callerModule == calleeModule) {
+            // intra-module call; this is allowed; add edge in module's call graph
+            callerModule.CallGraph.AddEdge(currentFunction, function);
+            if (currentFunction == function) {
+              currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
             }
+          } else {
+            Contract.Assert(importGraph.Reaches(callerModule, calleeModule));
           }
         }
       }
@@ -3324,7 +3346,7 @@ namespace Microsoft.Dafny {
     /// If "!allowMethodCall", or if "e" does not designate a method call, resolves "e" and returns "null".
     /// Otherwise, resolves all sub-parts of "e" and returns a (resolved) CallRhs expression representing the call.
     /// </summary>
-    CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool allowMethodCall, DatatypeValue coContext) {
+    CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool allowMethodCall) {
       // Look up "id" as follows:
       //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
       //  - unamibugous type name (class or datatype or arbitrary-type) (if two imported types have the same name, an error message is produced here)
@@ -3344,7 +3366,7 @@ namespace Microsoft.Dafny {
         // ----- root is a local variable, parameter, or bound variable
         r = new IdentifierExpr(id, id.val);
         ResolveExpression(r, twoState);
-        r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, coContext, out call);
+        r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, out call);
 
       } else if (classes.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
@@ -3360,7 +3382,7 @@ namespace Microsoft.Dafny {
         } else if (decl is ClassDecl) {
           // ----- root is a class
           var cd = (ClassDecl)decl;
-          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, allowMethodCall, coContext, out call);
+          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, allowMethodCall, out call);
 
         } else {
           // ----- root is a datatype
@@ -3369,7 +3391,7 @@ namespace Microsoft.Dafny {
           r = new DatatypeValue(id, id.val, e.Tokens[1].val, args);
           ResolveExpression(r, twoState);
           if (e.Tokens.Count != 2) {
-            r = ResolveSuffix(r, e, 2, twoState, allowMethodCall, coContext, out call);
+            r = ResolveSuffix(r, e, 2, twoState, allowMethodCall, out call);
           }
         }
 
@@ -3383,7 +3405,7 @@ namespace Microsoft.Dafny {
           r = new DatatypeValue(id, pair.Item1.EnclosingDatatype.Name, id.val, args);
           ResolveExpression(r, twoState);
           if (e.Tokens.Count != 1) {
-            r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, coContext, out call);
+            r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, out call);
           }
         }
 
@@ -3400,7 +3422,7 @@ namespace Microsoft.Dafny {
           receiver = new ImplicitThisExpr(id);
           receiver.Type = GetThisType(id, currentClass);  // resolve here
         }
-        r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, coContext, out call);
+        r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, out call);
 
       } else {
         Error(id, "unresolved identifier: {0}", id.val);
@@ -3426,7 +3448,7 @@ namespace Microsoft.Dafny {
     /// Except, if "allowMethodCall" is "true" and the would-be-returned value designates a method
     /// call, instead returns null and returns "call" as a non-null value.
     /// </summary>
-    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool allowMethodCall, DatatypeValue coContext, out CallRhs call) {
+    Expression ResolveSuffix(Expression r, IdentifierSequence e, int p, bool twoState, bool allowMethodCall, out CallRhs call) {
       Contract.Requires(r != null);
       Contract.Requires(e != null);
       Contract.Requires(0 <= p && p <= e.Tokens.Count);
@@ -3439,7 +3461,7 @@ namespace Microsoft.Dafny {
         var resolved = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
         if (resolved != null) {
           r = resolved;
-          ResolveExpression(r, twoState, null, p == e.Tokens.Count - 1 ? coContext : null);
+          ResolveExpression(r, twoState, null);
         }
       }
 
@@ -3459,7 +3481,7 @@ namespace Microsoft.Dafny {
           r = null;
         } else {
           r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.OpenParen, e.Arguments);
-          ResolveExpression(r, twoState, null, coContext);
+          ResolveExpression(r, twoState, null);
         }
       } else if (e.Arguments != null) {
         Contract.Assert(p == e.Tokens.Count);
@@ -4167,6 +4189,185 @@ namespace Microsoft.Dafny {
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+  }
+
+  class CoCallResolution
+  {
+    readonly ModuleDecl currentModule;
+    readonly Function currentFunction;
+    readonly bool dealsWithCodatatypes;
+
+    public CoCallResolution(Function currentFunction, bool dealsWithCodatatypes) {
+      Contract.Requires(currentFunction != null);
+      this.currentModule = currentFunction.EnclosingClass.Module;
+      this.currentFunction = currentFunction;
+      this.dealsWithCodatatypes = dealsWithCodatatypes;
+    }
+
+    /// <summary>
+    /// Determines which calls in "expr" can be considered to be co-calls, which co-constructor
+    /// invocations host such co-calls, and which destructor operations are not allowed.
+    /// Assumes "expr" to have been successfully resolved.
+    /// </summary>
+    public void CheckCoCalls(Expression expr) {
+      Contract.Requires(expr != null);
+      var candidates = CheckCoCalls(expr, true, null);
+      ProcessCoCallInfo(candidates);
+    }
+
+    struct CoCallInfo
+    {
+      public int GuardCount;
+      public FunctionCallExpr CandidateCall;
+      public DatatypeValue EnclosingCoConstructor;
+      public CoCallInfo(int guardCount, FunctionCallExpr candidateCall, DatatypeValue enclosingCoConstructor) {
+        Contract.Requires(0 <= guardCount);
+        Contract.Requires(candidateCall != null);
+
+        GuardCount = guardCount;
+        CandidateCall = candidateCall;
+        EnclosingCoConstructor = enclosingCoConstructor;
+      }
+
+      public void AdjustGuardCount(int p) {
+        GuardCount += p;
+      }
+    }
+
+    /// <summary>
+    /// Recursively goes through the entire "expr".  Every call within the same recursive cluster is a potential
+    /// co-call.  All such calls will get their .CoCall field filled in, indicating whether or not the call
+    /// is a co-call.  If the situation deals with co-datatypes, then one of the NoBecause... values is chosen (rather
+    /// than just No), so that any error message that may later be produced when trying to prove termination of the
+    /// recursive call can include a note pointing out that the call was not selected to be a co-call.
+    /// "allowCallsWithinRecursiveCluster" is passed in as "false" if the enclosing context has no easy way of
+    /// controlling the uses of "expr" (for example, if the enclosing context passes "expr" to a function or binds
+    /// "expr" to a variable).
+    /// </summary>
+    List<CoCallInfo> CheckCoCalls(Expression expr, bool allowCallsWithinRecursiveCluster, DatatypeValue coContext) {
+      Contract.Requires(expr != null);
+      Contract.Ensures(allowCallsWithinRecursiveCluster || Contract.Result<List<CoCallInfo>>().Count == 0);
+
+      var candidates = new List<CoCallInfo>();
+      expr = expr.Resolved;
+      if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
+        if (e.Ctor.EnclosingDatatype is CoDatatypeDecl) {
+          foreach (var arg in e.Arguments) {
+            foreach (var c in CheckCoCalls(arg, allowCallsWithinRecursiveCluster, e)) {
+              c.AdjustGuardCount(1);
+              candidates.Add(c);
+            }
+          }
+          return candidates;
+        }
+      } else if (expr is FieldSelectExpr) {
+        var e = (FieldSelectExpr)expr;
+        if (e.Field.EnclosingClass is CoDatatypeDecl) {
+          foreach (var c in CheckCoCalls(e.Obj, allowCallsWithinRecursiveCluster, null)) {
+            if (c.GuardCount <= 1) {
+              // This call was not guarded (c.GuardedCount == 0) or the guard for this candidate co-call is
+              // being removed (c.GuardedCount == 1), so this call is not allowed as a co-call.
+              // (So, don't include "res" among "results".)
+              c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
+            } else {
+              c.AdjustGuardCount(-1);
+              candidates.Add(c);
+            }
+          }
+          return candidates;
+        }
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var r = CheckCoCalls(e.Source, false, null);
+        Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+        foreach (var kase in e.Cases) {
+          r = CheckCoCalls(kase.Body, allowCallsWithinRecursiveCluster, null);
+          candidates.AddRange(r);
+        }
+        return candidates;
+      } else if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        // First, consider the arguments of the call, making sure that they do not include calls within the recursive cluster.
+        // (Note, if functions could have a "destruction level" declaration that promised to only destruct its arguments by
+        // so much, then some recursive calls within the cluster could be allowed.)
+        foreach (var arg in e.Args) {
+          var r = CheckCoCalls(arg, false, null);
+          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+        }
+        // Second, investigate the possibility that this call itself may be a candidate co-call
+        if (currentModule.CallGraph.GetSCCRepresentative(currentFunction) == currentModule.CallGraph.GetSCCRepresentative(e.Function)) {
+          // This call goes to another function in the same recursive cluster
+          if (e.Function.Reads.Count != 0) {
+            // this call is disqualified from being a co-call, because of side effects
+            if (!dealsWithCodatatypes) {
+              e.CoCall = FunctionCallExpr.CoCallResolution.No;
+            } else  if (coContext != null) {
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects;
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
+            }
+          } else if (!allowCallsWithinRecursiveCluster) {
+            if (!dealsWithCodatatypes) {
+              e.CoCall = FunctionCallExpr.CoCallResolution.No;
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext;
+            }
+          } else {
+            // e.CoCall is not filled in here, but will be filled in when the list of candidates are processed
+            candidates.Add(new CoCallInfo(0, e, coContext));
+          }
+        }
+        return candidates;
+      } else if (expr is OldExpr) {
+        var e = (OldExpr)expr;
+        // here, "coContext" is passed along (the use of "old" says this must be ghost code, so the compiler does not need to handle this case)
+        return CheckCoCalls(e.E, allowCallsWithinRecursiveCluster, coContext);
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        foreach (var rhs in e.RHSs) {
+          var r = CheckCoCalls(rhs, false, null);
+          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+        }
+        return CheckCoCalls(e.Body, allowCallsWithinRecursiveCluster, null);
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        foreach (var ee in e.SubExpressions) {
+          var r = CheckCoCalls(ee, false, null);
+          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+        }
+        return candidates;
+      }
+
+      // Default handling:
+      foreach (var ee in expr.SubExpressions) {
+        var r = CheckCoCalls(ee, allowCallsWithinRecursiveCluster, null);
+        candidates.AddRange(r);
+      }
+      if (expr.Type is BasicType) {
+        // nothing can escape this expression, so process the results now
+        ProcessCoCallInfo(candidates);
+        candidates.Clear();
+      }
+      return candidates;
+    }
+
+    /// <summary>
+    /// This method is to be called when it has been determined that all candidate
+    /// co-calls in "info" are indeed allowed as co-calls.
+    /// </summary>
+    void ProcessCoCallInfo(List<CoCallInfo> coCandidates) {
+      foreach (var c in coCandidates) {
+        if (c.GuardCount != 0) {
+          c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+          c.EnclosingCoConstructor.IsCoCall = true;
+        } else if (dealsWithCodatatypes) {
+          c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
+        } else {
+          c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.No;
+        }
       }
     }
   }

@@ -447,7 +447,7 @@ namespace Microsoft.Dafny {
       // destructors
       foreach (var ctor in dt.Ctors) {
         foreach (var arg in ctor.Formals) {
-          if (arg.HasName) {
+          if (!arg.IsGhost && arg.HasName) {
             //   public T0 @Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
             Indent(ind);
             wr.WriteLine("public {0} dtor_{1} {{ get {{ return (({2}_{3}{4})_D).@{1}; }} }}", TypeName(arg.Type), arg.Name, dt.Name, ctor.Name, DtT_TypeArgs);
