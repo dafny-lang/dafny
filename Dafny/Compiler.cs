@@ -685,6 +685,7 @@ namespace Microsoft.Dafny {
     readonly string DafnySetClass = "Dafny.Set";
     readonly string DafnyMultiSetClass = "Dafny.MultiSet";
     readonly string DafnySeqClass = "Dafny.Sequence";
+    readonly string DafnyMapClass = "Dafny.Map";
 
     string TypeName(Type type)
     {
@@ -746,6 +747,13 @@ namespace Microsoft.Dafny {
           Error("compilation of seq<object> is not supported; consider introducing a ghost");
         }
         return DafnyMultiSetClass + "<" + TypeName(argType) + ">";
+      } else if (type is MapType) {
+        Type domType = ((MapType)type).Domain;
+        Type ranType = ((MapType)type).Range;
+        if (domType is ObjectType || ranType is ObjectType) {
+          Error("compilation of map<object, _> or map<_, object> is not supported; consider introducing a ghost");
+        }
+        return DafnyMapClass + "<" + TypeName(domType) + "," + TypeName(ranType) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -816,6 +824,8 @@ namespace Microsoft.Dafny {
         return DafnyMultiSetClass + "<" + TypeName(((MultiSetType)type).Arg) + ">.Empty";
       } else if (type is SeqType) {
         return DafnySeqClass + "<" + TypeName(((SeqType)type).Arg) + ">.Empty";
+      } else if (type is MapType) {
+        return TypeName(type)+".Empty";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1530,6 +1540,25 @@ namespace Microsoft.Dafny {
       }
       wr.Write(")");
     }
+    void TrExprPairList(List<ExpressionPair/*!*/>/*!*/ exprs) {
+      Contract.Requires(cce.NonNullElements(exprs));
+      wr.Write("(");
+      string sep = "";
+      foreach (ExpressionPair p in exprs) {
+        wr.Write(sep);
+        wr.Write("new Dafny.Pair<");
+        wr.Write(TypeName(p.A.Type));
+        wr.Write(",");
+        wr.Write(TypeName(p.B.Type));
+        wr.Write(">(");
+        TrExpr(p.A);
+        wr.Write(",");
+        TrExpr(p.B);
+        wr.Write(")");
+        sep = ", ";
+      }
+      wr.Write(")");
+    }
 
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
@@ -1578,6 +1607,11 @@ namespace Microsoft.Dafny {
         Type elType = cce.NonNull((SeqType)e.Type).Arg;
         wr.Write("{0}<{1}>.FromElements", DafnySeqClass, TypeName(elType));
         TrExprList(e.Elements);
+
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
+        wr.Write("{0}.FromElements", TypeName(e.Type));
+        TrExprPairList(e.Elements);
 
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
@@ -1829,10 +1863,12 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.SetEq:
           case BinaryExpr.ResolvedOpcode.MultiSetEq:
           case BinaryExpr.ResolvedOpcode.SeqEq:
+          case BinaryExpr.ResolvedOpcode.MapEq:
             callString = "Equals";  break;
           case BinaryExpr.ResolvedOpcode.SetNeq:
           case BinaryExpr.ResolvedOpcode.MultiSetNeq:
           case BinaryExpr.ResolvedOpcode.SeqNeq:
+          case BinaryExpr.ResolvedOpcode.MapNeq:
             preOpString = "!";  callString = "Equals";  break;
           case BinaryExpr.ResolvedOpcode.ProperSubset:
           case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
@@ -1848,9 +1884,11 @@ namespace Microsoft.Dafny {
             callString = "IsProperSupersetOf";  break;
           case BinaryExpr.ResolvedOpcode.Disjoint:
           case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
+          case BinaryExpr.ResolvedOpcode.MapDisjoint:
             callString = "IsDisjointFrom";  break;
           case BinaryExpr.ResolvedOpcode.InSet:
           case BinaryExpr.ResolvedOpcode.InMultiSet:
+          case BinaryExpr.ResolvedOpcode.InMap:
             TrParenExpr(e.E1);
             wr.Write(".Contains(");
             TrExpr(e.E0);
@@ -1858,6 +1896,7 @@ namespace Microsoft.Dafny {
             break;
           case BinaryExpr.ResolvedOpcode.NotInSet:
           case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+          case BinaryExpr.ResolvedOpcode.NotInMap:
             wr.Write("!");
             TrParenExpr(e.E1);
             wr.Write(".Contains(");
