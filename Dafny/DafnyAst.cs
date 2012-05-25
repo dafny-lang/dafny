@@ -367,6 +367,22 @@ namespace Microsoft.Dafny {
       return "seq<" + base.Arg + ">";
     }
   }
+  public class MapType : CollectionType
+  {
+    public Type Domain, Range;
+    public MapType(Type domain, Type range) : base(domain) {
+      Contract.Requires(domain != null && range != null);
+      Domain = domain;
+      Range = range;
+    }
+    [Pure]
+    public override string ToString() {
+      Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(cce.IsPeerConsistent(Domain));
+      Contract.Assume(cce.IsPeerConsistent(Range));
+      return "map<" + Domain +", " + Range + ">";
+    }
+  }
 
   public class UserDefinedType : NonProxyType
   {
@@ -602,18 +618,19 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     seq(Arg) or array(Arg)
+  ///     seq(Arg) or array(Arg) or map(Arg, Range)
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
-    public readonly Type Arg;
+    public readonly Type Arg, Domain;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Arg != null);
     }
 
-    public IndexableTypeProxy(Type arg) {
+    public IndexableTypeProxy(Type arg, Type domain) {
       Contract.Requires(arg != null);
       Arg = arg;
+      Domain = domain;
     }
     public override int OrderID {
       get {
@@ -2379,6 +2396,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
     }
   }
+  public class ExpressionPair {
+    public Expression A, B;
+    public ExpressionPair(Expression a, Expression b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      A = a;
+      B = b;
+    }
+  }
 
   public class ImplicitThisExpr : ThisExpr {
     public ImplicitThisExpr(IToken tok)
@@ -2442,7 +2468,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(elements));
     }
   }
-
+  
   public class MultiSetDisplayExpr : DisplayExpression {
     public MultiSetDisplayExpr(IToken tok, List<Expression/*!*/>/*!*/ elements) : base(tok, elements) {
       Contract.Requires(tok != null);
@@ -2450,6 +2476,15 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class MapDisplayExpr : Expression {
+    public List<ExpressionPair/*!*/>/*!*/ Elements;
+    public MapDisplayExpr(IToken tok, List<ExpressionPair/*!*/>/*!*/ elements)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(elements));
+      Elements = elements;
+    }
+  }
   public class SeqDisplayExpr : DisplayExpression {
     public SeqDisplayExpr(IToken tok, List<Expression/*!*/>/*!*/ elements)
       : base(tok, elements) {
@@ -2795,7 +2830,7 @@ namespace Microsoft.Dafny {
       MultiSetUnion,
       MultiSetIntersection,
       MultiSetDifference,
-      // sequences
+      // Sequences
       SeqEq,
       SeqNeq,
       ProperPrefix,
@@ -2803,6 +2838,13 @@ namespace Microsoft.Dafny {
       Concat,
       InSeq,
       NotInSeq,
+      // Maps
+      MapEq,
+      MapNeq,
+      InMap,
+      NotInMap,
+      MapDisjoint,
+      MapUnion,
       // datatypes
       RankLt,
       RankGt
@@ -2820,12 +2862,14 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.SetEq:
         case ResolvedOpcode.MultiSetEq:
         case ResolvedOpcode.SeqEq:
+        case ResolvedOpcode.MapEq:
           return Opcode.Eq;
 
         case ResolvedOpcode.NeqCommon:
         case ResolvedOpcode.SetNeq:
         case ResolvedOpcode.MultiSetNeq:
         case ResolvedOpcode.SeqNeq:
+        case ResolvedOpcode.MapNeq:
           return Opcode.Neq;
 
         case ResolvedOpcode.Lt:
@@ -2855,6 +2899,7 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.Add:
         case ResolvedOpcode.Union:
         case ResolvedOpcode.MultiSetUnion:
+        case ResolvedOpcode.MapUnion:
         case ResolvedOpcode.Concat:
           return Opcode.Add;
 
@@ -2873,16 +2918,19 @@ namespace Microsoft.Dafny {
 
         case ResolvedOpcode.Disjoint:
         case ResolvedOpcode.MultiSetDisjoint:
+        case ResolvedOpcode.MapDisjoint:
           return Opcode.Disjoint;
 
         case ResolvedOpcode.InSet:
         case ResolvedOpcode.InMultiSet:
         case ResolvedOpcode.InSeq:
+        case ResolvedOpcode.InMap:
           return Opcode.In;
 
         case ResolvedOpcode.NotInSet:
         case ResolvedOpcode.NotInMultiSet:
         case ResolvedOpcode.NotInSeq:
+        case ResolvedOpcode.NotInMap:
           return Opcode.NotIn;
 
         default:
