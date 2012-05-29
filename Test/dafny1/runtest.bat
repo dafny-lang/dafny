@@ -23,7 +23,7 @@ for %%f in (Queue.dfy PriorityQueue.dfy
             Cubes.dfy SumOfCubes.dfy FindZero.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy
             Induction.dfy Rippling.dfy MoreInduction.dfy
-            Celebrity.dfy
+            Celebrity.dfy BDD.dfy
             UltraFilter.dfy) do (
   echo.
   echo -------------------- %%f --------------------
