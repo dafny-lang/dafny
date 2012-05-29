@@ -4082,7 +4082,6 @@ namespace Microsoft.Dafny {
           } else if(operandType is MapType) {
             return BinaryExpr.ResolvedOpcode.MapDisjoint;
           } else {
-            Contract.Assert(operandType is SetType);
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
         case BinaryExpr.Opcode.Lt:
@@ -4161,7 +4160,6 @@ namespace Microsoft.Dafny {
           } else if (operandType is MapType) {
             return BinaryExpr.ResolvedOpcode.InMap;
           } else {
-            Contract.Assert(operandType is SeqType);
             return BinaryExpr.ResolvedOpcode.InSeq;
           }
         case BinaryExpr.Opcode.NotIn:
@@ -4172,7 +4170,6 @@ namespace Microsoft.Dafny {
           } else if (operandType is MapType) {
             return BinaryExpr.ResolvedOpcode.NotInMap;
           } else {
-            Contract.Assert(operandType is SeqType);
             return BinaryExpr.ResolvedOpcode.NotInSeq;
           }
         case BinaryExpr.Opcode.Div:  return BinaryExpr.ResolvedOpcode.Div;
