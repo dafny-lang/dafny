@@ -157,11 +157,11 @@ function last(xs: List): Nat
     case Cons(z, zs) => last(ys)
 }
 
-function map(f: FunctionValue, xs: List): List
+function apply(f: FunctionValue, xs: List): List
 {
   match xs
   case Nil => Nil
-  case Cons(y, ys) => Cons(Apply(f, y), map(f, ys))
+  case Cons(y, ys) => Cons(Apply(f, y), apply(f, ys))
 }
 
 // In the following two functions, parameter "p" stands for a predicate:  applying p and
@@ -355,7 +355,7 @@ ghost method P11()
 }
 
 ghost method P12()
-  ensures forall n, xs, f :: drop(n, map(f, xs)) == map(f, drop(n, xs));
+  ensures forall n, xs, f :: drop(n, apply(f, xs)) == apply(f, drop(n, xs));
 {
 }
 
@@ -506,7 +506,7 @@ ghost method P40()
 }
 
 ghost method P41()
-  ensures forall n, xs, f :: take(n, map(f, xs)) == map(f, take(n, xs));
+  ensures forall n, xs, f :: take(n, apply(f, xs)) == apply(f, take(n, xs));
 {
 }
 

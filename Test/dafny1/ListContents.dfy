@@ -86,6 +86,13 @@ class Node<T> {
 
       reverse := current;
       current := nx;
+	  // This makes the verification go faster.
+	  assert current != null ==>
+        current.Valid() &&
+        current in old(footprint) && current.footprint <= old(footprint) &&
+        current.footprint !! reverse.footprint &&
+        |old(list)| == |reverse.list| + |current.list| &&
+        (forall i :: 0 <= i && i < |current.list| ==> current.list[i] == old(list)[|reverse.list|+i]);
     }
   }
 }
