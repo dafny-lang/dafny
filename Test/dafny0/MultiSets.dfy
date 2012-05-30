@@ -80,7 +80,7 @@ method test8(a: array<int>, i: int, j: int)
 method test9(a: array<int>, i: int, j: int, limit: int)
    requires a != null && 0 <= i < j < limit <= a.Length;
    modifies a;
-   ensures old(multiset(a[0..limit])) == multiset(a[0..limit]);
+   ensures multiset(a[0..limit]) == old(multiset(a[0..limit]));
    ensures a[j] == old (a[i]) && a[i] == old(a[j]);
    ensures forall k :: 0 <= k < limit && k !in {i, j} ==> a[k] == old(a[k]);
 {

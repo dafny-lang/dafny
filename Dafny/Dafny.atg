@@ -499,6 +499,12 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        }
                                        ty = new SeqType(gt[0]);
                                     .)
+  | "map"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
+    GenericInstantiation<gt>        (. if (gt.Count != 2) {
+                                         SemErr("map type expects exactly two type arguments");
+                                       }
+                                       ty = new MapType(gt[0], gt[1]);
+                                    .)
   | ReferenceType<out tok, out ty>
   )
   .
@@ -1262,6 +1268,7 @@ UnaryExpression<out Expression/*!*/ e>
     { Suffix<ref e> }
   | DisplayExpr<out e>
   | MultiSetExpr<out e>
+  | MapExpr<out e>
   | ConstAtomExpression<out e>
     { Suffix<ref e> }
   )
@@ -1332,6 +1339,25 @@ MultiSetExpr<out Expression e>
     ")"
   | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
+  .
+MapExpr<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken/*!*/ x = null;  List<ExpressionPair/*!*/>/*!*/ elements;
+     e = dummyExpr;
+  .)
+  "map"                                        (. x = t; .)
+  ( "{"                                        (. elements = new List<ExpressionPair/*!*/>(); .)
+      [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(x, elements);.)
+    "}"
+  | (. SemErr("map must be followed by braces."); .)
+  )
+  .
+MapLiteralExpressions<.out List<ExpressionPair> elements.>
+= (. Expression/*!*/ d, r;
+	 elements = new List<ExpressionPair/*!*/>(); .)
+  Expression<out d> ":=" Expression<out r>      (. elements.Add(new ExpressionPair(d,r)); .)
+  { "," Expression<out d> ":=" Expression<out r>(. elements.Add(new ExpressionPair(d,r)); .)
+  }
   .
 EndlessExpression<out Expression e>
 = (. IToken/*!*/ x;

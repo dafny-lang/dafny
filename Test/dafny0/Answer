@@ -510,7 +510,7 @@ ResolutionErrors.dfy(233,12): Error: ghost-context break statement is not allowe
 ResolutionErrors.dfy(238,8): Error: return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
-ResolutionErrors.dfy(23,12): Error: sequence/array selection requires a sequence or array (got array3<T>)
+ResolutionErrors.dfy(23,12): Error: sequence/array/map selection requires a sequence, array or map (got array3<T>)
 ResolutionErrors.dfy(24,11): Error: array selection requires an array4 (got array<T>)
 ResolutionErrors.dfy(54,14): Error: a field must be selected via an object, not just a class name
 ResolutionErrors.dfy(55,7): Error: unresolved identifier: F
@@ -1556,6 +1556,16 @@ Execution trace:
     (0,0): anon11
 
 Dafny program verifier finished with 9 verified, 1 error
+
+-------------------- Maps.dfy --------------------
+Maps.dfy(76,8): Error: element may not be in domain
+Execution trace:
+    (0,0): anon0
+Maps.dfy(126,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 22 verified, 2 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

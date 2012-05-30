@@ -115,6 +115,10 @@ Dafny program verifier finished with 15 verified, 4 errors
 
 Dafny program verifier finished with 10 verified, 0 errors
 
+-------------------- BDD.dfy --------------------
+
+Dafny program verifier finished with 5 verified, 0 errors
+
 -------------------- UltraFilter.dfy --------------------
 
 Dafny program verifier finished with 19 verified, 0 errors

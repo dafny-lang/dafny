@@ -26,7 +26,7 @@ namespace Demo
           "bool", "nat", "int", "false", "true", "null",
           "function", "predicate", "free",
           "in", "forall", "exists",
-          "seq", "set", "multiset", "array", "array2", "array3",
+          "seq", "set", "map", "multiset", "array", "array2", "array3",
           "match", "case",
           "fresh", "allocated", "old", "choose"
           );
@@ -309,6 +309,7 @@ namespace Demo
           | "exists"
           | "seq"
           | "set"
+          | "map"
           | "multiset"
           | "array"
           | "array2"

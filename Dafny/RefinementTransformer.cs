@@ -193,6 +193,9 @@ namespace Microsoft.Dafny {
       } else if (t is MultiSetType) {
         var tt = (MultiSetType)t;
         return new MultiSetType(tt.Arg);
+      } else if (t is MapType) {
+        var tt = (MapType)t;
+        return new MapType(tt.Domain, tt.Range);
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
         return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType));
@@ -277,6 +280,13 @@ namespace Microsoft.Dafny {
           return new SeqDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
         }
 
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
+        List<ExpressionPair> pp = new List<ExpressionPair>();
+        foreach(ExpressionPair p in e.Elements) {
+          pp.Add(new ExpressionPair(CloneExpr(p.A),CloneExpr(p.B)));
+        }
+        return new MapDisplayExpr(Tok(expr.tok), pp);
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         return new ExprDotName(Tok(e.tok), CloneExpr(e.Obj), e.SuffixName);

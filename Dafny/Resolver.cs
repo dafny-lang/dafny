@@ -915,6 +915,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       if (type is BasicType) {
         // nothing to resolve
+      } else if (type is MapType) {
+        MapType mt = (MapType)type;
+        ResolveType(tok, mt.Domain, defaultTypeArguments, allowAutoTypeArguments);
+        ResolveType(tok, mt.Range, defaultTypeArguments, allowAutoTypeArguments);
+        if (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType) {
+          Error(tok, "sorry, cannot instantiate collection type with a subrange type");
+        }
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
         var argType = t.Arg;
@@ -922,7 +929,7 @@ namespace Microsoft.Dafny {
         if (argType.IsSubrangeType) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
-      } else if (type is UserDefinedType) {
+      }  else if (type is UserDefinedType) {
         UserDefinedType t = (UserDefinedType)type;
         foreach (Type tt in t.TypeArgs) {
           ResolveType(t.tok, tt, defaultTypeArguments, allowAutoTypeArguments);
@@ -1039,6 +1046,8 @@ namespace Microsoft.Dafny {
         return b is SetType && UnifyTypes(((SetType)a).Arg, ((SetType)b).Arg);
       } else if (a is MultiSetType) {
         return b is MultiSetType && UnifyTypes(((MultiSetType)a).Arg, ((MultiSetType)b).Arg);
+      }else if (a is MapType) {
+        return b is MapType && UnifyTypes(((MapType)a).Domain, ((MapType)b).Domain) && UnifyTypes(((MapType)a).Range, ((MapType)b).Range);
       } else if (a is SeqType) {
         return b is SeqType && UnifyTypes(((SeqType)a).Arg, ((SeqType)b).Arg);
       } else if (a is UserDefinedType) {
@@ -1148,9 +1157,22 @@ namespace Microsoft.Dafny {
           if (!UnifyTypes(iProxy.Arg, ((SeqType)t).Arg)) {
             return false;
           }
+          if (!UnifyTypes(iProxy.Domain, Type.Int)) {
+            return false;
+          }
         } else if (t.IsArrayType && (t.AsArrayType).Dims == 1) {
           Type elType = UserDefinedType.ArrayElementType(t);
           if (!UnifyTypes(iProxy.Arg, elType)) {
+            return false;
+          }
+          if (!UnifyTypes(iProxy.Domain, Type.Int)) {
+            return false;
+          }
+        } else if (t is MapType) {
+          if (!UnifyTypes(iProxy.Arg, ((MapType)t).Range)) {
+            return false;
+          }
+          if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
             return false;
           }
         } else {
@@ -1227,8 +1249,8 @@ namespace Microsoft.Dafny {
         } else if (b is IndexableTypeProxy) {
           IndexableTypeProxy pb = (IndexableTypeProxy)b;
           // the intersection of ObjectsTypeProxy and IndexableTypeProxy is
-          // EITHER a sequence of ObjectTypeProxy OR an array of anything
-          // TODO: here, only the first of the two cases is supported
+          // EITHER a sequence of ObjectTypeProxy OR an array of anything OR map of ObjectTypeProxy in either domain or range.
+          // TODO: here, only the first of the three cases is supported
           b.T = new SeqType(pb.Arg);
           a.T = b.T;
           return UnifyTypes(pb.Arg, new ObjectTypeProxy());
@@ -1252,10 +1274,8 @@ namespace Microsoft.Dafny {
         } else if (b is IndexableTypeProxy) {
           CollectionTypeProxy pa = (CollectionTypeProxy)a;
           IndexableTypeProxy pb = (IndexableTypeProxy)b;
-          // strengthen a and b to a sequence type
-          a.T = new SeqType(pa.Arg);
-          b.T = new SeqType(pb.Arg);
-          return UnifyTypes(pa.Arg, pb.Arg);
+          // a and b could be a map or a sequence
+          return true;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
         }
@@ -2396,6 +2416,9 @@ namespace Microsoft.Dafny {
 
       if (type is BasicType) {
         return type;
+      } else if (type is MapType) {
+        MapType t = (MapType)type;
+        return new MapType(SubstType(t.Domain, subst), SubstType(t.Range, subst));
       } else if (type is CollectionType) {
         CollectionType t = (CollectionType)type;
         Type arg = SubstType(t.Arg, subst);
@@ -2616,7 +2639,23 @@ namespace Microsoft.Dafny {
         } else {
           expr.Type = new SeqType(elementType);
         }
-
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
+        Type domainType = new InferredTypeProxy();
+        Type rangeType = new InferredTypeProxy();
+        foreach (ExpressionPair p in e.Elements) {
+          ResolveExpression(p.A, twoState);
+          Contract.Assert(p.A.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(domainType, p.A.Type)) {
+            Error(p.A, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.A.Type, domainType);
+          }
+          ResolveExpression(p.B, twoState);
+          Contract.Assert(p.B.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(rangeType, p.B.Type)) {
+            Error(p.B, "All elements of display must be of the same type (got {0}, but type of previous elements is {1})", p.B.Type, rangeType);
+          }
+        }
+        expr.Type = new MapType(domainType, rangeType);
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         // The following call to ResolveExpression is just preliminary.  If it succeeds, it is redone below on the resolved expression.  Thus,
@@ -2688,27 +2727,37 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        bool seqErr = false;
         ResolveExpression(e.Seq, twoState);
         Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
         Type elementType = new InferredTypeProxy();
-        if (!UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
-          Error(expr, "sequence update requires a sequence (got {0})", e.Seq.Type);
-          seqErr = true;
-        }
-        ResolveExpression(e.Index, twoState);
-        Contract.Assert(e.Index.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Index.Type, Type.Int)) {
-          Error(e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
-        }
-        ResolveExpression(e.Value, twoState);
-        Contract.Assert(e.Value.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Value.Type, elementType)) {
-          Error(e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
-        }
-        if (!seqErr) {
+        Type domainType = new InferredTypeProxy();
+        Type rangeType = new InferredTypeProxy();
+        if (UnifyTypes(e.Seq.Type, new SeqType(elementType))) {
+          ResolveExpression(e.Index, twoState);
+          Contract.Assert(e.Index.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.Index.Type, Type.Int)) {
+            Error(e.Index, "sequence update requires integer index (got {0})", e.Index.Type);
+          }
+          ResolveExpression(e.Value, twoState);
+          Contract.Assert(e.Value.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.Value.Type, elementType)) {
+            Error(e.Value, "sequence update requires the value to have the element type of the sequence (got {0})", e.Value.Type);
+          }
           expr.Type = e.Seq.Type;
+        } else if (UnifyTypes(e.Seq.Type, new MapType(domainType, rangeType))) {
+          ResolveExpression(e.Index, twoState);
+          if (!UnifyTypes(e.Index.Type, domainType)) {
+            Error(e.Index, "map update requires domain element to be of type {0} (got {1})", domainType, e.Index.Type);
+          }
+          ResolveExpression(e.Value, twoState);
+          if (!UnifyTypes(e.Value.Type, rangeType)) {
+            Error(e.Value, "map update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
+          }
+          expr.Type = e.Seq.Type;
+        } else {
+          Error(expr, "update requires a sequence or map (got {0})", e.Seq.Type);
         }
+
 
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
@@ -2817,8 +2866,10 @@ namespace Microsoft.Dafny {
             if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
               Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
             }
-            if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy())) && !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy()))) {
-              Error(expr, "arguments must be of a [multi]set type (got {0})", e.E0.Type);
+            if (!UnifyTypes(e.E0.Type, new SetType(new InferredTypeProxy())) &&
+                !UnifyTypes(e.E0.Type, new MultiSetType(new InferredTypeProxy())) &&
+                !UnifyTypes(e.E0.Type, new MapType(new InferredTypeProxy(), new InferredTypeProxy()))) {
+              Error(expr, "arguments must be of a [multi]set or map type (got {0})", e.E0.Type);
             }
             expr.Type = Type.Bool;
             break;
@@ -2888,7 +2939,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
             if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type))) {
-              Error(expr, "second argument to {0} must be a set or sequence of type {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+              Error(expr, "second argument to \"{0}\" must be a set or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             }
             expr.Type = Type.Bool;
             break;
@@ -3579,6 +3630,12 @@ namespace Microsoft.Dafny {
                   goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
+              case BinaryExpr.ResolvedOpcode.InMap:
+                if (whereIsBv == 0) {
+                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  goto CHECK_NEXT_BOUND_VARIABLE;
+                }
+                break;
               case BinaryExpr.ResolvedOpcode.EqCommon:
                 if (bv.Type is IntType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
@@ -3942,28 +3999,37 @@ namespace Microsoft.Dafny {
       ResolveExpression(e.Seq, twoState);
       Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
       Type elementType = new InferredTypeProxy();
-      Type expectedType;
-      if (e.SelectOne || allowNonUnitArraySelection) {
-        expectedType = new IndexableTypeProxy(elementType);
-      } else {
-        expectedType = new SeqType(elementType);
-      }
+      Type domainType = new InferredTypeProxy();
+      IndexableTypeProxy expectedType = new IndexableTypeProxy(elementType, domainType);
       if (!UnifyTypes(e.Seq.Type, expectedType)) {
-        Error(e, "sequence/array selection requires a sequence or array (got {0})", e.Seq.Type);
+        Error(e, "sequence/array/map selection requires a sequence, array or map (got {0})", e.Seq.Type);
         seqErr = true;
+      }
+      if (!e.SelectOne)  // require sequence or array
+      {
+        if (!allowNonUnitArraySelection) {
+          // require seq
+          if (!UnifyTypes(expectedType, new SeqType(new InferredTypeProxy()))) {
+            Error(e, "selection requires a sequence (got {0})", e.Seq.Type);
+          }
+        } else {
+          if (UnifyTypes(expectedType, new MapType(new InferredTypeProxy(), new InferredTypeProxy()))) {
+            Error(e, "cannot multiselect a map (got {0} as map type)", e.Seq.Type);
+          }
+        }
       }
       if (e.E0 != null) {
         ResolveExpression(e.E0, twoState);
         Contract.Assert(e.E0.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E0.Type, Type.Int)) {
-          Error(e.E0, "sequence/array selection requires integer indices (got {0})", e.E0.Type);
+        if (!UnifyTypes(e.E0.Type, domainType)) {
+          Error(e.E0, "sequence/array/map selection requires {1} indices (got {0})", e.E0.Type, domainType);
         }
       }
       if (e.E1 != null) {
         ResolveExpression(e.E1, twoState);
         Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E1.Type, Type.Int)) {
-          Error(e.E1, "sequence/array selection requires integer indices (got {0})", e.E1.Type);
+        if (!UnifyTypes(e.E1.Type, domainType)) {
+          Error(e.E1, "sequence/array/map selection requires {1} indices (got {0})", e.E1.Type, domainType);
         }
       }
       if (!seqErr) {
@@ -3993,6 +4059,8 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.MultiSetEq;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.SeqEq;
+          } else if (operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.MapEq;
           } else {
             return BinaryExpr.ResolvedOpcode.EqCommon;
           }
@@ -4003,12 +4071,16 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.MultiSetNeq;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.SeqNeq;
+          } else if (operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.MapNeq;
           } else {
             return BinaryExpr.ResolvedOpcode.NeqCommon;
           }
         case BinaryExpr.Opcode.Disjoint:
           if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetDisjoint;
+          } else if(operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.MapDisjoint;
           } else {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
@@ -4039,6 +4111,8 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Union;
           } else if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetUnion;
+          } else if (operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.MapUnion;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.Concat;
           } else {
@@ -4083,6 +4157,8 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.InSet;
           } else if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.InMultiSet;
+          } else if (operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.InMap;
           } else {
             return BinaryExpr.ResolvedOpcode.InSeq;
           }
@@ -4091,6 +4167,8 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.NotInSet;
           } else if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.NotInMultiSet;
+          } else if (operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.NotInMap;
           } else {
             return BinaryExpr.ResolvedOpcode.NotInSeq;
           }
@@ -4124,6 +4202,9 @@ namespace Microsoft.Dafny {
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         return e.Elements.Exists(ee => UsesSpecFeatures(ee));
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
+        return e.Elements.Exists(p => UsesSpecFeatures(p.A) || UsesSpecFeatures(p.B));
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr e = (FieldSelectExpr)expr;
         return cce.NonNull(e.Field).IsGhost || UsesSpecFeatures(e.Obj);

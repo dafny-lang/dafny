@@ -358,6 +358,49 @@ axiom (forall<T> s: Seq T, v: T, n: int ::
     0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
 
 // ---------------------------------------------------------------
+// -- Axiomatization of Maps -------------------------------------
+// ---------------------------------------------------------------
+
+type Map U V;
+
+function Map#Domain<U, V>(Map U V): [U] bool;
+function Map#Elements<U, V>(Map U V): [U]V;
+
+function Map#Empty<U, V>(): Map U V;
+axiom (forall<U, V> u: U ::
+  { Map#Domain(Map#Empty(): Map U V)[u] }
+   !Map#Domain(Map#Empty(): Map U V)[u]);
+
+//Build is used in displays, and for map updates
+function Map#Build<U, V>(Map U V, U, V): Map U V;
+/*axiom (forall<U, V> m: Map U V, u: U, v: V ::
+  { Map#Domain(Map#Build(m, u, v))[u] } { Map#Elements(Map#Build(m, u, v))[u] }
+  Map#Domain(Map#Build(m, u, v))[u] && Map#Elements(Map#Build(m, u, v))[u] == v);*/
+
+axiom (forall<U, V> m: Map U V, u: U, u': U, v: V ::
+  { Map#Domain(Map#Build(m, u, v))[u'] } { Map#Elements(Map#Build(m, u, v))[u'] }
+  (u' == u ==> Map#Domain(Map#Build(m, u, v))[u'] &&
+               Map#Elements(Map#Build(m, u, v))[u'] == v) &&
+  (u' != u ==> Map#Domain(Map#Build(m, u, v))[u'] == Map#Domain(m)[u'] &&
+               Map#Elements(Map#Build(m, u, v))[u'] == Map#Elements(m)[u']));
+
+//equality for maps
+function Map#Equal<U, V>(Map U V, Map U V): bool;
+axiom (forall<U, V> m: Map U V, m': Map U V::
+  { Map#Equal(m, m') }
+    Map#Equal(m, m') <==> (forall u : U :: Map#Domain(m)[u] == Map#Domain(m')[u]) &&
+                          (forall u : U :: Map#Domain(m)[u] ==> Map#Elements(m)[u] == Map#Elements(m')[u]));
+// extensionality
+axiom  (forall<U, V> m: Map U V, m': Map U V::
+  { Map#Equal(m, m') }
+    Map#Equal(m, m') ==> m == m');
+
+function Map#Disjoint<U, V>(Map U V, Map U V): bool;
+axiom (forall<U, V> m: Map U V, m': Map U V ::
+  { Map#Disjoint(m, m') }
+    Map#Disjoint(m, m') <==> (forall o: U :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
+
+// ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
 // ---------------------------------------------------------------
 
@@ -371,6 +414,7 @@ axiom (forall b: BoxType :: { $Unbox(b): int } $Box($Unbox(b): int) == b);
 axiom (forall b: BoxType :: { $Unbox(b): ref } $Box($Unbox(b): ref) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Set BoxType } $Box($Unbox(b): Set BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Seq BoxType } $Box($Unbox(b): Seq BoxType) == b);
+axiom (forall b: BoxType :: { $Unbox(b): Map BoxType BoxType } $Box($Unbox(b): Map BoxType BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): DatatypeType } $Box($Unbox(b): DatatypeType) == b);
 // Note: an axiom like this for bool would not be sound; instead, we do:
 function $IsCanonicalBoolBox(BoxType): bool;
@@ -470,11 +514,26 @@ axiom (forall b: BoxType, h: HeapType ::
   { GenericAlloc(b, h), h[$Unbox(b): ref, alloc] }
   GenericAlloc(b, h) ==>
   $Unbox(b): ref == null || h[$Unbox(b): ref, alloc]);
+//seqs
 axiom (forall b: BoxType, h: HeapType, i: int ::
   { GenericAlloc(b, h), Seq#Index($Unbox(b): Seq BoxType, i) }
   GenericAlloc(b, h) &&
   0 <= i && i < Seq#Length($Unbox(b): Seq BoxType) ==>
   GenericAlloc( Seq#Index($Unbox(b): Seq BoxType, i), h ) );
+
+//maps
+//seq-like axiom, talking about the range elements
+axiom (forall b: BoxType, h: HeapType, i: BoxType ::
+  { GenericAlloc(b, h), Map#Domain($Unbox(b): Map BoxType BoxType)[i] }
+  GenericAlloc(b, h) && Map#Domain($Unbox(b): Map BoxType BoxType)[i] ==>
+  GenericAlloc( Map#Elements($Unbox(b): Map BoxType BoxType)[i], h ) );
+//set-like axiom, talking about the domain elements
+axiom (forall b: BoxType, h: HeapType, t: BoxType ::
+  { GenericAlloc(b, h), Map#Domain($Unbox(b): Map BoxType BoxType)[t] }
+  GenericAlloc(b, h) && Map#Domain($Unbox(b): Map BoxType BoxType)[t] ==>
+  GenericAlloc(t, h));
+
+//sets
 axiom (forall b: BoxType, h: HeapType, t: BoxType ::
   { GenericAlloc(b, h), ($Unbox(b): Set BoxType)[t] }
   GenericAlloc(b, h) && ($Unbox(b): Set BoxType)[t] ==>

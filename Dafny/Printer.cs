@@ -881,6 +881,12 @@ namespace Microsoft.Dafny {
         PrintExpressionList(e.Elements);
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "}" : "]");
 
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
+        wr.Write("map");
+        wr.Write("{");
+        PrintExpressionPairList(e.Elements);
+        wr.Write("}");
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         // determine if parens are needed
@@ -1257,6 +1263,18 @@ namespace Microsoft.Dafny {
         wr.Write(sep);
         sep = ", ";
         PrintExpression(e);
+      }
+    }
+    void PrintExpressionPairList(List<ExpressionPair> exprs) {
+      Contract.Requires(exprs != null);
+      string sep = "";
+      foreach (ExpressionPair p in exprs) {
+        Contract.Assert(p != null);
+        wr.Write(sep);
+        sep = ", ";
+        PrintExpression(p.A);
+        wr.Write(":=");
+        PrintExpression(p.B);
       }
     }
 
