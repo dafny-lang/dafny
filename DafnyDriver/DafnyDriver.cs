@@ -616,7 +616,7 @@ namespace Microsoft.Dafny
             int prevAssertionCount = vcgen.CumulativeAssertionCount;
             try
             {
-                outcome = vcgen.VerifyImplementation(impl, program, out errors);
+                outcome = vcgen.VerifyImplementation(impl, out errors);
             }
             catch (VCGenException e)
             {
