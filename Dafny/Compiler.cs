@@ -1990,6 +1990,11 @@ namespace Microsoft.Dafny {
             wr.Write("Dafny.Helpers.QuantSet(");
             TrExpr(b.Set);
             wr.Write(", ");
+          } else if (bound is QuantifierExpr.MapBoundedPool) {
+            var b = (QuantifierExpr.MapBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantMap(");
+            TrExpr(b.Map);
+            wr.Write(", ");
           } else if (bound is QuantifierExpr.SeqBoundedPool) {
             var b = (QuantifierExpr.SeqBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantSeq(");
@@ -2047,6 +2052,11 @@ namespace Microsoft.Dafny {
             wr.Write("foreach (var @{0} in (", bv.Name);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
+          } else if (bound is QuantifierExpr.MapBoundedPool) {
+            var b = (QuantifierExpr.MapBoundedPool)bound;
+            wr.Write("foreach (var @{0} in (", bv.Name);
+            TrExpr(b.Map);
+            wr.Write(").Domain) { ");
           } else if (bound is QuantifierExpr.SeqBoundedPool) {
             var b = (QuantifierExpr.SeqBoundedPool)bound;
             wr.Write("foreach (var @{0} in (", bv.Name);
@@ -2065,6 +2075,70 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
         wr.Write("return Dafny.Set<{0}>.FromCollection(_coll); ", typeName);
+        wr.Write("})()");
+
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        // For "map i | R(i) :: Term(i)" where the term has type "V" and i has type "U", emit something like:
+        // ((MapComprehensionDelegate<U, V>)delegate() {
+        //   var _coll = new List<Pair<U,V>>();
+        //   foreach (L l in sq.Elements) {
+        //     foreach (K k in st.Elements) {
+        //       for (BigInteger j = Lo; j < Hi; j++) {
+        //         for (bool i in Helper.AllBooleans) {
+        //           if (R(i,j,k,l)) {
+        //             _coll.Add(new Pair(i, Term(i));
+        //           }
+        //         }
+        //       }
+        //     }
+        //   }
+        //   return Dafny.Map<U, V>.FromElements(_coll);
+        // })()
+        Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
+        var domtypeName = TypeName(((MapType)e.Type).Domain);
+        var rantypeName = TypeName(((MapType)e.Type).Range);
+        wr.Write("((Dafny.Helpers.MapComprehensionDelegate<{0},{1}>)delegate() {{ ", domtypeName, rantypeName);
+        wr.Write("var _coll = new System.Collections.Generic.List<Dafny.Pair<{0},{1}>>(); ", domtypeName, rantypeName);
+        var n = e.BoundVars.Count;
+        Contract.Assert(e.Bounds.Count == n && n == 1);
+        var bound = e.Bounds[0];
+        var bv = e.BoundVars[0];
+        if (bound is QuantifierExpr.BoolBoundedPool) {
+          wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.Name);
+        } else if (bound is QuantifierExpr.IntBoundedPool) {
+          var b = (QuantifierExpr.IntBoundedPool)bound;
+          wr.Write("for (var @{0} = ", bv.Name);
+          TrExpr(b.LowerBound);
+          wr.Write("; @{0} < ", bv.Name);
+          TrExpr(b.UpperBound);
+          wr.Write("; @{0}++) {{ ", bv.Name);
+        } else if (bound is QuantifierExpr.SetBoundedPool) {
+          var b = (QuantifierExpr.SetBoundedPool)bound;
+          wr.Write("foreach (var @{0} in (", bv.Name);
+          TrExpr(b.Set);
+          wr.Write(").Elements) { ");
+        } else if (bound is QuantifierExpr.MapBoundedPool) {
+          var b = (QuantifierExpr.MapBoundedPool)bound;
+          wr.Write("foreach (var @{0} in (", bv.Name);
+          TrExpr(b.Map);
+          wr.Write(").Domain) { ");
+        } else if (bound is QuantifierExpr.SeqBoundedPool) {
+          var b = (QuantifierExpr.SeqBoundedPool)bound;
+          wr.Write("foreach (var @{0} in (", bv.Name);
+          TrExpr(b.Seq);
+          wr.Write(").Elements) { ");
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+        }
+        wr.Write("if (");
+        TrExpr(e.Range);
+        wr.Write(") { ");
+        wr.Write("_coll.Add(new Dafny.Pair<{0},{1}>(@{2},", domtypeName, rantypeName, bv.Name);
+        TrExpr(e.Term);
+        wr.Write(")); }");
+        wr.Write("}");
+        wr.Write("return Dafny.Map<{0},{1}>.FromCollection(_coll); ", domtypeName, rantypeName);
         wr.Write("})()");
 
       } else if (expr is PredicateExpr) {

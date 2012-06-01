@@ -2,7 +2,7 @@
 // This method can be used to test compilation.
 method Main()
 {
-   var m:= map{2:=3};
+   var m := map[2:=3];
    // test "in"
    if(2 in m)
    {
@@ -25,28 +25,28 @@ method Main()
    else
    { assert false; }
    // test disjoint operator
-   if(m !! map{3 := 3})
+   if(m !! map[3 := 3])
    {
       print "m3\n";
    }
    else
    { assert false; }
    // updates should replace values that already exist
-   if(m[2 := 4] == map{2 := 4})
+   if(m[2 := 4] == map[2 := 4])
    {
       print "m4\n";
    }
    else
    { assert false; }
    // add something to the map
-   if(m[7 := 1] == map{2 := 3,7 := 1})
+   if(m[7 := 1] == map[2 := 3,7 := 1])
    {
       print "m5\n";
    }
    else
    { assert false; }
    // test applicative nature of Map<U, V> in C#
-   if(m == map{2 := 3})
+   if(m == map[2 := 3])
    {
       print "m6\n";
    }
@@ -57,7 +57,7 @@ method Main()
 
 method m()
 {
-   var a := map{2:=3}; var b := map{3:=2};
+   var a := map[2:=3]; var b := map[3:=2];
    assert a[b[3]] == 3;
 }
 method m2(a: map<int, bool>, b: map<int, bool>)
@@ -72,7 +72,7 @@ method m3(a: map<int, int>)
 }
 method m4()
 {
-   var a := map{3 := 9};
+   var a := map[3 := 9];
    if(a[4] == 4) // UNSAFE, 4 not in the domain
    {
       m();
@@ -86,14 +86,14 @@ method m5(a: map<int, int>)
 }
 method m6()
 {
-   var a := map{3 := 9};
-   assert a[3:=5] == map{3:=5};
-   assert a[2:=5] == map{2:=5, 3:=9};
-   assert a[2:=5] == map{2:=6, 3:=9, 2:=5}; // test the ordering of assignments in the map literal
+   var a := map[3 := 9];
+   assert a[3:=5] == map[3:=5];
+   assert a[2:=5] == map[2:=5, 3:=9];
+   assert a[2:=5] == map[2:=6, 3:=9, 2:=5]; // test the ordering of assignments in the map literal
 }
 method m7()
 {
-   var a := map{1:=1, 2:=4, 3:=9};
+   var a := map[1:=1, 2:=4, 3:=9];
    assert forall i | i in a :: a[i] == i * i;
    assert 0 !in a;
    assert 1 in a;
@@ -103,7 +103,7 @@ method m7()
 }
 method m8()
 {
-   var a := map{};
+   var a := map[];
    assert forall i :: i !in a; // check emptiness
    var i,n := 0, 100;
    while(i < n)
@@ -114,28 +114,69 @@ method m8()
       a := a[i := i * i];
       i := i + 1;
    }
-   assert a !! map{-1:=2};
+   assert a !! map[-1:=2];
    m3(a);
 }
 method m9()
 {
-   var a, b := map{}, map{};
+   var a, b := map[], map[];
    assert a !! b;
-   b := map{2:=3,4:=2,5:=-6,6:=7};
+   b := map[2:=3,4:=2,5:=-6,6:=7];
    assert a !! b;
-   assert b !! map{6:=3}; // ERROR, both share 6 in the domain.
+   assert b !! map[6:=3]; // ERROR, both share 6 in the domain.
 }
 method m10()
 {
-   var a, b := map{}, map{};
+   var a, b := map[], map[];
    assert a !! b;
-   b := map{2:=3,4:=2,5:=-6,6:=7};
+   b := map[2:=3,4:=2,5:=-6,6:=7];
    assert a !! b;
-   a := map{3:=3,1:=2,9:=-6,8:=7};
+   a := map[3:=3,1:=2,9:=-6,8:=7];
    assert a !! b;
 }
 method m11<U, V>(a: map<U, V>, b: map<U, V>)
    requires forall i :: !(i in a && i in b);
 {
    assert a !! b;
+}
+
+method m12()
+{
+   var x := map i | 0 <= i < 10 :: i * 2;
+   assert 0 in x;
+   assert 1 in x;
+   assert 10 !in x;
+   assert x[0] == 0 && x[2] == 4;
+}
+
+function domain<U, V>(m: map<U,V>): set<U>
+   ensures forall i :: i in domain(m) <==> i in m;
+{
+   set s | s in m
+}
+
+method m13()
+{
+   var s := {0, 1, 3, 4};
+   var x := map i | i in s :: i;
+   assert forall i | i in x :: x[i] == i;
+   assert domain(x) == s;
+}
+
+function union<U, V>(m: map<U,V>, m': map<U,V>): map<U,V>
+   requires m !! m';
+   ensures forall i :: i in union(m, m') <==> i in m || i in m';
+   ensures forall i :: i in m ==> union(m, m')[i] == m[i];
+   ensures forall i :: i in m' ==> union(m, m')[i] == m'[i];
+{
+   map i | i in (domain(m) + domain(m')) :: if i in m then m[i] else m'[i]
+}
+
+method m14()
+{
+   var s, t := {0, 1}, {3, 4};
+   var x,y := map i | i in s :: i, map i | i in t :: 1+i;
+   ghost var u := union(x,y);
+   assert u[1] == 1 && u[3] == 4;
+   assert domain(u) == {0, 1, 3, 4};
 }

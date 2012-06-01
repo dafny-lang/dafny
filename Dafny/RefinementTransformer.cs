@@ -353,6 +353,8 @@ namespace Microsoft.Dafny {
           return new ForallExpr(tk, bvs, range, term, null);
         } else if (e is ExistsExpr) {
           return new ExistsExpr(tk, bvs, range, term, null);
+        } else if (e is MapComprehension) {
+          return new MapComprehension(tk, bvs, range, term);
         } else {
           Contract.Assert(e is SetComprehension);
           return new SetComprehension(tk, bvs, range, term);

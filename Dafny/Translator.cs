@@ -1730,19 +1730,29 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         bool isSequence = e.Seq.Type is SeqType;
-        Bpl.Expr total = IsTotal(e.Seq, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        Bpl.Expr e0 = null;
-        if (e.E0 != null) {
-          e0 = etran.TrExpr(e.E0);
-          total = BplAnd(total, IsTotal(e.E0, etran));
-          total = BplAnd(total, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne));
+        if (e.Seq.Type is MapType) {
+          Bpl.Expr total = IsTotal(e.Seq, etran);
+          Bpl.Expr map = etran.TrExpr(e.Seq);
+          var e0 = etran.TrExpr(e.E0);
+          Bpl.Expr inDomain = FunctionCall(expr.tok, BuiltinFunction.MapDomain, predef.MapType(e.tok, predef.BoxType, predef.BoxType), map);
+          inDomain = Bpl.Expr.Select(inDomain, etran.BoxIfNecessary(e.tok, e0, e.E0.Type));
+          total = BplAnd(total, inDomain);
+          return total;
+        } else {
+          Bpl.Expr total = IsTotal(e.Seq, etran);
+          Bpl.Expr seq = etran.TrExpr(e.Seq);
+          Bpl.Expr e0 = null;
+          if (e.E0 != null) {
+            e0 = etran.TrExpr(e.E0);
+            total = BplAnd(total, IsTotal(e.E0, etran));
+            total = BplAnd(total, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne));
+          }
+          if (e.E1 != null) {
+            total = BplAnd(total, IsTotal(e.E1, etran));
+            total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true));
+          }
+          return total;
         }
-        if (e.E1 != null) {
-          total = BplAnd(total, IsTotal(e.E1, etran));
-          total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true));
-        }
-        return total;
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         Bpl.Expr total = IsTotal(e.Array, etran);
@@ -5475,7 +5485,7 @@ namespace Microsoft.Dafny {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
             } else if (e.Seq.Type is MapType) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.MapElements, predef.MapType(e.tok, predef.BoxType, predef.BoxType), seq);
-              x = Bpl.Expr.Select(x, translator.FunctionCall(e.tok, BuiltinFunction.Box, null, e0));
+              x = Bpl.Expr.Select(x, BoxIfNecessary(e.tok, e0, domainType));
             } else { Contract.Assert(false); x = null; }
             if (!ModeledAsBoxType(elmtType)) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, elType, x);
@@ -5838,6 +5848,36 @@ namespace Microsoft.Dafny {
           var exst = new Bpl.ExistsExpr(expr.tok, bvars, ebody);
 
           return new Bpl.LambdaExpr(expr.tok, new Bpl.TypeVariableSeq(), new VariableSeq(yVar), kv, exst);
+
+        } else if (expr is MapComprehension) {
+          var e = (MapComprehension)expr;
+          // Translate "map x | R :: T" into
+          // Map#Glue(lambda y: BoxType :: [unbox(y)/x]R,
+          //          lambda y: BoxType :: [unbox(y)/x]T)".
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          var bv = e.BoundVars[0];
+          TrBoundVariables(e.BoundVars, bvars);
+          
+          Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
+
+          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.otherTmpVarCount, predef.BoxType));
+          translator.otherTmpVarCount++;
+
+          Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, yVar), bv.Type, this);
+          Bpl.Expr unboxy = !ModeledAsBoxType(bv.Type) ? translator.FunctionCall(e.tok, BuiltinFunction.Unbox, translator.TrType(bv.Type), new Bpl.IdentifierExpr(expr.tok, yVar))
+            : (Bpl.Expr)(new Bpl.IdentifierExpr(expr.tok, yVar));
+
+
+          Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
+          subst.Add(e.BoundVars[0], new BoogieWrapper(unboxy,e.BoundVars[0].Type));
+
+          var ebody = translator.BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Substitute(e.Range, null, subst)));
+          Bpl.Expr l1 = new Bpl.LambdaExpr(e.tok, new Bpl.TypeVariableSeq(), new VariableSeq(yVar), kv, ebody);
+          ebody = TrExpr(Substitute(e.Term, null, subst));
+          Bpl.Expr l2 = new Bpl.LambdaExpr(e.tok, new Bpl.TypeVariableSeq(), new VariableSeq(yVar), kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
+
+          
+          return translator.FunctionCall(e.tok, BuiltinFunction.MapGlue, null, l1, l2);
 
         } else if (expr is PredicateExpr) {
           var e = (PredicateExpr)expr;
@@ -6301,6 +6341,7 @@ namespace Microsoft.Dafny {
       MapBuild,
       MapDisjoint,
       MapUnion,
+      MapGlue,
 
       IndexField,
       MultiIndexField,
@@ -6485,6 +6526,9 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.MapElements:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "Map#Elements", typeInstantiation, args);
+        case BuiltinFunction.MapGlue:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "Map#Glue", predef.MapType(tok, predef.BoxType, predef.BoxType), args);
         case BuiltinFunction.MapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -7427,6 +7471,10 @@ namespace Microsoft.Dafny {
           if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
             newExpr = new SetComprehension(expr.tok, e.BoundVars, newRange, newTerm);
           }
+        } else if (e is MapComprehension) {
+          if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
+            newExpr = new MapComprehension(expr.tok, e.BoundVars, newRange, newTerm);
+          }
         } else if (e is QuantifierExpr) {
           var q = (QuantifierExpr)e;
           if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
@@ -7437,7 +7485,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          Contract.Assume(false);  // unexpected ComprehensionExpr
+          Contract.Assert(false);  // unexpected ComprehensionExpr
         }
 
       } else if (expr is PredicateExpr) {

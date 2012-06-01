@@ -1342,14 +1342,28 @@ MultiSetExpr<out Expression e>
   .
 MapExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x = null;  List<ExpressionPair/*!*/>/*!*/ elements;
+     IToken/*!*/ x = Token.NoToken;
+     List<ExpressionPair/*!*/>/*!*/ elements;
      e = dummyExpr;
   .)
   "map"                                        (. x = t; .)
-  ( "{"                                        (. elements = new List<ExpressionPair/*!*/>(); .)
+  ( "["                                        (. elements = new List<ExpressionPair/*!*/>(); .)
       [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(x, elements);.)
-    "}"
-  | (. SemErr("map must be followed by braces."); .)
+    "]"
+  | (
+     (. 
+     BoundVar/*!*/ bv;
+     List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
+     Expression/*!*/ range;
+     Expression body = null;
+    .)
+      IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+      "|" Expression<out range>
+      QSep
+      Expression<out body>
+      (. e = new MapComprehension(x, bvars, range, body); .) 
+    )
+  | (. SemErr("map must be followed by literal in brackets or comprehension."); .)
   )
   .
 MapLiteralExpressions<.out List<ExpressionPair> elements.>

@@ -1190,6 +1190,24 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("map ");
+        string sep = "";
+        foreach (BoundVar bv in e.BoundVars) {
+          wr.Write("{0}{1}", sep, bv.Name);
+          sep = ", ";
+          PrintType(": ", bv.Type);
+        }
+        PrintAttributes(e.Attributes);
+        wr.Write(" | ");
+        PrintExpression(e.Range);
+        wr.Write(" :: ");
+        PrintExpression(e.Term);
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is WildcardExpr) {
         wr.Write("*");
 

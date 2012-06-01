@@ -577,7 +577,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     set(Arg) or seq(Arg)
+  ///     set(Arg) or seq(Arg) or map(Arg, Range)
   /// </summary>
   public class CollectionTypeProxy : RestrictedTypeProxy {
     public readonly Type Arg;
@@ -3068,6 +3068,11 @@ namespace Microsoft.Dafny {
       public readonly Expression Set;
       public SetBoundedPool(Expression set) { Set = set; }
     }
+    public class MapBoundedPool : BoundedPool
+    {
+      public readonly Expression Map;
+      public MapBoundedPool(Expression map) { Map = map; }
+    }
     public class SeqBoundedPool : BoundedPool
     {
       public readonly Expression Seq;
@@ -3160,6 +3165,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(range != null);
 
       TermIsImplicit = term == null;
+    }
+  }
+  public class MapComprehension : ComprehensionExpr
+  {
+    public MapComprehension(IToken/*!*/ tok, List<BoundVar/*!*/>/*!*/ bvars, Expression/*!*/ range, Expression term)
+      : base(tok, bvars, range, term, null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cce.NonNullElements(bvars));
+      Contract.Requires(1 <= bvars.Count);
+      Contract.Requires(range != null);
+      Contract.Requires(term != null);
     }
   }
 

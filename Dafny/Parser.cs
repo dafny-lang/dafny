@@ -2303,21 +2303,35 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void MapExpr(out Expression e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-		IToken/*!*/ x = null;  List<ExpressionPair/*!*/>/*!*/ elements;
+		IToken/*!*/ x = Token.NoToken;
+		List<ExpressionPair/*!*/>/*!*/ elements;
 		e = dummyExpr;
 		
 		Expect(42);
 		x = t; 
-		if (la.kind == 6) {
+		if (la.kind == 55) {
 			Get();
 			elements = new List<ExpressionPair/*!*/>(); 
 			if (StartOf(9)) {
 				MapLiteralExpressions(out elements);
 			}
 			e = new MapDisplayExpr(x, elements);
-			Expect(7);
+			Expect(56);
+		} else if (la.kind == 1) {
+			BoundVar/*!*/ bv;
+			List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
+			Expression/*!*/ range;
+			Expression body = null;
+			
+			IdentTypeOptional(out bv);
+			bvars.Add(bv); 
+			Expect(18);
+			Expression(out range);
+			QSep();
+			Expression(out body);
+			e = new MapComprehension(x, bvars, range, body); 
 		} else if (StartOf(19)) {
-			SemErr("map must be followed by braces."); 
+			SemErr("map must be followed by literal in brackets or comprehension."); 
 		} else SynErr(177);
 	}
 
@@ -2426,6 +2440,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 	}
 
+	void QSep() {
+		if (la.kind == 106) {
+			Get();
+		} else if (la.kind == 107) {
+			Get();
+		} else SynErr(179);
+	}
+
 	void MatchExpression(out Expression/*!*/ e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
 		List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
@@ -2454,7 +2476,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 104 || la.kind == 105) {
 			Exists();
 			x = t; 
-		} else SynErr(179);
+		} else SynErr(180);
 		QuantifierDomain(out bvars, out attrs, out range);
 		QSep();
 		Expression(out body);
@@ -2524,21 +2546,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 103) {
 			Get();
-		} else SynErr(180);
+		} else SynErr(181);
 	}
 
 	void Exists() {
 		if (la.kind == 104) {
 			Get();
 		} else if (la.kind == 105) {
-			Get();
-		} else SynErr(181);
-	}
-
-	void QSep() {
-		if (la.kind == 106) {
-			Get();
-		} else if (la.kind == 107) {
 			Get();
 		} else SynErr(182);
 	}
@@ -2800,10 +2814,10 @@ public class Errors {
 			case 176: s = "invalid MultiSetExpr"; break;
 			case 177: s = "invalid MapExpr"; break;
 			case 178: s = "invalid ConstAtomExpression"; break;
-			case 179: s = "invalid QuantifierGuts"; break;
-			case 180: s = "invalid Forall"; break;
-			case 181: s = "invalid Exists"; break;
-			case 182: s = "invalid QSep"; break;
+			case 179: s = "invalid QSep"; break;
+			case 180: s = "invalid QuantifierGuts"; break;
+			case 181: s = "invalid Forall"; break;
+			case 182: s = "invalid Exists"; break;
 
 			default: s = "error " + n; break;
 		}

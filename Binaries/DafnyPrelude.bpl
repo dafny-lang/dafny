@@ -371,6 +371,15 @@ axiom (forall<U, V> u: U ::
   { Map#Domain(Map#Empty(): Map U V)[u] }
    !Map#Domain(Map#Empty(): Map U V)[u]);
 
+function Map#Glue<U, V>([U] bool, [U]V): Map U V;
+axiom (forall<U, V> a: [U] bool, b:[U]V ::
+  { Map#Domain(Map#Glue(a, b)) }
+    Map#Domain(Map#Glue(a, b)) == a);
+axiom (forall<U, V> a: [U] bool, b:[U]V ::
+  { Map#Elements(Map#Glue(a, b)) }
+    Map#Elements(Map#Glue(a, b)) == b);
+
+
 //Build is used in displays, and for map updates
 function Map#Build<U, V>(Map U V, U, V): Map U V;
 /*axiom (forall<U, V> m: Map U V, u: U, v: V ::

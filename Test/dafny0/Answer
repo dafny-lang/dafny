@@ -1565,7 +1565,7 @@ Maps.dfy(126,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 22 verified, 2 errors
+Dafny program verifier finished with 30 verified, 2 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

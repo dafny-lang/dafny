@@ -3067,6 +3067,42 @@ namespace Microsoft.Dafny {
           }
         }
 
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        int prevErrorCount = ErrorCount;
+        scope.PushMarker();
+        if (e.BoundVars.Count != 1) {
+          Error(e.tok, "a map comprehension must have exactly one bound variable.");
+        }
+        foreach (BoundVar v in e.BoundVars) {
+          if (!scope.Push(v.Name, v)) {
+            Error(v, "Duplicate bound-variable name: {0}", v.Name);
+          }
+          ResolveType(v.tok, v.Type, null, true);
+        }
+        ResolveExpression(e.Range, twoState);
+        Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.Range.Type, Type.Bool)) {
+          Error(expr, "range of comprehension must be of type bool (instead got {0})", e.Range.Type);
+        }
+        ResolveExpression(e.Term, twoState);
+        Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
+
+        ResolveAttributes(e.Attributes, twoState);
+        scope.PopMarker();
+        expr.Type = new MapType(e.BoundVars[0].Type,e.Term.Type);
+
+        if (prevErrorCount == ErrorCount) {
+          var missingBounds = new List<BoundVar>();
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, missingBounds);
+          if (missingBounds.Count != 0) {
+            e.MissingBounds = missingBounds;
+            foreach (var bv in e.MissingBounds) {
+              Error(expr, "a map comprehension must produce a finite domain, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{0}'", bv.Name);
+            }
+          }
+        }
+
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
 
@@ -4251,6 +4287,9 @@ namespace Microsoft.Dafny {
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
         return (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        return (UsesSpecFeatures(e.Range)) || (UsesSpecFeatures(e.Term));
       } else if (expr is WildcardExpr) {
         return false;
       } else if (expr is PredicateExpr) {
