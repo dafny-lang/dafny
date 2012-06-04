@@ -33,6 +33,7 @@ namespace Microsoft.Dafny
     public bool Compile = true;
     public bool ForceCompile = false;
     public bool SpillTargetCode = false;
+    public bool RuntimeChecking = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -88,6 +89,14 @@ namespace Microsoft.Dafny
 
         case "inductionHeuristic":
           ps.GetNumericArgument(ref InductionHeuristic, 7);
+          return true;
+
+        case "runtimeChecking":
+          int runtimeChecking = 0; // 0 is default, no runtime checking
+          if (ps.GetNumericArgument(ref runtimeChecking, 2))
+          {
+            RuntimeChecking = runtimeChecking == 1;
+          }
           return true;
 
         default:
@@ -148,6 +157,10 @@ namespace Microsoft.Dafny
                 1,2,3,4,5 - levels in between, ordered as follows as far as
                     how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
                 6 (default) - most discriminating
+  /runtimeChecking:<n>
+                0 (default) - ignore Dafny specifications during compilation
+                1 - translate Dafny specifications to CodeContracts during
+                    compilation for runtime checking
 ");
       base.Usage();  // also print the Boogie options
     }
