@@ -42,6 +42,7 @@ namespace Microsoft.Dafny {
       string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
       using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read)))
       {
+        IncludeCodeContracts();
         while (true) {
           string s = rd.ReadLine();
           if (s == null)
@@ -415,7 +416,7 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write(")");
-      
+
       wr.WriteLine(";");
       Indent(ind + 2 * IndentAmount);
       wr.WriteLine("}");
@@ -849,12 +850,16 @@ namespace Microsoft.Dafny {
     void TrStmt(Statement stmt, int indent)
     {
       Contract.Requires(stmt != null);
-      if (stmt.IsGhost) {
+      if (!DafnyOptions.O.RuntimeChecking && stmt.IsGhost) {
         CheckHasNoAssumes(stmt);
         return;
       }
 
-      if (stmt is PrintStmt) {
+      if (stmt is AssertStmt)
+      {
+        TrAssertStmt((AssertStmt)stmt, indent);
+      }
+      else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         foreach (Attributes.Argument arg in s.Args) {
           SpillLetVariableDecls(arg.E, indent);
@@ -2187,5 +2192,52 @@ namespace Microsoft.Dafny {
       }
       twr.Write(")");
     }
+
+    #region Runtime checking translation
+
+    void IncludeCodeContracts()
+    {
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        wr.WriteLine("using System.Diagnostics.Contracts;");
+      }
+    }
+
+    void TrAssertStmt(AssertStmt/*!*/ stmt, int indent)
+    {
+      Contract.Requires(stmt != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      WriteAssertion(ExprToString(stmt.Expr), indent);
+    }
+
+    #endregion
+
+    #region Runtime checking helper methods
+
+    string/*!*/ ExprToString(Expression/*!*/ expr)
+    {
+      Contract.Requires(expr != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      TextWriter oldWr = wr;
+      wr = new StringWriter();
+      TrExpr(expr);
+      string e = wr.ToString();
+      wr = oldWr;
+      return e;
+    }
+
+    void WriteAssertion(string/*!*/ expr, int indent)
+    {
+      Contract.Requires(expr != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      Indent(indent);
+      wr.WriteLine("Contract.Assert(" + expr + ");");
+    }
+
+    #endregion
+
   }
 }
