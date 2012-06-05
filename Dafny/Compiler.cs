@@ -855,7 +855,11 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (stmt is AssertStmt)
+      if (stmt is AssumeStmt)
+      {
+        TrAssumeStmt((AssumeStmt)stmt, indent);
+      }
+      else if (stmt is AssertStmt)
       {
         TrAssertStmt((AssertStmt)stmt, indent);
       }
@@ -1794,7 +1798,7 @@ namespace Microsoft.Dafny {
               wr.Write(".Length)");
             } else {
               TrParenExpr(e.E);
-              wr.Write(".Length");
+              wr.Write(".Length");
             }
             break;
           default:
@@ -2203,6 +2207,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrAssumeStmt(AssumeStmt/*!*/ stmt, int indent)
+    {
+      Contract.Requires(stmt != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      WriteAssumption(ExprToString(stmt.Expr), indent);
+    }
+
     void TrAssertStmt(AssertStmt/*!*/ stmt, int indent)
     {
       Contract.Requires(stmt != null);
@@ -2226,6 +2238,15 @@ namespace Microsoft.Dafny {
       string e = wr.ToString();
       wr = oldWr;
       return e;
+    }
+
+    void WriteAssumption(string/*!*/ expr, int indent)
+    {
+      Contract.Requires(expr != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      Indent(indent);
+      wr.WriteLine("Contract.Assume(" + expr + ");");
     }
 
     void WriteAssertion(string/*!*/ expr, int indent)
