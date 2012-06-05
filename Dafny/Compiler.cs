@@ -574,6 +574,7 @@ namespace Microsoft.Dafny {
             WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
             wr.WriteLine(")");
             Indent(indent);  wr.WriteLine("{");
+            TrReq(m.Req, indent + IndentAmount);
             foreach (Formal p in m.Outs) {
               if (!p.IsGhost) {
                 Indent(indent + IndentAmount);
@@ -2221,6 +2222,25 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(DafnyOptions.O.RuntimeChecking);
       WriteAssertion(ExprToString(stmt.Expr), indent);
+    }
+
+    void TrReq(List<MaybeFreeExpression/*!*/>/*!*/ req, int indent)
+    {
+      Contract.Requires(cce.NonNullElements(req));
+
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        foreach (MaybeFreeExpression e in req)
+        {
+          if (!e.IsFree)
+          {
+            Indent(indent);
+            wr.Write("Contract.Requires(");
+            TrExpr(e.E);
+            wr.WriteLine(");");
+          }
+        }
+      }
     }
 
     #endregion
