@@ -245,7 +245,7 @@ namespace Microsoft.Dafny
           if (ccrewrite)
           {
             Process p = new Process();
-            string ccrewriterOpts = "-nologo -callSiteRequires - shortBranches -throwOnFailure";
+            string ccrewriterOpts = "-nologo -callSiteRequires -shortBranches -throwOnFailure";
             p.StartInfo.FileName = "cmd.exe";
             p.StartInfo.Arguments = "/C \"\"" + ccrewriter + "\" " +
               ccrewriterOpts + " \"" + cp.OutputAssembly + "\"\"";
