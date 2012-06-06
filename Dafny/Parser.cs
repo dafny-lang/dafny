@@ -1098,7 +1098,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Ident(out id);
 			Expect(5);
 			OneStmt(out s);
-			s.Labels = new LabelNode(x, id.val, s.Labels); 
+			s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); 
 			break;
 		}
 		case 50: {

@@ -513,13 +513,13 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-    void AddStmtLabels(Statement s, LabelNode node) {
+    void AddStmtLabels(Statement s, LList<Label> node) {
       if (node != null) {
         AddStmtLabels(s, node.Next);
-        if (node.Label == null) {
+        if (node.Data.Name == null) {
           // this indicates an implicit-target break statement that has been resolved; don't add it
         } else {
-          s.Labels = new LabelNode(Tok(node.Tok), node.Label, s.Labels);
+          s.Labels = new LList<Label>(new Label(Tok(node.Data.Tok), node.Data.Name), s.Labels);
         }
       }
     }
@@ -1090,8 +1090,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(labels != null);
       Contract.Requires(0 <= loopLevels);
 
-      for (LabelNode n = s.Labels; n != null; n = n.Next) {
-        labels.Push(n.Label);
+      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
+        labels.Push(n.Data.Name);
       }
 
       if (s is SkeletonStatement) {
@@ -1116,7 +1116,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      for (LabelNode n = s.Labels; n != null; n = n.Next) {
+      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
         labels.Pop();
       }
     }

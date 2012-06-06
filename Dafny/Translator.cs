@@ -3403,7 +3403,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         AddComment(builder, stmt, "break statement");
         var s = (BreakStmt)stmt;
-        builder.Add(new GotoCmd(s.Tok, new StringSeq("after_" + s.TargetStmt.Labels.UniqueId)));
+        builder.Add(new GotoCmd(s.Tok, new StringSeq("after_" + s.TargetStmt.Labels.Data.UniqueId)));
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
@@ -3471,7 +3471,7 @@ namespace Microsoft.Dafny {
         foreach (Statement ss in ((BlockStmt)stmt).Body) {
           TrStmt(ss, builder, locals, etran);
           if (ss.Labels != null) {
-            builder.AddLabelCmd("after_" + ss.Labels.UniqueId);
+            builder.AddLabelCmd("after_" + ss.Labels.Data.UniqueId);
           }
         }
       } else if (stmt is IfStmt) {

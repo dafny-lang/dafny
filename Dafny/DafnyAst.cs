@@ -1320,7 +1320,7 @@ namespace Microsoft.Dafny {
 
   public abstract class Statement {
     public readonly IToken Tok;
-    public LabelNode Labels;  // mutable during resolution
+    public LList<Label> Labels;  // mutable during resolution
 
     private Attributes attributes;
     public Attributes Attributes {
@@ -1363,19 +1363,43 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LabelNode
+  public class LList<T>
+  {
+    public readonly T Data;
+    public readonly LList<T> Next;
+    const LList<T> Empty = null;
+
+    public LList(T d, LList<T> next) {
+      Data = d;
+      Next = next;
+    }
+
+    public static LList<T> Append(LList<T> a, LList<T> b) {
+      if (a == null) return b;
+      return new LList<T>(a.Data, Append(a.Next, b));
+      // pretend this is ML
+    }
+    public static int Count(LList<T> n) {
+      int count = 0;
+      while (n != null) {
+        count++;
+        n = n.Next;
+      }
+      return count;
+    }
+  }
+
+  public class Label
   {
     public readonly IToken Tok;
-    public readonly string Label;
+    public readonly string Name;
     public readonly int UniqueId;
-    public readonly LabelNode Next;
     static int nodes = 0;
 
-    public LabelNode(IToken tok, string label, LabelNode next) {
+    public Label(IToken tok, string label) {
       Contract.Requires(tok != null);
       Tok = tok;
-      Label = label;
-      Next = next;
+      Name = label;
       UniqueId = nodes++;
     }
   }

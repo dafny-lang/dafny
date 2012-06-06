@@ -1355,7 +1355,7 @@ namespace Microsoft.Dafny {
             Statement target = loopStack[loopStack.Count - s.BreakCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
-              target.Labels = new LabelNode(target.Tok, null, null);
+              target.Labels = new LList<Label>(new Label(target.Tok, null), null);
             }
             s.TargetStmt = target;
             if (specContextOnly && !target.IsGhost && !inSpecOnlyContext[target]) {
@@ -2158,17 +2158,18 @@ namespace Microsoft.Dafny {
       foreach (Statement ss in blockStmt.Body) {
         labeledStatements.PushMarker();
         // push labels
-        for (var lnode = ss.Labels; lnode != null; lnode = lnode.Next) {
-          Contract.Assert(lnode.Label != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-          var prev = labeledStatements.Find(lnode.Label);
+        for (var l = ss.Labels; l != null; l = l.Next) {
+          var lnode = l.Data;
+          Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+          var prev = labeledStatements.Find(lnode.Name);
           if (prev == ss) {
             Error(lnode.Tok, "duplicate label");
           } else if (prev != null) {
             Error(lnode.Tok, "label shadows an enclosing label");
           } else {
-            bool b = labeledStatements.Push(lnode.Label, ss);
+            bool b = labeledStatements.Push(lnode.Name, ss);
             Contract.Assert(b);  // since we just checked for duplicates, we expect the Push to succeed
-            if (lnode == ss.Labels) {  // add it only once
+            if (l == ss.Labels) {  // add it only once
               inSpecOnlyContext.Add(ss, specContextOnly);
             }
           }

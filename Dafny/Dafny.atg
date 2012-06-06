@@ -691,7 +691,7 @@ OneStmt<out Statement/*!*/ s>
   | ParallelStmt<out s>
   | "label"                            (. x = t; .)
     Ident<out id> ":"
-    OneStmt<out s>                     (. s.Labels = new LabelNode(x, id.val, s.Labels); .)
+    OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
   | "break"                            (. x = t; breakCount = 1; label = null; .)
     ( Ident<out id>                    (. label = id.val; .)
     | { "break"                        (. breakCount++; .)

@@ -421,9 +421,9 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
-      for (LabelNode label = stmt.Labels; label != null; label = label.Next) {
-        if (label.Label != null) {
-          wr.WriteLine("label {0}:", label.Label);
+      for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
+        if (label.Data.Name != null) {
+          wr.WriteLine("label {0}:", label.Data.Name);
           Indent(indent);
         }
       }
