@@ -507,6 +507,7 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
 ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
+     IToken moduleName = null;
      List<Type/*!*/>/*!*/ gt;
   .)
   ( "object"                        (. tok = t;  ty = new ObjectType(); .)
@@ -521,7 +522,10 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
                                     .)
   | Ident<out tok>                  (. gt = new List<Type/*!*/>(); .)
-    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
+    [                               (. moduleName = tok; .)
+      "." Ident<out tok>
+    ]
+    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, moduleName); .)
   )
   .
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
@@ -765,8 +769,23 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
     | "." Ident<out x>
       "("                              (. args = new List<Expression/*!*/>(); .)
         [ Expressions<args> ]
-      ")"                              (. initCall = new CallStmt(x, new List<Expression>(),
-                                                                  receiverForInitCall, x.val, args); .)
+      ")"                              (. initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args); .)
+    | "("                              (. var udf = ty as UserDefinedType;
+                                          if (udf != null && udf.ModuleName != null && udf.TypeArgs.Count == 0) {
+                                            // The parsed name had the form "A.B", so treat "A" as the name of the type and "B" as
+                                            // the name of the constructor that's being invoked.
+                                            x = udf.tok;
+                                            ty = new UserDefinedType(udf.ModuleName, udf.ModuleName.val, new List<Type>(), null);
+                                          } else {
+                                            SemErr(t, "expected '.'");
+                                            x = null;
+                                          }
+                                          args = new List<Expression/*!*/>(); .)
+        [ Expressions<args> ]
+      ")"                              (. if (x != null) {
+                                            initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args);
+                                          }
+                                       .)
     ]
     (. if (ee != null) {
          r = new TypeRhs(newToken, ty, ee);

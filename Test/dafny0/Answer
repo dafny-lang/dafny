@@ -712,13 +712,13 @@ Modules0.dfy(7,7): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(11,8): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(12,11): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
 Modules0.dfy(43,13): Error: Function body type mismatch (expected T, got T)
-Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
 Modules0.dfy(48,12): Error: new can be applied only to reference types (got T)
 Modules0.dfy(54,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
 Modules0.dfy(70,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
@@ -730,13 +730,20 @@ Modules0.dfy(250,15): Error: unresolved identifier: X
 Modules0.dfy(251,17): Error: member DoesNotExist does not exist in class X
 Modules0.dfy(294,16): Error: member R does not exist in class B
 Modules0.dfy(294,6): Error: expected method call, found expression
+Modules0.dfy(317,18): Error: second argument to "in" must be a set or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>)
+Modules0.dfy(321,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
+Modules0.dfy(322,11): Error: Undeclared module name: LongLostModule (did you forget a module import?)
+Modules0.dfy(323,11): Error: Undeclared module name: Wazzup (did you forget a module import?)
+Modules0.dfy(324,17): Error: Undeclared class name Edon in module Q_Imp
+Modules0.dfy(326,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
+Modules0.dfy(327,30): Error: member Create does not exist in class Klassy
 Modules0.dfy(140,11): Error: ghost variables are allowed only in specification contexts
 Modules0.dfy(154,11): Error: old expressions are allowed only in specification and ghost contexts
 Modules0.dfy(155,11): Error: fresh expressions are allowed only in specification and ghost contexts
 Modules0.dfy(156,11): Error: allocated expressions are allowed only in specification and ghost contexts
 Modules0.dfy(172,10): Error: match source expression 'tree' has already been used as a match source expression in this context
 Modules0.dfy(211,12): Error: match source expression 'l' has already been used as a match source expression in this context
-30 resolution/type errors detected in Modules0.dfy
+37 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
 Modules1.dfy(74,16): Error: assertion violation
@@ -758,7 +765,7 @@ Modules1.dfy(58,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 19 verified, 5 errors
+Dafny program verifier finished with 22 verified, 5 errors
 
 -------------------- BadFunction.dfy --------------------
 BadFunction.dfy(6,3): Error: failure to decrease termination measure

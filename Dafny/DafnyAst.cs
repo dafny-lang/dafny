@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
 
       List<Type/*!*/> typeArgs = new List<Type/*!*/>();
       typeArgs.Add(arg);
-      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs);
+      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs, null);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
         for (int d = 0; d < dims; d++) {
@@ -393,7 +393,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 
-    public readonly IToken tok;
+    public readonly IToken ModuleName;  // may be null
+    public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
     public readonly List<Type/*!*/>/*!*/ TypeArgs;
@@ -411,10 +412,11 @@ namespace Microsoft.Dafny {
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
+    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, IToken moduleName) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
+      this.ModuleName = moduleName;
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -480,6 +482,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
 
       string s = Name;
+      if (ModuleName != null) {
+        s = ModuleName.val + "." + s;
+      }
       if (TypeArgs.Count != 0) {
         string sep = "<";
         foreach (Type t in TypeArgs) {

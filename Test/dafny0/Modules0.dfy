@@ -301,3 +301,31 @@ module Local imports NonLocalA, NonLocalB {
     method Q() { }
   }
 }
+
+// ------ qualified type names ----------------------------------
+
+module Q_Imp {
+  class Node { }
+  datatype List<T> = Nil | Cons(T, List);
+  class Klassy {
+    method Init()
+  }
+}
+
+module Q_M imports Q_Imp {
+  method MyMethod(root: Q_Imp.Node, S: set<Node>)
+    requires root in S;  // error: the element type of S does not agree with the type of root
+  {
+    var i := new Q_Imp.Node;
+    var j := new Node;
+    assert i != j;  // error: i and j have different types
+    var k: LongLostModule.Node;  // error: undeclared module
+    var l: Wazzup.WazzupA;  // error: undeclared module (it has not been imported)
+    var m: Q_Imp.Edon;  // error: undeclared class in module Q_Imp
+    var n: Q_Imp.List;
+    var o := new Q_Imp.List;  // error: not a class declared in module Q_Imp
+    var p := new Q_Imp.Klassy.Create();  // error: Create is not a method
+    var q := new Q_Imp.Klassy.Init();
+  }
+  class Node { }
+}

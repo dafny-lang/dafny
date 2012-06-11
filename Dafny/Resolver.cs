@@ -937,7 +937,7 @@ namespace Microsoft.Dafny {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
         }
-        TypeParameter tp = allTypeParameters.Find(t.Name);
+        TypeParameter tp = t.ModuleName == null ? allTypeParameters.Find(t.Name) : null;
         if (tp != null) {
           if (t.TypeArgs.Count == 0) {
             t.ResolvedParam = tp;
@@ -945,11 +945,32 @@ namespace Microsoft.Dafny {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
-          TopLevelDecl d;
-          if (!classes.TryGetValue(t.Name, out d)) {
+          TopLevelDecl d = null;
+          if (t.ModuleName != null) {
+            foreach (var imp in currentClass.Module.Imports) {
+              if (imp.Name == t.ModuleName.val) {
+                // now search among the types declared in module "imp"
+                foreach (var tld in imp.TopLevelDecls) {  // this search is slow, but oh well
+                  if (tld.Name == t.Name) {
+                    // found the class
+                    d = tld;
+                    goto DONE_WITH_QUALIFIED_NAME;
+                  }
+                }
+                Error(t.tok, "Undeclared class name {0} in module {1}", t.Name, t.ModuleName.val);
+                goto DONE_WITH_QUALIFIED_NAME;
+              }
+            }
+            Error(t.ModuleName, "Undeclared module name: {0} (did you forget a module import?)", t.ModuleName.val);
+          DONE_WITH_QUALIFIED_NAME: ;
+          } else if (!classes.TryGetValue(t.Name, out d)) {
             Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
+          }
+
+          if (d == null) {
+            // error has been reported above
           } else if (d is AmbiguousTopLevelDecl) {
-            Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
+            Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
           } else if (d is ArbitraryTypeDecl) {
             t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve like a type parameter
           } else {
@@ -973,7 +994,7 @@ namespace Microsoft.Dafny {
                   Contract.Assert(d.TypeArgs.Count <= defaultTypeArguments.Count);
                   // automatically supply a prefix of the arguments from defaultTypeArguments
                   for (int i = 0; i < d.TypeArgs.Count; i++) {
-                    var typeArg = new UserDefinedType(t.tok, defaultTypeArguments[i].Name, new List<Type>());
+                    var typeArg = new UserDefinedType(t.tok, defaultTypeArguments[i].Name, new List<Type>(), null);
                     typeArg.ResolvedParam = defaultTypeArguments[i];  // resolve "typeArg" here
                     t.TypeArgs.Add(typeArg);
                   }
@@ -2339,7 +2360,7 @@ namespace Microsoft.Dafny {
             }
             if (!callsConstructor && rr.EType is UserDefinedType) {
               var udt = (UserDefinedType)rr.EType;
-              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guarantted by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
               if (cl.HasConstructor) {
                 Error(stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
               }
@@ -2595,7 +2616,7 @@ namespace Microsoft.Dafny {
             dtv.InferredTypeArgs.Add(t);
             subst.Add(dt.TypeArgs[i], t);
           }
-          expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
+          expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt, null);
           ResolveType(expr.tok, expr.Type, null, true);
 
           DatatypeCtor ctor;

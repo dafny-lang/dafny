@@ -89,3 +89,23 @@ module B_Visibility imports A_Visibility {
     }
   }
 }
+
+// ------ qualified type names ----------------------------------
+
+module Q_Imp {
+  class Node { }
+  class Klassy {
+    method Init()
+  }
+}
+
+module Q_M imports Q_Imp {
+  method MyMethod(root: Q_Imp.Node, S: set<Q_Imp.Node>)
+    requires root in S;
+  {
+    var i := new Q_Imp.Node;
+    var j := new Node;
+    assert i != j;  // fine
+    var q := new Q_Imp.Klassy.Init();
+  }
+}
