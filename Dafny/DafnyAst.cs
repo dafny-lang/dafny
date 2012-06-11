@@ -1172,7 +1172,6 @@ namespace Microsoft.Dafny {
 
   public class Function : MemberDecl, TypeParameter.ParentType {
     public readonly bool IsGhost;  // functions are "ghost" by default; a non-ghost function is called a "function method"
-    public readonly bool IsUnlimited;
     public bool IsRecursive;  // filled in during resolution
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly IToken OpenParen;  // can be null (for predicates), if there are no formals
@@ -1195,7 +1194,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-    public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
+    public Function(IToken tok, string name, bool isStatic, bool isGhost,
                     List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals, Type resultType,
                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, bool signatureOmitted)
@@ -1211,7 +1210,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
       this.IsGhost = isGhost;
-      this.IsUnlimited = isUnlimited;
       this.TypeArgs = typeArgs;
       this.OpenParen = openParen;
       this.Formals = formals;
@@ -1228,11 +1226,11 @@ namespace Microsoft.Dafny {
   public class Predicate : Function
   {
     public readonly bool BodyIsExtended;  // says that this predicate definition is a refinement extension of a predicate definition is a refining module
-    public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
+    public Predicate(IToken tok, string name, bool isStatic, bool isGhost,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, bool bodyIsExtended, Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
+      : base(tok, name, isStatic, isGhost, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
       Contract.Requires(!bodyIsExtended || body != null);
       BodyIsExtended = bodyIsExtended;
     }

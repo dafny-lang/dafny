@@ -222,7 +222,6 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : "function";
-      if (f.IsUnlimited) { k = "unlimited " + k; }
       if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);

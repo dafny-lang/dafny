@@ -24,7 +24,6 @@ static int anonymousIds = 0;
 struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
-  public bool IsUnlimited;
 }
 // helper routine for parsing call statements
 ///<summary>
@@ -226,7 +225,6 @@ ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool isAlreadyGhost, bool allowC
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; .)
-  | "unlimited"                            (. mmod.IsUnlimited = true; .)
   }
   ( FieldDecl<mmod, mm>
   | FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
@@ -281,8 +279,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   .)
   SYNC
   "var"
-  (. if (mmod.IsUnlimited) { SemErr(t, "fields cannot be declared 'unlimited'"); }
-     if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
+  (. if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
   IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
@@ -396,8 +393,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
                                        }
                                     .)
   )
-  (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
-     if (isConstructor) {
+  (. if (isConstructor) {
        if (mmod.IsGhost) {
          SemErr(t, "constructors cannot be declared 'ghost'");
        }
@@ -596,10 +592,10 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isPredicate) {
-        f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals,
+        f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs, signatureOmitted);
      } else {
-        f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType,
+        f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
      }
      f.BodyStartTok = bodyStart;

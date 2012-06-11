@@ -19,7 +19,7 @@ namespace Demo
         this.MarkReservedWords(  // NOTE: these keywords must also appear once more below
           "class", "ghost", "static", "var", "method", "constructor", "datatype", "codatatype", "type",
           "assert", "assume", "new", "this", "object", "refines",
-          "unlimited", "module", "imports",
+          "module", "imports",
           "if", "then", "else", "while", "invariant",
           "break", "label", "return", "parallel", "havoc", "print",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
@@ -275,7 +275,6 @@ namespace Demo
           | "this"
           | "object"
           | "refines"
-          | "unlimited"
           | "module"
           | "imports"
           | "if"

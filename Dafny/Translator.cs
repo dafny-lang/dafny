@@ -574,7 +574,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           Function f = (Function)member;
           AddFunction(f);
-          if (f.IsRecursive && !f.IsUnlimited) {
+          if (f.IsRecursive) {
             AddLimitedAxioms(f, 2);
             AddLimitedAxioms(f, 1);
           }
@@ -586,7 +586,7 @@ namespace Microsoft.Dafny {
             } else {
               AddFunctionAxiom(f, body, f.Ens, null, layerOffset);
             }
-            if (!f.IsRecursive || f.IsUnlimited) { break; }
+            if (!f.IsRecursive) { break; }
           }
           AddFrameAxiom(f);
           AddWellformednessCheck(f);
@@ -716,7 +716,7 @@ namespace Microsoft.Dafny {
     Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, FunctionAxiomVisibility visibility, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
       Contract.Requires(f != null);
       Contract.Requires(ens != null);
-      Contract.Requires(layerOffset == 0 || (layerOffset == 1 && f.IsRecursive && !f.IsUnlimited));
+      Contract.Requires(layerOffset == 0 || (layerOffset == 1 && f.IsRecursive));
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
 
@@ -895,7 +895,7 @@ namespace Microsoft.Dafny {
 
     void AddLimitedAxioms(Function f, int fromLayer) {
       Contract.Requires(f != null);
-      Contract.Requires(f.IsRecursive && !f.IsUnlimited);
+      Contract.Requires(f.IsRecursive);
       Contract.Requires(fromLayer == 1 || fromLayer == 2);
       Contract.Requires(sink != null && predef != null);
       // With fromLayer==1, generate:
@@ -1380,7 +1380,7 @@ namespace Microsoft.Dafny {
     ///        F(h0,formals) == F(h1,formals)
     ///      );
     ///
-    /// If the function is a recursive, non-unlimited function, then the same axiom is also produced for "F#limited" instead of "F".
+    /// If the function is a recursive function, then the same axiom is also produced for "F#limited" instead of "F".
     /// </summary>
     void AddFrameAxiom(Function f)
     {
@@ -1459,7 +1459,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, heapSucc),
           Bpl.Expr.Imp(q0, eq)));
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax, axiomComment));
-        if (axiomComment != null && f.IsRecursive && !f.IsUnlimited) {
+        if (axiomComment != null && f.IsRecursive) {
           fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, FunctionName(f, 0), TrType(f.ResultType)));
           axiomComment = null;  // the comment goes only with the first frame axiom
         } else {
@@ -2933,7 +2933,7 @@ namespace Microsoft.Dafny {
       Bpl.Function func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
       sink.TopLevelDeclarations.Add(func);
 
-      if (f.IsRecursive && !f.IsUnlimited) {
+      if (f.IsRecursive) {
         sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 0), args, res));
         sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 2), args, res));
       }
@@ -5535,12 +5535,12 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          int offsetToUse = e.Function.IsRecursive && !e.Function.IsUnlimited ? this.layerOffset : 0;
-          if (e.Function.IsRecursive && !e.Function.IsUnlimited) {
+          int offsetToUse = e.Function.IsRecursive ? this.layerOffset : 0;
+          if (e.Function.IsRecursive) {
             Statistics_CustomLayerFunctionCount++;
           }
           string nm = FunctionName(e.Function, 1 + offsetToUse);
-          if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive && !e.Function.IsUnlimited) {
+          if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive) {
             ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
             if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
               if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
