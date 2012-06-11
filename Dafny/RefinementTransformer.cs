@@ -186,16 +186,16 @@ namespace Microsoft.Dafny {
         return t;
       } else if (t is SetType) {
         var tt = (SetType)t;
-        return new SetType(tt.Arg);
+        return new SetType(CloneType(tt.Arg));
       } else if (t is SeqType) {
         var tt = (SeqType)t;
-        return new SeqType(tt.Arg);
+        return new SeqType(CloneType(tt.Arg));
       } else if (t is MultiSetType) {
         var tt = (MultiSetType)t;
-        return new MultiSetType(tt.Arg);
+        return new MultiSetType(CloneType(tt.Arg));
       } else if (t is MapType) {
         var tt = (MapType)t;
-        return new MapType(tt.Domain, tt.Range);
+        return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
         return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType));
