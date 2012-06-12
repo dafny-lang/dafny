@@ -5,7 +5,16 @@ set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set BPLEXE=%BOOGIEDIR%\Boogie.exe
 
-for %%f in (b1 b2 b3 b4 b5 b6 b7 b8) do (
+REM bugs:
+REM SeparationLogicList
+REM TreeDatatype
+REM MoreInduction
+
+for %%f in (Queue PriorityQueue ExtensibleArray ExtensibleArrayAuto
+            BinaryTree UnboundedStack ListCopy ListReverse ListContents
+            MatrixFun pow2 SchorrWaite Cubes SumOfCubes FindZero
+            TerminationDemos Substitution KatzManna Induction Rippling
+            Celebrity BDD UltraFilter) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:0 /compile:2 %* %%f.dfy

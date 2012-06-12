@@ -5,13 +5,19 @@ set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set BPLEXE=%BOOGIEDIR%\Boogie.exe
 
-REM to implement:
-REM b2: quantifiers
-REM b4: old expressions
-REM b5: parallel statements
-REM b6: functions
+REM soon again: SnapshotableTrees.dfy
 
-for %%f in (b1 b3 b7 b8) do (
+REM to implement:
+REM Classics                               : ghost state
+REM TreeBarrier                            : ghost state
+REM COST-verif-comp-2011-1-MaxArray        : ghost state
+REM COST-verif-comp-2011-2-MaxTree-class   : ghost state
+REM COST-verif-comp-2011-3-TwoDuplicates   : quantifiers
+REM COST-verif-comp-2011-4-FloydCycleDetect: quantifiers
+REM Intervals                              : ghost state
+
+for %%f in (COST-verif-comp-2011-2-MaxTree-datatype
+            StoreAndRetrieve) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy

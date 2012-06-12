@@ -1,48 +1,31 @@
 
 -------------------- b1 --------------------
-
-Dafny program verifier finished with 10 verified, 0 errors
 Compiled assembly into b1.exe
 
 -------------------- b2 --------------------
-
-Dafny program verifier finished with 6 verified, 0 errors
 Compiled assembly into b2.exe
 
 -------------------- b3 --------------------
-b3.dfy(114,28): Error BP5005: This loop invariant might not be maintained by the loop.
-
-Dafny program verifier finished with 9 verified, 1 error
 Compilation error: Method _default.Queue.Init has no body
 Compilation error: Method _default.Queue.Enqueue has no body
 Compilation error: Method _default.Queue.Dequeue has no body
 
 -------------------- b4 --------------------
-
-Dafny program verifier finished with 11 verified, 0 errors
 Compiled assembly into b4.dll
 
 -------------------- b5 --------------------
-
-Dafny program verifier finished with 22 verified, 0 errors
 Compiled assembly into b5.dll
 
 -------------------- b6 --------------------
-
-Dafny program verifier finished with 21 verified, 0 errors
 Compiled assembly into b6.exe
 
 -------------------- b7 --------------------
-
-Dafny program verifier finished with 23 verified, 0 errors
 Compilation error: Method _default.Queue.Init has no body
 Compilation error: Method _default.Queue.Enqueue has no body
 Compilation error: Method _default.Queue.Dequeue has no body
 Compilation error: Method _default.Client.Sort has no body
 
 -------------------- b8 --------------------
-
-Dafny program verifier finished with 42 verified, 0 errors
 Compilation error: Method _default.Queue.Init has no body
 Compilation error: Method _default.Queue.Enqueue has no body
 Compilation error: Method _default.Queue.Dequeue has no body

@@ -6,12 +6,12 @@ set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set BPLEXE=%BOOGIEDIR%\Boogie.exe
 
 REM to implement:
-REM b2: quantifiers
-REM b4: old expressions
-REM b5: parallel statements
-REM b6: functions
+REM Problem2-Invert          : quantifiers
+REM Problem3-FindZero        : ghost state
+REM Problem4-Queens          : quantifiers
+REM Problem5-DoubleEndedQueue: ghost state
 
-for %%f in (b1 b3 b7 b8) do (
+for %%f in (Problem1-SumMax) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy

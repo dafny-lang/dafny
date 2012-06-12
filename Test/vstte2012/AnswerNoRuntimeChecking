@@ -1,0 +1,18 @@
+
+-------------------- Two-Way-Sort --------------------
+Compiled assembly into Two-Way-Sort.dll
+
+-------------------- Combinators --------------------
+Compiled assembly into Combinators.dll
+
+-------------------- RingBuffer --------------------
+Compiled assembly into RingBuffer.dll
+
+-------------------- RingBufferAuto --------------------
+Compiled assembly into RingBufferAuto.dll
+
+-------------------- Tree --------------------
+Compiled assembly into Tree.dll
+
+-------------------- BreadthFirstSearch --------------------
+Compilation error: Function _default.BreadthFirstSearch.Succ has no body
