@@ -14,7 +14,7 @@ for %%f in (
     COST-verif-comp-2011-2-MaxTree-datatype.dfy
     COST-verif-comp-2011-3-TwoDuplicates.dfy
     COST-verif-comp-2011-4-FloydCycleDetect.dfy
-    Intervals.dfy
+    Intervals.dfy TreeFill.dfy
     StoreAndRetrieve.dfy MajorityVote.dfy SegmentSum.dfy
   ) do (
   echo.

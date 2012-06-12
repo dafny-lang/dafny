@@ -558,6 +558,11 @@ axiom (forall x: int, h: HeapType ::
 axiom (forall r: ref, h: HeapType ::
   { GenericAlloc($Box(r), h) }
   $IsGoodHeap(h) && (r == null || h[r,alloc]) ==> GenericAlloc($Box(r), h));
+// boxes in the heap
+axiom (forall r: ref, f: Field BoxType, h: HeapType ::
+  { GenericAlloc(read(h, r, f), h) }
+  $IsGoodHeap(h) && r != null && read(h, r, alloc) ==>
+  GenericAlloc(read(h, r, f), h));
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
