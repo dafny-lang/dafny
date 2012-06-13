@@ -1574,6 +1574,11 @@ Execution trace:
 
 Dafny program verifier finished with 30 verified, 2 errors
 
+-------------------- LiberalEquality.dfy --------------------
+LiberalEquality.dfy(37,14): Error: arguments must have the same type (got Weird<T,int,V> and Weird<T,bool,V>)
+LiberalEquality.dfy(52,14): Error: arguments must have the same type (got array<int> and array<bool>)
+2 resolution/type errors detected in LiberalEquality.dfy
+
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
 Execution trace:
