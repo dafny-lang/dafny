@@ -91,8 +91,10 @@ TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the
 TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(116,4): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(117,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-34 resolution/type errors detected in TypeTests.dfy
+36 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
 NatTypes.dfy(7,5): Error: value assigned to a nat must be non-negative
@@ -280,7 +282,7 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-SmallTests.dfy(584,18): Error: target object may be null
+SmallTests.dfy(584,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
 SmallTests.dfy(597,10): Error: assertion violation
@@ -1715,7 +1717,7 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-SmallTests.dfy(584,18): Error: target object may be null
+SmallTests.dfy(584,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
 SmallTests.dfy(597,10): Error: assertion violation
@@ -1863,7 +1865,7 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-out.tmp.dfy(530,18): Error: target object may be null
+out.tmp.dfy(530,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
 out.tmp.dfy(543,10): Error: assertion violation

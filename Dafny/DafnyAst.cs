@@ -1703,14 +1703,22 @@ namespace Microsoft.Dafny {
 
   public class AssignSuchThatStmt : ConcreteUpdateStatement
   {
-    public readonly AssumeStmt Assume;
-    public AssignSuchThatStmt(IToken tok, List<Expression> lhss, Expression expr)
+    public readonly Expression Expr;
+    public readonly IToken AssumeToken;
+    /// <summary>
+    /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
+    /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
+    /// </summary>
+    public AssignSuchThatStmt(IToken tok, List<Expression> lhss, Expression expr, IToken assumeToken)
       : base(tok, lhss) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(lhss.Count != 0);
       Contract.Requires(expr != null);
-      Assume = new AssumeStmt(tok, expr);
+      Expr = expr;
+      if (assumeToken != null) {
+        AssumeToken = assumeToken;
+      }
     }
   }
 
@@ -1769,6 +1777,24 @@ namespace Microsoft.Dafny {
         if (trhs != null && trhs.InitCall != null) {
           yield return trhs.InitCall;
         }
+      }
+    }
+
+    /// <summary>
+    /// This method assumes "lhs" has been successfully resolved.
+    /// </summary>
+    public static bool LhsIsToGhost(Expression lhs) {
+      Contract.Requires(lhs != null);
+      lhs = lhs.Resolved;
+      if (lhs is IdentifierExpr) {
+        var x = (IdentifierExpr)lhs;
+        return x.Var.IsGhost;
+      } else if (lhs is FieldSelectExpr) {
+        var x = (FieldSelectExpr)lhs;
+        return x.Field.IsGhost;
+      } else {
+        // LHS denotes an array element, which is always non-ghost
+        return false;
       }
     }
   }

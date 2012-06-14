@@ -838,7 +838,10 @@ namespace Microsoft.Dafny {
       if (stmt is AssumeStmt) {
         Error("an assume statement cannot be compiled (line {0})", stmt.Tok.line);
       } else if (stmt is AssignSuchThatStmt) {
-        Error("an assign-such-that statement cannot be compiled (line {0})", stmt.Tok.line);
+        var s = (AssignSuchThatStmt)stmt;
+        if (s.AssumeToken != null) {
+          Error("an assume statement cannot be compiled (line {0})", s.AssumeToken.line);
+        }
       } else {
         foreach (var ss in stmt.SubStatements) {
           CheckHasNoAssumes(ss);
@@ -913,6 +916,16 @@ namespace Microsoft.Dafny {
         AssignStmt s = (AssignStmt)stmt;
         Contract.Assert(!(s.Lhs is SeqSelectExpr) || ((SeqSelectExpr)s.Lhs).SelectOne);  // multi-element array assignments are not allowed
         TrRhs(null, s.Lhs, s.Rhs, indent);
+
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        foreach (var lhs in s.Lhss) {
+          // assigning to a local ghost variable or to a ghost field is okay
+          if (!AssignStmt.LhsIsToGhost(lhs)) {
+            Error("compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line {0})", stmt.Tok.line);
+            break;  // no need to say more
+          }
+        }
 
       } else if (stmt is VarDecl) {
         TrVarDecl((VarDecl)stmt, true, indent);

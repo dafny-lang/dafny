@@ -1845,7 +1845,9 @@ namespace Microsoft.Dafny {
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
       SeqSelectExpr arrayRangeLhs = null;
+      var update = s as UpdateStmt;
       foreach (var lhs in s.Lhss) {
+        var ec = ErrorCount;
         if (lhs is SeqSelectExpr) {
           var sse = (SeqSelectExpr)lhs;
           ResolveSeqSelectExpr(sse, true, true);
@@ -1855,14 +1857,24 @@ namespace Microsoft.Dafny {
         } else {
           ResolveExpression(lhs, true);
         }
+        if (update == null && ec == ErrorCount && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
+          Error(lhs, "cannot assign to non-ghost variable in a ghost context");
+        }
       }
       IToken firstEffectfulRhs = null;
       CallRhs callRhs = null;
-      var update = s as UpdateStmt;
       // Resolve RHSs
       if (update == null) {
         var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
-        s.ResolvedStatements.Add(suchThat.Assume);
+        ResolveExpression(suchThat.Expr, true);
+        if (suchThat.AssumeToken == null) {
+          // to ease in the verification, only allow local variables as LHSs
+          foreach (var lhs in s.Lhss) {
+            if (!(lhs.Resolved is IdentifierExpr)) {
+              Error(lhs, "the assign-such-that statement currently only supports local-variable LHSs");
+            }
+          }
+        }
       } else {
         foreach (var rhs in update.Rhss) {
           bool isEffectful;

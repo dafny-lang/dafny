@@ -520,16 +520,16 @@ public class Scanner {
 			case "label": t.kind = 49; break;
 			case "break": t.kind = 50; break;
 			case "return": t.kind = 51; break;
-			case "new": t.kind = 54; break;
-			case "choose": t.kind = 57; break;
-			case "if": t.kind = 58; break;
-			case "else": t.kind = 59; break;
-			case "case": t.kind = 60; break;
-			case "while": t.kind = 62; break;
-			case "invariant": t.kind = 63; break;
-			case "match": t.kind = 64; break;
-			case "assert": t.kind = 65; break;
-			case "assume": t.kind = 66; break;
+			case "assume": t.kind = 54; break;
+			case "new": t.kind = 55; break;
+			case "choose": t.kind = 58; break;
+			case "if": t.kind = 59; break;
+			case "else": t.kind = 60; break;
+			case "case": t.kind = 61; break;
+			case "while": t.kind = 63; break;
+			case "invariant": t.kind = 64; break;
+			case "match": t.kind = 65; break;
+			case "assert": t.kind = 66; break;
 			case "print": t.kind = 67; break;
 			case "parallel": t.kind = 68; break;
 			case "in": t.kind = 82; break;
@@ -666,11 +666,11 @@ public class Scanner {
 			case 27:
 				{t.kind = 53; break;}
 			case 28:
-				{t.kind = 55; break;}
-			case 29:
 				{t.kind = 56; break;}
+			case 29:
+				{t.kind = 57; break;}
 			case 30:
-				{t.kind = 61; break;}
+				{t.kind = 62; break;}
 			case 31:
 				if (ch == '>') {AddCh(); goto case 32;}
 				else {goto case 0;}
