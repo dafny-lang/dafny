@@ -3,7 +3,6 @@ setlocal
 
 set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
-set BPLEXE=%BOOGIEDIR%\Boogie.exe
 
 for %%f in (Simple.dfy) do (
   echo.
