@@ -1898,13 +1898,15 @@ namespace Microsoft.Dafny {
         var ie = lhs.Resolved as IdentifierExpr;
         if (ie != null) {
           if (lhsNameSet.ContainsKey(ie.Name)) {
-            Error(s, "Duplicate variable in left-hand side of {1} statement: {0}", ie.Name, callRhs != null ? "call" : "assignment");
+            if (callRhs != null)
+              // only allow same LHS in a multiassignment, not a call statement
+              // others (assign such that ":|", etc.) are handled later.
+              Error(s, "Duplicate variable in left-hand side of call statement: {0}", ie.Name);
           } else {
             lhsNameSet.Add(ie.Name, null);
           }
         }
       }
-
       if (update != null) {
         // figure out what kind of UpdateStmt this is
         if (firstEffectfulRhs == null) {

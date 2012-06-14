@@ -110,7 +110,7 @@ method TestMulti(m: Multi, p: Multi)
   assert p.x == 300;
   if (*) {
     p.x, m.y := 10, 10;
-    p.x, m.x := 8, 8;  // error: duplicate assignment (since m and p may be the same)
+    p.x, m.x := 8, 8;
   }
 
   var a, b := new int[20], new int[30];
@@ -184,4 +184,70 @@ method EuclideanTest(a: int, b: int)
    assert 0 <= r < abs(b);
    assert a == b * q + r;
    assert (a/b) * b + a % b == a;
+}
+
+method havocInMultiassignment()
+{
+   var i: nat, j: nat;
+   i, j := *, 3;
+   assert 0 <= i;
+}
+
+method m()
+{
+  var i: int, j: int;
+  i, j := 3, 6;
+  i, i := 3, 3;
+}
+
+method swap(a: array<int>, i: nat, j: nat)
+  requires a != null && 0 <= i < a.Length && 0 <= j < a.Length;
+  modifies a;
+{
+  a[i], a[j] := a[j], a[i];
+}
+
+class CC {
+  var x : int;
+  var y : int;
+}
+
+method notQuiteSwap(c: CC, d: CC)
+  requires c != null && d != null;
+  modifies c,d;
+{
+  c.x, d.x := c.x, c.x;
+}
+
+method notQuiteSwap2(c: CC, d: CC)
+  requires c != null && d != null;
+  modifies c,d;
+{
+  c.x, d.x := d.x, c.y; // BAD: c and d could be the same.
+}
+
+method OKNowIt'sSwapAgain(c: CC, d: CC)
+  requires c != null && d != null;
+  modifies c,d;
+{
+  c.x, d.x := d.x, c.x;
+}
+
+method notQuiteSwap3(c: CC, d: CC)
+  requires c != null && d != null && c != d;
+  modifies c,d;
+{
+  c.x, d.x := 4, c.y;
+  c.x, c.y := 3, c.y;
+}
+
+method M() returns (a: int, b: int) {
+  return 4, 6;
+}
+method otherChecks()
+{
+  var x: int, y: int;
+  x, y :| x + y == 5; // fine
+  x, x :| x + y == 5; // BAD, must give different variables.
+  //x, x := M(); // <-- this is caught early, so it suppresses other errors.
 }
