@@ -1829,6 +1829,11 @@ namespace Microsoft.Dafny {
             Type t = cce.NonNull(e.E0.Type);
             if (t.IsDatatype || t.IsTypeParameter) {
               callString = "Equals";
+            } else if (t.IsRefType) {
+              // Dafny's type rules are slightly different C#, so we may need a cast here.
+              // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
+              // type parameter.
+              opString = "== (object)";
             } else {
               opString = "==";
             }
@@ -1839,6 +1844,11 @@ namespace Microsoft.Dafny {
             if (t.IsDatatype || t.IsTypeParameter) {
               preOpString = "!";
               callString = "Equals";
+            } else if (t.IsRefType) {
+              // Dafny's type rules are slightly different C#, so we may need a cast here.
+              // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
+              // type parameter.
+              opString = "!= (object)";
             } else {
               opString = "!=";
             }

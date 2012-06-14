@@ -1,4 +1,4 @@
-module A imports Library {
+ghost module A imports Library {
   class {:autocontracts} StoreAndRetrieve<Thing> {
     ghost var Contents: set<Thing>;
     predicate Valid
