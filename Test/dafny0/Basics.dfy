@@ -240,14 +240,3 @@ method notQuiteSwap3(c: CC, d: CC)
   c.x, d.x := 4, c.y;
   c.x, c.y := 3, c.y;
 }
-
-method M() returns (a: int, b: int) {
-  return 4, 6;
-}
-method otherChecks()
-{
-  var x: int, y: int;
-  x, y :| x + y == 5; // fine
-  x, x :| x + y == 5; // BAD, must give different variables.
-  //x, x := M(); // <-- this is caught early, so it suppresses other errors.
-}

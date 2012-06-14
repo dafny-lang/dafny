@@ -3414,7 +3414,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         AddComment(builder, s, "assign-such-that statement");
-        // treat like a parallel havoc, followed by an assume
+        // Essentially, treat like an assert, a parallel havoc, and an assume.  However, we also need to check
+        // the well-formedness of the expression, which is easiest to do after the havoc.  So, we do the havoc
+        // first, then the well-formedness check, then the assert (unless the whole statement is an assume), and
+        // finally the assume.
+
         // Here comes the havoc part
         var lhss = new List<Expression>();
         var havocRhss = new List<AssignmentRhs>();
@@ -3428,8 +3432,36 @@ namespace Microsoft.Dafny {
         string[] ignore3;
         ProcessLhss(lhss, false, true, builder, locals, etran, out lhsBuilder, out bLhss, out ignore1, out ignore2, out ignore3);
         ProcessRhss(lhsBuilder, bLhss, lhss, havocRhss, builder, locals, etran);
+        // Here comes the well-formedness check
+        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+        // Here comes the assert part
+        if (s.AssumeToken == null) {
+          var substMap = new Dictionary<IVariable, Expression>();
+          var bvars = new List<BoundVar>();
+          foreach (var lhs in s.Lhss) {
+            var l = lhs.Resolved;
+            if (l is IdentifierExpr) {
+              var x = (IdentifierExpr)l;
+              BoundVar bv;
+              IdentifierExpr ie;
+              CloneVariableAsBoundVar(x.tok, x.Var, "$as#" + x.Name, out bv, out ie);
+              bvars.Add(bv);
+              substMap.Add(x.Var, ie);
+            } else {
+              // other forms of LHSs have been ruled out by the resolver (it would be possible to
+              // handle them, but it would involve heap-update expressions--the translation would take
+              // effort, and it's not certain that the existential would be successful in verification).
+              Contract.Assume(false);  // unexpected case
+            }
+          }
+          var bvs = new VariableSeq();
+          var typeAntecedent = etran.TrBoundVariables(bvars, bvs);
+          var substE = etran.TrExpr(Substitute(s.Expr, null, substMap));
+          var ex = new Bpl.ExistsExpr(s.Tok, bvs, BplAnd(typeAntecedent, substE));
+          builder.Add(Assert(s.Tok, ex, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
+        }
         // End by doing the assume
-        TrStmt(s.Assume, builder, locals, etran);
+        builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
         builder.Add(CaptureState(s.Tok));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
       } else if (stmt is UpdateStmt) {

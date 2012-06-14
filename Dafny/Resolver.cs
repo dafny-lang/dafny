@@ -1839,13 +1839,15 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
-
     private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, Method method)
     {
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
       SeqSelectExpr arrayRangeLhs = null;
+      var update = s as UpdateStmt;
+
       foreach (var lhs in s.Lhss) {
+        var ec = ErrorCount;
         if (lhs is SeqSelectExpr) {
           var sse = (SeqSelectExpr)lhs;
           ResolveSeqSelectExpr(sse, true, true);
@@ -1855,14 +1857,34 @@ namespace Microsoft.Dafny {
         } else {
           ResolveExpression(lhs, true);
         }
+        if (update == null && ec == ErrorCount && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
+          Error(lhs, "cannot assign to non-ghost variable in a ghost context");
+        }
       }
       IToken firstEffectfulRhs = null;
       CallRhs callRhs = null;
-      var update = s as UpdateStmt;
       // Resolve RHSs
       if (update == null) {
         var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
-        s.ResolvedStatements.Add(suchThat.Assume);
+        ResolveExpression(suchThat.Expr, true);
+        if (suchThat.AssumeToken == null) {
+          // to ease in the verification, only allow local variables as LHSs
+          var lhsNames = new Dictionary<string, object>();
+          foreach (var lhs in s.Lhss) {
+            if (!(lhs.Resolved is IdentifierExpr)) {
+              Error(lhs, "the assign-such-that statement currently only supports local-variable LHSs");
+            }
+            else {
+              var ie = (IdentifierExpr)lhs.Resolved;
+              if (lhsNames.ContainsKey(ie.Name)) {
+                 // disallow same LHS.
+                Error(s, "duplicate variable in left-hand side of assign-such-that statement: {0}", ie.Name);
+              } else {
+                lhsNames.Add(ie.Name, null);
+              }
+            }
+          }
+        }
       } else {
         foreach (var rhs in update.Rhss) {
           bool isEffectful;
@@ -1900,8 +1922,7 @@ namespace Microsoft.Dafny {
           if (lhsNameSet.ContainsKey(ie.Name)) {
             if (callRhs != null)
               // only allow same LHS in a multiassignment, not a call statement
-              // others (assign such that ":|", etc.) are handled later.
-              Error(s, "Duplicate variable in left-hand side of call statement: {0}", ie.Name);
+              Error(s, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
           } else {
             lhsNameSet.Add(ie.Name, null);
           }

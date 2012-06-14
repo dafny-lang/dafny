@@ -725,6 +725,7 @@ UpdateStmt<out Statement/*!*/ s>
      Expression lhs0;
      IToken x;
      Attributes attrs = null;
+     IToken suchThatAssume = null;
      Expression suchThat = null;
   .)
   Lhs<out e>                       (. x = e.tok; .)
@@ -738,13 +739,15 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r, lhs0>       (. rhss.Add(r); .)
       }
     | ":|"                         (. x = t; .)
+      [ "assume"                   (. suchThatAssume = t; .)
+      ]
       Expression<out suchThat>
     )
     ";"
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
   (. if (suchThat != null) {
-       s = new AssignSuchThatStmt(x, lhss, suchThat);
+       s = new AssignSuchThatStmt(x, lhss, suchThat, suchThatAssume);
      } else {
        s = new UpdateStmt(x, lhss, rhss);
      }
@@ -807,6 +810,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;  IdentifierExpr lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+     IToken suchThatAssume = null;
      Expression suchThat = null;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
@@ -824,6 +828,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
   | ":|"                           (. assignTok = t; .)
+    [ "assume"                     (. suchThatAssume = t; .)
+    ]
     Expression<out suchThat>
   ]
   ";"
@@ -833,7 +839,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        foreach (var lhs in lhss) {
          ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
        }
-       update = new AssignSuchThatStmt(assignTok, ies, suchThat);
+       update = new AssignSuchThatStmt(assignTok, ies, suchThat, suchThatAssume);
      } else if (rhss.Count == 0) {
        update = null;
      } else {

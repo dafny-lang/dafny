@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Assume.Expr));
+        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken));
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -914,7 +914,7 @@ namespace Microsoft.Dafny {
                   doMerge = true;
                 } else if (cOld.Update is AssignSuchThatStmt) {
                   doMerge = true;
-                  addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Assume.Expr);
+                  addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
                 } else {
                   var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
                   if (updateOld.Rhss.Count == 1 && updateOld.Rhss[0] is HavocRhs) {

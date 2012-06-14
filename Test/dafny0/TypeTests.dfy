@@ -92,3 +92,28 @@ method K(s: set<nat>) {  // error: not allowed to instantiate 'set' with 'nat'
   var b := new nat[100,200];  // error: not allowed the type array2<nat>
 }
 
+// --------------------- more ghost tests, for assign-such-that statements
+
+method M()
+{
+  ghost var b: bool;
+  ghost var k: int, l: int;
+  var m: int;
+
+  // These three statements are allowed by the resolver, but the compiler will complain
+  // if it ever gets them.
+  k :| k < 10;
+  k, m :| 0 <= k < m;
+  m :| m < 10;
+
+  // Because of the ghost guard, these 'if' statements are ghost contexts, so only
+  // assignments to ghosts are allowed.
+  if (b) {
+    k :| k < 10;  // should be allowed
+    k, l :| 0 <= k < l;  // ditto
+  }
+  if (b) {
+    m :| m < 10;  // error: not allowed in ghost context
+    k, m :| 0 <= k < m;  // error: not allowed in ghost context
+  }
+}
