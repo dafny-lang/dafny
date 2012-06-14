@@ -2889,8 +2889,10 @@ namespace Microsoft.Dafny {
 
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
-            if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
-              Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+            if (!CouldPossiblyBeSameType(e.E0.Type, e.E1.Type)) {
+              if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
+                Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+              }
             }
             expr.Type = Type.Bool;
             break;
@@ -3280,6 +3282,35 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = Type.Flexible;
       }
+    }
+
+    private bool CouldPossiblyBeSameType(Type A, Type B) {
+      if (A.IsTypeParameter || B.IsTypeParameter) {
+        return true;
+      }
+      if (A.IsArrayType && B.IsArrayType) {
+        Type a = UserDefinedType.ArrayElementType(A);
+        Type b = UserDefinedType.ArrayElementType(B);
+        return CouldPossiblyBeSameType(a, b);
+      }
+      if (A is UserDefinedType && B is UserDefinedType) {
+        UserDefinedType a = (UserDefinedType)A;
+        UserDefinedType b = (UserDefinedType)B;
+        if (a.ResolvedClass != null && b.ResolvedClass != null && a.ResolvedClass == b.ResolvedClass) {
+          if (a.TypeArgs.Count != b.TypeArgs.Count) {
+            return false; // this probably doesn't happen if the classes are the same.
+          }
+          for (int i = 0; i < a.TypeArgs.Count; i++) {
+            if (!CouldPossiblyBeSameType(a.TypeArgs[i], b.TypeArgs[i]))
+              return false;
+          }
+          // all parameters could be the same
+          return true;
+        }
+        // either we don't know what class it is yet, or the classes mismatch
+        return false;
+      }
+      return false;
     }
 
     /// <summary>
