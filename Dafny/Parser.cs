@@ -1552,7 +1552,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		r.Attributes = attrs; 
+		if (r != null) r.Attributes = attrs; 
 	}
 
 	void Lhs(out Expression e) {

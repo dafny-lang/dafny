@@ -1839,13 +1839,13 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
-
     private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, Method method)
     {
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
       SeqSelectExpr arrayRangeLhs = null;
       var update = s as UpdateStmt;
+
       foreach (var lhs in s.Lhss) {
         var ec = ErrorCount;
         if (lhs is SeqSelectExpr) {
@@ -1869,9 +1869,19 @@ namespace Microsoft.Dafny {
         ResolveExpression(suchThat.Expr, true);
         if (suchThat.AssumeToken == null) {
           // to ease in the verification, only allow local variables as LHSs
+          var lhsNames = new Dictionary<string, object>();
           foreach (var lhs in s.Lhss) {
             if (!(lhs.Resolved is IdentifierExpr)) {
               Error(lhs, "the assign-such-that statement currently only supports local-variable LHSs");
+            }
+            else {
+              var ie = (IdentifierExpr)lhs.Resolved;
+              if (lhsNames.ContainsKey(ie.Name)) {
+                 // disallow same LHS.
+                Error(s, "duplicate variable in left-hand side of assign-such-that statement: {0}", ie.Name);
+              } else {
+                lhsNames.Add(ie.Name, null);
+              }
             }
           }
         }
@@ -1910,13 +1920,14 @@ namespace Microsoft.Dafny {
         var ie = lhs.Resolved as IdentifierExpr;
         if (ie != null) {
           if (lhsNameSet.ContainsKey(ie.Name)) {
-            Error(s, "Duplicate variable in left-hand side of {1} statement: {0}", ie.Name, callRhs != null ? "call" : "assignment");
+            if (callRhs != null)
+              // only allow same LHS in a multiassignment, not a call statement
+              Error(s, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
           } else {
             lhsNameSet.Add(ie.Name, null);
           }
         }
       }
-
       if (update != null) {
         // figure out what kind of UpdateStmt this is
         if (firstEffectfulRhs == null) {
