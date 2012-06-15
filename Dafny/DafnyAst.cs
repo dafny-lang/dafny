@@ -409,6 +409,25 @@ namespace Microsoft.Dafny {
       }
     }
 
+    string compileName;
+    public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = NonglobalVariable.CompilerizeName(Name);
+        }
+        return compileName;
+      }
+    }
+    public string FullCompileName {
+      get {
+        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
+          return ResolvedClass.Module.CompileName + "." + CompileName;
+        } else {
+          return CompileName;
+        }
+      }
+    }
+
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
@@ -657,6 +676,15 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public readonly string/*!*/ Name;
+    string compileName;
+    public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = NonglobalVariable.CompilerizeName(Name);
+        }
+        return compileName;
+      }
+    }
     public readonly Attributes Attributes;
 
     public Declaration(IToken tok, string name, Attributes attributes) {
@@ -773,6 +801,11 @@ namespace Microsoft.Dafny {
     public string FullName {
       get {
         return Module.Name + "." + Name;
+      }
+    }
+    public string FullCompileName {
+      get {
+        return Module.CompileName + "." + CompileName;
       }
     }
   }
@@ -939,6 +972,14 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullName + "." + Name;
       }
     }
+    public string FullCompileName {
+      get {
+        Contract.Requires(EnclosingClass != null);
+        Contract.Ensures(Contract.Result<string>() != null);
+
+        return EnclosingClass.FullCompileName + "." + CompileName;
+      }
+    }
   }
 
   public class Field : MemberDecl {
@@ -1024,6 +1065,9 @@ namespace Microsoft.Dafny {
     string/*!*/ UniqueName {
       get;
     }
+    string/*!*/ CompileName {
+      get;
+    }
     Type/*!*/ Type {
       get;
     }
@@ -1043,6 +1087,12 @@ namespace Microsoft.Dafny {
       }
     }
     public string UniqueName {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();
+      }
+    }
+    public string CompileName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();
@@ -1088,6 +1138,46 @@ namespace Microsoft.Dafny {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         return name + "#" + varId;
+      }
+    }
+    static char[] specialChars = new char[] { '\'', '_', '?', '\\' };
+    public static string CompilerizeName(string nm) {
+      string name = null;
+      int i = 0;
+      while (true) {
+        int j = nm.IndexOfAny(specialChars, i);
+        if (j == -1) {
+          if (i == 0) {
+            return nm;  // this is the common case
+          } else {
+            return name + nm.Substring(i);
+          }
+        } else {
+          string nxt = nm.Substring(i, j);
+          name = name == null ? nxt : name + nxt;
+          switch (nm[j]) {
+            case '\'': name += "_k"; break;
+            case '_': name += "__"; break;
+            case '?': name += "_q"; break;
+            case '\\': name += "_b"; break;
+            default:
+              Contract.Assume(false);  // unexpected character
+              break;
+          }
+          i = j + 1;
+          if (i == nm.Length) {
+            return name;
+          }
+        }
+      }
+    }
+    protected string compileName;
+    public virtual string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = string.Format("_{0}_{1}", varId, CompilerizeName(name));
+        }
+        return compileName;
       }
     }
     Type type;
@@ -1143,6 +1233,14 @@ namespace Microsoft.Dafny {
     public bool HasName {
       get {
         return !Name.StartsWith("#");
+      }
+    }
+    public override string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = CompilerizeName(Name);
+        }
+        return compileName;
       }
     }
   }
@@ -1829,6 +1927,15 @@ namespace Microsoft.Dafny {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         return name + "#" + varId;
+      }
+    }
+    string compileName;
+    public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = string.Format("_{0}_{1}", varId, NonglobalVariable.CompilerizeName(name));
+        }
+        return compileName;
       }
     }
     public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any

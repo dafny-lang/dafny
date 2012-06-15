@@ -322,7 +322,7 @@ namespace Microsoft.Dafny {
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
-              var query = new SpecialField(ctor.tok, queryName, "_" + ctor.Name, "", "", false, false, Type.Bool, null);
+              var query = new SpecialField(ctor.tok, queryName, "is_" + ctor.CompileName, "", "", false, false, Type.Bool, null);
               query.EnclosingClass = dt;  // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;

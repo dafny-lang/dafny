@@ -73,18 +73,18 @@ namespace Microsoft.Dafny {
         }
         int indent = 0;
         if (!m.IsDefaultModule) {
-          wr.WriteLine("namespace @{0} {{", m.Name);
+          wr.WriteLine("namespace @{0} {{", m.CompileName);
           indent += IndentAmount;
         }
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           wr.WriteLine();
           if (d is ArbitraryTypeDecl) {
             var at = (ArbitraryTypeDecl)d;
-            Error("Arbitrary type ('{0}') cannot be compiled", at.Name);
+            Error("Arbitrary type ('{0}') cannot be compiled", at.CompileName);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             Indent(indent);
-            wr.Write("public abstract class Base_{0}", dt.Name);
+            wr.Write("public abstract class Base_{0}", dt.CompileName);
             if (dt.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(dt.TypeArgs));
             }
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
           } else {
             ClassDecl cl = (ClassDecl)d;
             Indent(indent);
-            wr.Write("public class @{0}", cl.Name);
+            wr.Write("public class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
             }
@@ -104,7 +104,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (!m.IsDefaultModule) {
-          wr.WriteLine("}} // end of namespace {0}", m.Name);
+          wr.WriteLine("}} // end of namespace {0}", m.CompileName);
         }
       }
     }
@@ -199,18 +199,18 @@ namespace Microsoft.Dafny {
         //   public Base_Dt<T> Get() { return c(); }
         // }
         Indent(indent);
-        wr.WriteLine("public class {0}__Lazy{1} : Base_{0}{1} {{", dt.Name, typeParams);
+        wr.WriteLine("public class {0}__Lazy{1} : Base_{0}{1} {{", dt.CompileName, typeParams);
         int ind = indent + IndentAmount;
         Indent(ind);
-        wr.WriteLine("public delegate Base_{0}{1} Computer();", dt.Name, typeParams);
+        wr.WriteLine("public delegate Base_{0}{1} Computer();", dt.CompileName, typeParams);
         Indent(ind);
         wr.WriteLine("public delegate Computer ComputerComputer();");
         Indent(ind);
         wr.WriteLine("Computer c;");
         Indent(ind);
-        wr.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.Name);
+        wr.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.CompileName);
         Indent(ind);
-        wr.WriteLine("public Base_{0}{1} Get() {{ return c(); }}", dt.Name, typeParams);
+        wr.WriteLine("public Base_{0}{1} Get() {{ return c(); }}", dt.CompileName, typeParams);
         Indent(indent);
         wr.WriteLine("}");
       }
@@ -234,7 +234,7 @@ namespace Microsoft.Dafny {
         // }
         Indent(indent);
         wr.Write("public class {0}", DtCtorName(ctor, dt.TypeArgs));
-        wr.WriteLine(" : Base_{0}{1} {{", dt.Name, typeParams);
+        wr.WriteLine(" : Base_{0}{1} {{", dt.CompileName, typeParams);
         int ind = indent + IndentAmount;
 
         int i = 0;
@@ -289,7 +289,7 @@ namespace Microsoft.Dafny {
 
         if (dt is IndDatatypeDecl) {
           Indent(ind); wr.WriteLine("public override string ToString() {");
-          string nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          string nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
           Indent(ind + IndentAmount); wr.WriteLine("string s = \"{0}\";", nm);
           if (ctor.Formals.Count != 0) {
             Indent(ind + IndentAmount); wr.WriteLine("s += \"(\";");
@@ -344,13 +344,13 @@ namespace Microsoft.Dafny {
       //   public override int GetHashCode() { return _D.GetHashCode(); }
       //   public override string ToString() { return _D.ToString(); }  // only for inductive datatypes
       //
-      //   public bool _Ctor0 { get { return _D is Dt_Ctor0; } }
+      //   public bool is_Ctor0 { get { return _D is Dt_Ctor0; } }
       //   ...
       //
       //   public T0 dtor_Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
       //   ...
       // }
-      string DtT = dt.Name;
+      string DtT = dt.CompileName;
       string DtT_TypeArgs = "";
       if (dt.TypeArgs.Count != 0) {
         DtT_TypeArgs = "<" + TypeParameters(dt.TypeArgs) + ">";
@@ -375,9 +375,9 @@ namespace Microsoft.Dafny {
       if (dt is CoDatatypeDecl) {
         string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
         Indent(ind + 2 * IndentAmount);
-        wr.WriteLine("}} else if (d is {0}__Lazy{1}) {{", dt.Name, typeParams);
+        wr.WriteLine("}} else if (d is {0}__Lazy{1}) {{", dt.CompileName, typeParams);
         Indent(ind + 3 * IndentAmount);
-        wr.WriteLine("d = (({0}__Lazy{1})d).Get();", dt.Name, typeParams);
+        wr.WriteLine("d = (({0}__Lazy{1})d).Get();", dt.CompileName, typeParams);
       }
       Indent(ind + 2 * IndentAmount);  wr.WriteLine("}");
       Indent(ind + 2 * IndentAmount);  wr.WriteLine("return d;");
@@ -385,7 +385,7 @@ namespace Microsoft.Dafny {
       Indent(ind);  wr.WriteLine("}");
 
       Indent(ind);
-      wr.WriteLine("public @{0}(Base_{1} d) {{ this.d = d; }}", dt.Name, DtT);
+      wr.WriteLine("public @{0}(Base_{1} d) {{ this.d = d; }}", dt.CompileName, DtT);
 
       Indent(ind);
       wr.WriteLine("static Base_{0} theDefault;", DtT);
@@ -439,9 +439,9 @@ namespace Microsoft.Dafny {
 
       // query properties
       foreach (var ctor in dt.Ctors) {
-        //   public bool _Ctor0 { get { return _D is Dt_Ctor0; } }
+        //   public bool is_Ctor0 { get { return _D is Dt_Ctor0; } }
         Indent(ind);
-        wr.WriteLine("public bool _{0} {{ get {{ return _D is {1}_{0}{2}; }} }}", ctor.Name, dt.Name, DtT_TypeArgs);
+        wr.WriteLine("public bool is_{0} {{ get {{ return _D is {1}_{0}{2}; }} }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
       }
 
       // destructors
@@ -450,7 +450,7 @@ namespace Microsoft.Dafny {
           if (!arg.IsGhost && arg.HasName) {
             //   public T0 @Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }
             Indent(ind);
-            wr.WriteLine("public {0} dtor_{1} {{ get {{ return (({2}_{3}{4})_D).@{1}; }} }}", TypeName(arg.Type), arg.Name, dt.Name, ctor.Name, DtT_TypeArgs);
+            wr.WriteLine("public {0} dtor_{1} {{ get {{ return (({2}_{3}{4})_D).@{1}; }} }}", TypeName(arg.Type), arg.CompileName, dt.CompileName, ctor.CompileName, DtT_TypeArgs);
           }
         }
       }
@@ -479,14 +479,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(formal != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return formal.HasName ? formal.Name : "_a" + i;
+      return formal.HasName ? formal.CompileName : "_a" + i;
     }
 
     string DtCtorName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return cce.NonNull(ctor.EnclosingDatatype).Name + "_" + ctor.Name;
+      return cce.NonNull(ctor.EnclosingDatatype).CompileName + "_" + ctor.CompileName;
     }
 
     string DtCtorName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
@@ -538,7 +538,7 @@ namespace Microsoft.Dafny {
           Field f = (Field)member;
           if (!f.IsGhost) {
             Indent(indent);
-            wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.Name, DefaultValue(f.Type));
+            wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
           }
 
         } else if (member is Function) {
@@ -549,7 +549,7 @@ namespace Microsoft.Dafny {
             Error("Function {0} has no body", f.FullName);
           } else {
             Indent(indent);
-            wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.Name);
+            wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
             if (f.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(f.TypeArgs));
             }
@@ -564,7 +564,7 @@ namespace Microsoft.Dafny {
           Method m = (Method)member;
           if (!m.IsGhost) {
             Indent(indent);
-            wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.Name);
+            wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
             if (m.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(m.TypeArgs));
             }
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny {
             foreach (Formal p in m.Outs) {
               if (!p.IsGhost) {
                 Indent(indent + IndentAmount);
-                wr.WriteLine("@{0} = {1};", p.Name, DefaultValue(p.Type));
+                wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
               }
             }
             if (m.Body == null) {
@@ -592,7 +592,7 @@ namespace Microsoft.Dafny {
               wr.WriteLine("public static void Main(string[] args) {");
               Contract.Assert(m.EnclosingClass == c);
               Indent(indent + IndentAmount);
-              wr.Write("@{0} b = new @{0}", c.Name);
+              wr.Write("@{0} b = new @{0}", c.CompileName);
               if (c.TypeArgs.Count != 0) {
                 // instantiate every parameter, it doesn't particularly matter how
                 wr.Write("<");
@@ -620,7 +620,7 @@ namespace Microsoft.Dafny {
       if (body is MatchExpr) {
         MatchExpr me = (MatchExpr)body;
         // Type source = e;
-        // if (source._Ctor0) {
+        // if (source.is_Ctor0) {
         //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
         //   ...
         //   return Body0;
@@ -672,7 +672,7 @@ namespace Microsoft.Dafny {
         var e = (LetExpr)expr;
         foreach (var v in e.Vars) {
           Indent(indent);
-          wr.WriteLine("{0} @{1};", TypeName(v.Type), v.Name);
+          wr.WriteLine("{0} @{1};", TypeName(v.Type), v.CompileName);
         }
       }
       foreach (var ee in expr.SubExpressions) {
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
         return name + "]";
       } else if (type is UserDefinedType) {
         UserDefinedType udt = (UserDefinedType)type;
-        string s = "@" + udt.FullName;
+        string s = "@" + udt.FullCompileName;
         if (udt.TypeArgs.Count != 0) {
           if (Contract.Exists(udt.TypeArgs, argType =>argType is ObjectType)) {
             Error("compilation does not support type 'object' as a type parameter; consider introducing a ghost");
@@ -779,7 +779,7 @@ namespace Microsoft.Dafny {
       string s = "";
       string sep = "";
       foreach (TypeParameter tp in targs) {
-        s += sep + "@" + tp.Name;
+        s += sep + "@" + tp.CompileName;
         sep = ",";
       }
       return s;
@@ -810,14 +810,14 @@ namespace Microsoft.Dafny {
         return string.Format("({0})null", TypeName(type));
       } else if (type.IsDatatype) {
         UserDefinedType udt = (UserDefinedType)type;
-        string s = "@" + udt.Name;
+        string s = "@" + udt.FullCompileName;
         if (udt.TypeArgs.Count != 0) {
           s += "<" + TypeNames(udt.TypeArgs) + ">";
         }
         return string.Format("new {0}()", s);
       } else if (type.IsTypeParameter) {
         UserDefinedType udt = (UserDefinedType)type;
-        return "default(@" + udt.Name + ")";
+        return "default(@" + udt.FullCompileName + ")";
       } else if (type is SetType) {
         return DafnySetClass + "<" + TypeName(((SetType)type).Arg) + ">.Empty";
       } else if (type is MultiSetType) {
@@ -1101,7 +1101,7 @@ namespace Microsoft.Dafny {
 
         // declare and construct "ingredients"
         Indent(indent);
-        wr.WriteLine("var {0} = new List<System.Tuple<{1}>>();", ingredients, tupleTypeArgs);
+        wr.WriteLine("var {0} = new System.Collections.Generic.List<System.Tuple<{1}>>();", ingredients, tupleTypeArgs);
 
         var n = s.BoundVars.Count;
         Contract.Assert(s.Bounds.Count == n);
@@ -1111,29 +1111,29 @@ namespace Microsoft.Dafny {
           var bv = s.BoundVars[i];
           if (bound is QuantifierExpr.BoolBoundedPool) {
             Indent(ind);
-            wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.Name);
+            wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
           } else if (bound is QuantifierExpr.IntBoundedPool) {
             var b = (QuantifierExpr.IntBoundedPool)bound;
             SpillLetVariableDecls(b.LowerBound, ind);
             SpillLetVariableDecls(b.UpperBound, ind);
             Indent(ind);
-            wr.Write("for (var @{0} = ", bv.Name);
+            wr.Write("for (var @{0} = ", bv.CompileName);
             TrExpr(b.LowerBound);
-            wr.Write("; @{0} < ", bv.Name);
+            wr.Write("; @{0} < ", bv.CompileName);
             TrExpr(b.UpperBound);
-            wr.Write("; @{0}++) {{ ", bv.Name);
+            wr.Write("; @{0}++) {{ ", bv.CompileName);
           } else if (bound is QuantifierExpr.SetBoundedPool) {
             var b = (QuantifierExpr.SetBoundedPool)bound;
             SpillLetVariableDecls(b.Set, ind);
             Indent(ind);
-            wr.Write("foreach (var @{0} in (", bv.Name);
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
           } else if (bound is QuantifierExpr.SeqBoundedPool) {
             var b = (QuantifierExpr.SeqBoundedPool)bound;
             SpillLetVariableDecls(b.Seq, ind);
             Indent(ind);
-            wr.Write("foreach (var @{0} in (", bv.Name);
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Seq);
             wr.Write(").UniqueElements) { ");
           } else {
@@ -1215,7 +1215,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
-        // if (source._Ctor0) {
+        // if (source.is_Ctor0) {
         //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
         //   ...
         //   Body0;
@@ -1260,7 +1260,7 @@ namespace Microsoft.Dafny {
       SpillLetVariableDecls(lhs, indent);
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
-        return "@" + ll.Var.Name;
+        return "@" + ll.Var.CompileName;
       } else if (lhs is FieldSelectExpr) {
         var ll = (FieldSelectExpr)lhs;
         string obj = "_obj" + tmpVarCount;
@@ -1269,7 +1269,7 @@ namespace Microsoft.Dafny {
         wr.Write("var {0} = ", obj);
         TrExpr(ll.Obj);
         wr.WriteLine(";");
-        return string.Format("{0}.@{1}", obj, ll.Field.Name);
+        return string.Format("{0}.@{1}", obj, ll.Field.CompileName);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         string arr = "_arr" + tmpVarCount;
@@ -1392,7 +1392,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         TrParenExpr(s.Receiver);
       }
-      wr.Write(".@{0}(", s.Method.Name);
+      wr.Write(".@{0}(", s.Method.CompileName);
 
       string sep = "";
       for (int i = 0; i < s.Method.Ins.Count; i++) {
@@ -1477,7 +1477,7 @@ namespace Microsoft.Dafny {
       }
 
       Indent(indent);
-      wr.Write("{0} @{1}", TypeName(s.Type), s.Name);
+      wr.Write("{0} @{1}", TypeName(s.Type), s.CompileName);
       if (alwaysInitialize) {
         // produce a default value
         wr.WriteLine(" = {0};", DefaultValue(s.Type));
@@ -1491,7 +1491,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sourceType != null);
       Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
-      // if (source._Ctor0) {
+      // if (source.is_Ctor0) {
       //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
       //   ...
       Indent(indent);
@@ -1499,7 +1499,7 @@ namespace Microsoft.Dafny {
       if (caseIndex == caseCount - 1) {
         wr.Write("true");
       } else {
-        wr.Write("{0}._{1}", source, ctor.Name);
+        wr.Write("{0}.is_{1}", source, ctor.CompileName);
       }
       wr.WriteLine(") {");
 
@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny {
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           Indent(indent + IndentAmount);
           wr.WriteLine("{0} @{1} = (({2}){3}._D).@{4};",
-            TypeName(bv.Type), bv.Name, DtCtorName(ctor, sourceType.TypeArgs), source, FormalName(arg, k));
+            TypeName(bv.Type), bv.CompileName, DtCtorName(ctor, sourceType.TypeArgs), source, FormalName(arg, k));
           k++;
         }
       }
@@ -1601,7 +1601,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
-        wr.Write("@" + e.Var.Name);
+        wr.Write("@" + e.Var.CompileName);
 
       } else if (expr is SetDisplayExpr) {
         SetDisplayExpr e = (SetDisplayExpr)expr;
@@ -1636,7 +1636,7 @@ namespace Microsoft.Dafny {
           wr.Write(sf.PostString);
         } else {
           TrParenExpr(e.Obj);
-          wr.Write(".@{0}", e.Field.Name);
+          wr.Write(".@{0}", e.Field.CompileName);
         }
 
       } else if (expr is SeqSelectExpr) {
@@ -1981,7 +1981,7 @@ namespace Microsoft.Dafny {
         // preceded by the declaration of x.
         Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
         for (int i = 0; i < e.Vars.Count; i++) {
-          wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = ", e.Vars[i].Name);
+          wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = ", e.Vars[i].CompileName);
           TrExpr(e.RHSs[i]);
           wr.Write(", ");
         }
@@ -2027,7 +2027,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
           }
           wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
-          wr.Write("@{0} => ", bv.Name);
+          wr.Write("@{0} => ", bv.CompileName);
         }
         TrExpr(e.LogicalBody());
         for (int i = 0; i < n; i++) {
@@ -2062,27 +2062,27 @@ namespace Microsoft.Dafny {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
           if (bound is QuantifierExpr.BoolBoundedPool) {
-            wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.Name);
+            wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
           } else if (bound is QuantifierExpr.IntBoundedPool) {
             var b = (QuantifierExpr.IntBoundedPool)bound;
-            wr.Write("for (var @{0} = ", bv.Name);
+            wr.Write("for (var @{0} = ", bv.CompileName);
             TrExpr(b.LowerBound);
-            wr.Write("; @{0} < ", bv.Name);
+            wr.Write("; @{0} < ", bv.CompileName);
             TrExpr(b.UpperBound);
-            wr.Write("; @{0}++) {{ ", bv.Name);
+            wr.Write("; @{0}++) {{ ", bv.CompileName);
           } else if (bound is QuantifierExpr.SetBoundedPool) {
             var b = (QuantifierExpr.SetBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.Name);
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
           } else if (bound is QuantifierExpr.MapBoundedPool) {
             var b = (QuantifierExpr.MapBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.Name);
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Map);
             wr.Write(").Domain) { ");
           } else if (bound is QuantifierExpr.SeqBoundedPool) {
             var b = (QuantifierExpr.SeqBoundedPool)bound;
-            wr.Write("foreach (var @{0} in (", bv.Name);
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Seq);
             wr.Write(").Elements) { ");
           } else {
@@ -2128,27 +2128,27 @@ namespace Microsoft.Dafny {
         var bound = e.Bounds[0];
         var bv = e.BoundVars[0];
         if (bound is QuantifierExpr.BoolBoundedPool) {
-          wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.Name);
+          wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
         } else if (bound is QuantifierExpr.IntBoundedPool) {
           var b = (QuantifierExpr.IntBoundedPool)bound;
-          wr.Write("for (var @{0} = ", bv.Name);
+          wr.Write("for (var @{0} = ", bv.CompileName);
           TrExpr(b.LowerBound);
-          wr.Write("; @{0} < ", bv.Name);
+          wr.Write("; @{0} < ", bv.CompileName);
           TrExpr(b.UpperBound);
-          wr.Write("; @{0}++) {{ ", bv.Name);
+          wr.Write("; @{0}++) {{ ", bv.CompileName);
         } else if (bound is QuantifierExpr.SetBoundedPool) {
           var b = (QuantifierExpr.SetBoundedPool)bound;
-          wr.Write("foreach (var @{0} in (", bv.Name);
+          wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Set);
           wr.Write(").Elements) { ");
         } else if (bound is QuantifierExpr.MapBoundedPool) {
           var b = (QuantifierExpr.MapBoundedPool)bound;
-          wr.Write("foreach (var @{0} in (", bv.Name);
+          wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Map);
           wr.Write(").Domain) { ");
         } else if (bound is QuantifierExpr.SeqBoundedPool) {
           var b = (QuantifierExpr.SeqBoundedPool)bound;
-          wr.Write("foreach (var @{0} in (", bv.Name);
+          wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Seq);
           wr.Write(").Elements) { ");
         } else {
@@ -2157,7 +2157,7 @@ namespace Microsoft.Dafny {
         wr.Write("if (");
         TrExpr(e.Range);
         wr.Write(") { ");
-        wr.Write("_coll.Add(new Dafny.Pair<{0},{1}>(@{2},", domtypeName, rantypeName, bv.Name);
+        wr.Write("_coll.Add(new Dafny.Pair<{0},{1}>(@{2},", domtypeName, rantypeName, bv.CompileName);
         TrExpr(e.Term);
         wr.Write(")); }");
         wr.Write("}");
@@ -2198,7 +2198,7 @@ namespace Microsoft.Dafny {
         tr(e.Receiver);
         twr.Write(")");
       }
-      twr.Write(".@{0}", f.Name);
+      twr.Write(".@{0}", f.CompileName);
       twr.Write("(");
       string sep = "";
       for (int i = 0; i < e.Args.Count; i++) {
