@@ -499,7 +499,7 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
     GenericInstantiation<gt>        (. if (gt.Count != 2) {
                                          SemErr("map type expects exactly two type arguments");
                                        }
-                                       ty = new MapType(gt[0], gt[1]);
+                                       else { ty = new MapType(gt[0], gt[1]); }
                                     .)
   | ReferenceType<out tok, out ty>
   )

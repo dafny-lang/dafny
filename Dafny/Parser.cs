@@ -786,7 +786,7 @@ bool IsAttribute() {
 			if (gt.Count != 2) {
 			 SemErr("map type expects exactly two type arguments");
 			}
-			ty = new MapType(gt[0], gt[1]);
+			else { ty = new MapType(gt[0], gt[1]); }
 			
 			break;
 		}

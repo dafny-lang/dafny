@@ -1,0 +1,328 @@
+
+-------------------- Simple --------------------
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+
+-------------------- TypeTests --------------------
+TypeTests.dfy(89,9): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, got D)
+TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
+TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
+TypeTests.dfy(5,13): Error: incorrect type of function argument 1 (expected D, got int)
+TypeTests.dfy(11,15): Error: incorrect type of method in-parameter 0 (expected int, got bool)
+TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 0 (expected int, got C)
+TypeTests.dfy(12,11): Error: incorrect type of method out-parameter 1 (expected C, got int)
+TypeTests.dfy(44,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+TypeTests.dfy(53,6): Error: Duplicate local-variable name: z
+TypeTests.dfy(55,6): Error: Duplicate local-variable name: x
+TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
+TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
+TypeTests.dfy(68,17): Error: member F in type C does not refer to a method
+TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
+TypeTests.dfy(78,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(78,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(79,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(79,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(80,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(80,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(82,2): Error: LHS of array assignment must denote an array element (found seq<C>)
+TypeTests.dfy(82,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(82,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(83,2): Error: LHS of array assignment must denote an array element (found seq<C>)
+TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(84,2): Error: LHS of array assignment must denote an array element (found seq<C>)
+TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
+34 resolution/type errors detected in TypeTests.dfy
+
+-------------------- NatTypes --------------------
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+
+-------------------- SmallTests --------------------
+Compilation error: an assume statement cannot be compiled (line 13)
+Compilation error: compilation of seq<object> is not supported; consider introducing a ghost
+Compilation error: compilation of seq<object> is not supported; consider introducing a ghost
+Compilation error: compilation of seq<object> is not supported; consider introducing a ghost
+Compilation error: an assume statement cannot be compiled (line 545)
+Compilation error: an assume statement cannot be compiled (line 554)
+Compilation error: an assume statement cannot be compiled (line 556)
+Compilation error: an assume statement cannot be compiled (line 559)
+Compilation error: an assume statement cannot be compiled (line 571)
+Compilation error: an assume statement cannot be compiled (line 574)
+Compilation error: an assume statement cannot be compiled (line 575)
+Compilation error: an assume statement cannot be compiled (line 577)
+Compilation error: an assume statement cannot be compiled (line 584)
+Compilation error: an assume statement cannot be compiled (line 590)
+Compilation error: an assume statement cannot be compiled (line 596)
+Compilation error: an assume statement cannot be compiled (line 603)
+
+-------------------- Definedness --------------------
+Compilation error: an assume statement cannot be compiled (line 93)
+
+-------------------- FunctionSpecifications --------------------
+Compiled assembly into FunctionSpecifications.dll
+
+-------------------- ResolutionErrors --------------------
+ResolutionErrors.dfy(48,13): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(109,9): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(110,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(114,11): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(115,9): Error: actual out-parameter 0 is required to be a ghost variable
+ResolutionErrors.dfy(122,15): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(126,23): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(133,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(137,21): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(138,35): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(147,9): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(153,16): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(194,27): Error: ghost-context break statement is not allowed to break out of non-ghost structure
+ResolutionErrors.dfy(217,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(229,12): Error: trying to break out of more loop levels than there are enclosing loops
+ResolutionErrors.dfy(233,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors.dfy(238,8): Error: return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
+ResolutionErrors.dfy(23,12): Error: sequence/array/map selection requires a sequence, array or map (got array3<T>)
+ResolutionErrors.dfy(24,11): Error: array selection requires an array4 (got array<T>)
+ResolutionErrors.dfy(54,14): Error: a field must be selected via an object, not just a class name
+ResolutionErrors.dfy(55,7): Error: unresolved identifier: F
+ResolutionErrors.dfy(56,14): Error: an instance function must be selected via an object, not just a class name
+ResolutionErrors.dfy(56,7): Error: call to instance function requires an instance
+ResolutionErrors.dfy(57,7): Error: unresolved identifier: G
+ResolutionErrors.dfy(59,7): Error: unresolved identifier: M
+ResolutionErrors.dfy(60,7): Error: call to instance method requires an instance
+ResolutionErrors.dfy(61,7): Error: unresolved identifier: N
+ResolutionErrors.dfy(64,8): Error: non-function expression is called with parameters
+ResolutionErrors.dfy(65,14): Error: member z does not exist in class Global
+ResolutionErrors.dfy(84,12): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
+ResolutionErrors.dfy(89,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors.dfy(90,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors.dfy(92,12): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
+ResolutionErrors.dfy(94,12): Error: wrong number of arguments to datatype constructor Abc (found 2, expected 1)
+ResolutionErrors.dfy(256,4): Error: label shadows an enclosing label
+ResolutionErrors.dfy(261,2): Error: duplicate label
+ResolutionErrors.dfy(287,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
+ResolutionErrors.dfy(288,4): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
+ResolutionErrors.dfy(290,4): Error: a constructor is only allowed to be called when an object is being allocated
+ResolutionErrors.dfy(304,16): Error: arguments must have the same type (got int and DTD_List)
+ResolutionErrors.dfy(305,16): Error: arguments must have the same type (got DTD_List and int)
+ResolutionErrors.dfy(306,25): Error: arguments must have the same type (got bool and int)
+ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
+ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
+48 resolution/type errors detected in ResolutionErrors.dfy
+
+-------------------- ParseErrors --------------------
+ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
+ParseErrors.dfy(6,37): error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(7,38): error: this operator chain cannot continue with an ascending operator
+ParseErrors.dfy(12,24): error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(15,18): error: this operator cannot be part of a chain
+ParseErrors.dfy(16,19): error: this operator cannot be part of a chain
+ParseErrors.dfy(17,18): error: this operator cannot be part of a chain
+ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
+8 parse errors detected in ParseErrors.dfy
+
+-------------------- Array --------------------
+Compilation error: Arbitrary type ('B') cannot be compiled
+
+-------------------- MultiDimArray --------------------
+Compiled assembly into MultiDimArray.dll
+
+-------------------- NonGhostQuantifiers --------------------
+NonGhostQuantifiers.dfy(146,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(150,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(155,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(160,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(164,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(168,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(173,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(178,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+NonGhostQuantifiers.dfy(183,13): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'c'
+NonGhostQuantifiers.dfy(13,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
+NonGhostQuantifiers.dfy(42,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
+NonGhostQuantifiers.dfy(46,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'd'
+NonGhostQuantifiers.dfy(50,4): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'n'
+NonGhostQuantifiers.dfy(74,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'i'
+NonGhostQuantifiers.dfy(78,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(88,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(103,5): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'j'
+NonGhostQuantifiers.dfy(111,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
+NonGhostQuantifiers.dfy(120,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
+NonGhostQuantifiers.dfy(137,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+20 resolution/type errors detected in NonGhostQuantifiers.dfy
+
+-------------------- AdvancedLHS --------------------
+Compiled assembly into AdvancedLHS.dll
+
+-------------------- ModulesCycle --------------------
+ModulesCycle.dfy(12,7): Error: module T named among imports does not exist
+ModulesCycle.dfy(23,7): Error: import graph contains a cycle: H -> I -> J -> G
+2 resolution/type errors detected in ModulesCycle.dfy
+
+-------------------- Modules0 --------------------
+Modules0.dfy(5,8): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(6,11): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(7,7): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(11,8): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(12,11): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(43,13): Error: Function body type mismatch (expected T, got T)
+Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(48,12): Error: new can be applied only to reference types (got T)
+Modules0.dfy(54,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
+Modules0.dfy(70,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
+Modules0.dfy(71,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(81,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(105,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
+Modules0.dfy(244,11): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
+Modules0.dfy(250,15): Error: unresolved identifier: X
+Modules0.dfy(251,17): Error: member DoesNotExist does not exist in class X
+Modules0.dfy(294,16): Error: member R does not exist in class B
+Modules0.dfy(294,6): Error: expected method call, found expression
+Modules0.dfy(140,11): Error: ghost variables are allowed only in specification contexts
+Modules0.dfy(154,11): Error: old expressions are allowed only in specification and ghost contexts
+Modules0.dfy(155,11): Error: fresh expressions are allowed only in specification and ghost contexts
+Modules0.dfy(156,11): Error: allocated expressions are allowed only in specification and ghost contexts
+Modules0.dfy(172,10): Error: match source expression 'tree' has already been used as a match source expression in this context
+Modules0.dfy(211,12): Error: match source expression 'l' has already been used as a match source expression in this context
+30 resolution/type errors detected in Modules0.dfy
+
+-------------------- BadFunction --------------------
+Compiled assembly into BadFunction.dll
+
+-------------------- Comprehensions --------------------
+Compiled assembly into Comprehensions.exe
+
+-------------------- Basics --------------------
+Compilation error: an assume statement cannot be compiled (line 22)
+
+-------------------- ControlStructures --------------------
+Compiled assembly into ControlStructures.dll
+
+-------------------- DTypes --------------------
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+
+-------------------- ParallelResolveErrors --------------------
+ParallelResolveErrors.dfy(7,9): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(17,6): Error: LHS of assignment must denote a mutable variable or field
+ParallelResolveErrors.dfy(22,6): Error: body of parallel statement is attempting to update a variable declared outside the parallel statement
+ParallelResolveErrors.dfy(40,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(52,13): Error: set choose operator not supported inside the enclosing parallel statement
+ParallelResolveErrors.dfy(57,13): Error: new allocation not supported in parallel statements
+ParallelResolveErrors.dfy(67,6): Error: the body of the enclosing parallel statement is not allowed to call non-ghost methods
+ParallelResolveErrors.dfy(74,19): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(78,18): Error: return statement is not allowed inside a parallel statement
+ParallelResolveErrors.dfy(85,21): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(86,20): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(87,20): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(96,24): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(97,24): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(105,2): Warning: the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause
+ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing parallel statement is not allowed to update heap locations
+15 resolution/type errors detected in ParallelResolveErrors.dfy
+
+-------------------- Parallel --------------------
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: an assume statement cannot be compiled (line 47)
+
+-------------------- TypeParameters --------------------
+Compiled assembly into TypeParameters.exe
+
+-------------------- Coinductive --------------------
+Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
+Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
+Coinductive.dfy(35,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'K' can be constructed
+Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
+4 resolution/type errors detected in Coinductive.dfy
+
+-------------------- Corecursion --------------------
+Compiled assembly into Corecursion.dll
+
+-------------------- TypeAntecedents --------------------
+Compiled assembly into TypeAntecedents.exe
+
+-------------------- SplitExpr --------------------
+Compiled assembly into SplitExpr.dll
+
+-------------------- LoopModifies --------------------
+Compiled assembly into LoopModifies.dll
+
+-------------------- Refinement --------------------
+Compilation error: Method BodyFree._default.M has no body
+Compilation error: an assume statement cannot be compiled (line 128)
+
+-------------------- RefinementErrors --------------------
+RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions
+RefinementErrors.dfy(28,15): Error: a refining method is not allowed to extend the modifies clause
+RefinementErrors.dfy(31,14): Error: a predicate declaration (abc) can only refine a predicate
+RefinementErrors.dfy(32,8): Error: a field declaration (xyz) in a refining class (C) is not allowed replace an existing declaration in the refinement base
+RefinementErrors.dfy(34,13): Error: a function method cannot be changed into a (ghost) function in a refining module: F
+RefinementErrors.dfy(35,9): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'A', found 'C')
+RefinementErrors.dfy(35,11): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'B', found 'A')
+RefinementErrors.dfy(35,13): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'C', found 'B')
+RefinementErrors.dfy(36,23): Error: the type of parameter 'z' is different from the type of the same parameter in the corresponding function in the module it refines ('seq<C>' instead of 'set<C>')
+RefinementErrors.dfy(37,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
+RefinementErrors.dfy(54,20): Error: a function can be changed into a function method in a refining module only if the function has not yet been given a body: G
+11 resolution/type errors detected in RefinementErrors.dfy
+
+-------------------- ReturnErrors --------------------
+ReturnErrors.dfy(30,10): Error: cannot have method call in return statement.
+ReturnErrors.dfy(36,10): Error: cannot have effectful parameter in multi-return statement.
+ReturnErrors.dfy(41,10): Error: can only have initialization methods which modify at most 'this'.
+3 resolution/type errors detected in ReturnErrors.dfy
+
+-------------------- ChainingDisjointTests --------------------
+Compiled assembly into ChainingDisjointTests.dll
+
+-------------------- CallStmtTests --------------------
+CallStmtTests.dfy(4,3): Error: LHS of assignment must denote a mutable variable
+CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost variable
+2 resolution/type errors detected in CallStmtTests.dfy
+
+-------------------- MultiSets --------------------
+Compiled assembly into MultiSets.dll
+
+-------------------- PredExpr --------------------
+Compiled assembly into PredExpr.dll
+
+-------------------- LetExpr --------------------
+Compilation error: an assume statement cannot be compiled (line 31)
+Compilation error: an assume statement cannot be compiled (line 33)
+Compilation error: an assume statement cannot be compiled (line 34)
+
+-------------------- Skeletons --------------------
+Compilation error: an assume statement cannot be compiled (line 5)
+Compilation error: an assume statement cannot be compiled (line 7)
+
+-------------------- Maps --------------------
+Compiled assembly into Maps.exe
+
+-------------------- Compilation --------------------
+Compiled assembly into Compilation.exe

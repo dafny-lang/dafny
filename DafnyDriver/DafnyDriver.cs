@@ -23,6 +23,7 @@ namespace Microsoft.Dafny
   using VC;
   using System.CodeDom.Compiler;
   using AI = Microsoft.AbstractInterpretationFramework;
+  using Microsoft.Win32; // needed for ccrewrite
 
   public class DafnyDriver
   {
@@ -150,7 +151,7 @@ namespace Microsoft.Dafny
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           ErrorWriteLine(err);
-        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
+        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck && DafnyOptions.O.Verification) {
           Dafny.Translator translator = new Dafny.Translator();
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
@@ -186,6 +187,14 @@ namespace Microsoft.Dafny
               break;
           }
           exitValue = allOk ? ExitValue.VERIFIED : ExitValue.NOT_VERIFIED;
+        }
+        else if (!DafnyOptions.O.Verification)
+        {
+          if (DafnyOptions.O.ForceCompile)
+          {
+            CompileDafnyProgram(dafnyProgram, fileNames[0]);
+          }
+          exitValue = ExitValue.NOT_VERIFIED;
         }
       }
       return exitValue;
@@ -231,10 +240,33 @@ namespace Microsoft.Dafny
         }
         cp.GenerateInMemory = false;
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
+        string ccrewriter = findCCRewriter();
+        bool ccrewrite = DafnyOptions.O.RuntimeChecking && ccrewriter != null;
+        if (ccrewrite)
+        {
+          cp.CompilerOptions += " /D:CONTRACTS_FULL";
+        }
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
         if (cr.Errors.Count == 0) {
           Console.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
+          if (ccrewrite)
+          {
+            Process p = new Process();
+            string ccrewriterOpts = "-nologo -callSiteRequires -shortBranches -throwOnFailure";
+            p.StartInfo.FileName = "cmd.exe";
+            p.StartInfo.Arguments = "/C \"\"" + ccrewriter + "\" " +
+              ccrewriterOpts + " \"" + cp.OutputAssembly + "\"\"";
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.Start();
+            p.WaitForExit();
+            Console.WriteLine("Rewrote assembly into {0}", cr.PathToAssembly);
+          }
+          else if (ccrewriter == null)
+          {
+            Console.WriteLine("Error: cannot rewrite, because there is no CodeContracts rewriter");
+          }
         } else {
           Console.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
           foreach (var ce in cr.Errors) {
@@ -786,6 +818,57 @@ namespace Microsoft.Dafny
 
       return PipelineOutcome.VerificationCompleted;
     }
+
+
+    #region Runtime checking
+
+    /********** Find Code Contracts rewriter **********/
+    private static string findCCRewriter()
+    {
+      using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE"))
+      {
+        foreach (string skN0 in rk.GetSubKeyNames())
+          if (skN0 == "Microsoft")
+            using (RegistryKey sk0 = rk.OpenSubKey(skN0))
+            {
+              foreach (string skN1 in sk0.GetSubKeyNames())
+                if (skN1 == "VisualStudio")
+                  using (RegistryKey sk1 = sk0.OpenSubKey(skN1))
+                  {
+                    foreach (string skN2 in sk1.GetSubKeyNames())
+                      using (RegistryKey sk2 = sk1.OpenSubKey(skN2))
+                      {
+                        foreach (string skN3 in sk2.GetSubKeyNames())
+                          if (skN3 == "CodeTools")
+                            using (RegistryKey sk3 = sk2.OpenSubKey(skN3))
+                            {
+                              foreach (string skN4 in sk3.GetSubKeyNames())
+                                if (skN4 == "CodeContracts")
+                                  using (RegistryKey sk4 = sk3.OpenSubKey(skN4))
+                                  {
+                                    if ((string)sk4.GetValue("DisplayName") ==
+                                        "Microsoft Code Contracts")
+                                    {
+                                      string ccrewriter =
+                                        (string)sk4.GetValue("InstallDir") +
+                                        "Bin\\ccrewrite.exe";
+                                      if (File.Exists(ccrewriter))
+                                        return ccrewriter;
+                                      else
+                                        return null;
+                                    }
+                                    else
+                                      return null;
+                                  }
+                            }
+                      }
+                  }
+            }
+        return null;
+      }
+    }
+
+    #endregion
 
   }
 }

@@ -79,7 +79,7 @@ module Tight refines Loose {
 }
 
 module UnawareClient imports Loose {
-  method Main() {
+  method Main0() {
     var n := new MyNumber.Init();
     assert n.N == 0;  // error: this is not known
     n.Inc();
@@ -90,7 +90,7 @@ module UnawareClient imports Loose {
 }
 
 module AwareClient imports Tight {
-  method Main() {
+  method Main1() {
     var n := new MyNumber.Init();
     assert n.N == 0;
     n.Inc();

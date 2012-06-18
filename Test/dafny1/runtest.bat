@@ -3,14 +3,6 @@ setlocal
 
 set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
-set BPLEXE=%BOOGIEDIR%\Boogie.exe
-set CSC=c:/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
-
-for %%f in (BQueue.bpl) do (
-  echo.
-  echo -------------------- %%f --------------------
-  %BPLEXE% %* %%f
-)
 
 for %%f in (Queue.dfy PriorityQueue.dfy
             ExtensibleArray.dfy ExtensibleArrayAuto.dfy

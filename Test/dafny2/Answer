@@ -35,6 +35,10 @@ Dafny program verifier finished with 5 verified, 0 errors
 
 Dafny program verifier finished with 3 verified, 0 errors
 
+-------------------- TuringFactorial.dfy --------------------
+
+Dafny program verifier finished with 3 verified, 0 errors
+
 -------------------- StoreAndRetrieve.dfy --------------------
 
 Dafny program verifier finished with 22 verified, 0 errors
