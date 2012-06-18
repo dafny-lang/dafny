@@ -186,19 +186,19 @@ namespace Microsoft.Dafny {
         return t;
       } else if (t is SetType) {
         var tt = (SetType)t;
-        return new SetType(tt.Arg);
+        return new SetType(CloneType(tt.Arg));
       } else if (t is SeqType) {
         var tt = (SeqType)t;
-        return new SeqType(tt.Arg);
+        return new SeqType(CloneType(tt.Arg));
       } else if (t is MultiSetType) {
         var tt = (MultiSetType)t;
-        return new MultiSetType(tt.Arg);
+        return new MultiSetType(CloneType(tt.Arg));
       } else if (t is MapType) {
         var tt = (MapType)t;
-        return new MapType(tt.Domain, tt.Range);
+        return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
-        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType));
+        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.ModuleName == null ? null : Tok(tt.ModuleName));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else {
@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Assume.Expr));
+        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken));
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -513,13 +513,13 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-    void AddStmtLabels(Statement s, LabelNode node) {
+    void AddStmtLabels(Statement s, LList<Label> node) {
       if (node != null) {
         AddStmtLabels(s, node.Next);
-        if (node.Label == null) {
+        if (node.Data.Name == null) {
           // this indicates an implicit-target break statement that has been resolved; don't add it
         } else {
-          s.Labels = new LabelNode(Tok(node.Tok), node.Label, s.Labels);
+          s.Labels = new LList<Label>(new Label(Tok(node.Data.Tok), node.Data.Name), s.Labels);
         }
       }
     }
@@ -560,10 +560,10 @@ namespace Microsoft.Dafny {
       }
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals,
+        return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, moreBody != null, null, false);
       } else {
-        return new Function(tok, f.Name, f.IsStatic, isGhost, f.IsUnlimited, tps, f.OpenParen, formals, CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null, false);
       }
     }
@@ -637,9 +637,6 @@ namespace Microsoft.Dafny {
 
               if (prevFunction.IsStatic != f.IsStatic) {
                 reporter.Error(f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
-              }
-              if (prevFunction.IsUnlimited != f.IsUnlimited) {
-                reporter.Error(f, "a function in a refining module cannot be changed from unlimited to limited or vice versa: {0}", f.Name);
               }
               if (!prevFunction.IsGhost && f.IsGhost) {
                 reporter.Error(f, "a function method cannot be changed into a (ghost) function in a refining module: {0}", f.Name);
@@ -917,7 +914,7 @@ namespace Microsoft.Dafny {
                   doMerge = true;
                 } else if (cOld.Update is AssignSuchThatStmt) {
                   doMerge = true;
-                  addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Assume.Expr);
+                  addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
                 } else {
                   var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
                   if (updateOld.Rhss.Count == 1 && updateOld.Rhss[0] is HavocRhs) {
@@ -1090,8 +1087,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(labels != null);
       Contract.Requires(0 <= loopLevels);
 
-      for (LabelNode n = s.Labels; n != null; n = n.Next) {
-        labels.Push(n.Label);
+      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
+        labels.Push(n.Data.Name);
       }
 
       if (s is SkeletonStatement) {
@@ -1116,7 +1113,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      for (LabelNode n = s.Labels; n != null; n = n.Next) {
+      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
         labels.Pop();
       }
     }

@@ -288,7 +288,6 @@ namespace DafnyLanguage
                 case "this":
                 case "true":
                 case "type":
-                case "unlimited":
                 case "var":
                 case "while":
                 #endregion

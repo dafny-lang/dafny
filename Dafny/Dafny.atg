@@ -24,7 +24,6 @@ static int anonymousIds = 0;
 struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
-  public bool IsUnlimited;
 }
 // helper routine for parsing call statements
 ///<summary>
@@ -226,7 +225,6 @@ ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool isAlreadyGhost, bool allowC
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; .)
-  | "unlimited"                            (. mmod.IsUnlimited = true; .)
   }
   ( FieldDecl<mmod, mm>
   | FunctionDecl<mmod, out f>                   (. mm.Add(f); .)
@@ -281,8 +279,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   .)
   SYNC
   "var"
-  (. if (mmod.IsUnlimited) { SemErr(t, "fields cannot be declared 'unlimited'"); }
-     if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
+  (. if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
   IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
@@ -396,8 +393,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
                                        }
                                     .)
   )
-  (. if (mmod.IsUnlimited) { SemErr(t, "methods cannot be declared 'unlimited'"); }
-     if (isConstructor) {
+  (. if (isConstructor) {
        if (mmod.IsGhost) {
          SemErr(t, "constructors cannot be declared 'ghost'");
        }
@@ -503,7 +499,7 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
     GenericInstantiation<gt>        (. if (gt.Count != 2) {
                                          SemErr("map type expects exactly two type arguments");
                                        }
-                                       ty = new MapType(gt[0], gt[1]);
+                                       else { ty = new MapType(gt[0], gt[1]); }
                                     .)
   | ReferenceType<out tok, out ty>
   )
@@ -511,6 +507,7 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
 ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
+     IToken moduleName = null;
      List<Type/*!*/>/*!*/ gt;
   .)
   ( "object"                        (. tok = t;  ty = new ObjectType(); .)
@@ -525,7 +522,10 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
                                     .)
   | Ident<out tok>                  (. gt = new List<Type/*!*/>(); .)
-    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt); .)
+    [                               (. moduleName = tok; .)
+      "." Ident<out tok>
+    ]
+    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, moduleName); .)
   )
   .
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
@@ -596,10 +596,10 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isPredicate) {
-        f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals,
+        f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs, signatureOmitted);
      } else {
-        f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, mmod.IsUnlimited, typeArgs, openParen, formals, returnType,
+        f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
      }
      f.BodyStartTok = bodyStart;
@@ -691,7 +691,7 @@ OneStmt<out Statement/*!*/ s>
   | ParallelStmt<out s>
   | "label"                            (. x = t; .)
     Ident<out id> ":"
-    OneStmt<out s>                     (. s.Labels = new LabelNode(x, id.val, s.Labels); .)
+    OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
   | "break"                            (. x = t; breakCount = 1; label = null; .)
     ( Ident<out id>                    (. label = id.val; .)
     | { "break"                        (. breakCount++; .)
@@ -725,6 +725,7 @@ UpdateStmt<out Statement/*!*/ s>
      Expression lhs0;
      IToken x;
      Attributes attrs = null;
+     IToken suchThatAssume = null;
      Expression suchThat = null;
   .)
   Lhs<out e>                       (. x = e.tok; .)
@@ -738,13 +739,15 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r, lhs0>       (. rhss.Add(r); .)
       }
     | ":|"                         (. x = t; .)
+      [ "assume"                   (. suchThatAssume = t; .)
+      ]
       Expression<out suchThat>
     )
     ";"
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
   (. if (suchThat != null) {
-       s = new AssignSuchThatStmt(x, lhss, suchThat);
+       s = new AssignSuchThatStmt(x, lhss, suchThat, suchThatAssume);
      } else {
        s = new UpdateStmt(x, lhss, rhss);
      }
@@ -769,8 +772,23 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
     | "." Ident<out x>
       "("                              (. args = new List<Expression/*!*/>(); .)
         [ Expressions<args> ]
-      ")"                              (. initCall = new CallStmt(x, new List<Expression>(),
-                                                                  receiverForInitCall, x.val, args); .)
+      ")"                              (. initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args); .)
+    | "("                              (. var udf = ty as UserDefinedType;
+                                          if (udf != null && udf.ModuleName != null && udf.TypeArgs.Count == 0) {
+                                            // The parsed name had the form "A.B", so treat "A" as the name of the type and "B" as
+                                            // the name of the constructor that's being invoked.
+                                            x = udf.tok;
+                                            ty = new UserDefinedType(udf.ModuleName, udf.ModuleName.val, new List<Type>(), null);
+                                          } else {
+                                            SemErr(t, "expected '.'");
+                                            x = null;
+                                          }
+                                          args = new List<Expression/*!*/>(); .)
+        [ Expressions<args> ]
+      ")"                              (. if (x != null) {
+                                            initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args);
+                                          }
+                                       .)
     ]
     (. if (ee != null) {
          r = new TypeRhs(newToken, ty, ee);
@@ -784,7 +802,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
   | "*"                                (. r = new HavocRhs(t); .)
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
-  { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
+  { Attribute<ref attrs> }             (. if (r != null) r.Attributes = attrs; .)
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
@@ -792,6 +810,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AssignmentRhs r;  IdentifierExpr lhs0;
      List<VarDecl> lhss = new List<VarDecl>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+     IToken suchThatAssume = null;
      Expression suchThat = null;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
@@ -809,6 +828,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
     { "," Rhs<out r, lhs0>         (. rhss.Add(r); .)
     }
   | ":|"                           (. assignTok = t; .)
+    [ "assume"                     (. suchThatAssume = t; .)
+    ]
     Expression<out suchThat>
   ]
   ";"
@@ -818,7 +839,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        foreach (var lhs in lhss) {
          ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
        }
-       update = new AssignSuchThatStmt(assignTok, ies, suchThat);
+       update = new AssignSuchThatStmt(assignTok, ies, suchThat, suchThatAssume);
      } else if (rhss.Count == 0) {
        update = null;
      } else {

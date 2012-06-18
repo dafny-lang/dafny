@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
 
       List<Type/*!*/> typeArgs = new List<Type/*!*/>();
       typeArgs.Add(arg);
-      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs);
+      UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs, null);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
         for (int d = 0; d < dims; d++) {
@@ -393,7 +393,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 
-    public readonly IToken tok;
+    public readonly IToken ModuleName;  // may be null
+    public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
     public readonly List<Type/*!*/>/*!*/ TypeArgs;
@@ -408,13 +409,33 @@ namespace Microsoft.Dafny {
       }
     }
 
+    string compileName;
+    public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = NonglobalVariable.CompilerizeName(Name);
+        }
+        return compileName;
+      }
+    }
+    public string FullCompileName {
+      get {
+        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
+          return ResolvedClass.Module.CompileName + "." + CompileName;
+        } else {
+          return CompileName;
+        }
+      }
+    }
+
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
+    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, IToken moduleName) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
+      this.ModuleName = moduleName;
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -480,6 +501,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
 
       string s = Name;
+      if (ModuleName != null) {
+        s = ModuleName.val + "." + s;
+      }
       if (TypeArgs.Count != 0) {
         string sep = "<";
         foreach (Type t in TypeArgs) {
@@ -652,6 +676,15 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public readonly string/*!*/ Name;
+    string compileName;
+    public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = NonglobalVariable.CompilerizeName(Name);
+        }
+        return compileName;
+      }
+    }
     public readonly Attributes Attributes;
 
     public Declaration(IToken tok, string name, Attributes attributes) {
@@ -768,6 +801,11 @@ namespace Microsoft.Dafny {
     public string FullName {
       get {
         return Module.Name + "." + Name;
+      }
+    }
+    public string FullCompileName {
+      get {
+        return Module.CompileName + "." + CompileName;
       }
     }
   }
@@ -934,6 +972,14 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullName + "." + Name;
       }
     }
+    public string FullCompileName {
+      get {
+        Contract.Requires(EnclosingClass != null);
+        Contract.Ensures(Contract.Result<string>() != null);
+
+        return EnclosingClass.FullCompileName + "." + CompileName;
+      }
+    }
   }
 
   public class Field : MemberDecl {
@@ -1019,6 +1065,9 @@ namespace Microsoft.Dafny {
     string/*!*/ UniqueName {
       get;
     }
+    string/*!*/ CompileName {
+      get;
+    }
     Type/*!*/ Type {
       get;
     }
@@ -1038,6 +1087,12 @@ namespace Microsoft.Dafny {
       }
     }
     public string UniqueName {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();
+      }
+    }
+    public string CompileName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();
@@ -1083,6 +1138,46 @@ namespace Microsoft.Dafny {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         return name + "#" + varId;
+      }
+    }
+    static char[] specialChars = new char[] { '\'', '_', '?', '\\' };
+    public static string CompilerizeName(string nm) {
+      string name = null;
+      int i = 0;
+      while (true) {
+        int j = nm.IndexOfAny(specialChars, i);
+        if (j == -1) {
+          if (i == 0) {
+            return nm;  // this is the common case
+          } else {
+            return name + nm.Substring(i);
+          }
+        } else {
+          string nxt = nm.Substring(i, j);
+          name = name == null ? nxt : name + nxt;
+          switch (nm[j]) {
+            case '\'': name += "_k"; break;
+            case '_': name += "__"; break;
+            case '?': name += "_q"; break;
+            case '\\': name += "_b"; break;
+            default:
+              Contract.Assume(false);  // unexpected character
+              break;
+          }
+          i = j + 1;
+          if (i == nm.Length) {
+            return name;
+          }
+        }
+      }
+    }
+    protected string compileName;
+    public virtual string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = string.Format("_{0}_{1}", varId, CompilerizeName(name));
+        }
+        return compileName;
       }
     }
     Type type;
@@ -1140,6 +1235,14 @@ namespace Microsoft.Dafny {
         return !Name.StartsWith("#");
       }
     }
+    public override string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = CompilerizeName(Name);
+        }
+        return compileName;
+      }
+    }
   }
 
   /// <summary>
@@ -1172,7 +1275,6 @@ namespace Microsoft.Dafny {
 
   public class Function : MemberDecl, TypeParameter.ParentType {
     public readonly bool IsGhost;  // functions are "ghost" by default; a non-ghost function is called a "function method"
-    public readonly bool IsUnlimited;
     public bool IsRecursive;  // filled in during resolution
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly IToken OpenParen;  // can be null (for predicates), if there are no formals
@@ -1195,7 +1297,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-    public Function(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
+    public Function(IToken tok, string name, bool isStatic, bool isGhost,
                     List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals, Type resultType,
                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, bool signatureOmitted)
@@ -1211,7 +1313,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
       this.IsGhost = isGhost;
-      this.IsUnlimited = isUnlimited;
       this.TypeArgs = typeArgs;
       this.OpenParen = openParen;
       this.Formals = formals;
@@ -1228,11 +1329,11 @@ namespace Microsoft.Dafny {
   public class Predicate : Function
   {
     public readonly bool BodyIsExtended;  // says that this predicate definition is a refinement extension of a predicate definition is a refining module
-    public Predicate(IToken tok, string name, bool isStatic, bool isGhost, bool isUnlimited,
+    public Predicate(IToken tok, string name, bool isStatic, bool isGhost,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, bool bodyIsExtended, Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, isGhost, isUnlimited, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
+      : base(tok, name, isStatic, isGhost, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
       Contract.Requires(!bodyIsExtended || body != null);
       BodyIsExtended = bodyIsExtended;
     }
@@ -1320,7 +1421,7 @@ namespace Microsoft.Dafny {
 
   public abstract class Statement {
     public readonly IToken Tok;
-    public LabelNode Labels;  // mutable during resolution
+    public LList<Label> Labels;  // mutable during resolution
 
     private Attributes attributes;
     public Attributes Attributes {
@@ -1363,19 +1464,43 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LabelNode
+  public class LList<T>
+  {
+    public readonly T Data;
+    public readonly LList<T> Next;
+    const LList<T> Empty = null;
+
+    public LList(T d, LList<T> next) {
+      Data = d;
+      Next = next;
+    }
+
+    public static LList<T> Append(LList<T> a, LList<T> b) {
+      if (a == null) return b;
+      return new LList<T>(a.Data, Append(a.Next, b));
+      // pretend this is ML
+    }
+    public static int Count(LList<T> n) {
+      int count = 0;
+      while (n != null) {
+        count++;
+        n = n.Next;
+      }
+      return count;
+    }
+  }
+
+  public class Label
   {
     public readonly IToken Tok;
-    public readonly string Label;
+    public readonly string Name;
     public readonly int UniqueId;
-    public readonly LabelNode Next;
     static int nodes = 0;
 
-    public LabelNode(IToken tok, string label, LabelNode next) {
+    public Label(IToken tok, string label) {
       Contract.Requires(tok != null);
       Tok = tok;
-      Label = label;
-      Next = next;
+      Name = label;
       UniqueId = nodes++;
     }
   }
@@ -1676,14 +1801,22 @@ namespace Microsoft.Dafny {
 
   public class AssignSuchThatStmt : ConcreteUpdateStatement
   {
-    public readonly AssumeStmt Assume;
-    public AssignSuchThatStmt(IToken tok, List<Expression> lhss, Expression expr)
+    public readonly Expression Expr;
+    public readonly IToken AssumeToken;
+    /// <summary>
+    /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
+    /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
+    /// </summary>
+    public AssignSuchThatStmt(IToken tok, List<Expression> lhss, Expression expr, IToken assumeToken)
       : base(tok, lhss) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(lhss.Count != 0);
       Contract.Requires(expr != null);
-      Assume = new AssumeStmt(tok, expr);
+      Expr = expr;
+      if (assumeToken != null) {
+        AssumeToken = assumeToken;
+      }
     }
   }
 
@@ -1744,6 +1877,24 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    /// <summary>
+    /// This method assumes "lhs" has been successfully resolved.
+    /// </summary>
+    public static bool LhsIsToGhost(Expression lhs) {
+      Contract.Requires(lhs != null);
+      lhs = lhs.Resolved;
+      if (lhs is IdentifierExpr) {
+        var x = (IdentifierExpr)lhs;
+        return x.Var.IsGhost;
+      } else if (lhs is FieldSelectExpr) {
+        var x = (FieldSelectExpr)lhs;
+        return x.Field.IsGhost;
+      } else {
+        // LHS denotes an array element, which is always non-ghost
+        return false;
+      }
+    }
   }
 
   public class VarDecl : Statement, IVariable {
@@ -1776,6 +1927,15 @@ namespace Microsoft.Dafny {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         return name + "#" + varId;
+      }
+    }
+    string compileName;
+    public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = string.Format("_{0}_{1}", varId, NonglobalVariable.CompilerizeName(name));
+        }
+        return compileName;
       }
     }
     public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any

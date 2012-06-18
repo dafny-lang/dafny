@@ -322,7 +322,7 @@ namespace Microsoft.Dafny {
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
-              var query = new SpecialField(ctor.tok, queryName, "_" + ctor.Name, "", "", false, false, Type.Bool, null);
+              var query = new SpecialField(ctor.tok, queryName, "is_" + ctor.CompileName, "", "", false, false, Type.Bool, null);
               query.EnclosingClass = dt;  // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;
@@ -937,7 +937,7 @@ namespace Microsoft.Dafny {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
         }
-        TypeParameter tp = allTypeParameters.Find(t.Name);
+        TypeParameter tp = t.ModuleName == null ? allTypeParameters.Find(t.Name) : null;
         if (tp != null) {
           if (t.TypeArgs.Count == 0) {
             t.ResolvedParam = tp;
@@ -945,11 +945,32 @@ namespace Microsoft.Dafny {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
-          TopLevelDecl d;
-          if (!classes.TryGetValue(t.Name, out d)) {
+          TopLevelDecl d = null;
+          if (t.ModuleName != null) {
+            foreach (var imp in currentClass.Module.Imports) {
+              if (imp.Name == t.ModuleName.val) {
+                // now search among the types declared in module "imp"
+                foreach (var tld in imp.TopLevelDecls) {  // this search is slow, but oh well
+                  if (tld.Name == t.Name) {
+                    // found the class
+                    d = tld;
+                    goto DONE_WITH_QUALIFIED_NAME;
+                  }
+                }
+                Error(t.tok, "Undeclared class name {0} in module {1}", t.Name, t.ModuleName.val);
+                goto DONE_WITH_QUALIFIED_NAME;
+              }
+            }
+            Error(t.ModuleName, "Undeclared module name: {0} (did you forget a module import?)", t.ModuleName.val);
+          DONE_WITH_QUALIFIED_NAME: ;
+          } else if (!classes.TryGetValue(t.Name, out d)) {
             Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
+          }
+
+          if (d == null) {
+            // error has been reported above
           } else if (d is AmbiguousTopLevelDecl) {
-            Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
+            Error(t.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", t.Name, ((AmbiguousTopLevelDecl)d).ModuleNames());
           } else if (d is ArbitraryTypeDecl) {
             t.ResolvedParam = ((ArbitraryTypeDecl)d).TheType;  // resolve like a type parameter
           } else {
@@ -973,7 +994,7 @@ namespace Microsoft.Dafny {
                   Contract.Assert(d.TypeArgs.Count <= defaultTypeArguments.Count);
                   // automatically supply a prefix of the arguments from defaultTypeArguments
                   for (int i = 0; i < d.TypeArgs.Count; i++) {
-                    var typeArg = new UserDefinedType(t.tok, defaultTypeArguments[i].Name, new List<Type>());
+                    var typeArg = new UserDefinedType(t.tok, defaultTypeArguments[i].Name, new List<Type>(), null);
                     typeArg.ResolvedParam = defaultTypeArguments[i];  // resolve "typeArg" here
                     t.TypeArgs.Add(typeArg);
                   }
@@ -1355,7 +1376,7 @@ namespace Microsoft.Dafny {
             Statement target = loopStack[loopStack.Count - s.BreakCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
-              target.Labels = new LabelNode(target.Tok, null, null);
+              target.Labels = new LList<Label>(new Label(target.Tok, null), null);
             }
             s.TargetStmt = target;
             if (specContextOnly && !target.IsGhost && !inSpecOnlyContext[target]) {
@@ -1818,13 +1839,15 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
-
     private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, Method method)
     {
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
       SeqSelectExpr arrayRangeLhs = null;
+      var update = s as UpdateStmt;
+
       foreach (var lhs in s.Lhss) {
+        var ec = ErrorCount;
         if (lhs is SeqSelectExpr) {
           var sse = (SeqSelectExpr)lhs;
           ResolveSeqSelectExpr(sse, true, true);
@@ -1834,14 +1857,34 @@ namespace Microsoft.Dafny {
         } else {
           ResolveExpression(lhs, true);
         }
+        if (update == null && ec == ErrorCount && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
+          Error(lhs, "cannot assign to non-ghost variable in a ghost context");
+        }
       }
       IToken firstEffectfulRhs = null;
       CallRhs callRhs = null;
-      var update = s as UpdateStmt;
       // Resolve RHSs
       if (update == null) {
         var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
-        s.ResolvedStatements.Add(suchThat.Assume);
+        ResolveExpression(suchThat.Expr, true);
+        if (suchThat.AssumeToken == null) {
+          // to ease in the verification, only allow local variables as LHSs
+          var lhsNames = new Dictionary<string, object>();
+          foreach (var lhs in s.Lhss) {
+            if (!(lhs.Resolved is IdentifierExpr)) {
+              Error(lhs, "the assign-such-that statement currently only supports local-variable LHSs");
+            }
+            else {
+              var ie = (IdentifierExpr)lhs.Resolved;
+              if (lhsNames.ContainsKey(ie.Name)) {
+                 // disallow same LHS.
+                Error(s, "duplicate variable in left-hand side of assign-such-that statement: {0}", ie.Name);
+              } else {
+                lhsNames.Add(ie.Name, null);
+              }
+            }
+          }
+        }
       } else {
         foreach (var rhs in update.Rhss) {
           bool isEffectful;
@@ -1877,13 +1920,14 @@ namespace Microsoft.Dafny {
         var ie = lhs.Resolved as IdentifierExpr;
         if (ie != null) {
           if (lhsNameSet.ContainsKey(ie.Name)) {
-            Error(s, "Duplicate variable in left-hand side of {1} statement: {0}", ie.Name, callRhs != null ? "call" : "assignment");
+            if (callRhs != null)
+              // only allow same LHS in a multiassignment, not a call statement
+              Error(s, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
           } else {
             lhsNameSet.Add(ie.Name, null);
           }
         }
       }
-
       if (update != null) {
         // figure out what kind of UpdateStmt this is
         if (firstEffectfulRhs == null) {
@@ -2158,17 +2202,18 @@ namespace Microsoft.Dafny {
       foreach (Statement ss in blockStmt.Body) {
         labeledStatements.PushMarker();
         // push labels
-        for (var lnode = ss.Labels; lnode != null; lnode = lnode.Next) {
-          Contract.Assert(lnode.Label != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-          var prev = labeledStatements.Find(lnode.Label);
+        for (var l = ss.Labels; l != null; l = l.Next) {
+          var lnode = l.Data;
+          Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+          var prev = labeledStatements.Find(lnode.Name);
           if (prev == ss) {
             Error(lnode.Tok, "duplicate label");
           } else if (prev != null) {
             Error(lnode.Tok, "label shadows an enclosing label");
           } else {
-            bool b = labeledStatements.Push(lnode.Label, ss);
+            bool b = labeledStatements.Push(lnode.Name, ss);
             Contract.Assert(b);  // since we just checked for duplicates, we expect the Push to succeed
-            if (lnode == ss.Labels) {  // add it only once
+            if (l == ss.Labels) {  // add it only once
               inSpecOnlyContext.Add(ss, specContextOnly);
             }
           }
@@ -2338,7 +2383,7 @@ namespace Microsoft.Dafny {
             }
             if (!callsConstructor && rr.EType is UserDefinedType) {
               var udt = (UserDefinedType)rr.EType;
-              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guarantted by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
               if (cl.HasConstructor) {
                 Error(stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
               }
@@ -2594,7 +2639,7 @@ namespace Microsoft.Dafny {
             dtv.InferredTypeArgs.Add(t);
             subst.Add(dt.TypeArgs[i], t);
           }
-          expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt);
+          expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt, null);
           ResolveType(expr.tok, expr.Type, null, true);
 
           DatatypeCtor ctor;
@@ -2855,8 +2900,10 @@ namespace Microsoft.Dafny {
 
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
-            if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
-              Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+            if (!CouldPossiblyBeSameType(e.E0.Type, e.E1.Type)) {
+              if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
+                Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
+              }
             }
             expr.Type = Type.Bool;
             break;
@@ -3246,6 +3293,35 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = Type.Flexible;
       }
+    }
+
+    private bool CouldPossiblyBeSameType(Type A, Type B) {
+      if (A.IsTypeParameter || B.IsTypeParameter) {
+        return true;
+      }
+      if (A.IsArrayType && B.IsArrayType) {
+        Type a = UserDefinedType.ArrayElementType(A);
+        Type b = UserDefinedType.ArrayElementType(B);
+        return CouldPossiblyBeSameType(a, b);
+      }
+      if (A is UserDefinedType && B is UserDefinedType) {
+        UserDefinedType a = (UserDefinedType)A;
+        UserDefinedType b = (UserDefinedType)B;
+        if (a.ResolvedClass != null && b.ResolvedClass != null && a.ResolvedClass == b.ResolvedClass) {
+          if (a.TypeArgs.Count != b.TypeArgs.Count) {
+            return false; // this probably doesn't happen if the classes are the same.
+          }
+          for (int i = 0; i < a.TypeArgs.Count; i++) {
+            if (!CouldPossiblyBeSameType(a.TypeArgs[i], b.TypeArgs[i]))
+              return false;
+          }
+          // all parameters could be the same
+          return true;
+        }
+        // either we don't know what class it is yet, or the classes mismatch
+        return false;
+      }
+      return false;
     }
 
     /// <summary>
