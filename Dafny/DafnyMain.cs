@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(fileNames != null);
       program = null;
-      List<ModuleDecl> modules = new List<ModuleDecl>();
+      ModuleDecl module = new DefaultModuleDecl();
       BuiltIns builtIns = new BuiltIns();
       foreach (string dafnyFileName in fileNames){
         Contract.Assert(dafnyFileName != null);
@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
         int errorCount;
         try
         {
-          errorCount = Dafny.Parser.Parse(dafnyFileName, modules, builtIns);
+          errorCount = Dafny.Parser.Parse(dafnyFileName, module, builtIns);
           if (errorCount != 0)
           {
             return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      program = new Program(programName, modules, builtIns);
+      program = new Program(programName, module, builtIns);
 
       if (DafnyOptions.O.DafnyPrintFile != null) {
         string filename = DafnyOptions.O.DafnyPrintFile;

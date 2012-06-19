@@ -14,7 +14,7 @@ using System.IO;
 using System.Text;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
-static List<ModuleDecl/*!*/> theModules;
+static ModuleDecl theModule;
 static BuiltIns theBuiltIns;
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
@@ -28,51 +28,51 @@ struct MemberModifiers {
 // helper routine for parsing call statements
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
-/// and appends them in appropriate form to "modules".
+/// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules, BuiltIns builtIns) /* throws System.IO.IOException */ {
+public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns builtIns) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
-  Contract.Requires(cce.NonNullElements(modules));
+  Contract.Requires(module != null);
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, modules, builtIns);
+    return Parse(s, filename, module, builtIns);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, modules, builtIns);
+      return Parse(s, filename, module, builtIns);
     }
   }
 }
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
-/// and appends them in appropriate form to "modules".
+/// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules, BuiltIns builtIns) {
+public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
-  Contract.Requires(cce.NonNullElements(modules));
+  Contract.Requires(module != null);
   Errors errors = new Errors();
-  return Parse(s, filename, modules, builtIns, errors);
+  return Parse(s, filename, module, builtIns, errors);
 }
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
-/// and appends them in appropriate form to "modules".
+/// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!*/>/*!*/ modules, BuiltIns builtIns,
+public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns,
                          Errors/*!*/ errors) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
-  Contract.Requires(cce.NonNullElements(modules));
+  Contract.Requires(module != null);
   Contract.Requires(errors != null);
-  List<ModuleDecl/*!*/> oldModules = theModules;
-  theModules = modules;
+  ModuleDecl oldModule = theModule;
+  theModule = module;
   BuiltIns oldBuiltIns = builtIns;
   theBuiltIns = builtIns;
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
@@ -80,7 +80,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, List<ModuleDecl/*!
   Scanner scanner = new Scanner(ms, errors, filename);
   Parser parser = new Parser(scanner, errors);
   parser.Parse();
-  theModules = oldModules;
+  theModule = oldModule;
   theBuiltIns = oldBuiltIns;
   return parser.errors.count;
 }
@@ -131,43 +131,19 @@ IGNORE cr + lf + tab
 PRODUCTIONS
 Dafny
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
-     Attributes attrs;  IToken/*!*/ id;  List<string/*!*/> theImports;
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
-     List<MemberDecl/*!*/> namedModuleDefaultClassMembers;
-     ModuleDecl module;
-     // to support multiple files, create a default module only if theModules doesn't already contain one
-     DefaultModuleDecl defaultModule = null;
-     foreach (ModuleDecl mdecl in theModules) {
-       defaultModule = mdecl as DefaultModuleDecl;
-       if (defaultModule != null) { break; }
-     }
-     bool defaultModuleCreatedHere = false;
-     if (defaultModule == null) {
-       defaultModuleCreatedHere = true;
-       defaultModule = new DefaultModuleDecl();
-     }
-     IToken idRefined;
+     SubModuleDecl submodule;
+     // to support multiple files, create a default module only if theModule is null
+     DefaultModuleDecl defaultModule = theModule as DefaultModuleDecl;
+     // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
+     Contract.Assert(defaultModule != null);
      bool isGhost;
   .)
   { (. isGhost = false; .)
     [ "ghost"  (. isGhost = true; .) ]
 
-    ( "module"                             (. attrs = null;  idRefined = null;  theImports = new List<string/*!*/>();
-                                              namedModuleDefaultClassMembers = new List<MemberDecl>();
-                                           .)
-      { Attribute<ref attrs> }
-      Ident<out id>                        (. defaultModule.ImportNames.Add(id.val); .)
-      [ "refines" Ident<out idRefined> ]
-      [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, isGhost, idRefined == null ? null : idRefined.val, theImports, attrs); .)
-      "{"                                  (. module.BodyStartTok = t; .)
-        { ClassDecl<module, out c>         (. module.TopLevelDecls.Add(c); .)
-        | DatatypeDecl<module, out dt>     (. module.TopLevelDecls.Add(dt); .)
-        | ArbitraryTypeDecl<module, out at>(. module.TopLevelDecls.Add(at); .)
-        | ClassMemberDecl<namedModuleDefaultClassMembers, false, false>
-        }
-      "}"                                  (. module.BodyEndTok = t;
-                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                              theModules.Add(module); .)
+    ( SubModuleDecl<defaultModule, isGhost, out submodule> 
+                                                (. defaultModule.TopLevelDecls.Add(submodule); .)
     | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
       ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
     | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
@@ -177,22 +153,50 @@ Dafny
     | ClassMemberDecl<membersDefaultClass, isGhost, false>
     )
   }
-  (. if (defaultModuleCreatedHere) {
-       defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, membersDefaultClass));
-       theModules.Add(defaultModule);
-     } else {
-       // find the default class in the default module, then append membersDefaultClass to its member list
-       foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
-         DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
-         if (defaultClass != null) {
-           defaultClass.Members.AddRange(membersDefaultClass);
-           break;
-         }
+  (. // find the default class in the default module, then append membersDefaultClass to its member list
+     foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
+       DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
+       if (defaultClass != null) {
+         defaultClass.Members.AddRange(membersDefaultClass);
+         break;
        }
-     }
-  .)
+     } .)
   EOF
   .
+SubModuleDecl<ModuleDecl parent, bool isOverallModuleGhost, out SubModuleDecl submodule>
+= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
+     Attributes attrs = null;  IToken/*!*/ id; 
+     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+     IToken idRefined = null;
+     List<string/*!*/> theImports = new List<string/*!*/>();
+     bool isGhost = false;
+     ModuleDecl module;
+     SubModuleDecl sm;
+  .)
+     "module"
+      { Attribute<ref attrs> }
+      Ident<out id>                        (. .)
+      [ "refines" Ident<out idRefined> ]
+      [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, isOverallModuleGhost, idRefined == null ? null : idRefined.val, theImports, attrs);
+                                              parent.Dependencies.Add(module); .)
+      "{"                                  (. module.BodyStartTok = t; .)
+        { (. isGhost = false; .)
+          [ "ghost"  (. isGhost = true; .) ]
+            ( SubModuleDecl<module, isGhost, out sm>        (. module.TopLevelDecls.Add(sm); .)
+            | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
+              ClassDecl<module, out c>           (. module.TopLevelDecls.Add(c); .)
+            | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
+              DatatypeDecl<module, out dt>       (. module.TopLevelDecls.Add(dt); .)
+            | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
+              ArbitraryTypeDecl<module, out at>  (. module.TopLevelDecls.Add(at); .)
+            | ClassMemberDecl<namedModuleDefaultClassMembers, isGhost, false>
+            )
+        }
+      "}"                                  (. module.BodyEndTok = t;
+                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+                                              submodule = new SubModuleDecl(module, parent); .)
+.
+
 ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);

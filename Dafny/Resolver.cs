@@ -63,7 +63,10 @@ namespace Microsoft.Dafny {
   public class Resolver : ResolutionErrorReporter {
     readonly BuiltIns builtIns;
 
-    Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes;  // can map to AmbiguousTopLevelDecl
+    //Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes;  // can map to AmbiguousTopLevelDecl
+    //Dictionary<string, ModuleDecl> importedNames; // the imported modules, as a map.
+    ModuleNameInformation moduleInfo = null;
+
     class AmbiguousTopLevelDecl : TopLevelDecl  // only used with "classes"
     {
       readonly TopLevelDecl A;
@@ -88,13 +91,13 @@ namespace Microsoft.Dafny {
         return nm;
       }
     }
-    Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors;
+    //Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors;
 
     readonly Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ datatypeMembers = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ importGraph = new Graph<ModuleDecl/*!*/>();
-
+    private ModuleNameInformation[] moduleNameInfo;
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
       builtIns = prog.BuiltIns;
@@ -110,43 +113,9 @@ namespace Microsoft.Dafny {
 
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
-      // register modules
-      var modules = new Dictionary<string,ModuleDecl>();
-      foreach (var m in prog.Modules) {
-        if (modules.ContainsKey(m.Name)) {
-          Error(m, "Duplicate module name: {0}", m.Name);
-        } else {
-          modules.Add(m.Name, m);
-        }
-      }
-      // resolve refines and imports
-      foreach (var m in prog.Modules) {
-        importGraph.AddVertex(m);
-        if (m.RefinementBaseName != null) {
-          ModuleDecl other;
-          if (!modules.TryGetValue(m.RefinementBaseName, out other)) {
-            Error(m, "module {0} named as refinement base does not exist", m.RefinementBaseName);
-          } else if (other == m) {
-            Error(m, "module cannot refine itself: {0}", m.RefinementBaseName);
-          } else {
-            Contract.Assert(other != null);  // follows from postcondition of TryGetValue
-            importGraph.AddEdge(m, other);
-            m.RefinementBase = other;
-          }
-        }
-        foreach (string imp in m.ImportNames) {
-          ModuleDecl other;
-          if (!modules.TryGetValue(imp, out other)) {
-            Error(m, "module {0} named among imports does not exist", imp);
-          } else if (other == m) {
-            Error(m, "module must not import itself: {0}", imp);
-          } else {
-            Contract.Assert(other != null);  // follows from postcondition of TryGetValue
-            importGraph.AddEdge(m, other);
-            m.Imports.Add(other);
-          }
-        }
-      }
+
+      BindModuleNames(prog.DefaultModule, new ModuleBindings(null), prog.Modules, importGraph);
+
       // check for cycles in the import graph
       List<ModuleDecl> cycle = importGraph.TryFindCycle();
       if (cycle != null) {
@@ -156,7 +125,7 @@ namespace Microsoft.Dafny {
           cy = m.Name + sep + cy;
           sep = " -> ";
         }
-        Error(cycle[0], "import graph contains a cycle: {0}", cy);
+        Error(cycle[0], "import graph contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
         return;  // give up on trying to resolve anything else
       }
 
@@ -168,11 +137,10 @@ namespace Microsoft.Dafny {
         m.Height = h;
         h++;
       }
-
       // register top-level declarations
       Rewriter rewriter = new AutoContractsRewriter();
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
-      var moduleNameInfo = new ModuleNameInformation[h];
+      moduleNameInfo = new ModuleNameInformation[h];
       foreach (var m in mm) {
         rewriter.PreResolve(m);
         if (m.RefinementBase != null) {
@@ -180,18 +148,18 @@ namespace Microsoft.Dafny {
           transformer.Construct(m);
         }
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
-
         // set up environment
-        ModuleNameInformation info = ModuleNameInformation.Merge(m, systemNameInfo, moduleNameInfo);
+        moduleInfo = ModuleNameInformation.Merge(m, systemNameInfo, moduleNameInfo);
+        /*
         classes = info.Classes;
+        importedNames = info.ImportedNames;
         allDatatypeCtors = info.Ctors;
+        */
         // resolve
         var datatypeDependencies = new Graph<IndDatatypeDecl>();
         ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
         // tear down
-        classes = null;
-        allDatatypeCtors = null;
         // give rewriter a chance to do processing
         rewriter.PostResolve(m);
       }
@@ -216,9 +184,88 @@ namespace Microsoft.Dafny {
       }
     }
 
-    class ModuleNameInformation
+    private class ModuleBindings {
+      private ModuleBindings parent;
+      private Dictionary<string, ModuleDecl> modules;
+
+      public ModuleBindings(ModuleBindings p) {
+        parent = p;
+        modules = new Dictionary<string,ModuleDecl>();
+      }
+      public bool BindName(string name, ModuleDecl subModule) {
+        if (modules.ContainsKey(name)) {
+          return false;
+        } else {
+          modules.Add(name, subModule);
+          return true;
+        }
+      }
+      public bool TryLookup(string name, out ModuleDecl m) {
+        if (modules.TryGetValue(name, out m))
+          return true;
+        else if (parent != null) {
+          return parent.TryLookup(name, out m);
+        } else return false;
+      }
+    }
+    private void BindModuleNames(ModuleDecl moduleDecl, ModuleBindings parentBindings, List<ModuleDecl> globalModuleList, Graph<ModuleDecl> importGraph) {
+      // a dictionary of submodules at the current scope.
+      var modules = new Dictionary<string, ModuleDecl>();
+      var moduleList = new List<ModuleDecl>();
+      var bindings = new ModuleBindings(parentBindings);
+      foreach (var tld in moduleDecl.TopLevelDecls) {
+        var submodule = tld as SubModuleDecl;
+        if (submodule != null) {
+          var name = submodule.SubModule.Name;
+          if (!bindings.BindName(name, submodule.SubModule)) {
+            Error(submodule.Module, "Duplicate module name: {0}", name);
+          } else {
+            moduleList.Add(submodule.SubModule);
+          }
+        }
+      }
+      
+      // resolve refines and imports
+      foreach (var m in moduleList) {
+        importGraph.AddVertex(m);
+        if (m.RefinementBaseName != null) {
+          ModuleDecl other;
+          if (!bindings.TryLookup(m.RefinementBaseName, out other)) {
+            Error(m, "module {0} named as refinement base does not exist", m.RefinementBaseName);
+          } else if (other == m) {
+            Error(m, "module cannot refine itself: {0}", m.RefinementBaseName);
+          } else {
+            Contract.Assert(other != null);  // follows from postcondition of TryGetValue
+            importGraph.AddEdge(m, other);
+            m.RefinementBase = other;
+          }
+        }
+        foreach (string imp in m.ImportNames) {
+          ModuleDecl other;
+          if (!bindings.TryLookup(imp, out other)) {
+            Error(m, "module {0} named among imports does not exist", imp);
+          } else if (other == m) {
+            Error(m, "module must not import itself: {0}", imp);
+          } else {
+            Contract.Assert(other != null);  // follows from postcondition of TryGetValue
+            importGraph.AddEdge(m, other);
+            m.Imports.Add(other);
+          }
+        }
+        foreach (var dep in m.Dependencies) {
+          importGraph.AddEdge(m, dep);
+        }
+      }
+      foreach (var m in moduleList) {
+        BindModuleNames(m, bindings, globalModuleList, importGraph);
+      }
+      globalModuleList.AddRange(moduleList);
+    }
+
+    public class ModuleNameInformation
     {
       public readonly Dictionary<string, TopLevelDecl> Classes = new Dictionary<string, TopLevelDecl>();
+      public readonly Dictionary<string, ModuleDecl> ImportedNames = new Dictionary<string, ModuleDecl>();
       public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string,Tuple<DatatypeCtor,bool>>();
 
       public static ModuleNameInformation Merge(ModuleDecl m, ModuleNameInformation system, ModuleNameInformation[] modules) {
@@ -234,6 +281,7 @@ namespace Microsoft.Dafny {
         foreach (var im in m.Imports) {
           Contract.Assume(0 <= im.Height && im.Height < m.Height);
           var import = modules[im.Height];
+          info.ImportedNames.Add(im.Name, im);
           // classes:
           foreach (var kv in import.Classes) {
             TopLevelDecl d;
@@ -278,8 +326,9 @@ namespace Microsoft.Dafny {
         } else {
           info.Classes.Add(d.Name, d);
         }
-
-        if (d is ArbitraryTypeDecl) {
+        if (d is SubModuleDecl) {
+          // do Nothing 
+        } else if (d is ArbitraryTypeDecl) {
           // nothing more to register
 
         } else if (d is ClassDecl) {
@@ -370,6 +419,8 @@ namespace Microsoft.Dafny {
           // nothing to do
         } else if (d is ClassDecl) {
           ResolveClassMemberTypes((ClassDecl)d);
+        } else if (d is SubModuleDecl) {
+          // TODO: what goes here?
         } else {
           ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
         }
@@ -436,6 +487,7 @@ namespace Microsoft.Dafny {
     Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     readonly Dictionary<Statement, bool> inSpecOnlyContext = new Dictionary<Statement, bool>();  // invariant: domain contain union of the domains of "labeledStatements" and "loopStack"
+    
 
     /// <summary>
     /// Assumes type parameters have already been pushed
@@ -963,7 +1015,7 @@ namespace Microsoft.Dafny {
             }
             Error(t.ModuleName, "Undeclared module name: {0} (did you forget a module import?)", t.ModuleName.val);
           DONE_WITH_QUALIFIED_NAME: ;
-          } else if (!classes.TryGetValue(t.Name, out d)) {
+          } else if (!moduleInfo.Classes.TryGetValue(t.Name, out d)) {
             Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
           }
 
@@ -2622,7 +2674,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         TopLevelDecl d;
-        if (!classes.TryGetValue(dtv.DatatypeName, out d)) {
+        if (!moduleInfo.Classes.TryGetValue(dtv.DatatypeName, out d)) {
           Error(expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
         } else if (d is AmbiguousTopLevelDecl) {
           Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", dtv.DatatypeName, ((AmbiguousTopLevelDecl)d).ModuleNames());
@@ -3512,9 +3564,11 @@ namespace Microsoft.Dafny {
     CallRhs ResolveIdentifierSequence(IdentifierSequence e, bool twoState, bool allowMethodCall) {
       // Look up "id" as follows:
       //  - local variable, parameter, or bound variable (if this clashes with something of interest, one can always rename the local variable locally)
-      //  - unamibugous type name (class or datatype or arbitrary-type) (if two imported types have the same name, an error message is produced here)
+      //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
+      //       (if two imported types have the same name, an error message is produced here)
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
-      //  - field name (with implicit receiver) (if the field is ocluded by anything above, one can use an explicit "this.")
+      //  - imported module name
+      //  - field name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
       // Note, at present, modules do not give rise to new namespaces, which is something that should
       // be changed in the language when modules are given more attention.
       Expression r = null;  // resolved version of e
@@ -3524,6 +3578,7 @@ namespace Microsoft.Dafny {
       Tuple<DatatypeCtor, bool> pair;
       Dictionary<string, MemberDecl> members;
       MemberDecl member;
+      ModuleDecl module;
       var id = e.Tokens[0];
       if (scope.Find(id.val) != null) {
         // ----- root is a local variable, parameter, or bound variable
@@ -3531,7 +3586,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(r, twoState);
         r = ResolveSuffix(r, e, 1, twoState, allowMethodCall, out call);
 
-      } else if (classes.TryGetValue(id.val, out decl)) {
+      } else if (moduleInfo.Classes.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a type in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
         } else  if (e.Tokens.Count == 1 && e.Arguments == null) {
@@ -3547,6 +3602,13 @@ namespace Microsoft.Dafny {
           var cd = (ClassDecl)decl;
           r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, 1, twoState, allowMethodCall, out call);
 
+        } else if (decl is SubModuleDecl) {
+          // ----- root is a submodule
+          module = ((SubModuleDecl)decl).SubModule;
+          if (!(1 < e.Tokens.Count)) {
+            Error(e.tok, "module {0} is not an expression", module.Name);
+          }
+          call = ResolveIdentifierSequenceModuleScope(e, 1, moduleNameInfo[module.Height], twoState, allowMethodCall);
         } else {
           // ----- root is a datatype
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
@@ -3558,7 +3620,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-      } else if (allDatatypeCtors.TryGetValue(id.val, out pair)) {
+      } else if (moduleInfo.Ctors.TryGetValue(id.val, out pair)) {
         // ----- root is a datatype constructor
         if (pair.Item2) {
           // there is more than one constructor with this name
@@ -3572,6 +3634,11 @@ namespace Microsoft.Dafny {
           }
         }
 
+      } else if (moduleInfo.ImportedNames.TryGetValue(id.val, out module)) {
+        if (e.Tokens.Count <= 1) {
+          Error(e.tok, "module {0} is not an expression", module.Name);
+        }
+        call = ResolveIdentifierSequenceModuleScope(e, 1, moduleNameInfo[module.Height], twoState, allowMethodCall);
       } else if (classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member)) {
         // ----- field, function, or method
         Expression receiver;
@@ -3587,6 +3654,61 @@ namespace Microsoft.Dafny {
         }
         r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, out call);
 
+      } else {
+        Error(id, "unresolved identifier: {0}", id.val);
+        // resolve arguments, if any
+        if (e.Arguments != null) {
+          foreach (var arg in e.Arguments) {
+            ResolveExpression(arg, twoState);
+          }
+        }
+      }
+
+      if (r != null) {
+        e.ResolvedExpression = r;
+        e.Type = r.Type;
+      }
+      return call;
+    }
+
+    CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleNameInformation info, bool twoState, bool allowMethodCall) {
+      // Look up "id" as follows:
+      //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
+      //       (if two imported types have the same name, an error message is produced here)
+      // This is used to look up names that appear after a dot in a sequence identifier. For example, in X.M.*, M should be looked up in X, but
+      // should not consult the local scope. This distingushes this from the above, in that local scope, imported modules, etc. are ignored.
+      Contract.Requires(p < e.Tokens.Count);
+      Expression r = null;  // resolved version of e
+      CallRhs call = null;
+
+      TopLevelDecl decl;
+      ModuleDecl module;
+      var id = e.Tokens[p];
+      if (info.Classes.TryGetValue(id.val, out decl)) {
+        if (decl is AmbiguousTopLevelDecl) {
+          Error(id, "The name {0} ambiguously refers to a something in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+        } else if (decl is ClassDecl) {
+          // ----- root is a class
+          var cd = (ClassDecl)decl;
+          r = ResolveSuffix(new StaticReceiverExpr(id, cd), e, p + 1, twoState, allowMethodCall, out call);
+
+        } else if (decl is SubModuleDecl) {
+          // ----- root is a submodule
+          module = ((SubModuleDecl)decl).SubModule;
+          if (!(p + 1 < e.Tokens.Count)) {
+            Error(e.tok, "module {0} is not an expression", module.Name);
+          }
+          call = ResolveIdentifierSequenceModuleScope(e, p+1, moduleNameInfo[module.Height], twoState, allowMethodCall);
+        } else {
+          // ----- root is a datatype
+          var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
+          var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
+          r = new DatatypeValue(id, id.val, e.Tokens[p + 1].val, args);
+          ResolveExpression(r, twoState);
+          if (e.Tokens.Count != p + 2) {
+            r = ResolveSuffix(r, e, p + 2, twoState, allowMethodCall, out call);
+          }
+        }
       } else {
         Error(id, "unresolved identifier: {0}", id.val);
         // resolve arguments, if any

@@ -15,18 +15,22 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
-      Contract.Invariant(cce.NonNullElements(Modules));
+      Contract.Invariant(DefaultModule != null);
     }
 
     public readonly string Name;
-    public readonly List<ModuleDecl/*!*/>/*!*/ Modules;
+    public List<ModuleDecl/*!*/>/*!*/ Modules; // filled in during resolution.
+                                               // Resolution essentially flattens the module heirarchy, for
+                                               // purposes of translation and compilation.
+    public readonly ModuleDecl DefaultModule;
     public readonly BuiltIns BuiltIns;
-    public Program(string name, [Captured] List<ModuleDecl/*!*/>/*!*/ modules, [Captured] BuiltIns builtIns) {
+    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns) {
       Contract.Requires(name != null);
-      Contract.Requires(cce.NonNullElements(modules));
+      Contract.Requires(module != null);
       Name = name;
-      Modules = modules;
+      DefaultModule = module;
       BuiltIns = builtIns;
+      Modules = new List<ModuleDecl>();
     }
   }
 
@@ -730,10 +734,18 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class SubModuleDecl : TopLevelDecl {
+    public readonly ModuleDecl SubModule;
+    public SubModuleDecl(ModuleDecl submodule, ModuleDecl parent)
+      : base(submodule.tok, submodule.Name, parent, new List<TypeParameter>(), submodule.Attributes) {
+        SubModule = submodule;
+    }
+  }
   public class ModuleDecl : Declaration {
     public readonly string RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBase;  // filled in during resolution (null if no refinement base)
     public readonly List<string/*!*/>/*!*/ ImportNames;  // contains no duplicates
+    public readonly List<ModuleDecl>/*!*/ Dependencies;  // filled in during parsing. contains submodules dependencies.
     public readonly List<ModuleDecl>/*!*/ Imports = new List<ModuleDecl>();  // filled in during resolution, contains no duplicates
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
@@ -755,6 +767,7 @@ namespace Microsoft.Dafny {
       RefinementBaseName = refinementBase;
       // set "ImportNames" to "imports" minus any duplicates
       ImportNames = new List<string>();
+      Dependencies = new List<ModuleDecl>();
       foreach (var nm in imports) {
         if (!ImportNames.Contains(nm)) {
           ImportNames.Add(nm);
@@ -765,6 +778,20 @@ namespace Microsoft.Dafny {
     public virtual bool IsDefaultModule {
       get {
         return false;
+      }
+    }
+    string compileName;
+    new public string CompileName {
+      get {
+        if (compileName == null) {
+          compileName = NonglobalVariable.CompilerizeName(Name) + "_" + Height.ToString();
+        }
+        return compileName;
+      }
+    }
+    public string UniqueName {
+      get {
+        return Name + "_" + Height.ToString();
       }
     }
   }
