@@ -1790,7 +1790,7 @@ namespace Microsoft.Dafny {
         wr.Write(")");
 
       } else if (expr is OldExpr) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost (right?)
+        TrOldExpr((OldExpr)expr);
 
       } else if (expr is FreshExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
@@ -2222,6 +2222,14 @@ namespace Microsoft.Dafny {
       twr.Write(")");
     }
 
+    #region Runtime checking
+
+    #region Runtime checking fields
+
+    bool inOldExpr = false;
+
+    #endregion
+
     #region Runtime checking translation
 
     void IncludeCodeContracts()
@@ -2286,6 +2294,31 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrOldExpr(OldExpr/*!*/ expr)
+    {
+      Contract.Requires(expr != null);
+
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        if (inOldExpr)
+        {
+          Error("compilation of nested old expressions is not supported");
+        }
+        else
+        {
+          inOldExpr = true;
+          wr.Write("Contract.OldValue(");
+          TrExpr(expr.E);
+          wr.Write(")");
+          inOldExpr = false;
+        }
+      }
+      else
+      {
+        Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost (right?)
+      }
+    }
+
     #endregion
 
     #region Runtime checking helper methods
@@ -2320,6 +2353,8 @@ namespace Microsoft.Dafny {
       Indent(indent);
       wr.WriteLine("Contract.Assert(" + expr + ");");
     }
+
+    #endregion
 
     #endregion
 
