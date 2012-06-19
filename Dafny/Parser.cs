@@ -238,7 +238,7 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		Ident(out id);
+		NoUSIdent(out id);
 		
 		if (la.kind == 10) {
 			Get();
@@ -297,7 +297,7 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		Ident(out id);
+		NoUSIdent(out id);
 		if (la.kind == 22) {
 			GenericParameters(typeArgs);
 		}
@@ -333,7 +333,7 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		Ident(out id);
+		NoUSIdent(out id);
 		if (la.kind == 22) {
 			GenericParameters(typeArgs);
 		}
@@ -364,7 +364,7 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		Ident(out id);
+		NoUSIdent(out id);
 		at = new ArbitraryTypeDecl(id, id.val, module, attrs); 
 		while (!(la.kind == 0 || la.kind == 18)) {SynErr(114); Get();}
 		Expect(18);
@@ -403,6 +403,16 @@ bool IsAttribute() {
 		Expect(7);
 	}
 
+	void NoUSIdent(out IToken/*!*/ x) {
+		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
+		Expect(1);
+		x = t; 
+		if (x.val.Length > 0 && x.val.StartsWith("_")) {
+		 SemErr("cannot declare identifier beginning with underscore");
+		}
+		
+	}
+
 	void Ident(out IToken/*!*/ x) {
 		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
 		Expect(1);
@@ -424,11 +434,11 @@ bool IsAttribute() {
 		Contract.Requires(cce.NonNullElements(typeArgs));
 		IToken/*!*/ id; 
 		Expect(22);
-		Ident(out id);
+		NoUSIdent(out id);
 		typeArgs.Add(new TypeParameter(id, id.val)); 
 		while (la.kind == 20) {
 			Get();
-			Ident(out id);
+			NoUSIdent(out id);
 			typeArgs.Add(new TypeParameter(id, id.val)); 
 		}
 		Expect(23);
@@ -487,7 +497,7 @@ bool IsAttribute() {
 			while (la.kind == 6) {
 				Attribute(ref attrs);
 			}
-			Ident(out id);
+			NoUSIdent(out id);
 			if (la.kind == 22 || la.kind == 33) {
 				if (la.kind == 22) {
 					GenericParameters(typeArgs);
@@ -512,7 +522,7 @@ bool IsAttribute() {
 			while (la.kind == 6) {
 				Attribute(ref attrs);
 			}
-			Ident(out id);
+			NoUSIdent(out id);
 			if (StartOf(3)) {
 				if (la.kind == 22) {
 					GenericParameters(typeArgs);
@@ -592,7 +602,7 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		Ident(out id);
+		NoUSIdent(out id);
 		if (la.kind == 22 || la.kind == 33) {
 			if (la.kind == 22) {
 				GenericParameters(typeArgs);
@@ -634,7 +644,7 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		Ident(out id);
+		NoUSIdent(out id);
 		if (la.kind == 33) {
 			FormalsOptionalIds(formals);
 		}
@@ -658,7 +668,7 @@ bool IsAttribute() {
 
 	void IdentType(out IToken/*!*/ id, out Type/*!*/ ty) {
 		Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
-		Ident(out id);
+		NoUSIdent(out id);
 		Expect(5);
 		Type(out ty);
 	}
@@ -682,7 +692,7 @@ bool IsAttribute() {
 	void LocalIdentTypeOptional(out VarDecl/*!*/ var, bool isGhost) {
 		IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
 		
-		Ident(out id);
+		NoUSIdent(out id);
 		if (la.kind == 5) {
 			Get();
 			Type(out ty);
@@ -694,7 +704,7 @@ bool IsAttribute() {
 	void IdentTypeOptional(out BoundVar/*!*/ var) {
 		Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
 		
-		Ident(out id);
+		NoUSIdent(out id);
 		if (la.kind == 5) {
 			Get();
 			Type(out ty);
@@ -1101,7 +1111,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		case 49: {
 			Get();
 			x = t; 
-			Ident(out id);
+			NoUSIdent(out id);
 			Expect(5);
 			OneStmt(out s);
 			s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); 
@@ -1111,7 +1121,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			x = t; breakCount = 1; label = null; 
 			if (la.kind == 1) {
-				Ident(out id);
+				NoUSIdent(out id);
 				label = id.val; 
 			} else if (la.kind == 18 || la.kind == 50) {
 				while (la.kind == 50) {

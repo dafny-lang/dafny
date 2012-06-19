@@ -175,7 +175,7 @@ SubModuleDecl<ModuleDecl parent, bool isOverallModuleGhost, out SubModuleDecl su
   .)
      "module"
       { Attribute<ref attrs> }
-      Ident<out id>                        (. .)
+      NoUSIdent<out id>                        (. .)
       [ "refines" Ident<out idRefined> ]
       [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, isOverallModuleGhost, idRefined == null ? null : idRefined.val, theImports, attrs);
                                               parent.Dependencies.Add(module); .)
@@ -209,7 +209,7 @@ ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
   SYNC
   "class"
   { Attribute<ref attrs> }
-  Ident<out id>
+  NoUSIdent<out id>
   [ GenericParameters<typeArgs> ]
   "{"                                            (. bodyStart = t; .)
   { ClassMemberDecl<members, false, true>
@@ -250,7 +250,7 @@ DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
   | "codatatype"     (. co = true; .)
   )
   { Attribute<ref attrs> }
-  Ident<out id>
+  NoUSIdent<out id>
   [ GenericParameters<typeArgs> ]
   "="                                      (. bodyStart = t; .)
   DatatypeMemberDecl<ctors>
@@ -272,7 +272,7 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
   .)
   { Attribute<ref attrs> }
-  Ident<out id>
+  NoUSIdent<out id>
   [ FormalsOptionalIds<formals> ]
   (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
@@ -297,7 +297,7 @@ ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
   .)
   "type"
   { Attribute<ref attrs> }
-  Ident<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
+  NoUSIdent<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
   SYNC ";"
   .
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
@@ -311,14 +311,14 @@ GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out boo
   .
 IdentType<out IToken/*!*/ id, out Type/*!*/ ty>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
-  Ident<out id>
+  NoUSIdent<out id>
   ":"
   Type<out ty>
   .
 LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
 = (. IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
-  Ident<out id>
+  NoUSIdent<out id>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new VarDecl(id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
@@ -326,7 +326,7 @@ LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
 IdentTypeOptional<out BoundVar/*!*/ var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
-  Ident<out id>
+  NoUSIdent<out id>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
@@ -362,8 +362,8 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id; .)
   "<"
-  Ident<out id>                       (. typeArgs.Add(new TypeParameter(id, id.val)); .)
-  { "," Ident<out id>                 (. typeArgs.Add(new TypeParameter(id, id.val)); .)
+  NoUSIdent<out id>                       (. typeArgs.Add(new TypeParameter(id, id.val)); .)
+  { "," NoUSIdent<out id>                 (. typeArgs.Add(new TypeParameter(id, id.val)); .)
   }
   ">"
   .
@@ -407,7 +407,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      }
   .)
   { Attribute<ref attrs> }
-  Ident<out id>
+  NoUSIdent<out id>
   (
     [ GenericParameters<typeArgs> ]
     Formals<true, !mmod.IsGhost, ins, out openParen>
@@ -567,7 +567,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     (. if (mmod.IsGhost) { SemErr(t, "functions cannot be declared 'ghost' (they are ghost by default)"); }
     .)
     { Attribute<ref attrs> }
-    Ident<out id>
+    NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
       Formals<true, isFunctionMethod, formals, out openParen>
@@ -584,7 +584,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     (. if (mmod.IsGhost) { SemErr(t, "predicates cannot be declared 'ghost' (they are ghost by default)"); }
     .)
     { Attribute<ref attrs> }
-    Ident<out id>
+    NoUSIdent<out id>
     (
       [ GenericParameters<typeArgs> ]
       [ Formals<true, isFunctionMethod, formals, out openParen>
@@ -694,10 +694,10 @@ OneStmt<out Statement/*!*/ s>
   | MatchStmt<out s>
   | ParallelStmt<out s>
   | "label"                            (. x = t; .)
-    Ident<out id> ":"
+    NoUSIdent<out id> ":"
     OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
   | "break"                            (. x = t; breakCount = 1; label = null; .)
-    ( Ident<out id>                    (. label = id.val; .)
+    ( NoUSIdent<out id>                    (. label = id.val; .)
     | { "break"                        (. breakCount++; .)
       }
     )
@@ -1639,6 +1639,16 @@ Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t; .)
   .
+// Identifier, disallowing leading underscores
+NoUSIdent<out IToken/*!*/ x>
+= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
+  ident            (. x = t; 
+                      if (x.val.Length > 0 && x.val.StartsWith("_")) {
+                        SemErr("cannot declare identifier beginning with underscore");
+                      }
+                   .)
+  .
+
 Nat<out BigInteger n>
 =
   digits
