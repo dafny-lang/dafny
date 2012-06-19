@@ -1000,12 +1000,14 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.WriteLine("while (false) { }");
         } else {
+          TrInvariants(s.Invariants, true, indent);
           SpillLetVariableDecls(s.Guard, indent);
           Indent(indent);
           wr.Write("while (");
           TrExpr(s.Guard);
           wr.WriteLine(")");
-          TrStmt(s.Body, indent);
+          TrWhileStmtBody(s, indent);
+          TrInvariants(s.Invariants, false, indent);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -1264,6 +1266,23 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    void TrWhileStmtBody(WhileStmt/*!*/ stmt, int indent)
+    {
+      Contract.Requires(stmt != null);
+
+      Indent(indent);
+      wr.WriteLine("{");
+      int bodyIndent = indent + IndentAmount;
+      TrInvariants(stmt.Invariants, false, bodyIndent);
+      if (stmt.Body is BlockStmt)
+        TrStmtList(((BlockStmt)stmt.Body).Body, indent);
+      else
+        TrStmt(stmt.Body, indent);
+      TrInvariants(stmt.Invariants, true, bodyIndent);
+      Indent(indent);
+      wr.WriteLine("}");
     }
 
     string CreateLvalue(Expression lhs, int indent) {
@@ -2294,6 +2313,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrInvariants(List<MaybeFreeExpression/*!*/>/*!*/ inv, bool assert, int indent)
+    {
+      Contract.Requires(cce.NonNullElements(inv));
+
+      if (DafnyOptions.O.RuntimeChecking)
+        foreach (MaybeFreeExpression e in inv)
+          WriteInvariant(ExprToString(e.E), assert && !e.IsFree, indent);
+    }
+
     void TrOldExpr(OldExpr/*!*/ expr)
     {
       Contract.Requires(expr != null);
@@ -2352,6 +2380,17 @@ namespace Microsoft.Dafny {
       Contract.Assert(DafnyOptions.O.RuntimeChecking);
       Indent(indent);
       wr.WriteLine("Contract.Assert(" + expr + ");");
+    }
+
+    void WriteInvariant(string/*!*/expr, bool assert, int indent)
+    {
+      Contract.Requires(expr != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      if (assert)
+        WriteAssertion(expr, indent);
+      else
+        WriteAssumption(expr, indent);
     }
 
     #endregion
