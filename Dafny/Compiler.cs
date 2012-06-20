@@ -544,7 +544,7 @@ namespace Microsoft.Dafny {
 
         } else if (member is Function) {
           Function f = (Function)member;
-          if (f.IsGhost) {
+          if (f.IsGhost && !DafnyOptions.O.RuntimeChecking) {
             // nothing to compile
           } else if (f.Body == null) {
             Error("Function {0} has no body", f.FullName);
@@ -557,7 +557,10 @@ namespace Microsoft.Dafny {
             wr.Write("(");
             WriteFormals("", f.Formals);
             wr.WriteLine(") {");
-            CompileReturnBody(f.Body, indent + IndentAmount);
+            var bodyIndent = indent + IndentAmount;
+            TrReqFun(f.Req, bodyIndent);
+            TrEnsFun(f.Ens, bodyIndent);
+            CompileReturnBody(f.Body, bodyIndent);
             Indent(indent);  wr.WriteLine("}");
           }
 
@@ -2294,6 +2297,22 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrReqFun(List<Expression/*!*/>/*!*/ req, int indent)
+    {
+      Contract.Requires(cce.NonNullElements(req));
+
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        foreach (Expression e in req)
+        {
+          Indent(indent);
+          wr.Write("Contract.Requires(");
+          TrExpr(e);
+          wr.WriteLine(");");
+        }
+      }
+    }
+
     void TrEns(List<MaybeFreeExpression/*!*/>/*!*/ ens, int indent)
     {
       Contract.Requires(cce.NonNullElements(ens));
@@ -2309,6 +2328,22 @@ namespace Microsoft.Dafny {
             TrExpr(e.E);
             wr.WriteLine(");");
           }
+        }
+      }
+    }
+
+    void TrEnsFun(List<Expression/*!*/>/*!*/ ens, int indent)
+    {
+      Contract.Requires(cce.NonNullElements(ens));
+
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        foreach (Expression e in ens)
+        {
+          Indent(indent);
+          wr.Write("Contract.Ensures(");
+          TrExpr(e);
+          wr.WriteLine(");");
         }
       }
     }
