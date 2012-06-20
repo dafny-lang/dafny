@@ -566,7 +566,7 @@ namespace Microsoft.Dafny {
 
         } else if (member is Method) {
           Method m = (Method)member;
-          if (!m.IsGhost) {
+          if (!m.IsGhost || DafnyOptions.O.RuntimeChecking) {
             Indent(indent);
             wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
             if (m.TypeArgs.Count != 0) {
@@ -577,11 +577,12 @@ namespace Microsoft.Dafny {
             WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
             wr.WriteLine(")");
             Indent(indent);  wr.WriteLine("{");
-            TrReq(m.Req, indent + IndentAmount);
-            TrEns(m.Ens, indent + IndentAmount);
+            var bodyIndent = indent + IndentAmount;
+            TrReq(m.Req, bodyIndent);
+            TrEns(m.Ens, bodyIndent);
             foreach (Formal p in m.Outs) {
               if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
-                Indent(indent + IndentAmount);
+                Indent(bodyIndent);
                 wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
               }
             }
@@ -597,7 +598,7 @@ namespace Microsoft.Dafny {
               Indent(indent);
               wr.WriteLine("public static void Main(string[] args) {");
               Contract.Assert(m.EnclosingClass == c);
-              Indent(indent + IndentAmount);
+              Indent(bodyIndent);
               wr.Write("@{0} b = new @{0}", c.CompileName);
               if (c.TypeArgs.Count != 0) {
                 // instantiate every parameter, it doesn't particularly matter how
@@ -610,7 +611,7 @@ namespace Microsoft.Dafny {
                 wr.Write(">");
               }
               wr.WriteLine("();");
-              Indent(indent + IndentAmount);  wr.WriteLine("b.Main();");
+              Indent(bodyIndent);  wr.WriteLine("b.Main();");
               Indent(indent);  wr.WriteLine("}");
             }
           }
