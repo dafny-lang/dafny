@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
       CompileBuiltIns(program.BuiltIns);
 
       foreach (ModuleDecl m in program.Modules) {
-        if (m.IsGhost) {
+        if (m.IsGhost && !DafnyOptions.O.RuntimeChecking) {
           // the purpose of a ghost module is to skip compilation
           continue;
         }
@@ -859,7 +859,7 @@ namespace Microsoft.Dafny {
     void TrStmt(Statement stmt, int indent)
     {
       Contract.Requires(stmt != null);
-      if (!DafnyOptions.O.RuntimeChecking && stmt.IsGhost) {
+      if (stmt.IsGhost && !DafnyOptions.O.RuntimeChecking) {
         CheckHasNoAssumes(stmt);
         return;
       }
@@ -1399,7 +1399,7 @@ namespace Microsoft.Dafny {
       var outTmps = new List<string>();
       for (int i = 0; i < s.Method.Outs.Count; i++) {
         Formal p = s.Method.Outs[i];
-        if (!p.IsGhost  || DafnyOptions.O.RuntimeChecking) {
+        if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
           string target = "_out" + tmpVarCount;
           tmpVarCount++;
           outTmps.Add(target);
