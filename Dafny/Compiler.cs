@@ -1392,14 +1392,14 @@ namespace Microsoft.Dafny {
       Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
       for (int i = 0; i < s.Method.Outs.Count; i++) {
         Formal p = s.Method.Outs[i];
-        if (!p.IsGhost) {
+        if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
           lvalues.Add(CreateLvalue(s.Lhs[i], indent));
         }
       }
       var outTmps = new List<string>();
       for (int i = 0; i < s.Method.Outs.Count; i++) {
         Formal p = s.Method.Outs[i];
-        if (!p.IsGhost) {
+        if (!p.IsGhost  || DafnyOptions.O.RuntimeChecking) {
           string target = "_out" + tmpVarCount;
           tmpVarCount++;
           outTmps.Add(target);
@@ -1411,7 +1411,7 @@ namespace Microsoft.Dafny {
 
       for (int i = 0; i < s.Method.Ins.Count; i++) {
         Formal p = s.Method.Ins[i];
-        if (!p.IsGhost) {
+        if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
           SpillLetVariableDecls(s.Args[i], indent);
         }
       }
@@ -1431,7 +1431,7 @@ namespace Microsoft.Dafny {
       string sep = "";
       for (int i = 0; i < s.Method.Ins.Count; i++) {
         Formal p = s.Method.Ins[i];
-        if (!p.IsGhost) {
+        if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
           wr.Write(sep);
           TrExpr(s.Args[i]);
           sep = ", ";
@@ -1505,7 +1505,7 @@ namespace Microsoft.Dafny {
 
     void TrVarDecl(VarDecl s, bool alwaysInitialize, int indent) {
       Contract.Requires(s != null);
-      if (s.IsGhost) {
+      if (s.IsGhost && !DafnyOptions.O.RuntimeChecking) {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
