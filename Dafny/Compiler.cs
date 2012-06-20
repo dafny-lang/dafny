@@ -466,7 +466,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(formals));
       int i = 0;
       foreach (Formal arg in formals) {
-        if (!arg.IsGhost) {
+        if (!arg.IsGhost || DafnyOptions.O.RuntimeChecking) {
           string name = FormalName(arg, i);
           wr.Write("{0}{1}{2} @{3}", sep, arg.InParam ? "" : "out ", TypeName(arg.Type), name);
           sep = ", ";
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
             TrReq(m.Req, indent + IndentAmount);
             TrEns(m.Ens, indent + IndentAmount);
             foreach (Formal p in m.Outs) {
-              if (!p.IsGhost) {
+              if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
                 Indent(indent + IndentAmount);
                 wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type));
               }
