@@ -1379,16 +1379,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				bodyOmitted = true; 
 			} else SynErr(149);
 			if (guardOmitted || bodyOmitted) {
-			 if (decreases.Count != 0) {
-			   SemErr(decreases[0].tok, "'decreases' clauses are not allowed on refining loops");
-			 }
 			 if (mod != null) {
 			   SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
 			 }
 			 if (body == null) {
 			   body = new BlockStmt(x, new List<Statement>());
 			 }
-			 stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(null, null), new Specification<FrameExpression>(null, null), body);
+			 stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
 			 stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
 			} else {
 			 stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);

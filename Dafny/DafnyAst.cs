@@ -2136,6 +2136,21 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// This class is really just a WhileStmt, except that it serves the purpose of remembering if the object was created as the result of a refinement
+  /// merge.
+  /// </summary>
+  public class RefinedWhileStmt : WhileStmt
+  {
+    public RefinedWhileStmt(IToken tok, Expression guard,
+                            List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod,
+                            BlockStmt/*!*/ body)
+      : base(tok, guard, invariants, decreases, mod, body) {
+      Contract.Requires(tok != null);
+      Contract.Requires(body != null);
+    }
+  }
+
   public class AlternativeLoopStmt : LoopStmt
   {
     public readonly List<GuardedAlternative> Alternatives;
