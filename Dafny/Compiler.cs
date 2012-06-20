@@ -906,7 +906,7 @@ namespace Microsoft.Dafny {
           var lvalues = new List<string>();
           var rhss = new List<string>();
           for (int i = 0; i < resolved.Count; i++) {
-            if (!resolved[i].IsGhost) {
+            if (!resolved[i].IsGhost || DafnyOptions.O.RuntimeChecking) {
               var lhs = s.Lhss[i];
               var rhs = s.Rhss[i];
               if (!(rhs is HavocRhs)) {
