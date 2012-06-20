@@ -537,7 +537,7 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
           Field f = (Field)member;
-          if (!f.IsGhost) {
+          if (!f.IsGhost || DafnyOptions.O.RuntimeChecking) {
             Indent(indent);
             wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
           }
