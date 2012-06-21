@@ -865,7 +865,7 @@ namespace Microsoft.Dafny {
               } else {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
-                var r = new IfStmt(skel.Tok, skel.Guard, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Tok, CloneExpr(oldIf.Guard), resultingThen, resultingElse);
                 body.Add(r);
                 i++; j++;
               }
@@ -1032,22 +1032,35 @@ namespace Microsoft.Dafny {
 
       // Note, the parser produces errors if there are any decreases or modifies clauses (and it creates
       // the Specification structures with a null list).
-      Contract.Assume(cNew.Decreases.Expressions == null);
       Contract.Assume(cNew.Mod.Expressions == null);
+
+      // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
+      // Any "decreases *" clause is not inherited, so if the previous loop was specified with "decreases *", then the new loop needs
+      // to either redeclare "decreases *", provided a termination-checking "decreases" clause, or give no "decreases" clause and thus
+      // get a default "decreases" loop.
+      Specification<Expression> decr;
+      if (Contract.Exists(cOld.Decreases.Expressions, e => e is WildcardExpr)) {
+        decr = cNew.Decreases;  // take the new decreases clauses, whatever they may be (including nothing at all)
+      } else {
+        if (cNew.Decreases.Expressions.Count != 0) {
+          reporter.Error(cNew.Decreases.Expressions[0].tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
+        }
+        decr = CloneSpecExpr(cOld.Decreases);
+      }
 
       var invs = cOld.Invariants.ConvertAll(CloneMayBeFreeExpr);
       invs.AddRange(cNew.Invariants);
-      var r = new WhileStmt(cNew.Tok, guard, invs, CloneSpecExpr(cOld.Decreases), CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
+      var r = new RefinedWhileStmt(cNew.Tok, guard, invs, decr, CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
       return r;
     }
 
     Statement MergeElse(Statement skeleton, Statement oldStmt) {
-      Contract.Requires(skeleton == null || skeleton is BlockStmt || skeleton is IfStmt);
-      Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt);
+      Contract.Requires(skeleton == null || skeleton is BlockStmt || skeleton is IfStmt || skeleton is SkeletonStatement);
+      Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt || oldStmt is SkeletonStatement);
 
       if (skeleton == null) {
         return CloneStmt(oldStmt);
-      } else if (skeleton is IfStmt) {
+      } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
         skeleton = new BlockStmt(skeleton.Tok, new List<Statement>() { skeleton });
       }
@@ -1055,7 +1068,7 @@ namespace Microsoft.Dafny {
       if (oldStmt == null) {
         // make it into an empty block statement
         oldStmt = new BlockStmt(skeleton.Tok, new List<Statement>());
-      } else if (oldStmt is IfStmt) {
+      } else if (oldStmt is IfStmt || oldStmt is SkeletonStatement) {
         // wrap a block statement around the if statement
         oldStmt = new BlockStmt(oldStmt.Tok, new List<Statement>() { oldStmt });
       }
