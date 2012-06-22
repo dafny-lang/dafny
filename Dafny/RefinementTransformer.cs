@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class RefinementTransformer
+  public class RefinementTransformer : Rewriter
   {
     ResolutionErrorReporter reporter;
     public RefinementTransformer(ResolutionErrorReporter reporter) {
@@ -59,12 +59,18 @@ namespace Microsoft.Dafny {
     }
 
     private ModuleDecl moduleUnderConstruction;  // non-null for the duration of Construct calls
+    private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
 
-    public void Construct(ModuleDecl m) {
+    public void PreResolve(ModuleDecl m) {
       Contract.Requires(m != null);
-      Contract.Requires(m.RefinementBase != null);
+      if (m.RefinementBase == null) {
+        // This Rewriter doesn't do anything
+        return;
+      }
 
-      Contract.Assert(moduleUnderConstruction == null);
+      if (moduleUnderConstruction != null) {
+        postTasks.Clear();
+      }
       moduleUnderConstruction = m;
       var prev = m.RefinementBase;
 
@@ -99,7 +105,35 @@ namespace Microsoft.Dafny {
         } else {
           var nw = m.TopLevelDecls[index];
           if (d is ArbitraryTypeDecl) {
-            // this is allowed to be refined by any type declaration, so just keep the new one
+            bool dDemandsEqualitySupport = ((ArbitraryTypeDecl)d).MustSupportEquality;
+            if (nw is ArbitraryTypeDecl) {
+              if (dDemandsEqualitySupport != ((ArbitraryTypeDecl)nw).MustSupportEquality) {
+                reporter.Error(nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+              }
+            } else if (dDemandsEqualitySupport) {
+              if (nw is ClassDecl) {
+                // fine, as long as "nw" does not take any type parameters
+                if (nw.TypeArgs.Count != 0) {
+                  reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes type parameters", nw.Name);
+                }
+              } else if (nw is CoDatatypeDecl) {
+                reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
+              } else {
+                Contract.Assert(nw is IndDatatypeDecl);
+                if (nw.TypeArgs.Count != 0) {
+                  reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a datatype that takes type parameters", nw.Name);
+                } else {
+                  // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
+                  // taken place, so we defer it until the PostResolve phase.
+                  var udt = new UserDefinedType(nw.tok, nw.Name, nw, new List<Type>());
+                  postTasks.Enqueue(delegate() {
+                    if (!udt.SupportsEquality) {
+                      reporter.Error(udt.tok, "datatype '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", udt.Name);
+                    }
+                  });
+                }
+              }
+            }
           } else if (nw is ArbitraryTypeDecl) {
             reporter.Error(nw, "an arbitrary type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
           } else if (nw is DatatypeDecl) {
@@ -115,7 +149,20 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Contract.Assert(moduleUnderConstruction == m);
+      Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+    }
+
+    public void PostResolve(ModuleDecl m) {
+      Contract.Requires(m != null);
+
+      if (m == moduleUnderConstruction) {
+        while (this.postTasks.Count != 0) {
+          var a = postTasks.Dequeue();
+          a();
+        }
+      } else {
+        postTasks.Clear();
+      }
       moduleUnderConstruction = null;
     }
 
@@ -598,6 +645,8 @@ namespace Microsoft.Dafny {
     // -------------------------------------------------- Merging ---------------------------------------------------------------
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
+      CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
+
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < nw.Members.Count; i++) {
@@ -731,6 +780,27 @@ namespace Microsoft.Dafny {
           var n = nw[i];
           if (o.Name != n.Name) {
             reporter.Error(n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
+          } else {
+            // This explains what we want to do and why:
+            // switch (o.EqualitySupport) {
+            //   case TypeParameter.EqualitySupportValue.Required:
+            //     // here, we will insist that the new type-parameter also explicitly requires equality support (because we don't want
+            //     // to wait for the inference to run on the new module)
+            //     good = n.EqualitySupport == TypeParameter.EqualitySupportValue.Required;
+            //     break;
+            //   case TypeParameter.EqualitySupportValue.InferredRequired:
+            //     // here, we can allow anything, because even with an Unspecified value, the inference will come up with InferredRequired, like before
+            //     good = true;
+            //     break;
+            //   case TypeParameter.EqualitySupportValue.Unspecified:
+            //     // inference didn't come up with anything on the previous module, so the only value we'll allow here is Unspecified as well
+            //     good = n.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified;
+            //     break;
+            // }
+            // Here's how we actually compute it:
+            if (o.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.EqualitySupport != n.EqualitySupport) {
+              reporter.Error(n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+            }
           }
         }
       }

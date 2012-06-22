@@ -45,8 +45,11 @@ module A imports N, M {  // Note, this has the effect of importing two different
     { x }
     method M(x: T)  // error: use of the ambiguous name T
       returns (y: T)  // error: use of the ambiguous name T
-    { var g := new T; }  // error: use of the ambiguous name T
   }
+}
+module A' imports N, M {
+  method M()
+    { var g := new T; }  // error: use of the ambiguous name T
 }
 
 module B0 imports A {
@@ -241,15 +244,17 @@ module BTr imports ATr {
 module CTr imports BTr {
   class Z {
     var b: Y;  // fine
-    var a: X;  // error: imports don't reach name name X explicitly
-    method P() {
-      var y := new Y;
-      var x := y.N();  // this is allowed and will correctly infer the type of x to
-                       // be X, but X could not have been mentioned explicitly
-      var q := x.M();
-      var r := X.Q();  // error: X is not in scope
-      var s := x.DoesNotExist();  // error: method not declared in class X
-    }
+    var a: X;  // error: imports don't reach name X explicitly
+  }
+}
+module CTs imports BTr {
+  method P() {
+    var y := new Y;
+    var x := y.N();  // this is allowed and will correctly infer the type of x to
+                     // be X, but X could not have been mentioned explicitly
+    var q := x.M();
+    var r := X.Q();  // error: X is not in scope
+    var s := x.DoesNotExist();  // error: method not declared in class X
   }
 }
 

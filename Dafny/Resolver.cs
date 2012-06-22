@@ -170,15 +170,17 @@ namespace Microsoft.Dafny {
       }
 
       // register top-level declarations
-      Rewriter rewriter = new AutoContractsRewriter();
+      var rewriters = new List<Rewriter>();
+      // The following line could be generalized to allow rewriter plug-ins; to support such, just add command-line
+      // switches and .Add to "rewriters" here.
+      rewriters.Add(new AutoContractsRewriter());
+      rewriters.Add(new RefinementTransformer(this));
+
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
       var moduleNameInfo = new ModuleNameInformation[h];
       foreach (var m in mm) {
-        rewriter.PreResolve(m);
-        if (m.RefinementBase != null) {
-          var transformer = new RefinementTransformer(this);
-          transformer.Construct(m);
-        }
+        rewriters.Iter(r => r.PreResolve(m));
+
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
 
         // set up environment
@@ -187,13 +189,16 @@ namespace Microsoft.Dafny {
         allDatatypeCtors = info.Ctors;
         // resolve
         var datatypeDependencies = new Graph<IndDatatypeDecl>();
+        int prevErrorCount = ErrorCount;
         ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
-        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+        if (prevErrorCount == ErrorCount) {
+          ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+        }
         // tear down
         classes = null;
         allDatatypeCtors = null;
-        // give rewriter a chance to do processing
-        rewriter.PostResolve(m);
+        // give rewriters a chance to do processing
+        rewriters.Iter(r => r.PostResolve(m));
       }
 
       // compute IsRecursive bit for mutually recursive functions

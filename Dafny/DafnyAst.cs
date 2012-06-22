@@ -539,7 +539,16 @@ namespace Microsoft.Dafny {
         } else if (ResolvedClass is CoDatatypeDecl) {
           return false;
         } else if (ResolvedClass is IndDatatypeDecl) {
+          var dt = (IndDatatypeDecl)ResolvedClass;
           // TODO
+          // For now, say 'no' if some constructor takes a parameter that is a codatatype.  This is BOGUS.
+          foreach (var ctor in dt.Ctors) {
+            foreach (var arg in ctor.Formals) {
+              if (arg.Type.IsCoDatatype) {
+                return false;
+              }
+            }
+          }
           return true;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
