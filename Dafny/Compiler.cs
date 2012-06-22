@@ -1992,6 +1992,11 @@ namespace Microsoft.Dafny {
             TrExpr(e.E0);
             wr.Write(")");
             break;
+          case BinaryExpr.ResolvedOpcode.RankGt:
+          case BinaryExpr.ResolvedOpcode.RankLt:
+            Contract.Assert(DafnyOptions.O.RuntimeChecking);
+            Error("compilation of rank comparisons is not supported");
+            break;
 
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
