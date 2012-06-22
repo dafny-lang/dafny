@@ -1,11 +1,11 @@
-class C<U> {
+class C<U(==)> {
   method M<T>(x: T, u: U) returns (y: T)
     ensures x == y && u == u;
   {
     y := x;
   }
 
-  function method F<X>(x: X, u: U): bool
+  function method F<X(==)>(x: X, u: U): bool
   {
     x == x && u == u
   }

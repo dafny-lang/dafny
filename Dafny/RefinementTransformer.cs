@@ -135,7 +135,7 @@ namespace Microsoft.Dafny {
 
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, null);
+        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, null);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
     }
 
     TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Tok(tp.tok), tp.Name);
+      return new TypeParameter(Tok(tp.tok), tp.Name, tp.EqualitySupport);
     }
 
     MemberDecl CloneMember(MemberDecl member) {

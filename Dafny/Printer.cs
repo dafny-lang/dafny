@@ -71,6 +71,9 @@ namespace Microsoft.Dafny {
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name, new List<TypeParameter>());
+          if (at.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
+            wr.Write("(==)");
+          }
           wr.WriteLine(";");
         } else if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
@@ -149,6 +152,9 @@ namespace Microsoft.Dafny {
         foreach (TypeParameter tp in typeArgs) {
           Contract.Assert(tp != null);
           wr.Write("{0}{1}", sep, tp.Name);
+          if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
+            wr.Write("(==)");
+          }
           sep = ", ";
         }
         wr.Write(">");

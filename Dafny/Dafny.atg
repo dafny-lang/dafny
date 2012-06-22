@@ -290,10 +290,13 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
 = (. IToken/*!*/ id;
      Attributes attrs = null;
+     var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
   .)
   "type"
   { Attribute<ref attrs> }
-  Ident<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
+  Ident<out id>
+  [ "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
+  ]                            (. at = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs); .)
   SYNC ";"
   .
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
@@ -356,10 +359,16 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
 /*------------------------------------------------------------------------*/
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
-     IToken/*!*/ id; .)
+     IToken/*!*/ id;
+     TypeParameter.EqualitySupportValue eqSupport;
+  .)
   "<"
-  Ident<out id>                       (. typeArgs.Add(new TypeParameter(id, id.val)); .)
-  { "," Ident<out id>                 (. typeArgs.Add(new TypeParameter(id, id.val)); .)
+  Ident<out id>              (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
+  [ "(" "==" ")"             (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
+    ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
+  { "," Ident<out id>        (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
+    [ "(" "==" ")"           (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
+    ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
   }
   ">"
   .

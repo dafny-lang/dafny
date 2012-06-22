@@ -294,7 +294,7 @@ method QuantifierRange1<T>(a: seq<T>, x: T, y: T, N: int)
   assert x != y;
 }
 
-method QuantifierRange2<T>(a: seq<T>, x: T, y: T, N: int)
+method QuantifierRange2<T(==)>(a: seq<T>, x: T, y: T, N: int)
   requires 0 <= N && N <= |a|;
   requires exists k | 0 <= k && k < N :: a[k] == y;
   ensures forall k | 0 <= k && k < N :: a[k] == y;  // error
