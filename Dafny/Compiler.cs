@@ -579,7 +579,7 @@ namespace Microsoft.Dafny {
             Indent(indent);  wr.WriteLine("{");
             var bodyIndent = indent + IndentAmount;
             TrReq(m.Req, bodyIndent);
-            TrEns(m.Ens, bodyIndent);
+            TrEns(m.Ens, m.Outs, bodyIndent);
             foreach (Formal p in m.Outs) {
               if (!p.IsGhost || DafnyOptions.O.RuntimeChecking) {
                 Indent(bodyIndent);
@@ -1635,7 +1635,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
-        wr.Write("@" + e.Var.CompileName);
+        TrIdentifierExpr(e);
 
       } else if (expr is SetDisplayExpr) {
         SetDisplayExpr e = (SetDisplayExpr)expr;
@@ -2254,6 +2254,7 @@ namespace Microsoft.Dafny {
 
     #region Runtime checking fields
 
+    List<Formal/*!*/> inEns = null;
     bool inOldExpr = false;
 
     #endregion
@@ -2319,9 +2320,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrEns(List<MaybeFreeExpression/*!*/>/*!*/ ens, int indent)
+    void TrEns(List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Formal/*!*/>/*!*/ outs, int indent)
     {
       Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(cce.NonNullElements(outs));
 
       if (DafnyOptions.O.RuntimeChecking)
       {
@@ -2329,10 +2331,12 @@ namespace Microsoft.Dafny {
         {
           if (!e.IsFree)
           {
+            inEns = outs;
             Indent(indent);
             wr.Write("Contract.Ensures(");
             TrExpr(e.E);
             wr.WriteLine(");");
+            inEns = null;
           }
         }
       }
@@ -2386,6 +2390,25 @@ namespace Microsoft.Dafny {
       {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost (right?)
       }
+    }
+
+    void TrIdentifierExpr(IdentifierExpr/*!*/ expr)
+    {
+      Contract.Requires(expr != null);
+
+      if (DafnyOptions.O.RuntimeChecking && inEns != null && Contract.Exists(inEns, outP => outP.CompileName == expr.Var.CompileName))
+      {
+        if (inOldExpr)
+        {
+          Error("old expressions cannot refer to out parameters");
+        }
+        else
+        {
+          wr.Write("Contract.ValueAtReturn(out @" + expr.Var.Name + ")");
+        }
+      }
+      else
+        wr.Write("@" + expr.Var.CompileName);
     }
 
     #endregion
