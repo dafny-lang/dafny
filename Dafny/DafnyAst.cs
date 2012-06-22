@@ -1153,7 +1153,7 @@ namespace Microsoft.Dafny {
             return name + nm.Substring(i);
           }
         } else {
-          string nxt = nm.Substring(i, j);
+          string nxt = nm.Substring(i, j - i);
           name = name == null ? nxt : name + nxt;
           switch (nm[j]) {
             case '\'': name += "_k"; break;
