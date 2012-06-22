@@ -2018,13 +2018,13 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Thn != null);
-      Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt);
+      Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
     }
     public IfStmt(IToken tok, Expression guard, BlockStmt thn, Statement els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(thn != null);
-      Contract.Requires(els == null || els is BlockStmt || els is IfStmt);
+      Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
