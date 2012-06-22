@@ -2026,46 +2026,51 @@ namespace Microsoft.Dafny {
 
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
-        Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
-        var n = e.BoundVars.Count;
-        Contract.Assert(e.Bounds.Count == n);
-        for (int i = 0; i < n; i++) {
-          var bound = e.Bounds[i];
-          var bv = e.BoundVars[i];
-          // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
-          if (bound is QuantifierExpr.BoolBoundedPool) {
-            wr.Write("Dafny.Helpers.QuantBool(");
-          } else if (bound is QuantifierExpr.IntBoundedPool) {
-            var b = (QuantifierExpr.IntBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantInt(");
-            TrExpr(b.LowerBound);
-            wr.Write(", ");
-            TrExpr(b.UpperBound);
-            wr.Write(", ");
-          } else if (bound is QuantifierExpr.SetBoundedPool) {
-            var b = (QuantifierExpr.SetBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantSet(");
-            TrExpr(b.Set);
-            wr.Write(", ");
-          } else if (bound is QuantifierExpr.MapBoundedPool) {
-            var b = (QuantifierExpr.MapBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantMap(");
-            TrExpr(b.Map);
-            wr.Write(", ");
-          } else if (bound is QuantifierExpr.SeqBoundedPool) {
-            var b = (QuantifierExpr.SeqBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantSeq(");
-            TrExpr(b.Seq);
-            wr.Write(", ");
-          } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+        if (e.Bounds == null && DafnyOptions.O.RuntimeChecking)
+          Error("compilation of unbounded quantifiers is not supported");
+        else
+        {
+          Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
+          var n = e.BoundVars.Count;
+          Contract.Assert(e.Bounds.Count == n);
+          for (int i = 0; i < n; i++) {
+            var bound = e.Bounds[i];
+            var bv = e.BoundVars[i];
+            // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
+            if (bound is QuantifierExpr.BoolBoundedPool) {
+              wr.Write("Dafny.Helpers.QuantBool(");
+            } else if (bound is QuantifierExpr.IntBoundedPool) {
+              var b = (QuantifierExpr.IntBoundedPool)bound;
+              wr.Write("Dafny.Helpers.QuantInt(");
+              TrExpr(b.LowerBound);
+              wr.Write(", ");
+              TrExpr(b.UpperBound);
+              wr.Write(", ");
+            } else if (bound is QuantifierExpr.SetBoundedPool) {
+              var b = (QuantifierExpr.SetBoundedPool)bound;
+              wr.Write("Dafny.Helpers.QuantSet(");
+              TrExpr(b.Set);
+              wr.Write(", ");
+            } else if (bound is QuantifierExpr.MapBoundedPool) {
+              var b = (QuantifierExpr.MapBoundedPool)bound;
+              wr.Write("Dafny.Helpers.QuantMap(");
+              TrExpr(b.Map);
+              wr.Write(", ");
+            } else if (bound is QuantifierExpr.SeqBoundedPool) {
+              var b = (QuantifierExpr.SeqBoundedPool)bound;
+              wr.Write("Dafny.Helpers.QuantSeq(");
+              TrExpr(b.Seq);
+              wr.Write(", ");
+            } else {
+              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+            }
+            wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
+            wr.Write("@{0} => ", bv.CompileName);
           }
-          wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
-          wr.Write("@{0} => ", bv.CompileName);
-        }
-        TrExpr(e.LogicalBody());
-        for (int i = 0; i < n; i++) {
-          wr.Write(")");
+          TrExpr(e.LogicalBody());
+          for (int i = 0; i < n; i++) {
+            wr.Write(")");
+          }
         }
 
       } else if (expr is SetComprehension) {
