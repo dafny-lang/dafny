@@ -1816,7 +1816,10 @@ namespace Microsoft.Dafny {
         TrOldExpr((OldExpr)expr);
 
       } else if (expr is FreshExpr) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
+        if (DafnyOptions.O.RuntimeChecking)
+          Error("compilation of fresh expressions is not supported");
+        else
+          Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
 
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
