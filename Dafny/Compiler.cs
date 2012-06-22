@@ -1816,10 +1816,10 @@ namespace Microsoft.Dafny {
         TrOldExpr((OldExpr)expr);
 
       } else if (expr is FreshExpr) {
-        if (DafnyOptions.O.RuntimeChecking)
-          Error("compilation of fresh expressions is not supported");
-        else
-          Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
+        TrFreshExpr((FreshExpr)expr);
+
+      } else if (expr is AllocatedExpr) {
+        TrAllocatedExpr();
 
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -2392,6 +2392,32 @@ namespace Microsoft.Dafny {
       else
       {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost (right?)
+      }
+    }
+
+    void TrFreshExpr(FreshExpr/*!*/ expr)
+    {
+      Contract.Requires(expr != null);
+
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        Error("compilation of fresh expressions is not supported");
+      }
+      else
+      {
+        Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
+      }
+    }
+
+    void TrAllocatedExpr()
+    {
+      if (DafnyOptions.O.RuntimeChecking)
+      {
+        wr.Write("true");
+      }
+      else
+      {
+        Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
 
