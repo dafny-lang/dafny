@@ -5,12 +5,8 @@ set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set BPLEXE=%BOOGIEDIR%\Boogie.exe
 
-REM to implement:
-REM Combinators   : ghost state
-REM RingBuffer    : ghost state
-REM RingBufferAuto: ghost state
-
-for %%f in (Two-Way-Sort Tree BreadthFirstSearch) do (
+for %%f in (Two-Way-Sort Combinators RingBuffer RingBufferAuto
+            Tree BreadthFirstSearch) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy

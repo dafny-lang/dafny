@@ -2,3 +2,24 @@
 -------------------- Problem1-SumMax --------------------
 Compiled assembly into Problem1-SumMax.exe
 Rewrote assembly into Problem1-SumMax.exe
+
+-------------------- Problem2-Invert --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- Problem3-FindZero --------------------
+Compiled assembly into Problem3-FindZero.exe
+Rewrote assembly into Problem3-FindZero.exe
+
+-------------------- Problem4-Queens --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- Problem5-DoubleEndedQueue --------------------
+Compilation error: compilation of set<object> is not supported

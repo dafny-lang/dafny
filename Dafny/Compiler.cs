@@ -739,26 +739,26 @@ namespace Microsoft.Dafny {
       } else if (type is SetType) {
         Type argType = ((SetType)type).Arg;
         if (argType is ObjectType) {
-          Error("compilation of set<object> is not supported; consider introducing a ghost");
+          Error("compilation of set<object> is not supported");
         }
         return DafnySetClass + "<" + TypeName(argType) + ">";
       } else if (type is SeqType) {
         Type argType = ((SeqType)type).Arg;
         if (argType is ObjectType) {
-          Error("compilation of seq<object> is not supported; consider introducing a ghost");
+          Error("compilation of seq<object> is not supported");
         }
         return DafnySeqClass + "<" + TypeName(argType) + ">";
       } else if (type is MultiSetType) {
         Type argType = ((MultiSetType)type).Arg;
         if (argType is ObjectType) {
-          Error("compilation of seq<object> is not supported; consider introducing a ghost");
+          Error("compilation of seq<object> is not supported");
         }
         return DafnyMultiSetClass + "<" + TypeName(argType) + ">";
       } else if (type is MapType) {
         Type domType = ((MapType)type).Domain;
         Type ranType = ((MapType)type).Range;
         if (domType is ObjectType || ranType is ObjectType) {
-          Error("compilation of map<object, _> or map<_, object> is not supported; consider introducing a ghost");
+          Error("compilation of map<object, _> or map<_, object> is not supported");
         }
         return DafnyMapClass + "<" + TypeName(domType) + "," + TypeName(ranType) + ">";
       } else {

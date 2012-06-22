@@ -1,11 +1,35 @@
 
 -------------------- Two-Way-Sort --------------------
-Compiled assembly into Two-Way-Sort.dll
-Rewrote assembly into Two-Way-Sort.dll
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- Combinators --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- RingBuffer --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- RingBufferAuto --------------------
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
 
 -------------------- Tree --------------------
-Compiled assembly into Tree.dll
-Rewrote assembly into Tree.dll
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 
 -------------------- BreadthFirstSearch --------------------
 Compilation error: Function _default.BreadthFirstSearch.Succ has no body
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
