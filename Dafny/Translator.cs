@@ -4219,7 +4219,16 @@ namespace Microsoft.Dafny {
           decrs.Add(etran.TrExpr(e));
         }
         Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false, false);
-        loopBodyBuilder.Add(Assert(s.Tok, decrCheck, inferredDecreases ? "cannot prove termination; try supplying a decreases clause for the loop" : "decreases expression might not decrease"));
+        string msg;
+        if (inferredDecreases) {
+          msg = "cannot prove termination; try supplying a decreases clause for the loop";
+          if (s is RefinedWhileStmt) {
+            msg += " (note that a refined loop does not inherit 'decreases *' from the refined loop)";
+          }
+        } else {
+          msg = "decreases expression might not decrease";
+        }
+        loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
       }
       // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
       // of invariant-maintenance can use the appropriate canCall predicates.
@@ -4597,7 +4606,7 @@ namespace Microsoft.Dafny {
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
-      var msg = inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure";
+      string msg = inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure";
       if (hint != null) {
         msg += " (" + hint + ")";
       }

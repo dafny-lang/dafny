@@ -1153,7 +1153,7 @@ namespace Microsoft.Dafny {
             return name + nm.Substring(i);
           }
         } else {
-          string nxt = nm.Substring(i, j);
+          string nxt = nm.Substring(i, j - i);
           name = name == null ? nxt : name + nxt;
           switch (nm[j]) {
             case '\'': name += "_k"; break;
@@ -2018,13 +2018,13 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Thn != null);
-      Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt);
+      Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
     }
     public IfStmt(IToken tok, Expression guard, BlockStmt thn, Statement els)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(thn != null);
-      Contract.Requires(els == null || els is BlockStmt || els is IfStmt);
+      Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
@@ -2133,6 +2133,21 @@ namespace Microsoft.Dafny {
       get {
         yield return Body;
       }
+    }
+  }
+
+  /// <summary>
+  /// This class is really just a WhileStmt, except that it serves the purpose of remembering if the object was created as the result of a refinement
+  /// merge.
+  /// </summary>
+  public class RefinedWhileStmt : WhileStmt
+  {
+    public RefinedWhileStmt(IToken tok, Expression guard,
+                            List<MaybeFreeExpression/*!*/>/*!*/ invariants, Specification<Expression>/*!*/ decreases, Specification<FrameExpression>/*!*/ mod,
+                            BlockStmt/*!*/ body)
+      : base(tok, guard, invariants, decreases, mod, body) {
+      Contract.Requires(tok != null);
+      Contract.Requires(body != null);
     }
   }
 
