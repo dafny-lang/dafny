@@ -1,6 +1,6 @@
 
 -------------------- Simple --------------------
-Compilation error: compilation of set<object> is not supported; consider introducing a ghost
+Compilation error: compilation of set<object> is not supported
 
 -------------------- TypeTests --------------------
 TypeTests.dfy(89,9): Error: sorry, cannot instantiate collection type with a subrange type
@@ -36,8 +36,10 @@ TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the
 TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(116,4): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(117,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-34 resolution/type errors detected in TypeTests.dfy
+36 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes --------------------
 Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
@@ -46,6 +48,25 @@ Compilation error: compilation does not support type 'object' as a type paramete
 Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
 Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
 Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+
+-------------------- SmallTests --------------------
+Compilation error: compilation of seq<object> is not supported
+Compilation error: compilation of seq<object> is not supported
+Compilation error: compilation of seq<object> is not supported
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 545)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 554)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 556)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 559)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 571)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 575)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 577)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 584)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 590)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 596)
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 603)
 
 -------------------- Definedness --------------------
 Compiled assembly into Definedness.dll
@@ -119,6 +140,12 @@ ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
 
 -------------------- Array --------------------
 Compilation error: Arbitrary type ('B') cannot be compiled
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 
 -------------------- MultiDimArray --------------------
 Compiled assembly into MultiDimArray.dll
@@ -147,6 +174,9 @@ NonGhostQuantifiers.dfy(120,8): Error: quantifiers in non-ghost contexts must be
 NonGhostQuantifiers.dfy(137,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 20 resolution/type errors detected in NonGhostQuantifiers.dfy
 
+-------------------- AdvancedLHS --------------------
+Compilation error: compilation of fresh expressions is not supported
+
 -------------------- ModulesCycle --------------------
 ModulesCycle.dfy(12,7): Error: module T named among imports does not exist
 ModulesCycle.dfy(23,7): Error: import graph contains a cycle: H -> I -> J -> G
@@ -159,13 +189,13 @@ Modules0.dfy(7,7): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(11,8): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(12,11): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M
-Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
 Modules0.dfy(43,13): Error: Function body type mismatch (expected T, got T)
-Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M
+Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
 Modules0.dfy(48,12): Error: new can be applied only to reference types (got T)
 Modules0.dfy(54,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
 Modules0.dfy(70,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
@@ -177,21 +207,51 @@ Modules0.dfy(250,15): Error: unresolved identifier: X
 Modules0.dfy(251,17): Error: member DoesNotExist does not exist in class X
 Modules0.dfy(294,16): Error: member R does not exist in class B
 Modules0.dfy(294,6): Error: expected method call, found expression
+Modules0.dfy(317,18): Error: second argument to "in" must be a set or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>)
+Modules0.dfy(321,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
+Modules0.dfy(322,11): Error: Undeclared module name: LongLostModule (did you forget a module import?)
+Modules0.dfy(323,11): Error: Undeclared module name: Wazzup (did you forget a module import?)
+Modules0.dfy(324,17): Error: Undeclared class name Edon in module Q_Imp
+Modules0.dfy(326,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
+Modules0.dfy(327,30): Error: member Create does not exist in class Klassy
 Modules0.dfy(140,11): Error: ghost variables are allowed only in specification contexts
 Modules0.dfy(154,11): Error: old expressions are allowed only in specification and ghost contexts
 Modules0.dfy(155,11): Error: fresh expressions are allowed only in specification and ghost contexts
 Modules0.dfy(156,11): Error: allocated expressions are allowed only in specification and ghost contexts
 Modules0.dfy(172,10): Error: match source expression 'tree' has already been used as a match source expression in this context
 Modules0.dfy(211,12): Error: match source expression 'l' has already been used as a match source expression in this context
-30 resolution/type errors detected in Modules0.dfy
+37 resolution/type errors detected in Modules0.dfy
+
+-------------------- BadFunction --------------------
+Compiled assembly into BadFunction.dll
+Rewrote assembly into BadFunction.dll
 
 -------------------- Comprehensions --------------------
 Compiled assembly into Comprehensions.exe
 Rewrote assembly into Comprehensions.exe
 
--------------------- ControlStructures --------------------
-Compiled assembly into ControlStructures.dll
-Rewrote assembly into ControlStructures.dll
+-------------------- Basics --------------------
+Compiled assembly into Basics.dll
+Rewrote assembly into Basics.dll
+
+-------------------- DTypes --------------------
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation does not support type 'object' as a type parameter; consider introducing a ghost
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 
 -------------------- ParallelResolveErrors --------------------
 ParallelResolveErrors.dfy(7,9): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
@@ -212,6 +272,29 @@ ParallelResolveErrors.dfy(105,2): Warning: the conclusion of the body of this pa
 ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing parallel statement is not allowed to update heap locations
 15 resolution/type errors detected in ParallelResolveErrors.dfy
 
+-------------------- Parallel --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: Method _default.C.CLemma has no body
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: Method _default._default.Lemma has no body
+Compilation error: Method _default._default.PowerLemma has no body
+Compilation error: Function _default._default.F has no body
+Compilation error: Function _default._default.G has no body
+Compilation error: Function _default._default.H has no body
+Compilation error: Function _default._default.Sum has no body
+Compilation error: Function _default._default.Pred has no body
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: Function _default._default.EmptyPar_P has no body
+Compilation error: Method _default._default.EmptyPar_Lemma has no body
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- TypeParameters --------------------
+Compiled assembly into TypeParameters.exe
+Rewrote assembly into TypeParameters.exe
+
 -------------------- Coinductive --------------------
 Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
 Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
@@ -223,12 +306,29 @@ Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor 
 Compiled assembly into Corecursion.dll
 Rewrote assembly into Corecursion.dll
 
+-------------------- TypeAntecedents --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- SplitExpr --------------------
+Compilation error: compilation of set<object> is not supported
+
 -------------------- LoopModifies --------------------
 Compiled assembly into LoopModifies.dll
 Rewrote assembly into LoopModifies.dll
 
 -------------------- Refinement --------------------
+Compilation error: Function BodyFree._default.F has no body
 Compilation error: Method BodyFree._default.M has no body
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
 
 -------------------- RefinementErrors --------------------
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions
@@ -259,13 +359,34 @@ CallStmtTests.dfy(4,3): Error: LHS of assignment must denote a mutable variable
 CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost variable
 2 resolution/type errors detected in CallStmtTests.dfy
 
+-------------------- MultiSets --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
 -------------------- PredExpr --------------------
 Compiled assembly into PredExpr.dll
 Rewrote assembly into PredExpr.dll
 
+-------------------- LetExpr --------------------
+Compilation error: old expressions cannot refer to out parameters
+
 -------------------- Skeletons --------------------
 Compiled assembly into Skeletons.dll
 Rewrote assembly into Skeletons.dll
+
+-------------------- Maps --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 
 -------------------- Compilation --------------------
 Compiled assembly into Compilation.exe

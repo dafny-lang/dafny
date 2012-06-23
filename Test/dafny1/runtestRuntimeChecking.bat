@@ -10,26 +10,11 @@ REM SeparationLogicList
 REM TreeDatatype
 REM MoreInduction
 
-REM to implement:
-REM Queue              : parallel statements
-REM PriorityQueue      : ghost state
-REM ExtensibleArray    : ghost state
-REM ExtensibleArrayAuto: ghost state
-REM BinaryTree         : old expressions
-REM UnboundedStack     : ghost state
-REM ListCopy           : fresh expressions
-REM ListContents       : old expressions
-REM SchorrWaite        : ghost state
-REM SumOfCubes         : ghost state
-REM FindZero           : ghost state
-REM TerminationDemos   : ghost state
-REM Induction          : quantifiers
-REM Celebrity          : quantifiers
-REM BDD                : ghost state
-REM UltraFilter        : quantifiers
-
-for %%f in (ListReverse MatrixFun pow2 Cubes Substitution KatzManna
-            Rippling) do (
+for %%f in (Queue PriorityQueue ExtensibleArray ExtensibleArrayAuto
+            BinaryTree UnboundedStack ListCopy ListReverse ListContents
+            MatrixFun pow2 SchorrWaite Cubes SumOfCubes FindZero
+            TerminationDemos Substitution KatzManna Induction Rippling
+            Celebrity BDD UltraFilter) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy

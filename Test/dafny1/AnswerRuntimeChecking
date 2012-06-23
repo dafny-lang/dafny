@@ -1,27 +1,247 @@
 
+-------------------- Queue --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- PriorityQueue --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- ExtensibleArray --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- ExtensibleArrayAuto --------------------
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- BinaryTree --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- UnboundedStack --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+
+-------------------- ListCopy --------------------
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
 -------------------- ListReverse --------------------
 Compiled assembly into ListReverse.dll
 Rewrote assembly into ListReverse.dll
 
+-------------------- ListContents --------------------
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
 -------------------- MatrixFun --------------------
-Compiled assembly into MatrixFun.exe
-Rewrote assembly into MatrixFun.exe
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 
 -------------------- pow2 --------------------
 Compiled assembly into pow2.dll
 Rewrote assembly into pow2.dll
 
+-------------------- SchorrWaite --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
 -------------------- Cubes --------------------
 Compiled assembly into Cubes.dll
 Rewrote assembly into Cubes.dll
 
+-------------------- SumOfCubes --------------------
+Compiled assembly into SumOfCubes.dll
+Rewrote assembly into SumOfCubes.dll
+
+-------------------- FindZero --------------------
+Compiled assembly into FindZero.dll
+Rewrote assembly into FindZero.dll
+
+-------------------- TerminationDemos --------------------
+Compiled assembly into TerminationDemos.dll
+Rewrote assembly into TerminationDemos.dll
+
 -------------------- Substitution --------------------
-Compiled assembly into Substitution.dll
-Rewrote assembly into Substitution.dll
+Compilation error: compilation of rank comparisons is not supported
+Compilation error: compilation of rank comparisons is not supported
 
 -------------------- KatzManna --------------------
 Compiled assembly into KatzManna.dll
 Rewrote assembly into KatzManna.dll
 
+-------------------- Induction --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
 -------------------- Rippling --------------------
 Compilation error: Arbitrary type ('FunctionValue') cannot be compiled
+Compilation error: Function _default._default.Apply has no body
+Compilation error: Function _default._default.AlwaysFalseFunction has no body
+Compilation error: Function _default._default.AlwaysTrueFunction has no body
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- Celebrity --------------------
+Compilation error: Function _default._default.Knows has no body
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- BDD --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of set<object> is not supported
+
+-------------------- UltraFilter --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: Method _default.UltraFilter.H has no body
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported

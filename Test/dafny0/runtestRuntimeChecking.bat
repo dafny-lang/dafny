@@ -14,26 +14,18 @@ REM ReturnTests
 REM Predicates
 
 REM to implement:
-REM SmallTests     : unexpected expressions
-REM AdvancedLHS    : fresh expressions
-REM BadFunction    : ghost state
-REM Basics         : ghost state
-REM DTypes         : quantifiers
-REM Parallel       : quantifiers
-REM TypeParameters : ghost state
-REM TypeAntecedents: quantifiers
-REM SplitExpr      : ghost state
-REM MultiSets      : quantifiers
-REM LetExpr        : old expressions
-REM Maps           : quantifiers
+REM ControlStructures : out parameters is quantifiers
 
-for %%f in (Simple TypeTests NatTypes Definedness
+for %%f in (Simple TypeTests NatTypes SmallTests Definedness
             FunctionSpecifications ResolutionErrors ParseErrors
-            Array MultiDimArray NonGhostQuantifiers ModulesCycle
-            Modules0 Comprehensions ControlStructures ParallelResolveErrors
-            Coinductive Corecursion LoopModifies Refinement
+            Array MultiDimArray NonGhostQuantifiers AdvancedLHS
+            ModulesCycle Modules0 BadFunction Comprehensions
+            Basics DTypes ParallelResolveErrors Parallel
+            TypeParameters Coinductive Corecursion
+            TypeAntecedents SplitExpr LoopModifies Refinement
             RefinementErrors ReturnErrors ChainingDisjointTests
-            CallStmtTests PredExpr Skeletons Compilation) do (
+            CallStmtTests MultiSets PredExpr LetExpr Skeletons
+            Maps Compilation) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy

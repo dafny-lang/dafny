@@ -1,7 +1,57 @@
 
+-------------------- Classics --------------------
+Compiled assembly into Classics.dll
+Rewrote assembly into Classics.dll
+
+-------------------- TreeBarrier --------------------
+Compiled assembly into TreeBarrier.dll
+Rewrote assembly into TreeBarrier.dll
+
+-------------------- COST-verif-comp-2011-2-MaxTree-class --------------------
+Compilation error: compilation of set<object> is not supported
+
 -------------------- COST-verif-comp-2011-2-MaxTree-datatype --------------------
-Compiled assembly into COST-verif-comp-2011-2-MaxTree-datatype.dll
-Rewrote assembly into COST-verif-comp-2011-2-MaxTree-datatype.dll
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- COST-verif-comp-2011-3-TwoDuplicates --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- COST-verif-comp-2011-4-FloydCycleDetect --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
+-------------------- Intervals --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
 
 -------------------- StoreAndRetrieve --------------------
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line 21)
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
 Compilation error: Function Library.Function.Apply has no body

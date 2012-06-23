@@ -26,5 +26,4 @@ Compiled assembly into COST-verif-comp-2011-4-FloydCycleDetect.dll
 Compiled assembly into Intervals.dll
 
 -------------------- StoreAndRetrieve --------------------
-Compilation error: an assume statement cannot be compiled (line 21)
 Compilation error: Function Library.Function.Apply has no body

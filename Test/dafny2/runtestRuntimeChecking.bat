@@ -8,16 +8,14 @@ set BPLEXE=%BOOGIEDIR%\Boogie.exe
 REM soon again: SnapshotableTrees.dfy
 
 REM to implement:
-REM Classics                               : ghost state
-REM TreeBarrier                            : ghost state
-REM COST-verif-comp-2011-1-MaxArray        : ghost state
-REM COST-verif-comp-2011-2-MaxTree-class   : ghost state
-REM COST-verif-comp-2011-3-TwoDuplicates   : quantifiers
-REM COST-verif-comp-2011-4-FloydCycleDetect: quantifiers
-REM Intervals                              : ghost state
+REM COST-verif-comp-2011-1-MaxArray : out parameters is quantifiers
 
-for %%f in (COST-verif-comp-2011-2-MaxTree-datatype
-            StoreAndRetrieve) do (
+for %%f in (Classics TreeBarrier
+            COST-verif-comp-2011-2-MaxTree-class
+            COST-verif-comp-2011-2-MaxTree-datatype
+            COST-verif-comp-2011-3-TwoDuplicates
+            COST-verif-comp-2011-4-FloydCycleDetect
+            Intervals StoreAndRetrieve) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy
