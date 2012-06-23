@@ -1004,14 +1004,13 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.WriteLine("while (false) { }");
         } else {
-          TrInvariants(s.Invariants, true, indent);
+          TrInvariants(s.Invariants, indent);
           SpillLetVariableDecls(s.Guard, indent);
           Indent(indent);
           wr.Write("while (");
           TrExpr(s.Guard);
           wr.WriteLine(")");
           TrWhileStmtBody(s, indent);
-          TrInvariants(s.Invariants, false, indent);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -1279,12 +1278,11 @@ namespace Microsoft.Dafny {
       Indent(indent);
       wr.WriteLine("{");
       int bodyIndent = indent + IndentAmount;
-      TrInvariants(stmt.Invariants, false, bodyIndent);
       if (stmt.Body is BlockStmt)
         TrStmtList(((BlockStmt)stmt.Body).Body, indent);
       else
         TrStmt(stmt.Body, indent);
-      TrInvariants(stmt.Invariants, true, bodyIndent);
+      TrInvariants(stmt.Invariants, bodyIndent);
       Indent(indent);
       wr.WriteLine("}");
     }
@@ -2282,7 +2280,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
 
       Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      WriteAssumption(ExprToString(stmt.Expr), indent);
+      WriteAssertion(ExprToString(stmt.Expr), indent);
     }
 
     void TrAssertStmt(AssertStmt/*!*/ stmt, int indent)
@@ -2366,13 +2364,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrInvariants(List<MaybeFreeExpression/*!*/>/*!*/ inv, bool assert, int indent)
+    void TrInvariants(List<MaybeFreeExpression/*!*/>/*!*/ inv, int indent)
     {
       Contract.Requires(cce.NonNullElements(inv));
 
       if (DafnyOptions.O.RuntimeChecking)
         foreach (MaybeFreeExpression e in inv)
-          WriteInvariant(ExprToString(e.E), assert && !e.IsFree, indent);
+          WriteAssertion(ExprToString(e.E), indent);
     }
 
     void TrOldExpr(OldExpr/*!*/ expr)
@@ -2462,15 +2460,6 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    void WriteAssumption(string/*!*/ expr, int indent)
-    {
-      Contract.Requires(expr != null);
-
-      Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      Indent(indent);
-      wr.WriteLine("Contract.Assume(" + expr + ");");
-    }
-
     void WriteAssertion(string/*!*/ expr, int indent)
     {
       Contract.Requires(expr != null);
@@ -2478,17 +2467,6 @@ namespace Microsoft.Dafny {
       Contract.Assert(DafnyOptions.O.RuntimeChecking);
       Indent(indent);
       wr.WriteLine("Contract.Assert(" + expr + ");");
-    }
-
-    void WriteInvariant(string/*!*/expr, bool assert, int indent)
-    {
-      Contract.Requires(expr != null);
-
-      Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      if (assert)
-        WriteAssertion(expr, indent);
-      else
-        WriteAssumption(expr, indent);
     }
 
     #endregion
