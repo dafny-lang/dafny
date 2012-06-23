@@ -540,6 +540,7 @@ namespace Microsoft.Dafny {
           return false;
         } else if (ResolvedClass is IndDatatypeDecl) {
           var dt = (IndDatatypeDecl)ResolvedClass;
+#if SOON
           Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
           if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
             return false;
@@ -552,6 +553,7 @@ namespace Microsoft.Dafny {
             }
             i++;
           }
+#endif
           return true;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;

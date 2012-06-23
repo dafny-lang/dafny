@@ -1047,6 +1047,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(startingPoint != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
+#if SOON
       var scc = dependencies.GetSCC(startingPoint);
       // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
       // the whole SCC is incapable of providing the equality operation.
@@ -1134,6 +1135,7 @@ namespace Microsoft.Dafny {
       foreach (var dt in scc) {
         dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
       }
+#endif
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {
