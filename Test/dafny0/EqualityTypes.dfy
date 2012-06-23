@@ -57,11 +57,11 @@ module H {
 
   method M<T(==)>(x: T)
   { }
-  function F<T>(x: BulkyList<T>, y: BulkyList<T>): int
+  function method F<T>(x: BulkyList<T>, y: BulkyList<T>): int
   { if x == y then 5 else 7 }  // this equality is allowed
-  function G<T>(x: Dt<T>, y: Dt<T>): int
+  function method G<T>(x: Dt<T>, y: Dt<T>): int
   { if x == y then 5 else 7 }  // error: the equality is not allowed, because Dt<T> may not support equality
-  function G'<T(==)>(x: Dt<T>, y: Dt<T>): int
+  function method G'<T(==)>(x: Dt<T>, y: Dt<T>): int
   { if x == y then 5 else 7 }  // fine
 
   method Caller0(b: BulkyList, y: int) {

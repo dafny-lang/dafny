@@ -658,7 +658,14 @@ namespace Microsoft.Dafny {
         switch (e.Op) {
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
-            if (!t0.SupportsEquality) {
+            // First, check a special case:  a datatype value (like Nil) that takes no parameters
+            var e0 = e.E0.Resolved as DatatypeValue;
+            var e1 = e.E1.Resolved as DatatypeValue;
+            if (e0 != null && e0.Arguments.Count == 0) {
+              // that's cool
+            } else if (e1 != null && e1.Arguments.Count == 0) {
+              // oh yeah!
+            } else if (!t0.SupportsEquality) {
               Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
             } else if (!t1.SupportsEquality) {
               Error(e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
@@ -1047,7 +1054,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(startingPoint != null);
       Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
 
-#if SOON
       var scc = dependencies.GetSCC(startingPoint);
       // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
       // the whole SCC is incapable of providing the equality operation.
@@ -1118,7 +1124,7 @@ namespace Microsoft.Dafny {
                 foreach (var otherTp in otherDt.TypeArgs) {
                   if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
                     var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-                    if (tp != null) {
+                    if (tp != null && !tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
                       tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
                       thingsChanged = true;
                     }
@@ -1135,7 +1141,6 @@ namespace Microsoft.Dafny {
       foreach (var dt in scc) {
         dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
       }
-#endif
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {
