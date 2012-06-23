@@ -476,11 +476,11 @@ namespace Microsoft.Dafny {
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr));
+        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr));
+        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -864,6 +864,8 @@ namespace Microsoft.Dafny {
            *   assert ...;                 assert E;                    assert E;
            *   assert E;                                                assert E;
            *   
+           *   assume ...;                 assume E;                    assume E;
+           *   
            *   var x := E;                 var x;                       var x := E;
            *   var x := E;                 var x := *;                  var x := E;
            *   var x := E1;                var x :| E0;                 var x := E1; assert E0;
@@ -922,6 +924,19 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = CloneExpr(oldAssume.Expr);
                 body.Add(new AssertStmt(skel.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                i++; j++;
+              }
+
+            } else if (S is AssumeStmt) {
+              var skel = (AssumeStmt)S;
+              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              var oldAssume = oldS as AssumeStmt;
+              if (oldAssume == null) {
+                reporter.Error(cur.Tok, "assume template does not match inherited statement");
+                i++;
+              } else {
+                var e = CloneExpr(oldAssume.Expr);
+                body.Add(new AssumeStmt(skel.Tok, e, null));
                 i++; j++;
               }
 
@@ -998,7 +1013,7 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                body.Add(new AssertStmt(addedAssert.tok, addedAssert));
+                body.Add(new AssertStmt(addedAssert.tok, addedAssert, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1076,6 +1091,8 @@ namespace Microsoft.Dafny {
         var S = ((SkeletonStatement)nxt).S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
+        } else if (S is AssumeStmt) {
+          return other is AssumeStmt;
         } else if (S is IfStmt) {
           return other is IfStmt;
         } else if (S is WhileStmt) {

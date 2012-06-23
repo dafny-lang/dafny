@@ -1559,60 +1559,40 @@ namespace Microsoft.Dafny {
 
   public abstract class PredicateStmt : Statement
   {
-    [Peer]
     public readonly Expression Expr;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Expr != null);
     }
 
-    [Captured]
     public PredicateStmt(IToken tok, Expression expr, Attributes attrs)
       : base(tok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
-      cce.Owner.AssignSame(this, expr);
       this.Expr = expr;
     }
 
-    [Captured]
     public PredicateStmt(IToken tok, Expression expr)
       : this(tok, expr, null) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
-      cce.Owner.AssignSame(this, expr);
       this.Expr = expr;
     }
   }
 
   public class AssertStmt : PredicateStmt {
-    [Captured]
     public AssertStmt(IToken/*!*/ tok, Expression/*!*/ expr, Attributes attrs)
       : base(tok, expr, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
-    }
-
-    [Captured]
-    public AssertStmt(IToken/*!*/ tok, Expression/*!*/ expr)
-      : this(tok, expr, null) {
-      Contract.Requires(tok != null);
-      Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
     }
   }
 
   public class AssumeStmt : PredicateStmt {
-    [Captured]
-    public AssumeStmt(IToken/*!*/ tok, Expression/*!*/ expr)
-      : base(tok, expr) {
+    public AssumeStmt(IToken/*!*/ tok, Expression/*!*/ expr, Attributes attrs)
+      : base(tok, expr, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
-      Contract.Ensures(cce.Owner.Same(this, expr));
-
     }
   }
 
@@ -2411,6 +2391,8 @@ namespace Microsoft.Dafny {
   /// * ...;
   ///   S == null
   /// * assert ...
+  ///   ConditionOmitted == true
+  /// * assume ...
   ///   ConditionOmitted == true
   /// * if ... { Stmt }
   ///   if ... { Stmt } else ElseStmt

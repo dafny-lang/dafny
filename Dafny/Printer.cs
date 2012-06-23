@@ -433,24 +433,14 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (stmt is AssertStmt) {
-        Expression expr = ((AssertStmt)stmt).Expr;
-
-        wr.Write("assert");
-
-        if (stmt.HasAttributes())
-        {
+      if (stmt is PredicateStmt) {
+        Expression expr = ((PredicateStmt)stmt).Expr;
+        wr.Write(stmt is AssertStmt ? "assert" : "assume");
+        if (stmt.HasAttributes()) {
           PrintAttributes(stmt.Attributes);
         }
-
         wr.Write(" ");
         PrintExpression(expr);
-
-        wr.Write(";");
-
-      } else if (stmt is AssumeStmt) {
-        wr.Write("assume ");
-        PrintExpression(((AssumeStmt)stmt).Expr);
         wr.Write(";");
 
       } else if (stmt is PrintStmt) {
@@ -635,6 +625,9 @@ namespace Microsoft.Dafny {
         } else if (s.S is AssertStmt) {
           Contract.Assert(s.ConditionOmitted);
           wr.Write("assert ...;");
+        } else if (s.S is AssumeStmt) {
+          Contract.Assert(s.ConditionOmitted);
+          wr.Write("assume ...;");
         } else if (s.S is IfStmt) {
           PrintIfStatement(indent, (IfStmt)s.S, s.ConditionOmitted);
         } else if (s.S is WhileStmt) {
