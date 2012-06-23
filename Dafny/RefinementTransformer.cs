@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class RefinementTransformer : Rewriter
+  public class RefinementTransformer : IRewriter
   {
     ResolutionErrorReporter reporter;
     public RefinementTransformer(ResolutionErrorReporter reporter) {
@@ -62,7 +62,6 @@ namespace Microsoft.Dafny {
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
 
     public void PreResolve(ModuleDecl m) {
-      Contract.Requires(m != null);
       if (m.RefinementBase == null) {
         // This Rewriter doesn't do anything
         return;
@@ -153,8 +152,6 @@ namespace Microsoft.Dafny {
     }
 
     public void PostResolve(ModuleDecl m) {
-      Contract.Requires(m != null);
-
       if (m == moduleUnderConstruction) {
         while (this.postTasks.Count != 0) {
           var a = postTasks.Dequeue();

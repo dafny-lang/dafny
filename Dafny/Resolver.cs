@@ -170,7 +170,7 @@ namespace Microsoft.Dafny {
       }
 
       // register top-level declarations
-      var rewriters = new List<Rewriter>();
+      var rewriters = new List<IRewriter>();
       // The following line could be generalized to allow rewriter plug-ins; to support such, just add command-line
       // switches and .Add to "rewriters" here.
       rewriters.Add(new AutoContractsRewriter());

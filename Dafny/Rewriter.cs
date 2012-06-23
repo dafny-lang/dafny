@@ -4,10 +4,21 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny
 {
-  public interface Rewriter
+  [ContractClass(typeof(IRewriterContracts))]
+  public interface IRewriter
   {
     void PreResolve(ModuleDecl m);
     void PostResolve(ModuleDecl m);
+  }
+  [ContractClassFor(typeof(IRewriter))]
+  abstract class IRewriterContracts : IRewriter
+  {
+    public void PreResolve(ModuleDecl m) {
+      Contract.Requires(m != null);
+    }
+    public void PostResolve(ModuleDecl m) {
+      Contract.Requires(m != null);
+    }
   }
 
   /// <summary>
@@ -48,7 +59,7 @@ namespace Microsoft.Dafny
   ///    if (A != null) { Repr := Repr + {A}; }
   ///    if (F != null) { Repr := Repr + {F} + F.Repr; }
   /// </summary>
-  public class AutoContractsRewriter : Rewriter
+  public class AutoContractsRewriter : IRewriter
   {
     public void PreResolve(ModuleDecl m) {
       foreach (var d in m.TopLevelDecls) {
