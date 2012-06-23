@@ -5,12 +5,7 @@ set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 set BPLEXE=%BOOGIEDIR%\Boogie.exe
 
-REM to implement:
-REM LazyInitArray: ghost state
-REM SparseArray  : ghost state
-REM Composite    : ghost state
-
-for %%f in () do (
+for %%f in (LazyInitArray SparseArray Composite) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy

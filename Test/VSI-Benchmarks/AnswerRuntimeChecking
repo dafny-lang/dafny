@@ -3,19 +3,126 @@
 Compiled assembly into b1.exe
 Rewrote assembly into b1.exe
 
+-------------------- b2 --------------------
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+
 -------------------- b3 --------------------
 Compilation error: Method _default.Queue.Init has no body
 Compilation error: Method _default.Queue.Enqueue has no body
 Compilation error: Method _default.Queue.Dequeue has no body
+Compilation error: Function _default.Comparable.AtMost has no body
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: old expressions cannot refer to out parameters
+
+-------------------- b4 --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- b5 --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+
+-------------------- b6 --------------------
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
 
 -------------------- b7 --------------------
 Compilation error: Method _default.Queue.Init has no body
 Compilation error: Method _default.Queue.Enqueue has no body
 Compilation error: Method _default.Queue.Dequeue has no body
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: Method _default.Client.Sort has no body
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
 
 -------------------- b8 --------------------
 Compilation error: Method _default.Queue.Init has no body
 Compilation error: Method _default.Queue.Enqueue has no body
 Compilation error: Method _default.Queue.Dequeue has no body
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: Method _default.Glossary.Sort has no body
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: Function _default.Word.AtMost has no body
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of set<object> is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of fresh expressions is not supported
+Compilation error: compilation of unbounded quantifiers is not supported
