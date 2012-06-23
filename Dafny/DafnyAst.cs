@@ -540,14 +540,17 @@ namespace Microsoft.Dafny {
           return false;
         } else if (ResolvedClass is IndDatatypeDecl) {
           var dt = (IndDatatypeDecl)ResolvedClass;
-          // TODO
-          // For now, say 'no' if some constructor takes a parameter that is a codatatype.  This is BOGUS.
-          foreach (var ctor in dt.Ctors) {
-            foreach (var arg in ctor.Formals) {
-              if (arg.Type.IsCoDatatype) {
-                return false;
-              }
+          Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
+          if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
+            return false;
+          }
+          Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
+          var i = 0;
+          foreach (var tp in dt.TypeArgs) {
+            if (tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && !TypeArgs[i].SupportsEquality) {
+              return false;
             }
+            i++;
           }
           return true;
         } else if (ResolvedParam != null) {
@@ -769,6 +772,8 @@ namespace Microsoft.Dafny {
       get { return EqualitySupport != EqualitySupportValue.Unspecified; }
     }
 
+    public bool NecessaryForEqualitySupportOfSurroundingInductiveDatatype = false;  // computed during resolution; relevant only when Parent denotes an IndDatatypeDecl
+
     public TypeParameter(IToken tok, string name, EqualitySupportValue equalitySupport = EqualitySupportValue.Unspecified)
       : base(tok, name, null) {
       Contract.Requires(tok != null);
@@ -935,7 +940,10 @@ namespace Microsoft.Dafny {
   public class IndDatatypeDecl : DatatypeDecl
   {
     public DatatypeCtor DefaultCtor;  // set during resolution
-    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as
+    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as the number of type arguments
+
+    public enum ES { NotYetComputed, Never, ConsultTypeArguments }
+    public ES EqualitySupport = ES.NotYetComputed;
 
     public IndDatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDecl/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
       [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)

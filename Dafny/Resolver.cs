@@ -399,15 +399,16 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
 
-      // Perform the stratosphere check on inductive datatypes
+      // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
         if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
           // do the following check once per SCC, so call it on each SCC representative
           SccStratosphereCheck(dtd, datatypeDependencies);
+          DetermineEqualitySupport(dtd, datatypeDependencies);
         }
       }
-      // Perform the guardedness check on co-datatypes
       if (ErrorCount == prevErrorCount) {  // because CheckCoCalls requires the given expression to have been successfully resolved
+        // Perform the guardedness check on co-datatypes
         foreach (var decl in declarations) {
           var cl = decl as ClassDecl;
           if (cl != null) {
@@ -1040,6 +1041,99 @@ namespace Microsoft.Dafny {
         i++;
       }
       return true;
+    }
+
+    void DetermineEqualitySupport(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+      Contract.Requires(startingPoint != null);
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+
+      var scc = dependencies.GetSCC(startingPoint);
+      // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
+      // the whole SCC is incapable of providing the equality operation.
+      foreach (var dt in scc) {
+        Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
+        foreach (var ctor in dt.Ctors) {
+          foreach (var arg in ctor.Formals) {
+            var anotherIndDt = arg.Type.AsIndDatatype;
+            if ((anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) || arg.Type.IsCoDatatype) {
+              // arg.Type is known never to support equality
+              // So, go around the entire SCC and record what we learnt
+              foreach (var ddtt in scc) {
+                ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
+              }
+              return;  // we are done
+            }
+          }
+        }
+      }
+
+      // Now for the more involved case:  we need to determine which type parameters determine equality support for each datatype in the SCC
+      // We start by seeing where each datatype's type parameters are used in a place known to determine equality support.
+      bool thingsChanged = false;
+      foreach (var dt in scc) {
+        if (dt.TypeArgs.Count == 0) {
+          // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+          continue;
+        }
+        foreach (var ctor in dt.Ctors) {
+          foreach (var arg in ctor.Formals) {
+            var typeArg = arg.Type.AsTypeParameter;
+            if (typeArg != null) {
+              typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+              thingsChanged = true;
+            } else {
+              var otherDt = arg.Type.AsIndDatatype;
+              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
+                var otherUdt = (UserDefinedType)arg.Type.Normalize();
+                var i = 0;
+                foreach (var otherTp in otherDt.TypeArgs) {
+                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+                    if (tp != null) {
+                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                      thingsChanged = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      // Then we propagate this information up through the SCC
+      while (thingsChanged) {
+        thingsChanged = false;
+        foreach (var dt in scc) {
+          if (dt.TypeArgs.Count == 0) {
+            // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+            continue;
+          }
+          foreach (var ctor in dt.Ctors) {
+            foreach (var arg in ctor.Formals) {
+              var otherDt = arg.Type.AsIndDatatype;
+              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed) { // otherDt lives in the same SCC
+                var otherUdt = (UserDefinedType)arg.Type.Normalize();
+                var i = 0;
+                foreach (var otherTp in otherDt.TypeArgs) {
+                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+                    if (tp != null) {
+                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                      thingsChanged = true;
+                    }
+                  }
+                  i++;
+                }
+              }
+            }
+          }
+        }
+      }
+      // Now that we have computed the .NecessaryForEqualitySupportOfSurroundingInductiveDatatype values, mark the datatypes as ones
+      // where equality support should be checked by looking at the type arguments.
+      foreach (var dt in scc) {
+        dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+      }
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {
