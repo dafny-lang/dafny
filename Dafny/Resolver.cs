@@ -553,13 +553,13 @@ namespace Microsoft.Dafny {
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
     /// deemed to be rather small, this seems okay.
-    /// 
+    ///
     /// As a side effect of this checking, the DefaultCtor field is filled in (for every inductive datatype
     /// that passes the check).  It may be that several constructors could be used as the default, but
     /// only the first one encountered as recorded.  This particular choice is slightly more than an
     /// implementation detail, because it affects how certain cycles among inductive datatypes (having
     /// to do with the types used to instantiate type parameters of datatypes) are used.
-    /// 
+    ///
     /// The role of the SCC here is simply to speed up this method.  It would still be correct if the
     /// equivalence classes in the given SCC were unions of actual SCC's.  In particular, this method
     /// would still work if "dependencies" consisted of one large SCC containing all the inductive
@@ -1692,7 +1692,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(s.Attributes, true);
 
         bool bodyMustBeSpecOnly = specContextOnly || (prevErrorCount == ErrorCount && UsesSpecFeatures(s.Range));
-        if (!bodyMustBeSpecOnly && prevErrorCount == ErrorCount) {
+        if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
           s.Bounds = DiscoverBounds(s.Tok, s.BoundVars, s.Range, true, missingBounds);
           if (missingBounds.Count != 0) {
