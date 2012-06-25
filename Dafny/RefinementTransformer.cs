@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class RefinementTransformer
+  public class RefinementTransformer : IRewriter
   {
     ResolutionErrorReporter reporter;
     public RefinementTransformer(ResolutionErrorReporter reporter) {
@@ -59,12 +59,17 @@ namespace Microsoft.Dafny {
     }
 
     private ModuleDecl moduleUnderConstruction;  // non-null for the duration of Construct calls
+    private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
 
-    public void Construct(ModuleDecl m) {
-      Contract.Requires(m != null);
-      Contract.Requires(m.RefinementBase != null);
+    public void PreResolve(ModuleDecl m) {
+      if (m.RefinementBase == null) {
+        // This Rewriter doesn't do anything
+        return;
+      }
 
-      Contract.Assert(moduleUnderConstruction == null);
+      if (moduleUnderConstruction != null) {
+        postTasks.Clear();
+      }
       moduleUnderConstruction = m;
       var prev = m.RefinementBase;
 
@@ -99,7 +104,35 @@ namespace Microsoft.Dafny {
         } else {
           var nw = m.TopLevelDecls[index];
           if (d is ArbitraryTypeDecl) {
-            // this is allowed to be refined by any type declaration, so just keep the new one
+            bool dDemandsEqualitySupport = ((ArbitraryTypeDecl)d).MustSupportEquality;
+            if (nw is ArbitraryTypeDecl) {
+              if (dDemandsEqualitySupport != ((ArbitraryTypeDecl)nw).MustSupportEquality) {
+                reporter.Error(nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+              }
+            } else if (dDemandsEqualitySupport) {
+              if (nw is ClassDecl) {
+                // fine, as long as "nw" does not take any type parameters
+                if (nw.TypeArgs.Count != 0) {
+                  reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes type parameters", nw.Name);
+                }
+              } else if (nw is CoDatatypeDecl) {
+                reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
+              } else {
+                Contract.Assert(nw is IndDatatypeDecl);
+                if (nw.TypeArgs.Count != 0) {
+                  reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a datatype that takes type parameters", nw.Name);
+                } else {
+                  // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
+                  // taken place, so we defer it until the PostResolve phase.
+                  var udt = new UserDefinedType(nw.tok, nw.Name, nw, new List<Type>());
+                  postTasks.Enqueue(delegate() {
+                    if (!udt.SupportsEquality) {
+                      reporter.Error(udt.tok, "datatype '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", udt.Name);
+                    }
+                  });
+                }
+              }
+            }
           } else if (nw is ArbitraryTypeDecl) {
             reporter.Error(nw, "an arbitrary type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
           } else if (nw is DatatypeDecl) {
@@ -115,7 +148,18 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Contract.Assert(moduleUnderConstruction == m);
+      Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+    }
+
+    public void PostResolve(ModuleDecl m) {
+      if (m == moduleUnderConstruction) {
+        while (this.postTasks.Count != 0) {
+          var a = postTasks.Dequeue();
+          a();
+        }
+      } else {
+        postTasks.Clear();
+      }
       moduleUnderConstruction = null;
     }
 
@@ -135,7 +179,7 @@ namespace Microsoft.Dafny {
 
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, null);
+        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, null);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -165,7 +209,7 @@ namespace Microsoft.Dafny {
     }
 
     TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Tok(tp.tok), tp.Name);
+      return new TypeParameter(Tok(tp.tok), tp.Name, tp.EqualitySupport);
     }
 
     MemberDecl CloneMember(MemberDecl member) {
@@ -429,11 +473,11 @@ namespace Microsoft.Dafny {
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr));
+        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr));
+        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -598,6 +642,8 @@ namespace Microsoft.Dafny {
     // -------------------------------------------------- Merging ---------------------------------------------------------------
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
+      CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
+
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < nw.Members.Count; i++) {
@@ -731,6 +777,27 @@ namespace Microsoft.Dafny {
           var n = nw[i];
           if (o.Name != n.Name) {
             reporter.Error(n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
+          } else {
+            // This explains what we want to do and why:
+            // switch (o.EqualitySupport) {
+            //   case TypeParameter.EqualitySupportValue.Required:
+            //     // here, we will insist that the new type-parameter also explicitly requires equality support (because we don't want
+            //     // to wait for the inference to run on the new module)
+            //     good = n.EqualitySupport == TypeParameter.EqualitySupportValue.Required;
+            //     break;
+            //   case TypeParameter.EqualitySupportValue.InferredRequired:
+            //     // here, we can allow anything, because even with an Unspecified value, the inference will come up with InferredRequired, like before
+            //     good = true;
+            //     break;
+            //   case TypeParameter.EqualitySupportValue.Unspecified:
+            //     // inference didn't come up with anything on the previous module, so the only value we'll allow here is Unspecified as well
+            //     good = n.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified;
+            //     break;
+            // }
+            // Here's how we actually compute it:
+            if (o.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.EqualitySupport != n.EqualitySupport) {
+              reporter.Error(n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+            }
           }
         }
       }
@@ -794,6 +861,8 @@ namespace Microsoft.Dafny {
            *   assert ...;                 assert E;                    assert E;
            *   assert E;                                                assert E;
            *   
+           *   assume ...;                 assume E;                    assume E;
+           *   
            *   var x := E;                 var x;                       var x := E;
            *   var x := E;                 var x := *;                  var x := E;
            *   var x := E1;                var x :| E0;                 var x := E1; assert E0;
@@ -852,6 +921,19 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = CloneExpr(oldAssume.Expr);
                 body.Add(new AssertStmt(skel.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                i++; j++;
+              }
+
+            } else if (S is AssumeStmt) {
+              var skel = (AssumeStmt)S;
+              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              var oldAssume = oldS as AssumeStmt;
+              if (oldAssume == null) {
+                reporter.Error(cur.Tok, "assume template does not match inherited statement");
+                i++;
+              } else {
+                var e = CloneExpr(oldAssume.Expr);
+                body.Add(new AssumeStmt(skel.Tok, e, null));
                 i++; j++;
               }
 
@@ -928,7 +1010,7 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                body.Add(new AssertStmt(addedAssert.tok, addedAssert));
+                body.Add(new AssertStmt(addedAssert.tok, addedAssert, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1006,6 +1088,8 @@ namespace Microsoft.Dafny {
         var S = ((SkeletonStatement)nxt).S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
+        } else if (S is AssumeStmt) {
+          return other is AssumeStmt;
         } else if (S is IfStmt) {
           return other is IfStmt;
         } else if (S is WhileStmt) {

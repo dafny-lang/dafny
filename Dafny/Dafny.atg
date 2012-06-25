@@ -290,10 +290,13 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
 ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
 = (. IToken/*!*/ id;
      Attributes attrs = null;
+     var eqSupport = TypeParameter.EqualitySupportValue.Unspecified;
   .)
   "type"
   { Attribute<ref attrs> }
-  Ident<out id>               (. at = new ArbitraryTypeDecl(id, id.val, module, attrs); .)
+  Ident<out id>
+  [ "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
+  ]                            (. at = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs); .)
   SYNC ";"
   .
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
@@ -356,10 +359,16 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
 /*------------------------------------------------------------------------*/
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
-     IToken/*!*/ id; .)
+     IToken/*!*/ id;
+     TypeParameter.EqualitySupportValue eqSupport;
+  .)
   "<"
-  Ident<out id>                       (. typeArgs.Add(new TypeParameter(id, id.val)); .)
-  { "," Ident<out id>                 (. typeArgs.Add(new TypeParameter(id, id.val)); .)
+  Ident<out id>              (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
+  [ "(" "==" ")"             (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
+    ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
+  { "," Ident<out id>        (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
+    [ "(" "==" ")"           (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
+    ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
   }
   ">"
   .
@@ -1027,11 +1036,11 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression/*!*/ e = null; Attributes attrs = null;
+     Expression e = null; Attributes attrs = null;
   .)
-  "assert"                                     (. x = t; s = null;.)
+  "assert"                                     (. x = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
-  ( Expression<out e>                 
+  ( Expression<out e>
   | "..."
   )
   ";"
@@ -1043,9 +1052,21 @@ AssertStmt<out Statement/*!*/ s>
   .)
   .
 AssumeStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Expression/*!*/ e; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
+     Expression e = null; Attributes attrs = null;
+  .)
   "assume"                                     (. x = t; .)
-  Expression<out e> ";"                        (. s = new AssumeStmt(x, e); .)
+  { IF(IsAttribute()) Attribute<ref attrs> }
+  ( Expression<out e>
+  | "..."
+  )
+  (. if (e == null) {
+       s = new SkeletonStatement(new AssumeStmt(x, new LiteralExpr(x, true), attrs), true, false);
+     } else {
+       s = new AssumeStmt(x, e, attrs);
+     }
+  .)
+  ";"
   .
 PrintStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  Attributes.Argument/*!*/ arg;

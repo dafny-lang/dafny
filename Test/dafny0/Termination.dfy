@@ -92,8 +92,8 @@ class Termination {
     ensures a == List.Cons(val, b);
   {
     match a {
-	  case Cons(v, r) => val := v; b := r;
-	}
+      case Cons(v, r) => val := v; b := r;
+    }
   }
 }
 

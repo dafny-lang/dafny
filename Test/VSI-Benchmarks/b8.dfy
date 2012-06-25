@@ -250,7 +250,7 @@ class WriterStream {
   
   
   
-class Map<Key,Value> {
+class Map<Key(==),Value> {
   var keys: seq<Key>;
   var values: seq<Value>;
   

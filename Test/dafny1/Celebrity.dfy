@@ -10,7 +10,7 @@ static function IsCelebrity<Person>(c: Person, people: set<Person>): bool
 }
 
 method FindCelebrity0<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
-  requires (exists c :: IsCelebrity(c, people));
+  requires exists c :: IsCelebrity(c, people);
   ensures r == c;
 {
   var cc; assume cc == c;  // this line essentially converts ghost c to non-ghost cc
