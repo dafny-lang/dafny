@@ -8,7 +8,7 @@ set BPLEXE=%BOOGIEDIR%\Boogie.exe
 for %%f in (b1 b2 b3 b4 b5 b6 b7 b8) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:0 /compile:2 %* %%f.dfy
+  %DAFNY_EXE% /nologo /errorTrace:0 /runtimeChecking:0 /compile:3 %* %%f.dfy
   if exist %%f.cs. (
     del %%f.cs
   )

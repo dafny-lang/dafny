@@ -28,7 +28,7 @@ for %%f in (Simple TypeTests NatTypes SmallTests Definedness
             Maps Compilation) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:1 /compile:2 %* %%f.dfy
+  %DAFNY_EXE% /nologo /errorTrace:0 /runtimeChecking:1 /compile:3 %* %%f.dfy
   if exist %%f.cs. (
     del %%f.cs
   )

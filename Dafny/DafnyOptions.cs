@@ -32,8 +32,8 @@ namespace Microsoft.Dafny
     public string DafnyPrintResolvedFile = null;
     public bool Compile = true;
     public bool ForceCompile = false;
+    public bool OnlyCompile = false;
     public bool SpillTargetCode = false;
-    public bool Verification = true;
     public bool RuntimeChecking = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
@@ -60,10 +60,11 @@ namespace Microsoft.Dafny
 
         case "compile": {
             int compile = 0;
-            if (ps.GetNumericArgument(ref compile, 3)) {
+            if (ps.GetNumericArgument(ref compile, 4)) {
               // convert option to two booleans
               Compile = compile == 1 || compile == 2;
               ForceCompile = compile == 2;
+              OnlyCompile = compile == 3;
             }
             return true;
           }
@@ -90,14 +91,6 @@ namespace Microsoft.Dafny
 
         case "inductionHeuristic":
           ps.GetNumericArgument(ref InductionHeuristic, 7);
-          return true;
-
-        case "verification":
-          int verification = 1; // 1 is default, verification
-          if (ps.GetNumericArgument(ref verification, 2))
-          {
-            Verification = verification == 1;
-          }
           return true;
 
         case "runtimeChecking":
@@ -146,6 +139,7 @@ namespace Microsoft.Dafny
                     program, compile Dafny program to C# program out.cs
                 2 - always attempt to compile Dafny program to C# program
                     out.cs, regardless of verification outcome
+                3 - compile the Dafny program without verifying it
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
@@ -166,9 +160,6 @@ namespace Microsoft.Dafny
                 1,2,3,4,5 - levels in between, ordered as follows as far as
                     how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
                 6 (default) - most discriminating
-  /verification:<n>
-                0 - do not verify the Dafny program
-                1 (default) - verify the Dafny program
   /runtimeChecking:<n>
                 0 (default) - ignore Dafny specifications during compilation
                 1 - translate Dafny specifications to CodeContracts during

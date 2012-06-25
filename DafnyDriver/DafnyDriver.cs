@@ -151,7 +151,7 @@ namespace Microsoft.Dafny
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           ErrorWriteLine(err);
-        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck && DafnyOptions.O.Verification) {
+        } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck && !DafnyOptions.O.OnlyCompile) {
           Dafny.Translator translator = new Dafny.Translator();
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
@@ -188,12 +188,9 @@ namespace Microsoft.Dafny
           }
           exitValue = allOk ? ExitValue.VERIFIED : ExitValue.NOT_VERIFIED;
         }
-        else if (!DafnyOptions.O.Verification)
+        else if (DafnyOptions.O.OnlyCompile)
         {
-          if (DafnyOptions.O.ForceCompile)
-          {
-            CompileDafnyProgram(dafnyProgram, fileNames[0]);
-          }
+          CompileDafnyProgram(dafnyProgram, fileNames[0]);
           exitValue = ExitValue.NOT_VERIFIED;
         }
       }

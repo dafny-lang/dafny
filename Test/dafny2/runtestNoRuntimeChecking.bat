@@ -15,7 +15,7 @@ for %%f in (Classics TreeBarrier COST-verif-comp-2011-1-MaxArray
             Intervals StoreAndRetrieve) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:0 /compile:2 %* %%f.dfy
+  %DAFNY_EXE% /nologo /errorTrace:0 /runtimeChecking:0 /compile:3 %* %%f.dfy
   if exist %%f.cs. (
     del %%f.cs
   )

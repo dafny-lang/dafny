@@ -19,10 +19,6 @@ Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: compilation of unbounded quantifiers is not supported
-Compilation error: compilation of unbounded quantifiers is not supported
-Compilation error: compilation of unbounded quantifiers is not supported
-Compilation error: compilation of unbounded quantifiers is not supported
-Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: old expressions cannot refer to out parameters
 
 -------------------- b4 --------------------
@@ -56,10 +52,6 @@ Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
 
 -------------------- b7 --------------------
 Compilation error: Method _default.Queue.Init has no body
@@ -82,14 +74,6 @@ Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
 
 -------------------- b8 --------------------
 Compilation error: Method _default.Queue.Init has no body
@@ -99,14 +83,6 @@ Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: compilation of unbounded quantifiers is not supported
 Compilation error: Method _default.Glossary.Sort has no body
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
-Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported
 Compilation error: compilation of fresh expressions is not supported

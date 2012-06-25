@@ -9,7 +9,7 @@ for %%f in (Problem1-SumMax Problem2-Invert Problem3-FindZero
             Problem4-Queens Problem5-DoubleEndedQueue) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /nologo /errorTrace:0 /verification:0 /runtimeChecking:0 /compile:2 %* %%f.dfy
+  %DAFNY_EXE% /nologo /errorTrace:0 /runtimeChecking:0 /compile:3 %* %%f.dfy
   if exist %%f.cs. (
     del %%f.cs
   )
