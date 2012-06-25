@@ -2332,15 +2332,12 @@ namespace Microsoft.Dafny {
       {
         foreach (MaybeFreeExpression e in ens)
         {
-          if (!e.IsFree)
-          {
-            inEns = outs;
-            Indent(indent);
-            wr.Write("Contract.Ensures(");
-            TrExpr(e.E);
-            wr.WriteLine(");");
-            inEns = null;
-          }
+          inEns = outs;
+          Indent(indent);
+          wr.Write("Contract.Ensures(");
+          TrExpr(e.E);
+          wr.WriteLine(");");
+          inEns = null;
         }
       }
     }
