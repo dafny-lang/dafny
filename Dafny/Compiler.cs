@@ -2299,13 +2299,10 @@ namespace Microsoft.Dafny {
       {
         foreach (MaybeFreeExpression e in req)
         {
-          if (!e.IsFree)
-          {
-            Indent(indent);
-            wr.Write("Contract.Requires(");
-            TrExpr(e.E);
-            wr.WriteLine(");");
-          }
+          Indent(indent);
+          wr.Write("Contract.Requires(");
+          TrExpr(e.E);
+          wr.WriteLine(");");
         }
       }
     }
