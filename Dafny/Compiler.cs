@@ -1774,7 +1774,7 @@ namespace Microsoft.Dafny {
             Formal formal = dtv.Ctor.Formals[i];
             if (!formal.IsGhost) {
               Expression actual = dtv.Arguments[i].Resolved;
-              string arg;
+              string arg;
               var fce = actual as FunctionCallExpr;
               if (fce == null || fce.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
                 string varName = "_ac" + tmpVarCount;
@@ -2296,15 +2296,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(req));
 
       if (DafnyOptions.O.RuntimeChecking)
-      {
         foreach (MaybeFreeExpression e in req)
-        {
-          Indent(indent);
-          wr.Write("Contract.Requires(");
-          TrExpr(e.E);
-          wr.WriteLine(");");
-        }
-      }
+          WritePrecondition(e.E, indent);
     }
 
     void TrReqFun(List<Expression/*!*/>/*!*/ req, int indent)
@@ -2312,15 +2305,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(req));
 
       if (DafnyOptions.O.RuntimeChecking)
-      {
         foreach (Expression e in req)
-        {
-          Indent(indent);
-          wr.Write("Contract.Requires(");
-          TrExpr(e);
-          wr.WriteLine(");");
-        }
-      }
+          WritePrecondition(e, indent);
     }
 
     void TrEns(List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Formal/*!*/>/*!*/ outs, int indent)
@@ -2329,17 +2315,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(outs));
 
       if (DafnyOptions.O.RuntimeChecking)
-      {
         foreach (MaybeFreeExpression e in ens)
         {
           inEns = outs;
-          Indent(indent);
-          wr.Write("Contract.Ensures(");
-          TrExpr(e.E);
-          wr.WriteLine(");");
+          WritePostcondition(e.E, indent);
           inEns = null;
         }
-      }
     }
 
     void TrEnsFun(List<Expression/*!*/>/*!*/ ens, int indent)
@@ -2347,15 +2328,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ens));
 
       if (DafnyOptions.O.RuntimeChecking)
-      {
         foreach (Expression e in ens)
-        {
-          Indent(indent);
-          wr.Write("Contract.Ensures(");
-          TrExpr(e);
-          wr.WriteLine(");");
-        }
-      }
+          WritePostcondition(e, indent);
     }
 
     void TrInvariants(List<MaybeFreeExpression/*!*/>/*!*/ inv, int indent)
@@ -2461,6 +2435,28 @@ namespace Microsoft.Dafny {
       Contract.Assert(DafnyOptions.O.RuntimeChecking);
       Indent(indent);
       wr.WriteLine("Contract.Assert(" + expr + ");");
+    }
+
+    void WritePrecondition(Expression/*!*/ expr, int indent)
+    {
+      Contract.Requires(expr != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      Indent(indent);
+      wr.Write("Contract.Requires(");
+      TrExpr(expr);
+      wr.WriteLine(");");
+    }
+
+    void WritePostcondition(Expression/*!*/ expr, int indent)
+    {
+      Contract.Requires(expr != null);
+
+      Contract.Assert(DafnyOptions.O.RuntimeChecking);
+      Indent(indent);
+      wr.Write("Contract.Ensures(");
+      TrExpr(expr);
+      wr.WriteLine(");");
     }
 
     #endregion
