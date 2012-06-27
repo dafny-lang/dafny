@@ -87,9 +87,29 @@ namespace Microsoft.Dafny {
           if (d is ModuleDecl) {
             if (!(nw is ModuleDecl)) {
               reporter.Error(nw, "a module ({0}) must refine another module", nw.Name);
-            }
-            if (d is AliasModuleDecl || d is LiteralModuleDecl) {
+            } else if (!(d is AbstractModuleDecl)) {
               reporter.Error(nw, "a module ({0}) can only refine abstract modules", nw.Name);
+            } else {
+              ModuleSignature original = ((AbstractModuleDecl)d).OriginalSignature;
+              ModuleSignature derived = null;
+              if (nw is AliasModuleDecl) {
+                derived = ((AliasModuleDecl)nw).Signature;
+              } else if (nw is AbstractModuleDecl) {
+                derived = ((AbstractModuleDecl)nw).Signature;
+              } else {
+                reporter.Error(nw, "a module ({0}) can only be refined by alias or abstract modules", d.Name);
+              }
+              if (derived != null) {
+                // check that the new module refines the previous declaration
+                while (derived != null) {
+                  if (derived == original)
+                    break;
+                  derived = derived.Refines;
+                }
+                if (derived != original) {
+                  reporter.Error(nw, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
+                }
+              }
             }
           } else if (d is ArbitraryTypeDecl) {
             // this is allowed to be refined by any type declaration, so just keep the new one
@@ -164,7 +184,10 @@ namespace Microsoft.Dafny {
           return alias;
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(a.Path, a.tok, m);
+          var abs = new AbstractModuleDecl(a.Path, a.tok, m);
+          abs.Signature = a.Signature;
+          abs.OriginalSignature = a.OriginalSignature;
+          return abs;
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler

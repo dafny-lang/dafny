@@ -776,6 +776,7 @@ namespace Microsoft.Dafny {
   {
     public ModuleDecl Root;
     public readonly List<IToken> Path;
+    public ModuleSignature OriginalSignature;
     public AbstractModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent)
       : base(name, name.val, parent) {
       Path = path;
@@ -789,6 +790,7 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public ModuleDefinition ModuleDef; // Note: this is null if this signature does not correspond to a specific definition (i.e.
                                        // it is abstract). Otherwise, it points to that definition.
+    public ModuleSignature Refines;
     public ModuleSignature() {}
 
     public bool FindSubmodule(string name, out ModuleSignature pp) {
@@ -810,7 +812,6 @@ namespace Microsoft.Dafny {
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
     
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
-    public Resolver.ModuleBindings Bindings;
     public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsGhost;

@@ -156,11 +156,11 @@ namespace Microsoft.Dafny {
           var literalDecl = (LiteralModuleDecl)decl;
           var m = (literalDecl).ModuleDef;
           //rewriter.PreResolve(m);
+          ModuleSignature refinedSig = null;
           if (m.RefinementBaseRoot != null) {
-            ModuleSignature sig;
-            if (ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out sig)) {
-              if (sig.ModuleDef != null) {
-                m.RefinementBase = sig.ModuleDef;
+            if (ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out refinedSig)) {
+              if (refinedSig.ModuleDef != null) {
+                m.RefinementBase = refinedSig.ModuleDef;
                 var transformer = new RefinementTransformer(this);
                 transformer.Construct(m);
               } else {
@@ -171,6 +171,7 @@ namespace Microsoft.Dafny {
             }
           }
           literalDecl.Signature = RegisterTopLevelDecls(m);
+          literalDecl.Signature.Refines = refinedSig;
           // set up environment
           moduleInfo = MergeSignature(literalDecl.Signature, systemNameInfo);
           // resolve
@@ -193,6 +194,7 @@ namespace Microsoft.Dafny {
           ModuleSignature p; ModuleDefinition mod;
           if (ResolvePath(abs.Root, abs.Path, out p)) {
             abs.Signature = MakeAbstractSignature(p, abs.Name, abs.Height, out mod);
+            abs.OriginalSignature = p;
             moduleInfo = MergeSignature(abs.Signature, systemNameInfo);
             // resolve
             var datatypeDependencies = new Graph<IndDatatypeDecl>();
@@ -255,6 +257,12 @@ namespace Microsoft.Dafny {
           return parent.TryLookup(name, out m);
         } else return false;
       }
+      public bool TryLookupLocal(IToken name, out ModuleDecl m) {
+        Contract.Requires(name != null);
+        if (modules.TryGetValue(name.val, out m)) {
+          return true;
+        } else return false;
+      }
       public IEnumerable<ModuleDecl> ModuleList {
         get { return modules.Values; }
       }
@@ -271,7 +279,6 @@ namespace Microsoft.Dafny {
         if (tld is LiteralModuleDecl) {
           var subdecl = (LiteralModuleDecl)tld;
           var subBindings = BindModuleNames(subdecl.ModuleDef, bindings);
-          subdecl.ModuleDef.Bindings = subBindings;
           if (!bindings.BindName(subdecl.Name, subdecl, subBindings)) {
             Error(subdecl.Module, "Duplicate module name: {0}", subdecl.Name);
           }
@@ -457,7 +464,9 @@ namespace Microsoft.Dafny {
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod));
       }
-      return RegisterTopLevelDecls(mod);
+      var sig = RegisterTopLevelDecls(mod);
+      sig.Refines = p.Refines;
+      return sig;
     }
     TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
@@ -1364,9 +1373,9 @@ namespace Microsoft.Dafny {
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d = null;
           if (t.ModuleName != null) {
-            ModuleDecl m;
-            if (currentClass.Module.Bindings.TryLookup(t.ModuleName, out m)) {
-              if (!m.Signature.TopLevels.TryGetValue(t.Name, out d)) {
+            ModuleSignature sig;
+            if (moduleInfo.FindSubmodule(t.ModuleName.val, out sig)) {
+              if (!sig.TopLevels.TryGetValue(t.Name, out d)) {
                 Error(t.tok, "The name does not exist in the given module");
               }
             } else {
