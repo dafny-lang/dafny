@@ -1774,7 +1774,7 @@ namespace Microsoft.Dafny {
             Formal formal = dtv.Ctor.Formals[i];
             if (!formal.IsGhost) {
               Expression actual = dtv.Arguments[i].Resolved;
-              string arg;
+              string arg;
               var fce = actual as FunctionCallExpr;
               if (fce == null || fce.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
                 string varName = "_ac" + tmpVarCount;

@@ -58,7 +58,6 @@ class C {
 Dafny program verifier finished with 0 verified, 0 errors
 
 -------------------- TypeTests.dfy --------------------
-TypeTests.dfy(89,9): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(4,13): Error: incorrect type of function argument 0 (expected C, got D)
 TypeTests.dfy(4,13): Error: incorrect type of function argument 1 (expected D, got C)
 TypeTests.dfy(5,13): Error: incorrect type of function argument 0 (expected C, got int)
@@ -88,11 +87,12 @@ TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the
 TypeTests.dfy(84,2): Error: LHS of array assignment must denote an array element (found seq<C>)
 TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
 TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(90,9): Error: sorry, cannot instantiate type parameter with a subrange type
-TypeTests.dfy(91,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(90,6): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(91,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
-TypeTests.dfy(116,4): Error: cannot assign to non-ghost variable in a ghost context
-TypeTests.dfy(117,7): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(93,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(117,4): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(118,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 36 resolution/type errors detected in TypeTests.dfy
 
@@ -719,33 +719,32 @@ Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of th
 Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
 Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
 Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(43,13): Error: Function body type mismatch (expected T, got T)
-Modules0.dfy(48,19): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(48,12): Error: new can be applied only to reference types (got T)
-Modules0.dfy(54,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
-Modules0.dfy(70,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
-Modules0.dfy(71,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
-Modules0.dfy(81,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
-Modules0.dfy(105,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
-Modules0.dfy(244,11): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
-Modules0.dfy(250,15): Error: unresolved identifier: X
-Modules0.dfy(251,17): Error: member DoesNotExist does not exist in class X
-Modules0.dfy(294,16): Error: member R does not exist in class B
-Modules0.dfy(294,6): Error: expected method call, found expression
-Modules0.dfy(317,18): Error: second argument to "in" must be a set or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>)
-Modules0.dfy(321,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
-Modules0.dfy(322,11): Error: Undeclared module name: LongLostModule (did you forget a module import?)
-Modules0.dfy(323,11): Error: Undeclared module name: Wazzup (did you forget a module import?)
-Modules0.dfy(324,17): Error: Undeclared class name Edon in module Q_Imp
-Modules0.dfy(326,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
-Modules0.dfy(327,30): Error: member Create does not exist in class Klassy
-Modules0.dfy(140,11): Error: ghost variables are allowed only in specification contexts
-Modules0.dfy(154,11): Error: old expressions are allowed only in specification and ghost contexts
-Modules0.dfy(155,11): Error: fresh expressions are allowed only in specification and ghost contexts
-Modules0.dfy(156,11): Error: allocated expressions are allowed only in specification and ghost contexts
-Modules0.dfy(172,10): Error: match source expression 'tree' has already been used as a match source expression in this context
-Modules0.dfy(211,12): Error: match source expression 'l' has already been used as a match source expression in this context
-37 resolution/type errors detected in Modules0.dfy
+Modules0.dfy(52,19): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
+Modules0.dfy(52,12): Error: new can be applied only to reference types (got T)
+Modules0.dfy(57,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
+Modules0.dfy(73,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
+Modules0.dfy(74,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(84,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(108,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
+Modules0.dfy(247,11): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
+Modules0.dfy(256,13): Error: unresolved identifier: X
+Modules0.dfy(257,15): Error: member DoesNotExist does not exist in class X
+Modules0.dfy(299,16): Error: member R does not exist in class B
+Modules0.dfy(299,6): Error: expected method call, found expression
+Modules0.dfy(322,18): Error: second argument to "in" must be a set or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>)
+Modules0.dfy(326,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
+Modules0.dfy(327,11): Error: Undeclared module name: LongLostModule (did you forget a module import?)
+Modules0.dfy(328,11): Error: Undeclared module name: Wazzup (did you forget a module import?)
+Modules0.dfy(329,17): Error: Undeclared class name Edon in module Q_Imp
+Modules0.dfy(331,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
+Modules0.dfy(332,30): Error: member Create does not exist in class Klassy
+Modules0.dfy(143,11): Error: ghost variables are allowed only in specification contexts
+Modules0.dfy(157,11): Error: old expressions are allowed only in specification and ghost contexts
+Modules0.dfy(158,11): Error: fresh expressions are allowed only in specification and ghost contexts
+Modules0.dfy(159,11): Error: allocated expressions are allowed only in specification and ghost contexts
+Modules0.dfy(175,10): Error: match source expression 'tree' has already been used as a match source expression in this context
+Modules0.dfy(214,12): Error: match source expression 'l' has already been used as a match source expression in this context
+36 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
 Modules1.dfy(74,16): Error: assertion violation
@@ -1327,6 +1326,17 @@ Dafny program verifier finished with 12 verified, 3 errors
 -------------------- NoTypeArgs.dfy --------------------
 
 Dafny program verifier finished with 12 verified, 0 errors
+
+-------------------- EqualityTypes.dfy --------------------
+EqualityTypes.dfy(31,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
+EqualityTypes.dfy(32,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
+EqualityTypes.dfy(37,11): Error: arbitrary type 'X' is not allowed to be replaced by a datatype that takes type parameters
+EqualityTypes.dfy(38,8): Error: arbitrary type 'Y' is not allowed to be replaced by a class that takes type parameters
+EqualityTypes.dfy(42,11): Error: datatype 'X' is used to refine an arbitrary type with equality support, but 'X' does not support equality
+EqualityTypes.dfy(43,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
+EqualityTypes.dfy(63,7): Error: == can only be applied to expressions of types that support equality (got Dt<T>)
+EqualityTypes.dfy(82,8): Error: type parameter 0 (T) passed to method M must support equality (got _T0)
+8 resolution/type errors detected in EqualityTypes.dfy
 
 -------------------- SplitExpr.dfy --------------------
 

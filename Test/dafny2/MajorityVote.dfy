@@ -31,6 +31,10 @@
 // choice, if there is such a choice, and then passes in that choice as the ghost parameter K
 // to the main algorithm.  Neat, huh?
 
+// Language comment:
+// The "(==)" that sits after some type parameters in this program says that the actual
+// type argument must support equality.
+
 // Advanced remark:
 // There is a subtle situation in the verification of DetermineElection.  Suppose the type
 // parameter Candidate denotes some type whose instances depend on which object are
@@ -47,7 +51,7 @@
 // to the Count function.  Alternatively, one could have added the antecedent "c in a" or
 // "old(allocated(c))" to the "forall c" quantification in the postcondition of DetermineElection.
 
-function method Count<T>(a: seq<T>, s: int, t: int, x: T): int
+function method Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
   requires 0 <= s <= t <= |a|;
   ensures Count(a, s, t, x) == 0 || x in a;
 {
@@ -57,7 +61,7 @@ function method Count<T>(a: seq<T>, s: int, t: int, x: T): int
 
 // Here is the first version of the algorithm, the one that assumes there is a majority choice.
 
-method FindWinner<Candidate>(a: seq<Candidate>, ghost K: Candidate) returns (k: Candidate)
+method FindWinner<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns (k: Candidate)
   requires 2 * Count(a, 0, |a|, K) > |a|;  // K has a (strict) majority of the votes
   ensures k == K;  // find K
 {
@@ -93,7 +97,7 @@ method FindWinner<Candidate>(a: seq<Candidate>, ghost K: Candidate) returns (k: 
 // Here is the second version of the program, the one that also computes whether or not
 // there is a majority choice.
 
-method DetermineElection<Candidate>(a: seq<Candidate>) returns (hasWinner: bool, cand: Candidate)
+method DetermineElection<Candidate(==)>(a: seq<Candidate>) returns (hasWinner: bool, cand: Candidate)
   ensures hasWinner ==> 2 * Count(a, 0, |a|, cand) > |a|;
   ensures !hasWinner ==> forall c :: 2 * Count(a, 0, |a|, c) <= |a|;
 {
@@ -107,7 +111,7 @@ method DetermineElection<Candidate>(a: seq<Candidate>) returns (hasWinner: bool,
 // antecedent "hasWinner ==>" and the two checks for no-more-votes that may result in a "return"
 // statement.
 
-method SearchForWinner<Candidate>(a: seq<Candidate>, ghost hasWinner: bool, ghost K: Candidate) returns (k: Candidate)
+method SearchForWinner<Candidate(==)>(a: seq<Candidate>, ghost hasWinner: bool, ghost K: Candidate) returns (k: Candidate)
   requires hasWinner ==> 2 * Count(a, 0, |a|, K) > |a|;  // K has a (strict) majority of the votes
   ensures hasWinner ==> k == K;  // find K
 {

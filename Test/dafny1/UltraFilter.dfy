@@ -1,6 +1,6 @@
 // ultra filter
 
-class UltraFilter<G> {
+class UltraFilter<G(==)> {
   static function IsFilter(f: set<set<G>>, S: set<G>): bool
   {
     (forall A, B :: A in f && A <= B ==> B in f) &&

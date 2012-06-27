@@ -170,15 +170,17 @@ namespace Microsoft.Dafny {
       }
 
       // register top-level declarations
-      Rewriter rewriter = new AutoContractsRewriter();
+      var rewriters = new List<IRewriter>();
+      // The following line could be generalized to allow rewriter plug-ins; to support such, just add command-line
+      // switches and .Add to "rewriters" here.
+      rewriters.Add(new AutoContractsRewriter());
+      rewriters.Add(new RefinementTransformer(this));
+
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule.TopLevelDecls);
       var moduleNameInfo = new ModuleNameInformation[h];
       foreach (var m in mm) {
-        rewriter.PreResolve(m);
-        if (m.RefinementBase != null) {
-          var transformer = new RefinementTransformer(this);
-          transformer.Construct(m);
-        }
+        rewriters.Iter(r => r.PreResolve(m));
+
         moduleNameInfo[m.Height] = RegisterTopLevelDecls(m.TopLevelDecls);
 
         // set up environment
@@ -187,13 +189,16 @@ namespace Microsoft.Dafny {
         allDatatypeCtors = info.Ctors;
         // resolve
         var datatypeDependencies = new Graph<IndDatatypeDecl>();
+        int prevErrorCount = ErrorCount;
         ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
-        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+        if (prevErrorCount == ErrorCount) {
+          ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+        }
         // tear down
         classes = null;
         allDatatypeCtors = null;
-        // give rewriter a chance to do processing
-        rewriter.PostResolve(m);
+        // give rewriters a chance to do processing
+        rewriters.Iter(r => r.PostResolve(m));
       }
 
       // compute IsRecursive bit for mutually recursive functions
@@ -394,15 +399,16 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
 
-      // Perform the stratosphere check on inductive datatypes
+      // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
         if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
           // do the following check once per SCC, so call it on each SCC representative
           SccStratosphereCheck(dtd, datatypeDependencies);
+          DetermineEqualitySupport(dtd, datatypeDependencies);
         }
       }
-      // Perform the guardedness check on co-datatypes
       if (ErrorCount == prevErrorCount) {  // because CheckCoCalls requires the given expression to have been successfully resolved
+        // Perform the guardedness check on co-datatypes
         foreach (var decl in declarations) {
           var cl = decl as ClassDecl;
           if (cl != null) {
@@ -426,7 +432,396 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        // Inferred required equality support for datatypes and for Function and Method signatures
+        // First, do datatypes until a fixpoint is reached
+        bool inferredSomething;
+        do {
+          inferredSomething = false;
+          foreach (var d in declarations) {
+            if (d is DatatypeDecl) {
+              var dt = (DatatypeDecl)d;
+              foreach (var tp in dt.TypeArgs) {
+                if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                  // here's our chance to infer the need for equality support
+                  foreach (var ctor in dt.Ctors) {
+                    foreach (var arg in ctor.Formals) {
+                      if (InferRequiredEqualitySupport(tp, arg.Type)) {
+                        tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        inferredSomething = true;
+                        goto DONE_DT;  // break out of the doubly-nested loop
+                      }
+                    }
+                  }
+                DONE_DT: ;
+                }
+              }
+            }
+          }
+        } while (inferredSomething);
+        // Now do it for Function and Method signatures
+        foreach (var d in declarations) {
+          if (d is ClassDecl) {
+            var cl = (ClassDecl)d;
+            foreach (var member in cl.Members) {
+              if (!member.IsGhost) {
+                if (member is Function) {
+                  var f = (Function)member;
+                  foreach (var tp in f.TypeArgs) {
+                    if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                      // here's our chance to infer the need for equality support
+                      if (InferRequiredEqualitySupport(tp, f.ResultType)) {
+                        tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                      } else {
+                        foreach (var p in f.Formals) {
+                          if (InferRequiredEqualitySupport(tp, p.Type)) {
+                            tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  }
+                } else if (member is Method) {
+                  var m = (Method)member;
+                  foreach (var tp in m.TypeArgs) {
+                    if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                      // here's our chance to infer the need for equality support
+                      foreach (var p in m.Ins) {
+                        if (InferRequiredEqualitySupport(tp, p.Type)) {
+                          tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                          goto DONE;
+                        }
+                      }
+                      foreach (var p in m.Outs) {
+                        if (InferRequiredEqualitySupport(tp, p.Type)) {
+                          tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                          goto DONE;
+                        }
+                      }
+                    DONE: ;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
+        // Note that this check can only be done after determining which expressions are ghosts.
+        foreach (var d in declarations) {
+          if (d is ClassDecl) {
+            var cl = (ClassDecl)d;
+            foreach (var member in cl.Members) {
+              if (!member.IsGhost) {
+                if (member is Field) {
+                  var f = (Field)member;
+                  CheckEqualityTypes_Type(f.tok, f.Type);
+                } else if (member is Function) {
+                  var f = (Function)member;
+                  foreach (var p in f.Formals) {
+                    if (!p.IsGhost) {
+                      CheckEqualityTypes_Type(p.tok, p.Type);
+                    }
+                  }
+                  CheckEqualityTypes_Type(f.tok, f.ResultType);
+                  if (f.Body != null) {
+                    CheckEqualityTypes(f.Body);
+                  }
+                } else if (member is Method) {
+                  var m = (Method)member;
+                  foreach (var p in m.Ins) {
+                    if (!p.IsGhost) {
+                      CheckEqualityTypes_Type(p.tok, p.Type);
+                    }
+                  }
+                  foreach (var p in m.Outs) {
+                    if (!p.IsGhost) {
+                      CheckEqualityTypes_Type(p.tok, p.Type);
+                    }
+                  }
+                  if (m.Body != null) {
+                    CheckEqualityTypes_Stmt(m.Body);
+                  }
+                }
+              }
+            }
+          } else if (d is DatatypeDecl) {
+            var dt = (DatatypeDecl)d;
+            foreach (var ctor in dt.Ctors) {
+              foreach (var p in ctor.Formals) {
+                if (!p.IsGhost) {
+                  CheckEqualityTypes_Type(p.tok, p.Type);
+                }
+              }
+            }
+          }
+        }
       }
+    }
+
+    void CheckEqualityTypes_Stmt(Statement stmt) {
+      Contract.Requires(stmt != null);
+      if (stmt.IsGhost) {
+        return;
+      } else if (stmt is PrintStmt) {
+        var s = (PrintStmt)stmt;
+        foreach (var arg in s.Args) {
+          if (arg.E != null) {
+            CheckEqualityTypes(arg.E);
+          }
+        }
+      } else if (stmt is BreakStmt) {
+      } else if (stmt is ReturnStmt) {
+        var s = (ReturnStmt)stmt;
+        if (s.rhss != null) {
+          s.rhss.Iter(CheckEqualityTypes_Rhs);
+        }
+      } else if (stmt is AssignStmt) {
+        AssignStmt s = (AssignStmt)stmt;
+        CheckEqualityTypes(s.Lhs);
+        CheckEqualityTypes_Rhs(s.Rhs);
+      } else if (stmt is VarDecl) {
+        var s = (VarDecl)stmt;
+        s.SubStatements.Iter(CheckEqualityTypes_Stmt);
+      } else if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        CheckEqualityTypes(s.Receiver);
+        s.Args.Iter(CheckEqualityTypes);
+        s.Lhs.Iter(CheckEqualityTypes);
+
+        Contract.Assert(s.Method.TypeArgs.Count <= s.TypeArgumentSubstitutions.Count);
+        var i = 0;
+        foreach (var formalTypeArg in s.Method.TypeArgs) {
+          var actualTypeArg = s.TypeArgumentSubstitutions[formalTypeArg];
+          if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
+            Error(s.Tok, "type parameter {0} ({1}) passed to method {2} must support equality (got {3}){4}", i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
+          }
+          i++;
+        }
+      } else if (stmt is BlockStmt) {
+        var s = (BlockStmt)stmt;
+        s.Body.Iter(CheckEqualityTypes_Stmt);
+      } else if (stmt is IfStmt) {
+        var s = (IfStmt)stmt;
+        if (s.Guard != null) {
+          CheckEqualityTypes(s.Guard);
+        }
+        s.SubStatements.Iter(CheckEqualityTypes_Stmt);
+      } else if (stmt is AlternativeStmt) {
+        var s = (AlternativeStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          CheckEqualityTypes(alt.Guard);
+          alt.Body.Iter(CheckEqualityTypes_Stmt);
+        }
+      } else if (stmt is WhileStmt) {
+        var s = (WhileStmt)stmt;
+        if (s.Guard != null) {
+          CheckEqualityTypes(s.Guard);
+        }
+        CheckEqualityTypes_Stmt(s.Body);
+      } else if (stmt is AlternativeLoopStmt) {
+        var s = (AlternativeLoopStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          CheckEqualityTypes(alt.Guard);
+          alt.Body.Iter(CheckEqualityTypes_Stmt);
+        }
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        CheckEqualityTypes(s.Range);
+        CheckEqualityTypes_Stmt(s.Body);
+      } else if (stmt is MatchStmt) {
+        var s = (MatchStmt)stmt;
+        CheckEqualityTypes(s.Source);
+        foreach (MatchCaseStmt mc in s.Cases) {
+          mc.Body.Iter(CheckEqualityTypes_Stmt);
+        }
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        s.ResolvedStatements.Iter(CheckEqualityTypes_Stmt);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    void CheckEqualityTypes_Rhs(AssignmentRhs rhs) {
+      Contract.Requires(rhs != null);
+      rhs.SubExpressions.Iter(CheckEqualityTypes);
+      rhs.SubStatements.Iter(CheckEqualityTypes_Stmt);
+    }
+
+    void CheckEqualityTypes(Expression expr) {
+      Contract.Requires(expr != null);
+      if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        var t0 = e.E0.Type.Normalize();
+        var t1 = e.E1.Type.Normalize();
+        switch (e.Op) {
+          case BinaryExpr.Opcode.Eq:
+          case BinaryExpr.Opcode.Neq:
+            // First, check a special case:  a datatype value (like Nil) that takes no parameters
+            var e0 = e.E0.Resolved as DatatypeValue;
+            var e1 = e.E1.Resolved as DatatypeValue;
+            if (e0 != null && e0.Arguments.Count == 0) {
+              // that's cool
+            } else if (e1 != null && e1.Arguments.Count == 0) {
+              // oh yeah!
+            } else if (!t0.SupportsEquality) {
+              Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+            } else if (!t1.SupportsEquality) {
+              Error(e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+            }
+            break;
+          default:
+            switch (e.ResolvedOp) {
+              // Note, all operations on sets, multisets, and maps are guaranteed to work because of restrictions placed on how
+              // these types are instantiated.  (Except: This guarantee does not apply to equality on maps, because the Range type
+              // of maps is not restricted, only the Domain type.  However, the equality operator is checked above.)
+              case BinaryExpr.ResolvedOpcode.InSeq:
+              case BinaryExpr.ResolvedOpcode.NotInSeq:
+              case BinaryExpr.ResolvedOpcode.Prefix:
+              case BinaryExpr.ResolvedOpcode.ProperPrefix:
+                if (!t1.SupportsEquality) {
+                  Error(e.E1, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+                } else if (!t0.SupportsEquality) {
+                  if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSeq) {
+                    Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                  } else {
+                    Error(e.E0, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                  }
+                }
+                break;
+              default:
+                break;
+            }
+            break;
+        }
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        foreach (var bv in e.BoundVars) {
+          CheckEqualityTypes_Type(bv.tok, bv.Type);
+        }
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        foreach (var bv in e.Vars) {
+          CheckEqualityTypes_Type(bv.tok, bv.Type);
+        }
+      } else if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        Contract.Assert(e.Function.TypeArgs.Count <= e.TypeArgumentSubstitutions.Count);
+        var i = 0;
+        foreach (var formalTypeArg in e.Function.TypeArgs) {
+          var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
+          if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
+            Error(e.tok, "type parameter {0} ({1}) passed to function {2} must support equality (got {3}){4}", i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
+          }
+          i++;
+        }
+      }
+
+      foreach (var ee in expr.SubExpressions) {
+        CheckEqualityTypes(ee);
+      }
+    }
+
+    void CheckEqualityTypes_Type(IToken tok, Type type) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      type = type.Normalize();
+      if (type is BasicType) {
+        // fine
+      } else if (type is SetType) {
+        var argType = ((SetType)type).Arg;
+        if (!argType.SupportsEquality) {
+          Error(tok, "set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+        }
+        CheckEqualityTypes_Type(tok, argType);
+
+      } else if (type is MultiSetType) {
+        var argType = ((MultiSetType)type).Arg;
+        if (!argType.SupportsEquality) {
+          Error(tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+        }
+        CheckEqualityTypes_Type(tok, argType);
+
+      } else if (type is MapType) {
+        var mt = (MapType)type;
+        if (!mt.Domain.SupportsEquality) {
+          Error(tok, "map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain));
+        }
+        CheckEqualityTypes_Type(tok, mt.Domain);
+        CheckEqualityTypes_Type(tok, mt.Range);
+
+      } else if (type is SeqType) {
+        Type argType = ((SeqType)type).Arg;
+        CheckEqualityTypes_Type(tok, argType);
+
+      } else if (type is UserDefinedType) {
+        var udt = (UserDefinedType)type;
+        if (udt.ResolvedClass != null) {
+          Contract.Assert(udt.ResolvedClass.TypeArgs.Count == udt.TypeArgs.Count);
+          var i = 0;
+          foreach (var argType in udt.TypeArgs) {
+            var formalTypeArg = udt.ResolvedClass.TypeArgs[i];
+            if (formalTypeArg.MustSupportEquality && !argType.SupportsEquality) {
+              Error(tok, "type parameter {0} ({1}) passed to type {2} must support equality (got {3}){4}", i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
+            }
+            CheckEqualityTypes_Type(tok, argType);
+            i++;
+          }
+        } else {
+          Contract.Assert(udt.TypeArgs.Count == 0);  // TypeParameters have no type arguments
+        }
+
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
+    string TypeEqualityErrorMessageHint(Type argType) {
+      Contract.Requires(argType != null);
+      var tp = argType.AsTypeParameter;
+      if (tp != null) {
+        return string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line);
+      }
+      return "";
+    }
+
+    bool InferRequiredEqualitySupport(TypeParameter tp, Type type) {
+      Contract.Requires(tp != null);
+      Contract.Requires(type != null);
+
+      type = type.Normalize();
+      if (type is BasicType) {
+      } else  if (type is SetType) {
+        var st = (SetType)type;
+        return st.Arg.AsTypeParameter == tp || InferRequiredEqualitySupport(tp, st.Arg);
+      } else if (type is MultiSetType) {
+        var ms = (MultiSetType)type;
+        return ms.Arg.AsTypeParameter == tp || InferRequiredEqualitySupport(tp, ms.Arg);
+      } else if (type is MapType) {
+        var mt = (MapType)type;
+        return mt.Domain.AsTypeParameter == tp || InferRequiredEqualitySupport(tp, mt.Domain) || InferRequiredEqualitySupport(tp, mt.Range);
+      } else if (type is SeqType) {
+        var sq = (SeqType)type;
+        return InferRequiredEqualitySupport(tp, sq.Arg);
+      } else if (type is UserDefinedType) {
+        var udt = (UserDefinedType)type;
+        if (udt.ResolvedClass != null) {
+          var i = 0;
+          foreach (var argType in udt.TypeArgs) {
+            var formalTypeArg = udt.ResolvedClass.TypeArgs[i];
+            if ((formalTypeArg.MustSupportEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
+              return true;
+            }
+            i++;
+          }
+        } else {
+          Contract.Assert(udt.TypeArgs.Count == 0);  // TypeParameters have no type arguments
+        }
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+      return false;
     }
 
     ClassDecl currentClass;
@@ -653,6 +1048,99 @@ namespace Microsoft.Dafny {
         i++;
       }
       return true;
+    }
+
+    void DetermineEqualitySupport(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+      Contract.Requires(startingPoint != null);
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+
+      var scc = dependencies.GetSCC(startingPoint);
+      // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
+      // the whole SCC is incapable of providing the equality operation.
+      foreach (var dt in scc) {
+        Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
+        foreach (var ctor in dt.Ctors) {
+          foreach (var arg in ctor.Formals) {
+            var anotherIndDt = arg.Type.AsIndDatatype;
+            if ((anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) || arg.Type.IsCoDatatype) {
+              // arg.Type is known never to support equality
+              // So, go around the entire SCC and record what we learnt
+              foreach (var ddtt in scc) {
+                ddtt.EqualitySupport = IndDatatypeDecl.ES.Never;
+              }
+              return;  // we are done
+            }
+          }
+        }
+      }
+
+      // Now for the more involved case:  we need to determine which type parameters determine equality support for each datatype in the SCC
+      // We start by seeing where each datatype's type parameters are used in a place known to determine equality support.
+      bool thingsChanged = false;
+      foreach (var dt in scc) {
+        if (dt.TypeArgs.Count == 0) {
+          // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+          continue;
+        }
+        foreach (var ctor in dt.Ctors) {
+          foreach (var arg in ctor.Formals) {
+            var typeArg = arg.Type.AsTypeParameter;
+            if (typeArg != null) {
+              typeArg.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+              thingsChanged = true;
+            } else {
+              var otherDt = arg.Type.AsIndDatatype;
+              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.ConsultTypeArguments) {  // datatype is in a different SCC
+                var otherUdt = (UserDefinedType)arg.Type.Normalize();
+                var i = 0;
+                foreach (var otherTp in otherDt.TypeArgs) {
+                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+                    if (tp != null) {
+                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                      thingsChanged = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      // Then we propagate this information up through the SCC
+      while (thingsChanged) {
+        thingsChanged = false;
+        foreach (var dt in scc) {
+          if (dt.TypeArgs.Count == 0) {
+            // if the datatype has no type parameters, we certainly won't find any type parameters being used in the arguments types to the constructors
+            continue;
+          }
+          foreach (var ctor in dt.Ctors) {
+            foreach (var arg in ctor.Formals) {
+              var otherDt = arg.Type.AsIndDatatype;
+              if (otherDt != null && otherDt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed) { // otherDt lives in the same SCC
+                var otherUdt = (UserDefinedType)arg.Type.Normalize();
+                var i = 0;
+                foreach (var otherTp in otherDt.TypeArgs) {
+                  if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                    var tp = otherUdt.TypeArgs[i].AsTypeParameter;
+                    if (tp != null && !tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
+                      tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
+                      thingsChanged = true;
+                    }
+                  }
+                  i++;
+                }
+              }
+            }
+          }
+        }
+      }
+      // Now that we have computed the .NecessaryForEqualitySupportOfSurroundingInductiveDatatype values, mark the datatypes as ones
+      // where equality support should be checked by looking at the type arguments.
+      foreach (var dt in scc) {
+        dt.EqualitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+      }
     }
 
     void ResolveAttributes(Attributes attrs, bool twoState) {
@@ -1133,7 +1621,7 @@ namespace Microsoft.Dafny {
 
       // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
       } else if (proxy is DatatypeProxy) {
-        if (t.IsDatatype) {
+        if (t.IsIndDatatype) {
           // all is fine, proxy can be redirected to t
         } else {
           return false;
@@ -1144,14 +1632,6 @@ namespace Microsoft.Dafny {
           // all is fine, proxy can be redirected to t
         } else {
           return false;
-        }
-
-      } else if (proxy is ObjectsTypeProxy) {
-        if (t is ObjectType || UserDefinedType.DenotesClass(t) != null) {
-          // all is good
-        } else if (t is CollectionType) {
-          proxy.T = new CollectionTypeProxy(new ObjectTypeProxy());
-          return UnifyTypes(proxy.T, t);
         }
 
       } else if (proxy is CollectionTypeProxy) {
@@ -1235,10 +1715,6 @@ namespace Microsoft.Dafny {
           // all is fine
           a.T = b;
           return true;
-        } else if (b is ObjectsTypeProxy) {
-          // unify a and b by redirecting b to a, since a gives the stronger requirement
-          b.T = a;
-          return true;
         } else if (b is IndexableTypeProxy) {
           // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
           a.T = builtIns.ArrayType(1, ((IndexableTypeProxy)b).Arg);
@@ -1246,37 +1722,6 @@ namespace Microsoft.Dafny {
           return true;
         } else {
           return false;
-        }
-
-      } else if (a is ObjectsTypeProxy) {
-        if (b is ObjectsTypeProxy) {
-          // fine
-          a.T = b;
-          return true;
-        } else if (b is CollectionTypeProxy) {
-          // fine provided b's collection-element-type can be unified with object or a class type
-          a.T = b;
-          return UnifyTypes(((CollectionTypeProxy)b).Arg, new ObjectTypeProxy());
-        } else if (b is OperationTypeProxy) {
-          // fine; restrict a to sets of object/class, and restrict b to set/seq of object/class
-          if (((OperationTypeProxy)b).AllowSeq) {
-            a.T = new CollectionTypeProxy(new ObjectTypeProxy());
-            b.T = a.T;
-          } else {
-            a.T = new SetType(new ObjectTypeProxy());
-            b.T = a.T;
-          }
-          return true;
-        } else if (b is IndexableTypeProxy) {
-          IndexableTypeProxy pb = (IndexableTypeProxy)b;
-          // the intersection of ObjectsTypeProxy and IndexableTypeProxy is
-          // EITHER a sequence of ObjectTypeProxy OR an array of anything OR map of ObjectTypeProxy in either domain or range.
-          // TODO: here, only the first of the three cases is supported
-          b.T = new SeqType(pb.Arg);
-          a.T = b.T;
-          return UnifyTypes(pb.Arg, new ObjectTypeProxy());
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
         }
 
       } else if (a is CollectionTypeProxy) {
@@ -2122,22 +2567,22 @@ namespace Microsoft.Dafny {
         UserDefinedType ctype = (UserDefinedType)nptype;  // TODO: get rid of this statement, make this code handle any non-proxy type
 #endif
         // build the type substitution map
-        Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+        s.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
         for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-          subst.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
+          s.TypeArgumentSubstitutions.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
         }
         foreach (TypeParameter p in callee.TypeArgs) {
-          subst.Add(p, new ParamTypeProxy(p));
+          s.TypeArgumentSubstitutions.Add(p, new ParamTypeProxy(p));
         }
         // type check the arguments
         for (int i = 0; i < callee.Ins.Count; i++) {
-          Type st = SubstType(callee.Ins[i].Type, subst);
+          Type st = SubstType(callee.Ins[i].Type, s.TypeArgumentSubstitutions);
           if (!UnifyTypes(cce.NonNull(s.Args[i].Type), st)) {
             Error(s, "incorrect type of method in-parameter {0} (expected {1}, got {2})", i, st, s.Args[i].Type);
           }
         }
         for (int i = 0; i < callee.Outs.Count; i++) {
-          Type st = SubstType(callee.Outs[i].Type, subst);
+          Type st = SubstType(callee.Outs[i].Type, s.TypeArgumentSubstitutions);
           var lhs = s.Lhs[i];
           if (!UnifyTypes(cce.NonNull(lhs.Type), st)) {
             Error(s, "incorrect type of method out-parameter {0} (expected {1}, got {2})", i, st, lhs.Type);
@@ -2925,12 +3370,12 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add:
             {
-              if (e.Op == BinaryExpr.Opcode.Lt && e.E0.Type.IsDatatype) {
+              if (e.Op == BinaryExpr.Opcode.Lt && e.E0.Type.IsIndDatatype) {
                 if (!UnifyTypes(e.E1.Type, new DatatypeProxy())) {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
-              } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.IsDatatype) {
+              } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.IsIndDatatype) {
                 if (!UnifyTypes(e.E0.Type, new DatatypeProxy())) {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
                 }
@@ -2959,7 +3404,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge:
             {
-              if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.IsDatatype) {
+              if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.IsIndDatatype) {
                 if (!UnifyTypes(e.E1.Type, new DatatypeProxy())) {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
@@ -3467,24 +3912,24 @@ namespace Microsoft.Dafny {
             }
           }
           // build the type substitution map
-          Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+          e.TypeArgumentSubstitutions =  new Dictionary<TypeParameter, Type>();
           for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-            subst.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
+            e.TypeArgumentSubstitutions.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
           }
           foreach (TypeParameter p in function.TypeArgs) {
-            subst.Add(p, new ParamTypeProxy(p));
+            e.TypeArgumentSubstitutions.Add(p, new ParamTypeProxy(p));
           }
           // type check the arguments
           for (int i = 0; i < function.Formals.Count; i++) {
             Expression farg = e.Args[i];
             ResolveExpression(farg, twoState);
             Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
-            Type s = SubstType(function.Formals[i].Type, subst);
+            Type s = SubstType(function.Formals[i].Type, e.TypeArgumentSubstitutions);
             if (!UnifyTypes(farg.Type, s)) {
               Error(e, "incorrect type of function argument {0} (expected {1}, got {2})", i, s, farg.Type);
             }
           }
-          e.Type = SubstType(function.ResultType, subst);
+          e.Type = SubstType(function.ResultType, e.TypeArgumentSubstitutions);
         }
 
         // Resolution termination check
@@ -4112,6 +4557,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
       Type elementType = new InferredTypeProxy();
       Type domainType = new InferredTypeProxy();
+      
       IndexableTypeProxy expectedType = new IndexableTypeProxy(elementType, domainType);
       if (!UnifyTypes(e.Seq.Type, expectedType)) {
         Error(e, "sequence/array/map selection requires a sequence, array or map (got {0})", e.Seq.Type);
@@ -4197,7 +4643,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
         case BinaryExpr.Opcode.Lt:
-          if (operandType.IsDatatype || operandType is DatatypeProxy) {
+          if (operandType.IsIndDatatype || operandType is DatatypeProxy) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
