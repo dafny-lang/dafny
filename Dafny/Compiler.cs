@@ -42,7 +42,6 @@ namespace Microsoft.Dafny {
       string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
       using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read)))
       {
-        IncludeCodeContracts();
         while (true) {
           string s = rd.ReadLine();
           if (s == null)
@@ -416,7 +415,7 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write(")");
-
+      
       wr.WriteLine(";");
       Indent(ind + 2 * IndentAmount);
       wr.WriteLine("}");
@@ -574,8 +573,6 @@ namespace Microsoft.Dafny {
             WriteFormals(nIns == 0 ? "" : ", ", m.Outs);
             wr.WriteLine(")");
             Indent(indent);  wr.WriteLine("{");
-            TrReq(m.Req, indent + IndentAmount);
-            TrEns(m.Ens, indent + IndentAmount);
             foreach (Formal p in m.Outs) {
               if (!p.IsGhost) {
                 Indent(indent + IndentAmount);
@@ -855,20 +852,12 @@ namespace Microsoft.Dafny {
     void TrStmt(Statement stmt, int indent)
     {
       Contract.Requires(stmt != null);
-      if (!DafnyOptions.O.RuntimeChecking && stmt.IsGhost) {
+      if (stmt.IsGhost) {
         CheckHasNoAssumes(stmt);
         return;
       }
 
-      if (stmt is AssumeStmt)
-      {
-        TrAssumeStmt((AssumeStmt)stmt, indent);
-      }
-      else if (stmt is AssertStmt)
-      {
-        TrAssertStmt((AssertStmt)stmt, indent);
-      }
-      else if (stmt is PrintStmt) {
+      if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         foreach (Attributes.Argument arg in s.Args) {
           SpillLetVariableDecls(arg.E, indent);
@@ -2221,107 +2210,5 @@ namespace Microsoft.Dafny {
       }
       twr.Write(")");
     }
-
-    #region Runtime checking translation
-
-    void IncludeCodeContracts()
-    {
-      if (DafnyOptions.O.RuntimeChecking)
-      {
-        wr.WriteLine("using System.Diagnostics.Contracts;");
-      }
-    }
-
-    void TrAssumeStmt(AssumeStmt/*!*/ stmt, int indent)
-    {
-      Contract.Requires(stmt != null);
-
-      Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      WriteAssumption(ExprToString(stmt.Expr), indent);
-    }
-
-    void TrAssertStmt(AssertStmt/*!*/ stmt, int indent)
-    {
-      Contract.Requires(stmt != null);
-
-      Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      WriteAssertion(ExprToString(stmt.Expr), indent);
-    }
-
-    void TrReq(List<MaybeFreeExpression/*!*/>/*!*/ req, int indent)
-    {
-      Contract.Requires(cce.NonNullElements(req));
-
-      if (DafnyOptions.O.RuntimeChecking)
-      {
-        foreach (MaybeFreeExpression e in req)
-        {
-          if (!e.IsFree)
-          {
-            Indent(indent);
-            wr.Write("Contract.Requires(");
-            TrExpr(e.E);
-            wr.WriteLine(");");
-          }
-        }
-      }
-    }
-
-    void TrEns(List<MaybeFreeExpression/*!*/>/*!*/ ens, int indent)
-    {
-      Contract.Requires(cce.NonNullElements(ens));
-
-      if (DafnyOptions.O.RuntimeChecking)
-      {
-        foreach (MaybeFreeExpression e in ens)
-        {
-          if (!e.IsFree)
-          {
-            Indent(indent);
-            wr.Write("Contract.Ensures(");
-            TrExpr(e.E);
-            wr.WriteLine(");");
-          }
-        }
-      }
-    }
-
-    #endregion
-
-    #region Runtime checking helper methods
-
-    string/*!*/ ExprToString(Expression/*!*/ expr)
-    {
-      Contract.Requires(expr != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      TextWriter oldWr = wr;
-      wr = new StringWriter();
-      TrExpr(expr);
-      string e = wr.ToString();
-      wr = oldWr;
-      return e;
-    }
-
-    void WriteAssumption(string/*!*/ expr, int indent)
-    {
-      Contract.Requires(expr != null);
-
-      Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      Indent(indent);
-      wr.WriteLine("Contract.Assume(" + expr + ");");
-    }
-
-    void WriteAssertion(string/*!*/ expr, int indent)
-    {
-      Contract.Requires(expr != null);
-
-      Contract.Assert(DafnyOptions.O.RuntimeChecking);
-      Indent(indent);
-      wr.WriteLine("Contract.Assert(" + expr + ");");
-    }
-
-    #endregion
-
   }
 }
