@@ -26,6 +26,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDecl/*!*/,Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/,Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
+    readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -52,6 +53,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
       public readonly Bpl.Type ClassNameType;
+      public readonly Bpl.Type NameFamilyType;
       public readonly Bpl.Type DatatypeType;
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Expr Null;
@@ -70,6 +72,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(HeapType != null);
         Contract.Invariant(HeapVarName != null);
         Contract.Invariant(ClassNameType != null);
+        Contract.Invariant(NameFamilyType != null);
         Contract.Invariant(DatatypeType != null);
         Contract.Invariant(DtCtorId != null);
         Contract.Invariant(Null != null);
@@ -125,7 +128,7 @@ namespace Microsoft.Dafny {
 
       public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor, Bpl.Function arrayLength, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
-                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType,
+                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField, Bpl.Constant classDotArray) {
         #region Non-null preconditions on parameters
@@ -157,6 +160,7 @@ namespace Microsoft.Dafny {
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
+        this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new Bpl.TypeSeq());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new Bpl.TypeSeq());
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new Bpl.TypeSeq());
         this.allocField = allocField;
@@ -179,6 +183,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
+      Bpl.TypeCtorDecl nameFamilyType = null;
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl dtCtorId = null;
       Bpl.TypeCtorDecl boxType = null;
@@ -202,6 +207,8 @@ namespace Microsoft.Dafny {
             dtCtorId = dt;
           } else if (dt.Name == "ref") {
             refType = dt;
+          } else if (dt.Name == "NameFamily") {
+            nameFamilyType = dt;
           } else if (dt.Name == "BoxType") {
             boxType = dt;
           } else if (dt.Name == "TickType") {
@@ -249,6 +256,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+      } else if (nameFamilyType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (dtCtorId == null) {
@@ -267,7 +276,7 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of class._System.array");
       } else {
         return new PredefinedDecls(refType, boxType, tickType,
-                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor, arrayLength, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
+                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor, arrayLength, seqTypeCtor, fieldNameType, heap, classNameType, nameFamilyType, datatypeType, dtCtorId,
                                    allocField, classDotArray);
       }
       return null;
@@ -325,18 +334,21 @@ namespace Microsoft.Dafny {
           AddClassMembers((ClassDecl)d);
         }
       }
-      foreach (ModuleDecl m in program.Modules) {
+      foreach (ModuleDefinition m in program.Modules) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           if (d is ArbitraryTypeDecl) {
             // nothing to do--this is treated just like a type parameter
           } else if (d is DatatypeDecl) {
             AddDatatype((DatatypeDecl)d);
-          } else if (d is SubModuleDecl) {
+          } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else {
             AddClassMembers((ClassDecl)d);
           }
         }
+      }
+      foreach(var c in fieldConstants.Values) {
+        sink.TopLevelDeclarations.Add(c);
       }
       return sink;
     }
@@ -813,7 +825,7 @@ namespace Microsoft.Dafny {
       }
 
       // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
-      ModuleDecl mod = f.EnclosingClass.Module;
+      ModuleDefinition mod = f.EnclosingClass.Module;
       var activateForeign = Bpl.Expr.Lt(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight());
       var activateIntra = 
         Bpl.Expr.And(
@@ -1019,7 +1031,7 @@ namespace Microsoft.Dafny {
       return Bpl.Expr.And(lower, upper);
     }
 
-    ModuleDecl currentModule = null;  // the name of the module whose members are currently being translated
+    ModuleDefinition currentModule = null;  // the name of the module whose members are currently being translated
     Method currentMethod = null;  // the method whose implementation is currently being translated
     int loopHeapVarCount = 0;
     int otherTmpVarCount = 0;
@@ -1556,7 +1568,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       Bpl.RequiresSeq req = new Bpl.RequiresSeq();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      ModuleDecl mod = f.EnclosingClass.Module;
+      ModuleDefinition mod = f.EnclosingClass.Module;
       Bpl.Expr context = Bpl.Expr.And(
         Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
         Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
@@ -2374,7 +2386,7 @@ namespace Microsoft.Dafny {
 
           if (options.Decr != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes) {
             // check that the decreases measure goes down
-            ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
+            ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
             if (module == cce.NonNull(options.Decr.EnclosingClass).Module) {
               if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(options.Decr)) {
                 bool contextDecrInferred, calleeDecrInferred;
@@ -2792,8 +2804,22 @@ namespace Microsoft.Dafny {
       if (classes.TryGetValue(cl, out cc)) {
         Contract.Assert(cc != null);
       } else {
-        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.FullCompileName, predef.ClassNameType), true);
+        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.FullCompileName, predef.ClassNameType), !cl.Module.IsAbstract);
         classes.Add(cl, cc);
+      }
+      return cc;
+    }
+
+    Bpl.Constant GetFieldNameFamily(string n) {
+      Contract.Requires(n != null);
+      Contract.Requires(predef != null);
+      Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
+      Bpl.Constant cc;
+      if (fieldConstants.TryGetValue(n, out cc)) {
+        Contract.Assert(cc != null);
+      } else {
+        cc = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "field$" + n, predef.NameFamilyType), true);
+        fieldConstants.Add(n, cc);
       }
       return cc;
     }
@@ -2857,13 +2883,13 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
-        // const unique f: Field ty;
+        // const f: Field ty;
         Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
-        fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullCompileName, ty), true);
+        fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullCompileName, ty), false);
         fields.Add(f, fc);
-        // axiom FDim(f) == 0 && DeclType(f) == C;
+        // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f;
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
-        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.DeclType, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))));
+        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.tok, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.And(fdim, declType));
         sink.TopLevelDeclarations.Add(ax);
       }
@@ -4387,7 +4413,7 @@ namespace Microsoft.Dafny {
       CheckFrameSubset(tok, method.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
 
       // Check termination
-      ModuleDecl module = method.EnclosingClass.Module;
+      ModuleDefinition module = method.EnclosingClass.Module;
       if (module == currentModule) {
         if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(currentMethod)) {
           bool contextDecrInferred, calleeDecrInferred;
@@ -5707,7 +5733,7 @@ namespace Microsoft.Dafny {
           }
           string nm = FunctionName(e.Function, 1 + offsetToUse);
           if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive) {
-            ModuleDecl module = cce.NonNull(e.Function.EnclosingClass).Module;
+            ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
             if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
               if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
                 nm = FunctionName(e.Function, 0 + offsetToUse);
@@ -6525,6 +6551,7 @@ namespace Microsoft.Dafny {
       DtTypeParams, // type parameters of datatype
       TypeTuple,
       DeclType,
+      FieldOfDecl,
       FDim,  // field dimension (0 - named, 1 or more - indexed)
 
       DatatypeCtorId,
@@ -6763,6 +6790,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "DeclType", predef.ClassNameType, args);
+        case BuiltinFunction.FieldOfDecl:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok, typeInstantiation) , args);
         case BuiltinFunction.FDim:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);

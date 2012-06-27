@@ -500,6 +500,13 @@ axiom (forall f: Field BoxType, i: int :: { MultiIndexField(f,i) }
 
 function DeclType<T>(Field T): ClassName;
 
+type NameFamily;
+function DeclName<T>(Field T): NameFamily;
+function FieldOfDecl<alpha>(ClassName, NameFamily): Field alpha;
+axiom (forall<T> cl : ClassName, nm: NameFamily :: 
+   {FieldOfDecl(cl, nm): Field T}
+   DeclType(FieldOfDecl(cl, nm): Field T) == cl && DeclName(FieldOfDecl(cl, nm): Field T) == nm);
+
 // ---------------------------------------------------------------
 // -- Allocatedness ----------------------------------------------
 // ---------------------------------------------------------------

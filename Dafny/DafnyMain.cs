@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(fileNames != null);
       program = null;
-      ModuleDecl module = new DefaultModuleDecl();
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       BuiltIns builtIns = new BuiltIns();
       foreach (string dafnyFileName in fileNames){
         Contract.Assert(dafnyFileName != null);

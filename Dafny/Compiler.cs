@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
       ReadRuntimeSystem();
       CompileBuiltIns(program.BuiltIns);
 
-      foreach (ModuleDecl m in program.Modules) {
+      foreach (ModuleDefinition m in program.Modules) {
         if (m.IsGhost) {
           // the purpose of a ghost module is to skip compilation
           continue;
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
             wr.WriteLine(" { }");
             CompileDatatypeConstructors(dt, indent);
             CompileDatatypeStruct(dt, indent);
-          } else {
+          } else if (d is ClassDecl) {
             ClassDecl cl = (ClassDecl)d;
             Indent(indent);
             wr.Write("public class @{0}", cl.CompileName);
@@ -101,7 +101,9 @@ namespace Microsoft.Dafny {
             wr.WriteLine(" {");
             CompileClassMembers(cl, indent+IndentAmount);
             Indent(indent);  wr.WriteLine("}");
-          }
+          } else if (d is ModuleDecl) {
+            // nop
+          } else { Contract.Assert(false); }
         }
         if (!m.IsDefaultModule) {
           wr.WriteLine("}} // end of namespace {0}", m.CompileName);

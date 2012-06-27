@@ -6,8 +6,8 @@ namespace Microsoft.Dafny
 {
   public interface Rewriter
   {
-    void PreResolve(ModuleDecl m);
-    void PostResolve(ModuleDecl m);
+    void PreResolve(ModuleDefinition m);
+    void PostResolve(ModuleDefinition m);
   }
 
   /// <summary>
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny
   /// </summary>
   public class AutoContractsRewriter : Rewriter
   {
-    public void PreResolve(ModuleDecl m) {
+    public void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -101,7 +101,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public void PostResolve(ModuleDecl m) {
+    public void PostResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {

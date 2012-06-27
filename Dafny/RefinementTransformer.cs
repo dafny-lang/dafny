@@ -21,8 +21,8 @@ using IToken = Microsoft.Boogie.IToken;
 namespace Microsoft.Dafny {
   public class RefinementToken : TokenWrapper
   {
-    public readonly ModuleDecl InheritingModule;
-    public RefinementToken(IToken tok, ModuleDecl m)
+    public readonly ModuleDefinition InheritingModule;
+    public RefinementToken(IToken tok, ModuleDefinition m)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
       this.InheritingModule = m;
     }
 
-    public static bool IsInherited(IToken tok, ModuleDecl m) {
+    public static bool IsInherited(IToken tok, ModuleDefinition m) {
       while (tok is NestedToken) {
         var n = (NestedToken)tok;
         // check Outer
@@ -58,29 +58,16 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
     }
 
-    private ModuleDecl moduleUnderConstruction;  // non-null for the duration of Construct calls
+    private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
 
-    public void Construct(ModuleDecl m) {
+    public void Construct(ModuleDefinition m) {
       Contract.Requires(m != null);
       Contract.Requires(m.RefinementBase != null);
 
       Contract.Assert(moduleUnderConstruction == null);
       moduleUnderConstruction = m;
       var prev = m.RefinementBase;
-
-      // Include the imports of the base.  Note, prev is itself NOT added as an import
-      // of m; instead, the contents from prev is merged directly into m.
-      // (Here, we change the import declarations.  But edges for these imports will
-      // not be added to the importGraph of the calling resolver.  However, the refines
-      // clause gave rise to an edge in the importGraph, so the transitive import edges
-      // are represented in the importGraph.)
-      foreach (var im in prev.Imports) {
-        if (!m.ImportNames.Contains(im.Name)) {
-          m.ImportNames.Add(im.Name);
-          m.Imports.Add(im);
-        }
-      }
-
+      
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < m.TopLevelDecls.Count; i++) {
@@ -91,15 +78,26 @@ namespace Microsoft.Dafny {
       }
 
       // Merge the declarations of prev into the declarations of m
-
       foreach (var d in prev.TopLevelDecls) {
         int index;
         if (!declaredNames.TryGetValue(d.Name, out index)) {
           m.TopLevelDecls.Add(CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          if (d is ArbitraryTypeDecl) {
+          if (d is ModuleDecl) {
+            if (!(nw is ModuleDecl)) {
+              reporter.Error(nw, "a module ({0}) must refine another module", nw.Name);
+            }
+            if (d is AliasModuleDecl || d is LiteralModuleDecl) {
+              reporter.Error(nw, "a module ({0}) can only refine abstract modules", nw.Name);
+            }
+          } else if (d is ArbitraryTypeDecl) {
             // this is allowed to be refined by any type declaration, so just keep the new one
+            // of course, the new thing has to be a type. Everything is a type except for a module
+            // declaration
+            if (nw is ModuleDecl) {
+              reporter.Error(nw, "a module ({0}) must refine another module", nw.Name);
+            }
           } else if (nw is ArbitraryTypeDecl) {
             reporter.Error(nw, "an arbitrary type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
           } else if (nw is DatatypeDecl) {
@@ -129,7 +127,8 @@ namespace Microsoft.Dafny {
 
     // -------------------------------------------------- Cloning ---------------------------------------------------------------
 
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDecl m) {
+    // Clone a toplevel, specifying that its parent module should be m (i.e. it will be added to m.TopLevelDecls).
+    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
@@ -154,6 +153,22 @@ namespace Microsoft.Dafny {
         var mm = dd.Members.ConvertAll(CloneMember);
         var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, null);
         return cl;
+      } else if (d is ModuleDecl) {
+        if (d is LiteralModuleDecl) {
+          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef,m);
+        } else if (d is AliasModuleDecl) {
+          var a = (AliasModuleDecl)d;
+          var alias = new AliasModuleDecl(a.Path, a.tok, m);
+          alias.ModuleReference = a.ModuleReference;
+          alias.Signature = a.Signature;
+          return alias;
+        } else if (d is AbstractModuleDecl) {
+          var a = (AbstractModuleDecl)d;
+          return new AbstractModuleDecl(a.Path, a.tok, m);
+        } else {
+          Contract.Assert(false);  // unexpected declaration
+          return null;  // to please compiler
+        }
       } else {
         Contract.Assert(false);  // unexpected declaration
         return null;  // to please compiler
@@ -1120,7 +1135,7 @@ namespace Microsoft.Dafny {
 
     // ---------------------- additional methods -----------------------------------------------------------------------------
 
-    public static bool ContainsChange(Expression expr, ModuleDecl m) {
+    public static bool ContainsChange(Expression expr, ModuleDefinition m) {
       Contract.Requires(expr != null);
       Contract.Requires(m != null);
 

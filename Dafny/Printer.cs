@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
-      foreach (ModuleDecl module in prog.Modules) {
+      foreach (ModuleDefinition module in prog.Modules) {
         wr.WriteLine();
         if (module.IsDefaultModule) {
           PrintTopLevelDecls(module.TopLevelDecls, 0);
@@ -42,13 +42,6 @@ namespace Microsoft.Dafny {
           wr.Write(" {0} ", module.Name);
           if (module.RefinementBaseName != null) {
             wr.Write("refines {0} ", module.RefinementBaseName);
-          }
-          if (module.ImportNames.Count != 0) {
-            string sep = "imports ";
-            foreach (string imp in module.ImportNames) {
-              wr.Write("{0}{1}", sep, imp);
-              sep = ", ";
-            }
           }
           if (module.TopLevelDecls.Count == 0) {
             wr.WriteLine(" { }");
@@ -144,14 +137,7 @@ namespace Microsoft.Dafny {
 
       wr.Write(" {0}", name);
       if (typeArgs.Count != 0) {
-        wr.Write("<");
-        string sep = "";
-        foreach (TypeParameter tp in typeArgs) {
-          Contract.Assert(tp != null);
-          wr.Write("{0}{1}", sep, tp.Name);
-          sep = ", ";
-        }
-        wr.Write(">");
+        wr.Write("<" + Util.Comma(", ", typeArgs, tp => tp.Name) + ">");
       }
     }
 

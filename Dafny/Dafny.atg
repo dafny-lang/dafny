@@ -71,7 +71,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module,
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
-  ModuleDecl oldModule = theModule;
+  var oldModule = theModule;
   theModule = module;
   BuiltIns oldBuiltIns = builtIns;
   theBuiltIns = builtIns;
@@ -132,9 +132,9 @@ PRODUCTIONS
 Dafny
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
-     SubModuleDecl submodule;
+     ModuleDecl submodule;
      // to support multiple files, create a default module only if theModule is null
-     DefaultModuleDecl defaultModule = theModule as DefaultModuleDecl;
+     DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
      bool isGhost;
@@ -163,23 +163,22 @@ Dafny
      } .)
   EOF
   .
-SubModuleDecl<ModuleDecl parent, bool isOverallModuleGhost, out SubModuleDecl submodule>
+SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl submodule>
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
      Attributes attrs = null;  IToken/*!*/ id; 
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     IToken idRefined = null;
-     List<string/*!*/> theImports = new List<string/*!*/>();
+     List<IToken> idRefined = null, idPath = null;
      bool isGhost = false;
-     ModuleDecl module;
-     SubModuleDecl sm;
+     ModuleDefinition module;
+     ModuleDecl sm;
+     submodule = null; // appease compiler
   .)
-     "module"
-      { Attribute<ref attrs> }
-      NoUSIdent<out id>                        (. .)
-      [ "refines" Ident<out idRefined> ]
-      [ "imports" Idents<theImports> ]     (. module = new ModuleDecl(id, id.val, isOverallModuleGhost, idRefined == null ? null : idRefined.val, theImports, attrs);
-                                              parent.Dependencies.Add(module); .)
-      "{"                                  (. module.BodyStartTok = t; .)
+    "module"
+    { Attribute<ref attrs> }
+    NoUSIdent<out id>                          
+    ((
+      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs); .)
+       "{"                                       (. module.BodyStartTok = t; .)
         { (. isGhost = false; .)
           [ "ghost"  (. isGhost = true; .) ]
             ( SubModuleDecl<module, isGhost, out sm>        (. module.TopLevelDecls.Add(sm); .)
@@ -194,10 +193,22 @@ SubModuleDecl<ModuleDecl parent, bool isOverallModuleGhost, out SubModuleDecl su
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                              submodule = new SubModuleDecl(module, parent); .)
+                                              submodule = new LiteralModuleDecl(module, parent); .)
+     ) | 
+      "=" QualifiedName<out idPath> ";" (. submodule = new AliasModuleDecl(idPath, id, parent); .)
+       |
+      "as" QualifiedName<out idPath> ";" (.submodule = new AbstractModuleDecl(idPath, id, parent); .)
+    )
 .
 
-ClassDecl<ModuleDecl/*!*/ module, out ClassDecl/*!*/ c>
+QualifiedName<.out List<IToken> ids.>
+= (. IToken id; ids = new List<IToken>(); .)
+  Ident<out id>                            (. ids.Add(id); .)
+  { "." Ident<out id>                      (. ids.Add(id); .)
+  }
+  .
+
+ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
@@ -235,7 +246,7 @@ ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool isAlreadyGhost, bool allowC
   | MethodDecl<mmod, allowConstructors, out m>  (. mm.Add(m); .)
   )
   .
-DatatypeDecl<ModuleDecl/*!*/ module, out DatatypeDecl/*!*/ dt>
+DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
      IToken/*!*/ id;
@@ -291,7 +302,7 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   }
   SYNC ";"
   .
-ArbitraryTypeDecl<ModuleDecl/*!*/ module, out ArbitraryTypeDecl at>
+ArbitraryTypeDecl<ModuleDefinition/*!*/ module, out ArbitraryTypeDecl at>
 = (. IToken/*!*/ id;
      Attributes attrs = null;
   .)
@@ -1629,12 +1640,6 @@ AttributeArg<out Attributes.Argument/*!*/ arg>
   )
   .
 /*------------------------------------------------------------------------*/
-Idents<.List<string/*!*/>/*!*/ ids.>
-= (. IToken/*!*/ id; .)
-  Ident<out id>                            (. ids.Add(id.val); .)
-  { "," Ident<out id>                      (. ids.Add(id.val); .)
-  }
-  .
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t; .)
