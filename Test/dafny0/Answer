@@ -703,8 +703,8 @@ Execution trace:
 Dafny program verifier finished with 7 verified, 1 error
 
 -------------------- ModulesCycle.dfy --------------------
-ModulesCycle.dfy(12,7): Error: module T named among imports does not exist
-ModulesCycle.dfy(23,7): Error: import graph contains a cycle: H -> I -> J -> G
+ModulesCycle.dfy(3,9): Error: module T does not exist
+ModulesCycle.dfy(6,7): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): A -> D -> C -> B
 2 resolution/type errors detected in ModulesCycle.dfy
 
 -------------------- Modules0.dfy --------------------
@@ -714,55 +714,47 @@ Modules0.dfy(7,7): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(11,8): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(12,11): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(42,11): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(43,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(44,15): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(46,16): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(47,18): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(52,19): Error: The name T ambiguously refers to a type in one of the modules N, M (try qualifying the type name with the module name)
-Modules0.dfy(52,12): Error: new can be applied only to reference types (got T)
-Modules0.dfy(57,12): Error: Undeclared top-level type or type parameter: T (did you forget a module import?)
-Modules0.dfy(73,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
-Modules0.dfy(74,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
-Modules0.dfy(84,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
-Modules0.dfy(108,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
-Modules0.dfy(247,11): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
-Modules0.dfy(256,13): Error: unresolved identifier: X
-Modules0.dfy(257,15): Error: member DoesNotExist does not exist in class X
-Modules0.dfy(299,16): Error: member R does not exist in class B
-Modules0.dfy(299,6): Error: expected method call, found expression
-Modules0.dfy(322,18): Error: second argument to "in" must be a set or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>)
-Modules0.dfy(326,13): Error: arguments must have the same type (got Q_Imp.Node and Node)
-Modules0.dfy(327,11): Error: Undeclared module name: LongLostModule (did you forget a module import?)
-Modules0.dfy(328,11): Error: Undeclared module name: Wazzup (did you forget a module import?)
-Modules0.dfy(329,17): Error: Undeclared class name Edon in module Q_Imp
-Modules0.dfy(331,10): Error: new can be applied only to reference types (got Q_Imp.List<?>)
-Modules0.dfy(332,30): Error: member Create does not exist in class Klassy
-Modules0.dfy(143,11): Error: ghost variables are allowed only in specification contexts
-Modules0.dfy(157,11): Error: old expressions are allowed only in specification and ghost contexts
-Modules0.dfy(158,11): Error: fresh expressions are allowed only in specification and ghost contexts
-Modules0.dfy(159,11): Error: allocated expressions are allowed only in specification and ghost contexts
-Modules0.dfy(175,10): Error: match source expression 'tree' has already been used as a match source expression in this context
-Modules0.dfy(214,12): Error: match source expression 'l' has already been used as a match source expression in this context
-36 resolution/type errors detected in Modules0.dfy
+Modules0.dfy(53,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
+Modules0.dfy(54,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(65,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
+Modules0.dfy(72,20): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
+Modules0.dfy(72,34): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget a module import?)
+Modules0.dfy(75,23): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget a module import?)
+Modules0.dfy(80,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget a module import?)
+Modules0.dfy(89,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
+Modules0.dfy(221,15): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
+Modules0.dfy(221,8): Error: new can be applied only to reference types (got X)
+Modules0.dfy(230,13): Error: The name does not exist in the given module
+Modules0.dfy(240,13): Error: unresolved identifier: X
+Modules0.dfy(241,15): Error: member DoesNotExist does not exist in class X
+Modules0.dfy(280,19): Error: Undeclared top-level type or type parameter: D (did you forget a module import?)
+Modules0.dfy(280,12): Error: new can be applied only to reference types (got D)
+Modules0.dfy(283,25): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(284,16): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(284,6): Error: expected method call, found expression
+Modules0.dfy(285,16): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(285,6): Error: expected method call, found expression
+Modules0.dfy(307,24): Error: Undeclared module name: Q_Imp (did you forget a module import?)
+Modules0.dfy(97,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget a module import?)
+28 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
-Modules1.dfy(74,16): Error: assertion violation
+Modules1.dfy(75,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Modules1.dfy(86,16): Error: assertion violation
+Modules1.dfy(88,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Modules1.dfy(88,14): Error: assertion violation
+Modules1.dfy(90,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Modules1.dfy(52,3): Error: decreases expression must be bounded below by 0
+Modules1.dfy(53,3): Error: decreases expression must be bounded below by 0
 Execution trace:
     (0,0): anon0
-Modules1.dfy(58,3): Error: failure to decrease termination measure
+Modules1.dfy(59,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
@@ -1441,19 +1433,19 @@ Refinement.dfy(93,3): Error BP5003: A postcondition might not hold on this retur
 Refinement.dfy(74,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Refinement.dfy(179,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(180,5): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy(112,15): Related location: This is the postcondition that might not hold.
-Refinement.dfy(176,9): Related location: Related location
+Refinement.dfy(177,9): Related location: Related location
 Execution trace:
     (0,0): anon0
-Refinement.dfy(183,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(184,5): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy(120,15): Related location: This is the postcondition that might not hold.
-Refinement.dfy(176,9): Related location: Related location
+Refinement.dfy(177,9): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-Refinement.dfy(189,7): Error: assertion violation
+Refinement.dfy(190,7): Error: assertion violation
 Refinement.dfy[IncorrectConcrete](128,24): Related location: Related location
 Execution trace:
     (0,0): anon0
@@ -1535,24 +1527,24 @@ Predicates.dfy[B](17,15): Related location: This is the postcondition that might
 Predicates.dfy(28,9): Related location: Related location
 Execution trace:
     (0,0): anon0
-Predicates.dfy(84,16): Error: assertion violation
+Predicates.dfy(85,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Predicates.dfy(88,14): Error: assertion violation
+Predicates.dfy(89,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Predicates.dfy[Tricky_Full](121,5): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy[Tricky_Full](120,15): Related location: This is the postcondition that might not hold.
-Predicates.dfy(131,7): Related location: Related location
-Predicates.dfy[Tricky_Full](111,9): Related location: Related location
+Predicates.dfy[Tricky_Full](123,5): Error BP5003: A postcondition might not hold on this return path.
+Predicates.dfy[Tricky_Full](122,15): Related location: This is the postcondition that might not hold.
+Predicates.dfy(133,7): Related location: Related location
+Predicates.dfy[Tricky_Full](113,9): Related location: Related location
 Execution trace:
     (0,0): anon0
-Predicates.dfy(159,5): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy(158,15): Related location: This is the postcondition that might not hold.
+Predicates.dfy(161,5): Error BP5003: A postcondition might not hold on this return path.
+Predicates.dfy(160,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Predicates.dfy[Q1](149,5): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy[Q1](148,15): Related location: This is the postcondition that might not hold.
+Predicates.dfy[Q1](151,5): Error BP5003: A postcondition might not hold on this return path.
+Predicates.dfy[Q1](150,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
 
@@ -1583,9 +1575,10 @@ Execution trace:
 Dafny program verifier finished with 30 verified, 2 errors
 
 -------------------- LiberalEquality.dfy --------------------
+LiberalEquality.dfy(18,14): Error: arguments must have the same type (got T and U)
 LiberalEquality.dfy(37,14): Error: arguments must have the same type (got Weird<T,int,V> and Weird<T,bool,V>)
 LiberalEquality.dfy(52,14): Error: arguments must have the same type (got array<int> and array<bool>)
-2 resolution/type errors detected in LiberalEquality.dfy
+3 resolution/type errors detected in LiberalEquality.dfy
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

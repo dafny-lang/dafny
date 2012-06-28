@@ -62,7 +62,7 @@ class Node<T> {
     reverse.next := null;
     reverse.footprint := {reverse};
     reverse.list := [data];
-
+    
     while (current != null)
       invariant reverse != null && reverse.Valid();
       invariant reverse.footprint <= old(footprint);
@@ -71,8 +71,8 @@ class Node<T> {
         current.Valid() &&
         current in old(footprint) && current.footprint <= old(footprint) &&
         current.footprint !! reverse.footprint &&
-        |old(list)| == |reverse.list| + |current.list| &&
-        (forall i :: 0 <= i && i < |current.list| ==> current.list[i] == old(list)[|reverse.list|+i]);
+        |old(list)| == |reverse.list| + |current.list|;
+      invariant current != null ==> current.list == old(list)[|reverse.list|..];
       invariant
         (forall i :: 0 <= i && i < |reverse.list| ==> old(list)[i] == reverse.list[|reverse.list|-1-i]);
       decreases if current != null then |current.list| else -1;
@@ -86,13 +86,6 @@ class Node<T> {
 
       reverse := current;
       current := nx;
-	  // This makes the verification go faster.
-	  assert current != null ==>
-        current.Valid() &&
-        current in old(footprint) && current.footprint <= old(footprint) &&
-        current.footprint !! reverse.footprint &&
-        |old(list)| == |reverse.list| + |current.list| &&
-        (forall i :: 0 <= i && i < |current.list| ==> current.list[i] == old(list)[|reverse.list|+i]);
     }
   }
 }

@@ -1,6 +1,7 @@
-module A imports B {
+module A {
+  module B = Babble;
   class X {
-    function Fx(z: Z): int
+    function Fx(z: B.Z): int
       requires z != null;
       decreases 5, 4, 3;
     { z.G() }  // fine; this goes to a different module
@@ -17,7 +18,7 @@ method MyMethod() { }
 
 var MyField: int;
 
-module B {
+module Babble {
   class Z {
     method K() { }
     function G(): int
@@ -78,14 +79,15 @@ module A_Visibility {
   }
 }
 
-module B_Visibility imports A_Visibility {
+module B_Visibility {
+  module A = A_Visibility;
   method Main() {
     var y;
-    if (C.P(y)) {
+    if (A.C.P(y)) {
       assert 0 <= y;  // this much is known of C.P
       assert 2 <= y;  // error
     } else {
-      assert C.P(8);  // error: C.P cannot be established outside the declaring module
+      assert A.C.P(8);  // error: C.P cannot be established outside the declaring module
     }
   }
 }
@@ -99,13 +101,14 @@ module Q_Imp {
   }
 }
 
-module Q_M imports Q_Imp {
-  method MyMethod(root: Q_Imp.Node, S: set<Q_Imp.Node>)
+module Q_M {
+  module Q = Q_Imp;
+  method MyMethod(root: Q.Node, S: set<Q.Node>)
     requires root in S;
   {
-    var i := new Q_Imp.Node;
-    var j := new Node;
+    var i := new Q.Node;
+    var j := new Q.Node;
     assert i != j;  // fine
-    var q := new Q_Imp.Klassy.Init();
+    var q := new Q.Klassy.Init();
   }
 }

@@ -23,46 +23,26 @@ module N {
   class T { }
 }
 
-module U imports N {  // fine, despite the fact that a class is called U,
-                      // since module names are in their own name space
+module U {
+  module NN = N;
 }
 
-module UU imports N, U, N, N {  // duplicates are allowed
-}
 
-module N_left imports N { }
-module N_right imports N { }
-module Diamond imports N_left, N_right {  // this imports N.T twice, but that's okay
-}
-
-module A imports N, M {  // Note, this has the effect of importing two different T's,
-                         // but that's okay as long as the module doesn't try to access
-                         // one of them
+module A {  // Note, this has the effect of importing two different T's,
+            // but that's okay as long as the module doesn't try to access
+            // one of them
+  module MM = M;
+  module NN = N;
   class X {
-    var t: T;  // error: use of the ambiguous name T
-    function F(x: T):  // error: use of the ambiguous name T
-               T  // error: use of the ambiguous name T
+    var t: MM.T;  // error: use of the ambiguous name T
+    function F(x: MM.T):  // error: use of the ambiguous name T
+               MM.T  // error: use of the ambiguous name T
     { x }
-    method M(x: T)  // error: use of the ambiguous name T
-      returns (y: T)  // error: use of the ambiguous name T
-  }
-}
-module A' imports N, M {
-  method M()
-    { var g := new T; }  // error: use of the ambiguous name T
-}
-
-module B0 imports A {
-  class BadUse {
-    var b0: T;  // error: T is not directly accessible
+    method M(x: NN.T)  // error: use of the ambiguous name T
+      returns (y: NN.T)  // error: use of the ambiguous name T
   }
 }
 
-module B1 imports A, N {
-  class GoodUse {
-    var b1: T;  // fine
-  }
-}
 
 // --------------- calls
 
@@ -76,9 +56,10 @@ module X0 {
   }
 }
 
-module X1 imports X0 {
+module X1 {
+  module X0' = X0;
   class MyClass1 {
-    method Down(x0: MyClass0) {
+    method Down(x0: X0'.MyClass0) {
       x0.Down();
     }
     method Up(x2: MyClass2) {  // error: class MyClass2 is not in scope
@@ -86,7 +67,7 @@ module X1 imports X0 {
   }
 }
 
-module X2 imports X0, X1, YY {
+module X2 {
   class MyClass2 {
     method Down(x1: MyClass1, x0: MyClass0) {
       x1.Down(x0);
@@ -231,9 +212,10 @@ module ATr {
   }
 }
 
-module BTr imports ATr {
+module BTr {
+  module A = ATr;
   class Y {
-    method N() returns (x: X)
+    method N() returns (x: A.X)
       ensures x != null;
     {
       x := new X;
@@ -241,15 +223,17 @@ module BTr imports ATr {
   }
 }
 
-module CTr imports BTr {
+module CTr {
+  module B = BTr;
   class Z {
-    var b: Y;  // fine
-    var a: X;  // error: imports don't reach name X explicitly
+    var b: B.Y;  // fine
+    var a: B.X;  // error: imports don't reach name X explicitly
   }
 }
-module CTs imports BTr {
+module CTs {
+  module B = BTr;
   method P() {
-    var y := new Y;
+    var y := new B.Y;
     var x := y.N();  // this is allowed and will correctly infer the type of x to
                      // be X, but X could not have been mentioned explicitly
     var q := x.M();
@@ -285,7 +269,9 @@ module NonLocalB {
   }
 }
 
-module Local imports NonLocalA, NonLocalB {
+module Local {
+  module AA = NonLocalA;
+  module BB = NonLocalB;
   class MyClass {
     method MyMethod()
     {
@@ -317,7 +303,7 @@ module Q_Imp {
   }
 }
 
-module Q_M imports Q_Imp {
+module Q_M {
   method MyMethod(root: Q_Imp.Node, S: set<Node>)
     requires root in S;  // error: the element type of S does not agree with the type of root
   {

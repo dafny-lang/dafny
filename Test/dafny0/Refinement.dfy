@@ -155,10 +155,11 @@ module Concrete refines Abstract {
   }
 }
 
-module Client imports Concrete {
+module Client {
+  module C = Concrete;
   class TheClient {
     method Main() {
-      var n := new MyNumber.Init();
+      var n := new C.MyNumber.Init();
       n.Inc();
       n.Inc();
       var k := n.Get();

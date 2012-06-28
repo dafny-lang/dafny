@@ -15,7 +15,7 @@ class Test<T> {
 }
 
 method m1<T, U>(t: T, u: U)
-   requires t != u;
+   requires t != u; // Cannot compare type parameters (can only compare reference types that could be the same)
 {
    
 }
