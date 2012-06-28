@@ -41,11 +41,11 @@ namespace Microsoft.Dafny {
   {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null);
     Dictionary<int, ClassDecl/*!*/> arrayTypeDecls = new Dictionary<int, ClassDecl>();
-
+    public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
       // create class 'object'
-      ClassDecl obj = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
-      SystemModule.TopLevelDecls.Add(obj);
+      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
+      SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
     }

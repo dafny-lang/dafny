@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDecl/*!*/,Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/,Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
-    readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
+    Program program;
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -53,7 +53,6 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
       public readonly Bpl.Type ClassNameType;
-      public readonly Bpl.Type NameFamilyType;
       public readonly Bpl.Type DatatypeType;
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Expr Null;
@@ -72,7 +71,6 @@ namespace Microsoft.Dafny {
         Contract.Invariant(HeapType != null);
         Contract.Invariant(HeapVarName != null);
         Contract.Invariant(ClassNameType != null);
-        Contract.Invariant(NameFamilyType != null);
         Contract.Invariant(DatatypeType != null);
         Contract.Invariant(DtCtorId != null);
         Contract.Invariant(Null != null);
@@ -128,7 +126,7 @@ namespace Microsoft.Dafny {
 
       public PredefinedDecls(Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor, Bpl.TypeCtorDecl mapTypeCtor, Bpl.Function arrayLength, Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeCtorDecl fieldNameType,
-                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
+                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField, Bpl.Constant classDotArray) {
         #region Non-null preconditions on parameters
@@ -160,7 +158,6 @@ namespace Microsoft.Dafny {
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new Bpl.TypeSeq());
-        this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new Bpl.TypeSeq());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new Bpl.TypeSeq());
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new Bpl.TypeSeq());
         this.allocField = allocField;
@@ -183,7 +180,6 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
-      Bpl.TypeCtorDecl nameFamilyType = null;
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl dtCtorId = null;
       Bpl.TypeCtorDecl boxType = null;
@@ -207,8 +203,6 @@ namespace Microsoft.Dafny {
             dtCtorId = dt;
           } else if (dt.Name == "ref") {
             refType = dt;
-          } else if (dt.Name == "NameFamily") {
-            nameFamilyType = dt;
           } else if (dt.Name == "BoxType") {
             boxType = dt;
           } else if (dt.Name == "TickType") {
@@ -256,8 +250,6 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
-      } else if (nameFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (dtCtorId == null) {
@@ -276,7 +268,7 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of class._System.array");
       } else {
         return new PredefinedDecls(refType, boxType, tickType,
-                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor, arrayLength, seqTypeCtor, fieldNameType, heap, classNameType, nameFamilyType, datatypeType, dtCtorId,
+                                   setTypeCtor, multiSetTypeCtor, mapTypeCtor, arrayLength, seqTypeCtor, fieldNameType, heap, classNameType, datatypeType, dtCtorId,
                                    allocField, classDotArray);
       }
       return null;
@@ -315,9 +307,10 @@ namespace Microsoft.Dafny {
 */
     }
 
-    public Bpl.Program Translate(Program program) {
-      Contract.Requires(program != null);
+    public Bpl.Program Translate(Program p) {
+      Contract.Requires(p != null);
       Contract.Ensures(Contract.Result<Bpl.Program>() != null);
+      program = p;
 
       if (sink == null || predef == null) {
         // something went wrong during construction, which reads the prelude; an error has
@@ -340,15 +333,14 @@ namespace Microsoft.Dafny {
             // nothing to do--this is treated just like a type parameter
           } else if (d is DatatypeDecl) {
             AddDatatype((DatatypeDecl)d);
-          } else if (d is ModuleDecl) {
-            // submodules have already been added as a top level module, ignore this.
-          } else {
+          } else if (d is ClassDecl) {
             AddClassMembers((ClassDecl)d);
+          } else if (d is ModuleDecl) {
+            // nop, sub-modules are handled in their own iteration.
+          } else {
+            Contract.Assert(false);
           }
         }
-      }
-      foreach(var c in fieldConstants.Values) {
-        sink.TopLevelDeclarations.Add(c);
       }
       return sink;
     }
@@ -857,7 +849,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight())),
           etran.InMethodContext());
       // useViaCanCall: f#canCall(args)
-      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
+      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), args);
 
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
@@ -962,7 +954,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= layer && layer < 3);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      string name = f.FullCompileName;
+      string name = f.FullName;
       switch (layer) {
         case 2: name += "#2"; break;
         case 0: name += "#limited"; break;
@@ -1460,8 +1452,8 @@ namespace Microsoft.Dafny {
         if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
       }
 
-      string axiomComment = "frame axiom for " + f.FullCompileName;
-      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullCompileName, TrType(f.ResultType)));
+      string axiomComment = "frame axiom for " + f.FullName;
+      Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
       while (fn != null) {
         Bpl.Expr F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
         Bpl.Expr F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
@@ -1583,7 +1575,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullCompileName, typeParams, inParams, new Bpl.VariableSeq(),
+      Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullName, typeParams, inParams, new Bpl.VariableSeq(),
         req, new Bpl.IdentifierExprSeq(), ens, etran.TrAttributes(f.Attributes, null));
       sink.TopLevelDeclarations.Add(proc);
 
@@ -1645,7 +1637,7 @@ namespace Microsoft.Dafny {
         // don't fall through to postcondition checks
         bodyCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.False));
       } else {
-        Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullCompileName, TrType(f.ResultType)));
+        Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullName, TrType(f.ResultType)));
         Bpl.ExprSeq args = new Bpl.ExprSeq();
         args.Add(etran.HeapExpr);
         foreach (Variable p in implInParams) {
@@ -1996,7 +1988,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of the other parameters
         r = BplAnd(r, CanCallAssumption(e.Args, etran));
         // get to assume canCall
-        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullCompileName + "#canCall", Bpl.Type.Bool);
+        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullName + "#canCall", Bpl.Type.Bool);
         ExprSeq args = etran.FunctionInvocationArguments(e);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         r = BplAnd(r, canCallFuncAppl);
@@ -2428,7 +2420,7 @@ namespace Microsoft.Dafny {
           }
         }
         // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
-        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullCompileName + "#canCall", Bpl.Type.Bool);
+        Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullName + "#canCall", Bpl.Type.Bool);
         ExprSeq args = etran.FunctionInvocationArguments(e);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         builder.Add(new Bpl.AssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
@@ -2804,22 +2796,8 @@ namespace Microsoft.Dafny {
       if (classes.TryGetValue(cl, out cc)) {
         Contract.Assert(cc != null);
       } else {
-        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.FullCompileName, predef.ClassNameType), !cl.Module.IsAbstract);
+        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + cl.FullName, predef.ClassNameType), true);
         classes.Add(cl, cc);
-      }
-      return cc;
-    }
-
-    Bpl.Constant GetFieldNameFamily(string n) {
-      Contract.Requires(n != null);
-      Contract.Requires(predef != null);
-      Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
-      Bpl.Constant cc;
-      if (fieldConstants.TryGetValue(n, out cc)) {
-        Contract.Assert(cc != null);
-      } else {
-        cc = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "field$" + n, predef.NameFamilyType), true);
-        fieldConstants.Add(n, cc);
       }
       return cc;
     }
@@ -2847,7 +2825,7 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return new Bpl.IdentifierExpr(tok, "class._System.int", predef.ClassNameType);
       } else if (type is ObjectType) {
-        return new Bpl.IdentifierExpr(tok, "class._System.object", predef.ClassNameType);
+        return new Bpl.IdentifierExpr(tok, GetClass(program.BuiltIns.ObjectDecl));
       } else if (type is CollectionType) {
         CollectionType ct = (CollectionType)type;
         Bpl.Expr a = GetTypeExpr(tok, ct.Arg);
@@ -2883,13 +2861,13 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
-        // const f: Field ty;
+        // const unique f: Field ty;
         Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
-        fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullCompileName, ty), false);
+        fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullName, ty), true);
         fields.Add(f, fc);
-        // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f;
+        // axiom FDim(f) == 0 && DeclType(f) == C;
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
-        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.tok, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
+        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.DeclType, ty, Bpl.Expr.Ident(fc)), new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.And(fdim, declType));
         sink.TopLevelDeclarations.Add(ax);
       }
@@ -2916,7 +2894,7 @@ namespace Microsoft.Dafny {
         Bpl.Type receiverType = f.EnclosingClass is ClassDecl ? predef.RefType : predef.DatatypeType;
         args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", receiverType), true));
         Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, ty), false);
-        ff = new Bpl.Function(f.tok, f.FullCompileName, args, result);
+        ff = new Bpl.Function(f.tok, f.FullName, args, result);
         fieldFunctions.Add(f, ff);
         // treat certain fields specially
         if (f.EnclosingClass is ArrayClassDecl) {
@@ -2958,7 +2936,7 @@ namespace Microsoft.Dafny {
         args.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)), true));
       }
       Bpl.Formal res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-      Bpl.Function func = new Bpl.Function(f.tok, f.FullCompileName, typeParams, args, res);
+      Bpl.Function func = new Bpl.Function(f.tok, f.FullName, typeParams, args, res);
       sink.TopLevelDeclarations.Add(func);
 
       if (f.IsRecursive) {
@@ -2967,7 +2945,7 @@ namespace Microsoft.Dafny {
       }
 
       res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-      Bpl.Function canCallF = new Bpl.Function(f.tok, f.FullCompileName + "#canCall", args, res);
+      Bpl.Function canCallF = new Bpl.Function(f.tok, f.FullName + "#canCall", args, res);
       sink.TopLevelDeclarations.Add(canCallF);
     }
 
@@ -3074,10 +3052,10 @@ namespace Microsoft.Dafny {
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
       string name;
       switch (kind) {
-        case 0: name = "CheckWellformed$$" + m.FullCompileName; break;
-        case 1: name = m.FullCompileName; break;
-        case 2: name = string.Format("RefinementCall_{0}$${1}", m.EnclosingClass.Module.Name, m.FullCompileName); break;
-        case 3: name = string.Format("RefinementImpl_{0}$${1}", m.EnclosingClass.Module.Name, m.FullCompileName); break;
+        case 0: name = "CheckWellformed$$" + m.FullName; break;
+        case 1: name = m.FullName; break;
+        case 2: name = string.Format("RefinementCall_{0}$${1}", m.EnclosingClass.Module.Name, m.FullName); break;
+        case 3: name = string.Format("RefinementImpl_{0}$${1}", m.EnclosingClass.Module.Name, m.FullName); break;
         default: Contract.Assert(false); throw new cce.UnreachableException();  // unexpected kind
       }
       Bpl.Procedure proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
@@ -4454,9 +4432,9 @@ namespace Microsoft.Dafny {
       // Make the call
       string name;
       if (RefinementToken.IsInherited(method.tok, currentModule)) {
-        name = string.Format("RefinementCall_{0}$${1}", currentModule.Name, method.FullCompileName);
+        name = string.Format("RefinementCall_{0}$${1}", currentModule.Name, method.FullName);
       } else {
-        name = method.FullCompileName;
+        name = method.FullName;
       }
       Bpl.CallCmd call = new Bpl.CallCmd(tok, name, ins, outs);
       builder.Add(call);
@@ -5326,7 +5304,7 @@ namespace Microsoft.Dafny {
           typeArgs.Add(tRhs.EType);
           rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class._System." + BuiltIns.ArrayClassName(tRhs.ArrayDimensions.Count), predef.ClassNameType), typeArgs, true);
         } else if (tRhs.EType is ObjectType) {
-          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(tok, "class._System.object", predef.ClassNameType), new List<Type>(), true);
+          rightType = etran.GoodRef_Ref(tok, nw, new Bpl.IdentifierExpr(Token.NoToken,GetClass(program.BuiltIns.ObjectDecl)), new List<Type>(), true);
         } else {
           rightType = etran.GoodRef_Class(tok, nw, (UserDefinedType)tRhs.EType, true);
         }
@@ -6560,7 +6538,6 @@ namespace Microsoft.Dafny {
       DtTypeParams, // type parameters of datatype
       TypeTuple,
       DeclType,
-      FieldOfDecl,
       FDim,  // field dimension (0 - named, 1 or more - indexed)
 
       DatatypeCtorId,
@@ -6799,10 +6776,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "DeclType", predef.ClassNameType, args);
-        case BuiltinFunction.FieldOfDecl:
-          Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok, typeInstantiation) , args);
         case BuiltinFunction.FDim:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
@@ -7046,7 +7019,7 @@ namespace Microsoft.Dafny {
               // Note that "body" does not contain limited calls.
 
               // F#canCall(args)
-              Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
+              Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullName + "#canCall", Bpl.Type.Bool);
               ExprSeq args = etran.FunctionInvocationArguments(fexp);
               Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
 
