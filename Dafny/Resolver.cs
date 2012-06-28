@@ -138,7 +138,6 @@ namespace Microsoft.Dafny {
         }
         h++;
       }
-      var mm = prog.Modules;
       // register top-level declarations
       
       //Rewriter rewriter = new AutoContractsRewriter();
@@ -164,7 +163,7 @@ namespace Microsoft.Dafny {
                 var transformer = new RefinementTransformer(this);
                 transformer.Construct(m);
               } else {
-                Error(m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));
+                Error(m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or simple reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));
               }
             } else {
               Error(m.RefinementBaseName[0], "module ({0}) named as refinement base does not exist", Util.Comma(".", m.RefinementBaseName, x => x.val));
@@ -207,9 +206,8 @@ namespace Microsoft.Dafny {
         } else { Contract.Assert(false); }
         Contract.Assert(decl.Signature != null);
       }
-
       // compute IsRecursive bit for mutually recursive functions
-      foreach (ModuleDefinition m in mm) {
+      foreach (ModuleDefinition m in prog.Modules) {
         foreach (TopLevelDecl decl in m.TopLevelDecls) {
           ClassDecl cl = decl as ClassDecl;
           if (cl != null) {
@@ -320,7 +318,7 @@ namespace Microsoft.Dafny {
       }
     }
     private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings, Graph<ModuleDecl> dependencies) {
-      // resolve refines and imports
+      dependencies.AddVertex(moduleDecl);
       if (moduleDecl is LiteralModuleDecl) {
         ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl)moduleDecl).ModuleDef, bindings, dependencies);
       } else if (moduleDecl is AliasModuleDecl) {

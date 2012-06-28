@@ -214,12 +214,17 @@ bool IsAttribute() {
 				ClassMemberDecl(membersDefaultClass, isGhost, false);
 			} else SynErr(108);
 		}
+		DefaultClassDecl defaultClass = null;
 		foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
-		 DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
+		 defaultClass = topleveldecl as DefaultClassDecl;
 		 if (defaultClass != null) {
 		   defaultClass.Members.AddRange(membersDefaultClass);
 		   break;
 		 }
+		}
+		if (defaultClass == null) { // create the default class here, because it wasn't found
+      defaultClass = new DefaultClassDecl(defaultModule, membersDefaultClass);
+		  defaultModule.TopLevelDecls.Add(defaultClass);
 		} 
 		Expect(0);
 	}

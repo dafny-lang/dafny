@@ -154,12 +154,18 @@ Dafny
     )
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
+     DefaultClassDecl defaultClass;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
-       DefaultClassDecl defaultClass = topleveldecl as DefaultClassDecl;
+       defaultClass = topleveldecl as DefaultClassDecl;
        if (defaultClass != null) {
          defaultClass.Members.AddRange(membersDefaultClass);
          break;
        }
+     }
+     if (defaultClass == null) { // create the default class here, because it wasn't found
+       defaultClass = new DefaultClassDecl();
+       defaultModule.TopLevelDecls.Add(defaultClass);
+       defaultClass.Members.AddRange(membersDefaultClass);
      } .)
   EOF
   .
