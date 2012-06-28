@@ -11,7 +11,7 @@ for %%f in (Queue.dfy PriorityQueue.dfy
             SeparationLogicList.dfy
             ListCopy.dfy ListReverse.dfy ListContents.dfy
             MatrixFun.dfy pow2.dfy
-            SchorrWaite.dfy
+            SchorrWaite.dfy SchorrWaite-stages.dfy
             Cubes.dfy SumOfCubes.dfy FindZero.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy
             Induction.dfy Rippling.dfy MoreInduction.dfy

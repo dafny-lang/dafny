@@ -1,4 +1,4 @@
-class BreadthFirstSearch<Vertex>
+class BreadthFirstSearch<Vertex(==)>
 {
   // The following function is left uninterpreted (for the purpose of the 
   // verification problem, it can be thought of as a parameter to the class)

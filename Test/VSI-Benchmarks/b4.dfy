@@ -14,7 +14,7 @@
 // that the specification can use mathematical sequences while the
 // implementation uses a linked list.
 
-class Map<Key,Value> {
+class Map<Key(==),Value> {
   ghost var Keys: seq<Key>;
   ghost var Values: seq<Value>;
   ghost var Repr: set<object>;
