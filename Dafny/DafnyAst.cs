@@ -916,15 +916,13 @@ namespace Microsoft.Dafny {
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Module != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 
-    public TopLevelDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDefinition/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs, Attributes attributes)
+    public TopLevelDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDefinition module, List<TypeParameter/*!*/>/*!*/ typeArgs, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Module = module;
       TypeArgs = typeArgs;
