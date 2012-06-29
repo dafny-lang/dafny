@@ -32,6 +32,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
       }
       wr.WriteLine("// {0}", prog.Name);
+      wr.WriteLine();
       PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0);
     }
 
