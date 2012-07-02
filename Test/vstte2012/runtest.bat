@@ -4,11 +4,10 @@ setlocal
 set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 
-REM removed for now: RingBufferAuto.dfy
 for %%f in (
     Two-Way-Sort.dfy
     Combinators.dfy
-    RingBuffer.dfy 
+    RingBuffer.dfy RingBufferAuto.dfy
     Tree.dfy
     BreadthFirstSearch.dfy
   ) do (

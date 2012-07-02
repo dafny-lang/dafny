@@ -1,4 +1,5 @@
-ghost module A imports Library {
+ghost module A {
+  module L = Library;
   class {:autocontracts} StoreAndRetrieve<Thing> {
     ghost var Contents: set<Thing>;
     predicate Valid
@@ -13,12 +14,12 @@ ghost module A imports Library {
     {
       Contents := Contents + {t};
     }
-    method Retrieve(matchCriterion: Function) returns (thing: Thing)
-      requires exists t :: t in Contents && Function.Apply(matchCriterion, t);
+    method Retrieve(matchCriterion: L.Function) returns (thing: Thing)
+      requires exists t :: t in Contents && L.Function.Apply(matchCriterion, t);
       ensures Contents == old(Contents);
-      ensures thing in Contents && Function.Apply(matchCriterion, thing);
+      ensures thing in Contents && L.Function.Apply(matchCriterion, thing);
     {
-      var k :| k in Contents && Function.Apply(matchCriterion, k);
+      var k :| k in Contents && L.Function.Apply(matchCriterion, k);
       thing := k;
     }
   }
@@ -44,9 +45,9 @@ module B refines A {
       var i := 0;
       while (i < |arr|)
         invariant i < |arr|;
-        invariant forall j :: 0 <= j < i ==> !Function.Apply(matchCriterion, arr[j]);
+        invariant forall j :: 0 <= j < i ==> !L.Function.Apply(matchCriterion, arr[j]);
       {
-        if (Function.Apply(matchCriterion, arr[i])) { break; }
+        if (L.Function.Apply(matchCriterion, arr[i])) { break; }
         i := i + 1;
       }
       var k := arr[i];
