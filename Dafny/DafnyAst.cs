@@ -899,6 +899,20 @@ namespace Microsoft.Dafny {
         return compileName;
       }
     }
+
+    public static IEnumerable<Function> AllFunctions(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          foreach (var member in cl.Members) {
+            var fn = member as Function;
+            if (fn != null) {
+              yield return fn;
+            }
+          }
+        }
+      }
+    }
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
@@ -1476,6 +1490,19 @@ namespace Microsoft.Dafny {
       : base(tok, name, isStatic, isGhost, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
       Contract.Requires(!bodyIsExtended || body != null);
       BodyIsExtended = bodyIsExtended;
+    }
+  }
+
+  public class CoPredicate : Function
+  {
+    public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
+
+    public CoPredicate(IToken tok, string name, bool isStatic,
+                     List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
+                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
+                     Expression body, Attributes attributes, bool signatureOmitted)
+      : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(),
+             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureOmitted) {
     }
   }
 
@@ -2948,7 +2975,7 @@ namespace Microsoft.Dafny {
     public readonly Expression/*!*/ Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression/*!*/>/*!*/ Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // create, initialized, and used by resolution (could be deleted once all of resolution is done)
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (could be deleted once all of resolution is done)
     public enum CoCallResolution { No, Yes, NoBecauseFunctionHasSideEffects, NoBecauseRecursiveCallsAreNotAllowedInThisContext, NoBecauseIsNotGuarded }
     public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call; filled in by resolution
 
@@ -3885,7 +3912,7 @@ namespace Microsoft.Dafny {
 
   public class Specification<T> where T : class
   {
-    public List<T> Expressions;
+    public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
     private void ObjectInvariant()

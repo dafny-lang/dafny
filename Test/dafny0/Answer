@@ -1273,7 +1273,11 @@ Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor 
 Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
 Coinductive.dfy(35,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'K' can be constructed
 Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
-4 resolution/type errors detected in Coinductive.dfy
+Coinductive.dfy(90,8): Error: a recursive copredicate call can only be done in positive positions
+Coinductive.dfy(91,8): Error: a recursive copredicate call can only be done in positive positions
+Coinductive.dfy(92,8): Error: a recursive copredicate call can only be done in positive positions
+Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in positive positions
+8 resolution/type errors detected in Coinductive.dfy
 
 -------------------- Corecursion.dfy --------------------
 Corecursion.dfy(15,13): Error: failure to decrease termination measure (note that only functions without side effects can called co-recursively)

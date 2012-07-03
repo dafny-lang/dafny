@@ -212,23 +212,16 @@ namespace Microsoft.Dafny {
       }
       // compute IsRecursive bit for mutually recursive functions
       foreach (ModuleDefinition m in prog.Modules) {
-        foreach (TopLevelDecl decl in m.TopLevelDecls) {
-          ClassDecl cl = decl as ClassDecl;
-          if (cl != null) {
-            foreach (MemberDecl member in cl.Members) {
-              Function fn = member as Function;
-              if (fn != null && !fn.IsRecursive) {  // note, self-recursion has already been determined
-                int n = m.CallGraph.GetSCCSize(fn);
-                if (2 <= n) {
-                  // the function is mutually recursive (note, the SCC does not determine self recursion)
-                  fn.IsRecursive = true;
-                }
-              }
+        foreach (var fn in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {
+          if (!fn.IsRecursive) {  // note, self-recursion has already been determined
+            int n = m.CallGraph.GetSCCSize(fn);
+            if (2 <= n) {
+              // the function is mutually recursive (note, the SCC does not determine self recursion)
+              fn.IsRecursive = true;
             }
           }
         }
       }
-      
     }
 
 
@@ -574,6 +567,9 @@ namespace Microsoft.Dafny {
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, false, null, false);
+      } else if (f is CoPredicate) {
+        return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
+          req, reads, ens, body, null, false);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null, false);
@@ -829,28 +825,24 @@ namespace Microsoft.Dafny {
           DetermineEqualitySupport(dtd, datatypeDependencies);
         }
       }
+
       if (ErrorCount == prevErrorCount) {  // because CheckCoCalls requires the given expression to have been successfully resolved
         // Perform the guardedness check on co-datatypes
-        foreach (var decl in declarations) {
-          var cl = decl as ClassDecl;
-          if (cl != null) {
-            foreach (var member in cl.Members) {
-              var fn = member as Function;
-              if (fn != null && fn.Body != null && cl.Module.CallGraph.GetSCCRepresentative(fn) == fn) {
-                bool dealsWithCodatatypes = false;
-                foreach (var m in cl.Module.CallGraph.GetSCC(fn)) {
-                  var f = (Function)m;
-                  if (f.ResultType.InvolvesCoDatatype) {
-                    dealsWithCodatatypes = true;
-                    break;
-                  }
-                }
-                foreach (var m in cl.Module.CallGraph.GetSCC(fn)) {
-                  var f = (Function)m;
-                  var checker = new CoCallResolution(f, dealsWithCodatatypes);
-                  checker.CheckCoCalls(f.Body);
-                }
+        foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
+          var module = fn.EnclosingClass.Module;
+          if (fn.Body != null && module.CallGraph.GetSCCRepresentative(fn) == fn) {
+            bool dealsWithCodatatypes = false;
+            foreach (var m in module.CallGraph.GetSCC(fn)) {
+              var f = (Function)m;
+              if (f.ResultType.InvolvesCoDatatype) {
+                dealsWithCodatatypes = true;
+                break;
               }
+            }
+            foreach (var m in module.CallGraph.GetSCC(fn)) {
+              var f = (Function)m;
+              var checker = new CoCallResolution(f, dealsWithCodatatypes);
+              checker.CheckCoCalls(f.Body);
             }
           }
         }
@@ -978,7 +970,83 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        // Check that copredicates are not recursive with non-copredicate functions.
+        foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
+          if (fn.Body != null && (fn is CoPredicate || fn.IsRecursive)) {
+            CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
+          }
+        }
       }
+    }
+
+    enum CallingPosition { Positive, Negative, Neither }
+
+    static CallingPosition Invert(CallingPosition cp) {
+      switch (cp) {
+        case CallingPosition.Positive: return CallingPosition.Negative;
+        case CallingPosition.Negative: return CallingPosition.Positive;
+        default: return CallingPosition.Neither;
+      }
+    }
+
+    void CoPredicateChecks(Expression expr, Function context, CallingPosition cp) {
+      Contract.Requires(expr != null);
+      Contract.Requires(context != null);
+      if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        CoPredicateChecks(e.Resolved, context, cp);
+        return;
+      } else  if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        var moduleCaller = context.EnclosingClass.Module;
+        var moduleCallee = e.Function.EnclosingClass.Module;
+        if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
+          // we're looking at a recursive call
+          if (context is CoPredicate) {
+            if (!(e.Function is CoPredicate)) {
+              Error(e, "a recursive call from a copredicate can go only to other copredicates");
+            } else if (cp != CallingPosition.Positive) {
+              Error(e, "a recursive copredicate call can only be done in positive positions");
+            }
+          } else if (e.Function is CoPredicate) {
+            Error(e, "a recursive call from a non-copredicate can go only to other non-copredicates");
+          }
+        }
+        // fall through to do the subexpressions
+      } else if (expr is UnaryExpr) {
+        var e = (UnaryExpr)expr;
+        if (e.Op == UnaryExpr.Opcode.Not) {
+          CoPredicateChecks(e.E, context, Invert(cp));
+          return;
+        }
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.And:
+          case BinaryExpr.ResolvedOpcode.Or:
+            CoPredicateChecks(e.E0, context, cp);
+            CoPredicateChecks(e.E1, context, cp);
+            return;
+          case BinaryExpr.ResolvedOpcode.Imp:
+            CoPredicateChecks(e.E0, context, Invert(cp));
+            CoPredicateChecks(e.E1, context, cp);
+            return;
+          default:
+            break;
+        }
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        CoPredicateChecks(e.Body, context, cp);
+        return;
+      } else if (expr is QuantifierExpr) {
+        var e = (QuantifierExpr)expr;
+        if (e.Range != null) {
+          CoPredicateChecks(e.Range, context, e is ExistsExpr ? Invert(cp) : cp);
+        }
+        CoPredicateChecks(e.Term, context, cp);
+        return;
+      }
+      expr.SubExpressions.Iter(ee => CoPredicateChecks(ee, context, CallingPosition.Neither));
     }
 
     void CheckEqualityTypes_Stmt(Statement stmt) {
@@ -4331,6 +4399,9 @@ namespace Microsoft.Dafny {
       } else {
         Function function = (Function)member;
         e.Function = function;
+        if (function is CoPredicate) {
+          ((CoPredicate)function).Uses.Add(e);
+        }
         if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
           Error(e, "an instance function must be selected via an object, not just a class name");
         }

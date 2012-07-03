@@ -322,7 +322,7 @@ namespace Microsoft.Dafny
       return true;
     }
 
-    BinaryExpr BinBoolExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {
+    public static BinaryExpr BinBoolExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {
       var p = new BinaryExpr(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1);
       p.ResolvedOp = rop;
       p.Type = Type.Bool;

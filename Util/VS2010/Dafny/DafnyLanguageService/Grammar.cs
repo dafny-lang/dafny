@@ -24,7 +24,7 @@ namespace Demo
           "break", "label", "return", "parallel", "havoc", "print",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
           "bool", "nat", "int", "false", "true", "null",
-          "function", "predicate", "free",
+          "function", "predicate", "copredicate", "free",
           "in", "forall", "exists",
           "seq", "set", "map", "multiset", "array", "array2", "array3",
           "match", "case",
@@ -303,6 +303,7 @@ namespace Demo
           | "null"
           | "function"
           | "predicate"
+          | "copredicate"
           | "free"
           | "in"
           | "forall"
@@ -357,53 +358,6 @@ namespace Demo
           | n
           | stringLiteral
           ;
-
-        idType.Rule
-          = ident + ":" + typeDecl
-          | ident
-          ;
-
-        typeDecl.Rule
-          = (ToTerm("int") | "nat" | "bool" | ident | "seq" | "set" | "array") + (("<" + MakePlusRule(typeDecl, ToTerm(","), typeDecl) + ">") | Empty)
-          | ToTerm("token") + "<" + (typeDecl + ".") + ident + ">"
-          ;
-
-        fieldDecl.Rule
-          = ToTerm("var") + idType + Semi
-          | ToTerm("ghost") + "var" + idType + Semi
-          ;
-
-        methodSpec.Rule = (ToTerm("requires") | "ensures" | "lockchange") + expression + Semi;
-
-        formalsList.Rule = MakeStarRule(formalsList, comma, idType);
-        formalParameters.Rule = LParen + formalsList + RParen;
-        methodDecl.Rule = "method" + ident + formalParameters
-          + (("returns" + formalParameters) | Empty)
-          + methodSpec.Star()
-          + blockStatement;
-        functionDecl.Rule
-          = ToTerm("function") + ident + formalParameters + ":" + typeDecl + methodSpec.Star() + "{" + expression + "}";
-        predicateDecl.Rule
-          = ToTerm("predicate") + ident + "{" + expression + "}";
-        invariantDecl.Rule
-          = ToTerm("invariant") + expression + Semi;
-
-        memberDecl.Rule
-          = fieldDecl
-          | invariantDecl
-          | methodDecl
-          //| conditionDecl
-          | predicateDecl
-          | functionDecl
-          ;
-        classDecl.Rule
-          = (ToTerm("external") | Empty) + "class" + ident + ("module" + ident | Empty) + "{" + memberDecl.Star() + "}";
-        channelDecl.Rule
-          = ToTerm("channel") + ident + formalParameters + "where" + expression + Semi
-          | ToTerm("channel") + ident + formalParameters + Semi;
-        declaration.Rule = classDecl | channelDecl
-          ;
-
 
         Terminal Comment = new CommentTerminal("Comment", "/*", "*/");
         NonGrammarTerminals.Add(Comment);

@@ -62,4 +62,45 @@ module TestCoinductiveDatatypes
 
 }
 
+// --------------- CoPredicates --------------------------
+
+module CoPredicateResolutionErrors {
+
+  codatatype Stream<T> = StreamCons(head: T, tail: Stream);
+
+  function Upward(n: int): Stream<int>
+  {
+    StreamCons(n, Upward(n + 1))
+  }
+
+  function Doubles(n: int): Stream<int>
+  {
+    StreamCons(2*n, Doubles(n + 1))
+  }
+
+  copredicate Pos(s: Stream<int>)
+  {
+    0 < s.head && Pos(s.tail) && Even(s)
+  }
+
+  copredicate Even(s: Stream<int>)
+  {
+    s.head % 2 == 0 && Even(s.tail)
+    && (s.head == 17 ==> Pos(s))
+    && (Pos(s) ==> s.head == 17)  // error: cannot make recursive copredicate call in negative position
+    && !Even(s)  // error: cannot make recursive copredicate call in negative position
+    && (Even(s) <==> Even(s))  // error (x2): recursive copredicate calls allowed only in positive positions
+  }
+
+  copredicate Another(s: Stream<int>)
+  {
+    !Even(s)  // here, negation is fine
+  }
+
+  ghost method Lemma(n: int)
+    ensures Even(Doubles(n));
+  {
+  }
+}
+
 // --------------------------------------------------

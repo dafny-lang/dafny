@@ -62,13 +62,14 @@ namespace Microsoft.Dafny {
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
 
     public void PreResolve(ModuleDefinition m) {
-      Contract.Requires(m != null);
-      Contract.Requires(m.RefinementBase != null);
+      if (m.RefinementBase == null) {
+        // This Rewriter doesn't do anything
+        return;
+      }
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
       }
-      
       moduleUnderConstruction = m;
       var prev = m.RefinementBase;     
 
@@ -643,6 +644,9 @@ namespace Microsoft.Dafny {
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, moreBody != null, null, false);
+      } else if (f is CoPredicate) {
+        return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
+          req, reads, ens, body, null, false);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, null, false);
@@ -703,8 +707,9 @@ namespace Microsoft.Dafny {
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
-            string s = isPredicate ? "predicate" : "function";
-            if (!(member is Function) || isPredicate && !(member is Predicate)) {
+            bool isCoPredicate = f is CoPredicate;
+            string s = isPredicate ? "predicate" : isCoPredicate ? "copredicate" : "function";
+            if (!(member is Function) || (isPredicate && !(member is Predicate)) || (isCoPredicate && !(member is CoPredicate))) {
               reporter.Error(nwMember, "a {0} declaration ({1}) can only refine a {0}", s, nwMember.Name);
             } else {
               var prevFunction = (Function)member;

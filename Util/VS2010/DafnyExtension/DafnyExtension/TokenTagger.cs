@@ -244,6 +244,7 @@ namespace DafnyLanguage
                 case "class":
                 case "codatatype":
                 case "constructor":
+                case "copredicate":
                 case "datatype":
                 case "decreases":
                 case "else":

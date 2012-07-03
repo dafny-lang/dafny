@@ -223,7 +223,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       var isPredicate = f is Predicate;
       Indent(indent);
-      string k = isPredicate ? "predicate" : "function";
+      string k = isPredicate ? "predicate" : f is CoPredicate ? "copredicate" : "function";
       if (f.IsStatic) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);

@@ -576,9 +576,9 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      List<Expression/*!*/> reqs = new List<Expression/*!*/>();
      List<Expression/*!*/> ens = new List<Expression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
-     List<Expression/*!*/> decreases = new List<Expression/*!*/>();
+     List<Expression/*!*/> decreases;
      Expression body = null;
-     bool isPredicate = false;
+     bool isPredicate = false;  bool isCoPredicate = false;
      bool isFunctionMethod = false;
      IToken openParen = null;
      IToken bodyStart = Token.NoToken;
@@ -619,14 +619,34 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
     | "..."                    (. signatureOmitted = true;
                                   openParen = Token.NoToken; .)
     )
+
+  /* ----- copredicate ----- */
+  | "copredicate"              (. isCoPredicate = true; .)
+    (. if (mmod.IsGhost) { SemErr(t, "copredicates cannot be declared 'ghost' (they are ghost by default)"); }
+    .)
+    { Attribute<ref attrs> }
+    NoUSIdent<out id>
+    (
+      [ GenericParameters<typeArgs> ]
+      [ Formals<true, isFunctionMethod, formals, out openParen>
+        [ ":"                  (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
+        ]
+      ]
+    | "..."                    (. signatureOmitted = true;
+                                  openParen = Token.NoToken; .)
+    )
   )
 
+  (. decreases = isCoPredicate ? null : new List<Expression/*!*/>(); .)
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isPredicate) {
         f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs, signatureOmitted);
+     } else if (isCoPredicate) {
+        f = new CoPredicate(id, id.val, mmod.IsStatic, typeArgs, openParen, formals,
+                          reqs, reads, ens, body, attrs, signatureOmitted);
      } else {
         f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
@@ -635,8 +655,10 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      f.BodyEndTok = bodyEnd;
   .)
   .
-FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/>/*!*/ decreases.>
-= (. Contract.Requires(cce.NonNullElements(reqs)); Contract.Requires(cce.NonNullElements(reads)); Contract.Requires(cce.NonNullElements(decreases));
+FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<Expression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
+= (. Contract.Requires(cce.NonNullElements(reqs));
+     Contract.Requires(cce.NonNullElements(reads));
+     Contract.Requires(decreases == null || cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe; .)
   (
     SYNC
@@ -646,7 +668,12 @@ FunctionSpec<.List<Expression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ r
               }
             ] SYNC ";"
   | "ensures" Expression<out e> SYNC ";"      (. ens.Add(e); .)
-  | "decreases" DecreasesList<decreases, false> SYNC ";"
+  | "decreases"                               (. if (decreases == null) {
+                                                   SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
+                                                   decreases = new List<Expression/*!*/>();
+                                                 }
+                                              .)
+    DecreasesList<decreases, false> SYNC ";"
   )
   .
 PossiblyWildExpression<out Expression/*!*/ e>
