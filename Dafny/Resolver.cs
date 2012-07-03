@@ -97,6 +97,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ datatypeMembers = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ dependencies = new Graph<ModuleDecl/*!*/>();
+    ModuleSignature systemNameInfo = null;
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
       builtIns = prog.BuiltIns;
@@ -142,7 +143,7 @@ namespace Microsoft.Dafny {
       var refinementTransformer = new RefinementTransformer(this);
       
       IRewriter rewriter = new AutoContractsRewriter();
-      var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
+      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -171,14 +172,9 @@ namespace Microsoft.Dafny {
           }
           literalDecl.Signature = RegisterTopLevelDecls(m);
           literalDecl.Signature.Refines = refinedSig;
+          var sig = literalDecl.Signature;
           // set up environment
-          moduleInfo = MergeSignature(literalDecl.Signature, systemNameInfo);
-          // resolve
-          var datatypeDependencies = new Graph<IndDatatypeDecl>();
-          int prevErrorCount = ErrorCount;
-          ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
-          if (ErrorCount == prevErrorCount)
-          ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+          ResolveModuleDefinition(m, sig);
 
           refinementTransformer.PostResolve(m);
           // give rewriter a chance to do processing
@@ -194,16 +190,11 @@ namespace Microsoft.Dafny {
           }
         } else if (decl is AbstractModuleDecl) {
           var abs = (AbstractModuleDecl)decl;
-          ModuleSignature p; ModuleDefinition mod;
+          ModuleSignature p;
           if (ResolvePath(abs.Root, abs.Path, out p)) {
-            abs.Signature = MakeAbstractSignature(p, abs.Name, abs.Height, out mod);
+            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
             abs.OriginalSignature = p;
-            moduleInfo = MergeSignature(abs.Signature, systemNameInfo);
             // resolve
-            var datatypeDependencies = new Graph<IndDatatypeDecl>();
-            ResolveTopLevelDecls_Signatures(mod.TopLevelDecls, datatypeDependencies);
-            ResolveTopLevelDecls_Meat(mod.TopLevelDecls, datatypeDependencies);
-            prog.Modules.Add(mod);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
@@ -229,6 +220,16 @@ namespace Microsoft.Dafny {
         }
       }
       
+    }
+
+    private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
+      moduleInfo = MergeSignature(sig, systemNameInfo);
+      // resolve
+      var datatypeDependencies = new Graph<IndDatatypeDecl>();
+      int prevErrorCount = ErrorCount;
+      ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
+      if (ErrorCount == prevErrorCount)
+        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
     }
 
 
@@ -460,17 +461,19 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, out ModuleDefinition mod) {
-      mod = new ModuleDefinition(Token.NoToken, Name+".Abs", true, true, null, null);
+    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
+      var mod = new ModuleDefinition(Token.NoToken, Name+".Abs", true, true, null, null, false);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
-        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod));
+        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
       }
       var sig = RegisterTopLevelDecls(mod);
       sig.Refines = p.Refines;
+      mods.Add(mod);
+      ResolveModuleDefinition(mod, sig);
       return sig;
     }
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, List<ModuleDefinition> mods, string Name) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
@@ -504,9 +507,17 @@ namespace Microsoft.Dafny {
           alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
+        } else if (d is AbstractModuleDecl) {
+          var abs = (AbstractModuleDecl)d;
+          var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
+          var a = new AbstractModuleDecl(abs.Path, abs.tok, m);
+          a.Signature = sig;
+          a.OriginalSignature = abs.OriginalSignature;
+          return a;
+        } else {
+          Contract.Assert(false);  // unexpected declaration
+          return null;  // to please compiler
         }
-        Contract.Assert(false);  // unexpected declaration
-        return null;  // to please compiler
       } else {
         Contract.Assert(false);  // unexpected declaration
         return null;  // to please compiler

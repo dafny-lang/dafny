@@ -182,7 +182,7 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
     { Attribute<ref attrs> }
     NoUSIdent<out id>                          
     ((
-      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs); .)
+      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs, false); .)
        "{"                                       (. module.BodyStartTok = t; .)
         { (. isGhost = false; .)
           [ "ghost"  (. isGhost = true; .) ]

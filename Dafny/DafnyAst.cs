@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, true);
     Dictionary<int, ClassDecl/*!*/> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
@@ -868,14 +868,14 @@ namespace Microsoft.Dafny {
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsGhost;
     public readonly bool IsAbstract; // True iff this module represents an abstract interface
-
+    private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TopLevelDecls));
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isGhost, bool isAbstract, List<IToken> refinementBase,  Attributes attributes)
+    public ModuleDefinition(IToken tok, string name, bool isGhost, bool isAbstract, List<IToken> refinementBase,  Attributes attributes, bool isBuiltinName)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -884,6 +884,7 @@ namespace Microsoft.Dafny {
       IsAbstract = isAbstract;
       RefinementBaseRoot = null;
       RefinementBase = null;
+      IsBuiltinName = isBuiltinName;
     }
     public virtual bool IsDefaultModule {
       get {
@@ -894,7 +895,10 @@ namespace Microsoft.Dafny {
     new public string CompileName {
       get {
         if (compileName == null) {
-          compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
+          if (IsBuiltinName)
+            compileName = Name;
+          else
+            compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
         }
         return compileName;
       }
@@ -902,7 +906,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
-    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, false) {
     }
     public override bool IsDefaultModule {
       get {
@@ -1079,7 +1083,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingDatatype != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return "#" + EnclosingDatatype.FullName + "." + Name;
+        return "#" + EnclosingDatatype.FullCompileName + "." + Name;
       }
     }
   }

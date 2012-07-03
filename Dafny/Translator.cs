@@ -409,7 +409,7 @@ namespace Microsoft.Dafny {
         if (bvs.Length != 0) {
           q = new Bpl.ExistsExpr(ctor.tok, bvs, q);
         }
-        q = Bpl.Expr.Imp(FunctionCall(ctor.tok, ctor.QueryField.FullName, Bpl.Type.Bool, dId), q);
+        q = Bpl.Expr.Imp(FunctionCall(ctor.tok, ctor.QueryField.FullCompileName, Bpl.Type.Bool, dId), q);
         q = new Bpl.ForallExpr(ctor.tok, new VariableSeq(dBv), q);
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
 
@@ -538,11 +538,11 @@ namespace Microsoft.Dafny {
       var cases_dId = new Bpl.IdentifierExpr(dt.tok, cases_dBv.Name, predef.DatatypeType);
       Bpl.Expr cases_body = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var disj = FunctionCall(ctor.tok, ctor.QueryField.FullName, Bpl.Type.Bool, cases_dId);
+        var disj = FunctionCall(ctor.tok, ctor.QueryField.FullCompileName, Bpl.Type.Bool, cases_dId);
         cases_body = cases_body == null ? disj : Bpl.Expr.Or(cases_body, disj);
       }
       var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-      var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullName, new Bpl.VariableSeq(cases_dBv), cases_resType);
+      var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullCompileName, new Bpl.VariableSeq(cases_dBv), cases_resType);
       cases_fn.Body = cases_body;
       sink.TopLevelDeclarations.Add(cases_fn);
     }
@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny {
             foreach (var inFormal in m.Ins) {
               var dt = inFormal.Type.AsDatatype;
               if (dt != null) {
-                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(inFormal.tok, "$IsA#" + dt.FullName, Bpl.Type.Bool));
+                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(inFormal.tok, "$IsA#" + dt.FullCompileName, Bpl.Type.Bool));
                 var f = new Bpl.IdentifierExpr(inFormal.tok, inFormal.UniqueName, TrType(inFormal.Type));
                 builder.Add(new Bpl.AssumeCmd(inFormal.tok, new Bpl.NAryExpr(inFormal.tok, funcID, new Bpl.ExprSeq(f))));
               }
@@ -1742,7 +1742,7 @@ namespace Microsoft.Dafny {
             t = BplAnd(t, Bpl.Expr.Neq(etran.TrExpr(e.Obj), predef.Null));
           } else if (e.Field is DatatypeDestructor) {
             var dtor = (DatatypeDestructor)e.Field;
-            t = BplAnd(t, FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullName, Bpl.Type.Bool, etran.TrExpr(e.Obj)));
+            t = BplAnd(t, FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullCompileName, Bpl.Type.Bool, etran.TrExpr(e.Obj)));
           }
           return t;
         }
@@ -2244,7 +2244,7 @@ namespace Microsoft.Dafny {
           CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
         } else if (e.Field is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Field;
-          var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
+          var correctConstructor = FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullCompileName, Bpl.Type.Bool, etran.TrExpr(e.Obj));
           if (dtor.EnclosingCtor.EnclosingDatatype.Ctors.Count == 1) {
             // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
             builder.Add(new Bpl.AssumeCmd(expr.tok, correctConstructor));
@@ -2852,7 +2852,7 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return new Bpl.IdentifierExpr(tok, "class._System.int", predef.ClassNameType);
       } else if (type is ObjectType) {
-        return new Bpl.IdentifierExpr(tok, "class._System.object", predef.ClassNameType);
+        return new Bpl.IdentifierExpr(tok, GetClass(program.BuiltIns.ObjectDecl));
       } else if (type is CollectionType) {
         CollectionType ct = (CollectionType)type;
         Bpl.Expr a = GetTypeExpr(tok, ct.Arg);
