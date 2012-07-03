@@ -11,6 +11,10 @@ Dafny program verifier finished with 25 verified, 0 errors
 
 Dafny program verifier finished with 13 verified, 0 errors
 
+-------------------- RingBufferAuto.dfy --------------------
+
+Dafny program verifier finished with 13 verified, 0 errors
+
 -------------------- Tree.dfy --------------------
 
 Dafny program verifier finished with 15 verified, 0 errors

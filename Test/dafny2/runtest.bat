@@ -4,7 +4,7 @@ setlocal
 set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 
-REM soon again:    SnapshotableTrees.dfy StoreAndRetrieve.dfy
+REM soon again:    SnapshotableTrees.dfy
 for %%f in (
     Classics.dfy
     TreeBarrier.dfy
@@ -13,6 +13,7 @@ for %%f in (
     COST-verif-comp-2011-2-MaxTree-datatype.dfy
     COST-verif-comp-2011-3-TwoDuplicates.dfy
     COST-verif-comp-2011-4-FloydCycleDetect.dfy
+    StoreAndRetrieve.dfy
     Intervals.dfy TreeFill.dfy TuringFactorial.dfy
     MajorityVote.dfy SegmentSum.dfy
   ) do (

@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
 
       var refinementTransformer = new RefinementTransformer(this);
       
-      //Rewriter rewriter = new AutoContractsRewriter();
+      IRewriter rewriter = new AutoContractsRewriter();
       var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
@@ -155,7 +155,7 @@ namespace Microsoft.Dafny {
           // by the bodies.
           var literalDecl = (LiteralModuleDecl)decl;
           var m = (literalDecl).ModuleDef;
-          //rewriter.PreResolve(m);
+          rewriter.PreResolve(m);
           ModuleSignature refinedSig = null;
           if (m.RefinementBaseRoot != null) {
             if (ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out refinedSig)) {
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny {
 
           refinementTransformer.PostResolve(m);
           // give rewriter a chance to do processing
-          //rewriter.PostResolve(m);
+          rewriter.PostResolve(m);
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
           // resolve the path

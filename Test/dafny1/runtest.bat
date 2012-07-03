@@ -5,7 +5,7 @@ set BOOGIEDIR=..\..\Binaries
 set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
 
 for %%f in (Queue.dfy PriorityQueue.dfy
-            ExtensibleArray.dfy
+            ExtensibleArray.dfy ExtensibleArrayAuto.dfy
             BinaryTree.dfy
             UnboundedStack.dfy
             SeparationLogicList.dfy

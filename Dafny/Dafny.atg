@@ -805,7 +805,11 @@ UpdateStmt<out Statement/*!*/ s>
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, lhss, suchThat, suchThatAssume);
      } else {
-       s = new UpdateStmt(x, lhss, rhss);
+       if (lhss.Count == 0 && rhss.Count == 0) {
+         s = new BlockStmt(x, new List<Statement>()); // error, give empty statement
+       } else {
+         s = new UpdateStmt(x, lhss, rhss);
+       }
      }
   .)
   .
