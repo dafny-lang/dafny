@@ -249,7 +249,7 @@ bool IsAttribute() {
 				Get();
 				QualifiedName(out idRefined);
 			}
-			module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs); 
+			module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs, false); 
 			Expect(6);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

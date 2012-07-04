@@ -97,6 +97,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ datatypeMembers = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
     readonly Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>/*!*/ datatypeCtors = new Dictionary<DatatypeDecl/*!*/, Dictionary<string/*!*/, DatatypeCtor/*!*/>/*!*/>();
     readonly Graph<ModuleDecl/*!*/>/*!*/ dependencies = new Graph<ModuleDecl/*!*/>();
+    ModuleSignature systemNameInfo = null;
     public Resolver(Program prog) {
       Contract.Requires(prog != null);
       builtIns = prog.BuiltIns;
@@ -142,7 +143,7 @@ namespace Microsoft.Dafny {
       var refinementTransformer = new RefinementTransformer(this);
       
       IRewriter rewriter = new AutoContractsRewriter();
-      var systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
+      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -171,14 +172,9 @@ namespace Microsoft.Dafny {
           }
           literalDecl.Signature = RegisterTopLevelDecls(m);
           literalDecl.Signature.Refines = refinedSig;
+          var sig = literalDecl.Signature;
           // set up environment
-          moduleInfo = MergeSignature(literalDecl.Signature, systemNameInfo);
-          // resolve
-          var datatypeDependencies = new Graph<IndDatatypeDecl>();
-          int prevErrorCount = ErrorCount;
-          ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
-          if (ErrorCount == prevErrorCount)
-          ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+          ResolveModuleDefinition(m, sig);
 
           refinementTransformer.PostResolve(m);
           // give rewriter a chance to do processing
@@ -194,16 +190,11 @@ namespace Microsoft.Dafny {
           }
         } else if (decl is AbstractModuleDecl) {
           var abs = (AbstractModuleDecl)decl;
-          ModuleSignature p; ModuleDefinition mod;
+          ModuleSignature p;
           if (ResolvePath(abs.Root, abs.Path, out p)) {
-            abs.Signature = MakeAbstractSignature(p, abs.Name, abs.Height, out mod);
+            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
             abs.OriginalSignature = p;
-            moduleInfo = MergeSignature(abs.Signature, systemNameInfo);
             // resolve
-            var datatypeDependencies = new Graph<IndDatatypeDecl>();
-            ResolveTopLevelDecls_Signatures(mod.TopLevelDecls, datatypeDependencies);
-            ResolveTopLevelDecls_Meat(mod.TopLevelDecls, datatypeDependencies);
-            prog.Modules.Add(mod);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
@@ -222,6 +213,16 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
+      moduleInfo = MergeSignature(sig, systemNameInfo);
+      // resolve
+      var datatypeDependencies = new Graph<IndDatatypeDecl>();
+      int prevErrorCount = ErrorCount;
+      ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
+      if (ErrorCount == prevErrorCount)
+        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
     }
 
 
@@ -355,6 +356,10 @@ namespace Microsoft.Dafny {
       foreach (var kv in m.Ctors) {
         info.Ctors[kv.Key] = kv.Value;
       }
+      foreach (var kv in m.StaticMembers) {
+        info.StaticMembers[kv.Key] = kv.Value;
+      }
+
       return info;
     }
     ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef) {
@@ -395,7 +400,13 @@ namespace Microsoft.Dafny {
             }
           }
           cl.HasConstructor = hasConstructor;
-
+          if (cl.IsDefaultClass) {
+            foreach (MemberDecl m in cl.Members) {
+              if (!sig.StaticMembers.ContainsKey(m.Name) && m.IsStatic && (m is Function || m is Method)) {
+                sig.StaticMembers.Add(m.Name, m);
+              }
+            }
+          }
         } else {
           DatatypeDecl dt = (DatatypeDecl)d;
 
@@ -453,17 +464,19 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, out ModuleDefinition mod) {
-      mod = new ModuleDefinition(Token.NoToken, Name+".Abs", true, true, null, null);
+    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
+      var mod = new ModuleDefinition(Token.NoToken, Name+".Abs", true, true, null, null, false);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
-        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod));
+        mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
       }
       var sig = RegisterTopLevelDecls(mod);
       sig.Refines = p.Refines;
+      mods.Add(mod);
+      ResolveModuleDefinition(mod, sig);
       return sig;
     }
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m, List<ModuleDefinition> mods, string Name) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
@@ -486,8 +499,9 @@ namespace Microsoft.Dafny {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
-        var cl = new ClassDecl(dd.tok, dd.Name, m, tps, mm, null);
-        return cl;
+        if (dd is DefaultClassDecl) {
+          return new DefaultClassDecl(m, mm);
+        } else return new ClassDecl(dd.tok, dd.Name, m, tps, mm, null); 
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
           return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
@@ -497,9 +511,17 @@ namespace Microsoft.Dafny {
           alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
+        } else if (d is AbstractModuleDecl) {
+          var abs = (AbstractModuleDecl)d;
+          var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
+          var a = new AbstractModuleDecl(abs.Path, abs.tok, m);
+          a.Signature = sig;
+          a.OriginalSignature = abs.OriginalSignature;
+          return a;
+        } else {
+          Contract.Assert(false);  // unexpected declaration
+          return null;  // to please compiler
         }
-        Contract.Assert(false);  // unexpected declaration
-        return null;  // to please compiler
       } else {
         Contract.Assert(false);  // unexpected declaration
         return null;  // to please compiler
@@ -4473,9 +4495,9 @@ namespace Microsoft.Dafny {
       //       (if two imported types have the same name, an error message is produced here)
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
       //  - imported module name
-      //  - field name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
-      // Note, at present, modules do not give rise to new namespaces, which is something that should
-      // be changed in the language when modules are given more attention.
+      //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
+      //  - static function or method in the enclosing module.
+      
       Expression r = null;  // resolved version of e
       CallRhs call = null;
 
@@ -4537,18 +4559,20 @@ namespace Microsoft.Dafny {
           }
         }
 
-      } else if (classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member)) {
+      } else if ((classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member))
+                 || moduleInfo.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
+      {
         // ----- field, function, or method
         Expression receiver;
         if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(id, currentClass);
+          receiver = new StaticReceiverExpr(id, (ClassDecl)member.EnclosingClass);
         } else {
           if (!scope.AllowInstance) {
             Error(id, "'this' is not allowed in a 'static' context");
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(id);
-          receiver.Type = GetThisType(id, currentClass);  // resolve here
+          receiver.Type = GetThisType(id, (ClassDecl)member.EnclosingClass);  // resolve here
         }
         r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, out call);
 
@@ -4569,10 +4593,11 @@ namespace Microsoft.Dafny {
       return call;
     }
 
-    CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleSignature info, bool twoState, bool allowMethodCall) {
+    CallRhs ResolveIdentifierSequenceModuleScope(IdentifierSequence e, int p, ModuleSignature sig, bool twoState, bool allowMethodCall) {
       // Look up "id" as follows:
       //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
       //       (if two imported types have the same name, an error message is produced here)
+      //  - static function or method of sig.
       // This is used to look up names that appear after a dot in a sequence identifier. For example, in X.M.*, M should be looked up in X, but
       // should not consult the local scope. This distingushes this from the above, in that local scope, imported modules, etc. are ignored.
       Contract.Requires(p < e.Tokens.Count);
@@ -4580,8 +4605,9 @@ namespace Microsoft.Dafny {
       CallRhs call = null;
 
       TopLevelDecl decl;
+      MemberDecl member;
       var id = e.Tokens[p];
-      if (info.TopLevels.TryGetValue(id.val, out decl)) {
+      if (sig.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a something in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
         } else if (decl is ClassDecl) {
@@ -4605,6 +4631,14 @@ namespace Microsoft.Dafny {
             r = ResolveSuffix(r, e, p + 2, twoState, allowMethodCall, out call);
           }
         }
+      } else if (sig.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
+      {
+        // ----- function, or method
+        Expression receiver;
+        Contract.Assert(member.IsStatic);
+        receiver = new StaticReceiverExpr(id, (ClassDecl)member.EnclosingClass);
+        r = ResolveSuffix(receiver, e, p, twoState, allowMethodCall, out call);
+
       } else {
         Error(id, "unresolved identifier: {0}", id.val);
         // resolve arguments, if any
