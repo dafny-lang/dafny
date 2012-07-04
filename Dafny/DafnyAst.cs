@@ -840,6 +840,7 @@ namespace Microsoft.Dafny {
     
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
+    public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
     public ModuleDefinition ModuleDef; // Note: this is null if this signature does not correspond to a specific definition (i.e.
                                        // it is abstract). Otherwise, it points to that definition.
     public ModuleSignature Refines;
