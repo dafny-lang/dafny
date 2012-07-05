@@ -844,6 +844,7 @@ namespace Microsoft.Dafny {
     public ModuleDefinition ModuleDef; // Note: this is null if this signature does not correspond to a specific definition (i.e.
                                        // it is abstract). Otherwise, it points to that definition.
     public ModuleSignature Refines;
+    public bool IsGhost = false;
     public ModuleSignature() {}
 
     public bool FindSubmodule(string name, out ModuleSignature pp) {

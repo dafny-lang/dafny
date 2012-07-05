@@ -227,7 +227,7 @@ namespace Microsoft.Dafny {
       // resolve
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       int prevErrorCount = ErrorCount;
-      ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
+      ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies);
       if (ErrorCount == prevErrorCount)
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
     }
@@ -373,6 +373,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
+      sig.IsGhost = moduleDef.IsGhost;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
       foreach (TopLevelDecl d in declarations) {
@@ -806,7 +807,7 @@ namespace Microsoft.Dafny {
       }
       return i == Path.Count;
     }
-    public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
+    public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(datatypeDependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(datatypeDependencies));
       foreach (TopLevelDecl d in declarations) {
@@ -818,7 +819,18 @@ namespace Microsoft.Dafny {
         } else if (d is ClassDecl) {
           ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
-          // TODO: what goes here?
+          var decl = (ModuleDecl)d;
+          if (!def.IsGhost) {
+            if (decl.Signature.IsGhost) {
+              if (!(def.IsDefaultModule)) // _module is allowed to contain ghost modules, but not by ghost itself. Note this presents a challenge to 
+                                          // trusted verification, as toplevels can't be trusted if they invoke ghost module members.
+                Error(d.tok, "ghost modules can only be imported into other ghost modules, not physical ones.");
+            } else {
+              // physical modules are allowed everywhere
+            }
+          } else {
+            // everything is allowed in a ghost module
+          }
         } else {
           ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
         }
