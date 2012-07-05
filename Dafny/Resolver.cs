@@ -174,11 +174,14 @@ namespace Microsoft.Dafny {
           literalDecl.Signature.Refines = refinedSig;
           var sig = literalDecl.Signature;
           // set up environment
+          var errorCount = ErrorCount;
           ResolveModuleDefinition(m, sig);
 
-          refinementTransformer.PostResolve(m);
-          // give rewriter a chance to do processing
-          rewriter.PostResolve(m);
+          if (ErrorCount == errorCount) {
+            refinementTransformer.PostResolve(m);
+            // give rewriter a chance to do processing
+            rewriter.PostResolve(m);
+          }
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
           // resolve the path
