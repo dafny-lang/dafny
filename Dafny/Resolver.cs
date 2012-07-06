@@ -4290,7 +4290,8 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
         // check all NON-ghost arguments
-        for (int i = 0; i < e.Ctor.Formals.Count; i++) {
+        // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
+        for (int i = 0; i < e.Arguments.Count; i++) {
           if (!e.Ctor.Formals[i].IsGhost) {
             CheckIsNonGhost(e.Arguments[i]);
           }
