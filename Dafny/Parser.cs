@@ -984,8 +984,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void ReferenceType(out IToken/*!*/ tok, out Type/*!*/ ty) {
 		Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
 		tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-		IToken moduleName = null;
 		List<Type/*!*/>/*!*/ gt;
+		List<IToken> path;
 		
 		if (la.kind == 44) {
 			Get();
@@ -1005,16 +1005,17 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			
 		} else if (la.kind == 1) {
 			Ident(out tok);
-			gt = new List<Type/*!*/>(); 
-			if (la.kind == 14) {
-				moduleName = tok; 
+			gt = new List<Type/*!*/>();
+			path = new List<IToken>(); 
+			while (la.kind == 14) {
+				path.Add(tok); 
 				Get();
 				Ident(out tok);
 			}
 			if (la.kind == 26) {
 				GenericInstantiation(gt);
 			}
-			ty = new UserDefinedType(tok, tok.val, gt, moduleName); 
+			ty = new UserDefinedType(tok, tok.val, gt, path); 
 		} else SynErr(133);
 	}
 
@@ -1576,11 +1577,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				} else {
 					Get();
 					var udf = ty as UserDefinedType;
-					if (udf != null && udf.ModuleName != null && udf.TypeArgs.Count == 0) {
-					 // The parsed name had the form "A.B", so treat "A" as the name of the type and "B" as
+					if (udf != null && 0 < udf.Path.Count && udf.TypeArgs.Count == 0) {
+					 // The parsed name had the form "A.B.Ctr", so treat "A.B" as the name of the type and "Ctr" as
 					 // the name of the constructor that's being invoked.
 					 x = udf.tok;
-					 ty = new UserDefinedType(udf.ModuleName, udf.ModuleName.val, new List<Type>(), null);
+					 ty = new UserDefinedType(udf.Path[0], udf.Path[udf.Path.Count-1].val, new List<Type>(), udf.Path.GetRange(0,udf.Path.Count-1));
 					} else {
 					 SemErr(t, "expected '.'");
 					 x = null;

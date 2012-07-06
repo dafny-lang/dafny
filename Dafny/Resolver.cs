@@ -577,7 +577,7 @@ namespace Microsoft.Dafny {
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
-        return new UserDefinedType(tt.tok, tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.ModuleName == null ? null : tt.ModuleName);
+        return new UserDefinedType(tt.tok, tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => x));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else {
@@ -1885,7 +1885,7 @@ namespace Microsoft.Dafny {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
         }
-        TypeParameter tp = t.ModuleName == null ? allTypeParameters.Find(t.Name) : null;
+        TypeParameter tp = t.Path.Count == 0 ? allTypeParameters.Find(t.Name) : null;
         if (tp != null) {
           if (t.TypeArgs.Count == 0) {
             t.ResolvedParam = tp;
@@ -1894,17 +1894,26 @@ namespace Microsoft.Dafny {
           }
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d = null;
-          if (t.ModuleName != null) {
-            ModuleSignature sig;
-            if (moduleInfo.FindSubmodule(t.ModuleName.val, out sig)) {
-              if (!sig.TopLevels.TryGetValue(t.Name, out d)) {
-                Error(t.tok, "The name does not exist in the given module");
-              }
+
+          int j = 0;
+          var sig = moduleInfo;
+          while (j < t.Path.Count) {
+            if (sig.FindSubmodule(t.Path[j].val, out sig)) {
+              j++;
             } else {
-              Error(t.ModuleName, "Undeclared module name: {0} (did you forget a module import?)", t.ModuleName.val);
+              Error(t.Path[j], "module {0} does not exist", t.Path[j].val);
+              break;
             }
-          } else if (!moduleInfo.TopLevels.TryGetValue(t.Name, out d)) {
-            Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
+          }
+          if (j == t.Path.Count) {
+            if (!sig.TopLevels.TryGetValue(t.Name, out d)) {
+              if (j == 0)
+                Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", t.Name);
+              else
+                Error(t.tok, "Undeclared type {0} in module {1}", t.Name, t.Path[t.Path.Count - 1].val);
+            }
+          } else {
+            // error has already been reported
           }
 
           if (d == null) {

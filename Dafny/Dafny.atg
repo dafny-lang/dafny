@@ -536,8 +536,8 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
 ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-     IToken moduleName = null;
      List<Type/*!*/>/*!*/ gt;
+     List<IToken> path;
   .)
   ( "object"                        (. tok = t;  ty = new ObjectType(); .)
   | arrayToken                      (. tok = t;  gt = new List<Type/*!*/>(); .)
@@ -550,11 +550,12 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
                                        }
                                        ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
                                     .)
-  | Ident<out tok>                  (. gt = new List<Type/*!*/>(); .)
-    [                               (. moduleName = tok; .)
-      "." Ident<out tok>
-    ]
-    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, moduleName); .)
+  | Ident<out tok>                  (. gt = new List<Type/*!*/>();
+                                       path = new List<IToken>(); .)
+    {                               (. path.Add(tok); .)
+      "." Ident<out tok>           
+    }
+    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, path); .)
   )
   .
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
@@ -802,16 +803,18 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
       "]"                              (. // make sure an array class with this dimensionality exists
                                           UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
                                        .)
-    | "." Ident<out x>
-      "("                              (. args = new List<Expression/*!*/>(); .)
+    | "." Ident<out x>                 
+      "("                              (. // This case happens when we have type<typeargs>.Constructor(args)
+                                          // There is no ambiguity about where the constructor is or whether one exists.
+                                          args = new List<Expression/*!*/>(); .)
         [ Expressions<args> ]
       ")"                              (. initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args); .)
     | "("                              (. var udf = ty as UserDefinedType;
-                                          if (udf != null && udf.ModuleName != null && udf.TypeArgs.Count == 0) {
-                                            // The parsed name had the form "A.B", so treat "A" as the name of the type and "B" as
+                                          if (udf != null && 0 < udf.Path.Count && udf.TypeArgs.Count == 0) {
+                                            // The parsed name had the form "A.B.Ctr", so treat "A.B" as the name of the type and "Ctr" as
                                             // the name of the constructor that's being invoked.
                                             x = udf.tok;
-                                            ty = new UserDefinedType(udf.ModuleName, udf.ModuleName.val, new List<Type>(), null);
+                                            ty = new UserDefinedType(udf.Path[0], udf.Path[udf.Path.Count-1].val, new List<Type>(), udf.Path.GetRange(0,udf.Path.Count-1));
                                           } else {
                                             SemErr(t, "expected '.'");
                                             x = null;

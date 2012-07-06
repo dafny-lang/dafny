@@ -279,7 +279,7 @@ namespace Microsoft.Dafny {
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
-        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.ModuleName == null ? null : Tok(tt.ModuleName));
+        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => Tok(x)));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else {

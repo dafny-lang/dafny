@@ -414,9 +414,10 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
       Contract.Invariant(Name != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
+      Contract.Invariant(cce.NonNullElements(Path));
     }
 
-    public readonly IToken ModuleName;  // may be null
+    public readonly List<IToken> Path;  // may be null
     public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
@@ -454,11 +455,13 @@ namespace Microsoft.Dafny {
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, IToken moduleName) {
+    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, List<IToken> moduleName) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
-      this.ModuleName = moduleName;
+      Contract.Requires(moduleName == null || cce.NonNullElements(moduleName));
+      if (moduleName != null) this.Path = moduleName;
+      else this.Path = new List<IToken>();
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -476,6 +479,7 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.TypeArgs = typeArgs;
       this.ResolvedClass = cd;
+      this.Path = new List<IToken>();
     }
 
     /// <summary>
@@ -489,6 +493,7 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.TypeArgs = new List<Type/*!*/>();
       this.ResolvedParam = tp;
+      this.Path = new List<IToken>();
     }
 
     /// <summary>
@@ -522,19 +527,10 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string ToString() {
       Contract.Ensures(Contract.Result<string>() != null);
-
-      string s = Name;
-      if (ModuleName != null) {
-        s = ModuleName.val + "." + s;
-      }
+      
+      string s = Util.Comma(".", Path, i => i.val) + (Path.Count == 0 ? "" : ".") + Name;
       if (TypeArgs.Count != 0) {
-        string sep = "<";
-        foreach (Type t in TypeArgs) {
-          Contract.Assume(cce.IsPeerConsistent(t));
-          s += sep + t;
-          sep = ",";
-        }
-        s += ">";
+        s += "<" + Util.Comma(",", TypeArgs, ty => ty.ToString()) + ">";
       }
       return s;
     }
