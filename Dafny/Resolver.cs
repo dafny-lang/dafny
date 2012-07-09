@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
       foreach (var kv in m.StaticMembers) {
         info.StaticMembers[kv.Key] = kv.Value;
       }
-
+      info.IsGhost = m.IsGhost;
       return info;
     }
     ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef) {
@@ -3903,7 +3903,11 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         expr.Type = e.Body.Type;
 
-      } else if (expr is QuantifierExpr) {
+      } else if (expr is NamedExpr) {
+        var e = (NamedExpr)expr;
+        ResolveExpression(e.Body, twoState);
+        e.Type = e.Body.Type;
+      }else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
@@ -4347,6 +4351,9 @@ namespace Microsoft.Dafny {
           }
           return;
         }
+      } else if (expr is NamedExpr) {
+        if (moduleInfo.IsGhost) return;
+        else CheckIsNonGhost(((NamedExpr)expr).Body);
       }
 
       foreach (var ee in expr.SubExpressions) {
@@ -5380,6 +5387,8 @@ namespace Microsoft.Dafny {
           return true;
         }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
+      }  else if (expr is NamedExpr) {
+         return moduleInfo.IsGhost ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is ComprehensionExpr) {
         if (expr is QuantifierExpr && ((QuantifierExpr)expr).Bounds == null) {
           return true;  // the quantifier cannot be compiled if the resolver found no bounds

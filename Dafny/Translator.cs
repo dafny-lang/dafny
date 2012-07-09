@@ -2049,6 +2049,8 @@ namespace Microsoft.Dafny {
         }
         return BplAnd(canCall, CanCallAssumption(etran.GetSubstitutedBody(e), etran));
 
+      } else if (expr is NamedExpr) {
+        return CanCallAssumption(((NamedExpr)expr).Body, etran);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var total = CanCallAssumption(e.Term, etran);
@@ -2078,7 +2080,9 @@ namespace Microsoft.Dafny {
         total = BplAnd(total, Bpl.Expr.Imp(test, CanCallAssumption(e.Thn, etran)));
         total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), CanCallAssumption(e.Els, etran)));
         return total;
-      } else if (expr is ConcreteSyntaxExpression) {
+      } else if (expr is NamedExpr) {
+        return CanCallAssumption(((NamedExpr)expr).Body, etran);
+       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
       } else {
@@ -2512,6 +2516,8 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
         result = null;
 
+      } else if (expr is NamedExpr) {
+        CheckWellformedWithResult(((NamedExpr)expr).Body, options, result, resultType, locals, builder, etran);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran);
@@ -6006,6 +6012,8 @@ namespace Microsoft.Dafny {
           var e = (LetExpr)expr;
           return TrExpr(GetSubstitutedBody(e));
 
+        } else if (expr is NamedExpr) {
+          return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
@@ -7673,6 +7681,12 @@ namespace Microsoft.Dafny {
           newExpr = new LetExpr(e.tok, e.Vars, rhss, body);
         }
 
+      } else if (expr is NamedExpr) {
+        var e = (NamedExpr)expr;
+        var body = Substitute(e.Body, receiverReplacement, substMap);
+        if (body != e.Body) {
+          newExpr = new NamedExpr(e.tok, e.Name, body);
+        }
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         Expression newRange = e.Range == null ? null : Substitute(e.Range, receiverReplacement, substMap);

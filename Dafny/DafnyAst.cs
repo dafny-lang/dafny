@@ -2495,10 +2495,13 @@ namespace Microsoft.Dafny {
     public readonly Statement S;
     public readonly bool ConditionOmitted;
     public readonly bool BodyOmitted;
+    public readonly List<IToken> NameReplacements;
+    public readonly List<Expression> ExprReplacements;
     public SkeletonStatement(IToken tok)
       : base(tok)
     {
       Contract.Requires(tok != null);
+      S = null;
     }
     public SkeletonStatement(Statement s, bool conditionOmitted, bool bodyOmitted)
       : base(s.Tok)
@@ -2507,6 +2510,13 @@ namespace Microsoft.Dafny {
       S = s;
       ConditionOmitted = conditionOmitted;
       BodyOmitted = bodyOmitted;
+    }
+    public SkeletonStatement(IToken tok, List<IToken> nameReplacements, List<Expression> exprReplacements)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      NameReplacements = nameReplacements;
+      ExprReplacements = exprReplacements;
+      
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -3368,6 +3378,28 @@ namespace Microsoft.Dafny {
         foreach (var rhs in RHSs) {
           yield return rhs;
         }
+        yield return Body;
+      }
+    }
+  }
+
+  public class NamedExpr : Expression
+  {
+    public readonly string Name;
+    public readonly Expression Body;
+    public NamedExpr(IToken tok, IToken name, Expression body)
+      : base(tok) {
+      Name = name.val;
+      Body = body;
+    }
+
+    public NamedExpr(IToken tok, string p, Expression body)
+      : base(tok) {
+      Name = p;
+      Body = body;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
         yield return Body;
       }
     }
