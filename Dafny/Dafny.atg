@@ -1504,7 +1504,7 @@ NamedExpr<out Expression e>
     NoUSIdent<out d>
     ":"
     Expression<out e>               (. expr = e;
-                                       e = new NamedExpr(x, d, expr); .)
+                                       e = new NamedExpr(x, d.val, expr); .)
   .
 
 MatchExpression<out Expression/*!*/ e>

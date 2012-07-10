@@ -2658,7 +2658,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(5);
 		Expression(out e);
 		expr = e;
-		e = new NamedExpr(x, d, expr); 
+		e = new NamedExpr(x, d.val, expr); 
 	}
 
 	void CaseExpression(out MatchCaseExpr/*!*/ c) {

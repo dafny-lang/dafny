@@ -904,7 +904,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
-    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, false) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, true) {
     }
     public override bool IsDefaultModule {
       get {
@@ -3382,25 +3382,31 @@ namespace Microsoft.Dafny {
       }
     }
   }
-
+  // Represents expr Name: Body
+  //         or expr Name: (assert Body == Contract; Body)
   public class NamedExpr : Expression
   {
     public readonly string Name;
     public readonly Expression Body;
-    public NamedExpr(IToken tok, IToken name, Expression body)
-      : base(tok) {
-      Name = name.val;
-      Body = body;
-    }
+    public readonly Expression Contract;
+    public readonly IToken ReplacerToken;
 
     public NamedExpr(IToken tok, string p, Expression body)
       : base(tok) {
       Name = p;
       Body = body;
     }
+    public NamedExpr(IToken tok, string p, Expression body, Expression contract, IToken token)
+      : base(tok) {
+      Name = p;
+      Body = body;
+      Contract = contract;
+      ReplacerToken = token;
+    }
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return Body;
+        if (Contract != null) yield return Contract;
       }
     }
   }

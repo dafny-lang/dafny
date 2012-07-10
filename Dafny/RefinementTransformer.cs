@@ -806,7 +806,7 @@ namespace Microsoft.Dafny {
 
       return nw;
     }
-    private Statement SubstituteNamedExpr(Statement s, string p, Expression E, ref int subCount) {
+    private Statement SubstituteNamedExpr(Statement s, IToken p, Expression E, ref int subCount) {
       if (s == null) {
         return null;
       } else if (s is AssertStmt) {
@@ -886,15 +886,15 @@ namespace Microsoft.Dafny {
       }
 
     }
-    private Expression SubstituteNamedExpr(Expression expr, string p, Expression E, ref int subCount) {
+    private Expression SubstituteNamedExpr(Expression expr, IToken p, Expression E, ref int subCount) {
       if (expr == null) {
         return null;
       }
       if (expr is NamedExpr) {
         NamedExpr n = (NamedExpr)expr;
-        if (n.Name == p) {
+        if (n.Name == p.val) {
           subCount++;
-          return new NamedExpr(n.tok, n.Name, E);
+          return new NamedExpr(n.tok, n.Name, E, CloneExpr(n.Body), p);
         } else return new NamedExpr(n.tok, n.Name, SubstituteNamedExpr(n.Body, p, E, ref subCount));
       } else if (expr is LiteralExpr || expr is WildcardExpr | expr is ThisExpr || expr is IdentifierExpr) {
         return expr;
@@ -1021,7 +1021,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private List<Expression> SubstituteNamedExprList(List<Expression> list, string p, Expression E, ref int subCount) {
+    private List<Expression> SubstituteNamedExprList(List<Expression> list, IToken p, Expression E, ref int subCount) {
       List<Expression> res = new List<Expression>();
       foreach (Expression e in list) {
         res.Add(SubstituteNamedExpr(e, p, E, ref subCount));
@@ -1165,14 +1165,14 @@ namespace Microsoft.Dafny {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = CloneStmt(oldS);
                   if (c.NameReplacements != null)
-                    s = SubstituteNamedExpr(s, c.NameReplacements[0].val, c.ExprReplacements[0], ref subCount);
+                    s = SubstituteNamedExpr(s, c.NameReplacements[0], c.ExprReplacements[0], ref subCount);
                   body.Add(s);
                   j++;
                   if (j == oldStmt.Body.Count) { break; }
                   oldS = oldStmt.Body[j];
                 }
                 if (c.NameReplacements != null && subCount == 0)
-                  reporter.Error(c.NameReplacements[0], "did not find expression labeld {0}", c.NameReplacements[0].val);
+                  reporter.Error(c.NameReplacements[0], "did not find expression labeled {0}", c.NameReplacements[0].val);
               }
               i++;
 

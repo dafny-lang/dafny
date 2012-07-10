@@ -2050,7 +2050,11 @@ namespace Microsoft.Dafny {
         return BplAnd(canCall, CanCallAssumption(etran.GetSubstitutedBody(e), etran));
 
       } else if (expr is NamedExpr) {
-        return CanCallAssumption(((NamedExpr)expr).Body, etran);
+        var e = (NamedExpr)expr;
+        var canCall = CanCallAssumption(e.Body, etran);
+        if (e.Contract != null)
+          return BplAnd(canCall, CanCallAssumption(e.Contract, etran));
+        else return canCall;
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var total = CanCallAssumption(e.Term, etran);
@@ -2080,9 +2084,7 @@ namespace Microsoft.Dafny {
         total = BplAnd(total, Bpl.Expr.Imp(test, CanCallAssumption(e.Thn, etran)));
         total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), CanCallAssumption(e.Els, etran)));
         return total;
-      } else if (expr is NamedExpr) {
-        return CanCallAssumption(((NamedExpr)expr).Body, etran);
-       } else if (expr is ConcreteSyntaxExpression) {
+      } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
       } else {
@@ -2517,7 +2519,13 @@ namespace Microsoft.Dafny {
         result = null;
 
       } else if (expr is NamedExpr) {
-        CheckWellformedWithResult(((NamedExpr)expr).Body, options, result, resultType, locals, builder, etran);
+        var e = (NamedExpr)expr;
+        CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
+        if (e.Contract != null) {
+          CheckWellformedWithResult(e.Contract, options, result, resultType, locals, builder, etran);
+          var theSame = Bpl.Expr.Eq(etran.TrExpr(e.Body), etran.TrExpr(e.Contract));
+          builder.Add(Assert(new ForceCheckToken(e.ReplacerToken), theSame, "replacement must be the same value"));
+        }
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran);
@@ -6011,7 +6019,6 @@ namespace Microsoft.Dafny {
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           return TrExpr(GetSubstitutedBody(e));
-
         } else if (expr is NamedExpr) {
           return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
@@ -7684,9 +7691,8 @@ namespace Microsoft.Dafny {
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         var body = Substitute(e.Body, receiverReplacement, substMap);
-        if (body != e.Body) {
-          newExpr = new NamedExpr(e.tok, e.Name, body);
-        }
+        var contract = e.Contract == null ? null : Substitute(e.Contract, receiverReplacement, substMap);
+        newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         Expression newRange = e.Range == null ? null : Substitute(e.Range, receiverReplacement, substMap);

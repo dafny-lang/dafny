@@ -3906,6 +3906,7 @@ namespace Microsoft.Dafny {
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         ResolveExpression(e.Body, twoState);
+        if (e.Contract != null) ResolveExpression(e.Contract, twoState);
         e.Type = e.Body.Type;
       }else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
