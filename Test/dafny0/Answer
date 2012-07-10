@@ -714,28 +714,28 @@ Modules0.dfy(7,7): Error: Duplicate name of top-level declaration: WazzupA
 Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(11,8): Error: Duplicate name of top-level declaration: WazzupB
 Modules0.dfy(12,11): Error: Duplicate name of top-level declaration: WazzupB
-Modules0.dfy(53,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
-Modules0.dfy(54,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
-Modules0.dfy(65,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget a module import?)
-Modules0.dfy(72,20): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget a module import?)
-Modules0.dfy(72,34): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget a module import?)
-Modules0.dfy(75,23): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget a module import?)
-Modules0.dfy(80,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget a module import?)
-Modules0.dfy(89,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget a module import?)
-Modules0.dfy(221,15): Error: Undeclared top-level type or type parameter: X (did you forget a module import?)
+Modules0.dfy(53,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name?)
+Modules0.dfy(54,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
+Modules0.dfy(65,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
+Modules0.dfy(72,20): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name?)
+Modules0.dfy(72,34): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget to qualify a name?)
+Modules0.dfy(75,23): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget to qualify a name?)
+Modules0.dfy(80,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
+Modules0.dfy(89,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name?)
+Modules0.dfy(221,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
 Modules0.dfy(221,8): Error: new can be applied only to reference types (got X)
-Modules0.dfy(230,13): Error: The name does not exist in the given module
+Modules0.dfy(230,13): Error: Undeclared type X in module B
 Modules0.dfy(240,13): Error: unresolved identifier: X
 Modules0.dfy(241,15): Error: member DoesNotExist does not exist in class X
-Modules0.dfy(280,19): Error: Undeclared top-level type or type parameter: D (did you forget a module import?)
+Modules0.dfy(280,19): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name?)
 Modules0.dfy(280,12): Error: new can be applied only to reference types (got D)
 Modules0.dfy(283,25): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(284,16): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(284,6): Error: expected method call, found expression
 Modules0.dfy(285,16): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(285,6): Error: expected method call, found expression
-Modules0.dfy(307,24): Error: Undeclared module name: Q_Imp (did you forget a module import?)
-Modules0.dfy(97,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget a module import?)
+Modules0.dfy(307,24): Error: module Q_Imp does not exist
+Modules0.dfy(97,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
 28 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
@@ -1469,7 +1469,7 @@ Dafny program verifier finished with 48 verified, 9 errors
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions
 RefinementErrors.dfy(28,15): Error: a refining method is not allowed to extend the modifies clause
 RefinementErrors.dfy(31,14): Error: a predicate declaration (abc) can only refine a predicate
-RefinementErrors.dfy(32,8): Error: a field declaration (xyz) in a refining class (C) is not allowed replace an existing declaration in the refinement base
+RefinementErrors.dfy(32,8): Error: a field re-declaration (xyz) must be to ghostify the field
 RefinementErrors.dfy(34,13): Error: a function method cannot be changed into a (ghost) function in a refining module: F
 RefinementErrors.dfy(35,9): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'A', found 'C')
 RefinementErrors.dfy(35,11): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'B', found 'A')

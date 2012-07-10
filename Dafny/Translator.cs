@@ -2052,6 +2052,12 @@ namespace Microsoft.Dafny {
         }
         return BplAnd(canCall, CanCallAssumption(etran.GetSubstitutedBody(e), etran));
 
+      } else if (expr is NamedExpr) {
+        var e = (NamedExpr)expr;
+        var canCall = CanCallAssumption(e.Body, etran);
+        if (e.Contract != null)
+          return BplAnd(canCall, CanCallAssumption(e.Contract, etran));
+        else return canCall;
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var total = CanCallAssumption(e.Term, etran);
@@ -2515,6 +2521,14 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), options, result, resultType, locals, builder, etran);
         result = null;
 
+      } else if (expr is NamedExpr) {
+        var e = (NamedExpr)expr;
+        CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
+        if (e.Contract != null) {
+          CheckWellformedWithResult(e.Contract, options, result, resultType, locals, builder, etran);
+          var theSame = Bpl.Expr.Eq(etran.TrExpr(e.Body), etran.TrExpr(e.Contract));
+          builder.Add(Assert(new ForceCheckToken(e.ReplacerToken), theSame, "replacement must be the same value"));
+        }
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran);
@@ -6008,7 +6022,8 @@ namespace Microsoft.Dafny {
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           return TrExpr(GetSubstitutedBody(e));
-
+        } else if (expr is NamedExpr) {
+          return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
           Bpl.VariableSeq bvars = new Bpl.VariableSeq();
@@ -8090,6 +8105,11 @@ namespace Microsoft.Dafny {
             newExpr = new LetExpr(e.tok, e.Vars, rhss, body);
           }
 
+      } else if (expr is NamedExpr) {
+        var e = (NamedExpr)expr;
+        var body = Substitute(e.Body, receiverReplacement, substMap);
+        var contract = e.Contract == null ? null : Substitute(e.Contract, receiverReplacement, substMap);
+        newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           Expression newRange = e.Range == null ? null : Substitute(e.Range);

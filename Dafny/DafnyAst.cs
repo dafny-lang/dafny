@@ -414,9 +414,10 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
       Contract.Invariant(Name != null);
       Contract.Invariant(cce.NonNullElements(TypeArgs));
+      Contract.Invariant(cce.NonNullElements(Path));
     }
 
-    public readonly IToken ModuleName;  // may be null
+    public readonly List<IToken> Path;  // may be null
     public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
@@ -454,11 +455,13 @@ namespace Microsoft.Dafny {
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
-    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, IToken moduleName) {
+    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, List<IToken> moduleName) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
-      this.ModuleName = moduleName;
+      Contract.Requires(moduleName == null || cce.NonNullElements(moduleName));
+      if (moduleName != null) this.Path = moduleName;
+      else this.Path = new List<IToken>();
       this.tok = tok;
       this.Name = name;
       this.TypeArgs = typeArgs;
@@ -476,6 +479,7 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.TypeArgs = typeArgs;
       this.ResolvedClass = cd;
+      this.Path = new List<IToken>();
     }
 
     /// <summary>
@@ -489,6 +493,7 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.TypeArgs = new List<Type/*!*/>();
       this.ResolvedParam = tp;
+      this.Path = new List<IToken>();
     }
 
     /// <summary>
@@ -522,19 +527,10 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string ToString() {
       Contract.Ensures(Contract.Result<string>() != null);
-
-      string s = Name;
-      if (ModuleName != null) {
-        s = ModuleName.val + "." + s;
-      }
+      
+      string s = Util.Comma(".", Path, i => i.val) + (Path.Count == 0 ? "" : ".") + Name;
       if (TypeArgs.Count != 0) {
-        string sep = "<";
-        foreach (Type t in TypeArgs) {
-          Contract.Assume(cce.IsPeerConsistent(t));
-          s += sep + t;
-          sep = ",";
-        }
-        s += ">";
+        s += "<" + Util.Comma(",", TypeArgs, ty => ty.ToString()) + ">";
       }
       return s;
     }
@@ -844,6 +840,7 @@ namespace Microsoft.Dafny {
     public ModuleDefinition ModuleDef; // Note: this is null if this signature does not correspond to a specific definition (i.e.
                                        // it is abstract). Otherwise, it points to that definition.
     public ModuleSignature Refines;
+    public bool IsGhost = false;
     public ModuleSignature() {}
 
     public bool FindSubmodule(string name, out ModuleSignature pp) {
@@ -921,7 +918,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
-    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, false) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, true) {
     }
     public override bool IsDefaultModule {
       get {
@@ -2535,10 +2532,13 @@ namespace Microsoft.Dafny {
     public readonly Statement S;
     public readonly bool ConditionOmitted;
     public readonly bool BodyOmitted;
+    public readonly List<IToken> NameReplacements;
+    public readonly List<Expression> ExprReplacements;
     public SkeletonStatement(IToken tok)
       : base(tok)
     {
       Contract.Requires(tok != null);
+      S = null;
     }
     public SkeletonStatement(Statement s, bool conditionOmitted, bool bodyOmitted)
       : base(s.Tok)
@@ -2547,6 +2547,13 @@ namespace Microsoft.Dafny {
       S = s;
       ConditionOmitted = conditionOmitted;
       BodyOmitted = bodyOmitted;
+    }
+    public SkeletonStatement(IToken tok, List<IToken> nameReplacements, List<Expression> exprReplacements)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      NameReplacements = nameReplacements;
+      ExprReplacements = exprReplacements;
+      
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -3409,6 +3416,34 @@ namespace Microsoft.Dafny {
           yield return rhs;
         }
         yield return Body;
+      }
+    }
+  }
+  // Represents expr Name: Body
+  //         or expr Name: (assert Body == Contract; Body)
+  public class NamedExpr : Expression
+  {
+    public readonly string Name;
+    public readonly Expression Body;
+    public readonly Expression Contract;
+    public readonly IToken ReplacerToken;
+
+    public NamedExpr(IToken tok, string p, Expression body)
+      : base(tok) {
+      Name = p;
+      Body = body;
+    }
+    public NamedExpr(IToken tok, string p, Expression body, Expression contract, IToken token)
+      : base(tok) {
+      Name = p;
+      Body = body;
+      Contract = contract;
+      ReplacerToken = token;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Body;
+        if (Contract != null) yield return Contract;
       }
     }
   }

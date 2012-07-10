@@ -174,11 +174,14 @@ namespace Microsoft.Dafny {
           literalDecl.Signature.Refines = refinedSig;
           var sig = literalDecl.Signature;
           // set up environment
+          var errorCount = ErrorCount;
           ResolveModuleDefinition(m, sig);
 
-          refinementTransformer.PostResolve(m);
-          // give rewriter a chance to do processing
-          rewriter.PostResolve(m);
+          if (ErrorCount == errorCount) {
+            refinementTransformer.PostResolve(m);
+            // give rewriter a chance to do processing
+            rewriter.PostResolve(m);
+          }
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
           // resolve the path
@@ -220,7 +223,7 @@ namespace Microsoft.Dafny {
       // resolve
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       int prevErrorCount = ErrorCount;
-      ResolveTopLevelDecls_Signatures(m.TopLevelDecls, datatypeDependencies);
+      ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies);
       if (ErrorCount == prevErrorCount)
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
     }
@@ -359,13 +362,14 @@ namespace Microsoft.Dafny {
       foreach (var kv in m.StaticMembers) {
         info.StaticMembers[kv.Key] = kv.Value;
       }
-
+      info.IsGhost = m.IsGhost;
       return info;
     }
     ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
+      sig.IsGhost = moduleDef.IsGhost;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
       foreach (TopLevelDecl d in declarations) {
@@ -566,7 +570,7 @@ namespace Microsoft.Dafny {
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
-        return new UserDefinedType(tt.tok, tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.ModuleName == null ? null : tt.ModuleName);
+        return new UserDefinedType(tt.tok, tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => x));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else {
@@ -802,7 +806,7 @@ namespace Microsoft.Dafny {
       }
       return i == Path.Count;
     }
-    public void ResolveTopLevelDecls_Signatures(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
+    public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(datatypeDependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(datatypeDependencies));
       foreach (TopLevelDecl d in declarations) {
@@ -814,7 +818,18 @@ namespace Microsoft.Dafny {
         } else if (d is ClassDecl) {
           ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
-          // TODO: what goes here?
+          var decl = (ModuleDecl)d;
+          if (!def.IsGhost) {
+            if (decl.Signature.IsGhost) {
+              if (!(def.IsDefaultModule)) // _module is allowed to contain ghost modules, but not by ghost itself. Note this presents a challenge to 
+                                          // trusted verification, as toplevels can't be trusted if they invoke ghost module members.
+                Error(d.tok, "ghost modules can only be imported into other ghost modules, not physical ones.");
+            } else {
+              // physical modules are allowed everywhere
+            }
+          } else {
+            // everything is allowed in a ghost module
+          }
         } else {
           ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
         }
@@ -1938,7 +1953,7 @@ namespace Microsoft.Dafny {
             Error(t.tok, "sorry, cannot instantiate type parameter with a subrange type");
           }
         }
-        TypeParameter tp = t.ModuleName == null ? allTypeParameters.Find(t.Name) : null;
+        TypeParameter tp = t.Path.Count == 0 ? allTypeParameters.Find(t.Name) : null;
         if (tp != null) {
           if (t.TypeArgs.Count == 0) {
             t.ResolvedParam = tp;
@@ -1947,17 +1962,26 @@ namespace Microsoft.Dafny {
           }
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d = null;
-          if (t.ModuleName != null) {
-            ModuleSignature sig;
-            if (moduleInfo.FindSubmodule(t.ModuleName.val, out sig)) {
-              if (!sig.TopLevels.TryGetValue(t.Name, out d)) {
-                Error(t.tok, "The name does not exist in the given module");
-              }
+
+          int j = 0;
+          var sig = moduleInfo;
+          while (j < t.Path.Count) {
+            if (sig.FindSubmodule(t.Path[j].val, out sig)) {
+              j++;
             } else {
-              Error(t.ModuleName, "Undeclared module name: {0} (did you forget a module import?)", t.ModuleName.val);
+              Error(t.Path[j], "module {0} does not exist", t.Path[j].val);
+              break;
             }
-          } else if (!moduleInfo.TopLevels.TryGetValue(t.Name, out d)) {
-            Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget a module import?)", t.Name);
+          }
+          if (j == t.Path.Count) {
+            if (!sig.TopLevels.TryGetValue(t.Name, out d)) {
+              if (j == 0)
+                Error(t.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name?)", t.Name);
+              else
+                Error(t.tok, "Undeclared type {0} in module {1}", t.Name, t.Path[t.Path.Count - 1].val);
+            }
+          } else {
+            // error has already been reported
           }
 
           if (d == null) {
@@ -3578,44 +3602,9 @@ namespace Microsoft.Dafny {
         } else if (d is AmbiguousTopLevelDecl) {
           Error(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1}", dtv.DatatypeName, ((AmbiguousTopLevelDecl)d).ModuleNames());
         } else if (!(d is DatatypeDecl)) {
-          Error(expr.tok, "Expected datatype, found class: {0}", dtv.DatatypeName);
+          Error(expr.tok, "Expected datatype: {0}", dtv.DatatypeName);
         } else {
-          // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
-          DatatypeDecl dt = (DatatypeDecl)d;
-          List<Type> gt = new List<Type>(dt.TypeArgs.Count);
-          Dictionary<TypeParameter,Type> subst = new Dictionary<TypeParameter,Type>();
-          for (int i = 0; i < dt.TypeArgs.Count; i++) {
-            Type t = new InferredTypeProxy();
-            gt.Add(t);
-            dtv.InferredTypeArgs.Add(t);
-            subst.Add(dt.TypeArgs[i], t);
-          }
-          expr.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, gt, null);
-          ResolveType(expr.tok, expr.Type, null, true);
-
-          DatatypeCtor ctor;
-          if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
-            Error(expr.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
-          } else {
-            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-            dtv.Ctor = ctor;
-            if (ctor.Formals.Count != dtv.Arguments.Count) {
-              Error(expr.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", dtv.DatatypeName, dtv.Arguments.Count, ctor.Formals.Count);
-            }
-          }
-          int j = 0;
-          foreach (Expression arg in dtv.Arguments) {
-            Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
-            ResolveExpression(arg, twoState, null);
-            Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
-            if (formal != null) {
-              Type st = SubstType(formal.Type, subst);
-              if (!UnifyTypes(arg.Type, st)) {
-                Error(arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
-              }
-            }
-            j++;
-          }
+          ResolveDatatypeValue(twoState, dtv, (DatatypeDecl)d);
         }
 
       } else if (expr is DisplayExpression) {
@@ -3982,7 +3971,12 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         expr.Type = e.Body.Type;
 
-      } else if (expr is QuantifierExpr) {
+      } else if (expr is NamedExpr) {
+        var e = (NamedExpr)expr;
+        ResolveExpression(e.Body, twoState);
+        if (e.Contract != null) ResolveExpression(e.Contract, twoState);
+        e.Type = e.Body.Type;
+      }else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
@@ -4246,6 +4240,44 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void ResolveDatatypeValue(bool twoState, DatatypeValue dtv, DatatypeDecl dt) {
+      // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
+      List<Type> gt = new List<Type>(dt.TypeArgs.Count);
+      Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+      for (int i = 0; i < dt.TypeArgs.Count; i++) {
+        Type t = new InferredTypeProxy();
+        gt.Add(t);
+        dtv.InferredTypeArgs.Add(t);
+        subst.Add(dt.TypeArgs[i], t);
+      }
+      // Construct a resolved type directly, as we know the declaration is dt.
+      dtv.Type = new UserDefinedType(dtv.tok, dtv.DatatypeName, dt, gt);
+      
+      DatatypeCtor ctor;
+      if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
+        Error(dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
+      } else {
+        Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
+        dtv.Ctor = ctor;
+        if (ctor.Formals.Count != dtv.Arguments.Count) {
+          Error(dtv.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", dtv.DatatypeName, dtv.Arguments.Count, ctor.Formals.Count);
+        }
+      }
+      int j = 0;
+      foreach (Expression arg in dtv.Arguments) {
+        Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
+        ResolveExpression(arg, twoState, null);
+        Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
+        if (formal != null) {
+          Type st = SubstType(formal.Type, subst);
+          if (!UnifyTypes(arg.Type, st)) {
+            Error(arg.tok, "incorrect type of datatype constructor argument (found {0}, expected {1})", arg.Type, st);
+          }
+        }
+        j++;
+      }
+    }
+
     private bool ComparableTypes(Type A, Type B) {
       if (A.IsArrayType && B.IsArrayType) {
         Type a = UserDefinedType.ArrayElementType(A);
@@ -4343,7 +4375,8 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
         // check all NON-ghost arguments
-        for (int i = 0; i < e.Ctor.Formals.Count; i++) {
+        // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
+        for (int i = 0; i < e.Arguments.Count; i++) {
           if (!e.Ctor.Formals[i].IsGhost) {
             CheckIsNonGhost(e.Arguments[i]);
           }
@@ -4387,6 +4420,9 @@ namespace Microsoft.Dafny {
           }
           return;
         }
+      } else if (expr is NamedExpr) {
+        if (moduleInfo.IsGhost) return;
+        else CheckIsNonGhost(((NamedExpr)expr).Body);
       }
 
       foreach (var ee in expr.SubExpressions) {
@@ -4606,6 +4642,7 @@ namespace Microsoft.Dafny {
 
       TopLevelDecl decl;
       MemberDecl member;
+      Tuple<DatatypeCtor, bool> pair;
       var id = e.Tokens[p];
       if (sig.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
@@ -4626,9 +4663,23 @@ namespace Microsoft.Dafny {
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
           var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
           r = new DatatypeValue(id, id.val, e.Tokens[p + 1].val, args);
-          ResolveExpression(r, twoState);
+          ResolveDatatypeValue(twoState, (DatatypeValue) r, dt);
           if (e.Tokens.Count != p + 2) {
             r = ResolveSuffix(r, e, p + 2, twoState, allowMethodCall, out call);
+          }
+        }
+      } else if (sig.Ctors.TryGetValue(id.val, out pair)) {
+        // ----- root is a datatype constructor
+        if (pair.Item2) {
+          // there is more than one constructor with this name
+          Error(id, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", id.val, pair.Item1.EnclosingDatatype.Name);
+        } else {
+          var dt = pair.Item1.EnclosingDatatype;
+          var args = (e.Tokens.Count == p+1 ? e.Arguments : null) ?? new List<Expression>();
+          r = new DatatypeValue(id, dt.Name, id.val, args);
+          ResolveDatatypeValue(twoState, (DatatypeValue)r, dt);
+          if (e.Tokens.Count != p+1) {
+            r = ResolveSuffix(r, e, p+1, twoState, allowMethodCall, out call);
           }
         }
       } else if (sig.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
@@ -5408,6 +5459,8 @@ namespace Microsoft.Dafny {
           return true;
         }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
+      }  else if (expr is NamedExpr) {
+         return moduleInfo.IsGhost ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is ComprehensionExpr) {
         if (expr is QuantifierExpr && ((QuantifierExpr)expr).Bounds == null) {
           return true;  // the quantifier cannot be compiled if the resolver found no bounds
