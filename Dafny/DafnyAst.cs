@@ -1184,11 +1184,21 @@ namespace Microsoft.Dafny {
   public class DatatypeDestructor : SpecialField
   {
     public readonly DatatypeCtor EnclosingCtor;
+    public readonly Formal CorrespondingFormal;
 
-    public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
+    public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
       : base(tok, name, compiledName, preString, postString, isGhost, false, type, attributes)
     {
+      Contract.Requires(tok != null);
+      Contract.Requires(enclosingCtor != null);
+      Contract.Requires(correspondingFormal != null);
+      Contract.Requires(name != null);
+      Contract.Requires(compiledName != null);
+      Contract.Requires(preString != null);
+      Contract.Requires(postString != null);
+      Contract.Requires(type != null);
       EnclosingCtor = enclosingCtor;
+      CorrespondingFormal = correspondingFormal;
     }
   }
 

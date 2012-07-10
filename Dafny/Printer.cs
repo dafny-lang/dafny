@@ -1250,6 +1250,10 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MatchExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr
+      } else if (expr is BoxingCastExpr) {
+        // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
+        var e = (BoxingCastExpr)expr;
+        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, indent);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
