@@ -7,7 +7,7 @@ namespace Microsoft.Dafny {
   class Util
   {
      public delegate string ToString<T>(T t);
-     public static string Comma<T>(string comma, List<T> l, ToString<T> f) {
+     public static string Comma<T>(string comma, IEnumerable<T> l, ToString<T> f) {
        string res = "";
        string c = "";
        foreach(var t in l) {

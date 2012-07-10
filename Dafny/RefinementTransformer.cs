@@ -809,15 +809,15 @@ namespace Microsoft.Dafny {
 
       return nw;
     }
-    private Statement SubstituteNamedExpr(Statement s, IToken p, Expression E, ref int subCount) {
+    private Statement SubstituteNamedExpr(Statement s, Dictionary<string, Expression> sub, SortedSet<string> subs) {
       if (s == null) {
         return null;
       } else if (s is AssertStmt) {
         AssertStmt stmt = (AssertStmt)s;
-        return new AssertStmt(stmt.Tok, SubstituteNamedExpr(stmt.Expr, p, E, ref subCount), null);
+        return new AssertStmt(stmt.Tok, SubstituteNamedExpr(stmt.Expr, sub, subs), null);
       } else if (s is AssumeStmt) {
         AssumeStmt stmt = (AssumeStmt)s;
-        return new AssumeStmt(stmt.Tok, SubstituteNamedExpr(stmt.Expr, p, E, ref subCount), null);
+        return new AssumeStmt(stmt.Tok, SubstituteNamedExpr(stmt.Expr, sub, subs), null);
       } else if (s is PrintStmt) {
         throw new NotImplementedException();
       } else if (s is BreakStmt) {
@@ -833,16 +833,16 @@ namespace Microsoft.Dafny {
         List<Expression> lhs = new List<Expression>();
         List<AssignmentRhs> rhs = new List<AssignmentRhs>();
         foreach (Expression l in stmt.Lhss) {
-          lhs.Add(SubstituteNamedExpr(l, p, E, ref subCount));
+          lhs.Add(SubstituteNamedExpr(l, sub, subs));
         }
         foreach (AssignmentRhs r in stmt.Rhss) {
           if (r is HavocRhs) {
             rhs.Add(r); // no substitution on Havoc (*);
           } else if (r is ExprRhs) {
-            rhs.Add(new ExprRhs(SubstituteNamedExpr(((ExprRhs)r).Expr, p, E, ref subCount)));
+            rhs.Add(new ExprRhs(SubstituteNamedExpr(((ExprRhs)r).Expr, sub, subs)));
           } else if (r is CallRhs) {
             CallRhs rr = (CallRhs)r;
-            rhs.Add(new CallRhs(rr.Tok, SubstituteNamedExpr(rr.Receiver, p, E, ref subCount), rr.MethodName, SubstituteNamedExprList(rr.Args, p, E, ref subCount)));
+            rhs.Add(new CallRhs(rr.Tok, SubstituteNamedExpr(rr.Receiver, sub, subs), rr.MethodName, SubstituteNamedExprList(rr.Args, sub, subs)));
           } else if (r is TypeRhs) {
             rhs.Add(r);
           } else {
@@ -862,19 +862,19 @@ namespace Microsoft.Dafny {
         BlockStmt stmt = (BlockStmt)s;
         List<Statement> res = new List<Statement>();
         foreach (Statement ss in stmt.Body) {
-          res.Add(SubstituteNamedExpr(ss, p, E, ref subCount));
+          res.Add(SubstituteNamedExpr(ss, sub, subs));
         }
         return new BlockStmt(stmt.Tok, res);
       } else if (s is IfStmt) {
         IfStmt stmt = (IfStmt)s;
-        return new IfStmt(stmt.Tok, SubstituteNamedExpr(stmt.Guard, p, E, ref subCount),
-                         (BlockStmt)SubstituteNamedExpr(stmt.Thn, p, E, ref subCount),
-                                    SubstituteNamedExpr(stmt.Els, p, E, ref subCount));
+        return new IfStmt(stmt.Tok, SubstituteNamedExpr(stmt.Guard, sub, subs),
+                         (BlockStmt)SubstituteNamedExpr(stmt.Thn, sub, subs),
+                                    SubstituteNamedExpr(stmt.Els, sub, subs));
       } else if (s is AlternativeStmt) {
         return s;
       } else if (s is WhileStmt) {
         WhileStmt stmt = (WhileStmt)s;
-        return new WhileStmt(stmt.Tok, SubstituteNamedExpr(stmt.Guard, p, E, ref subCount), stmt.Invariants, stmt.Decreases, stmt.Mod, (BlockStmt)SubstituteNamedExpr(stmt.Body, p, E, ref subCount));
+        return new WhileStmt(stmt.Tok, SubstituteNamedExpr(stmt.Guard, sub, subs), stmt.Invariants, stmt.Decreases, stmt.Mod, (BlockStmt)SubstituteNamedExpr(stmt.Body, sub, subs));
       } else if (s is AlternativeLoopStmt) {
         return s;
       } else if (s is ParallelStmt) {
@@ -889,21 +889,22 @@ namespace Microsoft.Dafny {
       }
 
     }
-    private Expression SubstituteNamedExpr(Expression expr, IToken p, Expression E, ref int subCount) {
+    private Expression SubstituteNamedExpr(Expression expr, Dictionary<string, Expression> sub, SortedSet<string> subs) {
       if (expr == null) {
         return null;
       }
       if (expr is NamedExpr) {
         NamedExpr n = (NamedExpr)expr;
-        if (n.Name == p.val) {
-          subCount++;
-          return new NamedExpr(n.tok, n.Name, E, CloneExpr(n.Body), p);
-        } else return new NamedExpr(n.tok, n.Name, SubstituteNamedExpr(n.Body, p, E, ref subCount));
+        Expression E;
+        if (sub.TryGetValue(n.Name, out E)) {
+          subs.Add(n.Name);
+          return new NamedExpr(n.tok, n.Name, E, CloneExpr(n.Body), E.tok);
+        } else return new NamedExpr(n.tok, n.Name, SubstituteNamedExpr(n.Body, sub, subs));
       } else if (expr is LiteralExpr || expr is WildcardExpr | expr is ThisExpr || expr is IdentifierExpr) {
         return expr;
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
-        List<Expression> newElements = SubstituteNamedExprList(e.Elements, p, E, ref subCount);
+        List<Expression> newElements = SubstituteNamedExprList(e.Elements, sub, subs);
         if (expr is SetDisplayExpr) {
           return new SetDisplayExpr(expr.tok, newElements);
         } else if (expr is MultiSetDisplayExpr) {
@@ -913,65 +914,65 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is FieldSelectExpr) {
         FieldSelectExpr fse = (FieldSelectExpr)expr;
-        Expression substE = SubstituteNamedExpr(fse.Obj, p, E, ref subCount);
+        Expression substE = SubstituteNamedExpr(fse.Obj, sub, subs);
         return new FieldSelectExpr(fse.tok, substE, fse.FieldName);
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr sse = (SeqSelectExpr)expr;
-        Expression seq = SubstituteNamedExpr(sse.Seq, p, E, ref subCount);
-        Expression e0 = sse.E0 == null ? null : SubstituteNamedExpr(sse.E0, p, E, ref subCount);
-        Expression e1 = sse.E1 == null ? null : SubstituteNamedExpr(sse.E1, p, E, ref subCount);
+        Expression seq = SubstituteNamedExpr(sse.Seq, sub, subs);
+        Expression e0 = sse.E0 == null ? null : SubstituteNamedExpr(sse.E0, sub, subs);
+        Expression e1 = sse.E1 == null ? null : SubstituteNamedExpr(sse.E1, sub, subs);
         return new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1);
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr sse = (SeqUpdateExpr)expr;
-        Expression seq = SubstituteNamedExpr(sse.Seq, p, E, ref subCount);
-        Expression index = SubstituteNamedExpr(sse.Index, p, E, ref subCount);
-        Expression val = SubstituteNamedExpr(sse.Value, p, E, ref subCount);
+        Expression seq = SubstituteNamedExpr(sse.Seq, sub, subs);
+        Expression index = SubstituteNamedExpr(sse.Index, sub, subs);
+        Expression val = SubstituteNamedExpr(sse.Value, sub, subs);
         return new SeqUpdateExpr(sse.tok, seq, index, val);
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr mse = (MultiSelectExpr)expr;
-        Expression array = SubstituteNamedExpr(mse.Array, p, E, ref subCount);
-        List<Expression> newArgs = SubstituteNamedExprList(mse.Indices, p, E, ref subCount);
+        Expression array = SubstituteNamedExpr(mse.Array, sub, subs);
+        List<Expression> newArgs = SubstituteNamedExprList(mse.Indices, sub, subs);
         return new MultiSelectExpr(mse.tok, array, newArgs);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
-        Expression receiver = SubstituteNamedExpr(e.Receiver, p, E, ref subCount);
-        List<Expression> newArgs = SubstituteNamedExprList(e.Args, p, E, ref subCount);
+        Expression receiver = SubstituteNamedExpr(e.Receiver, sub, subs);
+        List<Expression> newArgs = SubstituteNamedExprList(e.Args, sub, subs);
         return new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
-        List<Expression> newArgs = SubstituteNamedExprList(dtv.Arguments, p, E, ref subCount);
+        List<Expression> newArgs = SubstituteNamedExprList(dtv.Arguments, sub, subs);
         return new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArgs);
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, p, E, ref subCount);
+        Expression se = SubstituteNamedExpr(e.E, sub, subs);
         return new OldExpr(expr.tok, se);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, p, E, ref subCount);
+        Expression se = SubstituteNamedExpr(e.E, sub, subs);
         return new FreshExpr(expr.tok, se);
       } else if (expr is AllocatedExpr) {
         AllocatedExpr e = (AllocatedExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, p, E, ref subCount);
+        Expression se = SubstituteNamedExpr(e.E, sub, subs);
         return new AllocatedExpr(expr.tok, se);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, p, E, ref subCount);
+        Expression se = SubstituteNamedExpr(e.E, sub, subs);
         return new UnaryExpr(expr.tok, e.Op, se);
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
-        Expression e0 = SubstituteNamedExpr(e.E0, p, E, ref subCount);
-        Expression e1 = SubstituteNamedExpr(e.E1, p, E, ref subCount);
+        Expression e0 = SubstituteNamedExpr(e.E0, sub, subs);
+        Expression e1 = SubstituteNamedExpr(e.E1, sub, subs);
         return new BinaryExpr(expr.tok, e.Op, e0, e1);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        var rhss = SubstituteNamedExprList(e.RHSs, p, E, ref subCount);
-        var body = SubstituteNamedExpr(e.Body, p, E, ref subCount);
+        var rhss = SubstituteNamedExprList(e.RHSs, sub, subs);
+        var body = SubstituteNamedExpr(e.Body, sub, subs);
         return new LetExpr(e.tok, e.Vars, rhss, body);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
-        Expression newRange = e.Range == null ? null : SubstituteNamedExpr(e.Range, p, E, ref subCount);
-        Expression newTerm = SubstituteNamedExpr(e.Term, p, E, ref subCount);
-        Attributes newAttrs = e.Attributes;//SubstituteNamedExpr(e.Attributes, p, E, ref subCount);
+        Expression newRange = e.Range == null ? null : SubstituteNamedExpr(e.Range, sub, subs);
+        Expression newTerm = SubstituteNamedExpr(e.Term, sub, subs);
+        Attributes newAttrs = e.Attributes;//SubstituteNamedExpr(e.Attributes, sub, ref subCount);
         if (e is SetComprehension) {
           return new SetComprehension(expr.tok, e.BoundVars, newRange, newTerm);
         } else if (e is MapComprehension) {
@@ -990,8 +991,8 @@ namespace Microsoft.Dafny {
 
       } else if (expr is PredicateExpr) {
         var e = (PredicateExpr)expr;
-        Expression g = SubstituteNamedExpr(e.Guard, p, E, ref subCount);
-        Expression b = SubstituteNamedExpr(e.Body, p, E, ref subCount);
+        Expression g = SubstituteNamedExpr(e.Guard, sub, subs);
+        Expression b = SubstituteNamedExpr(e.Body, sub, subs);
         if (expr is AssertExpr) {
           return new AssertExpr(e.tok, g, b);
         } else {
@@ -999,21 +1000,21 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
-        Expression test = SubstituteNamedExpr(e.Test, p, E, ref subCount);
-        Expression thn = SubstituteNamedExpr(e.Thn, p, E, ref subCount);
-        Expression els = SubstituteNamedExpr(e.Els, p, E, ref subCount);
+        Expression test = SubstituteNamedExpr(e.Test, sub, subs);
+        Expression thn = SubstituteNamedExpr(e.Thn, sub, subs);
+        Expression els = SubstituteNamedExpr(e.Els, sub, subs);
         return new ITEExpr(expr.tok, test, thn, els);
       } else if (expr is ConcreteSyntaxExpression) {
         if (expr is ParensExpression) {
-          return SubstituteNamedExpr(((ParensExpression)expr).E, p, E, ref subCount);
+          return SubstituteNamedExpr(((ParensExpression)expr).E, sub, subs);
         } else if (expr is IdentifierSequence) {
           return expr;
         } else if (expr is ExprDotName) {
           ExprDotName edn = (ExprDotName)expr;
-          return new ExprDotName(edn.tok, SubstituteNamedExpr(edn.Obj, p, E, ref subCount), edn.SuffixName);
+          return new ExprDotName(edn.tok, SubstituteNamedExpr(edn.Obj, sub, subs), edn.SuffixName);
         } else if (expr is ChainingExpression) {
           ChainingExpression ch = (ChainingExpression)expr;
-          return SubstituteNamedExpr(ch.E, p, E, ref subCount);
+          return SubstituteNamedExpr(ch.E, sub, subs);
         } else {
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -1024,10 +1025,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private List<Expression> SubstituteNamedExprList(List<Expression> list, IToken p, Expression E, ref int subCount) {
+    private List<Expression> SubstituteNamedExprList(List<Expression> list, Dictionary<string, Expression> sub, SortedSet<string> subCount) {
       List<Expression> res = new List<Expression>();
       foreach (Expression e in list) {
-        res.Add(SubstituteNamedExpr(e, p, E, ref subCount));
+        res.Add(SubstituteNamedExpr(e, sub, subCount));
       }
       return res;
     }
@@ -1162,20 +1163,34 @@ namespace Microsoft.Dafny {
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
               } else {
-                int subCount = 0;
+                SortedSet<string> substitutions = null;
+                Dictionary<string, Expression> subExprs = null;
+                if (c.NameReplacements != null) {
+                  subExprs = new Dictionary<string, Expression>();
+                  substitutions = new SortedSet<string>();
+                  Contract.Assert(c.NameReplacements.Count == c.ExprReplacements.Count);
+                  for (int k = 0; k < c.NameReplacements.Count; k++) {
+                    if (subExprs.ContainsKey(c.NameReplacements[k].val)) {
+                      reporter.Error(c.NameReplacements[k], "replacement definition must contain at most one definition for a given label");
+                    } else subExprs.Add(c.NameReplacements[k].val, c.ExprReplacements[k]);
+                  }
+                }
                 // skip up until the next thing that matches "nxt"
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = CloneStmt(oldS);
-                  if (c.NameReplacements != null)
-                    s = SubstituteNamedExpr(s, c.NameReplacements[0], c.ExprReplacements[0], ref subCount);
+                  if (subExprs != null) 
+                    s = SubstituteNamedExpr(s, subExprs, substitutions);
                   body.Add(s);
                   j++;
                   if (j == oldStmt.Body.Count) { break; }
                   oldS = oldStmt.Body[j];
                 }
-                if (c.NameReplacements != null && subCount == 0)
-                  reporter.Error(c.NameReplacements[0], "did not find expression labeled {0}", c.NameReplacements[0].val);
+                if (subExprs != null && substitutions.Count < subExprs.Count) {
+                  foreach (var s in substitutions)
+                    subExprs.Remove(s);
+                  reporter.Error(c.Tok, "could not find labeled expression(s): " + Util.Comma(", ", subExprs.Keys, x => x));
+                }
               }
               i++;
 

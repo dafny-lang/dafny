@@ -28,7 +28,7 @@ namespace Demo
           "in", "forall", "exists",
           "seq", "set", "map", "multiset", "array", "array2", "array3",
           "match", "case",
-          "fresh", "allocated", "old", "choose"
+          "fresh", "allocated", "old", "choose", "where"
           );
 
         StringLiteral s = new StringLiteral("String", "'", StringFlags.AllowsDoubledQuote);
@@ -321,6 +321,7 @@ namespace Demo
           | "allocated"
           | "old"
           | "choose"
+          | "where"
           | ident
           | "}"
           | "{"

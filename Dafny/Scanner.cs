@@ -211,8 +211,8 @@ public class UTF8Buffer: Buffer {
 public class Scanner {
 	const char EOL = '\n';
 	const int eofSym = 0; /* pdt */
-	const int maxT = 110;
-	const int noSym = 110;
+	const int maxT = 109;
+	const int noSym = 109;
 
 
 	[ContractInvariantMethod]
@@ -521,7 +521,7 @@ public class Scanner {
 			case "label": t.kind = 51; break;
 			case "break": t.kind = 52; break;
 			case "where": t.kind = 53; break;
-			case "return": t.kind = 54; break;
+			case "return": t.kind = 55; break;
 			case "assume": t.kind = 57; break;
 			case "new": t.kind = 58; break;
 			case "choose": t.kind = 61; break;
@@ -543,9 +543,8 @@ public class Scanner {
 			case "allocated": t.kind = 99; break;
 			case "old": t.kind = 100; break;
 			case "then": t.kind = 101; break;
-			case "expr": t.kind = 102; break;
-			case "forall": t.kind = 104; break;
-			case "exists": t.kind = 106; break;
+			case "forall": t.kind = 103; break;
+			case "exists": t.kind = 105; break;
 			default: break;
 		}
 	}
@@ -665,7 +664,7 @@ public class Scanner {
 			case 25:
 				{t.kind = 50; break;}
 			case 26:
-				{t.kind = 55; break;}
+				{t.kind = 54; break;}
 			case 27:
 				{t.kind = 56; break;}
 			case 28:
@@ -719,13 +718,13 @@ public class Scanner {
 			case 51:
 				{t.kind = 93; break;}
 			case 52:
-				{t.kind = 105; break;}
+				{t.kind = 104; break;}
 			case 53:
-				{t.kind = 107; break;}
+				{t.kind = 106; break;}
 			case 54:
-				{t.kind = 108; break;}
+				{t.kind = 107; break;}
 			case 55:
-				{t.kind = 109; break;}
+				{t.kind = 108; break;}
 			case 56:
 				recEnd = pos; recKind = 5;
 				if (ch == '=') {AddCh(); goto case 26;}
@@ -763,9 +762,9 @@ public class Scanner {
 				if (ch == '>') {AddCh(); goto case 34;}
 				else {t.kind = 24; break;}
 			case 64:
-				recEnd = pos; recKind = 103;
+				recEnd = pos; recKind = 102;
 				if (ch == '.') {AddCh(); goto case 23;}
-				else {t.kind = 103; break;}
+				else {t.kind = 102; break;}
 			case 65:
 				recEnd = pos; recKind = 80;
 				if (ch == '=') {AddCh(); goto case 31;}

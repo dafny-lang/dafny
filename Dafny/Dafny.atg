@@ -765,14 +765,24 @@ OneStmt<out Statement/*!*/ s>
 SkeletonStmt<out Statement s>
 = (. List<IToken> names = null;
      List<Expression> exprs = null;
-     IToken tok, dotdotdot;
+     IToken tok, dotdotdot, whereTok;
      Expression e; .)
   "..."                                (. dotdotdot = t; .)
-  ["where"                             (. names = new List<IToken>(); exprs = new List<Expression>(); .)
-     Ident<out tok> "=" Expression<out e>        (. names.Add(tok); exprs.Add(e); .)
-     {"," Ident<out tok> "=" Expression<out e> } (. names.Add(tok); exprs.Add(e); .)
+  ["where"                             (. names = new List<IToken>(); exprs = new List<Expression>(); whereTok = t;.)
+     Ident<out tok>                    (. names.Add(tok); .)
+     {"," Ident<out tok>               (. names.Add(tok); .)
+     }
+     ":=" 
+     Expression<out e>                 (. exprs.Add(e); .)
+     {"," Expression<out e>            (. exprs.Add(e); .)
+     }
+                                       (. if (exprs.Count != names.Count) {
+                                            SemErr(whereTok, exprs.Count < names.Count ? "not enough expressions" : "too many expressions");
+                                            names = null; exprs = null;
+                                          }
+                                       .) 
   ]
-                                       (. s = new SkeletonStatement(dotdotdot, names, exprs); .)
+  (. s = new SkeletonStatement(dotdotdot, names, exprs); .)
   .
 ReturnStmt<out Statement/*!*/ s>
 = (.
@@ -1527,7 +1537,7 @@ NamedExpr<out Expression e>
      e = dummyExpr;
      Expression expr;
   .)
-    "expr"                          (. x = t; .)
+    "label"                          (. x = t; .)
     NoUSIdent<out d>
     ":"
     Expression<out e>               (. expr = e;

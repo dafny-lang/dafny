@@ -9,9 +9,9 @@ syntax keyword dafnyFunction function predicate copredicate method constructor
 syntax keyword dafnyTypeDef class datatype codatatype type
 syntax keyword dafnyConditional if then else match case 
 syntax keyword dafnyRepeat while parallel
-syntax keyword dafnyStatement havoc assume assert return new print break label
+syntax keyword dafnyStatement havoc assume assert return new print break label where
 syntax keyword dafnyKeyword var ghost returns null static this refines
-syntax keyword dafnyType bool nat int seq set multiset object array array2 array3
+syntax keyword dafnyType bool nat int seq set multiset object array array2 array3 map
 syntax keyword dafnyLogic requires ensures modifies reads decreases invariant 
 syntax keyword dafnyOperator forall exists old fresh allocated choose
 syntax keyword dafnyBoolean true false

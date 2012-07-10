@@ -4421,8 +4421,9 @@ namespace Microsoft.Dafny {
           return;
         }
       } else if (expr is NamedExpr) {
-        if (moduleInfo.IsGhost) return;
-        else CheckIsNonGhost(((NamedExpr)expr).Body);
+        if (!moduleInfo.IsGhost) 
+          CheckIsNonGhost(((NamedExpr)expr).Body);
+        return;
       }
 
       foreach (var ee in expr.SubExpressions) {
