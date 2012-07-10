@@ -1456,7 +1456,7 @@ Dafny program verifier finished with 48 verified, 9 errors
 RefinementErrors.dfy(27,17): Error: a refining method is not allowed to add preconditions
 RefinementErrors.dfy(28,15): Error: a refining method is not allowed to extend the modifies clause
 RefinementErrors.dfy(31,14): Error: a predicate declaration (abc) can only refine a predicate
-RefinementErrors.dfy(32,8): Error: a field declaration (xyz) in a refining class (C) is not allowed replace an existing declaration in the refinement base
+RefinementErrors.dfy(32,8): Error: a field re-declaration (xyz) must be to ghostify the field
 RefinementErrors.dfy(34,13): Error: a function method cannot be changed into a (ghost) function in a refining module: F
 RefinementErrors.dfy(35,9): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'A', found 'C')
 RefinementErrors.dfy(35,11): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'B', found 'A')
