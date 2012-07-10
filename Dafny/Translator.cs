@@ -8107,8 +8107,8 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
-        var body = Substitute(e.Body, receiverReplacement, substMap);
-        var contract = e.Contract == null ? null : Substitute(e.Contract, receiverReplacement, substMap);
+        var body = Substitute(e.Body);
+        var contract = e.Contract == null ? null : Substitute(e.Contract);
         newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
