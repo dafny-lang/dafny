@@ -180,3 +180,13 @@ method m14()
    assert u[1] == 1 && u[3] == 4;
    assert domain(u) == {0, 1, 3, 4};
 }
+
+class A { var x: int; }
+
+method m15(b: set<A>) 
+  requires forall a | a in b :: a != null;
+{
+  var m := map a | a in b :: a.x;
+  var aa := new A;
+  assert aa !in m;
+}
