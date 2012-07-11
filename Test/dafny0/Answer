@@ -1290,13 +1290,13 @@ Execution trace:
 Dafny program verifier finished with 5 verified, 2 errors
 
 -------------------- CoPredicates.dfy --------------------
-CoPredicates.dfy(35,1): Error BP5003: A postcondition might not hold on this return path.
-CoPredicates.dfy(34,11): Related location: This is the postcondition that might not hold.
-CoPredicates.dfy(20,22): Related location: Related location
+CoPredicates.dfy(45,1): Error BP5003: A postcondition might not hold on this return path.
+CoPredicates.dfy(44,11): Related location: This is the postcondition that might not hold.
+CoPredicates.dfy(30,22): Related location: Related location
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 11 verified, 1 error
+Dafny program verifier finished with 14 verified, 1 error
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation

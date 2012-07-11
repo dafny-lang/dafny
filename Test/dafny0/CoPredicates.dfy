@@ -10,6 +10,16 @@ copredicate Pos(s: Stream<int>)
   0 < s.head && Pos(s.tail)
 }
 
+copredicate X(s: Stream)
+{
+  X(s)
+}
+
+ghost method AlwaysLemma(s: Stream)
+  ensures X(s);
+{
+}
+
 function Doubles(n: int): Stream<int>
 {
   Cons(2*n, Doubles(n + 1))
