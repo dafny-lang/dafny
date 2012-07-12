@@ -853,6 +853,22 @@ namespace Microsoft.Dafny {
         }
         allTypeParameters.PopMarker();
       }
+      
+      foreach (TopLevelDecl d in declarations) {
+        if (d is ClassDecl) {
+          foreach (var member in ((ClassDecl)d).Members) {
+            if (member is Method) {
+              var m = ((Method)member);
+              if (m.Body != null)
+                CheckTypeInference(m.Body);
+            } else if (member is Function) {
+              var f = (Function)member;
+              if (f.Body !=null) 
+                CheckTypeInference(f.Body);
+            } 
+          }
+        }
+      }
 
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
@@ -1301,6 +1317,91 @@ namespace Microsoft.Dafny {
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
+    bool CheckTypeInference(Expression e) {
+      if (e == null) return false;
+      foreach (Expression se in e.SubExpressions) {
+        if (CheckTypeInference(se))
+          return true;
+      }
+      if (e.Type is TypeProxy && !(e.Type is InferredTypeProxy || e.Type is ParamTypeProxy || e.Type is ObjectTypeProxy)) {
+        Error(e.tok, "the type of this expression is underspecified, but it cannot be an arbitrary type.");
+        return true;
+      }
+      return false;
+    }
+    void CheckTypeInference(Statement stmt) {
+      Contract.Requires(stmt != null);
+      if (stmt is PrintStmt) {
+        var s = (PrintStmt)stmt;
+        s.Args.Iter(arg => CheckTypeInference(arg.E));
+      } else if (stmt is BreakStmt) {
+      } else if (stmt is ReturnStmt) {
+        var s = (ReturnStmt)stmt;
+        if (s.rhss != null) {
+          s.rhss.Iter(rhs => rhs.SubExpressions.Iter(e => CheckTypeInference(e)));
+        }
+      } else if (stmt is AssignStmt) {
+        AssignStmt s = (AssignStmt)stmt;
+        CheckTypeInference(s.Lhs);
+        s.Rhs.SubExpressions.Iter(e => { CheckTypeInference(e); });
+      } else if (stmt is VarDecl) {
+        var s = (VarDecl)stmt;
+        s.SubStatements.Iter(CheckTypeInference);
+        if (s.Type is TypeProxy && !(s.Type is InferredTypeProxy || s.Type is ParamTypeProxy || s.Type is ObjectTypeProxy)) {
+          Error(s.Tok, "the type of this expression is underspecified, but it cannot be an arbitrary type.");
+        }
+      } else if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        CheckTypeInference(s.Receiver);
+        s.Args.Iter(e => CheckTypeInference(e));
+        s.Lhs.Iter(e => CheckTypeInference(e));
+      } else if (stmt is BlockStmt) {
+        var s = (BlockStmt)stmt;
+        s.Body.Iter(CheckTypeInference);
+      } else if (stmt is IfStmt) {
+        var s = (IfStmt)stmt;
+        if (s.Guard != null) {
+          CheckTypeInference(s.Guard);
+        }
+        s.SubStatements.Iter(CheckTypeInference);
+      } else if (stmt is AlternativeStmt) {
+        var s = (AlternativeStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          CheckTypeInference(alt.Guard);
+          alt.Body.Iter(CheckTypeInference);
+        }
+      } else if (stmt is WhileStmt) {
+        var s = (WhileStmt)stmt;
+        if (s.Guard != null) {
+          CheckTypeInference(s.Guard);
+        }
+        CheckTypeInference(s.Body);
+      } else if (stmt is AlternativeLoopStmt) {
+        var s = (AlternativeLoopStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          CheckTypeInference(alt.Guard);
+          alt.Body.Iter(CheckTypeInference);
+        }
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        CheckTypeInference(s.Range);
+        CheckTypeInference(s.Body);
+      } else if (stmt is MatchStmt) {
+        var s = (MatchStmt)stmt;
+        CheckTypeInference(s.Source);
+        foreach (MatchCaseStmt mc in s.Cases) {
+          mc.Body.Iter(CheckTypeInference);
+        }
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        s.ResolvedStatements.Iter(CheckTypeInference);
+      } else if (stmt is PredicateStmt) {
+        CheckTypeInference(((PredicateStmt)stmt).Expr);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
 
