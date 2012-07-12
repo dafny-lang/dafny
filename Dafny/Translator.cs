@@ -3303,14 +3303,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage)
-    {
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
+      return Assert(tok, condition, errorMessage, tok);
+    }
+
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Requires(errorMessage != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(tok, currentModule)) {
+      if (RefinementToken.IsInherited(refinesToken, currentModule)) {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition);
       } else {
@@ -3319,15 +3322,17 @@ namespace Microsoft.Dafny {
         return cmd;
       }
     }
-
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage)
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
+      return AssertNS(tok, condition, errorMessage, tok);
+    }
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(tok, currentModule)) {
+      if (RefinementToken.IsInherited(refinesTok, currentModule)) {
         // produce a "skip" instead
         return new Bpl.AssumeCmd(tok, Bpl.Expr.True);
       } else {
@@ -3425,12 +3430,12 @@ namespace Microsoft.Dafny {
           var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation"));
+            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok));
           } else {
             foreach (var split in ss) {
               if (!split.IsFree) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                builder.Add(AssertNS(tok, split.E, "assertion violation"));
+                builder.Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok));
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));

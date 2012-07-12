@@ -51,6 +51,9 @@ module B refines A {
         i := i + 1;
       }
       var k := arr[i];
+      ...;
+      var a :| Contents == set x | x in a;
+      arr := a;
     }
   }
 }
@@ -60,7 +63,7 @@ module C refines B {
     method Retrieve...
     {
       ...;
-      arr := [thing] + arr[..i] + arr[i+1..];  // LRU behavior
+      var a := [thing] + arr[..i] + arr[i+1..];  // LRU behavior
     }
   }
 }

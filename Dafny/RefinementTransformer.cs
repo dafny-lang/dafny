@@ -1134,10 +1134,11 @@ namespace Microsoft.Dafny {
            *   
            *   var x := E;                 var x;                       var x := E;
            *   var x := E;                 var x := *;                  var x := E;
-           *   var x := E1;                var x :| E0;                 var x := E1; assert E0;
+           *   var x := E1;                var x :| P;                  var x := E1; assert P;
            *   var VarProduction;                                       var VarProduction;
            *   
            *   x := E;                     x := *;                      x := E;
+           *   x := E;                     x :| P;                      x := E; assert P;
            *   
            *   if ... Then else Else       if (G) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
            *   if (G) Then else Else       if (*) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
@@ -1272,22 +1273,26 @@ namespace Microsoft.Dafny {
 
           } else if (cur is VarDeclStmt) {
             var cNew = (VarDeclStmt)cur;
-            var cOld = oldS as VarDeclStmt;
             bool doMerge = false;
             Expression addedAssert = null;
-            if (cOld != null && cNew.Lhss.Count == 1 && cOld.Lhss.Count == 1 && cNew.Lhss[0].Name == cOld.Lhss[0].Name) {
-              var update = cNew.Update as UpdateStmt;
-              if (update != null && update.Rhss.Count == 1 && update.Rhss[0] is ExprRhs) {
-                // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
-                if (cOld.Update == null) {
-                  doMerge = true;
-                } else if (cOld.Update is AssignSuchThatStmt) {
-                  doMerge = true;
-                  addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
-                } else {
-                  var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
-                  if (updateOld.Rhss.Count == 1 && updateOld.Rhss[0] is HavocRhs) {
+            if (oldS is VarDeclStmt) {
+              var cOld = (VarDeclStmt)oldS;
+              if (VarDeclAgree(cOld.Lhss, cNew.Lhss)) {
+                var update = cNew.Update as UpdateStmt;
+                if (update != null && update.Rhss.TrueForAll(rhs => !rhs.CanAffectPreviouslyKnownExpressions)) {
+                  // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
+                  if (cOld.Update == null) {
                     doMerge = true;
+                  } else if (cOld.Update is AssignSuchThatStmt) {
+                    doMerge = true;
+                    addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
+                  } else {
+                    var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
+                    doMerge = true;
+                    foreach (var rhs in updateOld.Rhss) {
+                      if (!(rhs is HavocRhs))
+                        doMerge = false;
+                    }
                   }
                 }
               }
@@ -1297,7 +1302,7 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                body.Add(new AssertStmt(addedAssert.tok, addedAssert, null));
+                body.Add(new AssertStmt(new Translator.ForceCheckToken(addedAssert.tok), addedAssert, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1330,6 +1335,38 @@ namespace Microsoft.Dafny {
               i++;
             }
 
+          } else if (cur is UpdateStmt) {
+            var nw = (UpdateStmt)cur;
+            List<Statement> stmtGenerated = new List<Statement>();
+            bool doMerge = false;
+            if (oldS is UpdateStmt) {
+              var s = (UpdateStmt)oldS;
+              if (LeftHandSidesAgree(s.Lhss, nw.Lhss)) {
+                doMerge = true;
+                stmtGenerated.Add(nw);
+                foreach(var rhs in s.Rhss) {
+                  if (!(rhs is HavocRhs))
+                    doMerge = false;
+                }
+              }
+            } else if (oldS is AssignSuchThatStmt) {
+              var s = (AssignSuchThatStmt)oldS;
+              if (LeftHandSidesAgree(s.Lhss, nw.Lhss)) {
+                doMerge = true;
+                stmtGenerated.Add(nw);
+                var addedAssert = CloneExpr(s.Expr);
+                stmtGenerated.Add(new AssertStmt(new Translator.ForceCheckToken(addedAssert.tok), addedAssert, null));
+              }
+            }
+            if (doMerge) {
+              // Go ahead with the merge:
+              Contract.Assert(cce.NonNullElements(stmtGenerated));
+              body.AddRange(stmtGenerated);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
           } else if (cur is IfStmt) {
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
@@ -1367,6 +1404,30 @@ namespace Microsoft.Dafny {
       return new BlockStmt(skeleton.Tok, body);
     }
 
+    private bool LeftHandSidesAgree(List<Expression> old, List<Expression> nw) {
+      if (old.Count != nw.Count)
+        return false;
+      for (int i = 0; i < old.Count; i++) {
+        var a = old[i].Resolved as IdentifierExpr;
+        var b = nw[i] as IdentifierSequence;
+        if (a != null && b != null)
+          if (b.Tokens.Count == 1 && b.Arguments == null)
+            if (a.Name == b.Tokens[0].val)
+              continue;
+        return false;
+      }
+      return true;
+    }
+    private bool VarDeclAgree(List<VarDecl> old, List<VarDecl> nw) {
+      if (old.Count != nw.Count)
+        return false;
+      for (int i = 0; i < old.Count; i++) {
+        if (old[i].Name != nw[i].Name)
+          return false;
+      }
+      return true;
+    }
+
     bool PotentialMatch(Statement nxt, Statement other) {
       Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
       Contract.Requires(other != null);
@@ -1391,6 +1452,9 @@ namespace Microsoft.Dafny {
       } else if (nxt is WhileStmt) {
         var oth = other as WhileStmt;
         return oth != null && oth.Guard == null;
+      } else if (nxt is VarDeclStmt) {
+        var oth = other as VarDeclStmt;
+        return oth != null && VarDeclAgree(((VarDeclStmt)nxt).Lhss, oth.Lhss);
       }
 
       // not a potential match
@@ -1474,7 +1538,6 @@ namespace Microsoft.Dafny {
       for (LList<Label> n = s.Labels; n != null; n = n.Next) {
         labels.Push(n.Data.Name);
       }
-
       if (s is SkeletonStatement) {
         reporter.Error(s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
       } else if (s is ReturnStmt) {
@@ -1488,6 +1551,18 @@ namespace Microsoft.Dafny {
         // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
         // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
         // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
+        var a = (AssignStmt)s;
+        reporter.Error(a.Tok, "cannot have assignment statement");
+      } else if (s is ConcreteUpdateStatement) {
+        postTasks.Enqueue(() =>
+        {
+          CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction, reporter);
+        });
+      } else if (s is CallStmt) {
+        reporter.Error(s.Tok, "cannot have call statement");
+      } else if (s is ParallelStmt) {
+        if (((ParallelStmt)s).Kind == ParallelStmt.ParBodyKind.Assign) // allow Proof and Call (as neither touch any existing state)
+          reporter.Error(s.Tok, "cannot have parallel statement");
       } else {
         if (s is WhileStmt || s is AlternativeLoopStmt) {
           loopLevels++;
@@ -1502,6 +1577,32 @@ namespace Microsoft.Dafny {
       }
     }
 
+    // Checks that statement stmt, defined in the constructed module m, is a refinement of skip in the parent module
+    private void CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m, ResolutionErrorReporter reporter) {
+      foreach (var lhs in stmt.Lhss) {
+        var l = lhs.Resolved;
+        if (l is IdentifierExpr) {
+          if (RefinementToken.IsInherited(l.tok, m) || ((IdentifierExpr)l).Var is Formal) {
+            // for some reason, formals are not considered to be inherited.
+            reporter.Error(l.tok, "cannot assign to variable defined previously");
+          }
+        } else if (l is FieldSelectExpr) {
+          if (RefinementToken.IsInherited(((FieldSelectExpr)l).Field.tok, m)) {
+            reporter.Error(l.tok, "cannot assign to field defined previously");
+          }
+        } else {
+          reporter.Error(lhs.tok, "cannot assign to something which could exist in the previous refinement");
+        }
+      }
+      if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        foreach (var rhs in s.Rhss) {
+          if (s.Rhss[0].CanAffectPreviouslyKnownExpressions) {
+            reporter.Error(s.Rhss[0].Tok, "cannot have method call which can affect the heap");
+          }
+        }
+      }
+    }
     // ---------------------- additional methods -----------------------------------------------------------------------------
 
     public static bool ContainsChange(Expression expr, ModuleDefinition m) {
