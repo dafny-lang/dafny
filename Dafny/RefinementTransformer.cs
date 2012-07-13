@@ -1391,6 +1391,17 @@ namespace Microsoft.Dafny {
               i++;
             }
 
+          } else if (cur is BlockStmt) {
+            var cNew = (BlockStmt)cur;
+            var cOld = oldS as BlockStmt;
+            if (cOld != null) {
+              var r = MergeBlockStmt(cNew, cOld);
+              body.Add(r);
+              i++; j++;
+            } else {
+              MergeAddStatement(cur, body);
+              i++;
+            }
           } else {
             MergeAddStatement(cur, body);
             i++;
@@ -1455,6 +1466,16 @@ namespace Microsoft.Dafny {
       } else if (nxt is VarDeclStmt) {
         var oth = other as VarDeclStmt;
         return oth != null && VarDeclAgree(((VarDeclStmt)nxt).Lhss, oth.Lhss);
+      } else if (nxt is BlockStmt) {
+        var b = (BlockStmt)nxt;
+        if (b.Labels != null) {
+          var oth = other as BlockStmt;
+          if (oth != null && oth.Labels != null) {
+            return b.Labels.Data.Name == oth.Labels.Data.Name; // both have the same label
+          }
+        } else if (other is BlockStmt && ((BlockStmt)other).Labels == null) {
+          return true; // both are unlabeled
+        }
       }
 
       // not a potential match
