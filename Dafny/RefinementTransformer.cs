@@ -1603,7 +1603,9 @@ namespace Microsoft.Dafny {
       foreach (var lhs in stmt.Lhss) {
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
-          if (RefinementToken.IsInherited(l.tok, m) || ((IdentifierExpr)l).Var is Formal) {
+          var ident = (IdentifierExpr)l;
+          Contract.Assert(ident.Var is VarDecl || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
+          if ((ident.Var is VarDecl && RefinementToken.IsInherited(((VarDecl)ident.Var).Tok, m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
             reporter.Error(l.tok, "cannot assign to variable defined previously");
           }
