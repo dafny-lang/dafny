@@ -1476,6 +1476,12 @@ namespace Microsoft.Dafny {
         } else if (other is BlockStmt && ((BlockStmt)other).Labels == null) {
           return true; // both are unlabeled
         }
+      } else if (nxt is UpdateStmt) {
+        var up = (UpdateStmt)nxt;
+        if (other is AssignSuchThatStmt) {
+          var oth = other as AssignSuchThatStmt;
+          return oth != null && LeftHandSidesAgree(oth.Lhss, up.Lhss);
+        }
       }
 
       // not a potential match
