@@ -701,10 +701,14 @@ PossiblyWildFrameExpression<out FrameExpression/*!*/ fe>
   .
 FrameExpression<out FrameExpression/*!*/ fe>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; .)
-  Expression<out e>
-  [ "`" Ident<out id>        (. fieldName = id.val; .)
-  ]
-  (. fe = new FrameExpression(e, fieldName); .)
+ (( Expression<out e>
+    [ "`" Ident<out id>        (. fieldName = id.val; .)
+    ]
+                               (. fe = new FrameExpression(e, fieldName); .)
+  ) |
+  (  "`" Ident<out id>         (. fieldName = id.val; .)
+                               (. fe = new FrameExpression(new ImplicitThisExpr(id), fieldName); .)
+  ))
   .
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
