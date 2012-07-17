@@ -57,3 +57,55 @@ module CoRecursion {
     }
   }
 }
+
+ghost module S {
+  class C {
+    var f: int;
+    method m()
+  }
+}
+
+module T refines S {
+  class C {
+    method m() {
+      print "in T.C.m()";
+    }
+  }
+}
+module A {
+   module X as S = T;
+   module Y as S = T;
+   module Z = T;
+   static method run() {
+     var x := new X.C;
+     x.m();
+     var y := new Y.C;
+     y.m();
+     var z := new Z.C;
+     z.m();
+   }
+}
+
+method NotMain() {
+  A.run();
+}
+
+
+ghost module S1 {
+  module B as S = T;
+  static method do()
+}
+
+module T1 refines S1 {
+  static method do() {
+    var x := 3;
+  }
+}
+module A1 {
+   module X as S1 = T1;
+   static method run() {
+     X.do();
+     var x := new X.B.C;
+     x.m();
+   }
+}

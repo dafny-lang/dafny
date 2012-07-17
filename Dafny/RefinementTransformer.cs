@@ -18,13 +18,13 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using IToken = Microsoft.Boogie.IToken;
 
-namespace Microsoft.Dafny {
+namespace Microsoft.Dafny
+{
   public class RefinementToken : TokenWrapper
   {
     public readonly ModuleDefinition InheritingModule;
     public RefinementToken(IToken tok, ModuleDefinition m)
-      : base(tok)
-    {
+      : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(m != null);
       this.InheritingModule = m;
@@ -53,23 +53,27 @@ namespace Microsoft.Dafny {
   public class RefinementTransformer : IRewriter
   {
     ResolutionErrorReporter reporter;
+    Cloner rawCloner; // This cloner just gives exactly the same thing back.
+    RefinementCloner refinementCloner; // This cloner wraps things in a RefinementTransformer
     public RefinementTransformer(ResolutionErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.reporter = reporter;
+      rawCloner = new Cloner();
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
 
     public void PreResolve(ModuleDefinition m) {
-      
+
       if (m.RefinementBase == null) return;
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
       }
       moduleUnderConstruction = m;
-      var prev = m.RefinementBase;     
+      refinementCloner = new RefinementCloner(moduleUnderConstruction);
+      var prev = m.RefinementBase;
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
@@ -84,7 +88,7 @@ namespace Microsoft.Dafny {
       foreach (var d in prev.TopLevelDecls) {
         int index;
         if (!declaredNames.TryGetValue(d.Name, out index)) {
-          m.TopLevelDecls.Add(CloneDeclaration(d, m));
+          m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
           if (d is ModuleDecl) {
@@ -104,14 +108,7 @@ namespace Microsoft.Dafny {
               }
               if (derived != null) {
                 // check that the new module refines the previous declaration
-                while (derived != null) {
-                  if (derived == original)
-                    break;
-                  derived = derived.Refines;
-                }
-                if (derived != original) {
-                  reporter.Error(nw, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
-                }
+                CheckIsRefinement(derived, original, nw.tok, "a module (" + d.Name + ") can only be replaced by a refinement of the original module");
               }
             }
           } else if (d is ArbitraryTypeDecl) {
@@ -167,6 +164,18 @@ namespace Microsoft.Dafny {
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
 
+    public bool CheckIsRefinement(ModuleSignature derived, ModuleSignature original, IToken errorTok, string errorMsg) {
+      while (derived != null) {
+        if (derived == original)
+          break;
+        derived = derived.Refines;
+      }
+      if (derived != original) {
+        reporter.Error(errorTok, errorMsg);
+        return false;
+      } else return true;
+    }
+
     public void PostResolve(ModuleDefinition m) {
       if (m == moduleUnderConstruction) {
         while (this.postTasks.Count != 0) {
@@ -178,453 +187,20 @@ namespace Microsoft.Dafny {
       }
       moduleUnderConstruction = null;
     }
-
-    IToken Tok(IToken tok) {
-      if (moduleUnderConstruction == null) {
-        return tok;
-      } else {
-        return new RefinementToken(tok, moduleUnderConstruction);
-      }
-    }
-
-    // -------------------------------------------------- Cloning ---------------------------------------------------------------
-
-    // Clone a toplevel, specifying that its parent module should be m (i.e. it will be added to m.TopLevelDecls).
-    TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      Contract.Requires(d != null);
-      Contract.Requires(m != null);
-
-      if (d is ArbitraryTypeDecl) {
-        var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, null);
-      } else if (d is IndDatatypeDecl) {
-        var dd = (IndDatatypeDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
-        return dt;
-      } else if (d is CoDatatypeDecl) {
-        var dd = (CoDatatypeDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
-        return dt;
-      } else if (d is ClassDecl) {
-        var dd = (ClassDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(CloneMember);
-        var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, null);
-        return cl;
-      } else if (d is ModuleDecl) {
-        if (d is LiteralModuleDecl) {
-          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef,m);
-        } else if (d is AliasModuleDecl) {
-          var a = (AliasModuleDecl)d;
-          var alias = new AliasModuleDecl(a.Path, a.tok, m);
-          alias.ModuleReference = a.ModuleReference;
-          alias.Signature = a.Signature;
-          return alias;
-        } else if (d is AbstractModuleDecl) {
-          var a = (AbstractModuleDecl)d;
-          var abs = new AbstractModuleDecl(a.Path, a.tok, m);
-          abs.Signature = a.Signature;
-          abs.OriginalSignature = a.OriginalSignature;
-          return abs;
-        } else {
-          Contract.Assert(false);  // unexpected declaration
-          return null;  // to please compiler
-        }
-      } else {
-        Contract.Assert(false);  // unexpected declaration
-        return null;  // to please compiler
-      }
-    }
-
-    DatatypeCtor CloneCtor(DatatypeCtor ct) {
-      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.Formals.ConvertAll(CloneFormal), null);
-    }
-
-    TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Tok(tp.tok), tp.Name, tp.EqualitySupport);
-    }
-
-    MemberDecl CloneMember(MemberDecl member) {
-      if (member is Field) {
-        var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
-      } else if (member is Function) {
-        var f = (Function)member;
-        return CloneFunction(Tok(f.tok), f, f.IsGhost, null, null, null);
-      } else {
-        var m = (Method)member;
-        return CloneMethod(m, null, null);
-      }
-    }
-
-    Type CloneType(Type t) {
-      if (t is BasicType) {
-        return t;
-      } else if (t is SetType) {
-        var tt = (SetType)t;
-        return new SetType(CloneType(tt.Arg));
-      } else if (t is SeqType) {
-        var tt = (SeqType)t;
-        return new SeqType(CloneType(tt.Arg));
-      } else if (t is MultiSetType) {
-        var tt = (MultiSetType)t;
-        return new MultiSetType(CloneType(tt.Arg));
-      } else if (t is MapType) {
-        var tt = (MapType)t;
-        return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
-      } else if (t is UserDefinedType) {
-        var tt = (UserDefinedType)t;
-        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => Tok(x)));
-      } else if (t is InferredTypeProxy) {
-        return new InferredTypeProxy();
-      } else {
-        Contract.Assert(false);  // unexpected type (e.g., no other type proxies are expected at this time)
-        return null;  // to please compiler
-      }
-    }
-
-    Formal CloneFormal(Formal formal) {
-      return new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost);
-    }
-
-    BoundVar CloneBoundVar(BoundVar bv) {
-      return new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
-    }
-
-    Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
-      var ee = spec.Expressions == null ? null : spec.Expressions.ConvertAll(CloneExpr);
-      return new Specification<Expression>(ee, null);
-    }
-
-    Specification<FrameExpression> CloneSpecFrameExpr(Specification<FrameExpression> frame) {
-      var ee = frame.Expressions == null ? null : frame.Expressions.ConvertAll(CloneFrameExpr);
-      return new Specification<FrameExpression>(ee, null);
-    }
-
-    FrameExpression CloneFrameExpr(FrameExpression frame) {
-      return new FrameExpression(CloneExpr(frame.E), frame.FieldName);
-    }
-
-    Attributes.Argument CloneAttrArg(Attributes.Argument aa) {
-      if (aa.E != null) {
-        return new Attributes.Argument(Tok(aa.Tok), CloneExpr(aa.E));
-      } else {
-        return new Attributes.Argument(Tok(aa.Tok), aa.S);
-      }
-    }
-
-    MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
-      return new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree);
-    }
-
-    Expression CloneExpr(Expression expr) {
-      if (expr == null) {
-        return null;
-      } else if (expr is LiteralExpr) {
-        var e = (LiteralExpr)expr;
-        if (e.Value == null) {
-          return new LiteralExpr(Tok(e.tok));
-        } else if (e.Value is bool) {
-          return new LiteralExpr(Tok(e.tok), (bool)e.Value);
-        } else {
-          return new LiteralExpr(Tok(e.tok), (BigInteger)e.Value);
-        }
-
-      } else if (expr is ThisExpr) {
-        if (expr is ImplicitThisExpr) {
-          return new ImplicitThisExpr(Tok(expr.tok));
-        } else {
-          return new ThisExpr(Tok(expr.tok));
-        }
-
-      } else if (expr is IdentifierExpr) {
-        var e = (IdentifierExpr)expr;
-        return new IdentifierExpr(Tok(e.tok), e.Name);
-
-      } else if (expr is DatatypeValue) {
-        var e = (DatatypeValue)expr;
-        return new DatatypeValue(Tok(e.tok), e.DatatypeName, e.MemberName, e.Arguments.ConvertAll(CloneExpr));
-
-      } else if (expr is DisplayExpression) {
-        DisplayExpression e = (DisplayExpression)expr;
-        if (expr is SetDisplayExpr) {
-          return new SetDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
-        } else if (expr is MultiSetDisplayExpr) {
-          return new MultiSetDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
-        } else {
-          Contract.Assert(expr is SeqDisplayExpr);
-          return new SeqDisplayExpr(Tok(e.tok), e.Elements.ConvertAll(CloneExpr));
-        }
-
-      } else if (expr is MapDisplayExpr) {
-        MapDisplayExpr e = (MapDisplayExpr)expr;
-        List<ExpressionPair> pp = new List<ExpressionPair>();
-        foreach(ExpressionPair p in e.Elements) {
-          pp.Add(new ExpressionPair(CloneExpr(p.A),CloneExpr(p.B)));
-        }
-        return new MapDisplayExpr(Tok(expr.tok), pp);
-      } else if (expr is ExprDotName) {
-        var e = (ExprDotName)expr;
-        return new ExprDotName(Tok(e.tok), CloneExpr(e.Obj), e.SuffixName);
-
-      } else if (expr is FieldSelectExpr) {
-        var e = (FieldSelectExpr)expr;
-        return new FieldSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.FieldName);
-
-      } else if (expr is SeqSelectExpr) {
-        var e = (SeqSelectExpr)expr;
-        return new SeqSelectExpr(Tok(e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1));
-
-      } else if (expr is MultiSelectExpr) {
-        var e = (MultiSelectExpr)expr;
-        return new MultiSelectExpr(Tok(e.tok), CloneExpr(e.Array), e.Indices.ConvertAll(CloneExpr));
-
-      } else if (expr is SeqUpdateExpr) {
-        var e = (SeqUpdateExpr)expr;
-        return new SeqUpdateExpr(Tok(e.tok), CloneExpr(e.Seq), CloneExpr(e.Index), CloneExpr(e.Value));
-
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Args.ConvertAll(CloneExpr));
-
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        return new OldExpr(Tok(e.tok), CloneExpr(e.E));
-
-      } else if (expr is MultiSetFormingExpr) {
-        var e = (MultiSetFormingExpr)expr;
-        return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
-
-      } else if (expr is FreshExpr) {
-        var e = (FreshExpr)expr;
-        return new FreshExpr(Tok(e.tok), CloneExpr(e.E));
-
-      } else if (expr is AllocatedExpr) {
-        var e = (AllocatedExpr)expr;
-        return new AllocatedExpr(Tok(e.tok), CloneExpr(e.E));
-
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryExpr)expr;
-        return new UnaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E));
-
-      } else if (expr is BinaryExpr) {
-        var e = (BinaryExpr)expr;
-        return new BinaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1));
-
-      } else if (expr is ChainingExpression) {
-        var e = (ChainingExpression)expr;
-        return CloneExpr(e.E);  // just clone the desugaring, since it's already available
-
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        return new LetExpr(Tok(e.tok), e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body));
-
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr) expr;
-        return new NamedExpr(Tok(e.tok), e.Name, CloneExpr(e.Body));
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        var tk = Tok(e.tok);
-        var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
-        var range = CloneExpr(e.Range);
-        var term = CloneExpr(e.Term);
-        if (e is ForallExpr) {
-          return new ForallExpr(tk, bvs, range, term, null);
-        } else if (e is ExistsExpr) {
-          return new ExistsExpr(tk, bvs, range, term, null);
-        } else if (e is MapComprehension) {
-          return new MapComprehension(tk, bvs, range, term);
-        } else {
-          Contract.Assert(e is SetComprehension);
-          return new SetComprehension(tk, bvs, range, term);
-        }
-
-      } else if (expr is WildcardExpr) {
-        return new WildcardExpr(Tok(expr.tok));
-
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        if (e is AssertExpr) {
-          return new AssertExpr(Tok(e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
-        } else {
-          Contract.Assert(e is AssumeExpr);
-          return new AssumeExpr(Tok(e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
-        }
-
-      } else if (expr is ITEExpr) {
-        var e = (ITEExpr)expr;
-        return new ITEExpr(Tok(e.tok), CloneExpr(e.Test), CloneExpr(e.Thn), CloneExpr(e.Els));
-
-      } else if (expr is ParensExpression) {
-        var e = (ParensExpression)expr;
-        return CloneExpr(e.E);  // skip the parentheses in the clone
-
-      } else if (expr is IdentifierSequence) {
-        var e = (IdentifierSequence)expr;
-        var aa = e.Arguments == null ? null : e.Arguments.ConvertAll(CloneExpr);
-        return new IdentifierSequence(e.Tokens.ConvertAll(tk => Tok(tk)), e.OpenParen == null ? null : Tok(e.OpenParen), aa);
-
-      } else if (expr is MatchExpr) {
-        var e = (MatchExpr)expr;
-        return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
-      }
-    }
-
-    AssignmentRhs CloneRHS(AssignmentRhs rhs) {
-      if (rhs is ExprRhs) {
-        var r = (ExprRhs)rhs;
-        return new ExprRhs(CloneExpr(r.Expr));
-      } else if (rhs is HavocRhs) {
-        return new HavocRhs(Tok(rhs.Tok));
-      } else {
-        var r = (TypeRhs)rhs;
-        if (r.ArrayDimensions != null) {
-          return new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
-        } else if (r.InitCall != null) {
-          return new TypeRhs(Tok(r.Tok), CloneType(r.EType), (CallStmt)CloneStmt(r.InitCall));
-        } else {
-          return new TypeRhs(Tok(r.Tok), CloneType(r.EType));
-        }
-      }
-    }
-
-    BlockStmt CloneBlockStmt(BlockStmt stmt) {
-      if (stmt == null) {
-        return null;
-      } else {
-        return new BlockStmt(Tok(stmt.Tok), stmt.Body.ConvertAll(CloneStmt));
-      }
-    }
-
-    Statement CloneStmt(Statement stmt) {
-      if (stmt == null) {
-        return null;
-      }
-
-      Statement r;
-      if (stmt is AssertStmt) {
-        var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
-
-      } else if (stmt is AssumeStmt) {
-        var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
-
-      } else if (stmt is PrintStmt) {
-        var s = (PrintStmt)stmt;
-        r = new PrintStmt(Tok(s.Tok), s.Args.ConvertAll(CloneAttrArg));
-
-      } else if (stmt is BreakStmt) {
-        var s = (BreakStmt)stmt;
-        if (s.TargetLabel != null) {
-          r = new BreakStmt(Tok(s.Tok), s.TargetLabel);
-        } else {
-          r = new BreakStmt(Tok(s.Tok), s.BreakCount);
-        }
-
-      } else if (stmt is ReturnStmt) {
-        var s = (ReturnStmt)stmt;
-        r = new ReturnStmt(Tok(s.Tok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
-
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
-        r = new AssignStmt(Tok(s.Tok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
-
-      } else if (stmt is VarDecl) {
-        var s = (VarDecl)stmt;
-        r = new VarDecl(Tok(s.Tok), s.Name, CloneType(s.OptionalType), s.IsGhost);
-
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        r = new CallStmt(Tok(s.Tok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName, s.Args.ConvertAll(CloneExpr));
-
-      } else if (stmt is BlockStmt) {
-        r = CloneBlockStmt((BlockStmt)stmt);
-
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        r = new IfStmt(Tok(s.Tok), CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), s.Alternatives.ConvertAll(CloneGuardedAlternative));
-
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative));
-
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
-        r = new ParallelStmt(Tok(s.Tok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
-
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        r = new MatchStmt(Tok(s.Tok), CloneExpr(s.Source),
-          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))));
-
-      } else if (stmt is AssignSuchThatStmt) {
-        var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken));
-
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        r = new UpdateStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
-
-      } else if (stmt is VarDeclStmt) {
-        var s = (VarDeclStmt)stmt;
-        r = new VarDeclStmt(Tok(s.Tok), s.Lhss.ConvertAll(c => (VarDecl)CloneStmt(c)), (ConcreteUpdateStatement)CloneStmt(s.Update));
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
-      }
-
-      // add labels to the cloned statement
-      AddStmtLabels(r, stmt.Labels);
-
-      return r;
-    }
-
-    void AddStmtLabels(Statement s, LList<Label> node) {
-      if (node != null) {
-        AddStmtLabels(s, node.Next);
-        if (node.Data.Name == null) {
-          // this indicates an implicit-target break statement that has been resolved; don't add it
-        } else {
-          s.Labels = new LList<Label>(new Label(Tok(node.Data.Tok), node.Data.Name), s.Labels);
-        }
-      }
-    }
-
-    GuardedAlternative CloneGuardedAlternative(GuardedAlternative alt) {
-      return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
-    }
-
     Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody) {
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
-      var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
-      var formals = f.Formals.ConvertAll(CloneFormal);
-      var req = f.Req.ConvertAll(CloneExpr);
-      var reads = f.Reads.ConvertAll(CloneFrameExpr);
-      var decreases = CloneSpecExpr(f.Decreases);
+      var tps = f.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
+      var formals = f.Formals.ConvertAll(refinementCloner.CloneFormal);
+      var req = f.Req.ConvertAll(refinementCloner.CloneExpr);
+      var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
+      var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
 
-      var previousModuleUnderConstruction = moduleUnderConstruction;
-      if (moreBody != null || replacementBody != null) { moduleUnderConstruction = null; }
-      var ens = f.Ens.ConvertAll(CloneExpr);
-      moduleUnderConstruction = previousModuleUnderConstruction;
+      List<Expression> ens;
+      if (moreBody != null || replacementBody != null)
+        ens = f.Ens.ConvertAll(rawCloner.CloneExpr);
+      else ens = f.Ens.ConvertAll(refinementCloner.CloneExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -636,10 +212,10 @@ namespace Microsoft.Dafny {
         if (f.Body == null) {
           body = moreBody;
         } else {
-          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, CloneExpr(f.Body), moreBody);
+          body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(f.Body), moreBody);
         }
       } else {
-        body = CloneExpr(f.Body);
+        body = refinementCloner.CloneExpr(f.Body);
       }
 
       if (f is Predicate) {
@@ -649,7 +225,7 @@ namespace Microsoft.Dafny {
         return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
           req, reads, ens, body, null, false);
       } else {
-        return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, null, false);
       }
     }
@@ -657,26 +233,26 @@ namespace Microsoft.Dafny {
     Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, BlockStmt replacementBody) {
       Contract.Requires(m != null);
 
-      var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
-      var ins = m.Ins.ConvertAll(CloneFormal);
-      var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
-      var mod = CloneSpecFrameExpr(m.Mod);
-      var decreases = CloneSpecExpr(m.Decreases);
+      var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
+      var ins = m.Ins.ConvertAll(refinementCloner.CloneFormal);
+      var req = m.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
+      var decreases = refinementCloner.CloneSpecExpr(m.Decreases);
 
-      var previousModuleUnderConstruction = moduleUnderConstruction;
-      if (replacementBody != null) { moduleUnderConstruction = null; }
-      var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
-      if (replacementBody != null) { moduleUnderConstruction = previousModuleUnderConstruction; }
+      List<MaybeFreeExpression> ens;
+      if (replacementBody != null)
+        ens = m.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      else ens = m.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
 
-      var body = replacementBody ?? CloneBlockStmt(m.Body);
+      var body = replacementBody ?? refinementCloner.CloneBlockStmt(m.Body);
       if (m is Constructor) {
-        return new Constructor(Tok(m.tok), m.Name, tps, ins,
+        return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
           req, mod, ens, decreases, body, null, false);
       } else {
-        return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
+        return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, null, false);
       }
     }
@@ -699,7 +275,7 @@ namespace Microsoft.Dafny {
       foreach (var member in prev.Members) {
         int index;
         if (!declaredNames.TryGetValue(member.Name, out index)) {
-          nw.Members.Add(CloneMember(member));
+          nw.Members.Add(refinementCloner.CloneMember(member));
         } else {
           var nwMember = nw.Members[index];
           if (nwMember is Field) {
@@ -808,229 +384,6 @@ namespace Microsoft.Dafny {
       }
 
       return nw;
-    }
-    private Statement SubstituteNamedExpr(Statement s, Dictionary<string, Expression> sub, SortedSet<string> subs) {
-      if (s == null) {
-        return null;
-      } else if (s is AssertStmt) {
-        AssertStmt stmt = (AssertStmt)s;
-        return new AssertStmt(stmt.Tok, SubstituteNamedExpr(stmt.Expr, sub, subs), null);
-      } else if (s is AssumeStmt) {
-        AssumeStmt stmt = (AssumeStmt)s;
-        return new AssumeStmt(stmt.Tok, SubstituteNamedExpr(stmt.Expr, sub, subs), null);
-      } else if (s is PrintStmt) {
-        throw new NotImplementedException();
-      } else if (s is BreakStmt) {
-        return s;
-      } else if (s is ReturnStmt) {
-        return s;
-      } else if (s is VarDeclStmt) {
-        return s;
-      } else if (s is AssignSuchThatStmt) {
-        return s;
-      } else if (s is UpdateStmt) {
-        UpdateStmt stmt = (UpdateStmt)s;
-        List<Expression> lhs = new List<Expression>();
-        List<AssignmentRhs> rhs = new List<AssignmentRhs>();
-        foreach (Expression l in stmt.Lhss) {
-          lhs.Add(SubstituteNamedExpr(l, sub, subs));
-        }
-        foreach (AssignmentRhs r in stmt.Rhss) {
-          if (r is HavocRhs) {
-            rhs.Add(r); // no substitution on Havoc (*);
-          } else if (r is ExprRhs) {
-            rhs.Add(new ExprRhs(SubstituteNamedExpr(((ExprRhs)r).Expr, sub, subs)));
-          } else if (r is CallRhs) {
-            CallRhs rr = (CallRhs)r;
-            rhs.Add(new CallRhs(rr.Tok, SubstituteNamedExpr(rr.Receiver, sub, subs), rr.MethodName, SubstituteNamedExprList(rr.Args, sub, subs)));
-          } else if (r is TypeRhs) {
-            rhs.Add(r);
-          } else {
-            Contract.Assert(false);  // unexpected AssignmentRhs
-            throw new cce.UnreachableException();
-          }
-        }
-        return new UpdateStmt(stmt.Tok, lhs, rhs);
-      } else if (s is AssignStmt) {
-        Contract.Assert(false);  // AssignStmt is not generated by the parser
-        throw new cce.UnreachableException();
-      } else if (s is VarDecl) {
-        return s;
-      } else if (s is CallStmt) {
-        return s;
-      } else if (s is BlockStmt) {
-        BlockStmt stmt = (BlockStmt)s;
-        List<Statement> res = new List<Statement>();
-        foreach (Statement ss in stmt.Body) {
-          res.Add(SubstituteNamedExpr(ss, sub, subs));
-        }
-        return new BlockStmt(stmt.Tok, res);
-      } else if (s is IfStmt) {
-        IfStmt stmt = (IfStmt)s;
-        return new IfStmt(stmt.Tok, SubstituteNamedExpr(stmt.Guard, sub, subs),
-                         (BlockStmt)SubstituteNamedExpr(stmt.Thn, sub, subs),
-                                    SubstituteNamedExpr(stmt.Els, sub, subs));
-      } else if (s is AlternativeStmt) {
-        return s;
-      } else if (s is WhileStmt) {
-        WhileStmt stmt = (WhileStmt)s;
-        return new WhileStmt(stmt.Tok, SubstituteNamedExpr(stmt.Guard, sub, subs), stmt.Invariants, stmt.Decreases, stmt.Mod, (BlockStmt)SubstituteNamedExpr(stmt.Body, sub, subs));
-      } else if (s is AlternativeLoopStmt) {
-        return s;
-      } else if (s is ParallelStmt) {
-        return s;
-      } else if (s is MatchStmt) {
-        return s;
-      } else if (s is SkeletonStatement) {
-        return s;
-      } else {
-        Contract.Assert(false);  // unexpected statement
-        throw new cce.UnreachableException();
-      }
-
-    }
-    private Expression SubstituteNamedExpr(Expression expr, Dictionary<string, Expression> sub, SortedSet<string> subs) {
-      if (expr == null) {
-        return null;
-      }
-      if (expr is NamedExpr) {
-        NamedExpr n = (NamedExpr)expr;
-        Expression E;
-        if (sub.TryGetValue(n.Name, out E)) {
-          subs.Add(n.Name);
-          return new NamedExpr(n.tok, n.Name, E, CloneExpr(n.Body), E.tok);
-        } else return new NamedExpr(n.tok, n.Name, SubstituteNamedExpr(n.Body, sub, subs));
-      } else if (expr is LiteralExpr || expr is WildcardExpr | expr is ThisExpr || expr is IdentifierExpr) {
-        return expr;
-      } else if (expr is DisplayExpression) {
-        DisplayExpression e = (DisplayExpression)expr;
-        List<Expression> newElements = SubstituteNamedExprList(e.Elements, sub, subs);
-        if (expr is SetDisplayExpr) {
-          return new SetDisplayExpr(expr.tok, newElements);
-        } else if (expr is MultiSetDisplayExpr) {
-          return new MultiSetDisplayExpr(expr.tok, newElements);
-        } else {
-          return new SeqDisplayExpr(expr.tok, newElements);
-        }
-      } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr fse = (FieldSelectExpr)expr;
-        Expression substE = SubstituteNamedExpr(fse.Obj, sub, subs);
-        return new FieldSelectExpr(fse.tok, substE, fse.FieldName);
-      } else if (expr is SeqSelectExpr) {
-        SeqSelectExpr sse = (SeqSelectExpr)expr;
-        Expression seq = SubstituteNamedExpr(sse.Seq, sub, subs);
-        Expression e0 = sse.E0 == null ? null : SubstituteNamedExpr(sse.E0, sub, subs);
-        Expression e1 = sse.E1 == null ? null : SubstituteNamedExpr(sse.E1, sub, subs);
-        return new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1);
-      } else if (expr is SeqUpdateExpr) {
-        SeqUpdateExpr sse = (SeqUpdateExpr)expr;
-        Expression seq = SubstituteNamedExpr(sse.Seq, sub, subs);
-        Expression index = SubstituteNamedExpr(sse.Index, sub, subs);
-        Expression val = SubstituteNamedExpr(sse.Value, sub, subs);
-        return new SeqUpdateExpr(sse.tok, seq, index, val);
-      } else if (expr is MultiSelectExpr) {
-        MultiSelectExpr mse = (MultiSelectExpr)expr;
-        Expression array = SubstituteNamedExpr(mse.Array, sub, subs);
-        List<Expression> newArgs = SubstituteNamedExprList(mse.Indices, sub, subs);
-        return new MultiSelectExpr(mse.tok, array, newArgs);
-      } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
-        Expression receiver = SubstituteNamedExpr(e.Receiver, sub, subs);
-        List<Expression> newArgs = SubstituteNamedExprList(e.Args, sub, subs);
-        return new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
-      } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        List<Expression> newArgs = SubstituteNamedExprList(dtv.Arguments, sub, subs);
-        return new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArgs);
-      } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, sub, subs);
-        return new OldExpr(expr.tok, se);
-      } else if (expr is FreshExpr) {
-        FreshExpr e = (FreshExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, sub, subs);
-        return new FreshExpr(expr.tok, se);
-      } else if (expr is AllocatedExpr) {
-        AllocatedExpr e = (AllocatedExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, sub, subs);
-        return new AllocatedExpr(expr.tok, se);
-      } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
-        Expression se = SubstituteNamedExpr(e.E, sub, subs);
-        return new UnaryExpr(expr.tok, e.Op, se);
-      } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
-        Expression e0 = SubstituteNamedExpr(e.E0, sub, subs);
-        Expression e1 = SubstituteNamedExpr(e.E1, sub, subs);
-        return new BinaryExpr(expr.tok, e.Op, e0, e1);
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        var rhss = SubstituteNamedExprList(e.RHSs, sub, subs);
-        var body = SubstituteNamedExpr(e.Body, sub, subs);
-        return new LetExpr(e.tok, e.Vars, rhss, body);
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        Expression newRange = e.Range == null ? null : SubstituteNamedExpr(e.Range, sub, subs);
-        Expression newTerm = SubstituteNamedExpr(e.Term, sub, subs);
-        Attributes newAttrs = e.Attributes;//SubstituteNamedExpr(e.Attributes, sub, ref subCount);
-        if (e is SetComprehension) {
-          return new SetComprehension(expr.tok, e.BoundVars, newRange, newTerm);
-        } else if (e is MapComprehension) {
-          return new MapComprehension(expr.tok, e.BoundVars, newRange, newTerm);
-        } else if (e is QuantifierExpr) {
-          var q = (QuantifierExpr)e;
-          if (expr is ForallExpr) {
-            return new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newAttrs);
-          } else {
-            return new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newAttrs);
-          }
-        } else {
-          Contract.Assert(false);  // unexpected ComprehensionExpr
-          throw new cce.UnreachableException();
-        }
-
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        Expression g = SubstituteNamedExpr(e.Guard, sub, subs);
-        Expression b = SubstituteNamedExpr(e.Body, sub, subs);
-        if (expr is AssertExpr) {
-          return new AssertExpr(e.tok, g, b);
-        } else {
-          return new AssumeExpr(e.tok, g, b);
-        }
-      } else if (expr is ITEExpr) {
-        ITEExpr e = (ITEExpr)expr;
-        Expression test = SubstituteNamedExpr(e.Test, sub, subs);
-        Expression thn = SubstituteNamedExpr(e.Thn, sub, subs);
-        Expression els = SubstituteNamedExpr(e.Els, sub, subs);
-        return new ITEExpr(expr.tok, test, thn, els);
-      } else if (expr is ConcreteSyntaxExpression) {
-        if (expr is ParensExpression) {
-          return SubstituteNamedExpr(((ParensExpression)expr).E, sub, subs);
-        } else if (expr is IdentifierSequence) {
-          return expr;
-        } else if (expr is ExprDotName) {
-          ExprDotName edn = (ExprDotName)expr;
-          return new ExprDotName(edn.tok, SubstituteNamedExpr(edn.Obj, sub, subs), edn.SuffixName);
-        } else if (expr is ChainingExpression) {
-          ChainingExpression ch = (ChainingExpression)expr;
-          return SubstituteNamedExpr(ch.E, sub, subs);
-        } else {
-          Contract.Assert(false);
-          throw new cce.UnreachableException();
-        }
-      } else {
-        Contract.Assert(false);
-        throw new cce.UnreachableException();
-      }
-    }
-
-    private List<Expression> SubstituteNamedExprList(List<Expression> list, Dictionary<string, Expression> sub, SortedSet<string> subCount) {
-      List<Expression> res = new List<Expression>();
-      foreach (Expression e in list) {
-        res.Add(SubstituteNamedExpr(e, sub, subCount));
-      }
-      return res;
     }
     void CheckAgreement_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing) {
       Contract.Requires(tok != null);
@@ -1158,39 +511,38 @@ namespace Microsoft.Dafny {
            */
           if (cur is SkeletonStatement) {
             var S = ((SkeletonStatement)cur).S;
-            var c = (SkeletonStatement) cur;
+            var c = (SkeletonStatement)cur;
             if (S == null) {
-              var nxt = i + 1 == skeleton.Body.Count ? null : skeleton.Body[i+1];
+              var nxt = i + 1 == skeleton.Body.Count ? null : skeleton.Body[i + 1];
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
               } else {
-                SortedSet<string> substitutions = null;
-                Dictionary<string, Expression> subExprs = null;
+                SubstitutionCloner subber = null;
                 if (c.NameReplacements != null) {
-                  subExprs = new Dictionary<string, Expression>();
-                  substitutions = new SortedSet<string>();
+                  var subExprs = new Dictionary<string, Expression>();
                   Contract.Assert(c.NameReplacements.Count == c.ExprReplacements.Count);
                   for (int k = 0; k < c.NameReplacements.Count; k++) {
                     if (subExprs.ContainsKey(c.NameReplacements[k].val)) {
                       reporter.Error(c.NameReplacements[k], "replacement definition must contain at most one definition for a given label");
                     } else subExprs.Add(c.NameReplacements[k].val, c.ExprReplacements[k]);
                   }
+                  subber = new SubstitutionCloner(subExprs, rawCloner);
                 }
                 // skip up until the next thing that matches "nxt"
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
-                  var s = CloneStmt(oldS);
-                  if (subExprs != null) 
-                    s = SubstituteNamedExpr(s, subExprs, substitutions);
+                  var s = refinementCloner.CloneStmt(oldS);
+                  if (subber != null)
+                    s = subber.CloneStmt(s);
                   body.Add(s);
                   j++;
                   if (j == oldStmt.Body.Count) { break; }
                   oldS = oldStmt.Body[j];
                 }
-                if (subExprs != null && substitutions.Count < subExprs.Count) {
-                  foreach (var s in substitutions)
-                    subExprs.Remove(s);
-                  reporter.Error(c.Tok, "could not find labeled expression(s): " + Util.Comma(", ", subExprs.Keys, x => x));
+                if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
+                  foreach (var s in subber.SubstitutionsMade)
+                    subber.Exprs.Remove(s);
+                  reporter.Error(c.Tok, "could not find labeled expression(s): " + Util.Comma(", ", subber.Exprs.Keys, x => x));
                 }
               }
               i++;
@@ -1207,8 +559,8 @@ namespace Microsoft.Dafny {
                 // that this assertion is supposed to be translated into a check.  That is,
                 // it is not allowed to be just assumed in the translation, despite the fact
                 // that the condition is inherited.
-                var e = CloneExpr(oldAssume.Expr);
-                body.Add(new AssertStmt(skel.Tok, e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                var e = refinementCloner.CloneExpr(oldAssume.Expr);
+                body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
                 i++; j++;
               }
 
@@ -1220,7 +572,7 @@ namespace Microsoft.Dafny {
                 reporter.Error(cur.Tok, "assume template does not match inherited statement");
                 i++;
               } else {
-                var e = CloneExpr(oldAssume.Expr);
+                var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 body.Add(new AssumeStmt(skel.Tok, e, null));
                 i++; j++;
               }
@@ -1235,7 +587,7 @@ namespace Microsoft.Dafny {
               } else {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
-                var r = new IfStmt(skel.Tok, CloneExpr(oldIf.Guard), resultingThen, resultingElse);
+                var r = new IfStmt(skel.Tok, refinementCloner.CloneExpr(oldIf.Guard), resultingThen, resultingElse);
                 body.Add(r);
                 i++; j++;
               }
@@ -1249,7 +601,7 @@ namespace Microsoft.Dafny {
               } else {
                 Expression guard;
                 if (((SkeletonStatement)cur).ConditionOmitted) {
-                  guard = CloneExpr(oldWhile.Guard);
+                  guard = refinementCloner.CloneExpr(oldWhile.Guard);
                 } else {
                   if (oldWhile.Guard != null) {
                     reporter.Error(skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
@@ -1285,7 +637,7 @@ namespace Microsoft.Dafny {
                     doMerge = true;
                   } else if (cOld.Update is AssignSuchThatStmt) {
                     doMerge = true;
-                    addedAssert = CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
+                    addedAssert = refinementCloner.CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
                   } else {
                     var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
                     doMerge = true;
@@ -1344,7 +696,7 @@ namespace Microsoft.Dafny {
               if (LeftHandSidesAgree(s.Lhss, nw.Lhss)) {
                 doMerge = true;
                 stmtGenerated.Add(nw);
-                foreach(var rhs in s.Rhss) {
+                foreach (var rhs in s.Rhss) {
                   if (!(rhs is HavocRhs))
                     doMerge = false;
                 }
@@ -1354,7 +706,7 @@ namespace Microsoft.Dafny {
               if (LeftHandSidesAgree(s.Lhss, nw.Lhss)) {
                 doMerge = true;
                 stmtGenerated.Add(nw);
-                var addedAssert = CloneExpr(s.Expr);
+                var addedAssert = refinementCloner.CloneExpr(s.Expr);
                 stmtGenerated.Add(new AssertStmt(new Translator.ForceCheckToken(addedAssert.tok), addedAssert, null));
               }
             }
@@ -1410,7 +762,7 @@ namespace Microsoft.Dafny {
       }
       // implement the implicit "...;" at the end of each block statement skeleton
       for (; j < oldStmt.Body.Count; j++) {
-        body.Add(CloneStmt(oldStmt.Body[j]));
+        body.Add(refinementCloner.CloneStmt(oldStmt.Body[j]));
       }
       return new BlockStmt(skeleton.Tok, body);
     }
@@ -1507,12 +859,12 @@ namespace Microsoft.Dafny {
         if (cNew.Decreases.Expressions.Count != 0) {
           reporter.Error(cNew.Decreases.Expressions[0].tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
         }
-        decr = CloneSpecExpr(cOld.Decreases);
+        decr = refinementCloner.CloneSpecExpr(cOld.Decreases);
       }
 
-      var invs = cOld.Invariants.ConvertAll(CloneMayBeFreeExpr);
+      var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       invs.AddRange(cNew.Invariants);
-      var r = new RefinedWhileStmt(cNew.Tok, guard, invs, decr, CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
+      var r = new RefinedWhileStmt(cNew.Tok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
       return r;
     }
 
@@ -1521,7 +873,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt || oldStmt is SkeletonStatement);
 
       if (skeleton == null) {
-        return CloneStmt(oldStmt);
+        return refinementCloner.CloneStmt(oldStmt);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
         skeleton = new BlockStmt(skeleton.Tok, new List<Statement>() { skeleton });
@@ -1654,6 +1006,40 @@ namespace Microsoft.Dafny {
         }
       }
       return false;
+    }
+  }
+
+  class RefinementCloner : Cloner {
+    ModuleDefinition moduleUnderConstruction;
+    public RefinementCloner(ModuleDefinition m) {
+      moduleUnderConstruction = m;
+    }
+    override public IToken Tok(IToken tok) {
+      return new RefinementToken(tok, moduleUnderConstruction);
+    }
+  }
+  class SubstitutionCloner : Cloner {
+    public Dictionary<string, Expression> Exprs;
+    public SortedSet<string> SubstitutionsMade;
+    Cloner c;
+    public SubstitutionCloner(Dictionary<string, Expression> subs, Cloner c) {
+      Exprs = subs;
+      SubstitutionsMade = new SortedSet<string>();
+      this.c = c;
+    }
+    new public Expression CloneExpr(Expression expr) {
+      if (expr is NamedExpr) {
+        NamedExpr n = (NamedExpr)expr;
+        Expression E;
+        if (Exprs.TryGetValue(n.Name, out E)) {
+          SubstitutionsMade.Add(n.Name);
+          return new NamedExpr(n.tok, n.Name, E, c.CloneExpr(n.Body), E.tok);
+        }
+      } 
+      return base.CloneExpr(expr); // in all other cases, just do what the base class would.
+                                   // note that when we get a named expression that is not in
+                                   // our substitution list, then we call the base class, which
+                                   // recurses on the body of the named expression.
     }
   }
 }

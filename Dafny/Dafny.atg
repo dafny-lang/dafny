@@ -172,7 +172,7 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
      Attributes attrs = null;  IToken/*!*/ id; 
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idRefined = null, idPath = null;
+     List<IToken> idRefined = null, idPath = null, idAssignment = null;
      bool isGhost = false;
      ModuleDefinition module;
      ModuleDecl sm;
@@ -202,7 +202,10 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
      ) | 
       "=" QualifiedName<out idPath> ";" (. submodule = new AliasModuleDecl(idPath, id, parent); .)
        |
-      "as" QualifiedName<out idPath> ";" (.submodule = new AbstractModuleDecl(idPath, id, parent); .)
+      ( "as" QualifiedName<out idPath> 
+        ["=" QualifiedName<out idAssignment> ] 
+        ";" (.submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment); .)
+      )
     )
 .
 
@@ -700,7 +703,7 @@ PossiblyWildFrameExpression<out FrameExpression/*!*/ fe>
   )
   .
 FrameExpression<out FrameExpression/*!*/ fe>
-= (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; fe = null; .)
  (( Expression<out e>
     [ "`" Ident<out id>        (. fieldName = id.val; .)
     ]

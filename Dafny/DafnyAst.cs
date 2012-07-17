@@ -20,8 +20,11 @@ namespace Microsoft.Dafny {
 
     public readonly string Name;
     public List<ModuleDefinition/*!*/>/*!*/ Modules; // filled in during resolution.
-                                               // Resolution essentially flattens the module heirarchy, for
-                                               // purposes of translation and compilation.
+                                                     // Resolution essentially flattens the module heirarchy, for
+                                                     // purposes of translation and compilation.
+    public List<ModuleDefinition> CompileModules; // filled in during resolution.
+                                                  // Contains the definitions to be used for compilation.
+                                    
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
@@ -34,6 +37,7 @@ namespace Microsoft.Dafny {
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       Modules = new List<ModuleDefinition>();
+      CompileModules = new List<ModuleDefinition>();
     }
   }
 
@@ -601,7 +605,7 @@ namespace Microsoft.Dafny {
   /// This proxy stands for any type, but it originates from an instantiated type parameter.
   /// </summary>
   public class ParamTypeProxy : UnrestrictedTypeProxy {
-    TypeParameter orig;
+    public TypeParameter orig;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(orig != null);
@@ -819,16 +823,20 @@ namespace Microsoft.Dafny {
        ModuleReference = null;
     }
   }
-  // Represents "module name as path;", where name is a identifier and path is a possibly qualified name.
+  // Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
   public class AbstractModuleDecl : ModuleDecl
   {
     public ModuleDecl Root;
     public readonly List<IToken> Path;
+    public ModuleDecl CompileRoot;
+    public readonly List<IToken> CompilePath;
     public ModuleSignature OriginalSignature;
-    public AbstractModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent)
+    
+    public AbstractModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent, List<IToken> compilePath)
       : base(name, name.val, parent) {
       Path = path;
       Root = null;
+      CompilePath = compilePath;
     }
   }
 
@@ -837,9 +845,10 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
-    public ModuleDefinition ModuleDef; // Note: this is null if this signature does not correspond to a specific definition (i.e.
-                                       // it is abstract). Otherwise, it points to that definition.
-    public ModuleSignature Refines;
+    public ModuleDefinition ModuleDef = null; // Note: this is null if this signature does not correspond to a specific definition (i.e.
+                                              // it is abstract). Otherwise, it points to that definition.
+    public ModuleSignature CompileSignature = null; // This is the version of the signature that should be used at compile time.
+    public ModuleSignature Refines = null;
     public bool IsGhost = false;
     public ModuleSignature() {}
 

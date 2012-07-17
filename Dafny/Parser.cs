@@ -233,7 +233,7 @@ bool IsAttribute() {
 		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
 		Attributes attrs = null;  IToken/*!*/ id; 
 		List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-		List<IToken> idRefined = null, idPath = null;
+		List<IToken> idRefined = null, idPath = null, idAssignment = null;
 		bool isGhost = false;
 		ModuleDefinition module;
 		ModuleDecl sm;
@@ -289,8 +289,12 @@ bool IsAttribute() {
 		} else if (la.kind == 13) {
 			Get();
 			QualifiedName(out idPath);
+			if (la.kind == 11) {
+				Get();
+				QualifiedName(out idAssignment);
+			}
 			Expect(12);
-			submodule = new AbstractModuleDecl(idPath, id, parent); 
+			submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment); 
 		} else SynErr(112);
 	}
 
@@ -962,7 +966,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	}
 
 	void FrameExpression(out FrameExpression/*!*/ fe) {
-		Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; 
+		Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; fe = null; 
 		if (StartOf(10)) {
 			Expression(out e);
 			if (la.kind == 50) {

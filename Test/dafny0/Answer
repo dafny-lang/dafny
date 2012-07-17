@@ -1917,5 +1917,5 @@ Execution trace:
 
 Dafny program verifier finished with 19 verified, 2 errors
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 23 verified, 0 errors
 Compiled assembly into Compilation.exe

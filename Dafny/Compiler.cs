@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
       ReadRuntimeSystem();
       CompileBuiltIns(program.BuiltIns);
 
-      foreach (ModuleDefinition m in program.Modules) {
+      foreach (ModuleDefinition m in program.CompileModules) {
         if (m.IsGhost) {
           // the purpose of a ghost module is to skip compilation
           continue;
