@@ -11,6 +11,7 @@ method M()
 
 function method Id(x: int): int { x }  // for triggering
 
+datatype D = A | B;
 // The following mainly test that set comprehensions can be compiled, but one would
 // have to run the resulting program to check that the compiler is doing the right thing.
 method Main()
@@ -18,6 +19,8 @@ method Main()
   var q := set i,j | 0 <= i && i < 10 && 0 <= j && j < 3 :: i+j;
   PrintSet(q);
   q := set b: bool | true :: if b then 3 else 7;
+  var d := set b:D | true;
+  var test := forall d:D :: d == A || d == B;
   PrintSet(q);
   var m := set k | k in q :: 2*k;
   PrintSet(m);

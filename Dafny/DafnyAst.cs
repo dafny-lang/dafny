@@ -1038,6 +1038,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(1 <= ctors.Count);
       Ctors = ctors;
     }
+    public bool HasFinitePossibleValues {
+      get {
+        return (TypeArgs.Count == 0 && Ctors.TrueForAll(ctr => ctr.Formals.Count == 0));
+      }
+    }
   }
 
   public class IndDatatypeDecl : DatatypeDecl
@@ -3505,6 +3510,11 @@ namespace Microsoft.Dafny {
     }
     public class BoolBoundedPool : BoundedPool
     {
+    }
+    public class DatatypeBoundedPool : BoundedPool
+    {
+      public readonly DatatypeDecl Decl;
+      public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver

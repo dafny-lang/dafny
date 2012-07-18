@@ -4946,6 +4946,8 @@ namespace Microsoft.Dafny
         if (bv.Type is BoolType) {
           // easy
           bounds.Add(new QuantifierExpr.BoolBoundedPool());
+        } else if (bv.Type.IsIndDatatype && (bv.Type.AsIndDatatype).HasFinitePossibleValues) {
+          bounds.Add(new QuantifierExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
         } else {
           // Go through the conjuncts of the range expression to look for bounds.
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
