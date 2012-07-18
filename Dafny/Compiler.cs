@@ -217,6 +217,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("}");
       }
 
+      int constructorIndex = 0; // used to give each constructor a different
       foreach (DatatypeCtor ctor in dt.Ctors) {
         // class Dt_Ctor<T,U> : Base_Dt<T> {
         //   Fields;
@@ -286,7 +287,17 @@ namespace Microsoft.Dafny {
 
         // GetHashCode method
         Indent(ind); wr.WriteLine("public override int GetHashCode() {");
-        Indent(ind + IndentAmount); wr.WriteLine("return base.GetHashCode();  // surely this can be improved");
+        Indent(ind + IndentAmount); wr.Write("return " + constructorIndex);
+
+        i = 0;
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            string nm = FormalName(arg, i);
+            wr.Write(" ^ this.@{0}.GetHashCode()", nm);
+            i++;
+          }
+        }
+        wr.WriteLine(";");
         Indent(ind); wr.WriteLine("}");
 
         if (dt is IndDatatypeDecl) {
@@ -313,6 +324,7 @@ namespace Microsoft.Dafny {
 
         Indent(indent);  wr.WriteLine("}");
       }
+      constructorIndex ++;
     }
 
     void CompileDatatypeStruct(DatatypeDecl dt, int indent) {
