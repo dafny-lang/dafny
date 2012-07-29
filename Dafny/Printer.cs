@@ -1014,11 +1014,6 @@ namespace Microsoft.Dafny {
         PrintExpression(((FreshExpr)expr).E);
         wr.Write(")");
 
-      } else if (expr is AllocatedExpr) {
-        wr.Write("allocated(");
-        PrintExpression(((AllocatedExpr)expr).E);
-        wr.Write(")");
-
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.SeqLength) {

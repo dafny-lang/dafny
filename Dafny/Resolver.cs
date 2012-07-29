@@ -763,10 +763,6 @@ namespace Microsoft.Dafny
         var e = (FreshExpr)expr;
         return new FreshExpr((e.tok), CloneExpr(e.E));
 
-      } else if (expr is AllocatedExpr) {
-        var e = (AllocatedExpr)expr;
-        return new AllocatedExpr((e.tok), CloneExpr(e.E));
-
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         return new UnaryExpr((e.tok), e.Op, CloneExpr(e.E));
@@ -3912,15 +3908,11 @@ namespace Microsoft.Dafny
           // fine
         } else if (UserDefinedType.DenotesClass(t) != null) {
           // fine
+        } else if (t.IsDatatype) {
+          // fine, treat this as the datatype itself.
         } else {
           Error(expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);
         }
-        expr.Type = Type.Bool;
-
-      } else if (expr is AllocatedExpr) {
-        AllocatedExpr e = (AllocatedExpr)expr;
-        ResolveExpression(e.E, twoState);
-        // e.E can be of any type
         expr.Type = Type.Bool;
 
       } else if (expr is UnaryExpr) {
@@ -4520,10 +4512,6 @@ namespace Microsoft.Dafny
 
       } else if (expr is FreshExpr) {
         Error(expr, "fresh expressions are allowed only in specification and ghost contexts");
-        return;
-
-      } else if (expr is AllocatedExpr) {
-        Error(expr, "allocated expressions are allowed only in specification and ghost contexts");
         return;
 
       } else if (expr is PredicateExpr) {
@@ -5586,8 +5574,6 @@ namespace Microsoft.Dafny
         OldExpr e = (OldExpr)expr;
         return UsesSpecFeatures(e.E);
       } else if (expr is FreshExpr) {
-        return true;
-      } else if (expr is AllocatedExpr) {
         return true;
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;

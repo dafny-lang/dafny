@@ -190,42 +190,39 @@ Execution trace:
     (0,0): anon28_Then
     (0,0): anon29_Then
     (0,0): anon19
-SmallTests.dfy(199,14): Error: assertion violation
+SmallTests.dfy(195,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
-SmallTests.dfy(206,14): Error: assertion violation
+    (0,0): anon6_Then
+SmallTests.dfy(202,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
+    (0,0): anon6_Else
     (0,0): anon3
-    (0,0): anon13_Then
-SmallTests.dfy(226,12): Error: assertion violation
+    (0,0): anon7_Then
+SmallTests.dfy(204,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
+    (0,0): anon6_Else
     (0,0): anon3
-    (0,0): anon13_Else
-    (0,0): anon6
-    (0,0): anon14_Then
-    (0,0): anon11
-SmallTests.dfy(271,24): Error BP5002: A precondition for this call might not hold.
-SmallTests.dfy(249,30): Related location: This is the precondition that might not hold.
+    (0,0): anon7_Else
+SmallTests.dfy(250,24): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(228,30): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(266,19): anon3_Else
+    SmallTests.dfy(245,19): anon3_Else
     (0,0): anon2
-SmallTests.dfy(376,12): Error: assertion violation
+SmallTests.dfy(355,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(386,12): Error: assertion violation
+SmallTests.dfy(365,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(396,6): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(375,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-SmallTests.dfy(306,3): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(300,11): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(285,3): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(279,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
@@ -234,27 +231,27 @@ Execution trace:
     (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
-SmallTests.dfy(347,12): Error: assertion violation
+SmallTests.dfy(326,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon7
-SmallTests.dfy(354,10): Error: assertion violation
+SmallTests.dfy(333,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(343,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(387,10): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(390,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
-SmallTests.dfy(561,12): Error: assertion violation
+SmallTests.dfy(540,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-SmallTests.dfy(575,20): Error: left-hand sides 0 and 1 may refer to the same location
+SmallTests.dfy(554,20): Error: left-hand sides 0 and 1 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -266,11 +263,11 @@ Execution trace:
     (0,0): anon31_Then
     (0,0): anon32_Then
     (0,0): anon12
-SmallTests.dfy(577,15): Error: left-hand sides 1 and 2 may refer to the same location
+SmallTests.dfy(556,15): Error: left-hand sides 1 and 2 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
-    SmallTests.dfy(570,18): anon28_Else
+    SmallTests.dfy(549,18): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
     (0,0): anon7
@@ -282,10 +279,10 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-SmallTests.dfy(584,25): Error: target object may be null
+SmallTests.dfy(563,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(597,10): Error: assertion violation
+SmallTests.dfy(576,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
@@ -1648,42 +1645,39 @@ Execution trace:
     (0,0): anon28_Then
     (0,0): anon29_Then
     (0,0): anon19
-SmallTests.dfy(199,14): Error: assertion violation
+SmallTests.dfy(195,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
-SmallTests.dfy(206,14): Error: assertion violation
+    (0,0): anon6_Then
+SmallTests.dfy(202,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
+    (0,0): anon6_Else
     (0,0): anon3
-    (0,0): anon13_Then
-SmallTests.dfy(226,12): Error: assertion violation
+    (0,0): anon7_Then
+SmallTests.dfy(204,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
+    (0,0): anon6_Else
     (0,0): anon3
-    (0,0): anon13_Else
-    (0,0): anon6
-    (0,0): anon14_Then
-    (0,0): anon11
-SmallTests.dfy(271,24): Error BP5002: A precondition for this call might not hold.
-SmallTests.dfy(249,30): Related location: This is the precondition that might not hold.
+    (0,0): anon7_Else
+SmallTests.dfy(250,24): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(228,30): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(266,19): anon3_Else
+    SmallTests.dfy(245,19): anon3_Else
     (0,0): anon2
-SmallTests.dfy(376,12): Error: assertion violation
+SmallTests.dfy(355,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(386,12): Error: assertion violation
+SmallTests.dfy(365,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(396,6): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(375,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-SmallTests.dfy(306,3): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(300,11): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(285,3): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(279,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
@@ -1692,27 +1686,27 @@ Execution trace:
     (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
-SmallTests.dfy(347,12): Error: assertion violation
+SmallTests.dfy(326,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon7
-SmallTests.dfy(354,10): Error: assertion violation
+SmallTests.dfy(333,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(364,4): Error: cannot prove termination; try supplying a decreases clause
+SmallTests.dfy(343,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-SmallTests.dfy(408,10): Error BP5003: A postcondition might not hold on this return path.
-SmallTests.dfy(411,41): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(387,10): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(390,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
-SmallTests.dfy(561,12): Error: assertion violation
+SmallTests.dfy(540,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-SmallTests.dfy(575,20): Error: left-hand sides 0 and 1 may refer to the same location
+SmallTests.dfy(554,20): Error: left-hand sides 0 and 1 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -1724,11 +1718,11 @@ Execution trace:
     (0,0): anon31_Then
     (0,0): anon32_Then
     (0,0): anon12
-SmallTests.dfy(577,15): Error: left-hand sides 1 and 2 may refer to the same location
+SmallTests.dfy(556,15): Error: left-hand sides 1 and 2 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
-    SmallTests.dfy(570,18): anon28_Else
+    SmallTests.dfy(549,18): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
     (0,0): anon7
@@ -1740,10 +1734,10 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-SmallTests.dfy(584,25): Error: target object may be null
+SmallTests.dfy(563,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(597,10): Error: assertion violation
+SmallTests.dfy(576,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
@@ -1796,42 +1790,39 @@ Execution trace:
     (0,0): anon28_Then
     (0,0): anon29_Then
     (0,0): anon19
-out.tmp.dfy(202,14): Error: assertion violation
+out.tmp.dfy(199,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
-out.tmp.dfy(208,14): Error: assertion violation
+    (0,0): anon6_Then
+out.tmp.dfy(205,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
+    (0,0): anon6_Else
     (0,0): anon3
-    (0,0): anon13_Then
-out.tmp.dfy(229,12): Error: assertion violation
+    (0,0): anon7_Then
+out.tmp.dfy(207,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Else
+    (0,0): anon6_Else
     (0,0): anon3
-    (0,0): anon13_Else
-    (0,0): anon6
-    (0,0): anon14_Then
-    (0,0): anon11
-out.tmp.dfy(266,24): Error BP5002: A precondition for this call might not hold.
-out.tmp.dfy(247,30): Related location: This is the precondition that might not hold.
+    (0,0): anon7_Else
+out.tmp.dfy(245,24): Error BP5002: A precondition for this call might not hold.
+out.tmp.dfy(226,30): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    out.tmp.dfy(263,19): anon3_Else
+    out.tmp.dfy(242,19): anon3_Else
     (0,0): anon2
-out.tmp.dfy(286,12): Error: assertion violation
+out.tmp.dfy(265,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(296,12): Error: assertion violation
+out.tmp.dfy(275,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(306,6): Error: cannot prove termination; try supplying a decreases clause
+out.tmp.dfy(285,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-out.tmp.dfy(422,3): Error BP5003: A postcondition might not hold on this return path.
-out.tmp.dfy(416,11): Related location: This is the postcondition that might not hold.
+out.tmp.dfy(401,3): Error BP5003: A postcondition might not hold on this return path.
+out.tmp.dfy(395,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
@@ -1840,27 +1831,27 @@ Execution trace:
     (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
-out.tmp.dfy(446,12): Error: assertion violation
+out.tmp.dfy(425,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon7
-out.tmp.dfy(451,10): Error: assertion violation
+out.tmp.dfy(430,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(461,4): Error: cannot prove termination; try supplying a decreases clause
+out.tmp.dfy(440,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-out.tmp.dfy(469,10): Error BP5003: A postcondition might not hold on this return path.
-out.tmp.dfy(470,41): Related location: This is the postcondition that might not hold.
+out.tmp.dfy(448,10): Error BP5003: A postcondition might not hold on this return path.
+out.tmp.dfy(449,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
-out.tmp.dfy(507,12): Error: assertion violation
+out.tmp.dfy(486,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-out.tmp.dfy(521,20): Error: left-hand sides 0 and 1 may refer to the same location
+out.tmp.dfy(500,20): Error: left-hand sides 0 and 1 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -1872,11 +1863,11 @@ Execution trace:
     (0,0): anon31_Then
     (0,0): anon32_Then
     (0,0): anon12
-out.tmp.dfy(523,15): Error: left-hand sides 1 and 2 may refer to the same location
+out.tmp.dfy(502,15): Error: left-hand sides 1 and 2 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
-    out.tmp.dfy(516,18): anon28_Else
+    out.tmp.dfy(495,18): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
     (0,0): anon7
@@ -1888,10 +1879,10 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-out.tmp.dfy(530,25): Error: target object may be null
+out.tmp.dfy(509,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(543,10): Error: assertion violation
+out.tmp.dfy(522,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

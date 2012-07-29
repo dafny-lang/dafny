@@ -188,42 +188,21 @@ class Modifies {
 class AllocatedTests {
   method M(r: AllocatedTests, k: Node, S: set<Node>, d: Lindgren)
   {
-    assert allocated(r);
-
     var n := new Node;
     var t := S + {n};
-    assert allocated(t);
-
-    assert allocated(d);
+    
     if (*) {
-      assert old(allocated(n));  // error: n was not allocated in the initial state
+      assert !fresh(n);  // error: n was not allocated in the initial state
     } else {
-      assert !old(allocated(n));  // correct
+      assert fresh(n);  // correct
     }
 
     var U := {k,n};
     if (*) {
-      assert old(allocated(U));  // error: n was not allocated initially
+      assert !fresh(U);  // error: n was not allocated initially
     } else {
-      assert !old(allocated(U));  // correct (note, the assertion does NOT say: everything was unallocated in the initial state)
+      assert fresh(U);  // correct (note, the assertion does NOT say: everything was unallocated in the initial state)
     }
-
-    assert allocated(6);
-    assert allocated(6);
-    assert allocated(null);
-    assert allocated(Lindgren.HerrNilsson);
-
-    match (d) {
-      case Pippi(n) => assert allocated(n);
-      case Longstocking(q, dd) => assert allocated(q); assert allocated(dd);
-      case HerrNilsson => assert old(allocated(d));
-    }
-    var ls := Lindgren.Longstocking([], d);
-    assert allocated(ls);
-    assert old(allocated(ls));
-
-    assert old(allocated(Lindgren.Longstocking([r], d)));
-    assert old(allocated(Lindgren.Longstocking([n], d)));  // error, because n was not allocated initially
   }
 }
 

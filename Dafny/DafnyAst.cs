@@ -3125,26 +3125,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class AllocatedExpr : Expression
-  {
-    public readonly Expression E;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(E != null);
-    }
-
-    public AllocatedExpr(IToken tok, Expression expr)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(expr != null);
-      E = expr;
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { yield return E; }
-    }
-  }
-
   public class UnaryExpr : Expression
   {
     public enum Opcode {

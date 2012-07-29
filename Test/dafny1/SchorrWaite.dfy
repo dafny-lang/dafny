@@ -12,6 +12,7 @@ class Node {
 
 datatype Path = Empty | Extend(Path, Node);
 
+
 class Main {
   method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S;
@@ -213,9 +214,9 @@ class Main {
                   (forall j :: 0 <= j && j < |n.children| ==>
                     j == n.childrenVisited || n.children[j] == old(n.children[j])));
       // every marked node is reachable:
-      invariant old(allocated(path));  // needed to show 'path' worthy as argument to old(Reachable(...))
+      invariant !fresh(path);  // needed to show 'path' worthy as argument to old(Reachable(...))
       invariant old(ReachableVia(root, path, t, S));
-      invariant (forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==> old(allocated(pth)));
+      invariant (forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==> !fresh(pth));
       invariant (forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==>
                   old(ReachableVia(root, pth, n, S)));
       invariant (forall n :: n in S && n.marked ==> old(Reachable(root, n, S)));

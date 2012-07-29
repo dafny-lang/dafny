@@ -213,9 +213,9 @@ ghost module M2 refines M1 {
       // references, we need to make sure we can deal with the proof obligation for the path
       // argument.  For this reason, we add invariants that say that "path" and the .pathFromRoot
       // field of all marked nodes contain values that make sense in the pre-state.
-      invariant old(allocated(path)) && old(ReachableVia(root, path, t, S));
+      invariant !fresh(path) && old(ReachableVia(root, path, t, S));
       invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot;
-                  old(allocated(pth)) && old(ReachableVia(root, pth, n, S));
+                  !fresh(pth) && old(ReachableVia(root, pth, n, S));
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S));
 
       decreases *;  // keep postponing termination checking

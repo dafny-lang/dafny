@@ -247,10 +247,6 @@ namespace Microsoft.Dafny
         var e = (FreshExpr)expr;
         return new FreshExpr(Tok(e.tok), CloneExpr(e.E));
 
-      } else if (expr is AllocatedExpr) {
-        var e = (AllocatedExpr)expr;
-        return new AllocatedExpr(Tok(e.tok), CloneExpr(e.E));
-
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         return new UnaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E));

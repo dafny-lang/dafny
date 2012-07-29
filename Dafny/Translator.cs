@@ -1869,9 +1869,6 @@ namespace Microsoft.Dafny {
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
         return IsTotal(e.E, etran);
-      } else if (expr is AllocatedExpr) {
-        AllocatedExpr e = (AllocatedExpr)expr;
-        return IsTotal(e.E, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         Bpl.Expr t = IsTotal(e.E, etran);
@@ -2041,9 +2038,6 @@ namespace Microsoft.Dafny {
         return CanCallAssumption(e.E, etran);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
-        return CanCallAssumption(e.E, etran);
-      } else if (expr is AllocatedExpr) {
-        AllocatedExpr e = (AllocatedExpr)expr;
         return CanCallAssumption(e.E, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -2484,9 +2478,6 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran);
       } else if (expr is FreshExpr) {
         FreshExpr e = (FreshExpr)expr;
-        CheckWellformed(e.E, options, locals, builder, etran);
-      } else if (expr is AllocatedExpr) {
-        AllocatedExpr e = (AllocatedExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -6114,7 +6105,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(oVar), body);
           } else if (e.E.Type is SeqType) {
-            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Seq#Index(X,$i),alloc])
+            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Seq#Index(X,$i),alloc])
             // TODO: trigger?
             Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
             Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
@@ -6122,19 +6113,17 @@ namespace Microsoft.Dafny {
             Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, XsubI));
             Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI), predef.Null);
-            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
+            Bpl.Expr body = Bpl.Expr.And(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new Bpl.VariableSeq(iVar), body);
+          } else if (e.E.Type.IsDatatype) {
+            Bpl.Expr alloc = translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
+            return Bpl.Expr.Not(alloc);
           } else {
-            // generate:  x == null || !old($Heap)[x]
-            Bpl.Expr oNull = Bpl.Expr.Eq(TrExpr(e.E), predef.Null);
+            // generate:  x != null && !old($Heap)[x]
+            Bpl.Expr oNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
-            return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Or, oNull, oIsFresh);
+            return Bpl.Expr.And(oNull, oIsFresh);
           }
-
-        } else if (expr is AllocatedExpr) {
-          AllocatedExpr e = (AllocatedExpr)expr;
-          Bpl.Expr wh = translator.GetWhereClause(e.tok, TrExpr(e.E), e.E.Type, this);
-          return wh == null ? Bpl.Expr.True : wh;
 
         } else if (expr is UnaryExpr) {
           UnaryExpr e = (UnaryExpr)expr;
@@ -8388,12 +8377,6 @@ namespace Microsoft.Dafny {
           Expression se = Substitute(e.E);
           if (se != e.E) {
             newExpr = new FreshExpr(expr.tok, se);
-          }
-        } else if (expr is AllocatedExpr) {
-          AllocatedExpr e = (AllocatedExpr)expr;
-          Expression se = Substitute(e.E);
-          if (se != e.E) {
-            newExpr = new AllocatedExpr(expr.tok, se);
           }
         } else if (expr is UnaryExpr) {
           UnaryExpr e = (UnaryExpr)expr;

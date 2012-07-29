@@ -1423,8 +1423,6 @@ ConstAtomExpression<out Expression/*!*/ e>
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e> ")"                  (. e = new FreshExpr(x, e); .)
-  | "allocated"                                (. x = t; .)
-    "(" Expression<out e> ")"                  (. e = new AllocatedExpr(x, e); .)
   | "old"                                      (. x = t; .)
     "(" Expression<out e> ")"                  (. e = new OldExpr(x, e); .)
   | "|"                                        (. x = t; .)
