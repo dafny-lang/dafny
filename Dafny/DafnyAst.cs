@@ -28,6 +28,7 @@ namespace Microsoft.Dafny {
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
+    public readonly List<TranslationTask> TranslationTasks;
     public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -38,6 +39,7 @@ namespace Microsoft.Dafny {
       BuiltIns = builtIns;
       Modules = new List<ModuleDefinition>();
       CompileModules = new List<ModuleDefinition>();
+      TranslationTasks = new List<TranslationTask>();
     }
   }
 
@@ -781,6 +783,14 @@ namespace Microsoft.Dafny {
 
     public bool NecessaryForEqualitySupportOfSurroundingInductiveDatatype = false;  // computed during resolution; relevant only when Parent denotes an IndDatatypeDecl
 
+    public bool IsAbstractTypeDeclaration { // true if this type parameter represents t in type t;
+      get { return parent == null; }
+    }
+    public bool IsToplevelScope { // true if this type parameter is on a toplevel (ie. class C<T>), and false if it is on a member (ie. method m<T>(...))
+      get { return parent is TopLevelDecl; }
+    }
+    public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
+
     public TypeParameter(IToken tok, string name, EqualitySupportValue equalitySupport = EqualitySupportValue.Unspecified)
       : base(tok, name, null) {
       Contract.Requires(tok != null);
@@ -789,7 +799,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  // Represents a submodule declartion at module level scope
+  // Represents a submodule declaration at module level scope
   abstract public class ModuleDecl : TopLevelDecl
   {
     public ModuleSignature Signature; // filled in by resolution, in topological order.
@@ -981,8 +991,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
-
-
       Members = members;
     }
     public virtual bool IsDefaultClass {
@@ -4015,5 +4023,26 @@ namespace Microsoft.Dafny {
       return Attributes != null;
     }
   }
+  public abstract class TranslationTask
+  {
 
+  }
+  public class MethodCheck : TranslationTask
+  {
+    public readonly Method Refined;
+    public readonly Method Refining;
+    public MethodCheck(Method a, Method b) {
+      Refined = b;
+      Refining = a;
+    }
+  }
+  public class FunctionCheck : TranslationTask
+  {
+    public readonly Function Refined;
+    public readonly Function Refining;
+    public FunctionCheck(Function a, Function b) {
+      Refined = b;
+      Refining = a;
+    }
+  }
 }

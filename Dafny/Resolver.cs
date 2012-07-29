@@ -144,7 +144,7 @@ namespace Microsoft.Dafny
         h++;
       }
 
-      var refinementTransformer = new RefinementTransformer(this);
+      var refinementTransformer = new RefinementTransformer(this, prog);
 
       IRewriter rewriter = new AutoContractsRewriter();
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
@@ -216,11 +216,14 @@ namespace Microsoft.Dafny
             ModuleSignature compileSig;
             if (abs.CompilePath != null) {
               if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig)) {
-                if (refinementTransformer.CheckIsRefinement(compileSig, p, abs.CompilePath[0],
-                  "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of " + Util.Comma(".", abs.Path, x => x.val))) {
+                if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
                   abs.Signature.CompileSignature = compileSig;
-                  abs.Signature.IsGhost = compileSig.IsGhost;
+                } else {
+                  Error(abs.CompilePath[0],
+                  "module " + Util.Comma(".", abs.CompilePath, x => x.val) + " must be a refinement of " + Util.Comma(".", abs.Path, x => x.val));
                 }
+                abs.Signature.IsGhost = compileSig.IsGhost;
+                // always keep the ghost information, to supress a spurious error message when the compile module isn't actually a refinement
               }
             }
           } else {
@@ -305,17 +308,17 @@ namespace Microsoft.Dafny
           var subdecl = (LiteralModuleDecl)tld;
           var subBindings = BindModuleNames(subdecl.ModuleDef, bindings);
           if (!bindings.BindName(subdecl.Name, subdecl, subBindings)) {
-            Error(subdecl.Module, "Duplicate module name: {0}", subdecl.Name);
+            Error(subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
           }
         } else if (tld is AbstractModuleDecl) {
           var subdecl = (AbstractModuleDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            Error(subdecl.Module, "Duplicate module name: {0}", subdecl.Name);
+            Error(subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
           }
         } else if (tld is AliasModuleDecl) {
           var subdecl = (AliasModuleDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            Error(subdecl.Module, "Duplicate module name: {0}", subdecl.Name);
+            Error(subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
           }
         }
       }
@@ -853,7 +856,7 @@ namespace Microsoft.Dafny
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(d.TypeArgs, true, d);
+        ResolveTypeParameters(d.TypeArgs, true, d, true);
         if (d is ArbitraryTypeDecl) {
           // nothing to do
         } else if (d is ClassDecl) {
@@ -889,7 +892,7 @@ namespace Microsoft.Dafny
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(d.TypeArgs, false, d);
+        ResolveTypeParameters(d.TypeArgs, false, d, true);
         if (d is ClassDecl) {
           ResolveClassMemberBodies((ClassDecl)d);
         }
@@ -1520,14 +1523,14 @@ namespace Microsoft.Dafny
         } else if (member is Function) {
           Function f = (Function)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(f.TypeArgs, true, f);
+          ResolveTypeParameters(f.TypeArgs, true, f, false);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
 
         } else if (member is Method) {
           Method m = (Method)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, true, m);
+          ResolveTypeParameters(m.TypeArgs, true, m, false);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
 
@@ -1556,14 +1559,14 @@ namespace Microsoft.Dafny
         } else if (member is Function) {
           Function f = (Function)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(f.TypeArgs, false, f);
+          ResolveTypeParameters(f.TypeArgs, false, f, false);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
 
         } else if (member is Method) {
           Method m = (Method)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, false, m);
+          ResolveTypeParameters(m.TypeArgs, false, m, false);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
         } else {
@@ -1832,16 +1835,18 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
+    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent, bool isToplevel) {
 
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
       // push non-duplicated type parameter names
+      int index = 0;
       foreach (TypeParameter tp in tparams) {
         Contract.Assert(tp != null);
         if (emitErrors) {
           // we're seeing this TypeParameter for the first time
           tp.Parent = parent;
+          tp.PositionalIndex = index;
         }
         if (!allTypeParameters.Push(tp.Name, tp) && emitErrors) {
           Error(tp, "Duplicate type-parameter name: {0}", tp.Name);

@@ -125,7 +125,7 @@ namespace Microsoft.Dafny
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else if (t is ParamTypeProxy) {
-        return new ParamTypeProxy(((ParamTypeProxy)t).orig); // todo: this is not right, as when cloning the type parameter declartion changes.
+        return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
       } else {
         Contract.Assert(false);  // unexpected type (e.g., no other type proxies are expected at this time)
         return null;  // to please compiler

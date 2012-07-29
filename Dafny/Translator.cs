@@ -355,8 +355,29 @@ namespace Microsoft.Dafny {
       foreach(var c in fieldConstants.Values) {
         sink.TopLevelDeclarations.Add(c);
       }
+      HashSet<Tuple<string, string>> checkedMethods = new HashSet<Tuple<string, string>>();
+      HashSet<Tuple<string, string>> checkedFunctions = new HashSet<Tuple<string, string>>();
+      foreach (var t in program.TranslationTasks) {
+        if (t is MethodCheck) {
+          var m = (MethodCheck)t;
+          var id = new Tuple<string, string>(m.Refined.FullCompileName, m.Refining.FullCompileName);
+          if (!checkedMethods.Contains(id)) {
+            AddMethodRefinementCheck(m);
+            checkedMethods.Add(id);
+          }
+        } else if (t is FunctionCheck) {
+          var f = (FunctionCheck)t;
+          var id = new Tuple<string, string>(f.Refined.FullCompileName, f.Refining.FullCompileName);
+          if (!checkedFunctions.Contains(id)) {
+            AddFunctionRefinementCheck(f);
+            checkedFunctions.Add(id);
+          }
+        }
+      }
       return sink;
     }
+
+
 
     void AddDatatype(DatatypeDecl dt)
     {
@@ -3021,25 +3042,8 @@ namespace Microsoft.Dafny {
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
 
-      Bpl.VariableSeq inParams = new Bpl.VariableSeq();
-      Bpl.VariableSeq outParams = new Bpl.VariableSeq();
-      if (!m.IsStatic) {
-        Bpl.Expr wh = Bpl.Expr.And(
-          Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
-          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetReceiverType(m.tok, m)));
-        Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
-        inParams.Add(thVar);
-      }
-      foreach (Formal p in m.Ins) {
-        Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
-        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
-      }
-      foreach (Formal p in m.Outs) {
-        Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
-        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
-      }
+      Bpl.VariableSeq inParams, outParams;
+      GenerateMethodParameters(m, etran, out inParams, out outParams);
 
       Bpl.RequiresSeq req = new Bpl.RequiresSeq();
       Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
@@ -3108,6 +3112,293 @@ namespace Microsoft.Dafny {
       currentMethod = null;
 
       return proc;
+    }
+
+    private void AddMethodRefinementCheck(MethodCheck methodCheck) {
+
+      // First, we generate the declaration of the procedure. This procedure has the same
+      // pre and post conditions as the refined method. The body implementation will be a call
+      // to the refining method.
+      Method m = methodCheck.Refined;
+      currentModule = m.EnclosingClass.Module;
+      currentMethod = m;
+
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+
+      Bpl.VariableSeq inParams, outParams;
+      GenerateMethodParameters(m, etran, out inParams, out outParams);
+
+      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
+      Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
+      
+      Bpl.Expr context = Bpl.Expr.And(
+        Bpl.Expr.Eq(Bpl.Expr.Literal(m.EnclosingClass.Module.Height), etran.ModuleContextHeight()),
+        etran.InMethodContext());
+      req.Add(Requires(m.tok, true, context, null, null));
+      
+      mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
+      mod.Add(etran.Tick());
+
+      foreach (MaybeFreeExpression p in m.Req) {
+        if ((p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating)) {
+          req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, null));
+        } else {
+          bool splitHappened;  // we actually don't care
+          foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            req.Add(Requires(s.E.tok, s.IsFree, s.E, null, null));
+          }
+        }
+      }
+      foreach (MaybeFreeExpression p in m.Ens) {
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+          ens.Add(Ensures(s.E.tok, s.IsFree, s.E, "Error: postcondition of refined method may be violated", null));
+        }
+      }
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, etran.Old, etran, etran.Old)) {
+        ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+      }
+
+      // Generate procedure, and then add it to the sink
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
+      string name = "CheckRefinement$$" + m.FullCompileName + "$" + methodCheck.Refining.FullCompileName;
+      Bpl.Procedure proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new Bpl.EnsuresSeq());
+
+      sink.TopLevelDeclarations.Add(proc);
+
+
+      // Generate the implementation
+      typeParams = TrTypeParamDecls(m.TypeArgs);
+      inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
+      outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
+
+      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
+      GenerateImplPrelude(m, inParams, outParams, builder, localVariables);
+
+      // Generate the call to the refining method
+      Method method = methodCheck.Refining;
+      Expression receiver = new ThisExpr(Token.NoToken);
+      Bpl.ExprSeq ins = new Bpl.ExprSeq();
+      if (!method.IsStatic) {
+        ins.Add(etran.TrExpr(receiver));
+      }
+
+      // Ideally, the modifies and decreases checks would be done after the precondition check,
+      // but Boogie doesn't give us a hook for that.  So, we set up our own local variables here to
+      // store the actual parameters.
+      // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
+      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      for (int i = 0; i < method.Ins.Count; i++) {
+        Formal p = method.Ins[i];
+        VarDecl local = new VarDecl(p.tok, p.Name + "#", p.Type, p.IsGhost);
+        local.type = local.OptionalType;  // resolve local here
+        IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
+        ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+        substMap.Add(p, ie);
+        localVariables.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
+
+        Bpl.IdentifierExpr param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+        var bActual = new Bpl.IdentifierExpr(Token.NoToken, m.Ins[i].UniqueName, TrType(m.Ins[i].Type));
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, param, etran.CondApplyUnbox(Token.NoToken, bActual, cce.NonNull( m.Ins[i].Type),p.Type));
+        builder.Add(cmd);
+        ins.Add(param);
+      }
+
+      // Check modifies clause of a subcall is a subset of the current frame.
+      CheckFrameSubset(method.tok, method.Mod.Expressions, receiver, substMap, etran, builder, "call may modify locations not in the refined method's modifies clause", null);
+
+      // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
+      Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
+      List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>();
+      for (int i = 0; i < m.Outs.Count; i++) {
+        var bLhs = m.Outs[i];
+        if (!ExpressionTranslator.ModeledAsBoxType(method.Outs[i].Type) && ExpressionTranslator.ModeledAsBoxType(bLhs.Type)) {
+          // we need an Box
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + otherTmpVarCount, TrType(method.Outs[i].Type)));
+          otherTmpVarCount++;
+          localVariables.Add(var);
+          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, TrType(method.Outs[i].Type));
+          tmpOuts.Add(varIdE);
+          outs.Add(varIdE);
+        } else {
+          tmpOuts.Add(null);
+          outs.Add(new Bpl.IdentifierExpr(Token.NoToken, bLhs.UniqueName, TrType(bLhs.Type)));
+        }
+      }
+
+      // Make the call
+      Bpl.CallCmd call = new Bpl.CallCmd(method.tok, method.FullCompileName, ins, outs);
+      builder.Add(call);
+
+      for (int i = 0; i < m.Outs.Count; i++) {
+        var bLhs = m.Outs[i];
+        var tmpVarIdE = tmpOuts[i];
+        if (tmpVarIdE != null) {
+          // e := Box(tmpVar);
+          Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(Token.NoToken, new Bpl.IdentifierExpr(Token.NoToken, bLhs.UniqueName, TrType(bLhs.Type)), FunctionCall(Token.NoToken, BuiltinFunction.Box, null, tmpVarIdE));
+          builder.Add(cmd);
+        }
+      }
+
+      foreach (MaybeFreeExpression p in m.Ens) {
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+          var assert = new Bpl.AssertCmd(method.tok, s.E, ErrorMessageAttribute(s.E.tok, "This is the postcondition that may not hold."));
+          assert.ErrorData = "Error: A postcondition of the refined method may not hold.";
+          builder.Add(assert);
+        }
+      }
+      Bpl.StmtList stmts = builder.Collect(method.tok); // this token is for the implict return, which should be for the refining method,
+                                                        // as this is where the error is.
+     
+      Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
+        typeParams, inParams, outParams,
+        localVariables, stmts, etran.TrAttributes(m.Attributes, null));
+      sink.TopLevelDeclarations.Add(impl);
+
+      // Clean up
+      currentModule = null;
+      currentMethod = null;
+      otherTmpVarCount = 0;
+      _tmpIEs.Clear();
+    }
+
+    private static QKeyValue ErrorMessageAttribute(IToken t, string error) {
+      var l = new List<object>(1);
+      l.Add(error);
+      return new QKeyValue(t, "msg", l, null);
+    }
+    private static QKeyValue ErrorMessageAttribute(IToken t, string error, QKeyValue qv) {
+      var l = new List<object>(1);
+      l.Add(error);
+      return new QKeyValue(t, "msg", l, qv);
+    }
+
+    private void AddFunctionRefinementCheck(FunctionCheck functionCheck) {
+      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(currentModule == null);
+      Contract.Ensures(currentModule == null);
+
+      Function f = functionCheck.Refined;
+      Function function = functionCheck.Refining;
+      currentModule = function.EnclosingClass.Module;
+
+      ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
+      // parameters of the procedure
+      Bpl.VariableSeq inParams = new Bpl.VariableSeq();
+      if (!f.IsStatic) {
+        Bpl.Expr wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
+          etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetReceiverType(f.tok, f)));
+        Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
+        inParams.Add(thVar);
+      }
+      foreach (Formal p in f.Formals) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+      }
+      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
+      // the procedure itself
+      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+      ModuleDefinition mod = function.EnclosingClass.Module;
+      Bpl.Expr context = Bpl.Expr.And(
+        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(function)), etran.FunctionContextHeight()));
+      req.Add(Requires(f.tok, true, context, null, null));
+
+      foreach (Expression p in f.Req) {
+        req.Add(Requires(p.tok, true, etran.TrExpr(p), null, null));
+      }
+      
+      // check that postconditions hold
+      var ens = new Bpl.EnsuresSeq();
+      foreach (Expression p in f.Ens) {
+        bool splitHappened;  // we actually don't care
+        foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
+          if (!s.IsFree) {
+            ens.Add(Ensures(s.E.tok, s.IsFree, s.E, null, null));
+          }
+        }
+      }
+      Bpl.Procedure proc = new Bpl.Procedure(function.tok, "CheckIsRefinement$$" + f.FullCompileName + "$" + functionCheck.Refining.FullCompileName, typeParams, inParams, new Bpl.VariableSeq(),
+        req, new Bpl.IdentifierExprSeq(), ens, etran.TrAttributes(f.Attributes, null));
+      sink.TopLevelDeclarations.Add(proc);
+
+      VariableSeq implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
+      Bpl.VariableSeq locals = new Bpl.VariableSeq();
+      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      
+      Bpl.FunctionCall funcOriginal = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullCompileName, TrType(f.ResultType)));
+      Bpl.FunctionCall funcRefining = new Bpl.FunctionCall(new Bpl.IdentifierExpr(functionCheck.Refining.tok, functionCheck.Refining.FullCompileName, TrType(f.ResultType)));
+      Bpl.ExprSeq args = new Bpl.ExprSeq();
+      args.Add(etran.HeapExpr);
+      foreach (Variable p in implInParams) {
+        args.Add(new Bpl.IdentifierExpr(f.tok, p));
+      }
+      Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcOriginal, args);
+      Bpl.Expr funcAppl2 = new Bpl.NAryExpr(f.tok, funcRefining, args);
+
+      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      for (int i = 0; i < function.Formals.Count; i++) {
+        Formal p = function.Formals[i];
+        IdentifierExpr ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].UniqueName);
+        ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;  // resolve ie here
+        substMap.Add(p, ie);
+      }
+      // add canCall
+      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(Token.NoToken, function.FullCompileName + "#canCall", Bpl.Type.Bool);
+      Bpl.Expr canCall = new Bpl.NAryExpr(Token.NoToken, new Bpl.FunctionCall(canCallFuncID), args);
+      builder.Add(new AssumeCmd(function.tok, canCall));
+      
+      // check that the preconditions for the call hold
+      foreach (Expression p in function.Req) {
+        Expression precond = Substitute(p, new ThisExpr(Token.NoToken), substMap);
+        var assert = new AssertCmd(p.tok, etran.TrExpr(precond));
+        assert.ErrorData = "Error: the refining function is not allowed to add preconditions";
+        builder.Add(assert);
+      }
+      builder.Add(new AssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, funcAppl2)));
+
+      foreach (Expression p in f.Ens) {
+        var s = new FunctionCallSubstituter(new ThisExpr(Token.NoToken), substMap, f, function);
+        Expression precond = s.Substitute(p);
+        var assert = new AssertCmd(p.tok, etran.TrExpr(precond));
+        assert.ErrorData = "Error: A postcondition of the refined function may not hold";
+        builder.Add(assert);
+      }
+      Bpl.Implementation impl = new Bpl.Implementation(function.tok, proc.Name,
+        typeParams, implInParams, new Bpl.VariableSeq(),
+        locals, builder.Collect(function.tok));
+      sink.TopLevelDeclarations.Add(impl);
+
+      Contract.Assert(currentModule == function.EnclosingClass.Module);
+      currentModule = null;
+    }
+
+    private void GenerateMethodParameters(Method m, ExpressionTranslator etran, out Bpl.VariableSeq inParams, out Bpl.VariableSeq outParams) {
+      inParams = new Bpl.VariableSeq();
+      outParams = new Bpl.VariableSeq();
+      if (!m.IsStatic) {
+        Bpl.Expr wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), predef.Null),
+          etran.GoodRef(m.tok, new Bpl.IdentifierExpr(m.tok, "this", predef.RefType), Resolver.GetReceiverType(m.tok, m)));
+        Bpl.Formal thVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "this", predef.RefType, wh), true);
+        inParams.Add(thVar);
+      }
+      foreach (Formal p in m.Ins) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+      }
+      foreach (Formal p in m.Outs) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
+      }
     }
 
     class BoilerplateTriple {  // a triple that is now a quintuple
@@ -5447,6 +5738,7 @@ namespace Microsoft.Dafny {
       void ObjectInvariant()
       {
         Contract.Invariant(HeapExpr != null);
+        Contract.Invariant(HeapExpr is Bpl.OldExpr || HeapExpr is Bpl.IdentifierExpr);
         Contract.Invariant(predef != null);
         Contract.Invariant(translator != null);
         Contract.Invariant(This != null);
@@ -7963,7 +8255,32 @@ namespace Microsoft.Dafny {
       // TODO: in the following substitution, it may be that we also need to update the types of the resulting subexpressions (is this true for all Substitute calls?)
       return Substitute(fce.Function.Body, fce.Receiver, substMap);
     }
-
+    public class FunctionCallSubstituter : Substituter
+    {
+      public readonly Function A, B;
+      public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b)
+        : base(receiverReplacement, substMap) {
+        A = a;
+        B = b;
+      }
+      public override Expression Substitute(Expression expr) {
+        if (expr is FunctionCallExpr) {
+          FunctionCallExpr e = (FunctionCallExpr)expr;
+          Expression receiver = Substitute(e.Receiver);
+          List<Expression> newArgs = SubstituteExprList(e.Args);
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
+          if (e.Function == A) {
+            newFce.Function = B;
+            newFce.Type = e.Type; // TODO: this may not work with type parameters.
+          } else {
+            newFce.Function = e.Function;
+            newFce.Type = e.Type;
+          }
+          return newFce;
+        }
+        return base.Substitute(expr);
+      }
+    }
     public class Substituter
     {
       public readonly Expression receiverReplacement;
