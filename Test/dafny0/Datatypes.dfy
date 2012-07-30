@@ -92,24 +92,24 @@ method TestAllocatednessAxioms(a: List<Node>, b: List<Node>, c: List<AnotherNode
 }
 
 class NestedMatchExpr {
-  function Cadr<T>(a: List<T>, default: T): T
+  function Cadr<T>(a: List<T>, Default: T): T
   {
     match a
-    case Nil => default
+    case Nil => Default
     case Cons(x,t) =>
       match t
-      case Nil => default
+      case Nil => Default
       case Cons(y,tail) => y
   }
   // CadrAlt is the same as Cadr, but it writes its two outer cases in the opposite order
-  function CadrAlt<T>(a: List<T>, default: T): T
+  function CadrAlt<T>(a: List<T>, Default: T): T
   {
     match a
     case Cons(x,t) => (
       match t
-      case Nil => default
+      case Nil => Default
       case Cons(y,tail) => y)
-    case Nil => default
+    case Nil => Default
   }
   method TestNesting0()
   {

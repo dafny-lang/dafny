@@ -24,15 +24,15 @@ module N {
 }
 
 module U {
-  module NN = N;
+  import NN = N;
 }
 
 
 module A {  // Note, this has the effect of importing two different T's,
             // but that's okay as long as the module doesn't try to access
             // one of them
-  module MM = M;
-  module NN = N;
+  import MM = M;
+  import NN = N;
   class X {
     var t: MM.T;  // error: use of the ambiguous name T
     function F(x: MM.T):  // error: use of the ambiguous name T
@@ -57,7 +57,7 @@ module X0 {
 }
 
 module X1 {
-  module X0' = X0;
+  import X0' = X0;
   class MyClass1 {
     method Down(x0: X0'.MyClass0) {
       x0.Down();
@@ -213,7 +213,7 @@ module ATr {
 }
 
 module BTr {
-  module A = ATr;
+  import A = ATr;
   class Y {
     method N() returns (x: A.X)
       ensures x != null;
@@ -224,14 +224,14 @@ module BTr {
 }
 
 module CTr {
-  module B = BTr;
+  import B = BTr;
   class Z {
     var b: B.Y;  // fine
     var a: B.X;  // error: imports don't reach name X explicitly
   }
 }
 module CTs {
-  module B = BTr;
+  import B = BTr;
   method P() {
     var y := new B.Y;
     var x := y.N();  // this is allowed and will correctly infer the type of x to
@@ -270,8 +270,8 @@ module NonLocalB {
 }
 
 module Local {
-  module AA = NonLocalA;
-  module BB = NonLocalB;
+  import AA = NonLocalA;
+  import BB = NonLocalB;
   class MyClass {
     method MyMethod()
     {

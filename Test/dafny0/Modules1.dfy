@@ -1,5 +1,5 @@
 module A {
-  module B = Babble;
+  import B = Babble;
   class X {
     function Fx(z: B.Z): int
       requires z != null;
@@ -80,7 +80,7 @@ module A_Visibility {
 }
 
 module B_Visibility {
-  module A = A_Visibility;
+  import A = A_Visibility;
   method Main() {
     var y;
     if (A.C.P(y)) {
@@ -102,7 +102,7 @@ module Q_Imp {
 }
 
 module Q_M {
-  module Q = Q_Imp;
+  import Q = Q_Imp;
   method MyMethod(root: Q.Node, S: set<Q.Node>)
     requires root in S;
   {

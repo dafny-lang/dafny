@@ -73,9 +73,9 @@ module T refines S {
   }
 }
 module A {
-   module X as S = T;
-   module Y as S = T;
-   module Z = T;
+   import X as S default T;
+   import Y as S default T;
+   import Z = T;
    static method run() {
      var x := new X.C;
      x.m();
@@ -92,7 +92,7 @@ method NotMain() {
 
 
 ghost module S1 {
-  module B as S = T;
+  import B as S default T;
   static method do()
 }
 
@@ -102,7 +102,7 @@ module T1 refines S1 {
   }
 }
 module A1 {
-   module X as S1 = T1;
+   import X as S1 default T1;
    static method run() {
      X.do();
      var x := new X.B.C;

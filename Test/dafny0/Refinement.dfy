@@ -156,7 +156,7 @@ module Concrete refines Abstract {
 }
 
 module Client {
-  module C = Concrete;
+  import C = Concrete;
   class TheClient {
     method Main() {
       var n := new C.MyNumber.Init();

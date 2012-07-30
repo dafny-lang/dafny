@@ -1,5 +1,5 @@
 ghost module A {
-  module L = Library;
+  import L = Library;
   class {:autocontracts} StoreAndRetrieve<Thing> {
     ghost var Contents: set<Thing>;
     predicate Valid
