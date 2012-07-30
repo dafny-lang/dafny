@@ -32,13 +32,13 @@
    `(,(dafny-regexp-opt '(
         "class" "datatype" "codatatype" "type" "function" "predicate" "copredicate"
         "ghost" "var" "method" "constructor"
-        "module" "imports" "static" "refines"
+        "module" "import" "default" "as" "opened" "static" "refines"
         "returns" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
         "assert" "assume" "break" "choose" "then" "else" "havoc" "if" "label" "return" "while" "print" "where"
-        "old" "forall" "exists" "new" "parallel" "in" "this" "fresh" "allocated"
+        "old" "forall" "exists" "new" "parallel" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
    `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "object" "set" "seq")) . font-lock-type-face)
    )

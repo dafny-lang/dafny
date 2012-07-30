@@ -177,11 +177,12 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
      ModuleDefinition module;
      ModuleDecl sm;
      submodule = null; // appease compiler
+     bool opened = false;
   .)
-    "module"
+  ( "module"
     { Attribute<ref attrs> }
     NoUSIdent<out id>                          
-    ((
+    
       [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs, false); .)
        "{"                                       (. module.BodyStartTok = t; .)
         { (. isGhost = false; .)
@@ -199,14 +200,17 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
                                               submodule = new LiteralModuleDecl(module, parent); .)
-     ) | 
-      "=" QualifiedName<out idPath> ";" (. submodule = new AliasModuleDecl(idPath, id, parent); .)
-       |
-      ( "as" QualifiedName<out idPath> 
-        ["=" QualifiedName<out idAssignment> ] 
-        ";" (.submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment); .)
+     | 
+    "import" ["opened" (.opened = true;.)]
+      ( NoUSIdent<out id> (   "=" QualifiedName<out idPath> ";"
+                                 (. submodule = new AliasModuleDecl(idPath, id, parent); .)
+                            | ";" 
+                                 (. idPath = new List<IToken>(); idPath.Add(id); submodule = new AliasModuleDecl(idPath, id, parent); .)
+                            | "as" QualifiedName<out idPath>  ["default" QualifiedName<out idAssignment> ] ";"
+                                 (.submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment); .)
+                          )
       )
-    )
+  )
 .
 
 QualifiedName<.out List<IToken> ids.>
