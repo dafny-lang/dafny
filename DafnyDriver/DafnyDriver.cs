@@ -638,8 +638,8 @@ namespace Microsoft.Dafny
             {
                 if (CommandLineOptions.Clo.Trace)
                 {
-                    int poCount = vcgen.CumulativeAssertionCount - prevAssertionCount;
-                    timeIndication = string.Format("  [{0} s, {1} proof obligation{2}]  ", elapsed.TotalSeconds, poCount, poCount == 1 ? "" : "s");
+                  int poCount = vcgen.CumulativeAssertionCount - prevAssertionCount;
+                  timeIndication = string.Format("  [{0:F3} s, {1} proof obligation{2}]  ", elapsed.TotalSeconds, poCount, poCount == 1 ? "" : "s");
                 }
             }
 

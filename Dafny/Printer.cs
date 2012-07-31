@@ -84,11 +84,11 @@ namespace Microsoft.Dafny {
               wr.WriteLine("}");
             }
           } else if (d is AliasModuleDecl) {
-            wr.Write("module");
+            wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
             wr.WriteLine("= {0};", Util.Comma(".", ((AliasModuleDecl)d).Path, id => id.val));
           } else if (d is AbstractModuleDecl) {
-            wr.Write("module");
+            wr.Write("import"); if (((AbstractModuleDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((AbstractModuleDecl)d).Name);
             wr.WriteLine("as {0};", Util.Comma(".", ((AbstractModuleDecl)d).Path, id => id.val));
           }

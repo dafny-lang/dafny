@@ -293,10 +293,10 @@ bool IsAttribute() {
 				Get();
 				QualifiedName(out idPath);
 				Expect(14);
-				submodule = new AliasModuleDecl(idPath, id, parent); 
+				submodule = new AliasModuleDecl(idPath, id, parent, opened); 
 			} else if (la.kind == 14) {
 				Get();
-				idPath = new List<IToken>(); idPath.Add(id); submodule = new AliasModuleDecl(idPath, id, parent); 
+				idPath = new List<IToken>(); idPath.Add(id); submodule = new AliasModuleDecl(idPath, id, parent, opened); 
 			} else if (la.kind == 15) {
 				Get();
 				QualifiedName(out idPath);
@@ -305,7 +305,7 @@ bool IsAttribute() {
 					QualifiedName(out idAssignment);
 				}
 				Expect(14);
-				submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment); 
+				submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment, opened); 
 			} else SynErr(114);
 		} else SynErr(115);
 	}

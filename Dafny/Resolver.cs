@@ -93,6 +93,31 @@ namespace Microsoft.Dafny
         return nm;
       }
     }
+
+    class AmbiguousMemberDecl : MemberDecl  // only used with "classes"
+    {
+      readonly MemberDecl A;
+      readonly MemberDecl B;
+      public AmbiguousMemberDecl(ModuleDefinition m, MemberDecl a, MemberDecl b)
+        : base(a.tok, a.Name + "/" + b.Name, a.IsStatic, a.IsGhost, null) {
+        A = a;
+        B = b;
+      }
+      public string ModuleNames() {
+        string nm;
+        if (A is AmbiguousMemberDecl) {
+          nm = ((AmbiguousMemberDecl)A).ModuleNames();
+        } else {
+          nm = A.EnclosingClass.Module.Name;
+        }
+        if (B is AmbiguousMemberDecl) {
+          nm += ", " + ((AmbiguousMemberDecl)B).ModuleNames();
+        } else {
+          nm += ", " + B.EnclosingClass.Module.Name;
+        }
+        return nm;
+      }
+    }
     //Dictionary<string/*!*/, Tuple<DatatypeCtor, bool>> allDatatypeCtors;
 
     readonly Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>/*!*/ classMembers = new Dictionary<ClassDecl/*!*/, Dictionary<string/*!*/, MemberDecl/*!*/>/*!*/>();
@@ -147,7 +172,7 @@ namespace Microsoft.Dafny
       var refinementTransformer = new RefinementTransformer(this, prog);
 
       IRewriter rewriter = new AutoContractsRewriter();
-      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule);
+      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -176,7 +201,7 @@ namespace Microsoft.Dafny
               Error(m.RefinementBaseName[0], "module ({0}) named as refinement base does not exist", Util.Comma(".", m.RefinementBaseName, x => x.val));
             }
           }
-          literalDecl.Signature = RegisterTopLevelDecls(m);
+          literalDecl.Signature = RegisterTopLevelDecls(m, true);
           literalDecl.Signature.Refines = refinedSig;
           var sig = literalDecl.Signature;
           // set up environment
@@ -191,7 +216,7 @@ namespace Microsoft.Dafny
           if (ErrorCount == errorCount && !m.IsGhost) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             var nw = (new Cloner()).CloneModuleDefinition(m, m.CompileName + "_Compile");
-            var compileSig = RegisterTopLevelDecls(nw);
+            var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinedSig;
             sig.CompileSignature = compileSig;
             useCompileSignatures = true;
@@ -285,10 +310,12 @@ namespace Microsoft.Dafny
           return parent.TryLookup(name, out m);
         } else return false;
       }
-      public bool TryLookupLocal(IToken name, out ModuleDecl m) {
+      public bool TryLookupIgnore(IToken name, out ModuleDecl m, ModuleDecl ignore) {
         Contract.Requires(name != null);
-        if (modules.TryGetValue(name.val, out m)) {
+        if (modules.TryGetValue(name.val, out m) && m != ignore) {
           return true;
+        } else if (parent != null) {
+          return parent.TryLookup(name, out m);
         } else return false;
       }
       public IEnumerable<ModuleDecl> ModuleList {
@@ -354,7 +381,7 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is AliasModuleDecl) {
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
-        if (!bindings.TryLookup(alias.Path[0], out root))
+        if (!bindings.TryLookupIgnore(alias.Path[0], out root, alias))
           Error(alias.tok, ModuleNotFoundErrorMessage(0, alias.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
@@ -407,20 +434,62 @@ namespace Microsoft.Dafny
       info.IsGhost = m.IsGhost;
       return info;
     }
-    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef) {
+    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
       sig.IsGhost = moduleDef.IsGhost;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
+      if (useImports) {
+        // First go through and add anything from the opened imports
+        foreach (var im in declarations) {
+          if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
+            var s = ((ModuleDecl)im).Signature;
+            // classes:
+            foreach (var kv in s.TopLevels) {
+              TopLevelDecl d;
+              if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
+                sig.TopLevels[kv.Key] = new AmbiguousTopLevelDecl(moduleDef, d, kv.Value);
+              } else {
+                sig.TopLevels.Add(kv.Key, kv.Value);
+              }
+            }
+            // constructors:
+            foreach (var kv in s.Ctors) {
+              Tuple<DatatypeCtor, bool> pair;
+              if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
+                // mark it as a duplicate
+                sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+              } else {
+                // add new
+                sig.Ctors.Add(kv.Key, kv.Value);
+              }
+            }
+            // static members:
+            foreach (var kv in s.StaticMembers) {
+              MemberDecl md;
+              if (sig.StaticMembers.TryGetValue(kv.Key, out md)) {
+                sig.StaticMembers[kv.Key] = new AmbiguousMemberDecl(moduleDef, md, kv.Value);
+              } else {
+                // add new
+                sig.StaticMembers.Add(kv.Key, kv.Value);
+              }
+            }
+          }
+        }
+      }
+      // This is solely used to detect duplicates amongst the various e
+      Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
+      // Now add the things present
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         // register the class/datatype/module name
-        if (sig.TopLevels.ContainsKey(d.Name)) {
+        if (toplevels.ContainsKey(d.Name)) {
           Error(d, "Duplicate name of top-level declaration: {0}", d.Name);
         } else {
-          sig.TopLevels.Add(d.Name, d);
+          toplevels[d.Name] = d;
+          sig.TopLevels[d.Name] = d;
         }
         if (d is ModuleDecl) {
           // nothing to do
@@ -448,8 +517,8 @@ namespace Microsoft.Dafny
           cl.HasConstructor = hasConstructor;
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in cl.Members) {
-              if (!sig.StaticMembers.ContainsKey(m.Name) && m.IsStatic && (m is Function || m is Method)) {
-                sig.StaticMembers.Add(m.Name, m);
+              if (m.IsStatic && (m is Function || m is Method)) {
+                sig.StaticMembers[m.Name] = m;
               }
             }
           }
@@ -516,7 +585,7 @@ namespace Microsoft.Dafny
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
       }
-      var sig = RegisterTopLevelDecls(mod);
+      var sig = RegisterTopLevelDecls(mod, false);
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
       sig.IsGhost = p.IsGhost;
@@ -555,14 +624,14 @@ namespace Microsoft.Dafny
           return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          var alias = new AliasModuleDecl(a.Path, a.tok, m);
+          var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened);
           alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
         } else if (d is AbstractModuleDecl) {
           var abs = (AbstractModuleDecl)d;
           var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
-          var a = new AbstractModuleDecl(abs.Path, abs.tok, m, abs.CompilePath);
+          var a = new AbstractModuleDecl(abs.Path, abs.tok, m, abs.CompilePath, abs.Opened);
           a.Signature = sig;
           a.OriginalSignature = abs.OriginalSignature;
           return a;
@@ -4652,7 +4721,7 @@ namespace Microsoft.Dafny
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
       //  - imported module name
       //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
-      //  - static function or method in the enclosing module.
+      //  - static function or method in the enclosing module, or its imports.
 
       Expression r = null;  // resolved version of e
       CallRhs call = null;
@@ -4719,18 +4788,23 @@ namespace Microsoft.Dafny
                  || moduleInfo.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
       {
         // ----- field, function, or method
-        Expression receiver;
-        if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(id, (ClassDecl)member.EnclosingClass);
+        if (member is AmbiguousMemberDecl) {
+          Contract.Assert(member.IsStatic); // currently, static members of _default are the only thing which can be ambiguous.
+          Error(id, "The name {0} ambiguously refers to a static member in one of the modules {1}", id.val, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
-          if (!scope.AllowInstance) {
-            Error(id, "'this' is not allowed in a 'static' context");
-            // nevertheless, set "receiver" to a value so we can continue resolution
+          Expression receiver;
+          if (member.IsStatic) {
+            receiver = new StaticReceiverExpr(id, (ClassDecl)member.EnclosingClass);
+          } else {
+            if (!scope.AllowInstance) {
+              Error(id, "'this' is not allowed in a 'static' context");
+              // nevertheless, set "receiver" to a value so we can continue resolution
+            }
+            receiver = new ImplicitThisExpr(id);
+            receiver.Type = GetThisType(id, (ClassDecl)member.EnclosingClass);  // resolve here
           }
-          receiver = new ImplicitThisExpr(id);
-          receiver.Type = GetThisType(id, (ClassDecl)member.EnclosingClass);  // resolve here
+          r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, out call);
         }
-        r = ResolveSuffix(receiver, e, 0, twoState, allowMethodCall, out call);
 
       } else {
         Error(id, "unresolved identifier: {0}", id.val);

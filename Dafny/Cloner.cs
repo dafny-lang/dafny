@@ -63,13 +63,13 @@ namespace Microsoft.Dafny
           return l;
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          var alias = new AliasModuleDecl(a.Path, a.tok, m);
+          var alias = new AliasModuleDecl(a.Path, a.tok, m, a.Opened);
           alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          var abs = new AbstractModuleDecl(a.Path, a.tok, m, a.CompilePath);
+          var abs = new AbstractModuleDecl(a.Path, a.tok, m, a.CompilePath, a.Opened);
           abs.Signature = a.Signature;
           abs.OriginalSignature = a.OriginalSignature;
           return abs;
