@@ -66,6 +66,7 @@ namespace Microsoft.Dafny
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
+    private Method currentMethod;
 
     public void PreResolve(ModuleDefinition m) {
 
@@ -634,7 +635,7 @@ namespace Microsoft.Dafny
                 CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
                 CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
               }
-
+              currentMethod = m;
               var replacementBody = m.Body;
               if (replacementBody != null) {
                 if (prevMethod.Body == null) {
@@ -1201,7 +1202,8 @@ namespace Microsoft.Dafny
       } else if (s is ConcreteUpdateStatement) {
         postTasks.Enqueue(() =>
         {
-          CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction, reporter);
+          if (!CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction))
+            currentMethod.MustReverify = true;
         });
       } else if (s is CallStmt) {
         reporter.Error(s.Tok, "cannot have call statement");
@@ -1223,7 +1225,7 @@ namespace Microsoft.Dafny
     }
 
     // Checks that statement stmt, defined in the constructed module m, is a refinement of skip in the parent module
-    private void CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m, ResolutionErrorReporter reporter) {
+    private bool CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m) {
       foreach (var lhs in stmt.Lhss) {
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
@@ -1231,24 +1233,25 @@ namespace Microsoft.Dafny
           Contract.Assert(ident.Var is VarDecl || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
           if ((ident.Var is VarDecl && RefinementToken.IsInherited(((VarDecl)ident.Var).Tok, m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
-            reporter.Error(l.tok, "cannot assign to variable defined previously");
+            return false;
           }
         } else if (l is FieldSelectExpr) {
           if (RefinementToken.IsInherited(((FieldSelectExpr)l).Field.tok, m)) {
-            reporter.Error(l.tok, "cannot assign to field defined previously");
+            return false;
           }
         } else {
-          reporter.Error(lhs.tok, "cannot assign to something which could exist in the previous refinement");
+          return false;
         }
       }
       if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         foreach (var rhs in s.Rhss) {
           if (s.Rhss[0].CanAffectPreviouslyKnownExpressions) {
-            reporter.Error(s.Rhss[0].Tok, "cannot have method call which can affect the heap");
+            return false;
           }
         }
       }
+      return true;
     }
     // ---------------------- additional methods -----------------------------------------------------------------------------
 
