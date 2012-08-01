@@ -1202,8 +1202,7 @@ namespace Microsoft.Dafny
       } else if (s is ConcreteUpdateStatement) {
         postTasks.Enqueue(() =>
         {
-          if (!CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction))
-            currentMethod.MustReverify = true;
+          CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction, reporter);
         });
       } else if (s is CallStmt) {
         reporter.Error(s.Tok, "cannot have call statement");
@@ -1225,7 +1224,7 @@ namespace Microsoft.Dafny
     }
 
     // Checks that statement stmt, defined in the constructed module m, is a refinement of skip in the parent module
-    private bool CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m) {
+    private bool CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m, ResolutionErrorReporter reporter) {
       foreach (var lhs in stmt.Lhss) {
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
@@ -1233,6 +1232,7 @@ namespace Microsoft.Dafny
           Contract.Assert(ident.Var is VarDecl || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
           if ((ident.Var is VarDecl && RefinementToken.IsInherited(((VarDecl)ident.Var).Tok, m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
+            reporter.Error(l.tok, "cannot assign to variable defined previously");
             return false;
           }
         } else if (l is FieldSelectExpr) {
