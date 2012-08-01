@@ -388,35 +388,35 @@ namespace Microsoft.Dafny
       
     }
     // Check that two resolved types are the same in a similar context (the same type parameters, method, class, etc.)
-    // Assumes that a is in a previous refinement, and b is in a refinement.
-    public static bool ResolvedTypesAreTheSame(Type a, Type b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      if (a is TypeProxy || b is TypeProxy)
+    // Assumes that prev is in a previous refinement, and next is in some refinement. Note this is not communative.
+    public static bool ResolvedTypesAreTheSame(Type prev, Type next) {
+      Contract.Requires(prev != null);
+      Contract.Requires(next != null);
+      if (prev is TypeProxy || next is TypeProxy)
         return false;
 
-      if (a is BoolType) {
-        return b is BoolType;
-      } else if (a is IntType) {
-        if (b is IntType) {
-          return (a is NatType) == (b is NatType);
+      if (prev is BoolType) {
+        return next is BoolType;
+      } else if (prev is IntType) {
+        if (next is IntType) {
+          return (prev is NatType) == (next is NatType);
         } else return false;
-      } else if (a is ObjectType) {
-        return b is ObjectType;
-      } else if (a is SetType) {
-        return b is SetType && ResolvedTypesAreTheSame(((SetType)a).Arg, ((SetType)b).Arg);
-      } else if (a is MultiSetType) {
-        return b is MultiSetType && ResolvedTypesAreTheSame(((MultiSetType)a).Arg, ((MultiSetType)b).Arg);
-      } else if (a is MapType) {
-        return b is MapType && ResolvedTypesAreTheSame(((MapType)a).Domain, ((MapType)b).Domain) && ResolvedTypesAreTheSame(((MapType)a).Range, ((MapType)b).Range);
-      } else if (a is SeqType) {
-        return b is SeqType && ResolvedTypesAreTheSame(((SeqType)a).Arg, ((SeqType)b).Arg);
-      } else if (a is UserDefinedType) {
-        if (!(b is UserDefinedType)) {
+      } else if (prev is ObjectType) {
+        return next is ObjectType;
+      } else if (prev is SetType) {
+        return next is SetType && ResolvedTypesAreTheSame(((SetType)prev).Arg, ((SetType)next).Arg);
+      } else if (prev is MultiSetType) {
+        return next is MultiSetType && ResolvedTypesAreTheSame(((MultiSetType)prev).Arg, ((MultiSetType)next).Arg);
+      } else if (prev is MapType) {
+        return next is MapType && ResolvedTypesAreTheSame(((MapType)prev).Domain, ((MapType)next).Domain) && ResolvedTypesAreTheSame(((MapType)prev).Range, ((MapType)next).Range);
+      } else if (prev is SeqType) {
+        return next is SeqType && ResolvedTypesAreTheSame(((SeqType)prev).Arg, ((SeqType)next).Arg);
+      } else if (prev is UserDefinedType) {
+        if (!(next is UserDefinedType)) {
           return false;
         }
-        UserDefinedType aa = (UserDefinedType)a;
-        UserDefinedType bb = (UserDefinedType)b;
+        UserDefinedType aa = (UserDefinedType)prev;
+        UserDefinedType bb = (UserDefinedType)next;
         if (aa.ResolvedClass != null && aa.ResolvedClass.Name == bb.ResolvedClass.Name) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
@@ -1293,7 +1293,7 @@ namespace Microsoft.Dafny
       SubstitutionsMade = new SortedSet<string>();
       this.c = c;
     }
-    new public Expression CloneExpr(Expression expr) {
+    public override Expression CloneExpr(Expression expr) {
       if (expr is NamedExpr) {
         NamedExpr n = (NamedExpr)expr;
         Expression E;
