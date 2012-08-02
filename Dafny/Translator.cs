@@ -3595,7 +3595,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(errorMessage != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(refinesToken, currentModule)) {
+      if (RefinementToken.IsInherited(refinesToken, currentModule) && (currentMethod == null || !currentMethod.MustReverify)) {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition);
       } else {
@@ -3614,7 +3614,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(refinesTok, currentModule)) {
+      if (RefinementToken.IsInherited(refinesTok, currentModule) && (currentMethod == null || !currentMethod.MustReverify)) {
         // produce a "skip" instead
         return new Bpl.AssumeCmd(tok, Bpl.Expr.True);
       } else {
@@ -3634,7 +3634,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(tok, currentModule)) {
+      if (RefinementToken.IsInherited(tok, currentModule) && (currentMethod == null || !currentMethod.MustReverify)) {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition, kv);
       } else {
@@ -4762,7 +4762,7 @@ namespace Microsoft.Dafny {
 
       // Make the call
       string name;
-      if (RefinementToken.IsInherited(method.tok, currentModule)) {
+      if (RefinementToken.IsInherited(method.tok, currentModule) && (currentMethod == null || !currentMethod.MustReverify)) {
         name = string.Format("RefinementCall_{0}$${1}", currentModule.Name, method.FullCompileName);
       } else {
         name = method.FullCompileName;
@@ -7479,7 +7479,7 @@ namespace Microsoft.Dafny {
         translatedExpression = etran.TrExpr(expr);
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
-      if (RefinementToken.IsInherited(expr.tok, currentModule) && RefinementTransformer.ContainsChange(expr, currentModule)) {
+      if (RefinementToken.IsInherited(expr.tok, currentModule) && (currentMethod == null || !currentMethod.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule)) {
         // If "expr" contains a subexpression that has changed from the inherited expression, we'll destructively
         // change the token of the translated expression to make it look like it's not inherited.  This will cause "e" to
         // be verified again in the refining module.

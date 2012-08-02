@@ -1545,6 +1545,7 @@ namespace Microsoft.Dafny {
   public class Method : MemberDecl, TypeParameter.ParentType
   {
     public readonly bool SignatureIsOmitted;
+    public bool MustReverify;
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly List<Formal/*!*/>/*!*/ Ins;
     public readonly List<Formal/*!*/>/*!*/ Outs;
@@ -1593,6 +1594,7 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Body = body;
       this.SignatureIsOmitted = signatureOmitted;
+      MustReverify = false;
     }
   }
 

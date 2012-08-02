@@ -2,6 +2,7 @@
 ghost module R1 {
   var f: int;
   method m(y: set<int>) returns (r: int)
+    modifies this;
   {
     var t := y;
   }
@@ -13,9 +14,9 @@ ghost module R2 refines R1 {
   {
     ...;
     var x := 3;
-    t := {1}; // bad: previous local
-    r := 3; // bad: out parameter
-    f := 4; // bad: previous field
+    t := {1}; // error: previous local
+    r := 3; // error: out parameter
+    f := 4; // fine: all fields, will cause re-verification
     x := 6; // fine: new local
     g := 34;// fine: new field
   }

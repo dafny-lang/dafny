@@ -1599,10 +1599,9 @@ LiberalEquality.dfy(52,14): Error: arguments must have the same type (got array<
 3 resolution/type errors detected in LiberalEquality.dfy
 
 -------------------- RefinementModificationChecking.dfy --------------------
-RefinementModificationChecking.dfy(16,4): Error: cannot assign to variable defined previously
 RefinementModificationChecking.dfy(17,4): Error: cannot assign to variable defined previously
-RefinementModificationChecking.dfy(18,4): Error: cannot assign to field defined previously
-3 resolution/type errors detected in RefinementModificationChecking.dfy
+RefinementModificationChecking.dfy(18,4): Error: cannot assign to variable defined previously
+2 resolution/type errors detected in RefinementModificationChecking.dfy
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
