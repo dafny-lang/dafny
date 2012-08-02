@@ -113,10 +113,11 @@ namespace DafnyLanguage
       _snapshot = snapshot;
       _regions = newRegions;
 
-      foreach (var span in difference) {
-        var chng = TagsChanged;
-        if (chng != null)
+      var chng = TagsChanged;
+      if (chng != null) {
+        foreach (var span in difference) {
           chng(this, new SnapshotSpanEventArgs(span));
+        }
       }
     }
 

@@ -18,6 +18,7 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Text.Projection;
 using Microsoft.VisualStudio.Utilities;
+using System.Diagnostics.Contracts;
 using Dafny = Microsoft.Dafny;
 
 namespace DafnyLanguage
@@ -67,8 +68,8 @@ namespace DafnyLanguage
   {
     ITextBuffer _buffer;
     ITextDocument _document;
-    ITextSnapshot _snapshot;  // may be null
-    List<DafnyError> _errors = new List<DafnyError>();
+    public ITextSnapshot _snapshot;  // may be null
+    List<DafnyError> _errors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
     ErrorListProvider _errorProvider;
     public Dafny.Program _program;  // non-null only if the snapshot contains a Dafny program that type checks
 
@@ -99,14 +100,13 @@ namespace DafnyLanguage
     /// </summary>
     public IEnumerable<ITagSpan<DafnyResolverTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
-      var snapshot = spans[0].Snapshot;
-
       foreach (var err in _errors) {
         if (err.Category != ErrorCategory.ProcessError) {
-          var line = snapshot.GetLineFromLineNumber(err.Line);
+          var line = _snapshot.GetLineFromLineNumber(err.Line);
+          Contract.Assert(err.Column <= line.Length);
           var length = line.Length - err.Column;
           if (5 < length) length = 5;
-          SnapshotSpan span = new SnapshotSpan(new SnapshotPoint(snapshot, line.Start.Position + err.Column), length);
+          var span = new SnapshotSpan(new SnapshotPoint(_snapshot, line.Start.Position + err.Column), length);
           // http://msdn.microsoft.com/en-us/library/dd885244.aspx says one can use the error types below, but they
           // all show as purple squiggles for me.  And just "error" (which is not mentioned on that page) shows up
           // as red.
@@ -127,7 +127,7 @@ namespace DafnyLanguage
         }
       }
       if (_program != null) {
-        yield return new TagSpan<DafnyResolverTag>(new SnapshotSpan(snapshot, 0, snapshot.Length), new DafnySuccessResolverTag(_program));
+        yield return new TagSpan<DafnyResolverTag>(new SnapshotSpan(_snapshot, 0, _snapshot.Length), new DafnySuccessResolverTag(_program));
       }
     }
 

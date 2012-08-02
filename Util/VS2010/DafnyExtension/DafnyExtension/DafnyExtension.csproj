@@ -63,10 +63,6 @@
     <Reference Include="Houdini">
       <HintPath>..\..\..\..\Binaries\Houdini.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Contracts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Binaries\Microsoft.Contracts.dll</HintPath>
-    </Reference>
     <Reference Include="Model">
       <HintPath>..\..\..\..\Binaries\Model.dll</HintPath>
     </Reference>
@@ -129,6 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferIdleEventUtil.cs" />
+    <Compile Include="ProgressMargin.cs" />
     <Compile Include="OutliningTagger.cs" />
     <Compile Include="ResolverTagger.cs" />
     <Compile Include="DafnyDriver.cs" />

@@ -125,12 +125,12 @@ namespace DafnyLanguage
     }
 
     bool ParseAndTypeCheck() {
-      List<Dafny.ModuleDecl> modules = new List<Dafny.ModuleDecl>();
+      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      int errorCount = Dafny.Parser.Parse(_programText, _filename, modules, builtIns, new VSErrors(this));
+      int errorCount = Dafny.Parser.Parse(_programText, _filename, module, builtIns, new VSErrors(this));
       if (errorCount != 0)
         return false;
-      Dafny.Program program = new Dafny.Program(_filename, modules, builtIns);
+      Dafny.Program program = new Dafny.Program(_filename, module, builtIns);
 
       Dafny.Resolver r = new VSResolver(program, this);
       r.ResolveProgram(program);
