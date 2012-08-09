@@ -119,8 +119,17 @@ namespace DafnyLanguage
           newRegions.Add(new ORegion(module, "module"));
         }
         foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
-          if (d is Dafny.DatatypeDecl) {
+          if (!HasBodyTokens(d)) {
+            continue;
+          }
+          if (d is Dafny.ArbitraryTypeDecl) {
+            newRegions.Add(new ORegion(d, "type"));
+          } else if (d is Dafny.CoDatatypeDecl) {
+            newRegions.Add(new ORegion(d, "codatatype"));
+          } else if (d is Dafny.DatatypeDecl) {
             newRegions.Add(new ORegion(d, "datatype"));
+          } else if (d is Dafny.ModuleDecl) {
+            // do nothing here, since the outer loop handles modules
           } else {
             Dafny.ClassDecl cl = (Dafny.ClassDecl)d;
             if (!cl.IsDefaultClass) {
@@ -128,10 +137,13 @@ namespace DafnyLanguage
             }
             // do the class members (in particular, functions and methods)
             foreach (Dafny.MemberDecl m in cl.Members) {
+              if (!HasBodyTokens(m)) {
+                continue;
+              }
               if (m is Dafny.Function && ((Dafny.Function)m).Body != null) {
-                newRegions.Add(new ORegion(m, "function"));
+                newRegions.Add(new ORegion(m, m is Dafny.CoPredicate ? "copredicate" : m is Dafny.Predicate ? "predicate" : "function"));
               } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
-                newRegions.Add(new ORegion(m, "method"));
+                newRegions.Add(new ORegion(m, m is Dafny.Constructor ? "constructor" : "method"));
               }
             }
           }
@@ -141,6 +153,11 @@ namespace DafnyLanguage
       _regions = newRegions;
       _program = program;
       return true;
+    }
+
+    bool HasBodyTokens(Dafny.Declaration decl) {
+      Contract.Requires(decl != null);
+      return decl.BodyStartTok != Bpl.Token.NoToken && decl.BodyEndTok != Bpl.Token.NoToken;
     }
 
     class ORegion
