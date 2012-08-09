@@ -50,3 +50,7 @@ Dafny program verifier finished with 11 verified, 0 errors
 -------------------- SegmentSum.dfy --------------------
 
 Dafny program verifier finished with 3 verified, 0 errors
+
+-------------------- MonotonicHeapstate.dfy --------------------
+
+Dafny program verifier finished with 36 verified, 0 errors
