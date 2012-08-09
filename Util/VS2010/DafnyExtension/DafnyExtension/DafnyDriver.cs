@@ -33,80 +33,6 @@ namespace DafnyLanguage
       _errors.Add(new DafnyError(line, col, cat, msg));
     }
 
-    void RecordProcessError(string msg) {
-      RecordError(0, 0, ErrorCategory.ProcessError, msg);
-    }
-
-    public void Process_ViaBatchFile() {
-      if (!File.Exists(@"C:\tmp\StartDafny.bat")) {
-        RecordProcessError(@"Can't find C:\tmp\StartDafny.bat");
-      }
-
-      // From: http://dotnetperls.com/process-redirect-standard-output
-      // (Also, see: http://msdn.microsoft.com/en-us/library/system.diagnostics.processstartinfo.redirectstandardoutput.aspx)
-      //
-      // Setup the process with the ProcessStartInfo class.
-      //
-      ProcessStartInfo start = new ProcessStartInfo();
-      start.FileName = @"cmd.exe";
-      start.Arguments = @"/c C:\tmp\StartDafny.bat"; // Specify exe name.
-      start.UseShellExecute = false;
-      start.RedirectStandardInput = true;
-      start.RedirectStandardOutput = true;
-      start.CreateNoWindow = true;
-      //
-      // Start the process.
-      //
-      using (System.Diagnostics.Process process = System.Diagnostics.Process.Start(start)) {
-        //
-        // Push the file contents to the new process
-        //
-        StreamWriter myStreamWriter = process.StandardInput;
-        myStreamWriter.WriteLine(_programText);
-        myStreamWriter.Close();
-        //
-        // Read in all the text from the process with the StreamReader.
-        //
-        using (StreamReader reader = process.StandardOutput) {
-          for (string line = reader.ReadLine(); !String.IsNullOrEmpty(line); line = reader.ReadLine()) {
-            // the lines of interest have the form "filename(line,col): some_error_label: error_message"
-            // where "some_error_label" is "Error" or "syntax error" or "Error BP5003" or "Related location"
-            string message;
-            int n = line.IndexOf("): ", 2);  // we start at 2, to avoid problems with "C:\..."
-            if (n == -1) {
-              continue;
-            } else {
-              int m = line.IndexOf(": ", n + 3);
-              if (m == -1) {
-                continue;
-              }
-              message = line.Substring(m + 2);
-            }
-            line = line.Substring(0, n);  // line now has the form "filename(line,col"
-
-            n = line.LastIndexOf(',');
-            if (n == -1) { continue; }
-            var colString = line.Substring(n + 1);
-            line = line.Substring(0, n);  // line now has the form "filename(line"
-
-            n = line.LastIndexOf('(');
-            if (n == -1) { continue; }
-            var lineString = line.Substring(n + 1);
-
-            try {
-              int errLine = Int32.Parse(lineString) - 1;
-              int errCol = Int32.Parse(colString) - 1;
-              RecordError(errLine, errCol, message.StartsWith("syntax error") ? ErrorCategory.ParseError : ErrorCategory.VerificationError, message);
-            } catch (System.FormatException) {
-              continue;
-            } catch (System.OverflowException) {
-              continue;
-            }
-          }
-        }
-      }
-    }
-
     static DafnyDriver() {
       Initialize();
     }
@@ -114,6 +40,8 @@ namespace DafnyLanguage
     static void Initialize() {
       if (Dafny.DafnyOptions.O == null) {
         Dafny.DafnyOptions.Install(new Dafny.DafnyOptions());
+        Dafny.DafnyOptions.O.DafnyPrelude = "c:\\boogie\\Binaries\\DafnyPrelude.bpl";
+        Dafny.DafnyOptions.O.ApplyDefaultOptions();
       }
     }
 
@@ -174,24 +102,18 @@ namespace DafnyLanguage
       }
     }
 
-#if LATER
-    static bool Verify(Microsoft.Dafny.Program dafnyProgram) {
+    public static bool Verify(Dafny.Program dafnyProgram, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
-      Program boogieProgram = translator.Translate(dafnyProgram);
+      Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
       int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
-      switch (oc) {
-        case PipelineOutcome.VerificationCompleted:
-        case PipelineOutcome.Done:  // (this says not to continue with compilation)
-          // WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
-          break;
-        default:
-          // error has already been reported to user
-          break;
-      }
-      return errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0;
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, er, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
+      bool allOk = errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0;
+      // TODO:  This would be the place to proceed to compile the program, if desired
+      return allOk;
     }
+
+    enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
 
     /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
@@ -199,52 +121,87 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Program/*!*/ program,
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ErrorReporterDelegate er,
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories) {
       Contract.Requires(program != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
 
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
-      PipelineOutcome oc = ResolveAndTypecheck(program);
-      switch (oc) {
-        case PipelineOutcome.Done:
-          return oc;
+      PipelineOutcome oc = BoogieResolveAndTypecheck(program);
+      if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
+        EliminateDeadVariablesAndInline(program);
+        return BoogieInferAndVerify(program, er, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
+      }
+      return oc;
+    }
 
-        case PipelineOutcome.ResolutionError:
-        case PipelineOutcome.TypeCheckingError:
-          // the Dafny-to-Boogie translation must have been bad; this is an internal error
-          return oc;
+    static void EliminateDeadVariablesAndInline(Bpl.Program program) {
+      Contract.Requires(program != null);
+      // Eliminate dead variables
+      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
 
-        case PipelineOutcome.ResolvedAndTypeChecked:
-          return InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
+      // Collect mod sets
+      if (Bpl.CommandLineOptions.Clo.DoModSetAnalysis) {
+        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
+      }
 
-        default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
+      // Coalesce blocks
+      if (Bpl.CommandLineOptions.Clo.CoalesceBlocks) {
+        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
+      }
+
+      // Inline
+      var TopLevelDeclarations = program.TopLevelDeclarations;
+
+      if (Bpl.CommandLineOptions.Clo.ProcedureInlining != Bpl.CommandLineOptions.Inlining.None) {
+        bool inline = false;
+        foreach (var d in TopLevelDeclarations) {
+          if (d.FindExprAttribute("inline") != null) {
+            inline = true;
+          }
+        }
+        if (inline && Bpl.CommandLineOptions.Clo.StratifiedInlining == 0) {
+          foreach (var d in TopLevelDeclarations) {
+            var impl = d as Bpl.Implementation;
+            if (impl != null) {
+              impl.OriginalBlocks = impl.Blocks;
+              impl.OriginalLocVars = impl.LocVars;
+            }
+          }
+          foreach (var d in TopLevelDeclarations) {
+            var impl = d as Bpl.Implementation;
+            if (impl != null && !impl.SkipVerification) {
+              Bpl.Inliner.ProcessImplementation(program, impl);
+            }
+          }
+          foreach (var d in TopLevelDeclarations) {
+            var impl = d as Bpl.Implementation;
+            if (impl != null) {
+              impl.OriginalBlocks = null;
+              impl.OriginalLocVars = null;
+            }
+          }
+        }
       }
     }
 
-
-    enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
-
     /// <summary>
-    /// Resolves and type checks the given Boogie program.  Any errors are reported to the
-    /// console.  Returns:
+    /// Resolves and type checks the given Boogie program.
+    /// Returns:
     ///  - Done if no errors occurred, and command line specified no resolution or no type checking.
     ///  - ResolutionError if a resolution error occurred
     ///  - TypeCheckingError if a type checking error occurred
     ///  - ResolvedAndTypeChecked if both resolution and type checking succeeded
     /// </summary>
-    static PipelineOutcome ResolveAndTypecheck(Program program) {
+    static PipelineOutcome BoogieResolveAndTypecheck(Bpl.Program program) {
       Contract.Requires(program != null);
       // ---------- Resolve ------------------------------------------------------------
-
       int errorCount = program.Resolve();
       if (errorCount != 0) {
         return PipelineOutcome.ResolutionError;
       }
 
       // ---------- Type check ------------------------------------------------------------
-
       errorCount = program.Typecheck();
       if (errorCount != 0) {
         return PipelineOutcome.TypeCheckingError;
@@ -257,12 +214,12 @@ namespace DafnyLanguage
     /// Given a resolved and type checked Boogie program, infers invariants for the program
     /// and then attempts to verify it.  Returns:
     ///  - Done if command line specified no verification
-    ///  - FatalError if a fatal error occurred, in which case an error has been printed to console
+    ///  - FatalError if a fatal error occurred
     ///  - VerificationCompleted if inference and verification completed, in which the out
     ///    parameters contain meaningful values
     /// </summary>
-    static PipelineOutcome InferAndVerify(Program program,
-                                           out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories) {
+    static PipelineOutcome BoogieInferAndVerify(Bpl.Program program, ErrorReporterDelegate er,
+                                                out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories) {
       Contract.Requires(program != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
 
@@ -271,181 +228,192 @@ namespace DafnyLanguage
       // ---------- Infer invariants --------------------------------------------------------
 
       // Abstract interpretation -> Always use (at least) intervals, if not specified otherwise (e.g. with the "/noinfer" switch)
-      Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
+      if (Bpl.CommandLineOptions.Clo.UseAbstractInterpretation) {
+        if (Bpl.CommandLineOptions.Clo.Ai.J_Intervals || Bpl.CommandLineOptions.Clo.Ai.J_Trivial) {
+          Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
+        } else if (Bpl.CommandLineOptions.Clo.Ai.AnySet) {
+          // run one of the old domains
+          Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
+        } else {
+          // use /infer:j as the default
+          Bpl.CommandLineOptions.Clo.Ai.J_Intervals = true;
+          Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
+        }
+      }
 
-      if (CommandLineOptions.Clo.ExpandLambdas) {
-        LambdaHelper.ExpandLambdas(program);
+      if (Bpl.CommandLineOptions.Clo.LoopUnrollCount != -1) {
+        program.UnrollLoops(Bpl.CommandLineOptions.Clo.LoopUnrollCount);
+      }
+
+      if (Bpl.CommandLineOptions.Clo.ExpandLambdas) {
+        Bpl.LambdaHelper.ExpandLambdas(program);
+        //PrintBplFile ("-", program, true);
       }
 
       // ---------- Verify ------------------------------------------------------------
 
-    #region Verify each implementation
+      if (!Bpl.CommandLineOptions.Clo.Verify) { return PipelineOutcome.Done; }
+
+      #region Verify each implementation
 
       ConditionGeneration vcgen = null;
       try {
-        if (CommandLineOptions.Clo.vcVariety == CommandLineOptions.VCVariety.Doomed) {
-          vcgen = new DCGen(program, CommandLineOptions.Clo.SimplifyLogFilePath, CommandLineOptions.Clo.SimplifyLogFileAppend);
+        if (Bpl.CommandLineOptions.Clo.vcVariety == Bpl.CommandLineOptions.VCVariety.Doomed) {
+          vcgen = new DCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
         } else {
-          vcgen = new VCGen(program, CommandLineOptions.Clo.SimplifyLogFilePath, CommandLineOptions.Clo.SimplifyLogFileAppend);
+          vcgen = new VCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
         }
-      } catch (ProverException e) {
-        ErrorWriteLine("Fatal Error: ProverException: {0}", e);
+      } catch (Bpl.ProverException) {
         return PipelineOutcome.FatalError;
       }
 
-      foreach (Declaration decl in program.TopLevelDeclarations) {
+      var decls = program.TopLevelDeclarations.ToArray();
+      foreach (var decl in decls) {
         Contract.Assert(decl != null);
-        Implementation impl = decl as Implementation;
-        if (impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine(cce.NonNull(impl.Name)) && !impl.SkipVerification) {
-          List<Counterexample>/*?*/ errors;
-
-          DateTime start = new DateTime();  // to please compiler's definite assignment rules
-          if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.XmlSink != null) {
-            start = DateTime.Now;
-            if (CommandLineOptions.Clo.Trace) {
-              Console.WriteLine();
-              Console.WriteLine("Verifying {0} ...", impl.Name);
-            }
-            if (CommandLineOptions.Clo.XmlSink != null) {
-              CommandLineOptions.Clo.XmlSink.WriteStartMethod(impl.Name, start);
-            }
-          }
+        Bpl.Implementation impl = decl as Bpl.Implementation;
+        if (impl != null && Bpl.CommandLineOptions.Clo.UserWantsToCheckRoutine(impl.Name) && !impl.SkipVerification) {
+          List<Bpl.Counterexample>/*?*/ errors;
 
           ConditionGeneration.Outcome outcome;
+          int prevAssertionCount = vcgen.CumulativeAssertionCount;
           try {
-            outcome = vcgen.VerifyImplementation(impl, program, out errors);
-          } catch (VCGenException e) {
-            ReportBplError(impl, String.Format("Error BP5010: {0}  Encountered in implementation {1}.", e.Message, impl.Name), true);
+            outcome = vcgen.VerifyImplementation(impl, out errors);
+          } catch (VCGenException) {
             errors = null;
             outcome = VCGen.Outcome.Inconclusive;
-          } catch (UnexpectedProverOutputException upo) {
-            AdvisoryWriteLine("Advisory: {0} SKIPPED because of internal error: unexpected prover output: {1}", impl.Name, upo.Message);
+          } catch (Bpl.UnexpectedProverOutputException) {
             errors = null;
             outcome = VCGen.Outcome.Inconclusive;
           }
-
-          string timeIndication = "";
-          DateTime end = DateTime.Now;
-          TimeSpan elapsed = end - start;
-          if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.XmlSink != null) {
-            if (CommandLineOptions.Clo.Trace) {
-              timeIndication = string.Format("  [{0} s]  ", elapsed.TotalSeconds);
-            }
-          }
-
 
           switch (outcome) {
             default:
-              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
+              Contract.Assert(false); throw new Exception();  // unexpected outcome
             case VCGen.Outcome.Correct:
-              Inform(String.Format("{0}verified", timeIndication));
               verified++;
               break;
             case VCGen.Outcome.TimedOut:
               timeOuts++;
-              Inform(String.Format("{0}timed out", timeIndication));
               break;
             case VCGen.Outcome.OutOfMemory:
               outOfMemories++;
-              Inform(String.Format("{0}out of memory", timeIndication));
               break;
             case VCGen.Outcome.Inconclusive:
               inconclusives++;
-              Inform(String.Format("{0}inconclusive", timeIndication));
               break;
             case VCGen.Outcome.Errors:
               Contract.Assert(errors != null);  // guaranteed by postcondition of VerifyImplementation
-                // BP1xxx: Parsing errors
-                // BP2xxx: Name resolution errors
-                // BP3xxx: Typechecking errors
-                // BP4xxx: Abstract interpretation errors (Is there such a thing?)
-                // BP5xxx: Verification errors
 
-                errors.Sort(new CounterexampleComparer());
-                foreach (Counterexample error in errors) {
-                  if (error is CallCounterexample) {
-                    CallCounterexample err = (CallCounterexample)error;
-                    ReportBplError(err.FailingCall, "Error BP5002: A precondition for this call might not hold.", true);
-                    ReportBplError(err.FailingRequires, "Related location: This is the precondition that might not hold.", false);
-                  } else if (error is ReturnCounterexample) {
-                    ReturnCounterexample err = (ReturnCounterexample)error;
-                    ReportBplError(err.FailingReturn, "Error BP5003: A postcondition might not hold on this return path.", true);
-                    ReportBplError(err.FailingEnsures, "Related location: This is the postcondition that might not hold.", false);
-                  } else // error is AssertCounterexample
-                  {
-                    AssertCounterexample err = (AssertCounterexample)error;
-                    if (err.FailingAssert is LoopInitAssertCmd) {
-                      ReportBplError(err.FailingAssert, "Error BP5004: This loop invariant might not hold on entry.", true);
-                    } else if (err.FailingAssert is LoopInvMaintainedAssertCmd) {
-                      // this assertion is a loop invariant which is not maintained
-                      ReportBplError(err.FailingAssert, "Error BP5005: This loop invariant might not be maintained by the loop.", true);
-                    } else {
-                      string msg = err.FailingAssert.ErrorData as string;
-                      if (msg == null) {
-                        msg = "Error BP5001: This assertion might not hold.";
-                      }
-                      ReportBplError(err.FailingAssert, msg, true);
+              errors.Sort(new Bpl.CounterexampleComparer());
+              foreach (var error in errors) {
+                DafnyErrorInformation errorInfo;
+
+                if (error is Bpl.CallCounterexample) {
+                  var err = (Bpl.CallCounterexample)error;
+                  errorInfo = new DafnyErrorInformation(err.FailingCall.tok, err.FailingCall.ErrorData as string ?? "A precondition for this call might not hold.");
+                  errorInfo.AddAuxInfo(err.FailingRequires.tok, err.FailingRequires.ErrorData as string ?? "Related location: This is the precondition that might not hold.");
+
+                } else if (error is Bpl.ReturnCounterexample) {
+                  var err = (Bpl.ReturnCounterexample)error;
+                  errorInfo = new DafnyErrorInformation(err.FailingReturn.tok, "A postcondition might not hold on this return path.");
+                  errorInfo.AddAuxInfo(err.FailingEnsures.tok, err.FailingEnsures.ErrorData as string ?? "Related location: This is the postcondition that might not hold.");
+                  errorInfo.AddAuxInfo(err.FailingEnsures.Attributes);
+
+                } else { // error is AssertCounterexample
+                  var err = (Bpl.AssertCounterexample)error;
+                  if (err.FailingAssert is Bpl.LoopInitAssertCmd) {
+                    errorInfo = new DafnyErrorInformation(err.FailingAssert.tok, "This loop invariant might not hold on entry.");
+                  } else if (err.FailingAssert is Bpl.LoopInvMaintainedAssertCmd) {
+                    // this assertion is a loop invariant which is not maintained
+                    errorInfo = new DafnyErrorInformation(err.FailingAssert.tok, "This loop invariant might not be maintained by the loop.");
+                  } else {
+                    string msg = err.FailingAssert.ErrorData as string;
+                    if (msg == null) {
+                      msg = "This assertion might not hold.";
                     }
+                    errorInfo = new DafnyErrorInformation(err.FailingAssert.tok, msg);
+                    errorInfo.AddAuxInfo(err.FailingAssert.Attributes);
                   }
-                  if (CommandLineOptions.Clo.ErrorTrace > 0) {
-                    Console.WriteLine("Execution trace:");
-                    foreach (Block b in error.Trace) {
-                      Contract.Assert(b != null);
-                      if (b.tok == null) {
-                        Console.WriteLine("    <intermediate block>");
-                      } else {
-                        // for ErrorTrace == 1 restrict the output;
-                        // do not print tokens with -17:-4 as their location because they have been 
-                        // introduced in the translation and do not give any useful feedback to the user
-                        if (!(CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4)) {
-                          Console.WriteLine("    {0}({1},{2}): {3}", b.tok.filename, b.tok.line, b.tok.col, b.Label);
-                        }
-                      }
-                    }
-                  }
-                  errorCount++;
                 }
-              Inform(String.Format("{0}error{1}", timeIndication, errors.Count == 1 ? "" : "s"));
+                if (Bpl.CommandLineOptions.Clo.ErrorTrace > 0) {
+                  foreach (Bpl.Block b in error.Trace) {
+                    // for ErrorTrace == 1 restrict the output;
+                    // do not print tokens with -17:-4 as their location because they have been
+                    // introduced in the translation and do not give any useful feedback to the user
+                    if (!(Bpl.CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4) &&
+                        b.tok.line != 0 && b.tok.col != 0) {
+                      errorInfo.AddAuxInfo(b.tok, "Execution trace: " + b.Label);
+                    }
+                  }
+                }
+                // if (Bpl.CommandLineOptions.Clo.ModelViewFile != null) {
+                //   error.PrintModel();
+                // }
+                er(errorInfo);
+                errorCount++;
+              }
               break;
-          }
-          if (outcome == VCGen.Outcome.Errors || CommandLineOptions.Clo.Trace) {
-            Console.Out.Flush();
           }
         }
       }
       vcgen.Close();
-      cce.NonNull(CommandLineOptions.Clo.TheProverFactory).Close();
+      Bpl.CommandLineOptions.Clo.TheProverFactory.Close();
 
-    #endregion
+      #endregion
 
       return PipelineOutcome.VerificationCompleted;
     }
 
-    static void ReportBplError(Absy node, string message, bool error) {
-      Contract.Requires(node != null); Contract.Requires(message != null);
-      IToken tok = node.tok;
-      string s;
-      if (tok == null) {
-        s = message;
-      } else {
-        s = string.Format("{0}({1},{2}): {3}", tok.filename, tok.line, tok.col, message);
-      }
-      if (error) {
-        ErrorWriteLine(s);
-      } else {
-        Console.WriteLine(s);
-      }
-    }
+    public delegate void ErrorReporterDelegate(DafnyErrorInformation errInfo);
 
-    /// <summary>
-    /// Inform the user about something and proceed with translation normally.
-    /// Print newline after the message.
-    /// </summary>
-    public static void Inform(string s) {
-      if (CommandLineOptions.Clo.Trace) {
-        Console.WriteLine(s);
+    public class DafnyErrorInformation
+    {
+      public readonly Bpl.IToken Tok;
+      public readonly string Msg;
+      public readonly List<DafnyErrorAuxInfo> Aux = new List<DafnyErrorAuxInfo>();
+
+      public class DafnyErrorAuxInfo
+      {
+        public readonly Bpl.IToken Tok;
+        public readonly string Msg;
+        public DafnyErrorAuxInfo(Bpl.IToken tok, string msg) {
+          Tok = tok;
+          Msg = CleanUp(msg);
+        }
+      }
+
+      public DafnyErrorInformation(Bpl.IToken tok, string msg) {
+        Contract.Requires(tok != null);
+        Contract.Requires(1 <= tok.line && 1 <= tok.col);
+        Contract.Requires(msg != null);
+        Tok = tok;
+        Msg = CleanUp(msg);
+      }
+      public void AddAuxInfo(Bpl.IToken tok, string msg) {
+        Contract.Requires(tok != null);
+        Contract.Requires(1 <= tok.line && 1 <= tok.col);
+        Contract.Requires(msg != null);
+        Aux.Add(new DafnyErrorAuxInfo(tok, msg));
+      }
+      public void AddAuxInfo(Bpl.QKeyValue attr) {
+        while (attr != null) {
+          if (attr.Key == "msg" && attr.Params.Count == 1 && attr.tok.line != 0 && attr.tok.col != 0) {
+            var str = attr.Params[0] as string;
+            if (str != null) {
+              AddAuxInfo(attr.tok, str);
+            }
+          }
+          attr = attr.Next;
+        }
+      }
+
+      public static string CleanUp(string msg) {
+        if (msg.ToLower().StartsWith("error: ")) {
+          return msg.Substring(7);
+        } else {
+          return msg;
+        }
       }
     }
-#endif
   }
 }

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.ComponentModel.Composition;
 using System.Windows.Threading;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
@@ -17,6 +18,7 @@ using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Text.Projection;
+using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
 using System.Diagnostics.Contracts;
 using Dafny = Microsoft.Dafny;
@@ -69,7 +71,8 @@ namespace DafnyLanguage
     ITextBuffer _buffer;
     ITextDocument _document;
     public ITextSnapshot _snapshot;  // may be null
-    List<DafnyError> _errors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
+    List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
+    List<DafnyError> _verificationErrors = new List<DafnyError>();
     ErrorListProvider _errorProvider;
     public Dafny.Program _program;  // non-null only if the snapshot contains a Dafny program that type checks
 
@@ -95,33 +98,42 @@ namespace DafnyLanguage
       BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ProcessFile);
     }
 
+    public IEnumerable<DafnyError> AllErrors() {
+      foreach (var err in _resolutionErrors) {
+        yield return err;
+      }
+      foreach (var err in _verificationErrors) {
+        yield return err;
+      }
+    }
+
     /// <summary>
     /// Find the Error tokens in the set of all tokens and create an ErrorTag for each
     /// </summary>
     public IEnumerable<ITagSpan<DafnyResolverTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
-      foreach (var err in _errors) {
+      foreach (var err in AllErrors()) {
         if (err.Category != ErrorCategory.ProcessError) {
+          Contract.Assert(0 <= err.Line);
           var line = _snapshot.GetLineFromLineNumber(err.Line);
           Contract.Assert(err.Column <= line.Length);
           var length = line.Length - err.Column;
           if (5 < length) length = 5;
           var span = new SnapshotSpan(new SnapshotPoint(_snapshot, line.Start.Position + err.Column), length);
-          // http://msdn.microsoft.com/en-us/library/dd885244.aspx says one can use the error types below, but they
-          // all show as purple squiggles for me.  And just "error" (which is not mentioned on that page) shows up
-          // as red.
-          string ty;
+          string ty;  // the COLORs below indicate what I see on my machine
           switch (err.Category) {
             default:  // unexpected category
             case ErrorCategory.ParseError:
-              // ty = "syntax error";
-              ty = "error"; break;
-            case ErrorCategory.ResolveError:
-              ty = "compiler error"; break;
-            case ErrorCategory.VerificationError:
-              ty = "other error"; break;
             case ErrorCategory.ParseWarning:
-              ty = "warning"; break;
+              ty = "syntax error"; break;  // COLOR: red
+            case ErrorCategory.ResolveError:
+              ty = "compiler error"; break;  // COLOR: blue
+            case ErrorCategory.VerificationError:
+              ty = "error"; break;  // COLOR: red
+            case ErrorCategory.AuxInformation:
+              ty = "other error"; break;  // COLOR: purple red
+            case ErrorCategory.InternalError:
+              ty = "error"; break;  // COLOR: red
           }
           yield return new TagSpan<DafnyResolverTag>(span, new DafnyErrorResolverTag(ty, err.Message));
         }
@@ -143,66 +155,149 @@ namespace DafnyLanguage
       NormalizedSnapshotSpanCollection spans = new NormalizedSnapshotSpanCollection(new SnapshotSpan(snapshot, 0, snapshot.Length));
 
       var driver = new DafnyDriver(_buffer.CurrentSnapshot.GetText(), _document != null ? _document.FilePath : "<program>");
-      Dafny.Program program = driver.Process();
-      var newErrors = driver.Errors;
+      List<DafnyError> newErrors;
+      Dafny.Program program;
+      try {
+        program = driver.Process();
+        newErrors = driver.Errors;
+      } catch (Exception e) {
+        newErrors = new List<DafnyError>();
+        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message));
+        program = null;
+      }
 
-      _errorProvider.Tasks.Clear();
+      _snapshot = snapshot;
+      _program = program;
+      PopulateErrorList(newErrors, false, snapshot);
+    }
+
+    public void PopulateErrorList(List<DafnyError> newErrors, bool verificationErrors, ITextSnapshot snapshot) {
+      Contract.Requires(newErrors != null);
       foreach (var err in newErrors) {
-        ErrorTask task = new ErrorTask();
-        task.CanDelete = true;
-        task.Category = TaskCategory.BuildCompile;
-        if (_document != null)
+        err.FillInSnapshot(snapshot);
+      }
+      if (verificationErrors) {
+        _verificationErrors = newErrors;
+      } else {
+        _resolutionErrors = newErrors;
+      }
+
+      _errorProvider.SuspendRefresh();  // reduce flickering
+      _errorProvider.Tasks.Clear();
+      foreach (var err in AllErrors()) {
+        ErrorTask task = new ErrorTask() {
+          // CanDelete = true,
+          Category = TaskCategory.BuildCompile,
+          ErrorCategory = CategoryConversion(err.Category),
+          Text = err.Message,
+          Line = err.Line,
+          Column = err.Column
+        };
+        if (_document != null) {
           task.Document = _document.FilePath;
-        task.ErrorCategory = TaskErrorCategory.Error;
-        task.Text = err.Message;
-        if (err.Category != ErrorCategory.ProcessError) {
-          task.Line = err.Line;
-          task.Column = err.Column;
-          task.Navigate += new EventHandler(task_Navigate);
+        }
+        if (err.Category != ErrorCategory.ProcessError && err.Category != ErrorCategory.InternalError) {
+          task.Navigate += new EventHandler(NavigateHandler);
         }
         _errorProvider.Tasks.Add(task);
       }
-
-      _errors = newErrors;
-      _snapshot = snapshot;
-      _program = program;
+      _errorProvider.ResumeRefresh();
       var chng = TagsChanged;
       if (chng != null)
         chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
     }
 
-    /// <summary>
-    /// Callback method attached to each of our tasks in the Error List
-    /// </summary>
-    void task_Navigate(object sender, EventArgs e) {
-      ErrorTask error = sender as ErrorTask;
-      if (error != null) {
-        error.Line += 1;
-        error.Column += 1;
-        // TODO: how to move the cursor to the right column?
-        _errorProvider.Navigate(error, new Guid(EnvDTE.Constants.vsViewKindCode));
-        error.Column -= 1;
-        error.Line -= 1;
+    TaskErrorCategory CategoryConversion(ErrorCategory cat) {
+      switch (cat) {
+        case ErrorCategory.ParseError:
+        case ErrorCategory.ResolveError:
+        case ErrorCategory.VerificationError:
+        case ErrorCategory.InternalError:
+          return TaskErrorCategory.Error;
+        case ErrorCategory.ParseWarning:
+          return TaskErrorCategory.Warning;
+        case ErrorCategory.AuxInformation:
+          return TaskErrorCategory.Message;
+        default:
+          Contract.Assert(false);  // unexpected category
+          return TaskErrorCategory.Error;  // please compiler
       }
     }
+
+    void NavigateHandler(object sender, EventArgs arguments) {
+      var task = sender as ErrorTask;
+      if (task == null || task.Document == null)
+        return;
+
+      // This would have been the simple way of doing things:
+      //     _errorProvider.Navigate(error, new Guid(EnvDTE.Constants.vsViewKindCode));
+      // Unfortunately, it doesn't work--it seems to ignore the column position.  (Moreover, it wants 1-based
+      // line/column numbers, whereas the Error Task pane wants 0-based line/column numbers.)
+      // So, instead we do all the things that follow:
+
+      var openDoc = Package.GetGlobalService(typeof(IVsUIShellOpenDocument)) as IVsUIShellOpenDocument;
+      if (openDoc == null)
+        return;
+
+      IVsWindowFrame frame;
+      Microsoft.VisualStudio.OLE.Interop.IServiceProvider sp;
+      IVsUIHierarchy hier;
+      uint itemid;
+      Guid logicalView = VSConstants.LOGVIEWID_Code;
+      if (Microsoft.VisualStudio.ErrorHandler.Failed(openDoc.OpenDocumentViaProject(task.Document, ref logicalView, out sp, out hier, out itemid, out frame)) || frame == null)
+        return;
+
+      object docData;
+      Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocData, out docData));
+
+      // Get the VsTextBuffer
+      VsTextBuffer buffer = docData as VsTextBuffer;
+      if (buffer == null) {
+        IVsTextBufferProvider bufferProvider = docData as IVsTextBufferProvider;
+        if (bufferProvider != null) {
+          IVsTextLines lines;
+          Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(bufferProvider.GetTextBuffer(out lines));
+          buffer = lines as VsTextBuffer;
+          if (buffer == null)
+            return;
+        }
+      }
+
+      VsTextManager textManager = Package.GetGlobalService(typeof(VsTextManagerClass)) as VsTextManager;
+      if (textManager == null)
+        return;
+
+      // Finally, move the cursor
+      Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(textManager.NavigateToLineAndColumn(buffer, ref logicalView, task.Line, task.Column, task.Line, task.Column));
+    }
+
   }
 
   public enum ErrorCategory
   {
-    ProcessError, ParseWarning, ParseError, ResolveError, VerificationError
+    ProcessError, ParseWarning, ParseError, ResolveError, VerificationError, AuxInformation, InternalError
   }
 
   internal class DafnyError
   {
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based
+    public ITextSnapshot Snapshot;  // filled in during the FillInSnapshot call
     public readonly ErrorCategory Category;
     public readonly string Message;
+    /// <summary>
+    /// "line" and "col" are expected to be 0-based
+    /// </summary>
     public DafnyError(int line, int col, ErrorCategory cat, string msg) {
       Line = line;
       Column = col;
       Category = cat;
       Message = msg;
+    }
+
+    public void FillInSnapshot(ITextSnapshot snapshot) {
+      Contract.Requires(snapshot != null);
+      Snapshot = snapshot;
     }
   }
 }

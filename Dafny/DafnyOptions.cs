@@ -97,7 +97,7 @@ namespace Microsoft.Dafny
       return base.ParseOption(name, ps);
     }
 
-    protected override void ApplyDefaultOptions() {
+    public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
       // expand macros in filenames, now that LogPrefix is fully determined

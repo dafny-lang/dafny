@@ -72,6 +72,9 @@
     <Reference Include="Provers.Z3">
       <HintPath>..\..\..\..\Binaries\Provers.Z3.dll</HintPath>
     </Reference>
+    <Reference Include="Provers.SMTLib">
+      <HintPath>..\..\..\..\Binaries\Provers.SMTLib.dll</HintPath>
+    </Reference>
     <Reference Include="VCExpr">
       <HintPath>..\..\..\..\Binaries\VCExpr.dll</HintPath>
     </Reference>
@@ -139,15 +142,28 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="DafnyPrelude.bpl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
+    <Content Include="UnivBackPred2.smt2">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v10.0\VSSDK\Microsoft.VsSDK.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>cd</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
