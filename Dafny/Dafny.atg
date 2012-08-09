@@ -17,6 +17,7 @@ COMPILER Dafny
 static ModuleDecl theModule;
 static BuiltIns theBuiltIns;
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
+static AssignmentRhs/*!*/ dummyRhs = new ExprRhs(dummyExpr, null);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
 static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
@@ -849,12 +850,13 @@ UpdateStmt<out Statement/*!*/ s>
   .)
   .
 Rhs<out AssignmentRhs r, Expression receiverForInitCall>
-= (. IToken/*!*/ x, newToken;  Expression/*!*/ e;
+= (. Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
+     IToken/*!*/ x, newToken;  Expression/*!*/ e;
      List<Expression> ee = null;
      Type ty = null;
      CallStmt initCall = null;
      List<Expression> args;
-     r = null;  // to please compiler
+     r = dummyRhs;  // to please compiler
      Attributes attrs = null;
   .)
   ( "new"                              (. newToken = t; .)
@@ -899,7 +901,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
   | "*"                                (. r = new HavocRhs(t); .)
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )
-  { Attribute<ref attrs> }             (. if (r != null) r.Attributes = attrs; .)
+  { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;

@@ -37,6 +37,7 @@ public class Parser {
 static ModuleDecl theModule;
 static BuiltIns theBuiltIns;
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
+static AssignmentRhs/*!*/ dummyRhs = new ExprRhs(dummyExpr, null);
 static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
 static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
@@ -1638,12 +1639,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	}
 
 	void Rhs(out AssignmentRhs r, Expression receiverForInitCall) {
+		Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
 		IToken/*!*/ x, newToken;  Expression/*!*/ e;
 		List<Expression> ee = null;
 		Type ty = null;
 		CallStmt initCall = null;
 		List<Expression> args;
-		r = null;  // to please compiler
+		r = dummyRhs;  // to please compiler
 		Attributes attrs = null;
 		
 		if (la.kind == 61) {
@@ -1712,7 +1714,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		if (r != null) r.Attributes = attrs; 
+		r.Attributes = attrs; 
 	}
 
 	void Lhs(out Expression e) {
