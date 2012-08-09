@@ -4719,7 +4719,6 @@ namespace Microsoft.Dafny
       //  - unamibugous type/module name (class, datatype, sub-module (including submodules of imports) or arbitrary-type)
       //       (if two imported types have the same name, an error message is produced here)
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
-      //  - imported module name
       //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
       //  - static function or method in the enclosing module, or its imports.
 
