@@ -135,7 +135,6 @@
     <Compile Include="ContentType.cs" />
     <Compile Include="BraceMatching.cs" />
     <Compile Include="WordHighlighter.cs" />
-    <Compile Include="Outlining.cs" />
     <Compile Include="ErrorTagger.cs" />
     <Compile Include="TokenTagger.cs" />
     <Compile Include="ClassificationTagger.cs" />

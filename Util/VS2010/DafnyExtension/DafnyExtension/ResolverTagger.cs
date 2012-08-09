@@ -102,6 +102,10 @@ namespace DafnyLanguage
       foreach (var err in _resolutionErrors) {
         yield return err;
       }
+      if (_resolutionErrors.Count != 0) {
+        // we're done
+        yield break;
+      }
       foreach (var err in _verificationErrors) {
         yield return err;
       }
@@ -112,14 +116,10 @@ namespace DafnyLanguage
     /// </summary>
     public IEnumerable<ITagSpan<DafnyResolverTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
+      var currentSnapshot = spans[0].Snapshot;
       foreach (var err in AllErrors()) {
         if (err.Category != ErrorCategory.ProcessError) {
-          Contract.Assert(0 <= err.Line);
-          var line = _snapshot.GetLineFromLineNumber(err.Line);
-          Contract.Assert(err.Column <= line.Length);
-          var length = line.Length - err.Column;
-          if (5 < length) length = 5;
-          var span = new SnapshotSpan(new SnapshotPoint(_snapshot, line.Start.Position + err.Column), length);
+          var span = err.Span().TranslateTo(currentSnapshot, SpanTrackingMode.EdgeExclusive);
           string ty;  // the COLORs below indicate what I see on my machine
           switch (err.Category) {
             default:  // unexpected category
@@ -282,13 +282,15 @@ namespace DafnyLanguage
   {
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based
-    public ITextSnapshot Snapshot;  // filled in during the FillInSnapshot call
+    ITextSnapshot Snapshot;  // filled in during the FillInSnapshot call
     public readonly ErrorCategory Category;
     public readonly string Message;
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
     public DafnyError(int line, int col, ErrorCategory cat, string msg) {
+      Contract.Requires(0 <= line);
+      Contract.Requires(0 <= col);
       Line = line;
       Column = col;
       Category = cat;
@@ -298,6 +300,13 @@ namespace DafnyLanguage
     public void FillInSnapshot(ITextSnapshot snapshot) {
       Contract.Requires(snapshot != null);
       Snapshot = snapshot;
+    }
+    public SnapshotSpan Span() {
+      Contract.Requires(Snapshot != null);  // requires that Snapshot has been filled in
+      var line = Snapshot.GetLineFromLineNumber(Line);
+      Contract.Assume(Column <= line.Length);  // this is really a precondition of the constructor + FillInSnapshot
+      var length = Math.Min(line.Length - Column, 5);
+      return new SnapshotSpan(line.Start + Column, length);
     }
   }
 }

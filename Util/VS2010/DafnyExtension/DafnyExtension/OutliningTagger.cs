@@ -119,7 +119,7 @@ namespace DafnyLanguage
           newRegions.Add(new ORegion(module, "module"));
         }
         foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
-          if (!HasBodyTokens(d)) {
+          if (!HasBodyTokens(d) && !(d is Dafny.ClassDecl)) {
             continue;
           }
           if (d is Dafny.ArbitraryTypeDecl) {

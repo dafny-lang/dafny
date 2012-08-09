@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
 
     public readonly string Name;
     public List<ModuleDefinition/*!*/>/*!*/ Modules; // filled in during resolution.
-                                                     // Resolution essentially flattens the module heirarchy, for
+                                                     // Resolution essentially flattens the module hierarchy, for
                                                      // purposes of translation and compilation.
     public List<ModuleDefinition> CompileModules; // filled in during resolution.
                                                   // Contains the definitions to be used for compilation.
