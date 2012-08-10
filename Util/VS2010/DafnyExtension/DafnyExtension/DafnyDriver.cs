@@ -39,9 +39,11 @@ namespace DafnyLanguage
 
     static void Initialize() {
       if (Dafny.DafnyOptions.O == null) {
-        Dafny.DafnyOptions.Install(new Dafny.DafnyOptions());
-        Dafny.DafnyOptions.O.DafnyPrelude = "c:\\boogie\\Binaries\\DafnyPrelude.bpl";
-        Dafny.DafnyOptions.O.ApplyDefaultOptions();
+        var options = new Dafny.DafnyOptions();
+        options.ProverKillTime = 10;
+        options.ErrorTrace = 0;
+        options.ApplyDefaultOptions();
+        Dafny.DafnyOptions.Install(options);
       }
     }
 
@@ -388,12 +390,21 @@ namespace DafnyLanguage
         Contract.Requires(msg != null);
         Tok = tok;
         Msg = CleanUp(msg);
+        AddNestingsAsAux(tok);
       }
       public void AddAuxInfo(Bpl.IToken tok, string msg) {
         Contract.Requires(tok != null);
         Contract.Requires(1 <= tok.line && 1 <= tok.col);
         Contract.Requires(msg != null);
         Aux.Add(new DafnyErrorAuxInfo(tok, msg));
+        AddNestingsAsAux(tok);
+      }
+      void AddNestingsAsAux(Bpl.IToken tok) {
+        while (tok is Dafny.NestedToken) {
+          var nt = (Dafny.NestedToken)tok;
+          tok = nt.Inner;
+          Aux.Add(new DafnyErrorAuxInfo(tok, "Related location"));
+        }
       }
       public void AddAuxInfo(Bpl.QKeyValue attr) {
         while (attr != null) {

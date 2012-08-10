@@ -4804,12 +4804,10 @@ namespace Microsoft.Dafny {
     }
 
     static Expression CreateIntSub(IToken tok, Expression e0, Expression e1)
-     {
+    {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-
-
       Contract.Requires(e0.Type is IntType && e1.Type is IntType);
       Contract.Ensures(Contract.Result<Expression>() != null);
       BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, e0, e1);
@@ -4819,7 +4817,7 @@ namespace Microsoft.Dafny {
     }
 
     static Expression CreateIntITE(IToken tok, Expression test, Expression e0, Expression e1)
-     {
+    {
       Contract.Requires(tok != null);
       Contract.Requires(test != null);
       Contract.Requires(e0 != null);
@@ -4833,7 +4831,7 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<Expression> Conjuncts(Expression expr)
-     {
+    {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type is BoolType);
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
