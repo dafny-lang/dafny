@@ -1160,11 +1160,11 @@ namespace Microsoft.Dafny {
           var ind = indent + i * IndentAmount;
           var bound = s.Bounds[i];
           var bv = s.BoundVars[i];
-          if (bound is QuantifierExpr.BoolBoundedPool) {
+          if (bound is ComprehensionExpr.BoolBoundedPool) {
             Indent(ind);
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
-          } else if (bound is QuantifierExpr.IntBoundedPool) {
-            var b = (QuantifierExpr.IntBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.IntBoundedPool) {
+            var b = (ComprehensionExpr.IntBoundedPool)bound;
             SpillLetVariableDecls(b.LowerBound, ind);
             SpillLetVariableDecls(b.UpperBound, ind);
             Indent(ind);
@@ -1173,22 +1173,22 @@ namespace Microsoft.Dafny {
             wr.Write("; @{0} < ", bv.CompileName);
             TrExpr(b.UpperBound);
             wr.Write("; @{0}++) {{ ", bv.CompileName);
-          } else if (bound is QuantifierExpr.SetBoundedPool) {
-            var b = (QuantifierExpr.SetBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.SetBoundedPool) {
+            var b = (ComprehensionExpr.SetBoundedPool)bound;
             SpillLetVariableDecls(b.Set, ind);
             Indent(ind);
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
-          } else if (bound is QuantifierExpr.SeqBoundedPool) {
-            var b = (QuantifierExpr.SeqBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+            var b = (ComprehensionExpr.SeqBoundedPool)bound;
             SpillLetVariableDecls(b.Seq, ind);
             Indent(ind);
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Seq);
             wr.Write(").UniqueElements) { ");
-          } else if (bound is QuantifierExpr.DatatypeBoundedPool) {
-            var b = (QuantifierExpr.DatatypeBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+            var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("foreach (var @{0} in {1}.AllSingletonConstructors) {{", bv.CompileName, TypeName(bv.Type));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
@@ -2053,32 +2053,32 @@ namespace Microsoft.Dafny {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
           // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
-          if (bound is QuantifierExpr.BoolBoundedPool) {
+          if (bound is ComprehensionExpr.BoolBoundedPool) {
             wr.Write("Dafny.Helpers.QuantBool(");
-          } else if (bound is QuantifierExpr.IntBoundedPool) {
-            var b = (QuantifierExpr.IntBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.IntBoundedPool) {
+            var b = (ComprehensionExpr.IntBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantInt(");
             TrExpr(b.LowerBound);
             wr.Write(", ");
             TrExpr(b.UpperBound);
             wr.Write(", ");
-          } else if (bound is QuantifierExpr.SetBoundedPool) {
-            var b = (QuantifierExpr.SetBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.SetBoundedPool) {
+            var b = (ComprehensionExpr.SetBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantSet(");
             TrExpr(b.Set);
             wr.Write(", ");
-          } else if (bound is QuantifierExpr.MapBoundedPool) {
-            var b = (QuantifierExpr.MapBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.MapBoundedPool) {
+            var b = (ComprehensionExpr.MapBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantMap(");
             TrExpr(b.Map);
             wr.Write(", ");
-          } else if (bound is QuantifierExpr.SeqBoundedPool) {
-            var b = (QuantifierExpr.SeqBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+            var b = (ComprehensionExpr.SeqBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantSeq(");
             TrExpr(b.Seq);
             wr.Write(", ");
-          } else if (bound is QuantifierExpr.DatatypeBoundedPool) {
-            var b = (QuantifierExpr.DatatypeBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+            var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantDatatype(");
 
             wr.Write("{0}.AllSingletonConstructors, ", DtName(b.Decl));
@@ -2120,32 +2120,32 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          if (bound is QuantifierExpr.BoolBoundedPool) {
+          if (bound is ComprehensionExpr.BoolBoundedPool) {
             wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
-          } else if (bound is QuantifierExpr.IntBoundedPool) {
-            var b = (QuantifierExpr.IntBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.IntBoundedPool) {
+            var b = (ComprehensionExpr.IntBoundedPool)bound;
             wr.Write("for (var @{0} = ", bv.CompileName);
             TrExpr(b.LowerBound);
             wr.Write("; @{0} < ", bv.CompileName);
             TrExpr(b.UpperBound);
             wr.Write("; @{0}++) {{ ", bv.CompileName);
-          } else if (bound is QuantifierExpr.SetBoundedPool) {
-            var b = (QuantifierExpr.SetBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.SetBoundedPool) {
+            var b = (ComprehensionExpr.SetBoundedPool)bound;
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set);
             wr.Write(").Elements) { ");
-          } else if (bound is QuantifierExpr.MapBoundedPool) {
-            var b = (QuantifierExpr.MapBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.MapBoundedPool) {
+            var b = (ComprehensionExpr.MapBoundedPool)bound;
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Map);
             wr.Write(").Domain) { ");
-          } else if (bound is QuantifierExpr.SeqBoundedPool) {
-            var b = (QuantifierExpr.SeqBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+            var b = (ComprehensionExpr.SeqBoundedPool)bound;
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Seq);
             wr.Write(").Elements) { ");
-          } else if (bound is QuantifierExpr.DatatypeBoundedPool) {
-            var b = (QuantifierExpr.DatatypeBoundedPool)bound;
+          } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+            var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
             wr.Write("foreach (var @{0} in {1}.AllSingletonConstructors) {{", bv.CompileName, TypeName(bv.Type));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
@@ -2189,27 +2189,27 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Bounds.Count == n && n == 1);
         var bound = e.Bounds[0];
         var bv = e.BoundVars[0];
-        if (bound is QuantifierExpr.BoolBoundedPool) {
+        if (bound is ComprehensionExpr.BoolBoundedPool) {
           wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
-        } else if (bound is QuantifierExpr.IntBoundedPool) {
-          var b = (QuantifierExpr.IntBoundedPool)bound;
+        } else if (bound is ComprehensionExpr.IntBoundedPool) {
+          var b = (ComprehensionExpr.IntBoundedPool)bound;
           wr.Write("for (var @{0} = ", bv.CompileName);
           TrExpr(b.LowerBound);
           wr.Write("; @{0} < ", bv.CompileName);
           TrExpr(b.UpperBound);
           wr.Write("; @{0}++) {{ ", bv.CompileName);
-        } else if (bound is QuantifierExpr.SetBoundedPool) {
-          var b = (QuantifierExpr.SetBoundedPool)bound;
+        } else if (bound is ComprehensionExpr.SetBoundedPool) {
+          var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Set);
           wr.Write(").Elements) { ");
-        } else if (bound is QuantifierExpr.MapBoundedPool) {
-          var b = (QuantifierExpr.MapBoundedPool)bound;
+        } else if (bound is ComprehensionExpr.MapBoundedPool) {
+          var b = (ComprehensionExpr.MapBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Map);
           wr.Write(").Domain) { ");
-        } else if (bound is QuantifierExpr.SeqBoundedPool) {
-          var b = (QuantifierExpr.SeqBoundedPool)bound;
+        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+          var b = (ComprehensionExpr.SeqBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Seq);
           wr.Write(").Elements) { ");

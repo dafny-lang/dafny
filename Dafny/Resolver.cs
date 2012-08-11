@@ -5001,7 +5001,7 @@ namespace Microsoft.Dafny
     ///      variable only has lower bounds, no upper bounds)
     /// Requires "expr" to be successfully resolved.
     /// </summary>
-    public static List<QuantifierExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, bool returnAllBounds, List<BoundVar> missingBounds) {
+    public static List<ComprehensionExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, bool returnAllBounds, List<BoundVar> missingBounds) {
       Contract.Requires(tok != null);
       Contract.Requires(bvars != null);
       Contract.Requires(missingBounds != null);
@@ -5010,29 +5010,29 @@ namespace Microsoft.Dafny
       Contract.Ensures(
         (returnAllBounds && Contract.OldValue(missingBounds.Count) <= missingBounds.Count) ||
         (!returnAllBounds &&
-         Contract.Result<List<QuantifierExpr.BoundedPool>>() != null &&
-         Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == bvars.Count &&
+         Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null &&
+         Contract.Result<List<ComprehensionExpr.BoundedPool>>().Count == bvars.Count &&
          Contract.OldValue(missingBounds.Count) == missingBounds.Count) ||
         (!returnAllBounds &&
-         Contract.Result<List<QuantifierExpr.BoundedPool>>() == null &&
+         Contract.Result<List<ComprehensionExpr.BoundedPool>>() == null &&
          Contract.OldValue(missingBounds.Count) < missingBounds.Count));
 
-      var bounds = new List<QuantifierExpr.BoundedPool>();
+      var bounds = new List<ComprehensionExpr.BoundedPool>();
       bool foundError = false;
       for (int j = 0; j < bvars.Count; j++) {
         var bv = bvars[j];
         if (bv.Type is BoolType) {
           // easy
-          bounds.Add(new QuantifierExpr.BoolBoundedPool());
+          bounds.Add(new ComprehensionExpr.BoolBoundedPool());
         } else if (bv.Type.IsIndDatatype && (bv.Type.AsIndDatatype).HasFinitePossibleValues) {
-          bounds.Add(new QuantifierExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+          bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
         } else {
           // Go through the conjuncts of the range expression to look for bounds.
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
           bool foundBoundsForBv = false;
           if (lowerBound != null) {
-            bounds.Add(new QuantifierExpr.IntBoundedPool(lowerBound, upperBound));
+            bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
             lowerBound = null;
             foundBoundsForBv = true;
           }
@@ -5050,34 +5050,34 @@ namespace Microsoft.Dafny
             switch (c.ResolvedOp) {
               case BinaryExpr.ResolvedOpcode.InSet:
                 if (whereIsBv == 0) {
-                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.Subset:
                 if (returnAllBounds && whereIsBv == 1) {
-                  bounds.Add(new QuantifierExpr.SuperSetBoundedPool(e0));
+                  bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(e0));
                   foundBoundsForBv = true;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InMultiSet:
                 if (whereIsBv == 0) {
-                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InSeq:
                 if (whereIsBv == 0) {
-                  bounds.Add(new QuantifierExpr.SeqBoundedPool(e1));
+                  bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InMap:
                 if (whereIsBv == 0) {
-                  bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
+                  bounds.Add(new ComprehensionExpr.SetBoundedPool(e1));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
@@ -5085,12 +5085,12 @@ namespace Microsoft.Dafny
               case BinaryExpr.ResolvedOpcode.EqCommon:
                 if (bv.Type is IntType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
-                  bounds.Add(new QuantifierExpr.IntBoundedPool(otherOperand, Plus(otherOperand, 1)));
+                  bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Plus(otherOperand, 1)));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 } else if (returnAllBounds && bv.Type is SetType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
-                  bounds.Add(new QuantifierExpr.SuperSetBoundedPool(otherOperand));
+                  bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(otherOperand));
                   foundBoundsForBv = true;
                 }
                 break;
@@ -5117,7 +5117,7 @@ namespace Microsoft.Dafny
             if ((lowerBound != null && upperBound != null) ||
                 (returnAllBounds && (lowerBound != null || upperBound != null))) {
               // we have found two halves
-              bounds.Add(new QuantifierExpr.IntBoundedPool(lowerBound, upperBound));
+                  bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
               lowerBound = null;
               upperBound = null;
               foundBoundsForBv = true;
