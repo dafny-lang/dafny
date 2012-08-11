@@ -2154,6 +2154,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      if (a == Bpl.Expr.False) {
+        return b;
+      } else if (b == Bpl.Expr.False) {
+        return a;
+      } else {
+        return Bpl.Expr.Or(a, b);
+      }
+    }
+
     Bpl.Expr BplImp(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
@@ -2161,6 +2175,8 @@ namespace Microsoft.Dafny {
 
       if (a == Bpl.Expr.True || b == Bpl.Expr.True) {
         return b;
+      } else if (a == Bpl.Expr.False) {
+        return Bpl.Expr.True;
       } else {
         return Bpl.Expr.Imp(a, b);
       }
@@ -3791,11 +3807,19 @@ namespace Microsoft.Dafny {
               Contract.Assume(false);  // unexpected case
             }
           }
-          var bvs = new VariableSeq();
-          var typeAntecedent = etran.TrBoundVariables(bvars, bvs);
-          var substE = etran.TrExpr(Substitute(s.Expr, null, substMap));
-          var ex = new Bpl.ExistsExpr(s.Tok, bvs, BplAnd(typeAntecedent, substE));
-          builder.Add(Assert(s.Tok, ex, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
+
+          List<Tuple<List<BoundVar>, Expression>> partialGuesses = GeneratePartialGuesses(bvars, Substitute(s.Expr, null, substMap));
+          Bpl.Expr w = Bpl.Expr.False;
+          foreach (var tup in partialGuesses) {
+            var body = etran.TrExpr(tup.Item2);
+            if (tup.Item1.Count != 0) {
+              var bvs = new VariableSeq();
+              var typeAntecedent = etran.TrBoundVariables(tup.Item1, bvs);
+              body = new Bpl.ExistsExpr(s.Tok, bvs, BplAnd(typeAntecedent, body));
+            }
+            w = BplOr(body, w);
+          }
+          builder.Add(Assert(s.Tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
         }
         // End by doing the assume
         builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
@@ -4023,6 +4047,103 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    List<Tuple<List<BoundVar>, Expression>> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
+      if (bvars.Count == 0) {
+        var tup = new Tuple<List<BoundVar>, Expression>(new List<BoundVar>(), expression);
+        return new List<Tuple<List<BoundVar>, Expression>>() { tup };
+      }
+      var result = new List<Tuple<List<BoundVar>, Expression>>();
+      var x = bvars[0];
+      var otherBvars = bvars.GetRange(1, bvars.Count - 1);
+      foreach (var tup in GeneratePartialGuesses(otherBvars, expression)) {
+        // in the special case that x does not even occur in expression, we can just ignore x
+        if (!ContainsFreeVariable(tup.Item2, false, x)) {
+          result.Add(tup);
+          continue;
+        }
+        // one possible result is to quantify over all the variables
+        var vs = new List<BoundVar>() { x };
+        vs.AddRange(tup.Item1);
+        result.Add(new Tuple<List<BoundVar>, Expression>(vs, tup.Item2));
+        // other possibilities involve guessing a value for x
+        foreach (var guess in GuessWitnesses(x, tup.Item2)) {
+          var substMap = new Dictionary<IVariable, Expression>();
+          substMap.Add(x, guess);
+          result.Add(new Tuple<List<BoundVar>, Expression>(tup.Item1, Substitute(tup.Item2, null, substMap)));
+        }
+      }
+      return result;
+    }
+
+    IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
+      Contract.Requires(x != null);
+      Contract.Requires(expr != null);
+      var lookForBounds = false;
+      if (x.Type is BoolType) {
+        var lit = new LiteralExpr(x.tok, false);
+        lit.Type = Type.Bool;  // resolve here
+        yield return lit;
+        lit = new LiteralExpr(x.tok, true);
+        lit.Type = Type.Bool;  // resolve here
+        yield return lit;
+      } else if (x.Type.IsRefType) {
+        var lit = new LiteralExpr(x.tok);
+        lit.Type = x.Type;
+        yield return lit;
+      } else if (x.Type.IsIndDatatype) {
+        var dt = x.Type.AsIndDatatype;
+        Expression zero = Zero(x.tok, x.Type);
+        if (zero != null) {
+          yield return zero;
+        }
+      } else if (x.Type is SetType) {
+        var empty = new SetDisplayExpr(x.tok, new List<Expression>());
+        empty.Type = x.Type;
+        yield return empty;
+        lookForBounds = true;
+      } else if (x.Type is MultiSetType) {
+        var empty = new MultiSetDisplayExpr(x.tok, new List<Expression>());
+        empty.Type = x.Type;
+        yield return empty;
+        lookForBounds = true;
+      } else if (x.Type is SeqType) {
+        var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
+        empty.Type = x.Type;
+        yield return empty;
+        lookForBounds = true;
+      } else if (x.Type is IntType) {
+        var lit = new LiteralExpr(x.tok, 0);
+        lit.Type = Type.Int;  // resolve here
+        yield return lit;
+        lookForBounds = true;
+      }
+      if (lookForBounds) {
+        var missingBounds = new List<BoundVar>();
+        var bounds = Resolver.DiscoverBounds(x.tok, new List<BoundVar>() { x }, expr, true, true, missingBounds);
+        if (missingBounds.Count == 0) {
+          foreach (var bound in bounds) {
+            if (bound is ComprehensionExpr.IntBoundedPool) {
+              var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+              if (bnd.LowerBound != null) yield return bnd.LowerBound;
+              if (bnd.UpperBound != null) yield return Resolver.Minus(bnd.UpperBound, 1);
+            } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
+              var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
+              yield return bnd.LowerBound;
+            }
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Return a zero-equivalent value for "typ", or return null (for any reason whatsoever).
+    /// </summary>
+    Expression Zero(Bpl.IToken tok, Type typ) {
+      Contract.Requires(tok != null);
+      Contract.Requires(typ != null);
+      return null;  // TODO: this can be improved
     }
 
     void TrParallelAssign(ParallelStmt s, AssignStmt s0,

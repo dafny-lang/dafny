@@ -286,7 +286,7 @@ SmallTests.dfy(576,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 68 verified, 26 errors
+Dafny program verifier finished with 70 verified, 26 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -1748,7 +1748,7 @@ SmallTests.dfy(576,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 68 verified, 26 errors
+Dafny program verifier finished with 70 verified, 26 errors
 out.tmp.dfy(33,11): Error: index out of range
 Execution trace:
     (0,0): anon0
@@ -1893,7 +1893,7 @@ out.tmp.dfy(522,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 68 verified, 26 errors
+Dafny program verifier finished with 70 verified, 26 errors
 
 -------------------- LetExpr.dfy --------------------
 LetExpr.dfy(5,12): Error: assertion violation

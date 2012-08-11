@@ -3490,6 +3490,11 @@ namespace Microsoft.Dafny {
       public readonly Expression Set;
       public SetBoundedPool(Expression set) { Set = set; }
     }
+    public class SuperSetBoundedPool : BoundedPool
+    {
+      public readonly Expression LowerBound;
+      public SuperSetBoundedPool(Expression set) { LowerBound = set; }
+    }
     public class MapBoundedPool : BoundedPool
     {
       public readonly Expression Map;

@@ -2870,7 +2870,7 @@ namespace Microsoft.Dafny
         bool bodyMustBeSpecOnly = specContextOnly || (prevErrorCount == ErrorCount && UsesSpecFeatures(s.Range));
         if (!bodyMustBeSpecOnly && prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
-          s.Bounds = DiscoverBounds(s.Tok, s.BoundVars, s.Range, true, missingBounds);
+          s.Bounds = DiscoverBounds(s.Tok, s.BoundVars, s.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             bodyMustBeSpecOnly = true;
           }
@@ -4198,7 +4198,7 @@ namespace Microsoft.Dafny
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.LogicalBody(), e is ExistsExpr, missingBounds);
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.LogicalBody(), e is ExistsExpr, false, missingBounds);
           if (missingBounds.Count != 0) {
             // Report errors here about quantifications that depend on the allocation state.
             var mb = missingBounds;
@@ -4242,7 +4242,7 @@ namespace Microsoft.Dafny
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, missingBounds);
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
             foreach (var bv in e.MissingBounds) {
@@ -4278,7 +4278,7 @@ namespace Microsoft.Dafny
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
-          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, missingBounds);
+          e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
             foreach (var bv in e.MissingBounds) {
@@ -4990,19 +4990,31 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Tries to find a bounded pool for each of the bound variables "bvars" of "expr".  If this process
     /// fails, then "null" is returned and the bound variables for which the process fails are added to "missingBounds".
+    /// If "returnAllBounds" is false, then:
+    ///   -- at most one BoundedPool per variable is returned
+    ///   -- every IntBoundedPool returned has both a lower and an upper bound
+    ///   -- no SuperSetBoundedPool is returned
+    /// If "returnAllBounds" is true, then:
+    ///   -- a variable may give rise to BoundedPool's
+    ///   -- IntBoundedPool bounds may have just one component
+    ///   -- a non-null return value means that some bound were found for each variable (but, for example, perhaps one
+    ///      variable only has lower bounds, no upper bounds)
     /// Requires "expr" to be successfully resolved.
     /// </summary>
-    List<QuantifierExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, List<BoundVar> missingBounds) {
+    public static List<QuantifierExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, bool returnAllBounds, List<BoundVar> missingBounds) {
       Contract.Requires(tok != null);
       Contract.Requires(bvars != null);
       Contract.Requires(missingBounds != null);
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type != null);  // a sanity check (but not a complete proof) that "expr" has been resolved
       Contract.Ensures(
-        (Contract.Result<List<QuantifierExpr.BoundedPool>>() != null &&
+        (returnAllBounds && Contract.OldValue(missingBounds.Count) <= missingBounds.Count) ||
+        (!returnAllBounds &&
+         Contract.Result<List<QuantifierExpr.BoundedPool>>() != null &&
          Contract.Result<List<QuantifierExpr.BoundedPool>>().Count == bvars.Count &&
          Contract.OldValue(missingBounds.Count) == missingBounds.Count) ||
-        (Contract.Result<List<QuantifierExpr.BoundedPool>>() == null &&
+        (!returnAllBounds &&
+         Contract.Result<List<QuantifierExpr.BoundedPool>>() == null &&
          Contract.OldValue(missingBounds.Count) < missingBounds.Count));
 
       var bounds = new List<QuantifierExpr.BoundedPool>();
@@ -5018,6 +5030,12 @@ namespace Microsoft.Dafny
           // Go through the conjuncts of the range expression to look for bounds.
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
+          bool foundBoundsForBv = false;
+          if (lowerBound != null) {
+            bounds.Add(new QuantifierExpr.IntBoundedPool(lowerBound, upperBound));
+            lowerBound = null;
+            foundBoundsForBv = true;
+          }
           foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
             var c = conjunct as BinaryExpr;
             if (c == null) {
@@ -5033,32 +5051,47 @@ namespace Microsoft.Dafny
               case BinaryExpr.ResolvedOpcode.InSet:
                 if (whereIsBv == 0) {
                   bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
-                  goto CHECK_NEXT_BOUND_VARIABLE;
+                  foundBoundsForBv = true;
+                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Subset:
+                if (returnAllBounds && whereIsBv == 1) {
+                  bounds.Add(new QuantifierExpr.SuperSetBoundedPool(e0));
+                  foundBoundsForBv = true;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InMultiSet:
                 if (whereIsBv == 0) {
                   bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
-                  goto CHECK_NEXT_BOUND_VARIABLE;
+                  foundBoundsForBv = true;
+                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InSeq:
                 if (whereIsBv == 0) {
                   bounds.Add(new QuantifierExpr.SeqBoundedPool(e1));
-                  goto CHECK_NEXT_BOUND_VARIABLE;
+                  foundBoundsForBv = true;
+                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.InMap:
                 if (whereIsBv == 0) {
                   bounds.Add(new QuantifierExpr.SetBoundedPool(e1));
-                  goto CHECK_NEXT_BOUND_VARIABLE;
+                  foundBoundsForBv = true;
+                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.EqCommon:
                 if (bv.Type is IntType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
                   bounds.Add(new QuantifierExpr.IntBoundedPool(otherOperand, Plus(otherOperand, 1)));
-                  goto CHECK_NEXT_BOUND_VARIABLE;
+                  foundBoundsForBv = true;
+                  if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
+                } else if (returnAllBounds && bv.Type is SetType) {
+                  var otherOperand = whereIsBv == 0 ? e1 : e0;
+                  bounds.Add(new QuantifierExpr.SuperSetBoundedPool(otherOperand));
+                  foundBoundsForBv = true;
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.Gt:
@@ -5081,16 +5114,22 @@ namespace Microsoft.Dafny
               default:
                 break;
             }
-            if (lowerBound != null && upperBound != null) {
+            if ((lowerBound != null && upperBound != null) ||
+                (returnAllBounds && (lowerBound != null || upperBound != null))) {
               // we have found two halves
               bounds.Add(new QuantifierExpr.IntBoundedPool(lowerBound, upperBound));
-              goto CHECK_NEXT_BOUND_VARIABLE;
+              lowerBound = null;
+              upperBound = null;
+              foundBoundsForBv = true;
+              if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
             }
           CHECK_NEXT_CONJUNCT: ;
           }
-          // we have checked every conjunct in the range expression and still have not discovered good bounds
-          missingBounds.Add(bv);  // record failing bound variable
-          foundError = true;
+          if (!foundBoundsForBv) {
+            // we have checked every conjunct in the range expression and still have not discovered good bounds
+            missingBounds.Add(bv);  // record failing bound variable
+            foundError = true;
+          }
         }
       CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
       }
@@ -5105,7 +5144,7 @@ namespace Microsoft.Dafny
     /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
     /// Ensures that the resulting "e0" and "e1" are not ConcreteSyntaxExpression's.
     /// </summary>
-    int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1) {
+    static int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(boundVars != null);
@@ -5229,7 +5268,7 @@ namespace Microsoft.Dafny
     /// Requires "expr" to be successfully resolved.
     /// Ensures that what is returned is not a ConcreteSyntaxExpression.
     /// </summary>
-    IEnumerable<Expression> NormalizedConjuncts(Expression expr, bool polarity) {
+    static IEnumerable<Expression> NormalizedConjuncts(Expression expr, bool polarity) {
       // We consider 5 cases.  To describe them, define P(e)=Conjuncts(e,true) and N(e)=Conjuncts(e,false).
       //   *  X ==> Y    is treated as a shorthand for !X || Y, and so is described by the remaining cases
       //   *  X && Y     P(_) = P(X),P(Y)    and    N(_) = !(X && Y)
@@ -5332,7 +5371,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    Expression Plus(Expression e, int n) {
+    public static Expression Plus(Expression e, int n) {
       Contract.Requires(0 <= n);
 
       var nn = new LiteralExpr(e.tok, n);
@@ -5343,12 +5382,23 @@ namespace Microsoft.Dafny
       return p;
     }
 
+    public static Expression Minus(Expression e, int n) {
+      Contract.Requires(0 <= n);
+
+      var nn = new LiteralExpr(e.tok, n);
+      nn.Type = Type.Int;
+      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, e, nn);
+      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+      p.Type = Type.Int;
+      return p;
+    }
+
     /// <summary>
     /// Returns the set of free variables in "expr".
     /// Requires "expr" to be successfully resolved.
     /// Ensures that the set returned has no aliases.
     /// </summary>
-    ISet<IVariable> FreeVariables(Expression expr) {
+    static ISet<IVariable> FreeVariables(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Ensures(expr.Type != null);
 

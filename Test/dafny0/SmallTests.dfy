@@ -521,9 +521,9 @@ method AssignSuchThat0(a: int, b: int) returns (x: int, y: int)
   ensures x == a && y == b;
 {
   if (*) {
-    x, y :| assume a <= x < a + 1 && b + a <= y + a && y <= b;
+    x, y :| a <= x < a + 1 && b + a <= y + a && y <= b;
   } else {
-    var xx, yy :| assume a <= xx < a + 1 && b + a <= yy + a && yy <= b;
+    var xx, yy :| a <= xx < a + 1 && b + a <= yy + a && yy <= b;
     x, y := xx, yy;
   }
 }
@@ -532,10 +532,10 @@ method AssignSuchThat1(a: int, b: int) returns (x: int, y: int)
 {
   var k :| assume 0 <= k < a - b;  // this acts like an 'assume 0 < a - b;'
   assert b < a;
-  k :| assume k == old(2*k);  // note, the 'old' has no effect on local variables like k
+  k :| k == old(2*k);  // note, the 'old' has no effect on local variables like k
   assert k == 0;
   var S := {2, 4, 7};
-  var T :| assume T <= S;
+  var T :| T <= S;
   assert 3 !in T;
   assert T == {};  // error: T may be larger
 }
@@ -572,7 +572,7 @@ method AssignSuchThat4()
 method AssignSuchThat5()
 {
   var n := new Node;
-  n :| assume fresh(n);  // fine
+  n :| fresh(n);  // fine
   assert false;  // error
 }
 
@@ -581,4 +581,9 @@ method AssignSuchThat6()
   var n: Node;
   n :| assume n != null && fresh(n);  // there is no non-null fresh object, so this amounts to 'assume false;'
   assert false;  // no problemo
+}
+
+method AssignSuchThat7<T>(A: set<T>, x: T) {
+  var B :| A <= B;
+  assert x in A ==> x in B;
 }
