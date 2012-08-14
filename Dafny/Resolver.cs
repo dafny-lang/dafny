@@ -964,17 +964,19 @@ namespace Microsoft.Dafny
         allTypeParameters.PopMarker();
       }
 
-      foreach (TopLevelDecl d in declarations) {
-        if (d is ClassDecl) {
-          foreach (var member in ((ClassDecl)d).Members) {
-            if (member is Method) {
-              var m = ((Method)member);
-              if (m.Body != null)
-                CheckTypeInference(m.Body);
-            } else if (member is Function) {
-              var f = (Function)member;
-              if (f.Body != null)
-                CheckTypeInference(f.Body);
+      if (ErrorCount == prevErrorCount) {
+        foreach (TopLevelDecl d in declarations) {
+          if (d is ClassDecl) {
+            foreach (var member in ((ClassDecl)d).Members) {
+              if (member is Method) {
+                var m = ((Method)member);
+                if (m.Body != null)
+                  CheckTypeInference(m.Body);
+              } else if (member is Function) {
+                var f = (Function)member;
+                if (f.Body != null)
+                  CheckTypeInference(f.Body);
+              }
             }
           }
         }
