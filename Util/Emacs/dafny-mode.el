@@ -8,7 +8,7 @@
 
 (if dafny-mode-map nil
   (setq dafny-mode-map (make-keymap))
-  (define-key dafny-mode-map "\C-c\C-c" 'dafny-run-boogie)
+  (define-key dafny-mode-map "\C-c\C-c" 'dafny-run-verifier)
   (define-key dafny-mode-map [(control return)] 'font-lock-fontify-buffer))
 
 (setq auto-mode-alist
@@ -69,7 +69,7 @@
    dafny-mode-menu (list dafny-mode-map)
    "Dafny Mode Menu." 
    '("Dafny"
-     ["Run Boogie" dafny-run-boogie t]
+     ["Run Dafny" dafny-run-verifier t]
      "---"
      ["Recolor buffer" font-lock-fontify-buffer t]
      "---"
@@ -81,8 +81,8 @@
 (defun dafny-command-line (file)
   (concat "boogie " file))
 
-(defun dafny-run-boogie ()
-  "run Boogie to check the Dafny program"
+(defun dafny-run-verifier ()
+  "run Dafny verifier"
   (interactive)
   (let ((f (buffer-name)))
     (compile (dafny-command-line f))))
