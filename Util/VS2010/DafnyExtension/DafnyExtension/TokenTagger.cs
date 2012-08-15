@@ -257,7 +257,6 @@ namespace DafnyLanguage
                 case "fresh":
                 case "function":
                 case "ghost":
-                case "havoc":
                 case "if":
                 case "imports":
                 case "in":

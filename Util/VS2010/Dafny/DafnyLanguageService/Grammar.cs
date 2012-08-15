@@ -21,7 +21,7 @@ namespace Demo
           "assert", "assume", "new", "this", "object", "refines",
           "module", "import", "as", "default", "opened",
           "if", "then", "else", "while", "invariant",
-          "break", "label", "return", "parallel", "havoc", "print",
+          "break", "label", "return", "parallel", "print",
           "returns", "requires", "ensures", "modifies", "reads", "decreases",
           "bool", "nat", "int", "false", "true", "null",
           "function", "predicate", "copredicate", "free",
@@ -289,7 +289,6 @@ namespace Demo
           | "label"
           | "return"
           | "parallel"
-          | "havoc"
           | "print"
           | "returns"
           | "requires"
