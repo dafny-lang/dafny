@@ -192,6 +192,11 @@ namespace DafnyLanguage
         foreach (var kase in e.Cases) {
           kase.Arguments.ForEach(bv => regions.Add(new IdRegion(bv.tok, bv, true)));
         }
+      } else if (expr is Dafny.ChainingExpression) {
+        var e = (Dafny.ChainingExpression)expr;
+        // Do the subexpressions only once (that is, avoid the duplication that occurs in the desugared form of the ChainingExpression)
+        e.Operands.ForEach(ee => ExprRegions(ee, regions));
+        return;  // return here, so as to avoid doing the subexpressions below
       }
       foreach (var ee in expr.SubExpressions) {
         ExprRegions(ee, regions);

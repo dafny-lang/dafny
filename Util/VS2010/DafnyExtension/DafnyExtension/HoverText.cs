@@ -24,18 +24,16 @@ namespace DafnyLanguage
     IBufferTagAggregatorFactoryService aggService = null;
 
     public IQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer) {
-      return new OokQuickInfoSource(textBuffer, aggService.CreateTagAggregator<DafnyTokenTag>(textBuffer));
+      return new DafnyQuickInfoSource(textBuffer, aggService.CreateTagAggregator<DafnyTokenTag>(textBuffer));
     }
   }
 
-  class OokQuickInfoSource : IQuickInfoSource
+  class DafnyQuickInfoSource : IQuickInfoSource
   {
     private ITagAggregator<DafnyTokenTag> _aggregator;
     private ITextBuffer _buffer;
-    private bool _disposed = false;
 
-
-    public OokQuickInfoSource(ITextBuffer buffer, ITagAggregator<DafnyTokenTag> aggregator) {
+    public DafnyQuickInfoSource(ITextBuffer buffer, ITagAggregator<DafnyTokenTag> aggregator) {
       _aggregator = aggregator;
       _buffer = buffer;
     }
@@ -43,11 +41,7 @@ namespace DafnyLanguage
     public void AugmentQuickInfoSession(IQuickInfoSession session, IList<object> quickInfoContent, out ITrackingSpan applicableToSpan) {
       applicableToSpan = null;
 
-      if (_disposed)
-        throw new ObjectDisposedException("TestQuickInfoSource");
-
       var triggerPoint = (SnapshotPoint)session.GetTriggerPoint(_buffer.CurrentSnapshot);
-
       if (triggerPoint == null)
         return;
 
@@ -60,9 +54,7 @@ namespace DafnyLanguage
         }
       }
     }
-
     public void Dispose() {
-      _disposed = true;
     }
   }
   // --------------------------------- QuickInfo controller ------------------------------------------

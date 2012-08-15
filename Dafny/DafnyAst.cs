@@ -1818,9 +1818,11 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
-        foreach (var rhs in rhss) {
-          foreach (var ee in rhs.SubExpressions) {
-            yield return ee;
+        if (rhss != null) {
+          foreach (var rhs in rhss) {
+            foreach (var ee in rhs.SubExpressions) {
+              yield return ee;
+            }
           }
         }
       }
