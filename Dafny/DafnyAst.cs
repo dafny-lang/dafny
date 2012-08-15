@@ -1665,6 +1665,13 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Statement> SubStatements {
       get { yield break; }
     }
+
+    /// <summary>
+    /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// </summary>
+    public virtual IEnumerable<Expression> SubExpressions {
+      get { yield break; }
+    }
   }
 
   public class LList<T>
@@ -1729,6 +1736,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Expr = expr;
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Expr;
+      }
+    }
   }
 
   public class AssertStmt : PredicateStmt {
@@ -1760,6 +1772,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
 
       Args = args;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var arg in Args) {
+          if (arg.E != null) {
+            yield return arg.E;
+          }
+        }
+      }
     }
   }
 
@@ -1794,6 +1815,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       this.rhss = rhss;
       hiddenUpdate = null;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var rhs in rhss) {
+          foreach (var ee in rhs.SubExpressions) {
+            yield return ee;
+          }
+        }
+      }
     }
   }
 
@@ -2103,6 +2133,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Lhs;
+        foreach (var ee in Rhs.SubExpressions) {
+          yield return ee;
+        }
+      }
+    }
+
     /// <summary>
     /// This method assumes "lhs" has been successfully resolved.
     /// </summary>
@@ -2221,6 +2260,18 @@ namespace Microsoft.Dafny {
       this.MethodName = methodName;
       this.Args = args;
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var ee in Lhs) {
+          yield return ee;
+        }
+        yield return Receiver;
+        foreach (var ee in Args) {
+          yield return ee;
+        }
+      }
+    }
   }
 
   public class BlockStmt : Statement {
@@ -2260,6 +2311,13 @@ namespace Microsoft.Dafny {
         yield return Thn;
         if (Els != null) {
           yield return Els;
+        }
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (Guard != null) {
+          yield return Guard;
         }
       }
     }
@@ -2306,6 +2364,13 @@ namespace Microsoft.Dafny {
           foreach (var s in alt.Body) {
             yield return s;
           }
+        }
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var alt in Alternatives) {
+          yield return alt.Guard;
         }
       }
     }
@@ -2360,6 +2425,13 @@ namespace Microsoft.Dafny {
         yield return Body;
       }
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (Guard != null) {
+          yield return Guard;
+        }
+      }
+    }
   }
 
   /// <summary>
@@ -2398,6 +2470,13 @@ namespace Microsoft.Dafny {
           foreach (var s in alt.Body) {
             yield return s;
           }
+        }
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var alt in Alternatives) {
+          yield return alt.Guard;
         }
       }
     }
@@ -2482,6 +2561,14 @@ namespace Microsoft.Dafny {
         yield return Body;
       }
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Range;
+        foreach (var ee in Ens) {
+          yield return ee.E;
+        }
+      }
+    }
   }
 
   public class MatchStmt : Statement
@@ -2513,6 +2600,11 @@ namespace Microsoft.Dafny {
             yield return s;
           }
         }
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Source;
       }
     }
   }

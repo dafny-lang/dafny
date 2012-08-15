@@ -186,7 +186,6 @@ namespace DafnyLanguage
       _errorProvider.Tasks.Clear();
       foreach (var err in AllErrors()) {
         ErrorTask task = new ErrorTask() {
-          // CanDelete = true,
           Category = TaskCategory.BuildCompile,
           ErrorCategory = CategoryConversion(err.Category),
           Text = err.Message,

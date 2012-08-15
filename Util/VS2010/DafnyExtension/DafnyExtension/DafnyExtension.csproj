@@ -128,6 +128,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferIdleEventUtil.cs" />
+    <Compile Include="HoverText.cs" />
+    <Compile Include="IdentifierTagger.cs" />
     <Compile Include="ProgressMargin.cs" />
     <Compile Include="OutliningTagger.cs" />
     <Compile Include="ResolverTagger.cs" />

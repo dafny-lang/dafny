@@ -50,7 +50,7 @@ namespace DafnyLanguage
       _typeMap[DafnyTokenKinds.String] = standards.StringLiteral;
       _typeMap[DafnyTokenKinds.Comment] = standards.Comment;
       _typeMap[DafnyTokenKinds.VariableIdentifier] = standards.Identifier;
-      _typeMap[DafnyTokenKinds.TypeIdentifier] = typeService.GetClassificationType("Dafny user type");
+      _typeMap[DafnyTokenKinds.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
@@ -82,16 +82,16 @@ namespace DafnyLanguage
   /// Defines an editor format for user-defined type.
   /// </summary>
   [Export(typeof(EditorFormatDefinition))]
-  [ClassificationType(ClassificationTypeNames = "Dafny user type")]
-  [Name("Dafny user type")]
+  [ClassificationType(ClassificationTypeNames = "Dafny identifier")]
+  [Name("Dafny identifier")]
   [UserVisible(true)]
   //set the priority to be after the default classifiers
   [Order(Before = Priority.Default)]
   internal sealed class DafnyTypeFormat : ClassificationFormatDefinition
   {
     public DafnyTypeFormat() {
-      this.DisplayName = "Dafny user type"; //human readable version of the name
-      this.ForegroundColor = Colors.Coral;
+      this.DisplayName = "Dafny identifier"; //human readable version of the name
+      this.ForegroundColor = Colors.CornflowerBlue;
     }
   }
 
@@ -101,7 +101,7 @@ namespace DafnyLanguage
     /// Defines the "ordinary" classification type.
     /// </summary>
     [Export(typeof(ClassificationTypeDefinition))]
-    [Name("Dafny user type")]
+    [Name("Dafny identifier")]
     internal static ClassificationTypeDefinition UserType = null;
   }
 }
