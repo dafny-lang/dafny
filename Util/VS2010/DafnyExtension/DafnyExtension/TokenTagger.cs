@@ -220,7 +220,7 @@ namespace DafnyLanguage
             }
             // we have a keyword or an identifier
             string s = txt.Substring(cur, end - cur);
-            if (0 < trailingDigits && s.Length == 5 + trailingDigits && s.StartsWith("array") && s[5] != '0' && s != "array1") {
+            if (0 < trailingDigits && s.Length == 5 + trailingDigits && s.StartsWith("array") && s[5] != '0' && (trailingDigits != 1 || s[5] != '1')) {
               // this is a keyword (array2, array3, ...)
             } else {
               switch (s) {

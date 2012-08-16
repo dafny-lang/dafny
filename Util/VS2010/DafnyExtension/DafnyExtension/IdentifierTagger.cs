@@ -114,9 +114,6 @@ namespace DafnyLanguage
 
       foreach (var module in program.Modules) {
         foreach (var d in module.TopLevelDecls) {
-          if (!HasBodyTokens(d) && !(d is ClassDecl)) {
-            continue;
-          }
           if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
@@ -129,9 +126,6 @@ namespace DafnyLanguage
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
-              if (!HasBodyTokens(member)) {
-                continue;
-              }
               if (member is Function) {
                 var f = (Function)member;
                 foreach (var p in f.Formals) {
@@ -259,11 +253,6 @@ namespace DafnyLanguage
       foreach (var ss in stmt.SubStatements) {
         StatementRegions(ss, regions);
       }
-    }
-
-    bool HasBodyTokens(Declaration decl) {
-      Contract.Requires(decl != null);
-      return decl.BodyStartTok != Bpl.Token.NoToken && decl.BodyEndTok != Bpl.Token.NoToken;
     }
 
     class IdRegion
