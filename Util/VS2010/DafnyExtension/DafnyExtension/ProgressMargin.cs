@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Windows;
 using System.Windows.Shapes;
 using System.Windows.Media;
@@ -95,6 +96,8 @@ namespace DafnyLanguage
       BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, DoTheVerification);
     }
 
+    // The next two fields are protected by the lock "this".  The lists pointed to by the
+    // fields are not to be modified.
     List<SnapshotSpan> bufferChangesPreVerificationStart = new List<SnapshotSpan>();  // buffer changes after the last completed verification and before the currently running verification
     List<SnapshotSpan> bufferChangesPostVerificationStart = new List<SnapshotSpan>();  // buffer changes since the start of the currently running verification
     void buffer_Changed(object sender, TextContentChangedEventArgs e) {
@@ -123,33 +126,84 @@ namespace DafnyLanguage
       }
     }
 
-    ITextVersion latestClearedVersion;
+    bool verificationInProgress;  // this field is protected by "this"
     public void DoTheVerification(object sender, EventArgs args) {
       var buffer = sender as ITextBuffer;
-      if (buffer != null && latestProgram != null) {
-        bufferChangesPreVerificationStart.AddRange(bufferChangesPostVerificationStart);
-        bufferChangesPostVerificationStart.Clear();
+      if (buffer != null && latestProgram != null && resolver != null) {
+        bool tagsChanged = false;
+        lock (this) {
+          if (verificationInProgress) {
+            // take no further action
+            return;
+          }
+          verificationInProgress = true;
+          // In the following, accomplish:  pre, post := pre+post, {};
+          if (bufferChangesPostVerificationStart.Count != 0) {
+            tagsChanged = true;
+            if (bufferChangesPreVerificationStart.Count == 0) {
+              var empty = bufferChangesPreVerificationStart;
+              bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
+              bufferChangesPostVerificationStart = empty;
+            } else {
+              var all = new List<SnapshotSpan>();
+              all.AddRange(bufferChangesPreVerificationStart);
+              all.AddRange(bufferChangesPostVerificationStart);
+              bufferChangesPreVerificationStart = all;
+              bufferChangesPostVerificationStart = new List<SnapshotSpan>();
+            }
+          }
+        }
 
-        // do the verification
+        // kick off the verification
+        var w = new VerificationWorker(latestProgram, resolver, this, latestSnapshot);
+        var thread = new Thread(w.Start);
+        thread.Start();
+
+        var chng = TagsChanged;
+        if (tagsChanged && chng != null) {
+          var snap = latestSnapshot;
+          chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snap, 0, snap.Length)));
+        }
+      }
+    }
+
+    class VerificationWorker
+    {
+      readonly Dafny.Program program;
+      readonly ResolverTagger resolver;
+      readonly ProgressTagger pt;
+      readonly ITextSnapshot snapshot;
+      public VerificationWorker(Dafny.Program program, ResolverTagger resolver, ProgressTagger pt, ITextSnapshot snapshot) {
+        Contract.Requires(program != null);
+        Contract.Requires(resolver != null);
+        Contract.Requires(pt != null);
+        Contract.Requires(snapshot != null);
+        this.program = program;
+        this.resolver = resolver;
+        this.pt = pt;
+        this.snapshot = snapshot;
+      }
+
+      public void Start() {
         var newErrors = new List<DafnyError>();
-        bool success = DafnyDriver.Verify(latestProgram, (errorInfo) => {
+        bool success = DafnyDriver.Verify(program, errorInfo => {
           newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
           foreach (var aux in errorInfo.Aux) {
             newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
           }
         });
 
-        bufferChangesPreVerificationStart.Clear();  // note, depending on concurrency, there may now be more things in the ...Post... list
-        if (resolver != null) {
-          resolver.PopulateErrorList(newErrors, true, latestSnapshot);
+        lock (pt) {
+          pt.verificationInProgress = false;
+          if (pt.bufferChangesPreVerificationStart.Count != 0) {
+            pt.bufferChangesPreVerificationStart = new List<SnapshotSpan>();
+          }
+          resolver.PopulateErrorList(newErrors, true, snapshot);  // TODO:  is this appropriate to do inside the monitor?
         }
 
-        // What the Error List now reports reflects the latest verification
-        var chng = TagsChanged;
+        var chng = pt.TagsChanged;
         if (chng != null) {
-          var snap = latestSnapshot;
-          latestClearedVersion = snap.Version;
-          chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snap, 0, snap.Length)));
+          chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
         }
       }
     }
@@ -159,13 +213,20 @@ namespace DafnyLanguage
       if (spans.Count == 0) yield break;
       var targetSnapshot = spans[0].Snapshot;
 
+      List<SnapshotSpan> pre;
+      List<SnapshotSpan> post;
+      lock (this) {
+        pre = bufferChangesPreVerificationStart;
+        post = bufferChangesPostVerificationStart;
+      }
+
       // If the requested snapshot isn't the same as the one our words are on, translate our spans to the expected snapshot
       NormalizedSnapshotSpanCollection chs;
-      chs = new NormalizedSnapshotSpanCollection(Map(bufferChangesPreVerificationStart, span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
+      chs = new NormalizedSnapshotSpanCollection(Map(pre, span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
       foreach (SnapshotSpan span in NormalizedSnapshotSpanCollection.Overlap(spans, chs)) {
         yield return new TagSpan<ProgressGlyphTag>(span, new ProgressGlyphTag(0));
       }
-      chs = new NormalizedSnapshotSpanCollection(Map(bufferChangesPostVerificationStart, span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
+      chs = new NormalizedSnapshotSpanCollection(Map(post, span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
       foreach (SnapshotSpan span in NormalizedSnapshotSpanCollection.Overlap(spans, chs)) {
         yield return new TagSpan<ProgressGlyphTag>(span, new ProgressGlyphTag(1));
       }
