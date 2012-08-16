@@ -87,13 +87,13 @@ namespace Microsoft.Dafny
         if (member is Function && member.Name == "Valid" && !member.IsStatic) {
           var valid = (Function)member;
           // reads this;
-          valid.Reads.Add(new FrameExpression(new ThisExpr(tok), null));
+          valid.Reads.Add(new FrameExpression(tok, new ThisExpr(tok), null));
           // reads Repr;
-          valid.Reads.Add(new FrameExpression(new FieldSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"), null));
+          valid.Reads.Add(new FrameExpression(tok, new FieldSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"), null));
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
           // modifies this;
-          ctor.Mod.Expressions.Add(new FrameExpression(new ImplicitThisExpr(tok), null));
+          ctor.Mod.Expressions.Add(new FrameExpression(tok, new ImplicitThisExpr(tok), null));
           // ensures Valid();
           ctor.Ens.Insert(0, new MaybeFreeExpression(new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>())));
           // ensures fresh(Repr - {this});
@@ -230,7 +230,7 @@ namespace Microsoft.Dafny
           var m = (Method)member;
           if (Valid != null && !IsSimpleQueryMethod(m)) {
             // modifies Repr;
-            m.Mod.Expressions.Add(new FrameExpression(Repr, null));
+            m.Mod.Expressions.Add(new FrameExpression(Repr.tok, Repr, null));
             // ensures Valid();
             var valid = new FunctionCallExpr(tok, "Valid", implicitSelf, tok, new List<Expression>());
             valid.Function = Valid;

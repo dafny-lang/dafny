@@ -38,7 +38,7 @@ static ModuleDecl theModule;
 static BuiltIns theBuiltIns;
 static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
 static AssignmentRhs/*!*/ dummyRhs = new ExprRhs(dummyExpr, null);
-static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr, null);
+static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
 static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
 static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
 static int anonymousIds = 0;
@@ -979,20 +979,26 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	}
 
 	void FrameExpression(out FrameExpression/*!*/ fe) {
-		Contract.Ensures(Contract.ValueAtReturn(out fe) != null); Expression/*!*/ e;  IToken/*!*/ id;  string fieldName = null; fe = null; 
+		Contract.Ensures(Contract.ValueAtReturn(out fe) != null);
+		Expression/*!*/ e;
+		IToken/*!*/ id;
+		string fieldName = null;  IToken feTok = null;
+		fe = null;
+		
 		if (StartOf(10)) {
 			Expression(out e);
+			feTok = e.tok; 
 			if (la.kind == 53) {
 				Get();
 				Ident(out id);
-				fieldName = id.val; 
+				fieldName = id.val;  feTok = id; 
 			}
-			fe = new FrameExpression(e, fieldName); 
+			fe = new FrameExpression(feTok, e, fieldName); 
 		} else if (la.kind == 53) {
 			Get();
 			Ident(out id);
 			fieldName = id.val; 
-			fe = new FrameExpression(new ImplicitThisExpr(id), fieldName); 
+			fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); 
 		} else SynErr(139);
 	}
 
@@ -1129,7 +1135,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Contract.Ensures(Contract.ValueAtReturn(out fe) != null); fe = dummyFrameExpr; 
 		if (la.kind == 52) {
 			Get();
-			fe = new FrameExpression(new WildcardExpr(t), null); 
+			fe = new FrameExpression(t, new WildcardExpr(t), null); 
 		} else if (StartOf(8)) {
 			FrameExpression(out fe);
 		} else SynErr(147);

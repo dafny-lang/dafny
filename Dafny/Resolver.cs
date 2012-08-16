@@ -742,13 +742,13 @@ namespace Microsoft.Dafny
       return new Specification<FrameExpression>(ee, null);
     }
     FrameExpression CloneFrameExpr(FrameExpression frame) {
-      return new FrameExpression(CloneExpr(frame.E), frame.FieldName);
+      return new FrameExpression(frame.tok, CloneExpr(frame.E), frame.FieldName);
     }
     MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
       return new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree);
     }
     BoundVar CloneBoundVar(BoundVar bv) {
-      return new BoundVar((bv.tok), bv.Name, CloneType(bv.Type));
+      return new BoundVar(bv.tok, bv.Name, CloneType(bv.Type));
     }
     Expression CloneExpr(Expression expr) {
       if (expr == null) {
@@ -756,37 +756,37 @@ namespace Microsoft.Dafny
       } else if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e.Value == null) {
-          return new LiteralExpr((e.tok));
+          return new LiteralExpr(e.tok);
         } else if (e.Value is bool) {
-          return new LiteralExpr((e.tok), (bool)e.Value);
+          return new LiteralExpr(e.tok, (bool)e.Value);
         } else {
-          return new LiteralExpr((e.tok), (BigInteger)e.Value);
+          return new LiteralExpr(e.tok, (BigInteger)e.Value);
         }
 
       } else if (expr is ThisExpr) {
         if (expr is ImplicitThisExpr) {
-          return new ImplicitThisExpr((expr.tok));
+          return new ImplicitThisExpr(expr.tok);
         } else {
-          return new ThisExpr((expr.tok));
+          return new ThisExpr(expr.tok);
         }
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        return new IdentifierExpr((e.tok), e.Name);
+        return new IdentifierExpr(e.tok, e.Name);
 
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
-        return new DatatypeValue((e.tok), e.DatatypeName, e.MemberName, e.Arguments.ConvertAll(CloneExpr));
+        return new DatatypeValue(e.tok, e.DatatypeName, e.MemberName, e.Arguments.ConvertAll(CloneExpr));
 
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         if (expr is SetDisplayExpr) {
-          return new SetDisplayExpr((e.tok), e.Elements.ConvertAll(CloneExpr));
+          return new SetDisplayExpr(e.tok, e.Elements.ConvertAll(CloneExpr));
         } else if (expr is MultiSetDisplayExpr) {
-          return new MultiSetDisplayExpr((e.tok), e.Elements.ConvertAll(CloneExpr));
+          return new MultiSetDisplayExpr(e.tok, e.Elements.ConvertAll(CloneExpr));
         } else {
           Contract.Assert(expr is SeqDisplayExpr);
-          return new SeqDisplayExpr((e.tok), e.Elements.ConvertAll(CloneExpr));
+          return new SeqDisplayExpr(e.tok, e.Elements.ConvertAll(CloneExpr));
         }
 
       } else if (expr is MapDisplayExpr) {
@@ -795,50 +795,50 @@ namespace Microsoft.Dafny
         foreach (ExpressionPair p in e.Elements) {
           pp.Add(new ExpressionPair(CloneExpr(p.A), CloneExpr(p.B)));
         }
-        return new MapDisplayExpr((expr.tok), pp);
+        return new MapDisplayExpr(expr.tok, pp);
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-        return new ExprDotName((e.tok), CloneExpr(e.Obj), e.SuffixName);
+        return new ExprDotName(e.tok, CloneExpr(e.Obj), e.SuffixName);
 
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
-        return new FieldSelectExpr((e.tok), CloneExpr(e.Obj), e.FieldName);
+        return new FieldSelectExpr(e.tok, CloneExpr(e.Obj), e.FieldName);
 
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
-        return new SeqSelectExpr((e.tok), e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1));
+        return new SeqSelectExpr(e.tok, e.SelectOne, CloneExpr(e.Seq), CloneExpr(e.E0), CloneExpr(e.E1));
 
       } else if (expr is MultiSelectExpr) {
         var e = (MultiSelectExpr)expr;
-        return new MultiSelectExpr((e.tok), CloneExpr(e.Array), e.Indices.ConvertAll(CloneExpr));
+        return new MultiSelectExpr(e.tok, CloneExpr(e.Array), e.Indices.ConvertAll(CloneExpr));
 
       } else if (expr is SeqUpdateExpr) {
         var e = (SeqUpdateExpr)expr;
-        return new SeqUpdateExpr((e.tok), CloneExpr(e.Seq), CloneExpr(e.Index), CloneExpr(e.Value));
+        return new SeqUpdateExpr(e.tok, CloneExpr(e.Seq), CloneExpr(e.Index), CloneExpr(e.Value));
 
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr((e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : (e.OpenParen), e.Args.ConvertAll(CloneExpr));
+        return new FunctionCallExpr(e.tok, e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : (e.OpenParen), e.Args.ConvertAll(CloneExpr));
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return new OldExpr((e.tok), CloneExpr(e.E));
+        return new OldExpr(e.tok, CloneExpr(e.E));
 
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
-        return new MultiSetFormingExpr((e.tok), CloneExpr(e.E));
+        return new MultiSetFormingExpr(e.tok, CloneExpr(e.E));
 
       } else if (expr is FreshExpr) {
         var e = (FreshExpr)expr;
-        return new FreshExpr((e.tok), CloneExpr(e.E));
+        return new FreshExpr(e.tok, CloneExpr(e.E));
 
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        return new UnaryExpr((e.tok), e.Op, CloneExpr(e.E));
+        return new UnaryExpr(e.tok, e.Op, CloneExpr(e.E));
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        return new BinaryExpr((e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1));
+        return new BinaryExpr(e.tok, e.Op, CloneExpr(e.E0), CloneExpr(e.E1));
 
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
@@ -846,11 +846,11 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return new LetExpr((e.tok), e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body));
+        return new LetExpr(e.tok, e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body));
 
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
-        var tk = (e.tok);
+        var tk = e.tok;
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
@@ -866,20 +866,20 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is WildcardExpr) {
-        return new WildcardExpr((expr.tok));
+        return new WildcardExpr(expr.tok);
 
       } else if (expr is PredicateExpr) {
         var e = (PredicateExpr)expr;
         if (e is AssertExpr) {
-          return new AssertExpr((e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
+          return new AssertExpr(e.tok, CloneExpr(e.Guard), CloneExpr(e.Body));
         } else {
           Contract.Assert(e is AssumeExpr);
-          return new AssumeExpr((e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
+          return new AssumeExpr(e.tok, CloneExpr(e.Guard), CloneExpr(e.Body));
         }
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
-        return new ITEExpr((e.tok), CloneExpr(e.Test), CloneExpr(e.Thn), CloneExpr(e.Els));
+        return new ITEExpr(e.tok, CloneExpr(e.Test), CloneExpr(e.Thn), CloneExpr(e.Els));
 
       } else if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
@@ -892,8 +892,8 @@ namespace Microsoft.Dafny
 
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
-        return new MatchExpr((e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr((c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
+        return new MatchExpr(e.tok, CloneExpr(e.Source),
+          e.Cases.ConvertAll(c => new MatchCaseExpr(c.tok, c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression

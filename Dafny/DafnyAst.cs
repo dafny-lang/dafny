@@ -2075,6 +2075,14 @@ namespace Microsoft.Dafny {
         AssumeToken = assumeToken;
       }
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return Expr;
+        foreach (var lhs in Lhss) {
+          yield return lhs;
+        }
+      }
+    }
   }
 
   public class UpdateStmt : ConcreteUpdateStatement
@@ -2401,6 +2409,23 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Mod = mod;
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var mfe in Invariants) {
+          yield return mfe.E;
+        }
+        if (Decreases.Expressions != null) {
+          foreach (var e in Decreases.Expressions) {
+            yield return e;
+          }
+        }
+        if (Mod.Expressions != null) {
+          foreach (var fe in Mod.Expressions) {
+            yield return fe.E;
+          }
+        }
+      }
+    }
   }
 
   public class WhileStmt : LoopStmt
@@ -2431,6 +2456,9 @@ namespace Microsoft.Dafny {
       get {
         if (Guard != null) {
           yield return Guard;
+        }
+        foreach (var e in base.SubExpressions) {
+          yield return e;
         }
       }
     }
@@ -2479,6 +2507,9 @@ namespace Microsoft.Dafny {
       get {
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
+        }
+        foreach (var e in base.SubExpressions) {
+          yield return e;
         }
       }
     }
@@ -3962,6 +3993,7 @@ namespace Microsoft.Dafny {
 
 
   public class FrameExpression {
+    public readonly IToken tok;
     public readonly Expression E;  // may be a WildcardExpr
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -3972,10 +4004,15 @@ namespace Microsoft.Dafny {
     public readonly string FieldName;
     public Field Field;  // filled in during resolution (but is null if FieldName is)
 
-    public FrameExpression(Expression e, string fieldName) {
+    /// <summary>
+    /// If a "fieldName" is given, then "tok" denotes its source location.  Otherwise, "tok"
+    /// denotes the source location of "e".
+    /// </summary>
+    public FrameExpression(IToken tok, Expression e, string fieldName) {
+      Contract.Requires(tok != null);
       Contract.Requires(e != null);
       Contract.Requires(!(e is WildcardExpr) || fieldName == null);
-
+      this.tok = tok;
       E = e;
       FieldName = fieldName;
     }

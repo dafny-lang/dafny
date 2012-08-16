@@ -151,7 +151,7 @@ namespace Microsoft.Dafny
     }
 
     public FrameExpression CloneFrameExpr(FrameExpression frame) {
-      return new FrameExpression(CloneExpr(frame.E), frame.FieldName);
+      return new FrameExpression(Tok(frame.tok), CloneExpr(frame.E), frame.FieldName);
     }
     public Attributes.Argument CloneAttrArg(Attributes.Argument aa) {
       if (aa.E != null) {

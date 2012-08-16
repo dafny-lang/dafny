@@ -20,7 +20,7 @@ using Microsoft.VisualStudio.Text.Projection;
 using Microsoft.VisualStudio.Utilities;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
-using Dafny = Microsoft.Dafny;
+using Microsoft.Dafny;
 
 namespace DafnyLanguage
 {
@@ -47,7 +47,7 @@ namespace DafnyLanguage
   {
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;  // the most recent snapshot of _buffer that we have been informed about
-    Dafny.Program _program;  // the program parsed from _snapshot
+    Microsoft.Dafny.Program _program;  // the program parsed from _snapshot
     List<IdRegion> _regions = new List<IdRegion>();  // the regions generated from _program
     ITagAggregator<DafnyResolverTag> _aggregator;
 
@@ -104,7 +104,7 @@ namespace DafnyLanguage
       }
     }
 
-    bool ComputeIdentifierRegions(Dafny.Program program, ITextSnapshot snapshot) {
+    bool ComputeIdentifierRegions(Microsoft.Dafny.Program program, ITextSnapshot snapshot) {
       Contract.Requires(snapshot != null);
 
       if (program == _program)
@@ -113,12 +113,12 @@ namespace DafnyLanguage
       List<IdRegion> newRegions = new List<IdRegion>();
 
       foreach (var module in program.Modules) {
-        foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
-          if (!HasBodyTokens(d) && !(d is Dafny.ClassDecl)) {
+        foreach (var d in module.TopLevelDecls) {
+          if (!HasBodyTokens(d) && !(d is ClassDecl)) {
             continue;
           }
-          if (d is Dafny.DatatypeDecl) {
-            var dt = (Dafny.DatatypeDecl)d;
+          if (d is DatatypeDecl) {
+            var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
               foreach (var dtor in ctor.Destructors) {
                 if (dtor != null) {
@@ -126,26 +126,26 @@ namespace DafnyLanguage
                 }
               }
             }
-          } else if (d is Dafny.ClassDecl) {
-            var cl = (Dafny.ClassDecl)d;
+          } else if (d is ClassDecl) {
+            var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
               if (!HasBodyTokens(member)) {
                 continue;
               }
-              if (member is Dafny.Function) {
-                var f = (Dafny.Function)member;
+              if (member is Function) {
+                var f = (Function)member;
                 foreach (var p in f.Formals) {
                   newRegions.Add(new IdRegion(p.tok, p, true));
                 }
                 f.Req.ForEach(e => ExprRegions(e, newRegions));
-                f.Reads.ForEach(e => ExprRegions(e.E, newRegions));
+                f.Reads.ForEach(fe => FrameExprRegions(fe, newRegions, true));
                 f.Ens.ForEach(e => ExprRegions(e, newRegions));
                 f.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions));
                 if (f.Body != null) {
                   ExprRegions(f.Body, newRegions);
                 }
-              } else if (member is Dafny.Method) {
-                var m = (Dafny.Method)member;
+              } else if (member is Method) {
+                var m = (Method)member;
                 foreach (var p in m.Ins) {
                   newRegions.Add(new IdRegion(p.tok, p, true));
                 }
@@ -153,14 +153,14 @@ namespace DafnyLanguage
                   newRegions.Add(new IdRegion(p.tok, p, true));
                 }
                 m.Req.ForEach(e => ExprRegions(e.E, newRegions));
-                m.Mod.Expressions.ForEach(e => ExprRegions(e.E, newRegions));
+                m.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, newRegions, true));
                 m.Ens.ForEach(e => ExprRegions(e.E, newRegions));
                 m.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions));
                 if (m.Body != null) {
                   StatementRegions(m.Body, newRegions);
                 }
-              } else if (member is Dafny.Field) {
-                var fld = (Dafny.Field)member;
+              } else if (member is Field) {
+                var fld = (Field)member;
                 newRegions.Add(new IdRegion(fld.tok, fld, "field", true));
               }
             }
@@ -173,27 +173,38 @@ namespace DafnyLanguage
       return true;
     }
 
-    static void ExprRegions(Dafny.Expression expr, List<IdRegion> regions) {
+    static void FrameExprRegions(FrameExpression fe, List<IdRegion> regions, bool descendIntoExpressions) {
+      Contract.Requires(fe != null);
+      Contract.Requires(regions != null);
+      if (descendIntoExpressions) {
+        ExprRegions(fe.E, regions);
+      }
+      if (fe.Field != null) {
+        regions.Add(new IdRegion(fe.tok, fe.Field, "field", false));
+      }
+    }
+
+    static void ExprRegions(Microsoft.Dafny.Expression expr, List<IdRegion> regions) {
       Contract.Requires(expr != null);
       Contract.Requires(regions != null);
-      if (expr is Dafny.IdentifierExpr) {
-        var e = (Dafny.IdentifierExpr)expr;
+      if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
         regions.Add(new IdRegion(e.tok, e.Var, false));
-      } else if (expr is Dafny.FieldSelectExpr) {
-        var e = (Dafny.FieldSelectExpr)expr;
+      } else if (expr is FieldSelectExpr) {
+        var e = (FieldSelectExpr)expr;
         regions.Add(new IdRegion(e.tok, e.Field, "field", false));
-      } else if (expr is Dafny.ComprehensionExpr) {
-        var e = (Dafny.ComprehensionExpr)expr;
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
         foreach (var bv in e.BoundVars) {
           regions.Add(new IdRegion(bv.tok, bv, true));
         }
-      } else if (expr is Dafny.MatchExpr) {
-        var e = (Dafny.MatchExpr)expr;
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
         foreach (var kase in e.Cases) {
           kase.Arguments.ForEach(bv => regions.Add(new IdRegion(bv.tok, bv, true)));
         }
-      } else if (expr is Dafny.ChainingExpression) {
-        var e = (Dafny.ChainingExpression)expr;
+      } else if (expr is ChainingExpression) {
+        var e = (ChainingExpression)expr;
         // Do the subexpressions only once (that is, avoid the duplication that occurs in the desugared form of the ChainingExpression)
         e.Operands.ForEach(ee => ExprRegions(ee, regions));
         return;  // return here, so as to avoid doing the subexpressions below
@@ -203,19 +214,43 @@ namespace DafnyLanguage
       }
     }
 
-    static void StatementRegions(Dafny.Statement stmt, List<IdRegion> regions) {
+    static void StatementRegions(Statement stmt, List<IdRegion> regions) {
       Contract.Requires(stmt != null);
       Contract.Requires(regions != null);
-      if (stmt is Dafny.VarDecl) {
-        var s = (Dafny.VarDecl)stmt;
+      if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        // Add the variables here, once, and then go directly to the RHS's (without letting the sub-statements re-do the LHS's)
+        foreach (var lhs in s.Lhss) {
+          regions.Add(new IdRegion(lhs.Tok, lhs, true));
+        }
+        if (s.Update is UpdateStmt) {
+          var upd = (UpdateStmt)s.Update;
+          foreach (var rhs in upd.Rhss) {
+            foreach (var ee in rhs.SubExpressions) {
+              ExprRegions(ee, regions);
+            }
+          }
+        } else {
+          var upd = (AssignSuchThatStmt)s.Update;
+          ExprRegions(upd.Expr, regions);
+        }
+        // we're done, so don't do the sub-statements/expressions again
+        return;
+      } else  if (stmt is VarDecl) {
+        var s = (VarDecl)stmt;
         regions.Add(new IdRegion(s.Tok, s, true));
-      } else if (stmt is Dafny.ParallelStmt) {
-        var s = (Dafny.ParallelStmt)stmt;
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
         s.BoundVars.ForEach(bv => regions.Add(new IdRegion(bv.tok, bv, true)));
-      } else if (stmt is Dafny.MatchStmt) {
-        var s = (Dafny.MatchStmt)stmt;
+      } else if (stmt is MatchStmt) {
+        var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
           kase.Arguments.ForEach(bv => regions.Add(new IdRegion(bv.tok, bv, true)));
+        }
+      } else if (stmt is LoopStmt) {
+        var s = (LoopStmt)stmt;
+        if (s.Mod.Expressions != null) {
+          s.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, regions, false));
         }
       }
       foreach (var ee in stmt.SubExpressions) {
@@ -226,7 +261,7 @@ namespace DafnyLanguage
       }
     }
 
-    bool HasBodyTokens(Dafny.Declaration decl) {
+    bool HasBodyTokens(Declaration decl) {
       Contract.Requires(decl != null);
       return decl.BodyStartTok != Bpl.Token.NoToken && decl.BodyEndTok != Bpl.Token.NoToken;
     }
@@ -237,24 +272,24 @@ namespace DafnyLanguage
       public readonly int Length;
       public readonly string HoverText;
       public readonly bool IsDefinition;
-      public IdRegion(Bpl.IToken tok, Dafny.IVariable v, bool isDefinition) {
+      public IdRegion(Bpl.IToken tok, IVariable v, bool isDefinition) {
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
         Start = tok.pos;
         Length = v.Name.Length;
         string kind;
-        if (v is Dafny.VarDecl) {
+        if (v is VarDecl) {
           kind = "local variable";
-        } else if (v is Dafny.BoundVar) {
+        } else if (v is BoundVar) {
           kind = "bound variable";
         } else {
-          var formal = (Dafny.Formal)v;
+          var formal = (Formal)v;
           kind = formal.InParam ? "in-parameter" : "out-parameter";
         }
         HoverText = string.Format("({2}{3}) {0}: {1}", v.Name, v.Type.ToString(), v.IsGhost ? "ghost " : "", kind);
         IsDefinition = isDefinition;
       }
-      public IdRegion(Bpl.IToken tok, Dafny.Field decl, string kind, bool isDefinition) {
+      public IdRegion(Bpl.IToken tok, Field decl, string kind, bool isDefinition) {
         Contract.Requires(tok != null);
         Contract.Requires(decl != null);
         Contract.Requires(kind != null);
