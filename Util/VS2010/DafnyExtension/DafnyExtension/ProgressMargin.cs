@@ -121,19 +121,22 @@ namespace DafnyLanguage
         // If r._program is null, then the current buffer contains a Dafny fragment that does not resolve.  If it is non-null,
         // then r._program has been successfully resolved, so when things have been sufficiently idle, we're ready to verify it.
         resolver = r;
-        latestProgram = r._program;
-        latestSnapshot = latestProgram != null ? r._snapshot : null;
+        lock (r) {
+          latestProgram = r._program;
+          latestSnapshot = latestProgram != null ? r._snapshot : null;
+        }
       }
     }
 
     bool verificationInProgress;  // this field is protected by "this"
+    bool verificationRequested;  // this field is protected by "this".  Invariant:  verificationRequested ==> verificationInProgress
     public void DoTheVerification(object sender, EventArgs args) {
       var buffer = sender as ITextBuffer;
       if (buffer != null && latestProgram != null && resolver != null) {
         bool tagsChanged = false;
         lock (this) {
           if (verificationInProgress) {
-            // take no further action
+            verificationRequested = true;
             return;
           }
           verificationInProgress = true;
@@ -185,25 +188,30 @@ namespace DafnyLanguage
       }
 
       public void Start() {
-        var newErrors = new List<DafnyError>();
-        bool success = DafnyDriver.Verify(program, errorInfo => {
-          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
-          foreach (var aux in errorInfo.Aux) {
-            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
-          }
-        });
+        bool verifySomeMore = true;
+        while (verifySomeMore) {
+          var newErrors = new List<DafnyError>();
+          bool success = DafnyDriver.Verify(program, errorInfo => {
+            newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
+            foreach (var aux in errorInfo.Aux) {
+              newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
+            }
+          });
 
-        lock (pt) {
-          pt.verificationInProgress = false;
-          if (pt.bufferChangesPreVerificationStart.Count != 0) {
-            pt.bufferChangesPreVerificationStart = new List<SnapshotSpan>();
+          lock (pt) {
+            verifySomeMore = pt.verificationRequested;
+            pt.verificationInProgress = verifySomeMore;
+            pt.verificationRequested = false;
+            if (pt.bufferChangesPreVerificationStart.Count != 0) {
+              pt.bufferChangesPreVerificationStart = new List<SnapshotSpan>();
+            }
+            resolver.PopulateErrorList(newErrors, true, snapshot);  // TODO:  is this appropriate to do inside the monitor?
           }
-          resolver.PopulateErrorList(newErrors, true, snapshot);  // TODO:  is this appropriate to do inside the monitor?
-        }
 
-        var chng = pt.TagsChanged;
-        if (chng != null) {
-          chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+          var chng = pt.TagsChanged;
+          if (chng != null) {
+            chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+          }
         }
       }
     }

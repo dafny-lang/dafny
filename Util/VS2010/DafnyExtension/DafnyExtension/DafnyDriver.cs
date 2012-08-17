@@ -47,7 +47,7 @@ namespace DafnyLanguage
       }
     }
 
-    public Dafny.Program Process() {
+    public Dafny.Program ProcessResolution() {
       if (!ParseAndTypeCheck()) {
         return null;
       }

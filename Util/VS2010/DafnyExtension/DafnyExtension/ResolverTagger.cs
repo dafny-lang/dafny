@@ -70,11 +70,12 @@ namespace DafnyLanguage
   {
     ITextBuffer _buffer;
     ITextDocument _document;
+    // The _snapshot and _program fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot _snapshot;  // may be null
+    public Dafny.Program _program;  // non-null only if the snapshot contains a Dafny program that type checks
     List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
     List<DafnyError> _verificationErrors = new List<DafnyError>();
     ErrorListProvider _errorProvider;
-    public Dafny.Program _program;  // non-null only if the snapshot contains a Dafny program that type checks
 
     internal ResolverTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITextDocumentFactoryService textDocumentFactory) {
       _buffer = buffer;
@@ -138,15 +139,22 @@ namespace DafnyLanguage
           yield return new TagSpan<DafnyResolverTag>(span, new DafnyErrorResolverTag(ty, err.Message));
         }
       }
-      if (_program != null) {
-        yield return new TagSpan<DafnyResolverTag>(new SnapshotSpan(_snapshot, 0, _snapshot.Length), new DafnySuccessResolverTag(_program));
+
+      ITextSnapshot snap;
+      Dafny.Program prog;
+      lock (this) {
+        snap = _snapshot;
+        prog = _program;
+      }
+      if (prog != null) {
+        yield return new TagSpan<DafnyResolverTag>(new SnapshotSpan(snap, 0, snap.Length), new DafnySuccessResolverTag(prog));
       }
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
     /// <summary>
-    /// Calls the Dafny verifier on the program, updates the Error List accordingly.
+    /// Calls the Dafny parser/resolver/type checker on the program, updates the Error List accordingly.
     /// </summary>
     void ProcessFile(object sender, EventArgs args) {
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
@@ -158,7 +166,7 @@ namespace DafnyLanguage
       List<DafnyError> newErrors;
       Dafny.Program program;
       try {
-        program = driver.Process();
+        program = driver.ProcessResolution();
         newErrors = driver.Errors;
       } catch (Exception e) {
         newErrors = new List<DafnyError>();
@@ -166,8 +174,10 @@ namespace DafnyLanguage
         program = null;
       }
 
-      _snapshot = snapshot;
-      _program = program;
+      lock (this) {
+        _snapshot = snapshot;
+        _program = program;
+      }
       PopulateErrorList(newErrors, false, snapshot);
     }
 

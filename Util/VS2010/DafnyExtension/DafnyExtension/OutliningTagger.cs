@@ -91,16 +91,24 @@ namespace DafnyLanguage
 
     void _aggregator_TagsChanged(object sender, TagsChangedEventArgs e) {
       var r = sender as ResolverTagger;
-      if (r != null && r._program != null) {
-        if (!ComputeOutliningRegions(r._program, r._snapshot))
-          return;  // no new regions
+      if (r != null) {
+        ITextSnapshot snap;
+        Microsoft.Dafny.Program prog;
+        lock (this) {
+          snap = r._snapshot;
+          prog = r._program;
+        }
+        if (prog != null) {
+          if (!ComputeOutliningRegions(prog, snap))
+            return;  // no new regions
 
-        var chng = TagsChanged;
-        if (chng != null) {
-          NormalizedSnapshotSpanCollection spans = e.Span.GetSpans(_buffer.CurrentSnapshot);
-          if (spans.Count > 0) {
-            SnapshotSpan span = new SnapshotSpan(spans[0].Start, spans[spans.Count - 1].End);
-            chng(this, new SnapshotSpanEventArgs(span));
+          var chng = TagsChanged;
+          if (chng != null) {
+            NormalizedSnapshotSpanCollection spans = e.Span.GetSpans(_buffer.CurrentSnapshot);
+            if (spans.Count > 0) {
+              SnapshotSpan span = new SnapshotSpan(spans[0].Start, spans[spans.Count - 1].End);
+              chng(this, new SnapshotSpanEventArgs(span));
+            }
           }
         }
       }
