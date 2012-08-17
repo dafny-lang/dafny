@@ -197,6 +197,10 @@ namespace DafnyLanguage
               newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
             }
           });
+          if (!success) {
+            newErrors.Clear();
+            newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error"));
+          }
 
           lock (pt) {
             verifySomeMore = pt.verificationRequested;

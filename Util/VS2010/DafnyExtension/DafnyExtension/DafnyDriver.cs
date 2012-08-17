@@ -108,11 +108,16 @@ namespace DafnyLanguage
       Dafny.Translator translator = new Dafny.Translator();
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
-      int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, er, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
-      bool allOk = errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0;
-      // TODO:  This would be the place to proceed to compile the program, if desired
-      return allOk;
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, er);
+      switch (oc) {
+        case PipelineOutcome.Done:
+        case PipelineOutcome.VerificationCompleted:
+          // TODO:  This would be the place to proceed to compile the program, if desired
+          return true;
+        case PipelineOutcome.FatalError:
+        default:
+          return false;
+      }
     }
 
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
@@ -123,16 +128,13 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ErrorReporterDelegate er,
-        out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories) {
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ErrorReporterDelegate er) {
       Contract.Requires(program != null);
-      Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
 
-      errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
         EliminateDeadVariablesAndInline(program);
-        return BoogieInferAndVerify(program, er, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
+        return BoogieInferAndVerify(program, er);
       }
       return oc;
     }
@@ -220,12 +222,8 @@ namespace DafnyLanguage
     ///  - VerificationCompleted if inference and verification completed, in which the out
     ///    parameters contain meaningful values
     /// </summary>
-    static PipelineOutcome BoogieInferAndVerify(Bpl.Program program, ErrorReporterDelegate er,
-                                                out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories) {
+    static PipelineOutcome BoogieInferAndVerify(Bpl.Program program, ErrorReporterDelegate er) {
       Contract.Requires(program != null);
-      Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
-
-      errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
 
       // ---------- Infer invariants --------------------------------------------------------
 
@@ -292,16 +290,15 @@ namespace DafnyLanguage
             default:
               Contract.Assert(false); throw new Exception();  // unexpected outcome
             case VCGen.Outcome.Correct:
-              verified++;
               break;
             case VCGen.Outcome.TimedOut:
-              timeOuts++;
+              er(new DafnyErrorInformation(impl.tok, "Verification timed out (" + impl.Name + ")"));
               break;
             case VCGen.Outcome.OutOfMemory:
-              outOfMemories++;
+              er(new DafnyErrorInformation(impl.tok, "Verification out of memory (" + impl.Name + ")"));
               break;
             case VCGen.Outcome.Inconclusive:
-              inconclusives++;
+              er(new DafnyErrorInformation(impl.tok, "Verification inconclusive (" + impl.Name + ")"));
               break;
             case VCGen.Outcome.Errors:
               Contract.Assert(errors != null);  // guaranteed by postcondition of VerifyImplementation
@@ -352,7 +349,6 @@ namespace DafnyLanguage
                 //   error.PrintModel();
                 // }
                 er(errorInfo);
-                errorCount++;
               }
               break;
           }
