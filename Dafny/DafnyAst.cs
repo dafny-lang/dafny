@@ -188,6 +188,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    [Pure]
+    public abstract string TypeName(ModuleDecl/*?*/ context);
+    [Pure]
+    public override string ToString() {
+      return TypeName(null);
+    }
+
     /// <summary>
     /// Return the most constrained version of "this".
     /// </summary>
@@ -311,14 +318,14 @@ namespace Microsoft.Dafny {
 
   public class BoolType : BasicType {
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       return "bool";
     }
   }
 
   public class IntType : BasicType {
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       return "int";
     }
   }
@@ -326,7 +333,7 @@ namespace Microsoft.Dafny {
   public class NatType : IntType
   {
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       return "nat";
     }
   }
@@ -334,7 +341,7 @@ namespace Microsoft.Dafny {
   public class ObjectType : BasicType
   {
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       return "object";
     }
   }
@@ -362,10 +369,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(arg != null);
     }
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
-      return "set<" + base.Arg + ">";
+      return "set<" + base.Arg.TypeName(context) + ">";
     }
   }
 
@@ -375,10 +382,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(arg != null);
     }
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
-      return "multiset<" + base.Arg + ">";
+      return "multiset<" + base.Arg.TypeName(context) + ">";
     }
   }
 
@@ -388,10 +395,10 @@ namespace Microsoft.Dafny {
 
     }
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
-      return "seq<" + base.Arg + ">";
+      return "seq<" + base.Arg.TypeName(context) + ">";
     }
   }
   public class MapType : CollectionType
@@ -405,11 +412,11 @@ namespace Microsoft.Dafny {
       get { return Arg; }
     }
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Domain));
       Contract.Assume(cce.IsPeerConsistent(Range));
-      return "map<" + Domain +", " + Range + ">";
+      return "map<" + Domain.TypeName(context) + ", " + Range.TypeName(context) + ">";
     }
   }
 
@@ -531,12 +538,12 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       Contract.Ensures(Contract.Result<string>() != null);
       
-      string s = Util.Comma(".", Path, i => i.val) + (Path.Count == 0 ? "" : ".") + Name;
+      string s = Util.Comma(".", Path, i => i.val) + (Path.Count == 0 ? "" : ".") + Name;  // TODO: use context
       if (TypeArgs.Count != 0) {
-        s += "<" + Util.Comma(",", TypeArgs, ty => ty.ToString()) + ">";
+        s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
       }
       return s;
     }
@@ -577,11 +584,11 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public override string ToString() {
+    public override string TypeName(ModuleDecl context) {
       Contract.Ensures(Contract.Result<string>() != null);
 
       Contract.Assume(T == null || cce.IsPeerConsistent(T));
-      return T == null ? "?" : T.ToString();
+      return T == null ? "?" : T.TypeName(context);
     }
     public override bool SupportsEquality {
       get {
