@@ -119,7 +119,7 @@ namespace DafnyLanguage
             foreach (var ctor in dt.Ctors) {
               foreach (var dtor in ctor.Destructors) {
                 if (dtor != null) {
-                  IdRegion.Add(newRegions, dtor.tok, dtor, "destructor", true);
+                  IdRegion.Add(newRegions, dtor.tok, dtor, "destructor", true, module);
                 }
               }
             }
@@ -129,33 +129,33 @@ namespace DafnyLanguage
               if (member is Function) {
                 var f = (Function)member;
                 foreach (var p in f.Formals) {
-                  IdRegion.Add(newRegions, p.tok, p, true);
+                  IdRegion.Add(newRegions, p.tok, p, true, module);
                 }
-                f.Req.ForEach(e => ExprRegions(e, newRegions));
-                f.Reads.ForEach(fe => FrameExprRegions(fe, newRegions, true));
-                f.Ens.ForEach(e => ExprRegions(e, newRegions));
-                f.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions));
+                f.Req.ForEach(e => ExprRegions(e, newRegions, module));
+                f.Reads.ForEach(fe => FrameExprRegions(fe, newRegions, true, module));
+                f.Ens.ForEach(e => ExprRegions(e, newRegions, module));
+                f.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions, module));
                 if (f.Body != null) {
-                  ExprRegions(f.Body, newRegions);
+                  ExprRegions(f.Body, newRegions, module);
                 }
               } else if (member is Method) {
                 var m = (Method)member;
                 foreach (var p in m.Ins) {
-                  IdRegion.Add(newRegions, p.tok, p, true);
+                  IdRegion.Add(newRegions, p.tok, p, true, module);
                 }
                 foreach (var p in m.Outs) {
-                  IdRegion.Add(newRegions, p.tok, p, true);
+                  IdRegion.Add(newRegions, p.tok, p, true, module);
                 }
-                m.Req.ForEach(e => ExprRegions(e.E, newRegions));
-                m.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, newRegions, true));
-                m.Ens.ForEach(e => ExprRegions(e.E, newRegions));
-                m.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions));
+                m.Req.ForEach(e => ExprRegions(e.E, newRegions, module));
+                m.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, newRegions, true, module));
+                m.Ens.ForEach(e => ExprRegions(e.E, newRegions, module));
+                m.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions, module));
                 if (m.Body != null) {
-                  StatementRegions(m.Body, newRegions);
+                  StatementRegions(m.Body, newRegions, module);
                 }
               } else if (member is Field) {
                 var fld = (Field)member;
-                IdRegion.Add(newRegions, fld.tok, fld, "field", true);
+                IdRegion.Add(newRegions, fld.tok, fld, "field", true, module);
               }
             }
           }
@@ -167,91 +167,91 @@ namespace DafnyLanguage
       return true;
     }
 
-    static void FrameExprRegions(FrameExpression fe, List<IdRegion> regions, bool descendIntoExpressions) {
+    static void FrameExprRegions(FrameExpression fe, List<IdRegion> regions, bool descendIntoExpressions, ModuleDefinition module) {
       Contract.Requires(fe != null);
       Contract.Requires(regions != null);
       if (descendIntoExpressions) {
-        ExprRegions(fe.E, regions);
+        ExprRegions(fe.E, regions, module);
       }
       if (fe.Field != null) {
-        IdRegion.Add(regions, fe.tok, fe.Field, "field", false);
+        IdRegion.Add(regions, fe.tok, fe.Field, "field", false, module);
       }
     }
 
-    static void ExprRegions(Microsoft.Dafny.Expression expr, List<IdRegion> regions) {
+    static void ExprRegions(Microsoft.Dafny.Expression expr, List<IdRegion> regions, ModuleDefinition module) {
       Contract.Requires(expr != null);
       Contract.Requires(regions != null);
       if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        IdRegion.Add(regions, e.tok, e.Var, false);
+        IdRegion.Add(regions, e.tok, e.Var, false, module);
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
-        IdRegion.Add(regions, e.tok, e.Field, "field", false);
+        IdRegion.Add(regions, e.tok, e.Field, "field", false, module);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         foreach (var bv in e.BoundVars) {
-          IdRegion.Add(regions, bv.tok, bv, true);
+          IdRegion.Add(regions, bv.tok, bv, true, module);
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         foreach (var kase in e.Cases) {
-          kase.Arguments.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true));
+          kase.Arguments.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
         }
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
         // Do the subexpressions only once (that is, avoid the duplication that occurs in the desugared form of the ChainingExpression)
-        e.Operands.ForEach(ee => ExprRegions(ee, regions));
+        e.Operands.ForEach(ee => ExprRegions(ee, regions, module));
         return;  // return here, so as to avoid doing the subexpressions below
       }
       foreach (var ee in expr.SubExpressions) {
-        ExprRegions(ee, regions);
+        ExprRegions(ee, regions, module);
       }
     }
 
-    static void StatementRegions(Statement stmt, List<IdRegion> regions) {
+    static void StatementRegions(Statement stmt, List<IdRegion> regions, ModuleDefinition module) {
       Contract.Requires(stmt != null);
       Contract.Requires(regions != null);
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         // Add the variables here, once, and then go directly to the RHS's (without letting the sub-statements re-do the LHS's)
         foreach (var lhs in s.Lhss) {
-          IdRegion.Add(regions, lhs.Tok, lhs, true);
+          IdRegion.Add(regions, lhs.Tok, lhs, true, module);
         }
         if (s.Update is UpdateStmt) {
           var upd = (UpdateStmt)s.Update;
           foreach (var rhs in upd.Rhss) {
             foreach (var ee in rhs.SubExpressions) {
-              ExprRegions(ee, regions);
+              ExprRegions(ee, regions, module);
             }
           }
         } else {
           var upd = (AssignSuchThatStmt)s.Update;
-          ExprRegions(upd.Expr, regions);
+          ExprRegions(upd.Expr, regions, module);
         }
         // we're done, so don't do the sub-statements/expressions again
         return;
       } else  if (stmt is VarDecl) {
         var s = (VarDecl)stmt;
-        IdRegion.Add(regions, s.Tok, s, true);
+        IdRegion.Add(regions, s.Tok, s, true, module);
       } else if (stmt is ParallelStmt) {
         var s = (ParallelStmt)stmt;
-        s.BoundVars.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true));
+        s.BoundVars.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
-          kase.Arguments.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true));
+          kase.Arguments.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
         }
       } else if (stmt is LoopStmt) {
         var s = (LoopStmt)stmt;
         if (s.Mod.Expressions != null) {
-          s.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, regions, false));
+          s.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, regions, false, module));
         }
       }
       foreach (var ee in stmt.SubExpressions) {
-        ExprRegions(ee, regions);
+        ExprRegions(ee, regions, module);
       }
       foreach (var ss in stmt.SubStatements) {
-        StatementRegions(ss, regions);
+        StatementRegions(ss, regions, module);
       }
     }
 
@@ -262,25 +262,25 @@ namespace DafnyLanguage
       public readonly string HoverText;
       public readonly bool IsDefinition;
 
-      public static void Add(List<IdRegion> regions, Bpl.IToken tok, IVariable v, bool isDefinition) {
+      public static void Add(List<IdRegion> regions, Bpl.IToken tok, IVariable v, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
         if (!(tok is AutoGeneratedToken)) {
-          regions.Add(new IdRegion(tok, v, isDefinition));
+          regions.Add(new IdRegion(tok, v, isDefinition, context));
         }
       }
-      public static void Add(List<IdRegion> regions, Bpl.IToken tok, Field decl, string kind, bool isDefinition) {
+      public static void Add(List<IdRegion> regions, Bpl.IToken tok, Field decl, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(decl != null);
         Contract.Requires(kind != null);
         if (!(tok is AutoGeneratedToken)) {
-          regions.Add(new IdRegion(tok, decl, kind, isDefinition));
+          regions.Add(new IdRegion(tok, decl, kind, isDefinition, context));
         }
       }
 
-      private IdRegion(Bpl.IToken tok, IVariable v, bool isDefinition) {
+      private IdRegion(Bpl.IToken tok, IVariable v, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
         Start = tok.pos;
@@ -294,16 +294,16 @@ namespace DafnyLanguage
           var formal = (Formal)v;
           kind = formal.InParam ? "in-parameter" : "out-parameter";
         }
-        HoverText = string.Format("({2}{3}) {0}: {1}", v.Name, v.Type.TypeName(null/*TODO: use context*/), v.IsGhost ? "ghost " : "", kind);
+        HoverText = string.Format("({2}{3}) {0}: {1}", v.Name, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
         IsDefinition = isDefinition;
       }
-      private IdRegion(Bpl.IToken tok, Field decl, string kind, bool isDefinition) {
+      private IdRegion(Bpl.IToken tok, Field decl, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(tok != null);
         Contract.Requires(decl != null);
         Contract.Requires(kind != null);
         Start = tok.pos;
         Length = decl.Name.Length;
-        HoverText = string.Format("({2}{3}) {0}: {1}", decl.FullName, decl.Type.TypeName(null/*TODO: use context*/), decl.IsGhost ? "ghost " : "", kind);
+        HoverText = string.Format("({2}{3}) {0}: {1}", decl.FullNameInContext(context), decl.Type.TypeName(context), decl.IsGhost ? "ghost " : "", kind);
         IsDefinition = isDefinition;
       }
     }

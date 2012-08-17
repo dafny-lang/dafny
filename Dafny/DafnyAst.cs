@@ -189,7 +189,7 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public abstract string TypeName(ModuleDecl/*?*/ context);
+    public abstract string TypeName(ModuleDefinition/*?*/ context);
     [Pure]
     public override string ToString() {
       return TypeName(null);
@@ -318,14 +318,14 @@ namespace Microsoft.Dafny {
 
   public class BoolType : BasicType {
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       return "bool";
     }
   }
 
   public class IntType : BasicType {
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       return "int";
     }
   }
@@ -333,7 +333,7 @@ namespace Microsoft.Dafny {
   public class NatType : IntType
   {
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       return "nat";
     }
   }
@@ -341,7 +341,7 @@ namespace Microsoft.Dafny {
   public class ObjectType : BasicType
   {
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       return "object";
     }
   }
@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(arg != null);
     }
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
       return "set<" + base.Arg.TypeName(context) + ">";
@@ -382,7 +382,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(arg != null);
     }
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
       return "multiset<" + base.Arg.TypeName(context) + ">";
@@ -395,7 +395,7 @@ namespace Microsoft.Dafny {
 
     }
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Arg));
       return "seq<" + base.Arg.TypeName(context) + ">";
@@ -412,7 +412,7 @@ namespace Microsoft.Dafny {
       get { return Arg; }
     }
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(cce.IsPeerConsistent(Domain));
       Contract.Assume(cce.IsPeerConsistent(Range));
@@ -538,10 +538,18 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      
-      string s = Util.Comma(".", Path, i => i.val) + (Path.Count == 0 ? "" : ".") + Name;  // TODO: use context
+      string s = "";
+      foreach (var t in Path) {
+        if (context != null && t == context.tok) {
+          // drop the prefix up to here
+          s = "";
+        } else {
+          s += t.val + ".";
+        }
+      }
+      s += Name;
       if (TypeArgs.Count != 0) {
         s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
       }
@@ -584,7 +592,7 @@ namespace Microsoft.Dafny {
     }
 
     [Pure]
-    public override string TypeName(ModuleDecl context) {
+    public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
 
       Contract.Assume(T == null || cce.IsPeerConsistent(T));
@@ -977,6 +985,13 @@ namespace Microsoft.Dafny {
         return Module.Name + "." + Name;
       }
     }
+    public string FullNameInContext(ModuleDefinition context) {
+      if (Module == context) {
+        return Name;
+      } else {
+        return Module.Name + "." + Name;
+      }
+    }
     public string FullCompileName {
       get {
         return Module.CompileName + "." + CompileName;
@@ -1153,6 +1168,12 @@ namespace Microsoft.Dafny {
 
         return EnclosingClass.FullName + "." + Name;
       }
+    }
+    public string FullNameInContext(ModuleDefinition context) {
+      Contract.Requires(EnclosingClass != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return EnclosingClass.FullNameInContext(context) + "." + Name;
     }
     public string FullCompileName {
       get {
