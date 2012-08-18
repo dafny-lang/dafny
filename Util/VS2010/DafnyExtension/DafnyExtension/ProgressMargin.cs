@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Windows.Threading;
 using System.Windows;
 using System.Windows.Shapes;
 using System.Windows.Media;
@@ -83,26 +84,30 @@ namespace DafnyLanguage
     ErrorListProvider _errorProvider;
     ITextBuffer _buffer;
 
+    readonly DispatcherTimer timer;
+
     public ProgressTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITagAggregator<DafnyResolverTag> tagAggregator) {
       _buffer = buffer;
       _errorProvider = new ErrorListProvider(serviceProvider);
-      BufferIdleEventUtil.AddBufferIdleEventListener(buffer, DoTheVerification);
+
+      timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle);
+      timer.Interval = TimeSpan.FromMilliseconds(500);
+      timer.Tick += new EventHandler(UponIdle);
+
       tagAggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
       buffer.Changed += new EventHandler<TextContentChangedEventArgs>(buffer_Changed);
       bufferChangesPostVerificationStart.Add(new SnapshotSpan(buffer.CurrentSnapshot, 0, buffer.CurrentSnapshot.Length));
     }
 
     public void Dispose() {
-      BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, DoTheVerification);
     }
 
-    // The next two fields are protected by the lock "this".  The lists pointed to by the
-    // fields are not to be modified.
+    // The following fields and the contents of the following two lists are protected by the lock "this".
     List<SnapshotSpan> bufferChangesPreVerificationStart = new List<SnapshotSpan>();  // buffer changes after the last completed verification and before the currently running verification
     List<SnapshotSpan> bufferChangesPostVerificationStart = new List<SnapshotSpan>();  // buffer changes since the start of the currently running verification
+
     void buffer_Changed(object sender, TextContentChangedEventArgs e) {
-      var chng = TagsChanged;
-      if (chng != null) {
+      lock (this) {
         foreach (var change in e.Changes) {
           var startLine = e.After.GetLineFromPosition(change.NewPosition);
           var endLine = e.After.GetLineFromPosition(change.NewEnd);
@@ -111,109 +116,102 @@ namespace DafnyLanguage
       }
     }
 
-    // Keep track of the most recent resolution results
+    // The next field is protected by "this"
     ResolverTagger resolver;
-    Dafny.Program latestProgram;
-    ITextSnapshot latestSnapshot;
+    // Keep track of the most recent resolution results.
     void _aggregator_TagsChanged(object sender, TagsChangedEventArgs e) {
       var r = sender as ResolverTagger;
       if (r != null) {
-        // If r._program is null, then the current buffer contains a Dafny fragment that does not resolve.  If it is non-null,
-        // then r._program has been successfully resolved, so when things have been sufficiently idle, we're ready to verify it.
-        resolver = r;
-        lock (r) {
-          latestProgram = r._program;
-          latestSnapshot = latestProgram != null ? r._snapshot : null;
+        lock (this) {
+          resolver = r;
         }
+        timer.Stop();
+        timer.Start();
       }
     }
 
-    bool verificationInProgress;  // this field is protected by "this"
-    bool verificationRequested;  // this field is protected by "this".  Invariant:  verificationRequested ==> verificationInProgress
-    public void DoTheVerification(object sender, EventArgs args) {
-      var buffer = sender as ITextBuffer;
-      if (buffer != null && latestProgram != null && resolver != null) {
-        bool tagsChanged = false;
-        lock (this) {
-          if (verificationInProgress) {
-            verificationRequested = true;
-            return;
-          }
-          verificationInProgress = true;
-          // In the following, accomplish:  pre, post := pre+post, {};
-          if (bufferChangesPostVerificationStart.Count != 0) {
-            tagsChanged = true;
-            if (bufferChangesPreVerificationStart.Count == 0) {
-              var empty = bufferChangesPreVerificationStart;
-              bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
-              bufferChangesPostVerificationStart = empty;
-            } else {
-              var all = new List<SnapshotSpan>();
-              all.AddRange(bufferChangesPreVerificationStart);
-              all.AddRange(bufferChangesPostVerificationStart);
-              bufferChangesPreVerificationStart = all;
-              bufferChangesPostVerificationStart = new List<SnapshotSpan>();
-            }
-          }
+    bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
+    /// <summary>
+    /// This method is invoked when the user has been idle for a little while.
+    /// Note, "sender" and "args" are allowed to be passed in as null--they are not used by this method.
+    /// </summary>
+    public void UponIdle(object sender, EventArgs args) {
+      Dafny.Program prog;
+      ITextSnapshot snap;
+      ResolverTagger r;
+      lock (this) {
+        if (verificationInProgress) {
+          // This UponIdle message came at an inopportune time--we've already kicked off a verification.
+          // Just back off.
+          return;
         }
 
-        // kick off the verification
-        var w = new VerificationWorker(latestProgram, resolver, this, latestSnapshot);
-        var thread = new Thread(w.Start);
-        thread.Start();
+        if (resolver == null) return;
+        lock (resolver) {
+          prog = resolver._program;
+          snap = resolver._snapshot;
+        }
+        r = resolver;
+        resolver = null;
+        if (prog == null) return;
+        // We have a successfully resolved program to verify
 
+        var resolvedVersion = snap.Version.VersionNumber;
+        if (!bufferChangesPostVerificationStart.TrueForAll(span => span.Snapshot.Version.VersionNumber <= resolvedVersion)) {
+          // There have been buffer changes since the program that was resolved.  Do nothing here,
+          // and instead just await the next resolved program.
+          return;
+        }
+
+        // at this time, we're committed to running the verifier
+        verificationInProgress = true;
+
+        // Change orange progress markers into yellow ones
+        Contract.Assert(bufferChangesPreVerificationStart.Count == 0);  // follows from monitor invariant
+        var empty = bufferChangesPreVerificationStart;
+        bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
+        bufferChangesPostVerificationStart = empty;
+        // Notify to-whom-it-may-concern about the changes we just made
         var chng = TagsChanged;
-        if (tagsChanged && chng != null) {
-          var snap = latestSnapshot;
+        if (chng != null) {
           chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snap, 0, snap.Length)));
         }
+
       }
+      new Thread(() => VerificationWorker(prog, snap, r)).Start();
     }
 
-    class VerificationWorker
-    {
-      readonly Dafny.Program program;
-      readonly ResolverTagger resolver;
-      readonly ProgressTagger pt;
-      readonly ITextSnapshot snapshot;
-      public VerificationWorker(Dafny.Program program, ResolverTagger resolver, ProgressTagger pt, ITextSnapshot snapshot) {
-        Contract.Requires(program != null);
-        Contract.Requires(resolver != null);
-        Contract.Requires(pt != null);
-        Contract.Requires(snapshot != null);
-        this.program = program;
-        this.resolver = resolver;
-        this.pt = pt;
-        this.snapshot = snapshot;
-      }
+    /// <summary>
+    /// Thread entry point.
+    /// </summary>
+    void VerificationWorker(Dafny.Program program, ITextSnapshot snapshot, ResolverTagger errorListHolder) {
+      Contract.Requires(program != null);
+      Contract.Requires(snapshot != null);
+      Contract.Requires(errorListHolder != null);
 
-      public void Start() {
-        bool verifySomeMore = true;
-        while (verifySomeMore) {
-          var newErrors = new List<DafnyError>();
-          bool success = DafnyDriver.Verify(program, errorInfo => {
-            newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
-            foreach (var aux in errorInfo.Aux) {
-              newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
-            }
-          });
-
-          lock (pt) {
-            verifySomeMore = pt.verificationRequested;
-            pt.verificationInProgress = verifySomeMore;
-            pt.verificationRequested = false;
-            if (pt.bufferChangesPreVerificationStart.Count != 0) {
-              pt.bufferChangesPreVerificationStart = new List<SnapshotSpan>();
-            }
-            resolver.PopulateErrorList(newErrors, true, snapshot);  // TODO:  is this appropriate to do inside the monitor?
-          }
-
-          var chng = pt.TagsChanged;
-          if (chng != null) {
-            chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
-          }
+      // Run the verifier
+      var newErrors = new List<DafnyError>();
+      bool success = DafnyDriver.Verify(program, errorInfo => {
+        newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
+        foreach (var aux in errorInfo.Aux) {
+          newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
         }
+      });
+      errorListHolder.PopulateErrorList(newErrors, true, snapshot);
+
+      lock (this) {
+        bufferChangesPreVerificationStart.Clear();
+        verificationInProgress = false;
       }
+      // Notify to-whom-it-may-concern about the cleared pre-verification changes
+      var chng = TagsChanged;
+      if (chng != null) {
+        chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+      }
+
+      // If new changes took place since we started the verification, we may need to kick off another verification
+      // immediately.
+      UponIdle(null, null);
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;

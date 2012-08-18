@@ -84,7 +84,7 @@ namespace DafnyLanguage
       _snapshot = null;  // this makes sure the next snapshot will look different
       _errorProvider = new ErrorListProvider(serviceProvider);
 
-      BufferIdleEventUtil.AddBufferIdleEventListener(_buffer, ProcessFile);
+      BufferIdleEventUtil.AddBufferIdleEventListener(_buffer, ResolveBuffer);
     }
 
     public void Dispose() {
@@ -96,7 +96,7 @@ namespace DafnyLanguage
         }
         _errorProvider.Dispose();
       }
-      BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ProcessFile);
+      BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
     }
 
     public IEnumerable<DafnyError> AllErrors() {
@@ -154,15 +154,15 @@ namespace DafnyLanguage
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
     /// <summary>
-    /// Calls the Dafny parser/resolver/type checker on the program, updates the Error List accordingly.
+    /// Calls the Dafny parser/resolver/type checker on the contents of the buffer, updates the Error List accordingly.
     /// </summary>
-    void ProcessFile(object sender, EventArgs args) {
+    void ResolveBuffer(object sender, EventArgs args) {
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
       if (snapshot == _snapshot)
         return;  // we've already done this snapshot
       NormalizedSnapshotSpanCollection spans = new NormalizedSnapshotSpanCollection(new SnapshotSpan(snapshot, 0, snapshot.Length));
 
-      var driver = new DafnyDriver(_buffer.CurrentSnapshot.GetText(), _document != null ? _document.FilePath : "<program>");
+      var driver = new DafnyDriver(snapshot.GetText(), _document != null ? _document.FilePath : "<program>");
       List<DafnyError> newErrors;
       Dafny.Program program;
       try {
