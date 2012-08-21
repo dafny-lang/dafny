@@ -191,17 +191,22 @@ namespace DafnyLanguage
 
       // Run the verifier
       var newErrors = new List<DafnyError>();
-      bool success = DafnyDriver.Verify(program, errorInfo => {
-        newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
-        foreach (var aux in errorInfo.Aux) {
-          newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
+      try {
+        bool success = DafnyDriver.Verify(program, errorInfo => {
+          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
+          foreach (var aux in errorInfo.Aux) {
+            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
+          }
+        });
+        if (!success) {
+          newErrors.Clear();
+          newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error"));
         }
-      });
-      errorListHolder.PopulateErrorList(newErrors, true, snapshot);
-      if (!success) {
+      } catch (Exception e) {
         newErrors.Clear();
-        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error"));
+        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message));
       }
+      errorListHolder.PopulateErrorList(newErrors, true, snapshot);
 
       lock (this) {
         bufferChangesPreVerificationStart.Clear();

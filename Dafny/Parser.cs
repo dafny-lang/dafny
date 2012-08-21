@@ -34,14 +34,15 @@ public class Parser {
 	public Token/*!*/ la;   // lookahead token
 	int errDist = minErrDist;
 
-static ModuleDecl theModule;
-static BuiltIns theBuiltIns;
-static Expression/*!*/ dummyExpr = new LiteralExpr(Token.NoToken);
-static AssignmentRhs/*!*/ dummyRhs = new ExprRhs(dummyExpr, null);
-static FrameExpression/*!*/ dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-static Statement/*!*/ dummyStmt = new ReturnStmt(Token.NoToken, null);
-static Attributes.Argument/*!*/ dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
-static int anonymousIds = 0;
+readonly Expression/*!*/ dummyExpr;
+readonly AssignmentRhs/*!*/ dummyRhs;
+readonly FrameExpression/*!*/ dummyFrameExpr;
+readonly Statement/*!*/ dummyStmt;
+readonly Attributes.Argument/*!*/ dummyAttrArg;
+readonly ModuleDecl theModule;
+readonly BuiltIns theBuiltIns;
+int anonymousIds = 0;
+
 struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
@@ -92,19 +93,26 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module,
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
-  var oldModule = theModule;
-  theModule = module;
-  BuiltIns oldBuiltIns = builtIns;
-  theBuiltIns = builtIns;
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, filename);
-  Parser parser = new Parser(scanner, errors);
+  Parser parser = new Parser(scanner, errors, module, builtIns);
   parser.Parse();
-  theModule = oldModule;
-  theBuiltIns = oldBuiltIns;
   return parser.errors.count;
 }
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns) 
+  : this(scanner, errors)  // the real work
+{
+  // initialize readonly fields
+  dummyExpr = new LiteralExpr(Token.NoToken);
+  dummyRhs = new ExprRhs(dummyExpr, null);
+  dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
+  dummyStmt = new ReturnStmt(Token.NoToken, null);
+  dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
+  theModule = module;
+  theBuiltIns = builtIns;
+}
+
 bool IsAttribute() {
   Token x = scanner.Peek();
   return la.kind == _lbrace && x.kind == _colon;
