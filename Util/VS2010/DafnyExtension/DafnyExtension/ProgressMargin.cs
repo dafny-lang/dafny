@@ -199,11 +199,9 @@ namespace DafnyLanguage
           }
         });
         if (!success) {
-          newErrors.Clear();
           newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error"));
         }
       } catch (Exception e) {
-        newErrors.Clear();
         newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message));
       }
       errorListHolder.PopulateErrorList(newErrors, true, snapshot);
