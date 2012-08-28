@@ -2438,7 +2438,7 @@ namespace Microsoft.Dafny
       Contract.Requires(a.T == null && b.T == null);
       Contract.Requires(a.OrderID <= b.OrderID);
       //modifies a.T, b.T;
-      Contract.Ensures(Contract.Result<bool>() || a.T != null || b.T != null);
+      Contract.Ensures(!Contract.Result<bool>() || a.T != null || b.T != null);
 
       if (a is DatatypeProxy) {
         if (b is DatatypeProxy) {
