@@ -157,7 +157,10 @@ namespace DafnyLanguage
         // We have a successfully resolved program to verify
 
         var resolvedVersion = snap.Version.VersionNumber;
-        if (!bufferChangesPostVerificationStart.TrueForAll(span => span.Snapshot.Version.VersionNumber <= resolvedVersion)) {
+        if (bufferChangesPostVerificationStart.Count == 0) {
+          // Nothing new to verify.  No reason to start a new verification.
+          return;
+        } else if (!bufferChangesPostVerificationStart.TrueForAll(span => span.Snapshot.Version.VersionNumber <= resolvedVersion)) {
           // There have been buffer changes since the program that was resolved.  Do nothing here,
           // and instead just await the next resolved program.
           return;
