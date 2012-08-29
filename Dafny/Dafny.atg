@@ -1418,7 +1418,7 @@ UnaryExpression<out Expression/*!*/ e>
   )
   .
 Lhs<out Expression e>
-= (. e = null;  // to please the compiler
+= (. e = dummyExpr;  // the assignment is to please the compiler, the dummy value to satisfy contracts in the event of a parse error
   .)
   ( DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }

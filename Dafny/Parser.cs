@@ -1732,7 +1732,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	}
 
 	void Lhs(out Expression e) {
-		e = null;  // to please the compiler
+		e = dummyExpr;  // the assignment is to please the compiler, the dummy value to satisfy contracts in the event of a parse error
 		
 		if (la.kind == 1) {
 			DottedIdentifiersAndFunction(out e);
