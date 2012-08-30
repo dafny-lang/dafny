@@ -225,7 +225,9 @@ namespace DafnyLanguage
         foreach (var lhs in s.Lhss) {
           IdRegion.Add(regions, lhs.Tok, lhs, true, module);
         }
-        if (s.Update is UpdateStmt) {
+        if (s.Update == null) {
+          // the VarDeclStmt has no associated assignment
+        } else if (s.Update is UpdateStmt) {
           var upd = (UpdateStmt)s.Update;
           foreach (var rhs in upd.Rhss) {
             foreach (var ee in rhs.SubExpressions) {
