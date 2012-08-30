@@ -450,7 +450,7 @@ bool IsAttribute() {
 		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
 		Expect(1);
 		x = t; 
-		if (x.val.Length > 0 && x.val.StartsWith("_")) {
+		if (x.val.StartsWith("_")) {
 		 SemErr("cannot declare identifier beginning with underscore");
 		}
 		
@@ -515,11 +515,11 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		IdentType(out id, out ty);
+		IdentType(out id, out ty, false);
 		mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); 
 		while (la.kind == 24) {
 			Get();
-			IdentType(out id, out ty);
+			IdentType(out id, out ty, false);
 			mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); 
 		}
 		while (!(la.kind == 0 || la.kind == 14)) {SynErr(123); Get();}
@@ -754,9 +754,9 @@ bool IsAttribute() {
 		Expect(28);
 	}
 
-	void IdentType(out IToken/*!*/ id, out Type/*!*/ ty) {
+	void IdentType(out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId) {
 		Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
-		NoUSIdent(out id);
+		WildIdent(out id, allowWildcardId);
 		Expect(5);
 		Type(out ty);
 	}
@@ -769,7 +769,21 @@ bool IsAttribute() {
 			Get();
 			if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } 
 		}
-		IdentType(out id, out ty);
+		IdentType(out id, out ty, true);
+	}
+
+	void WildIdent(out IToken/*!*/ x, bool allowWildcardId) {
+		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
+		Expect(1);
+		x = t; 
+		if (x.val.StartsWith("_")) {
+		 if (allowWildcardId && x.val.Length == 1) {
+		   t.val = "_v" + anonymousIds++;
+		 } else {
+		   SemErr("cannot declare identifier beginning with underscore");
+		 }
+		}
+		
 	}
 
 	void Type(out Type/*!*/ ty) {
@@ -780,7 +794,7 @@ bool IsAttribute() {
 	void LocalIdentTypeOptional(out VarDecl/*!*/ var, bool isGhost) {
 		IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
 		
-		NoUSIdent(out id);
+		WildIdent(out id, true);
 		if (la.kind == 5) {
 			Get();
 			Type(out ty);
@@ -792,7 +806,7 @@ bool IsAttribute() {
 	void IdentTypeOptional(out BoundVar/*!*/ var) {
 		Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
 		
-		NoUSIdent(out id);
+		WildIdent(out id, true);
 		if (la.kind == 5) {
 			Get();
 			Type(out ty);

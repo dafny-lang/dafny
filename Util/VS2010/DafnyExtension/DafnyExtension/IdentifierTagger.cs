@@ -294,7 +294,7 @@ namespace DafnyLanguage
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
         Start = tok.pos;
-        Length = v.Name.Length;
+        Length = v.DisplayName.Length;
         string kind;
         if (v is VarDecl) {
           kind = "local variable";
@@ -304,7 +304,7 @@ namespace DafnyLanguage
           var formal = (Formal)v;
           kind = formal.InParam ? "in-parameter" : "out-parameter";
         }
-        HoverText = string.Format("({2}{3}) {0}: {1}", v.Name, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
+        HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
         IsDefinition = isDefinition;
       }
       private IdRegion(Bpl.IToken tok, Field decl, string kind, bool isDefinition, ModuleDefinition context) {

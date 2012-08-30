@@ -1279,6 +1279,9 @@ namespace Microsoft.Dafny {
     string/*!*/ Name {
       get;
     }
+    string/*!*/ DisplayName {  // what the user thinks he wrote
+      get;
+    }
     string/*!*/ UniqueName {
       get;
     }
@@ -1298,6 +1301,12 @@ namespace Microsoft.Dafny {
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : IVariable {
     public string Name {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();
+      }
+    }
+    public string DisplayName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();
@@ -1349,6 +1358,9 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<string>() != null);
         return name;
       }
+    }
+    public string/*!*/ DisplayName {
+      get { return VarDecl.DisplayNameHelper(this); }
     }
     readonly int varId = varIdCount++;
     public string UniqueName {
@@ -2223,6 +2235,14 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<string>() != null);
         return name;
       }
+    }
+    public static string DisplayNameHelper(IVariable v) {
+      Contract.Requires(v != null);
+      string name = v.Name;
+      return name.StartsWith("_") ? "_" : name;
+    }
+    public string/*!*/ DisplayName {
+      get { return DisplayNameHelper(this); }
     }
     readonly int varId = NonglobalVariable.varIdCount++;
     public string/*!*/ UniqueName {

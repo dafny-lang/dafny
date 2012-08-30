@@ -318,8 +318,8 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   (. if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
-  IdentType<out id, out ty>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
-  { "," IdentType<out id, out ty>                   (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
+  IdentType<out id, out ty, false>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
+  { "," IdentType<out id, out ty, false>                   (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
   SYNC ";"
   .
@@ -342,18 +342,18 @@ GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out boo
      isGhost = false; .)
   [ "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   ]
-  IdentType<out id, out ty>
+  IdentType<out id, out ty, true>
   .
-IdentType<out IToken/*!*/ id, out Type/*!*/ ty>
+IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
-  NoUSIdent<out id>
+  WildIdent<out id, allowWildcardId>
   ":"
   Type<out ty>
   .
 LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
 = (. IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
-  NoUSIdent<out id>
+  WildIdent<out id, true>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new VarDecl(id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
@@ -361,7 +361,7 @@ LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
 IdentTypeOptional<out BoundVar/*!*/ var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
   .)
-  NoUSIdent<out id>
+  WildIdent<out id, true>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
@@ -399,10 +399,10 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
      TypeParameter.EqualitySupportValue eqSupport;
   .)
   "<"
-  NoUSIdent<out id>              (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
+  NoUSIdent<out id>          (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
   [ "(" "==" ")"             (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
     ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
-  { "," NoUSIdent<out id>        (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
+  { "," NoUSIdent<out id>    (. eqSupport = TypeParameter.EqualitySupportValue.Unspecified; .)
     [ "(" "==" ")"           (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
     ]                        (. typeArgs.Add(new TypeParameter(id, id.val, eqSupport)); .)
   }
@@ -1775,8 +1775,22 @@ Ident<out IToken/*!*/ x>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t; 
-                      if (x.val.Length > 0 && x.val.StartsWith("_")) {
+                      if (x.val.StartsWith("_")) {
                         SemErr("cannot declare identifier beginning with underscore");
+                      }
+                   .)
+  .
+
+// Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
+WildIdent<out IToken/*!*/ x, bool allowWildcardId>
+= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
+  ident            (. x = t; 
+                      if (x.val.StartsWith("_")) {
+                        if (allowWildcardId && x.val.Length == 1) {
+                          t.val = "_v" + anonymousIds++;
+                        } else {
+                          SemErr("cannot declare identifier beginning with underscore");
+                        }
                       }
                    .)
   .

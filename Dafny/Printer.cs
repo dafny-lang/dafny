@@ -329,7 +329,7 @@ namespace Microsoft.Dafny {
         wr.Write("ghost ");
       }
       if (f.HasName) {
-        wr.Write("{0}: ", f.Name);
+        wr.Write("{0}: ", f.DisplayName);
       }
       PrintType(f.Type);
     }
@@ -483,7 +483,7 @@ namespace Microsoft.Dafny {
         if (s.IsGhost) {
           wr.Write("ghost ");
         }
-        wr.Write("var {0}", s.Name);
+        wr.Write("var {0}", s.DisplayName);
         PrintType(": ", s.OptionalType);
         wr.Write(";");
 
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny {
           if (mc.Arguments.Count != 0) {
             string sep = "(";
             foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.Name);
+              wr.Write("{0}{1}", sep, bv.DisplayName);
               sep = ", ";
             }
             wr.Write(")");
@@ -605,7 +605,7 @@ namespace Microsoft.Dafny {
         wr.Write("var ");
         string sep = "";
         foreach (var lhs in s.Lhss) {
-          wr.Write("{0}{1}", sep, lhs.Name);
+          wr.Write("{0}{1}", sep, lhs.DisplayName);
           PrintType(": ", lhs.OptionalType);
           sep = ", ";
         }
@@ -803,7 +803,7 @@ namespace Microsoft.Dafny {
           if (mc.Arguments.Count != 0) {
             string sep = "(";
             foreach (BoundVar bv in mc.Arguments) {
-              wr.Write("{0}{1}", sep, bv.Name);
+              wr.Write("{0}{1}", sep, bv.DisplayName);
               sep = ", ";
             }
             wr.Write(")");
@@ -1134,7 +1134,7 @@ namespace Microsoft.Dafny {
         wr.Write("var ");
         string sep = "";
         foreach (var v in e.Vars) {
-          wr.Write("{0}{1}", sep, v.Name);
+          wr.Write("{0}{1}", sep, v.DisplayName);
           PrintType(": ", v.Type);
           sep = ", ";
         }
@@ -1174,7 +1174,7 @@ namespace Microsoft.Dafny {
         wr.Write("set ");
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
-          wr.Write("{0}{1}", sep, bv.Name);
+          wr.Write("{0}{1}", sep, bv.DisplayName);
           sep = ", ";
           PrintType(": ", bv.Type);
         }
@@ -1194,7 +1194,7 @@ namespace Microsoft.Dafny {
         wr.Write("map ");
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
-          wr.Write("{0}{1}", sep, bv.Name);
+          wr.Write("{0}{1}", sep, bv.DisplayName);
           sep = ", ";
           PrintType(": ", bv.Type);
         }
@@ -1263,7 +1263,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(boundVars != null);
       string sep = "";
       foreach (BoundVar bv in boundVars) {
-        wr.Write("{0}{1}", sep, bv.Name);
+        wr.Write("{0}{1}", sep, bv.DisplayName);
         PrintType(": ", bv.Type);
         sep = ", ";
       }
