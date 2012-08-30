@@ -1605,8 +1605,10 @@ namespace Microsoft.Dafny {
       // check that postconditions hold
       var ens = new Bpl.EnsuresSeq();
       foreach (Expression p in f.Ens) {
-        bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
+        var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
+        var splits = new List<SplitExprInfo>();
+        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, etran);
+        foreach (var s in splits) {
           if (!s.IsFree) {
             ens.Add(Ensures(s.E.tok, s.IsFree, s.E, null, null));
           }

@@ -52,3 +52,9 @@ function DivergentPost(n: int): int
   if n < 2 then n else
   DivergentPost(n-2) + DivergentPost(n-1)
 }
+
+function HoldsAtLeastForZero(x: int): bool
+  ensures x == 0 ==> HoldsAtLeastForZero(x);
+{
+  x < -2  // error: this does not hold for 0
+}
