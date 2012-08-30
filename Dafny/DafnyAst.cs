@@ -2236,10 +2236,13 @@ namespace Microsoft.Dafny {
         return name;
       }
     }
+    public static bool HasWildcardName(IVariable v) {
+      Contract.Requires(v != null);
+      return v.Name.StartsWith("_");
+    }
     public static string DisplayNameHelper(IVariable v) {
       Contract.Requires(v != null);
-      string name = v.Name;
-      return name.StartsWith("_") ? "_" : name;
+      return HasWildcardName(v) ? "_" : v.Name;
     }
     public string/*!*/ DisplayName {
       get { return DisplayNameHelper(this); }

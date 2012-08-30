@@ -77,9 +77,21 @@ namespace DafnyLanguage
       int end = entire.End;
       foreach (var r in _regions) {
         if (0 <= r.Length && r.Start <= end && start <= r.Start + r.Length) {
+          DafnyTokenKinds kind;
+          switch (r.Kind) {
+            case IdRegion.OccurrenceKind.Use:
+              kind = DafnyTokenKinds.VariableIdentifier; break;
+            case IdRegion.OccurrenceKind.Definition:
+              kind = DafnyTokenKinds.VariableIdentifierDefinition; break;
+            case IdRegion.OccurrenceKind.WildDefinition:
+              kind = DafnyTokenKinds.Keyword; break;
+            default:
+              Contract.Assert(false);  // unexpected OccurrenceKind
+              goto case IdRegion.OccurrenceKind.Use;  // to please compiler
+          }
           yield return new TagSpan<DafnyTokenTag>(
             new SnapshotSpan(_snapshot, r.Start, r.Length),
-            new DafnyTokenTag(r.IsDefinition ? DafnyTokenKinds.VariableIdentifierDefinition : DafnyTokenKinds.VariableIdentifier, r.HoverText));
+            new DafnyTokenTag(kind, r.HoverText));
         }
       }
     }
@@ -270,7 +282,8 @@ namespace DafnyLanguage
       public readonly int Start;
       public readonly int Length;
       public readonly string HoverText;
-      public readonly bool IsDefinition;
+      public enum OccurrenceKind { Use, Definition, WildDefinition }
+      public readonly OccurrenceKind Kind;
 
       public static void Add(List<IdRegion> regions, Bpl.IToken tok, IVariable v, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(regions != null);
@@ -305,7 +318,7 @@ namespace DafnyLanguage
           kind = formal.InParam ? "in-parameter" : "out-parameter";
         }
         HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
-        IsDefinition = isDefinition;
+        Kind = !isDefinition ? OccurrenceKind.Use : VarDecl.HasWildcardName(v) ? OccurrenceKind.WildDefinition : OccurrenceKind.Definition;
       }
       private IdRegion(Bpl.IToken tok, Field decl, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(tok != null);
@@ -314,7 +327,7 @@ namespace DafnyLanguage
         Start = tok.pos;
         Length = decl.Name.Length;
         HoverText = string.Format("({2}{3}) {0}: {1}", decl.FullNameInContext(context), decl.Type.TypeName(context), decl.IsGhost ? "ghost " : "", kind);
-        IsDefinition = isDefinition;
+        Kind = !isDefinition ? OccurrenceKind.Use : OccurrenceKind.Definition;
       }
     }
   }
