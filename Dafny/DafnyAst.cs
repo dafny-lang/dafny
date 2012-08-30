@@ -1558,14 +1558,20 @@ namespace Microsoft.Dafny {
 
   public class Predicate : Function
   {
-    public readonly bool BodyIsExtended;  // says that this predicate definition is a refinement extension of a predicate definition is a refining module
+    public enum BodyOriginKind
+    {
+      OriginalOrInherited,  // this predicate definition is new (and the predicate may or may not have a body), or the predicate's body (whether or not it exists) is being inherited unmodified (from the previous refinement--it may be that the inherited body was itself an extension, for example)
+      DelayedDefinition,  // this predicate declaration provides, for the first time, a body--the declaration refines a previously declared predicate, but the previous one had no body
+      Extension  // this predicate extends the definition of a predicate with a body in a module being refined
+    }
+    public readonly BodyOriginKind BodyOrigin;
     public Predicate(IToken tok, string name, bool isStatic, bool isGhost,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, bool bodyIsExtended, Attributes attributes, bool signatureOmitted)
+                     Expression body, BodyOriginKind bodyOrigin, Attributes attributes, bool signatureOmitted)
       : base(tok, name, isStatic, isGhost, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
-      Contract.Requires(!bodyIsExtended || body != null);
-      BodyIsExtended = bodyIsExtended;
+      Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
+      BodyOrigin = bodyOrigin;
     }
   }
 

@@ -7456,51 +7456,58 @@ namespace Microsoft.Dafny {
 
           if (module == currentModule && functionHeight < heightLimit) {
             if (f.Body != null && !(f.Body.Resolved is MatchExpr)) {
-              // inline this body
-              Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-              Contract.Assert(fexp.Args.Count == f.Formals.Count);
-              for (int i = 0; i < f.Formals.Count; i++) {
-                Formal p = f.Formals[i];
-                Expression arg = fexp.Args[i];
-                arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), p.Type);
-                arg.Type = p.Type;  // resolve here
-                substMap.Add(p, arg);
+              if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
+                  f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
+                  (currentMethod == null || !currentMethod.MustReverify)) {
+                // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
+                // that needed to be proved about the function was proved already in the previous module, even without the body definition).
+              } else {
+                // inline this body
+                Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+                Contract.Assert(fexp.Args.Count == f.Formals.Count);
+                for (int i = 0; i < f.Formals.Count; i++) {
+                  Formal p = f.Formals[i];
+                  Expression arg = fexp.Args[i];
+                  arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), p.Type);
+                  arg.Type = p.Type;  // resolve here
+                  substMap.Add(p, arg);
+                }
+                Expression body = Substitute(f.Body, fexp.Receiver, substMap);
+
+                // Produce, for a "body" split into b0, b1, b2:
+                //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
+                //     checked F#canCall(args) ==> F(args) || b0
+                //     checked F#canCall(args) ==> F(args) || b1
+                //     checked F#canCall(args) ==> F(args) || b2
+                // Note that "body" does not contain limited calls.
+
+                // F#canCall(args)
+                Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
+                ExprSeq args = etran.FunctionInvocationArguments(fexp);
+                Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+
+                // F(args)
+                Bpl.Expr fargs = etran.TrExpr(fexp);
+
+                // body
+                Bpl.Expr trBody = etran.TrExpr(body);
+                trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
+
+                // here goes the free piece:
+                splits.Add(new SplitExprInfo(true, Bpl.Expr.Binary(trBody.tok, BinaryOperator.Opcode.And, canCall, BplAnd(fargs, trBody))));
+
+                // recurse on body
+                var ss = new List<SplitExprInfo>();
+                TrSplitExpr(body, ss, position, functionHeight, etran);
+                foreach (var s in ss) {
+                  var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
+                  var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
+                  var p = Bpl.Expr.Binary(new NestedToken(fexp.tok, s.E.tok), BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
+                  splits.Add(new SplitExprInfo(s.IsFree, p));
+                }
+
+                return true;
               }
-              Expression body = Substitute(f.Body, fexp.Receiver, substMap);
-
-              // Produce, for a "body" split into b0, b1, b2:
-              //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
-              //     checked F#canCall(args) ==> F(args) || b0
-              //     checked F#canCall(args) ==> F(args) || b1
-              //     checked F#canCall(args) ==> F(args) || b2
-              // Note that "body" does not contain limited calls.
-
-              // F#canCall(args)
-              Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
-              ExprSeq args = etran.FunctionInvocationArguments(fexp);
-              Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-
-              // F(args)
-              Bpl.Expr fargs = etran.TrExpr(fexp);
-
-              // body
-              Bpl.Expr trBody = etran.TrExpr(body);
-              trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
-
-              // here goes the free piece:
-              splits.Add(new SplitExprInfo(true, Bpl.Expr.Binary(trBody.tok, BinaryOperator.Opcode.And, canCall, BplAnd(fargs, trBody))));
-
-              // recurse on body
-              var ss = new List<SplitExprInfo>();
-              TrSplitExpr(body, ss, position, functionHeight, etran);
-              foreach (var s in ss) {
-                var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
-                var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
-                var p = Bpl.Expr.Binary(new NestedToken(fexp.tok, s.E.tok), BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
-                splits.Add(new SplitExprInfo(s.IsFree, p));
-              }
-
-              return true;
             }
           }
         }
@@ -7600,6 +7607,8 @@ namespace Microsoft.Dafny {
         translatedExpression = etran.TrExpr(expr);
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
+      // TODO: Is the the following call to ContainsChange expensive?  It's linear in the size of "expr", but we get here many times in TrSpliExpr, so wouldn't the total
+      // time in the size of the expression passed to the first TrSpliExpr be quadratic?
       if (RefinementToken.IsInherited(expr.tok, currentModule) && (currentMethod == null || !currentMethod.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule)) {
         // If "expr" contains a subexpression that has changed from the inherited expression, we'll destructively
         // change the token of the translated expression to make it look like it's not inherited.  This will cause "e" to

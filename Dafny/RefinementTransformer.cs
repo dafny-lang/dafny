@@ -473,21 +473,26 @@ namespace Microsoft.Dafny
       }
 
       Expression body;
+      Predicate.BodyOriginKind bodyOrigin;
       if (replacementBody != null) {
         body = replacementBody;
+        bodyOrigin = Predicate.BodyOriginKind.DelayedDefinition;
       } else if (moreBody != null) {
         if (f.Body == null) {
           body = moreBody;
+          bodyOrigin = Predicate.BodyOriginKind.DelayedDefinition;
         } else {
           body = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, refinementCloner.CloneExpr(f.Body), moreBody);
+          bodyOrigin = Predicate.BodyOriginKind.Extension;
         }
       } else {
         body = refinementCloner.CloneExpr(f.Body);
+        bodyOrigin = Predicate.BodyOriginKind.OriginalOrInherited;
       }
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, moreBody != null, null, false);
+          req, reads, ens, decreases, body, bodyOrigin, null, false);
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
           req, reads, ens, body, null, false);
@@ -592,10 +597,10 @@ namespace Microsoft.Dafny
 
               Expression moreBody = null;
               Expression replacementBody = null;
-              if (isPredicate) {
-                moreBody = f.Body;
-              } else if (prevFunction.Body == null) {
+              if (prevFunction.Body == null) {
                 replacementBody = f.Body;
+              } else if (isPredicate) {
+                moreBody = f.Body;
               } else if (f.Body != null) {
                 reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
@@ -1263,7 +1268,7 @@ namespace Microsoft.Dafny
         var e = (FunctionCallExpr)expr;
         if (e.Function.EnclosingClass.Module == m) {
           var p = e.Function as Predicate;
-          if (p != null && p.BodyIsExtended) {
+          if (p != null && p.BodyOrigin == Predicate.BodyOriginKind.Extension) {
             return true;
           }
         }
@@ -1283,7 +1288,7 @@ namespace Microsoft.Dafny
     public RefinementCloner(ModuleDefinition m) {
       moduleUnderConstruction = m;
     }
-    override public IToken Tok(IToken tok) {
+    public override IToken Tok(IToken tok) {
       return new RefinementToken(tok, moduleUnderConstruction);
     }
   }

@@ -452,7 +452,6 @@ namespace Microsoft.Dafny
     }
 
     public Function CloneFunction(Function f) {
-
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
       var req = f.Req.ConvertAll(CloneExpr);
@@ -463,7 +462,7 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, false, null, false);
+          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
       } else if (f is CoPredicate) {
         return new CoPredicate(Tok(f.tok), f.Name, f.IsStatic, tps, f.OpenParen, formals,
           req, reads, ens, body, null, false);

@@ -705,7 +705,7 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, false, null, false);
+          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
           req, reads, ens, body, null, false);

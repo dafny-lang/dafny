@@ -633,7 +633,7 @@ bool IsAttribute() {
 		}
 		if (isPredicate) {
 		  f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
-		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, false, attrs, signatureOmitted);
+		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureOmitted);
 		} else if (isCoPredicate) {
 		  f = new CoPredicate(id, id.val, mmod.IsStatic, typeArgs, openParen, formals,
 		                    reqs, reads, ens, body, attrs, signatureOmitted);
