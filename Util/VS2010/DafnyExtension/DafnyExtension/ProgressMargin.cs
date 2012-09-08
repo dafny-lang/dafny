@@ -31,7 +31,7 @@ namespace DafnyLanguage
       }
 
       System.Windows.Shapes.Rectangle sh = new Rectangle() {
-        Fill = dtag.Val == 0 ? new SolidColorBrush(Color.FromRgb(255, 238, 98)) : Brushes.DarkOrange,
+        Fill = dtag.Val == 0 ? Brushes.Violet : Brushes.DarkOrange,
         Height = 18.0,
         Width = 3.0
       };
