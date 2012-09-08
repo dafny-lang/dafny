@@ -1,6 +1,5 @@
 /*
-	This test fails with Z3 2.4 (on Win7 x64) and works
-	with Z3 2.9 (on Win7 x64). Other versions ... who knows.
+	This test works with Z3 3.2 and Z3 4.1 (on Win7 x64). Other versions ... who knows.
 */
 
 // Note: We are using the built-in equality to compare keys.
@@ -111,8 +110,6 @@ class Map<Key(==),Value> {
     if (p != null) {
       Keys := Keys[..n] + Keys[n+1..];
       Values := Values[..n] + Values[n+1..];
-      assert Keys[n..] == old(Keys)[n+1..];
-      assert Values[n..] == old(Values)[n+1..];
 
       nodes := nodes[..n] + nodes[n+1..];
       if (prev == null) {
@@ -120,6 +117,8 @@ class Map<Key(==),Value> {
       } else {
         prev.next := p.next;
       }
+      assert Keys[n..] == old(Keys)[n+1..];
+      assert Values[n..] == old(Values)[n+1..];
     }
   }
 
