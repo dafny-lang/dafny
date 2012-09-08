@@ -909,7 +909,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isGhost, bool isAbstract, List<IToken> refinementBase,  Attributes attributes, bool isBuiltinName)
+    public ModuleDefinition(IToken tok, string name, bool isGhost, bool isAbstract, List<IToken> refinementBase, Attributes attributes, bool isBuiltinName)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -1600,6 +1600,7 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
     public readonly Specification<Expression>/*!*/ Decreases;
     public BlockStmt Body;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    public bool IsTailRecursive;  // filled in during resolution
 
     [ContractInvariantMethod]
     void ObjectInvariant() {

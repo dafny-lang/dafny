@@ -969,13 +969,36 @@ namespace Microsoft.Dafny
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
               if (member is Method) {
-                var m = ((Method)member);
-                if (m.Body != null)
+                var m = (Method)member;
+                if (m.Body != null) {
                   CheckTypeInference(m.Body);
+                  bool tail = true;
+                  bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
+                  if (hasTailRecursionPreference && !tail) {
+                    // the user specifically requested no tail recursion, so do nothing else
+                  } else {
+                    var module = m.EnclosingClass.Module;
+                    var sccSize = module.CallGraph.GetSCCSize(m);
+                    if (hasTailRecursionPreference && 2 <= sccSize) {
+                      Error(m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
+                    } else if (hasTailRecursionPreference || sccSize == 1) {
+                      CallStmt tailCall = null;
+                      var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
+                      if (status == TailRecursionStatus.TailCallSpent || (hasTailRecursionPreference && status == TailRecursionStatus.CanBeFollowedByAnything)) {
+                        m.IsTailRecursive = true;
+                      }
+                    }
+                  }
+                }
               } else if (member is Function) {
                 var f = (Function)member;
-                if (f.Body != null)
+                if (f.Body != null) {
                   CheckTypeInference(f.Body);
+                  bool tail = true;
+                  if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
+                    Error(f.tok, "sorry, tail-call functions are not supported");
+                  }
+                }
               }
             }
           }
@@ -1142,6 +1165,172 @@ namespace Microsoft.Dafny
           }
         }
       }
+    }
+
+    enum TailRecursionStatus
+    {
+      NotTailRecursive, // contains code that makes the enclosing method body not tail recursive (in way that is supported)
+      CanBeFollowedByAnything, // the code just analyzed does not do any recursive calls
+      TailCallSpent, // the method body is tail recursive, provided that all code that follows it in the method body is ghost
+    }
+
+    /// <summary>
+    /// Checks if "stmts" can be considered tail recursive, and (provided "reportsError" is true) reports an error if not.
+    /// Note, the current implementation is rather conservative in its analysis; upon need, the
+    /// algorithm could be improved.
+    /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
+    /// 
+    /// The incoming value of "tailCall" is not used, but it's nevertheless a 'ref' parameter to allow the
+    /// body to return the incoming value or to omit assignments to it.
+    /// If the return value is CanBeFollowedByAnything, "tailCall" is unchanged.
+    /// If the return value is TailCallSpent, "tailCall" shows one of the calls where the tail call was spent.  (Note,
+    /// there could be several if the statements have branches.)
+    /// If the return value is NoTailRecursive, "tailCall" could be anything.  In this case, an error
+    /// message has been reported (provided "reportsErrors" is true).
+    /// </summary>
+    TailRecursionStatus CheckTailRecursive(List<Statement> stmts, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
+      Contract.Requires(stmts != null);
+      var status = TailRecursionStatus.CanBeFollowedByAnything;
+      foreach (var s in stmts) {
+        if (!s.IsGhost) {
+          if (s is ReturnStmt && ((ReturnStmt)s).hiddenUpdate == null) {
+            return status;
+          }
+          if (status == TailRecursionStatus.TailCallSpent) {
+            // a tail call cannot be followed by non-ghost code
+            if (reportErrors) {
+              Error(tailCall.Tok, "this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code");
+            }
+            return TailRecursionStatus.NotTailRecursive;
+          }
+          status = CheckTailRecursive(s, enclosingMethod, ref tailCall, reportErrors);
+          if (status == TailRecursionStatus.NotTailRecursive) {
+            return status;
+          }
+        }
+      }
+      return status;
+    }
+
+    /// <summary>
+    /// See CheckTailRecursive(List Statement, ...), including its description of "tailCall".
+    /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
+    /// </summary>
+    TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
+      Contract.Requires(stmt != null && !stmt.IsGhost);
+      if (stmt is PrintStmt) {
+      } else if (stmt is BreakStmt) {
+      } else if (stmt is ReturnStmt) {
+        var s = (ReturnStmt)stmt;
+        if (s.hiddenUpdate != null) {
+          return CheckTailRecursive(s.hiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
+        }
+      } else if (stmt is AssignStmt) {
+      } else if (stmt is VarDecl) {
+      } else if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        if (s.Method == enclosingMethod) {
+          // It's a recursive call.  It can be considered a tail call only if the LHS of the call are the
+          // formal out-parameters of the method
+          for (int i = 0; i < s.Lhs.Count; i++) {
+            var formal = enclosingMethod.Outs[i];
+            if (!formal.IsGhost) {
+              var lhs = s.Lhs[i] as IdentifierExpr;
+              if (lhs != null && lhs.Var == formal) {
+                // all is good
+              } else {
+                if (reportErrors) {
+                  Error(s.Tok, "the recursive call to '{0}' is not tail recursive because the actual out-parameter {1} is not the formal out-parameter '{2}'", s.Method.Name, i, formal.Name);
+                }
+                return TailRecursionStatus.NotTailRecursive;
+              }
+            }
+          }
+          tailCall = s;
+          return TailRecursionStatus.TailCallSpent;
+        }
+      } else if (stmt is BlockStmt) {
+        var s = (BlockStmt)stmt;
+        return CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+      } else if (stmt is IfStmt) {
+        var s = (IfStmt)stmt;
+        var stThen = CheckTailRecursive(s.Thn, enclosingMethod, ref tailCall, reportErrors);
+        if (stThen == TailRecursionStatus.NotTailRecursive) {
+          return stThen;
+        }
+        var stElse = s.Els == null ? TailRecursionStatus.CanBeFollowedByAnything : CheckTailRecursive(s.Els, enclosingMethod, ref tailCall, reportErrors);
+        if (stElse == TailRecursionStatus.NotTailRecursive) {
+          return stElse;
+        } else if (stThen == TailRecursionStatus.TailCallSpent || stElse == TailRecursionStatus.TailCallSpent) {
+          return TailRecursionStatus.TailCallSpent;
+        }
+      } else if (stmt is AlternativeStmt) {
+        var s = (AlternativeStmt)stmt;
+        var status = TailRecursionStatus.CanBeFollowedByAnything;
+        foreach (var alt in s.Alternatives) {
+          var st = CheckTailRecursive(alt.Body, enclosingMethod, ref tailCall, reportErrors);
+          if (st == TailRecursionStatus.NotTailRecursive) {
+            return st;
+          } else if (st == TailRecursionStatus.TailCallSpent) {
+            status = st;
+          }
+        }
+        return status;
+      } else if (stmt is WhileStmt) {
+        var s = (WhileStmt)stmt;
+        var status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        if (status != TailRecursionStatus.CanBeFollowedByAnything) {
+          if (status == TailRecursionStatus.NotTailRecursive) {
+            // an error has already been reported
+          } else if (reportErrors) {
+            Error(tailCall.Tok, "a recursive call inside a loop is not recognized as being a tail call");
+          }
+          return TailRecursionStatus.NotTailRecursive;
+        }
+      } else if (stmt is AlternativeLoopStmt) {
+        var s = (AlternativeLoopStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          var status = CheckTailRecursive(alt.Body, enclosingMethod, ref tailCall, reportErrors);
+          if (status != TailRecursionStatus.CanBeFollowedByAnything) {
+            if (status == TailRecursionStatus.NotTailRecursive) {
+              // an error has already been reported
+            } else if (reportErrors) {
+              Error(tailCall.Tok, "a recursive call inside a loop is not recognized as being a tail call");
+            }
+            return TailRecursionStatus.NotTailRecursive;
+          }
+        }
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        var status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        if (status != TailRecursionStatus.CanBeFollowedByAnything) {
+          if (status == TailRecursionStatus.NotTailRecursive) {
+            // an error has already been reported
+          } else if (reportErrors) {
+            Error(tailCall.Tok, "a recursive call inside a parallel statement is not a tail call");
+          }
+          return TailRecursionStatus.NotTailRecursive;
+        }
+      } else if (stmt is MatchStmt) {
+        var s = (MatchStmt)stmt;
+        var status = TailRecursionStatus.CanBeFollowedByAnything;
+        foreach (var kase in s.Cases) {
+          var st = CheckTailRecursive(kase.Body, enclosingMethod, ref tailCall, reportErrors);
+          if (st == TailRecursionStatus.NotTailRecursive) {
+            return st;
+          } else if (st == TailRecursionStatus.TailCallSpent) {
+            status = st;
+          }
+        }
+        return status;
+      } else if (stmt is AssignSuchThatStmt) {
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
+      } else {
+        Contract.Assert(false);  // unexpected statement type
+      }
+      return TailRecursionStatus.CanBeFollowedByAnything;
     }
 
     enum CallingPosition { Positive, Negative, Neither }
@@ -4997,7 +5186,7 @@ namespace Microsoft.Dafny
     ///   -- every IntBoundedPool returned has both a lower and an upper bound
     ///   -- no SuperSetBoundedPool is returned
     /// If "returnAllBounds" is true, then:
-    ///   -- a variable may give rise to BoundedPool's
+    ///   -- a variable may give rise to several BoundedPool's
     ///   -- IntBoundedPool bounds may have just one component
     ///   -- a non-null return value means that some bound were found for each variable (but, for example, perhaps one
     ///      variable only has lower bounds, no upper bounds)
@@ -5033,7 +5222,7 @@ namespace Microsoft.Dafny
           Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
           Expression upperBound = null;
           bool foundBoundsForBv = false;
-          if (lowerBound != null) {
+          if (returnAllBounds && lowerBound != null) {
             bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
             lowerBound = null;
             foundBoundsForBv = true;
@@ -5118,8 +5307,8 @@ namespace Microsoft.Dafny
             }
             if ((lowerBound != null && upperBound != null) ||
                 (returnAllBounds && (lowerBound != null || upperBound != null))) {
-              // we have found two halves
-                  bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
+              // we have found two halves (or, in the case of returnAllBounds, we have found some bound)
+              bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
               lowerBound = null;
               upperBound = null;
               foundBoundsForBv = true;

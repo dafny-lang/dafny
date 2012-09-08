@@ -14,7 +14,7 @@ namespace Microsoft.Dafny
       if (m is DefaultModuleDecl) {
         nw = new DefaultModuleDecl();
       } else {
-        nw = new ModuleDefinition(Tok(m.tok), name, m.IsGhost, m.IsAbstract, m.RefinementBaseName, null, true);
+        nw = new ModuleDefinition(Tok(m.tok), name, m.IsGhost, m.IsAbstract, m.RefinementBaseName, CloneAttributes(m.Attributes), true);
       }
       foreach (var d in m.TopLevelDecls) {
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
@@ -29,18 +29,18 @@ namespace Microsoft.Dafny
 
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
-        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, null);
+        return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, CloneAttributes(dd.Attributes));
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
+        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes));
         return dt;
       } else if (d is CoDatatypeDecl) {
         var dd = (CoDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, null);
+        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes));
         return dt;
       } else if (d is ClassDecl) {
         if (d is DefaultClassDecl) {
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny
           var dd = (ClassDecl)d;
           var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
           var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, null);
+          var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
           return cl;
         }
       } else if (d is ModuleDecl) {
@@ -84,7 +84,7 @@ namespace Microsoft.Dafny
     }
 
     public DatatypeCtor CloneCtor(DatatypeCtor ct) {
-      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.Formals.ConvertAll(CloneFormal), null);
+      return new DatatypeCtor(Tok(ct.tok), ct.Name, ct.Formals.ConvertAll(CloneFormal), CloneAttributes(ct.Attributes));
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
@@ -93,8 +93,9 @@ namespace Microsoft.Dafny
 
     public MemberDecl CloneMember(MemberDecl member) {
       if (member is Field) {
+        Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
+        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
       } else if (member is Function) {
         var f = (Function)member;
         return CloneFunction(f);
@@ -142,16 +143,23 @@ namespace Microsoft.Dafny
 
     public Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
       var ee = spec.Expressions == null ? null : spec.Expressions.ConvertAll(CloneExpr);
-      return new Specification<Expression>(ee, null);
+      return new Specification<Expression>(ee, CloneAttributes(spec.Attributes));
     }
 
     public Specification<FrameExpression> CloneSpecFrameExpr(Specification<FrameExpression> frame) {
       var ee = frame.Expressions == null ? null : frame.Expressions.ConvertAll(CloneFrameExpr);
-      return new Specification<FrameExpression>(ee, null);
+      return new Specification<FrameExpression>(ee, CloneAttributes(frame.Attributes));
     }
 
     public FrameExpression CloneFrameExpr(FrameExpression frame) {
       return new FrameExpression(Tok(frame.tok), CloneExpr(frame.E), frame.FieldName);
+    }
+    public Attributes CloneAttributes(Attributes attrs) {
+      if (attrs == null) {
+        return null;
+      } else {
+        return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneAttrArg), CloneAttributes(attrs.Prev));
+      }
     }
     public Attributes.Argument CloneAttrArg(Attributes.Argument aa) {
       if (aa.E != null) {
@@ -162,7 +170,9 @@ namespace Microsoft.Dafny
     }
 
     public MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
-      return new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree);
+      var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree);
+      mfe.Attributes = CloneAttributes(expr.Attributes);
+      return mfe;
     }
 
     public virtual Expression CloneExpr(Expression expr) {
@@ -273,9 +283,9 @@ namespace Microsoft.Dafny
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
         if (e is ForallExpr) {
-          return new ForallExpr(tk, bvs, range, term, null);
+          return new ForallExpr(tk, bvs, range, term, CloneAttributes(e.Attributes));
         } else if (e is ExistsExpr) {
-          return new ExistsExpr(tk, bvs, range, term, null);
+          return new ExistsExpr(tk, bvs, range, term, CloneAttributes(e.Attributes));
         } else if (e is MapComprehension) {
           return new MapComprehension(tk, bvs, range, term);
         } else {
@@ -319,21 +329,24 @@ namespace Microsoft.Dafny
     }
 
     public AssignmentRhs CloneRHS(AssignmentRhs rhs) {
+      AssignmentRhs c;
       if (rhs is ExprRhs) {
         var r = (ExprRhs)rhs;
-        return new ExprRhs(CloneExpr(r.Expr));
+        c = new ExprRhs(CloneExpr(r.Expr));
       } else if (rhs is HavocRhs) {
-        return new HavocRhs(Tok(rhs.Tok));
+        c = new HavocRhs(Tok(rhs.Tok));
       } else {
         var r = (TypeRhs)rhs;
         if (r.ArrayDimensions != null) {
-          return new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
         } else if (r.InitCall != null) {
-          return new TypeRhs(Tok(r.Tok), CloneType(r.EType), (CallStmt)CloneStmt(r.InitCall));
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), (CallStmt)CloneStmt(r.InitCall));
         } else {
-          return new TypeRhs(Tok(r.Tok), CloneType(r.EType));
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         }
       }
+      c.Attributes = CloneAttributes(rhs.Attributes);
+      return c;
     }
 
     public BlockStmt CloneBlockStmt(BlockStmt stmt) {
@@ -432,6 +445,7 @@ namespace Microsoft.Dafny
 
       // add labels to the cloned statement
       AddStmtLabels(r, stmt.Labels);
+      r.Attributes = CloneAttributes(stmt.Attributes);
 
       return r;
     }
@@ -462,13 +476,13 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), false);
       } else if (f is CoPredicate) {
         return new CoPredicate(Tok(f.tok), f.Name, f.IsStatic, tps, f.OpenParen, formals,
-          req, reads, ens, body, null, false);
+          req, reads, ens, body, CloneAttributes(f.Attributes), false);
       } else {
         return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, null, false);
+          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), false);
       }
     }
 
@@ -486,10 +500,10 @@ namespace Microsoft.Dafny
       var body = CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, null, false);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
       } else {
         return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, null, false);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
       }
     }
     public virtual IToken Tok(IToken tok) {
