@@ -42,8 +42,8 @@ namespace DafnyLanguage
         var options = new Dafny.DafnyOptions();
         options.ProverKillTime = 10;
         options.ErrorTrace = 0;
-        options.ApplyDefaultOptions();
         Dafny.DafnyOptions.Install(options);
+        options.ApplyDefaultOptions();
       }
     }
 
