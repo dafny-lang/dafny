@@ -1609,7 +1609,7 @@ namespace Microsoft.Dafny {
         var splits = new List<SplitExprInfo>();
         bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, etran);
         foreach (var s in splits) {
-          if (!s.IsFree) {
+          if (!s.IsFree && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
             ens.Add(Ensures(s.E.tok, s.IsFree, s.E, null, null));
           }
         }

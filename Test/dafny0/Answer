@@ -1456,12 +1456,12 @@ Refinement.dfy(74,15): Related location: This is the postcondition that might no
 Execution trace:
     (0,0): anon0
 Refinement.dfy(180,5): Error BP5003: A postcondition might not hold on this return path.
-Refinement.dfy(112,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy[IncorrectConcrete](112,15): Related location: This is the postcondition that might not hold.
 Refinement.dfy(177,9): Related location: Related location
 Execution trace:
     (0,0): anon0
 Refinement.dfy(184,5): Error BP5003: A postcondition might not hold on this return path.
-Refinement.dfy(120,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy[IncorrectConcrete](120,15): Related location: This is the postcondition that might not hold.
 Refinement.dfy(177,9): Related location: Related location
 Execution trace:
     (0,0): anon0
@@ -1614,6 +1614,54 @@ TailCalls.dfy(37,12): Error: 'decreases *' is allowed only on tail-recursive met
 TailCalls.dfy(42,12): Error: 'decreases *' is allowed only on tail-recursive methods
 TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive methods
 5 resolution/type errors detected in TailCalls.dfy
+
+-------------------- Superposition.dfy --------------------
+
+Verifying CheckWellformed$$_0_M0.C.M ...
+  [0 proof obligations]  verified
+
+Verifying _0_M0.C.M ...
+  [4 proof obligations]  verified
+
+Verifying CheckWellformed$$_0_M0.C.P ...
+  [4 proof obligations]  verified
+
+Verifying CheckWellformed$$_0_M0.C.Q ...
+Superposition.dfy(24,15): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(25,26): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon5_Else
+  [3 proof obligations]  error
+
+Verifying CheckWellformed$$_0_M0.C.R ...
+Superposition.dfy(30,15): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(31,26): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon5_Else
+  [3 proof obligations]  error
+
+Verifying CheckWellformed$$_1_M1.C.M ...
+  [0 proof obligations]  verified
+
+Verifying RefinementImpl_M1$$_1_M1.C.M ...
+  [0 proof obligations]  verified
+
+Verifying CheckWellformed$$_1_M1.C.P ...
+Superposition.dfy(47,15): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy[M1](19,26): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon7_Else
+    (0,0): anon9_Then
+    (0,0): anon6
+  [1 proof obligation]  error
+
+Verifying CheckWellformed$$_1_M1.C.Q ...
+  [0 proof obligations]  verified
+
+Verifying CheckWellformed$$_1_M1.C.R ...
+  [0 proof obligations]  verified
+
+Dafny program verifier finished with 7 verified, 3 errors
 
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range

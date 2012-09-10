@@ -454,7 +454,7 @@ namespace Microsoft.Dafny
       }
       moduleUnderConstruction = null;
     }
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions) {
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
@@ -465,9 +465,10 @@ namespace Microsoft.Dafny
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
 
       List<Expression> ens;
-      if (moreBody != null || replacementBody != null)
+      if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
         ens = f.Ens.ConvertAll(rawCloner.CloneExpr);
-      else ens = f.Ens.ConvertAll(refinementCloner.CloneExpr);
+      else
+        ens = f.Ens.ConvertAll(refinementCloner.CloneExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -502,7 +503,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt replacementBody) {
+    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions) {
       Contract.Requires(m != null);
       Contract.Requires(decreases != null);
 
@@ -512,14 +513,15 @@ namespace Microsoft.Dafny
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
       List<MaybeFreeExpression> ens;
-      if (replacementBody != null)
+      if (checkPreviousPostconditions)
         ens = m.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
-      else ens = m.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      else
+        ens = m.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
 
-      var body = replacementBody ?? refinementCloner.CloneBlockStmt(m.Body);
+      var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
           req, mod, ens, decreases, body, null, false);
@@ -604,7 +606,7 @@ namespace Microsoft.Dafny
               } else if (f.Body != null) {
                 reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
-              nw.Members[index] = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody);
+              nw.Members[index] = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null);
             }
 
           } else {
@@ -654,7 +656,7 @@ namespace Microsoft.Dafny
                   replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              nw.Members[index] = CloneMethod(prevMethod, m.Ens, decreases, replacementBody);
+              nw.Members[index] = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null);
             }
           }
         }
