@@ -8089,7 +8089,9 @@ namespace Microsoft.Dafny {
       Bpl.Expr Conclusion = new Bpl.ForallExpr(tok, bvs, new Bpl.Trigger(tok, true, new ExprSeq(etran.TrExpr(C))),
         Bpl.Expr.Imp(preStuff, etran.TrExpr(C)));
       // Now for the antecedent of the axiom
-      // TODO: if e.Body uses a 'match' expression, first desugar it into an ordinary expression
+      if (coPredicate.Body is MatchExpr) {
+        return Bpl.Expr.True;  // TODO: if coPredicate.Body uses a 'match' expression, first desugar it into an ordinary expression
+      }
       var s = new CoinductionSubstituter(coPredicate, receiverReplacement, substMap, pre, boundVars, receiverReplacement, args);
       var body = s.Substitute(coPredicate.Body);
       Bpl.Expr Antecedent = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(preStuff, etran.TrExpr(body)));

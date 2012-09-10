@@ -1393,6 +1393,16 @@ namespace Microsoft.Dafny
           default:
             break;
         }
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        CoPredicateChecks(e.Source, context, CallingPosition.Neither);
+        e.Cases.Iter(kase => CoPredicateChecks(kase.Body, context, cp));
+        return;
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        CoPredicateChecks(e.Test, context, CallingPosition.Neither);
+        CoPredicateChecks(e.Thn, context, cp);
+        CoPredicateChecks(e.Els, context, cp);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         CoPredicateChecks(e.Body, context, cp);
