@@ -980,7 +980,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			while (IsAttribute()) {
 				Attribute(ref decAttrs);
 			}
-			DecreasesList(decreases, false);
+			DecreasesList(decreases, true);
 			while (!(la.kind == 0 || la.kind == 14)) {SynErr(137); Get();}
 			Expect(14);
 		} else SynErr(138);
@@ -1032,7 +1032,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expression/*!*/ e; 
 		PossiblyWildExpression(out e);
 		if (!allowWildcard && e is WildcardExpr) {
-		 SemErr(e.tok, "'decreases *' is only allowed on loops");
+		 SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
 		} else {
 		 decreases.Add(e);
 		}
@@ -1041,7 +1041,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			PossiblyWildExpression(out e);
 			if (!allowWildcard && e is WildcardExpr) {
-			 SemErr(e.tok, "'decreases *' is only allowed on loops");
+			 SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
 			} else {
 			 decreases.Add(e);
 			}

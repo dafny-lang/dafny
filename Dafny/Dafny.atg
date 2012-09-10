@@ -487,7 +487,7 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
     ( "requires" Expression<out e> SYNC ";"                       (. req.Add(new MaybeFreeExpression(e, isFree)); .)
     | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> } Expression<out e> SYNC ";"          (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, false> SYNC ";"
+  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals, out IToken openParen.>
@@ -1087,13 +1087,13 @@ Invariant<out MaybeFreeExpression/*!*/ invariant>
 DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
 = (. Expression/*!*/ e; .)
   PossiblyWildExpression<out e>          (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is only allowed on loops");
+                                              SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
                                             } else {
                                               decreases.Add(e);
                                             }
                                          .)
   { "," PossiblyWildExpression<out e>    (. if (!allowWildcard && e is WildcardExpr) {
-                                              SemErr(e.tok, "'decreases *' is only allowed on loops");
+                                              SemErr(e.tok, "'decreases *' is only allowed on loops and tail-recursive methods");
                                             } else {
                                               decreases.Add(e);
                                             }

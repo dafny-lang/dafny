@@ -976,6 +976,8 @@ namespace Microsoft.Dafny
                   bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
                   if (hasTailRecursionPreference && !tail) {
                     // the user specifically requested no tail recursion, so do nothing else
+                  } else if (hasTailRecursionPreference && tail && m.IsGhost) {
+                    Error(m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
                   } else {
                     var module = m.EnclosingClass.Module;
                     var sccSize = module.CallGraph.GetSCCSize(m);
@@ -984,11 +986,14 @@ namespace Microsoft.Dafny
                     } else if (hasTailRecursionPreference || sccSize == 1) {
                       CallStmt tailCall = null;
                       var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
-                      if (status == TailRecursionStatus.TailCallSpent || (hasTailRecursionPreference && status == TailRecursionStatus.CanBeFollowedByAnything)) {
+                      if (status != TailRecursionStatus.NotTailRecursive) {
                         m.IsTailRecursive = true;
                       }
                     }
                   }
+                }
+                if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
+                  Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
                 }
               } else if (member is Function) {
                 var f = (Function)member;
@@ -2275,6 +2280,9 @@ namespace Microsoft.Dafny
       foreach (Expression e in m.Decreases.Expressions) {
         ResolveExpression(e, false);
         // any type is fine
+        if (m.IsGhost && e is WildcardExpr) {
+          Error(e, "'decreases *' is not allowed on ghost methods");
+        }
       }
 
       // Add out-parameters to a new scope that will also include the outermost-level locals of the body
@@ -3363,6 +3371,7 @@ namespace Microsoft.Dafny
       foreach (var a in s.ResolvedStatements) {
         ResolveStatement(a, specContextOnly, method);
       }
+      s.IsGhost = s.ResolvedStatements.TrueForAll(ss => ss.IsGhost);
     }
 
     bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, AlternativeLoopStmt loopToCatchBreaks, Method method) {

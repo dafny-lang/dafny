@@ -1607,6 +1607,14 @@ RefinementModificationChecking.dfy(17,4): Error: cannot assign to variable defin
 RefinementModificationChecking.dfy(18,4): Error: cannot assign to variable defined previously
 2 resolution/type errors detected in RefinementModificationChecking.dfy
 
+-------------------- TailCalls.dfy --------------------
+TailCalls.dfy(18,15): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
+TailCalls.dfy(30,12): Error: 'decreases *' is allowed only on tail-recursive methods
+TailCalls.dfy(37,12): Error: 'decreases *' is allowed only on tail-recursive methods
+TailCalls.dfy(42,12): Error: 'decreases *' is allowed only on tail-recursive methods
+TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive methods
+5 resolution/type errors detected in TailCalls.dfy
+
 -------------------- SmallTests.dfy --------------------
 SmallTests.dfy(30,11): Error: index out of range
 Execution trace:

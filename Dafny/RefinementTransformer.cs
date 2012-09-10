@@ -502,14 +502,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, BlockStmt replacementBody) {
+    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt replacementBody) {
       Contract.Requires(m != null);
+      Contract.Requires(decreases != null);
 
       var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = m.Ins.ConvertAll(refinementCloner.CloneFormal);
       var req = m.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
-      var decreases = refinementCloner.CloneSpecExpr(m.Decreases);
 
       List<MaybeFreeExpression> ens;
       if (replacementBody != null)
@@ -619,10 +619,15 @@ namespace Microsoft.Dafny
               if (m.Mod.Expressions.Count != 0) {
                 reporter.Error(m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
               }
-              if (m.Decreases.Expressions.Count != 0) {
-                reporter.Error(m.Decreases.Expressions[0].tok, "decreases clause on refining method not supported");
+              Specification<Expression> decreases;
+              if (Contract.Exists(prevMethod.Decreases.Expressions, e => e is WildcardExpr)) {
+                decreases = m.Decreases;
+              } else {
+                if (m.Decreases.Expressions.Count != 0) {
+                  reporter.Error(m.Decreases.Expressions[0].tok, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
+                }
+                decreases = refinementCloner.CloneSpecExpr(prevMethod.Decreases);
               }
-
               if (prevMethod.IsStatic != m.IsStatic) {
                 reporter.Error(m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
               }
@@ -649,7 +654,7 @@ namespace Microsoft.Dafny
                   replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              nw.Members[index] = CloneMethod(prevMethod, m.Ens, replacementBody);
+              nw.Members[index] = CloneMethod(prevMethod, m.Ens, decreases, replacementBody);
             }
           }
         }

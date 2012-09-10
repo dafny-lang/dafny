@@ -5042,6 +5042,11 @@ namespace Microsoft.Dafny {
       // order where elements from different Dafny types are incomparable.  Thus, as an optimization below, if two
       // components from different types are compared, the answer is taken to be false.
 
+      if (Contract.Exists(calleeDecreases, e => e is WildcardExpr)) {
+        // no check needed
+        return;
+      }
+
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
       List<IToken> toks = new List<IToken>();
       List<Type> types = new List<Type>();
