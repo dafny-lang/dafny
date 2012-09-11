@@ -637,7 +637,7 @@ namespace Microsoft.Dafny {
               if (m.IsTailRecursive) {
                 Indent(indent); wr.WriteLine("TAIL_CALL_START: ;");
                 if (!m.IsStatic) {
-                  Indent(indent); wr.WriteLine("var _this = this;");
+                  Indent(indent + IndentAmount); wr.WriteLine("var _this = this;");
                 }
               }
               Contract.Assert(enclosingMethod == null);

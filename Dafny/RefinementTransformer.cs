@@ -785,8 +785,6 @@ namespace Microsoft.Dafny
            * 
            * Note, LoopSpec must contain only invariant declarations (as the parser ensures for the first three cases).
            * Note, there is an implicit "...;" at the end of every block in a skeleton.
-           *   
-           * TODO:  should also handle labels and some form of new "replace" statement
            */
           if (cur is SkeletonStatement) {
             var S = ((SkeletonStatement)cur).S;
@@ -1071,10 +1069,21 @@ namespace Microsoft.Dafny
     }
 
     bool PotentialMatch(Statement nxt, Statement other) {
+      Contract.Requires(nxt != null);
       Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
       Contract.Requires(other != null);
 
-      if (nxt is SkeletonStatement) {
+      if (nxt.Labels != null) {
+        for (var olbl = other.Labels; olbl != null; olbl = olbl.Next) {
+          var odata = olbl.Data;
+          for (var l = nxt.Labels; l != null; l = l.Next) {
+            if (odata.Name == l.Data.Name) {
+              return true;
+            }
+          }
+        }
+        return false;  // labels of 'nxt' don't match any label of 'other'
+      } else  if (nxt is SkeletonStatement) {
         var S = ((SkeletonStatement)nxt).S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
