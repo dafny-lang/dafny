@@ -2245,14 +2245,31 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		case 6: case 62: {
 			DisplayExpr(out e);
+			while (la.kind == 17 || la.kind == 62) {
+				Suffix(ref e);
+			}
 			break;
 		}
 		case 44: {
 			MultiSetExpr(out e);
+			while (la.kind == 17 || la.kind == 62) {
+				Suffix(ref e);
+			}
 			break;
 		}
 		case 46: {
-			MapExpr(out e);
+			Get();
+			x = t; 
+			if (la.kind == 62) {
+				MapDisplayExpr(x, out e);
+				while (la.kind == 17 || la.kind == 62) {
+					Suffix(ref e);
+				}
+			} else if (la.kind == 1) {
+				MapComprehensionExpr(x, out e);
+			} else if (StartOf(19)) {
+				SemErr("map must be followed by literal in brackets or comprehension."); 
+			} else SynErr(177);
 			break;
 		}
 		case 2: case 22: case 26: case 97: case 98: case 99: case 100: case 101: case 102: {
@@ -2262,7 +2279,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			break;
 		}
-		default: SynErr(177); break;
+		default: SynErr(178); break;
 		}
 	}
 
@@ -2277,7 +2294,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 95) {
 			Get();
 			x = t;  op = BinaryExpr.Opcode.Mod; 
-		} else SynErr(178);
+		} else SynErr(179);
 	}
 
 	void NegOp() {
@@ -2285,7 +2302,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 96) {
 			Get();
-		} else SynErr(179);
+		} else SynErr(180);
 	}
 
 	void EndlessExpression(out Expression e) {
@@ -2343,7 +2360,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			NamedExpr(out e);
 			break;
 		}
-		default: SynErr(180); break;
+		default: SynErr(181); break;
 		}
 	}
 
@@ -2417,7 +2434,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 						multipleIndices.Add(ee);
 						
 					}
-				} else SynErr(181);
+				} else SynErr(182);
 			} else if (la.kind == 104) {
 				Get();
 				anyDots = true; 
@@ -2425,7 +2442,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					Expression(out ee);
 					e1 = ee; 
 				}
-			} else SynErr(182);
+			} else SynErr(183);
 			if (multipleIndices != null) {
 			 e = new MultiSelectExpr(x, e, multipleIndices);
 			 // make sure an array class with this dimensionality exists
@@ -2449,7 +2466,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			
 			Expect(63);
-		} else SynErr(183);
+		} else SynErr(184);
 	}
 
 	void DisplayExpr(out Expression e) {
@@ -2473,7 +2490,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			e = new SeqDisplayExpr(x, elements); 
 			Expect(63);
-		} else SynErr(184);
+		} else SynErr(185);
 	}
 
 	void MultiSetExpr(out Expression e) {
@@ -2497,43 +2514,41 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e);
 			e = new MultiSetFormingExpr(x, e); 
 			Expect(28);
-		} else if (StartOf(19)) {
+		} else if (StartOf(20)) {
 			SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); 
-		} else SynErr(185);
+		} else SynErr(186);
 	}
 
-	void MapExpr(out Expression e) {
+	void MapDisplayExpr(IToken/*!*/ mapToken, out Expression e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-		IToken/*!*/ x = Token.NoToken;
-		List<ExpressionPair/*!*/>/*!*/ elements;
+		List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
 		e = dummyExpr;
 		
-		Expect(46);
-		x = t; 
-		if (la.kind == 62) {
+		Expect(62);
+		if (StartOf(10)) {
+			MapLiteralExpressions(out elements);
+		}
+		e = new MapDisplayExpr(mapToken, elements);
+		Expect(63);
+	}
+
+	void MapComprehensionExpr(IToken/*!*/ mapToken, out Expression e) {
+		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+		BoundVar/*!*/ bv;
+		List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
+		Expression range = null;
+		Expression body;
+		
+		IdentTypeOptional(out bv);
+		bvars.Add(bv); 
+		if (la.kind == 22) {
 			Get();
-			elements = new List<ExpressionPair/*!*/>(); 
-			if (StartOf(10)) {
-				MapLiteralExpressions(out elements);
-			}
-			e = new MapDisplayExpr(x, elements);
-			Expect(63);
-		} else if (la.kind == 1) {
-			BoundVar/*!*/ bv;
-			List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
-			Expression/*!*/ range;
-			Expression body = null;
-			
-			IdentTypeOptional(out bv);
-			bvars.Add(bv); 
-			Expect(22);
 			Expression(out range);
-			QSep();
-			Expression(out body);
-			e = new MapComprehension(x, bvars, range, body); 
-		} else if (StartOf(19)) {
-			SemErr("map must be followed by literal in brackets or comprehension."); 
-		} else SynErr(186);
+		}
+		QSep();
+		Expression(out body);
+		e = new MapComprehension(mapToken, bvars, range ?? new LiteralExpr(mapToken, true), body);
+		
 	}
 
 	void ConstAtomExpression(out Expression/*!*/ e) {
@@ -2801,7 +2816,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(5);
 		Expect(1);
 		aName = t.val; 
-		if (StartOf(20)) {
+		if (StartOf(21)) {
 			AttributeArg(out aArg);
 			aArgs.Add(aArg); 
 			while (la.kind == 24) {
@@ -2846,6 +2861,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x},
 		{x,x,x,x, x,x,T,T, x,x,x,x, x,x,T,x, x,x,x,x, x,x,T,x, T,x,x,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,T,x,x, x,x,x,T, x,x,T,T, T,x,x,x, x,x,x,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, x,T,T,x, x},
+		{x,x,x,x, x,x,T,T, x,x,x,x, x,x,T,x, x,T,x,x, x,x,T,x, T,x,x,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,T,x,x, x,x,T,T, x,x,T,T, T,x,x,x, x,x,x,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, x,T,T,x, x},
 		{x,T,T,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,T,x, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, x,T,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, T,x,x,x, x}
 
 	};
@@ -3049,15 +3065,15 @@ public class Errors {
 			case 175: s = "invalid RelOp"; break;
 			case 176: s = "invalid AddOp"; break;
 			case 177: s = "invalid UnaryExpression"; break;
-			case 178: s = "invalid MulOp"; break;
-			case 179: s = "invalid NegOp"; break;
-			case 180: s = "invalid EndlessExpression"; break;
-			case 181: s = "invalid Suffix"; break;
+			case 178: s = "invalid UnaryExpression"; break;
+			case 179: s = "invalid MulOp"; break;
+			case 180: s = "invalid NegOp"; break;
+			case 181: s = "invalid EndlessExpression"; break;
 			case 182: s = "invalid Suffix"; break;
 			case 183: s = "invalid Suffix"; break;
-			case 184: s = "invalid DisplayExpr"; break;
-			case 185: s = "invalid MultiSetExpr"; break;
-			case 186: s = "invalid MapExpr"; break;
+			case 184: s = "invalid Suffix"; break;
+			case 185: s = "invalid DisplayExpr"; break;
+			case 186: s = "invalid MultiSetExpr"; break;
 			case 187: s = "invalid ConstAtomExpression"; break;
 			case 188: s = "invalid QSep"; break;
 			case 189: s = "invalid QuantifierGuts"; break;

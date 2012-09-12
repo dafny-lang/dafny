@@ -1411,8 +1411,15 @@ UnaryExpression<out Expression/*!*/ e>
   | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
   | DisplayExpr<out e>
+    { Suffix<ref e> }
   | MultiSetExpr<out e>
-  | MapExpr<out e>
+    { Suffix<ref e> }
+  | "map"                                      (. x = t; .)
+    ( MapDisplayExpr<x, out e>
+      { Suffix<ref e> }
+    | MapComprehensionExpr<x, out e>
+    | (. SemErr("map must be followed by literal in brackets or comprehension."); .)
+    )
   | ConstAtomExpression<out e>
     { Suffix<ref e> }
   )
@@ -1482,31 +1489,14 @@ MultiSetExpr<out Expression e>
   | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
   .
-MapExpr<out Expression e>
+MapDisplayExpr<IToken/*!*/ mapToken, out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x = Token.NoToken;
-     List<ExpressionPair/*!*/>/*!*/ elements;
+     List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
      e = dummyExpr;
   .)
-  "map"                                        (. x = t; .)
-  ( "["                                        (. elements = new List<ExpressionPair/*!*/>(); .)
-      [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(x, elements);.)
-    "]"
-  | (
-     (. 
-     BoundVar/*!*/ bv;
-     List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
-     Expression/*!*/ range;
-     Expression body = null;
-    .)
-      IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-      "|" Expression<out range>
-      QSep
-      Expression<out body>
-      (. e = new MapComprehension(x, bvars, range, body); .) 
-    )
-  | (. SemErr("map must be followed by literal in brackets or comprehension."); .)
-  )
+  "["
+    [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(mapToken, elements);.)
+  "]"
   .
 MapLiteralExpressions<.out List<ExpressionPair> elements.>
 = (. Expression/*!*/ d, r;
@@ -1514,6 +1504,20 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
   Expression<out d> ":=" Expression<out r>      (. elements.Add(new ExpressionPair(d,r)); .)
   { "," Expression<out d> ":=" Expression<out r>(. elements.Add(new ExpressionPair(d,r)); .)
   }
+  .
+MapComprehensionExpr<IToken/*!*/ mapToken, out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     BoundVar/*!*/ bv;
+     List<BoundVar/*!*/> bvars = new List<BoundVar/*!*/>();
+     Expression range = null;
+     Expression body;
+  .)
+  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+  [ "|" Expression<out range> ]
+  QSep
+  Expression<out body>
+  (. e = new MapComprehension(mapToken, bvars, range ?? new LiteralExpr(mapToken, true), body);
+  .)
   .
 EndlessExpression<out Expression e>
 = (. IToken/*!*/ x;

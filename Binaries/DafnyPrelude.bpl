@@ -357,6 +357,10 @@ axiom (forall<T> s: Seq T, v: T, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }
     0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
 
+// Additional axioms about common things
+axiom Seq#Take(Seq#Empty(): Seq BoxType, 0) == Seq#Empty();  // [][..0] == []
+axiom Seq#Drop(Seq#Empty(): Seq BoxType, 0) == Seq#Empty();  // [][0..] == []
+
 // ---------------------------------------------------------------
 // -- Axiomatization of Maps -------------------------------------
 // ---------------------------------------------------------------
