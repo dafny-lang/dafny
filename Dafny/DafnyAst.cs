@@ -2662,6 +2662,56 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class CalcStmt : Statement
+  {
+      public readonly List<Expression/*!*/> Steps;  // come up with a better name
+      public readonly List<Statement> Hints;  // an empty hint is represented with null
+
+      [ContractInvariantMethod]
+      void ObjectInvariant()
+      {
+          Contract.Invariant(Steps != null);
+          Contract.Invariant(Hints != null);
+          Contract.Invariant(Steps.Count > 0);
+          Contract.Invariant(Hints.Count == Steps.Count - 1);
+      }
+
+      public CalcStmt(IToken tok, List<Expression/*!*/> steps, List<Statement> hints)
+          // Attributes attrs?
+          : base(tok)
+      {
+          Contract.Requires(tok != null);
+          Contract.Requires(steps != null);
+          Contract.Requires(cce.NonNullElements(steps));
+          Contract.Requires(hints != null);
+          Contract.Requires(steps.Count > 0);
+          Contract.Requires(hints.Count == steps.Count - 1);
+          this.Steps = steps;
+          this.Hints = hints;
+      }
+
+      public override IEnumerable<Statement> SubStatements
+      {
+          get
+          {
+              foreach (var h in Hints)
+              {
+                  if (h != null) yield return h;
+              }
+          }
+      }
+      public override IEnumerable<Expression> SubExpressions
+      {
+          get
+          {
+              foreach (var s in Steps)
+              {
+                  yield return s;
+              }
+          }
+      }
+  }
+
   public class MatchStmt : Statement
   {
     [ContractInvariantMethod]

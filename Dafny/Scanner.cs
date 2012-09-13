@@ -211,8 +211,8 @@ public class UTF8Buffer: Buffer {
 public class Scanner {
 	const char EOL = '\n';
 	const int eofSym = 0; /* pdt */
-	const int maxT = 111;
-	const int noSym = 111;
+	const int maxT = 112;
+	const int noSym = 112;
 
 
 	[ContractInvariantMethod]
@@ -537,16 +537,17 @@ public class Scanner {
 			case "assert": t.kind = 72; break;
 			case "print": t.kind = 73; break;
 			case "parallel": t.kind = 74; break;
-			case "in": t.kind = 87; break;
-			case "false": t.kind = 97; break;
-			case "true": t.kind = 98; break;
-			case "null": t.kind = 99; break;
-			case "this": t.kind = 100; break;
-			case "fresh": t.kind = 101; break;
-			case "old": t.kind = 102; break;
-			case "then": t.kind = 103; break;
-			case "forall": t.kind = 105; break;
-			case "exists": t.kind = 107; break;
+			case "calc": t.kind = 75; break;
+			case "in": t.kind = 88; break;
+			case "false": t.kind = 98; break;
+			case "true": t.kind = 99; break;
+			case "null": t.kind = 100; break;
+			case "this": t.kind = 101; break;
+			case "fresh": t.kind = 102; break;
+			case "old": t.kind = 103; break;
+			case "then": t.kind = 104; break;
+			case "forall": t.kind = 106; break;
+			case "exists": t.kind = 108; break;
 			default: break;
 		}
 	}
@@ -679,54 +680,54 @@ public class Scanner {
 				if (ch == '>') {AddCh(); goto case 32;}
 				else {goto case 0;}
 			case 32:
-				{t.kind = 75; break;}
-			case 33:
 				{t.kind = 76; break;}
-			case 34:
+			case 33:
 				{t.kind = 77; break;}
-			case 35:
+			case 34:
 				{t.kind = 78; break;}
+			case 35:
+				{t.kind = 79; break;}
 			case 36:
 				if (ch == '&') {AddCh(); goto case 37;}
 				else {goto case 0;}
 			case 37:
-				{t.kind = 79; break;}
-			case 38:
 				{t.kind = 80; break;}
-			case 39:
+			case 38:
 				{t.kind = 81; break;}
-			case 40:
+			case 39:
 				{t.kind = 82; break;}
+			case 40:
+				{t.kind = 83; break;}
 			case 41:
-				{t.kind = 84; break;}
-			case 42:
 				{t.kind = 85; break;}
-			case 43:
+			case 42:
 				{t.kind = 86; break;}
+			case 43:
+				{t.kind = 87; break;}
 			case 44:
-				{t.kind = 89; break;}
-			case 45:
 				{t.kind = 90; break;}
-			case 46:
+			case 45:
 				{t.kind = 91; break;}
-			case 47:
+			case 46:
 				{t.kind = 92; break;}
-			case 48:
+			case 47:
 				{t.kind = 93; break;}
-			case 49:
+			case 48:
 				{t.kind = 94; break;}
-			case 50:
+			case 49:
 				{t.kind = 95; break;}
-			case 51:
+			case 50:
 				{t.kind = 96; break;}
+			case 51:
+				{t.kind = 97; break;}
 			case 52:
-				{t.kind = 106; break;}
+				{t.kind = 107; break;}
 			case 53:
-				{t.kind = 108; break;}
-			case 54:
 				{t.kind = 109; break;}
-			case 55:
+			case 54:
 				{t.kind = 110; break;}
+			case 55:
+				{t.kind = 111; break;}
 			case 56:
 				recEnd = pos; recKind = 5;
 				if (ch == '=') {AddCh(); goto case 26;}
@@ -755,22 +756,22 @@ public class Scanner {
 				if (ch == '=') {AddCh(); goto case 41;}
 				else {t.kind = 30; break;}
 			case 62:
-				recEnd = pos; recKind = 88;
+				recEnd = pos; recKind = 89;
 				if (ch == '=') {AddCh(); goto case 42;}
 				else if (ch == '!') {AddCh(); goto case 43;}
-				else {t.kind = 88; break;}
+				else {t.kind = 89; break;}
 			case 63:
 				recEnd = pos; recKind = 27;
 				if (ch == '>') {AddCh(); goto case 34;}
 				else {t.kind = 27; break;}
 			case 64:
-				recEnd = pos; recKind = 104;
+				recEnd = pos; recKind = 105;
 				if (ch == '.') {AddCh(); goto case 23;}
-				else {t.kind = 104; break;}
+				else {t.kind = 105; break;}
 			case 65:
-				recEnd = pos; recKind = 83;
+				recEnd = pos; recKind = 84;
 				if (ch == '=') {AddCh(); goto case 31;}
-				else {t.kind = 83; break;}
+				else {t.kind = 84; break;}
 
 		}
 		t.val = new String(tval, 0, tlen);

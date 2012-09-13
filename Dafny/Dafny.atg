@@ -771,6 +771,7 @@ OneStmt<out Statement/*!*/ s>
   | WhileStmt<out s>
   | MatchStmt<out s>
   | ParallelStmt<out s>
+  | CalcStmt<out s>
   | "label"                            (. x = t; .)
     NoUSIdent<out id> ":"
     OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
@@ -1215,6 +1216,28 @@ ParallelStmt<out Statement/*!*/ s>
   BlockStmt<out block, out bodyStart, out bodyEnd>
   (. s = new ParallelStmt(x, bvars, attrs, range, ens, block); .)
   .
+
+CalcStmt<out Statement/*!*/ s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     Token x;
+     List<Expression/*!*/> steps = new List<Expression/*!*/>();
+     List<Statement> hints = new List<Statement>(); 
+     Expression/*!*/ e;
+     BlockStmt/*!*/ block;
+     IToken bodyStart, bodyEnd;
+  .)
+  "calc"                                                (. x = t; .)
+  "{"
+  Expression<out e>                                     (. steps.Add(e); .) 
+  { 
+    ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. hints.Add(block); .)
+    |                                                   (. hints.Add(null); .)
+    )
+    Expression<out e>                                   (. steps.Add(e); .)
+  }
+  "}"
+  (. s = new CalcStmt(x, steps, hints); .)
+  .
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>
 =
@@ -1510,7 +1533,7 @@ MapExpr<out Expression e>
   .
 MapLiteralExpressions<.out List<ExpressionPair> elements.>
 = (. Expression/*!*/ d, r;
-	 elements = new List<ExpressionPair/*!*/>(); .)
+     elements = new List<ExpressionPair/*!*/>(); .)
   Expression<out d> ":=" Expression<out r>      (. elements.Add(new ExpressionPair(d,r)); .)
   { "," Expression<out d> ":=" Expression<out r>(. elements.Add(new ExpressionPair(d,r)); .)
   }
