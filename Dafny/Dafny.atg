@@ -1228,12 +1228,14 @@ CalcStmt<out Statement/*!*/ s>
   .)
   "calc"                                                (. x = t; .)
   "{"
-  Expression<out e>                                     (. steps.Add(e); .) 
+  Expression<out e>                                     (. steps.Add(e); .)
+  ";"
   { 
     ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. hints.Add(block); .)
     |                                                   (. hints.Add(null); .)
     )
     Expression<out e>                                   (. steps.Add(e); .)
+    ";"
   }
   "}"
   (. s = new CalcStmt(x, steps, hints); .)

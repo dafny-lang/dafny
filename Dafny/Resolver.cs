@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -1316,6 +1317,8 @@ namespace Microsoft.Dafny
           }
           return TailRecursionStatus.NotTailRecursive;
         }
+      } else if (stmt is CalcStmt) {
+          // NadiaTodo		
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         var status = TailRecursionStatus.CanBeFollowedByAnything;
@@ -1705,6 +1708,11 @@ namespace Microsoft.Dafny
         var s = (ParallelStmt)stmt;
         CheckTypeInference(s.Range);
         CheckTypeInference(s.Body);
+      } else if (stmt is CalcStmt) {
+        // NadiaToDo: what does this even do?
+        var s = (CalcStmt)stmt;
+        s.SubExpressions.Iter(e => CheckTypeInference(e));
+        s.SubStatements.Iter(CheckTypeInference);		
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         CheckTypeInference(s.Source);
@@ -3123,6 +3131,30 @@ namespace Microsoft.Dafny
           }
           CheckParallelBodyRestrictions(s.Body, s.Kind);
         }
+		
+      } else if (stmt is CalcStmt) {
+          CalcStmt s = (CalcStmt)stmt;
+          s.IsGhost = true;
+          Contract.Assert(s.Steps.Count > 0); // follows from the invariant of CalcStatement
+          var source = s.Steps[0];
+          ResolveExpression(source, true);
+          Contract.Assert(source.Type != null);  // follows from postcondition of ResolveExpression
+          foreach (var e in s.Steps.Skip(1))
+          {
+              ResolveExpression(e, true);
+              Contract.Assert(e.Type != null);  // follows from postcondition of ResolveExpression
+              if (!UnifyTypes(source.Type, e.Type))
+              {
+                  Error(e, "all calculation steps must have the same type (got {0} after {1})", e.Type, source.Type);
+              }
+          }
+          foreach (var h in s.Hints)
+          {
+              if (h != null)
+              {
+                  ResolveStatement(h, true, method);
+              }
+          }
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
@@ -3721,6 +3753,10 @@ namespace Microsoft.Dafny
             Contract.Assert(false);  // unexpected kind
             break;
         }
+		
+      } else if (stmt is CalcStmt) {
+          // cool
+          // NadiaTodo: ...I assume because it's always ghost		
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;

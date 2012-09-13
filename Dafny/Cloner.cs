@@ -422,6 +422,10 @@ namespace Microsoft.Dafny
         var s = (ParallelStmt)stmt;
         r = new ParallelStmt(Tok(s.Tok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
 
+      } else if (stmt is CalcStmt) {
+          var s = (CalcStmt)stmt;
+          r = new CalcStmt(Tok(s.Tok), s.Steps.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneStmt));
+
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         r = new MatchStmt(Tok(s.Tok), CloneExpr(s.Source),
