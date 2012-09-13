@@ -454,7 +454,7 @@ namespace Microsoft.Dafny
       }
       moduleUnderConstruction = null;
     }
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
@@ -493,17 +493,17 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, bodyOrigin, null, false);
+          req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), false);
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
-          req, reads, ens, body, null, false);
+          req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), false);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, refinementCloner.CloneType(f.ResultType),
-          req, reads, ens, decreases, body, null, false);
+          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), false);
       }
     }
 
-    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions) {
+    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(m != null);
       Contract.Requires(decreases != null);
 
@@ -524,10 +524,10 @@ namespace Microsoft.Dafny
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
-          req, mod, ens, decreases, body, null, false);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, ens, decreases, body, null, false);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
       }
     }
 
@@ -606,7 +606,7 @@ namespace Microsoft.Dafny
               } else if (f.Body != null) {
                 reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
-              nw.Members[index] = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null);
+              nw.Members[index] = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
             }
 
           } else {
@@ -656,7 +656,7 @@ namespace Microsoft.Dafny
                   replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              nw.Members[index] = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null);
+              nw.Members[index] = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
             }
           }
         }
@@ -837,7 +837,8 @@ namespace Microsoft.Dafny
                 // it is not allowed to be just assumed in the translation, despite the fact
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
-                body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), null)));
+                var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
+                body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), attrs)));
                 i++; j++;
               }
 
@@ -850,7 +851,8 @@ namespace Microsoft.Dafny
                 i++;
               } else {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
-                body.Add(new AssumeStmt(skel.Tok, e, null));
+                var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
+                body.Add(new AssumeStmt(skel.Tok, e, attrs));
                 i++; j++;
               }
 
@@ -1306,6 +1308,13 @@ namespace Microsoft.Dafny
     }
     public override IToken Tok(IToken tok) {
       return new RefinementToken(tok, moduleUnderConstruction);
+    }
+    public virtual Attributes MergeAttributes(Attributes prevAttrs, Attributes moreAttrs) {
+      if (moreAttrs == null) {
+        return CloneAttributes(prevAttrs);
+      } else {
+        return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneAttrArg), MergeAttributes(prevAttrs, moreAttrs.Prev));
+      }
     }
   }
   class SubstitutionCloner : Cloner {
