@@ -3133,28 +3133,33 @@ namespace Microsoft.Dafny
         }
 		
       } else if (stmt is CalcStmt) {
-          CalcStmt s = (CalcStmt)stmt;
-          s.IsGhost = true;
-          Contract.Assert(s.Steps.Count > 0); // follows from the invariant of CalcStatement
-          var source = s.Steps[0];
-          ResolveExpression(source, true);
-          Contract.Assert(source.Type != null);  // follows from postcondition of ResolveExpression
-          foreach (var e in s.Steps.Skip(1))
-          {
-              ResolveExpression(e, true);
-              Contract.Assert(e.Type != null);  // follows from postcondition of ResolveExpression
-              if (!UnifyTypes(source.Type, e.Type))
-              {
-                  Error(e, "all calculation steps must have the same type (got {0} after {1})", e.Type, source.Type);
-              }
+        CalcStmt s = (CalcStmt)stmt;
+        s.IsGhost = true;
+        Contract.Assert(s.Terms.Count > 0); // follows from the invariant of CalcStatement
+        var e0 = s.Terms.First();
+        ResolveExpression(e0, true);
+        Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
+        foreach (var e1 in s.Terms.Skip(1))
+        {
+          ResolveExpression(e1, true);
+          Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e0.Type, e1.Type)) {
+            Error(e1, "all calculation steps must have the same type (got {0} after {1})", e1.Type, e0.Type);
+          } else {
+            var step = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, e0, e1);
+            ResolveExpression(step, true);
+            s.Steps.Add(step);            
           }
-          foreach (var h in s.Hints)
-          {
-              if (h != null)
-              {
-                  ResolveStatement(h, true, method);
-              }
+          e0 = e1;
+        }
+        foreach (var h in s.Hints)
+        {
+          if (h != null) {
+            ResolveStatement(h, true, method);
           }
+        }
+        s.Result = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, s.Terms.First(), s.Terms.Last());
+        ResolveExpression(s.Result, true);
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;

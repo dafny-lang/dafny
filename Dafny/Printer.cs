@@ -566,9 +566,9 @@ namespace Microsoft.Dafny {
         wr.WriteLine(" {");
         int stepInd = indent + IndentAmount;
         Indent(stepInd);
-        PrintExpression(s.Steps[0], stepInd);
+        PrintExpression(s.Terms[0], stepInd);
         wr.WriteLine(";");
-        var pairs = s.Hints.Zip(s.Steps.Skip(1), (h, e) => Tuple.Create(h, e));
+        var pairs = s.Hints.Zip(s.Terms.Skip(1), (h, e) => Tuple.Create(h, e));
         foreach (var pair in pairs) {
           if (pair.Item1 != null) {
             Indent(stepInd);

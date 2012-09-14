@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 using Microsoft.Boogie;
@@ -3981,6 +3982,52 @@ namespace Microsoft.Dafny {
 
         } else {
           Contract.Assert(false);  // unexpected kind
+        }
+
+      } else if (stmt is CalcStmt) {
+        /* Translate into:
+        if (*) {
+            hint0;
+            assert t0 op t1;
+            assume false;
+        } else if ...
+        } else {
+            hint<n-1>;
+            assert t<n-1> op tn;
+            assume false;
+        }
+        assume t0 op tn;        
+        */
+        var s = (CalcStmt)stmt;
+        AddComment(builder, stmt, "calc statement");
+        // NadiaTodo: check well-formedness of steps
+        if (s.Steps.Count > 0) {
+          Bpl.IfCmd ifCmd = null;
+          Bpl.StmtList els = null;
+
+          for (int i = s.Steps.Count; 0 <= --i; ) {
+            var b = new Bpl.StmtListBuilder();
+            var h = s.Hints[i];
+            if (h != null) {
+              TrStmt(h, b, locals, etran);
+            }
+            // NadiaTodo: add error messages
+            b.Add(new Bpl.AssertCmd(s.Tok, etran.TrExpr(s.Steps[i])));
+            b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+            if (i == s.Steps.Count - 1) {
+              // first iteration (last step)
+              els = b.Collect(s.Tok);
+            } else {
+              ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, els);
+              els = null;
+            }
+          }
+          if (ifCmd == null) {
+            // single step: generate an if without else parts
+            ifCmd = new Bpl.IfCmd(s.Tok, null, els, null, null);
+          }
+          builder.Add(ifCmd);
+          builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Result)));
         }
 
       } else if (stmt is MatchStmt) {
