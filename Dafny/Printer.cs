@@ -8,6 +8,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Linq;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -558,6 +559,28 @@ namespace Microsoft.Dafny {
           Indent(indent);
         }
         PrintStatement(s.Body, indent);
+
+      } else if (stmt is CalcStmt) {
+        CalcStmt s = (CalcStmt)stmt;
+        wr.Write("calc");
+        wr.WriteLine(" {");
+        int stepInd = indent + IndentAmount;
+        Indent(stepInd);
+        PrintExpression(s.Steps[0], stepInd);
+        wr.WriteLine(";");
+        var pairs = s.Hints.Zip(s.Steps.Skip(1), (h, e) => Tuple.Create(h, e));
+        foreach (var pair in pairs) {
+          if (pair.Item1 != null) {
+            Indent(stepInd);
+            PrintStatement(pair.Item1, stepInd);
+            wr.WriteLine();
+          }
+          Indent(stepInd);
+          PrintExpression(pair.Item2, stepInd);
+          wr.WriteLine(";");
+        }
+        Indent(indent);
+        wr.Write("}");
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
