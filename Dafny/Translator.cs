@@ -4012,7 +4012,7 @@ namespace Microsoft.Dafny {
               TrStmt(h, b, locals, etran);
             }
             // NadiaTodo: add error messages
-            b.Add(new Bpl.AssertCmd(s.Tok, etran.TrExpr(s.Steps[i])));
+            b.Add(Assert(s.Terms[i + 1].tok, etran.TrExpr(s.Steps[i]), "this calculation step might not hold"));
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             if (i == s.Steps.Count - 1) {
               // first iteration (last step)
