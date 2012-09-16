@@ -1224,6 +1224,7 @@ CalcStmt<out Statement/*!*/ s>
      List<Statement> hints = new List<Statement>(); 
      Expression/*!*/ e;
      BlockStmt/*!*/ block;
+     Statement/*!*/ h;
      IToken bodyStart, bodyEnd;
   .)
   "calc"                                                (. x = t; .)
@@ -1232,6 +1233,7 @@ CalcStmt<out Statement/*!*/ s>
   ";"
   { 
     ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. hints.Add(block); .)
+    | CalcStmt<out h>                                   (. hints.Add(h); .)
     |                                                   (. hints.Add(null); .)
     )
     Expression<out e>                                   (. lines.Add(e); .)
