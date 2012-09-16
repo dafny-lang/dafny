@@ -9,7 +9,7 @@ syntax keyword dafnyFunction function predicate copredicate method constructor
 syntax keyword dafnyTypeDef class datatype codatatype type module import opened as default
 syntax keyword dafnyConditional if then else match case 
 syntax keyword dafnyRepeat while parallel
-syntax keyword dafnyStatement assume assert return new print break label where
+syntax keyword dafnyStatement assume assert return new print break label where calc
 syntax keyword dafnyKeyword var ghost returns null static this refines
 syntax keyword dafnyType bool nat int seq set multiset object array array2 array3 map
 syntax keyword dafnyLogic requires ensures modifies reads decreases invariant 

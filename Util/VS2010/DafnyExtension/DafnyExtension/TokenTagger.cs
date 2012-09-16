@@ -231,6 +231,7 @@ namespace DafnyLanguage
                 case "assume":
                 case "bool":
                 case "break":
+                case "calc":
                 case "case":
                 case "choose":
                 case "class":

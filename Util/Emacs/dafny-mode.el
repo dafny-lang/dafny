@@ -38,7 +38,7 @@
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
         "assert" "assume" "break" "choose" "then" "else" "if" "label" "return" "while" "print" "where"
-        "old" "forall" "exists" "new" "parallel" "in" "this" "fresh"
+        "old" "forall" "exists" "new" "parallel" "calc" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
    `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "object" "set" "seq")) . font-lock-type-face)
    )
