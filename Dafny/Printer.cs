@@ -564,19 +564,19 @@ namespace Microsoft.Dafny {
         CalcStmt s = (CalcStmt)stmt;
         wr.Write("calc");
         wr.WriteLine(" {");
-        int stepInd = indent + IndentAmount;
-        Indent(stepInd);
-        PrintExpression(s.Terms[0], stepInd);
+        int lineInd = indent + IndentAmount;
+        Indent(lineInd);
+        PrintExpression(s.Lines.First(), lineInd);
         wr.WriteLine(";");
-        var pairs = s.Hints.Zip(s.Terms.Skip(1), (h, e) => Tuple.Create(h, e));
+        var pairs = s.Hints.Zip(s.Lines.Skip(1), (h, e) => Tuple.Create(h, e));
         foreach (var pair in pairs) {
           if (pair.Item1 != null) {
-            Indent(stepInd);
-            PrintStatement(pair.Item1, stepInd);
+            Indent(lineInd);
+            PrintStatement(pair.Item1, lineInd);
             wr.WriteLine();
           }
-          Indent(stepInd);
-          PrintExpression(pair.Item2, stepInd);
+          Indent(lineInd);
+          PrintExpression(pair.Item2, lineInd);
           wr.WriteLine(";");
         }
         Indent(indent);

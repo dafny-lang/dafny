@@ -3133,13 +3133,14 @@ namespace Microsoft.Dafny
         }
 		
       } else if (stmt is CalcStmt) {
+        int prevErrorCount = ErrorCount;
         CalcStmt s = (CalcStmt)stmt;
         s.IsGhost = true;
-        Contract.Assert(s.Terms.Count > 0); // follows from the invariant of CalcStatement
-        var e0 = s.Terms.First();
+        Contract.Assert(s.Lines.Count > 0); // follows from the invariant of CalcStatement
+        var e0 = s.Lines.First();
         ResolveExpression(e0, true);
         Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
-        foreach (var e1 in s.Terms.Skip(1))
+        foreach (var e1 in s.Lines.Skip(1))
         {
           ResolveExpression(e1, true);
           Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
@@ -3158,8 +3159,9 @@ namespace Microsoft.Dafny
             ResolveStatement(h, true, method);
           }
         }
-        s.Result = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, s.Terms.First(), s.Terms.Last());
+        s.Result = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, s.Lines.First(), s.Lines.Last());
         ResolveExpression(s.Result, true);
+        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;

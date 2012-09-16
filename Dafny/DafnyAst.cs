@@ -2664,32 +2664,32 @@ namespace Microsoft.Dafny {
 
   public class CalcStmt : Statement
   {
-    public readonly List<Expression/*!*/> Terms;
+    public readonly List<Expression/*!*/> Lines;
     public readonly List<Statement> Hints;  // an empty hint is represented with null
-    public readonly List<BinaryExpr/*!*/> Steps; // expressions ti op t<i + 1>, filled in during resolution in order to get the correct op
-    public BinaryExpr Result; // expressions t0 op tn, filled in during resolution in order to get the correct op
+    public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
+    public BinaryExpr Result; // expressions l0 op ln, filled in during resolution in order to get the correct op
 
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
-      Contract.Invariant(Terms != null);
+      Contract.Invariant(Lines != null);
       Contract.Invariant(Hints != null);
-      Contract.Invariant(Terms.Count > 0);
-      Contract.Invariant(Hints.Count == Terms.Count - 1);
-      Contract.Invariant(Steps.Count == 0 /*before resolution*/ || Steps.Count == Hints.Count /*after resolution*/);
+      Contract.Invariant(Steps != null);
+      Contract.Invariant(Lines.Count > 0);
+      Contract.Invariant(Hints.Count == Lines.Count - 1);
     }
 
-    public CalcStmt(IToken tok, List<Expression/*!*/> terms, List<Statement> hints)
+    public CalcStmt(IToken tok, List<Expression/*!*/> lines, List<Statement> hints)
       // Attributes attrs?
       : base(tok)
     {
       Contract.Requires(tok != null);
-      Contract.Requires(terms != null);
-      Contract.Requires(cce.NonNullElements(terms));
+      Contract.Requires(lines != null);
+      Contract.Requires(cce.NonNullElements(lines));
       Contract.Requires(hints != null);
-      Contract.Requires(terms.Count > 0);
-      Contract.Requires(hints.Count == terms.Count - 1);
-      this.Terms = terms;
+      Contract.Requires(lines.Count > 0);
+      Contract.Requires(hints.Count == lines.Count - 1);
+      this.Lines = lines;
       this.Hints = hints;
       this.Steps = new List<BinaryExpr>();  
       this.Result = null;
@@ -2706,8 +2706,8 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions
     {
       get {
-        foreach (var t in Terms) {
-            yield return t;
+        foreach (var l in Lines) {
+            yield return l;
         }
       }
     }

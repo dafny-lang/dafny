@@ -3999,8 +3999,9 @@ namespace Microsoft.Dafny {
         assume t0 op tn;        
         */
         var s = (CalcStmt)stmt;
+        Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
         AddComment(builder, stmt, "calc statement");
-        // NadiaTodo: check well-formedness of steps
+        // NadiaTodo: check well-formedness of lines
         if (s.Steps.Count > 0) {
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtList els = null;
@@ -4011,8 +4012,7 @@ namespace Microsoft.Dafny {
             if (h != null) {
               TrStmt(h, b, locals, etran);
             }
-            // NadiaTodo: add error messages
-            b.Add(Assert(s.Terms[i + 1].tok, etran.TrExpr(s.Steps[i]), "this calculation step might not hold"));
+            b.Add(Assert(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "this calculation step might not hold"));
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             if (i == s.Steps.Count - 1) {
               // first iteration (last step)

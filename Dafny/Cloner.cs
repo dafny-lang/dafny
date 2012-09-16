@@ -424,7 +424,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          r = new CalcStmt(Tok(s.Tok), s.Terms.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneStmt));
+          r = new CalcStmt(Tok(s.Tok), s.Lines.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneStmt));
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;

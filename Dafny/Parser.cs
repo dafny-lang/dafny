@@ -1619,7 +1619,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void CalcStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		Token x;
-		List<Expression/*!*/> steps = new List<Expression/*!*/>();
+		List<Expression/*!*/> lines = new List<Expression/*!*/>();
 		List<Statement> hints = new List<Statement>(); 
 		Expression/*!*/ e;
 		BlockStmt/*!*/ block;
@@ -1629,7 +1629,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		x = t; 
 		Expect(6);
 		Expression(out e);
-		steps.Add(e); 
+		lines.Add(e); 
 		Expect(14);
 		while (StartOf(10)) {
 			if (la.kind == 6) {
@@ -1639,11 +1639,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				hints.Add(null); 
 			}
 			Expression(out e);
-			steps.Add(e); 
+			lines.Add(e); 
 			Expect(14);
 		}
 		Expect(7);
-		s = new CalcStmt(x, steps, hints); 
+		s = new CalcStmt(x, lines, hints); 
 	}
 
 	void ReturnStmt(out Statement/*!*/ s) {
