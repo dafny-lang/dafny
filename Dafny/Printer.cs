@@ -562,8 +562,12 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
-        wr.Write("calc");
-        wr.WriteLine(" {");
+        wr.Write("calc ");
+        if (s.Op != CalcStmt.DefaultOp) {
+          wr.Write(BinaryExpr.OpcodeString(s.Op));
+          wr.Write(" ");
+        }
+        wr.WriteLine("{");
         int lineInd = indent + IndentAmount;
         Indent(lineInd);
         PrintExpression(s.Lines.First(), lineInd);

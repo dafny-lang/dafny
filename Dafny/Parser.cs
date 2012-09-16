@@ -1619,20 +1619,36 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void CalcStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		Token x;
+		BinaryExpr.Opcode/*!*/ op = BinaryExpr.Opcode.Eq;
 		List<Expression/*!*/> lines = new List<Expression/*!*/>();
 		List<Statement> hints = new List<Statement>(); 
 		Expression/*!*/ e;
 		BlockStmt/*!*/ block;
 		Statement/*!*/ h;
-		IToken bodyStart, bodyEnd;
+		IToken bodyStart, bodyEnd, calcOpPos;
 		
 		Expect(75);
 		x = t; 
+		if (StartOf(14)) {
+			if (StartOf(15)) {
+				RelOp(out calcOpPos, out op);
+				if (!Microsoft.Dafny.CalcStmt.ValidOp(op)) {
+				 SemErr(calcOpPos, "this operator is not allowed in calculations");
+				}
+				
+			} else if (la.kind == 76 || la.kind == 77) {
+				EquivOp();
+				op = BinaryExpr.Opcode.Iff; 
+			} else {
+				ImpliesOp();
+				op = BinaryExpr.Opcode.Imp; 
+			}
+		}
 		Expect(6);
 		Expression(out e);
 		lines.Add(e); 
 		Expect(14);
-		while (StartOf(14)) {
+		while (StartOf(16)) {
 			if (la.kind == 6) {
 				BlockStmt(out block, out bodyStart, out bodyEnd);
 				hints.Add(block); 
@@ -1647,7 +1663,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(14);
 		}
 		Expect(7);
-		s = new CalcStmt(x, lines, hints); 
+		s = new CalcStmt(x, op, lines, hints); 
 	}
 
 	void ReturnStmt(out Statement/*!*/ s) {
@@ -1657,7 +1673,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		
 		Expect(58);
 		returnTok = t; 
-		if (StartOf(15)) {
+		if (StartOf(17)) {
 			Rhs(out r, null);
 			rhss = new List<AssignmentRhs>(); rhss.Add(r); 
 			while (la.kind == 24) {
@@ -1791,7 +1807,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			while (la.kind == 17 || la.kind == 62) {
 				Suffix(ref e);
 			}
-		} else if (StartOf(16)) {
+		} else if (StartOf(18)) {
 			ConstAtomExpression(out e);
 			Suffix(ref e);
 			while (la.kind == 17 || la.kind == 62) {
@@ -1852,7 +1868,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		decreases = new List<Expression/*!*/>();
 		mod = null;
 		
-		while (StartOf(17)) {
+		while (StartOf(19)) {
 			if (la.kind == 36 || la.kind == 70) {
 				Invariant(out invariant);
 				while (!(la.kind == 0 || la.kind == 14)) {SynErr(165); Get();}
@@ -1965,190 +1981,6 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 	}
 
-	void EquivExpression(out Expression/*!*/ e0) {
-		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
-		ImpliesExpression(out e0);
-		while (la.kind == 76 || la.kind == 77) {
-			EquivOp();
-			x = t; 
-			ImpliesExpression(out e1);
-			e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); 
-		}
-	}
-
-	void ImpliesExpression(out Expression/*!*/ e0) {
-		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
-		LogicalExpression(out e0);
-		if (la.kind == 78 || la.kind == 79) {
-			ImpliesOp();
-			x = t; 
-			ImpliesExpression(out e1);
-			e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
-		}
-	}
-
-	void EquivOp() {
-		if (la.kind == 76) {
-			Get();
-		} else if (la.kind == 77) {
-			Get();
-		} else SynErr(172);
-	}
-
-	void LogicalExpression(out Expression/*!*/ e0) {
-		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
-		RelationalExpression(out e0);
-		if (StartOf(18)) {
-			if (la.kind == 80 || la.kind == 81) {
-				AndOp();
-				x = t; 
-				RelationalExpression(out e1);
-				e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); 
-				while (la.kind == 80 || la.kind == 81) {
-					AndOp();
-					x = t; 
-					RelationalExpression(out e1);
-					e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); 
-				}
-			} else {
-				OrOp();
-				x = t; 
-				RelationalExpression(out e1);
-				e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); 
-				while (la.kind == 82 || la.kind == 83) {
-					OrOp();
-					x = t; 
-					RelationalExpression(out e1);
-					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); 
-				}
-			}
-		}
-	}
-
-	void ImpliesOp() {
-		if (la.kind == 78) {
-			Get();
-		} else if (la.kind == 79) {
-			Get();
-		} else SynErr(173);
-	}
-
-	void RelationalExpression(out Expression/*!*/ e) {
-		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-		IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
-		List<Expression> chain = null;
-		List<BinaryExpr.Opcode> ops = null;
-		int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
-		              // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
-		              // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
-		              // 3 ("illegal")     indicates illegal chain
-		              // 4 ("disjoint")    indicates chain of disjoint set operators
-		bool hasSeenNeq = false;
-		
-		Term(out e0);
-		e = e0; 
-		if (StartOf(19)) {
-			RelOp(out x, out op);
-			firstOpTok = x; 
-			Term(out e1);
-			e = new BinaryExpr(x, op, e0, e1);
-			if (op == BinaryExpr.Opcode.Disjoint)
-			 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
-			
-			while (StartOf(19)) {
-				if (chain == null) {
-				 chain = new List<Expression>();
-				 ops = new List<BinaryExpr.Opcode>();
-				 chain.Add(e0);  ops.Add(op);  chain.Add(e1);
-				 switch (op) {
-				   case BinaryExpr.Opcode.Eq:
-				     kind = 0;  break;
-				   case BinaryExpr.Opcode.Neq:
-				     kind = 0;  hasSeenNeq = true;  break;
-				   case BinaryExpr.Opcode.Lt:
-				   case BinaryExpr.Opcode.Le:
-				     kind = 1;  break;
-				   case BinaryExpr.Opcode.Gt:
-				   case BinaryExpr.Opcode.Ge:
-				     kind = 2;  break;
-				   case BinaryExpr.Opcode.Disjoint:
-				     kind = 4;  break;
-				   default:
-				     kind = 3;  break;
-				 }
-				}
-				e0 = e1;
-				
-				RelOp(out x, out op);
-				switch (op) {
-				 case BinaryExpr.Opcode.Eq:
-				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); }
-				   break;
-				 case BinaryExpr.Opcode.Neq:
-				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
-				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
-				   hasSeenNeq = true;  break;
-				 case BinaryExpr.Opcode.Lt:
-				 case BinaryExpr.Opcode.Le:
-				   if (kind == 0) { kind = 1; }
-				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
-				   break;
-				 case BinaryExpr.Opcode.Gt:
-				 case BinaryExpr.Opcode.Ge:
-				   if (kind == 0) { kind = 2; }
-				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
-				   break;
-				 case BinaryExpr.Opcode.Disjoint:
-				   if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
-				   break;
-				 default:
-				   SemErr(x, "this operator cannot be part of a chain");
-				   kind = 3;  break;
-				}
-				
-				Term(out e1);
-				ops.Add(op); chain.Add(e1);
-				if (op == BinaryExpr.Opcode.Disjoint) {
-				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
-				 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
-				}
-				else
-				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
-				
-			}
-		}
-		if (chain != null) {
-		 e = new ChainingExpression(firstOpTok, chain, ops, e);
-		}
-		
-	}
-
-	void AndOp() {
-		if (la.kind == 80) {
-			Get();
-		} else if (la.kind == 81) {
-			Get();
-		} else SynErr(174);
-	}
-
-	void OrOp() {
-		if (la.kind == 82) {
-			Get();
-		} else if (la.kind == 83) {
-			Get();
-		} else SynErr(175);
-	}
-
-	void Term(out Expression/*!*/ e0) {
-		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; 
-		Factor(out e0);
-		while (la.kind == 93 || la.kind == 94) {
-			AddOp(out x, out op);
-			Factor(out e1);
-			e0 = new BinaryExpr(x, op, e0, e1); 
-		}
-	}
-
 	void RelOp(out IToken/*!*/ x, out BinaryExpr.Opcode op) {
 		Contract.Ensures(Contract.ValueAtReturn(out x) != null);
 		x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/;
@@ -2228,7 +2060,191 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			x = t;  op = BinaryExpr.Opcode.Ge; 
 			break;
 		}
-		default: SynErr(176); break;
+		default: SynErr(172); break;
+		}
+	}
+
+	void EquivOp() {
+		if (la.kind == 76) {
+			Get();
+		} else if (la.kind == 77) {
+			Get();
+		} else SynErr(173);
+	}
+
+	void ImpliesOp() {
+		if (la.kind == 78) {
+			Get();
+		} else if (la.kind == 79) {
+			Get();
+		} else SynErr(174);
+	}
+
+	void EquivExpression(out Expression/*!*/ e0) {
+		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
+		ImpliesExpression(out e0);
+		while (la.kind == 76 || la.kind == 77) {
+			EquivOp();
+			x = t; 
+			ImpliesExpression(out e1);
+			e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); 
+		}
+	}
+
+	void ImpliesExpression(out Expression/*!*/ e0) {
+		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
+		LogicalExpression(out e0);
+		if (la.kind == 78 || la.kind == 79) {
+			ImpliesOp();
+			x = t; 
+			ImpliesExpression(out e1);
+			e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
+		}
+	}
+
+	void LogicalExpression(out Expression/*!*/ e0) {
+		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
+		RelationalExpression(out e0);
+		if (StartOf(20)) {
+			if (la.kind == 80 || la.kind == 81) {
+				AndOp();
+				x = t; 
+				RelationalExpression(out e1);
+				e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); 
+				while (la.kind == 80 || la.kind == 81) {
+					AndOp();
+					x = t; 
+					RelationalExpression(out e1);
+					e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); 
+				}
+			} else {
+				OrOp();
+				x = t; 
+				RelationalExpression(out e1);
+				e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); 
+				while (la.kind == 82 || la.kind == 83) {
+					OrOp();
+					x = t; 
+					RelationalExpression(out e1);
+					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); 
+				}
+			}
+		}
+	}
+
+	void RelationalExpression(out Expression/*!*/ e) {
+		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+		IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
+		List<Expression> chain = null;
+		List<BinaryExpr.Opcode> ops = null;
+		int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
+		              // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
+		              // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
+		              // 3 ("illegal")     indicates illegal chain
+		              // 4 ("disjoint")    indicates chain of disjoint set operators
+		bool hasSeenNeq = false;
+		
+		Term(out e0);
+		e = e0; 
+		if (StartOf(15)) {
+			RelOp(out x, out op);
+			firstOpTok = x; 
+			Term(out e1);
+			e = new BinaryExpr(x, op, e0, e1);
+			if (op == BinaryExpr.Opcode.Disjoint)
+			 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+			
+			while (StartOf(15)) {
+				if (chain == null) {
+				 chain = new List<Expression>();
+				 ops = new List<BinaryExpr.Opcode>();
+				 chain.Add(e0);  ops.Add(op);  chain.Add(e1);
+				 switch (op) {
+				   case BinaryExpr.Opcode.Eq:
+				     kind = 0;  break;
+				   case BinaryExpr.Opcode.Neq:
+				     kind = 0;  hasSeenNeq = true;  break;
+				   case BinaryExpr.Opcode.Lt:
+				   case BinaryExpr.Opcode.Le:
+				     kind = 1;  break;
+				   case BinaryExpr.Opcode.Gt:
+				   case BinaryExpr.Opcode.Ge:
+				     kind = 2;  break;
+				   case BinaryExpr.Opcode.Disjoint:
+				     kind = 4;  break;
+				   default:
+				     kind = 3;  break;
+				 }
+				}
+				e0 = e1;
+				
+				RelOp(out x, out op);
+				switch (op) {
+				 case BinaryExpr.Opcode.Eq:
+				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Neq:
+				   if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); }
+				   if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); }
+				   hasSeenNeq = true;  break;
+				 case BinaryExpr.Opcode.Lt:
+				 case BinaryExpr.Opcode.Le:
+				   if (kind == 0) { kind = 1; }
+				   else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Gt:
+				 case BinaryExpr.Opcode.Ge:
+				   if (kind == 0) { kind = 2; }
+				   else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); }
+				   break;
+				 case BinaryExpr.Opcode.Disjoint:
+				   if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
+				   break;
+				 default:
+				   SemErr(x, "this operator cannot be part of a chain");
+				   kind = 3;  break;
+				}
+				
+				Term(out e1);
+				ops.Add(op); chain.Add(e1);
+				if (op == BinaryExpr.Opcode.Disjoint) {
+				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
+				 acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
+				}
+				else
+				 e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+				
+			}
+		}
+		if (chain != null) {
+		 e = new ChainingExpression(firstOpTok, chain, ops, e);
+		}
+		
+	}
+
+	void AndOp() {
+		if (la.kind == 80) {
+			Get();
+		} else if (la.kind == 81) {
+			Get();
+		} else SynErr(175);
+	}
+
+	void OrOp() {
+		if (la.kind == 82) {
+			Get();
+		} else if (la.kind == 83) {
+			Get();
+		} else SynErr(176);
+	}
+
+	void Term(out Expression/*!*/ e0) {
+		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; 
+		Factor(out e0);
+		while (la.kind == 93 || la.kind == 94) {
+			AddOp(out x, out op);
+			Factor(out e1);
+			e0 = new BinaryExpr(x, op, e0, e1); 
 		}
 	}
 
@@ -2305,7 +2321,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				}
 			} else if (la.kind == 1) {
 				MapComprehensionExpr(x, out e);
-			} else if (StartOf(20)) {
+			} else if (StartOf(21)) {
 				SemErr("map must be followed by literal in brackets or comprehension."); 
 			} else SynErr(178);
 			break;
@@ -2552,7 +2568,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e);
 			e = new MultiSetFormingExpr(x, e); 
 			Expect(28);
-		} else if (StartOf(21)) {
+		} else if (StartOf(22)) {
 			SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); 
 		} else SynErr(187);
 	}
@@ -2854,7 +2870,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(5);
 		Expect(1);
 		aName = t.val; 
-		if (StartOf(22)) {
+		if (StartOf(23)) {
 			AttributeArg(out aArg);
 			aArgs.Add(aArg); 
 			while (la.kind == 24) {
@@ -2893,12 +2909,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{x,T,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,T,x, x,x,x,x, T,T,T,x, x,x,x,x, T,x,T,x, x,T,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,x, x,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{T,T,T,x, x,x,T,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, T,x,x,x, x,T,x,x, x,T,x,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
+		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
+		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,T,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,T,x, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, x,T,x,x, x,x,x,T, T,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,x, x,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,T,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,T,x, x,x,x,x, T,x,T,x, x,x,x,x, T,T,T,x, T,T,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,x, x,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x},
 		{x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
 		{x,x,x,x, x,x,T,T, x,x,x,x, x,x,T,x, x,x,x,x, x,x,T,x, T,x,x,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,T,x,x, x,x,x,T, x,x,T,T, T,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, T,T,x,x, x,x,T,T, x,x},
 		{x,x,x,x, x,x,T,T, x,x,x,x, x,x,T,x, x,T,x,x, x,x,T,x, T,x,x,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,x,x, x,T,x,x, x,x,T,T, x,x,T,T, T,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, T,T,x,x, x,x,T,T, x,x},
 		{x,T,T,x, T,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,x,T,x, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, x,T,x,x, x,x,x,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,T,x, x,T,T,T, T,T,T,T, x,x,T,T, T,T,x,x, x,x}
@@ -3098,11 +3115,11 @@ public class Errors {
 			case 169: s = "this symbol not expected in LoopSpec"; break;
 			case 170: s = "this symbol not expected in Invariant"; break;
 			case 171: s = "invalid AttributeArg"; break;
-			case 172: s = "invalid EquivOp"; break;
-			case 173: s = "invalid ImpliesOp"; break;
-			case 174: s = "invalid AndOp"; break;
-			case 175: s = "invalid OrOp"; break;
-			case 176: s = "invalid RelOp"; break;
+			case 172: s = "invalid RelOp"; break;
+			case 173: s = "invalid EquivOp"; break;
+			case 174: s = "invalid ImpliesOp"; break;
+			case 175: s = "invalid AndOp"; break;
+			case 176: s = "invalid OrOp"; break;
 			case 177: s = "invalid AddOp"; break;
 			case 178: s = "invalid UnaryExpression"; break;
 			case 179: s = "invalid UnaryExpression"; break;

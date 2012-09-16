@@ -1220,14 +1220,22 @@ ParallelStmt<out Statement/*!*/ s>
 CalcStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;
+     BinaryExpr.Opcode/*!*/ op = BinaryExpr.Opcode.Eq;
      List<Expression/*!*/> lines = new List<Expression/*!*/>();
      List<Statement> hints = new List<Statement>(); 
      Expression/*!*/ e;
      BlockStmt/*!*/ block;
      Statement/*!*/ h;
-     IToken bodyStart, bodyEnd;
+     IToken bodyStart, bodyEnd, calcOpPos;
   .)
   "calc"                                                (. x = t; .)
+  [ RelOp<out calcOpPos, out op>                        (. if (!Microsoft.Dafny.CalcStmt.ValidOp(op)) {
+                                                             SemErr(calcOpPos, "this operator is not allowed in calculations");
+                                                           }
+                                                        .)
+    | EquivOp                                           (. op = BinaryExpr.Opcode.Iff; .)
+    | ImpliesOp                                         (. op = BinaryExpr.Opcode.Imp; .)
+  ]
   "{"
   Expression<out e>                                     (. lines.Add(e); .)
   ";"
@@ -1240,7 +1248,7 @@ CalcStmt<out Statement/*!*/ s>
     ";"
   }
   "}"
-  (. s = new CalcStmt(x, lines, hints); .)
+  (. s = new CalcStmt(x, op, lines, hints); .)
   .
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>

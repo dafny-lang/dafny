@@ -1317,8 +1317,6 @@ namespace Microsoft.Dafny
           }
           return TailRecursionStatus.NotTailRecursive;
         }
-      } else if (stmt is CalcStmt) {
-          // NadiaTodo		
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         var status = TailRecursionStatus.CanBeFollowedByAnything;
@@ -1709,7 +1707,7 @@ namespace Microsoft.Dafny
         CheckTypeInference(s.Range);
         CheckTypeInference(s.Body);
       } else if (stmt is CalcStmt) {
-        // NadiaToDo: what does this even do?
+        // NadiaToDo: is this correct?
         var s = (CalcStmt)stmt;
         s.SubExpressions.Iter(e => CheckTypeInference(e));
         s.SubStatements.Iter(CheckTypeInference);		
@@ -3147,7 +3145,7 @@ namespace Microsoft.Dafny
           if (!UnifyTypes(e0.Type, e1.Type)) {
             Error(e1, "all calculation steps must have the same type (got {0} after {1})", e1.Type, e0.Type);
           } else {
-            var step = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, e0, e1);
+            var step = new BinaryExpr(e0.tok, s.Op, e0, e1);
             ResolveExpression(step, true);
             s.Steps.Add(step);            
           }
@@ -3159,7 +3157,7 @@ namespace Microsoft.Dafny
             ResolveStatement(h, true, method);
           }
         }
-        s.Result = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, s.Lines.First(), s.Lines.Last());
+        s.Result = new BinaryExpr(s.Tok, s.Op, s.Lines.First(), s.Lines.Last());
         ResolveExpression(s.Result, true);
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 

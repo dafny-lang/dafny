@@ -2664,14 +2664,18 @@ namespace Microsoft.Dafny {
 
   public class CalcStmt : Statement
   {
+    public readonly BinaryExpr.Opcode/*!*/ Op;
     public readonly List<Expression/*!*/> Lines;
     public readonly List<Statement> Hints;  // an empty hint is represented with null
     public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
     public BinaryExpr Result; // expressions l0 op ln, filled in during resolution in order to get the correct op
 
+    public static readonly BinaryExpr.Opcode/*!*/ DefaultOp = BinaryExpr.Opcode.Eq; 
+
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
+      Contract.Invariant(ValidOp(Op));
       Contract.Invariant(Lines != null);
       Contract.Invariant(Hints != null);
       Contract.Invariant(Steps != null);
@@ -2679,16 +2683,18 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Hints.Count == Lines.Count - 1);
     }
 
-    public CalcStmt(IToken tok, List<Expression/*!*/> lines, List<Statement> hints)
+    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<Statement> hints)
       // Attributes attrs?
       : base(tok)
     {
       Contract.Requires(tok != null);
+      Contract.Requires(ValidOp(op));
       Contract.Requires(lines != null);
       Contract.Requires(cce.NonNullElements(lines));
       Contract.Requires(hints != null);
       Contract.Requires(lines.Count > 0);
       Contract.Requires(hints.Count == lines.Count - 1);
+      this.Op = op;
       this.Lines = lines;
       this.Hints = hints;
       this.Steps = new List<BinaryExpr>();  
@@ -2710,6 +2716,42 @@ namespace Microsoft.Dafny {
             yield return l;
         }
       }
+    }
+
+    /// <summary>
+    /// Is op a valid calculation operator (i.e. a transitive relational operator)?
+    /// </summary>
+    public static bool ValidOp(BinaryExpr.Opcode op) {
+      return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
+        || op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp;
+    }
+
+    /// <summary>
+    /// Is op1 a subrelation of op2 (i.e. x op1 y ==> x op2 y)?
+    /// </summary>
+    private static bool SubRelation(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
+      Contract.Requires(ValidOp(op1) && ValidOp(op2));
+      return op1 == op2 ||
+        (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
+        (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Le) ||
+        (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge) ||
+        (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Ge) ||
+        (op1 == BinaryExpr.Opcode.Iff && op2 == BinaryExpr.Opcode.Imp);
+    }
+
+    /// <summary>
+    /// Least upper bound of relations op1 and op2.
+    /// Returns null if op1 or op2 is not a valid calculation operator, or if the least upper bound is top.
+    /// </summary>
+    public static Nullable<BinaryExpr.Opcode> Lub(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
+      if (ValidOp(op1) && ValidOp(op2)) {
+        if (SubRelation(op1, op2)) {
+          return op2;
+        } else if (SubRelation(op2, op1)) {
+          return op1;
+        }
+      }
+      return null;
     }
   }
 
