@@ -2664,9 +2664,10 @@ namespace Microsoft.Dafny {
 
   public class CalcStmt : Statement
   {
-    public readonly BinaryExpr.Opcode/*!*/ Op;
+    public readonly BinaryExpr.Opcode/*!*/ Op; // main operator of the calculation
     public readonly List<Expression/*!*/> Lines;
-    public readonly List<Statement> Hints;  // an empty hint is represented with null
+    public readonly List<Statement> Hints;  // Hints[i] comes after line i; null denotes an empty an empty hint
+    public readonly List<BinaryExpr.Opcode?> CustomOps; // CustomOps[i] comes after line i; null denotes the absence of a custom operator
     public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
     public BinaryExpr Result; // expressions l0 op ln, filled in during resolution in order to get the correct op
 
@@ -2678,12 +2679,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(ValidOp(Op));
       Contract.Invariant(Lines != null);
       Contract.Invariant(Hints != null);
+      Contract.Invariant(CustomOps != null);
       Contract.Invariant(Steps != null);
       Contract.Invariant(Lines.Count > 0);
       Contract.Invariant(Hints.Count == Lines.Count - 1);
+      Contract.Invariant(CustomOps.Count == Lines.Count - 1);
     }
 
-    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<Statement> hints)
+    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<Statement> hints, List<BinaryExpr.Opcode?> customOps)
       // Attributes attrs?
       : base(tok)
     {
@@ -2694,9 +2697,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(hints != null);
       Contract.Requires(lines.Count > 0);
       Contract.Requires(hints.Count == lines.Count - 1);
+      Contract.Requires(customOps != null);
+      Contract.Requires(customOps.Count == lines.Count - 1);
       this.Op = op;
       this.Lines = lines;
       this.Hints = hints;
+      this.CustomOps = customOps;
       this.Steps = new List<BinaryExpr>();  
       this.Result = null;
     }
@@ -2721,35 +2727,42 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Is op a valid calculation operator (i.e. a transitive relational operator)?
     /// </summary>
+    [Pure]
     public static bool ValidOp(BinaryExpr.Opcode op) {
       return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
         || op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp;
     }
 
     /// <summary>
-    /// Is op1 a subrelation of op2 (i.e. x op1 y ==> x op2 y)?
+    /// Does op1 subsume op2 (i.e. forall x, y, z :: (x op1 y op2 z) || (x op2 y op1 z) ==> x op1 z)?
     /// </summary>
-    private static bool SubRelation(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
+    [Pure]    
+    private static bool Subsumes(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
       Contract.Requires(ValidOp(op1) && ValidOp(op2));
-      return op1 == op2 ||
+      if (op1 == op2) 
+        return true;
+      if (op1 == BinaryExpr.Opcode.Iff || op1 == BinaryExpr.Opcode.Imp || op2 == BinaryExpr.Opcode.Iff || op2 == BinaryExpr.Opcode.Imp)
+        return op2 == BinaryExpr.Opcode.Eq ||
+          (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
+          (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
+      return op2 == BinaryExpr.Opcode.Eq ||
         (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
-        (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Le) ||
-        (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge) ||
-        (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Ge) ||
-        (op1 == BinaryExpr.Opcode.Iff && op2 == BinaryExpr.Opcode.Imp);
+        (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge);
     }
 
     /// <summary>
-    /// Least upper bound of relations op1 and op2.
-    /// Returns null if op1 or op2 is not a valid calculation operator, or if the least upper bound is top.
+    /// Resulting operator x op z if x op1 y op2 z.
+    /// (Least upper bound in the Subsumes order).
+    /// Returns null if neither of op1 or op2 subsumes the other.
     /// </summary>
-    public static Nullable<BinaryExpr.Opcode> Lub(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
-      if (ValidOp(op1) && ValidOp(op2)) {
-        if (SubRelation(op1, op2)) {
-          return op2;
-        } else if (SubRelation(op2, op1)) {
-          return op1;
-        }
+    [Pure]
+    public static BinaryExpr.Opcode? ResultOp(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
+      Contract.Requires(ValidOp(op1) && ValidOp(op2));
+      Contract.Ensures(Contract.Result<BinaryExpr.Opcode?>() == null || ValidOp((BinaryExpr.Opcode)Contract.Result<BinaryExpr.Opcode?>()));
+      if (Subsumes(op1, op2)) {
+        return op1;
+      } else if (Subsumes(op2, op1)) {
+        return op2;
       }
       return null;
     }

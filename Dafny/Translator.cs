@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using Bpl = Microsoft.Boogie;
 using System.Text;
 using Microsoft.Boogie;

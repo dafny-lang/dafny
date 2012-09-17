@@ -3131,21 +3131,30 @@ namespace Microsoft.Dafny
         }
 		
       } else if (stmt is CalcStmt) {
-        int prevErrorCount = ErrorCount;
+        var prevErrorCount = ErrorCount;
         CalcStmt s = (CalcStmt)stmt;
         s.IsGhost = true;
         Contract.Assert(s.Lines.Count > 0); // follows from the invariant of CalcStatement
+        var resOp = s.Op;
         var e0 = s.Lines.First();
         ResolveExpression(e0, true);
         Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
-        foreach (var e1 in s.Lines.Skip(1))
-        {
+        for (int i = 1; i < s.Lines.Count; i++) {
+          var e1 = s.Lines[i];
           ResolveExpression(e1, true);
           Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(e0.Type, e1.Type)) {
             Error(e1, "all calculation steps must have the same type (got {0} after {1})", e1.Type, e0.Type);
           } else {
-            var step = new BinaryExpr(e0.tok, s.Op, e0, e1);
+            BinaryExpr step;
+            var op = s.CustomOps[i - 1];
+            if (op == null) {              
+              step = new BinaryExpr(e0.tok, s.Op, e0, e1); // Use calc-wide operator
+            } else {
+              step = new BinaryExpr(e0.tok, (BinaryExpr.Opcode)op, e0, e1); // Use custom line operator
+              Contract.Assert(CalcStmt.ResultOp(resOp, (BinaryExpr.Opcode)op) != null); // This was checked during parsing
+              resOp = (BinaryExpr.Opcode)CalcStmt.ResultOp(resOp, (BinaryExpr.Opcode)op);
+            }
             ResolveExpression(step, true);
             s.Steps.Add(step);            
           }
@@ -3157,7 +3166,7 @@ namespace Microsoft.Dafny
             ResolveStatement(h, true, method);
           }
         }
-        s.Result = new BinaryExpr(s.Tok, s.Op, s.Lines.First(), s.Lines.Last());
+        s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());
         ResolveExpression(s.Result, true);
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 

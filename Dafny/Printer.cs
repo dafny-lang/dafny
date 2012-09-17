@@ -572,16 +572,22 @@ namespace Microsoft.Dafny {
         Indent(lineInd);
         PrintExpression(s.Lines.First(), lineInd);
         wr.WriteLine(";");
-        var pairs = s.Hints.Zip(s.Lines.Skip(1), (h, e) => Tuple.Create(h, e));
-        foreach (var pair in pairs) {
-          if (pair.Item1 != null) {
+        for (var i = 1; i < s.Lines.Count; i++){
+          var e = s.Lines[i];
+          var h = s.Hints[i - 1];
+          var op = s.CustomOps[i - 1];
+          if (h != null) {
             Indent(lineInd);
-            PrintStatement(pair.Item1, lineInd);
+            PrintStatement(h, lineInd);
             wr.WriteLine();
           }
           Indent(lineInd);
-          PrintExpression(pair.Item2, lineInd);
-          wr.WriteLine(";");
+          if (op != null && (BinaryExpr.Opcode)op != s.Op) {
+            wr.Write(BinaryExpr.OpcodeString((BinaryExpr.Opcode)op));
+            wr.Write(" ");
+          }          
+          PrintExpression(e, lineInd);
+          wr.WriteLine(";");          
         }
         Indent(indent);
         wr.Write("}");
