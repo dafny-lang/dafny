@@ -2666,10 +2666,10 @@ namespace Microsoft.Dafny {
   {
     public readonly BinaryExpr.Opcode/*!*/ Op; // main operator of the calculation
     public readonly List<Expression/*!*/> Lines;
-    public readonly List<Statement> Hints;  // Hints[i] comes after line i; null denotes an empty an empty hint
+    public readonly List<Statement> Hints;  // Hints[i] comes after line i; null denotes an empty hint
     public readonly List<BinaryExpr.Opcode?> CustomOps; // CustomOps[i] comes after line i; null denotes the absence of a custom operator
     public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
-    public BinaryExpr Result; // expressions l0 op ln, filled in during resolution in order to get the correct op
+    public BinaryExpr Result; // expression l0 op ln, filled in during resolution in order to get the correct op
 
     public static readonly BinaryExpr.Opcode/*!*/ DefaultOp = BinaryExpr.Opcode.Eq; 
 
@@ -2681,24 +2681,21 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Hints != null);
       Contract.Invariant(CustomOps != null);
       Contract.Invariant(Steps != null);
-      Contract.Invariant(Lines.Count > 0);
-      Contract.Invariant(Hints.Count == Lines.Count - 1);
-      Contract.Invariant(CustomOps.Count == Lines.Count - 1);
+      Contract.Invariant(Hints.Count == Math.Max(Lines.Count - 1, 0));
+      Contract.Invariant(CustomOps.Count == Hints.Count);
     }
 
     public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<Statement> hints, List<BinaryExpr.Opcode?> customOps)
-      // Attributes attrs?
       : base(tok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(ValidOp(op));
       Contract.Requires(lines != null);
-      Contract.Requires(cce.NonNullElements(lines));
       Contract.Requires(hints != null);
-      Contract.Requires(lines.Count > 0);
-      Contract.Requires(hints.Count == lines.Count - 1);
       Contract.Requires(customOps != null);
-      Contract.Requires(customOps.Count == lines.Count - 1);
+      Contract.Requires(cce.NonNullElements(lines));
+      Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
+      Contract.Requires(customOps.Count == hints.Count);
       this.Op = op;
       this.Lines = lines;
       this.Hints = hints;

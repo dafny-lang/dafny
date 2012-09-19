@@ -4002,6 +4002,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "calc statement");
         // NadiaTodo: check well-formedness of lines
         if (s.Steps.Count > 0) {
+          Contract.Assert(s.Result != null); // established by the resolver
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtList els = null;
 

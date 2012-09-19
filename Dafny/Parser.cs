@@ -1636,36 +1636,38 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		resOp = calcOp; 
 		Expect(6);
-		Expression(out e);
-		lines.Add(e); 
-		Expect(14);
-		while (StartOf(15)) {
-			if (la.kind == 6) {
-				BlockStmt(out block, out bodyStart, out bodyEnd);
-				hints.Add(block); 
-			} else if (la.kind == 75) {
-				CalcStmt(out h);
-				hints.Add(h); 
-			} else {
-				hints.Add(null); 
-			}
-			if (StartOf(14)) {
-				CalcOp(out opTok, out op);
-				maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
-				if (maybeOp == null) {
-				 customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
-				 SemErr(opTok, "this operator cannot continue this calculation");
-				} else {
-				 customOps.Add(op);
-				 resOp = (BinaryExpr.Opcode)maybeOp;                                                              
-				}
-				
-			} else if (StartOf(10)) {
-				customOps.Add(null); 
-			} else SynErr(162);
+		if (StartOf(10)) {
 			Expression(out e);
 			lines.Add(e); 
 			Expect(14);
+			while (StartOf(15)) {
+				if (la.kind == 6) {
+					BlockStmt(out block, out bodyStart, out bodyEnd);
+					hints.Add(block); 
+				} else if (la.kind == 75) {
+					CalcStmt(out h);
+					hints.Add(h); 
+				} else {
+					hints.Add(null); 
+				}
+				if (StartOf(14)) {
+					CalcOp(out opTok, out op);
+					maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
+					if (maybeOp == null) {
+					 customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
+					 SemErr(opTok, "this operator cannot continue this calculation");
+					} else {
+					 customOps.Add(op);
+					 resOp = (BinaryExpr.Opcode)maybeOp;                                                              
+					}
+					
+				} else if (StartOf(10)) {
+					customOps.Add(null); 
+				} else SynErr(162);
+				Expression(out e);
+				lines.Add(e); 
+				Expect(14);
+			}
 		}
 		Expect(7);
 		s = new CalcStmt(x, calcOp, lines, hints, customOps); 

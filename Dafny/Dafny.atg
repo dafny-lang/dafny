@@ -1230,30 +1230,31 @@ CalcStmt<out Statement/*!*/ s>
      Statement/*!*/ h;
      IToken bodyStart, bodyEnd, opTok;
   .)
-  "calc"                                                (. x = t; .)
-  [ CalcOp<out opTok, out calcOp> ]                     (. resOp = calcOp; .)
+  "calc"                                                  (. x = t; .)
+  [ CalcOp<out opTok, out calcOp> ]                       (. resOp = calcOp; .)
   "{"
-  Expression<out e>                                     (. lines.Add(e); .)
-  ";"
-  { 
-    ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. hints.Add(block); .)
-    | CalcStmt<out h>                                   (. hints.Add(h); .)
-    |                                                   (. hints.Add(null); .)
-    )
-    ( CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
-                                                           if (maybeOp == null) {
-                                                             customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
-                                                             SemErr(opTok, "this operator cannot continue this calculation");
-                                                           } else {
-                                                             customOps.Add(op);
-                                                             resOp = (BinaryExpr.Opcode)maybeOp;                                                              
-                                                           }
-                                                        .)
-    |                                                   (. customOps.Add(null); .)
-    )
-    Expression<out e>                                   (. lines.Add(e); .)
+  [ Expression<out e>                                     (. lines.Add(e); .)
     ";"
-  }
+    { 
+      ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. hints.Add(block); .)
+      | CalcStmt<out h>                                   (. hints.Add(h); .)
+      |                                                   (. hints.Add(null); .)
+      )
+      ( CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
+                                                             if (maybeOp == null) {
+                                                               customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
+                                                               SemErr(opTok, "this operator cannot continue this calculation");
+                                                             } else {
+                                                               customOps.Add(op);
+                                                               resOp = (BinaryExpr.Opcode)maybeOp;                                                              
+                                                             }
+                                                          .)
+      |                                                   (. customOps.Add(null); .)
+      )
+      Expression<out e>                                   (. lines.Add(e); .)
+      ";"
+    }
+  ]
   "}"
   (. s = new CalcStmt(x, calcOp, lines, hints, customOps); .)
   .
