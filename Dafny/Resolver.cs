@@ -3160,11 +3160,8 @@ namespace Microsoft.Dafny
             }
             e0 = e1;
           }
-          foreach (var h in s.Hints)
-          {
-            if (h != null) {
-              ResolveStatement(h, true, method);
-            }
+          foreach (var h in s.Hints) {
+            ResolveStatement(h, true, method);
           }
           if (s.Steps.Count > 0) {
             s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());

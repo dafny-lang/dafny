@@ -2666,7 +2666,7 @@ namespace Microsoft.Dafny {
   {
     public readonly BinaryExpr.Opcode/*!*/ Op; // main operator of the calculation
     public readonly List<Expression/*!*/> Lines;
-    public readonly List<Statement> Hints;  // Hints[i] comes after line i; null denotes an empty hint
+    public readonly List<BlockStmt/*!*/> Hints;  // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
     public readonly List<BinaryExpr.Opcode?> CustomOps; // CustomOps[i] comes after line i; null denotes the absence of a custom operator
     public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
     public BinaryExpr Result; // expression l0 op ln, filled in during resolution in order to get the correct op
@@ -2685,7 +2685,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CustomOps.Count == Hints.Count);
     }
 
-    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<Statement> hints, List<BinaryExpr.Opcode?> customOps)
+    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<BlockStmt/*!*/> hints, List<BinaryExpr.Opcode?> customOps)
       : base(tok)
     {
       Contract.Requires(tok != null);
@@ -2694,6 +2694,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(hints != null);
       Contract.Requires(customOps != null);
       Contract.Requires(cce.NonNullElements(lines));
+      Contract.Requires(cce.NonNullElements(hints));
       Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
       Contract.Requires(customOps.Count == hints.Count);
       this.Op = op;
@@ -2708,7 +2709,7 @@ namespace Microsoft.Dafny {
     {
       get {
         foreach (var h in Hints) {
-            if (h != null) yield return h;
+          yield return h;
         }
       }
     }

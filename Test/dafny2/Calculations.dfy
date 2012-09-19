@@ -210,9 +210,3 @@ ghost method Window(xs: List, ys: List)
     true;
   }
 }
-
-// Empty calculations are also allowed, but they don't generate any Boogie code.
-ghost method Empty()
-{
-	calc {}
-}

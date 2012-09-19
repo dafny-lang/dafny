@@ -1221,25 +1221,21 @@ CalcStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;
      BinaryExpr.Opcode op, calcOp = BinaryExpr.Opcode.Eq, resOp = BinaryExpr.Opcode.Eq;     
-     List<Expression/*!*/> lines = new List<Expression/*!*/>();
-     List<Statement> hints = new List<Statement>(); 
-     List<BinaryExpr.Opcode?> customOps = new List<BinaryExpr.Opcode?>();
+     var lines = new List<Expression/*!*/>();
+     var hints = new List<BlockStmt/*!*/>(); 
+     var customOps = new List<BinaryExpr.Opcode?>();
      BinaryExpr.Opcode? maybeOp;
      Expression/*!*/ e;
-     BlockStmt/*!*/ block;
-     Statement/*!*/ h;
-     IToken bodyStart, bodyEnd, opTok;
+     BlockStmt/*!*/ h;
+     IToken opTok;
   .)
   "calc"                                                  (. x = t; .)
   [ CalcOp<out opTok, out calcOp> ]                       (. resOp = calcOp; .)
   "{"
   [ Expression<out e>                                     (. lines.Add(e); .)
     ";"
-    { 
-      ( BlockStmt<out block, out bodyStart, out bodyEnd>  (. hints.Add(block); .)
-      | CalcStmt<out h>                                   (. hints.Add(h); .)
-      |                                                   (. hints.Add(null); .)
-      )
+    {
+      Hint<out h>                                         (. hints.Add(h); .)
       ( CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
                                                              if (maybeOp == null) {
                                                                customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
@@ -1279,6 +1275,20 @@ CalcOp<out IToken x, out BinaryExpr.Opcode/*!*/ op>
                              x = t;
                           .)
   )
+  .
+Hint<out BlockStmt s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); // returns an empty block statement if the hint is empty
+     var subhints = new List<Statement/*!*/>(); 
+     IToken bodyStart, bodyEnd;
+     BlockStmt/*!*/ block;
+     Statement/*!*/ calc;
+     Token x = la;
+  .)
+  { BlockStmt<out block, out bodyStart, out bodyEnd>  (. subhints.Add(block); .)
+  | CalcStmt<out calc>                                (. subhints.Add(calc); .)
+  }
+  (. s = new BlockStmt(x, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container 
+  .)
   .
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>

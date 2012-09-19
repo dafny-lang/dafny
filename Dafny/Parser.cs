@@ -1620,14 +1620,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		Token x;
 		BinaryExpr.Opcode op, calcOp = BinaryExpr.Opcode.Eq, resOp = BinaryExpr.Opcode.Eq;     
-		List<Expression/*!*/> lines = new List<Expression/*!*/>();
-		List<Statement> hints = new List<Statement>(); 
-		List<BinaryExpr.Opcode?> customOps = new List<BinaryExpr.Opcode?>();
+		var lines = new List<Expression/*!*/>();
+		var hints = new List<BlockStmt/*!*/>(); 
+		var customOps = new List<BinaryExpr.Opcode?>();
 		BinaryExpr.Opcode? maybeOp;
 		Expression/*!*/ e;
-		BlockStmt/*!*/ block;
-		Statement/*!*/ h;
-		IToken bodyStart, bodyEnd, opTok;
+		BlockStmt/*!*/ h;
+		IToken opTok;
 		
 		Expect(75);
 		x = t; 
@@ -1641,15 +1640,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			lines.Add(e); 
 			Expect(14);
 			while (StartOf(15)) {
-				if (la.kind == 6) {
-					BlockStmt(out block, out bodyStart, out bodyEnd);
-					hints.Add(block); 
-				} else if (la.kind == 75) {
-					CalcStmt(out h);
-					hints.Add(h); 
-				} else {
-					hints.Add(null); 
-				}
+				Hint(out h);
+				hints.Add(h); 
 				if (StartOf(14)) {
 					CalcOp(out opTok, out op);
 					maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
@@ -2015,6 +2007,27 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			x = t;
 			
 		} else SynErr(173);
+	}
+
+	void Hint(out BlockStmt s) {
+		Contract.Ensures(Contract.ValueAtReturn(out s) != null); // returns an empty block statement if the hint is empty
+		var subhints = new List<Statement/*!*/>(); 
+		IToken bodyStart, bodyEnd;
+		BlockStmt/*!*/ block;
+		Statement/*!*/ calc;
+		Token x = la;
+		
+		while (la.kind == 6 || la.kind == 75) {
+			if (la.kind == 6) {
+				BlockStmt(out block, out bodyStart, out bodyEnd);
+				subhints.Add(block); 
+			} else {
+				CalcStmt(out calc);
+				subhints.Add(calc); 
+			}
+		}
+		s = new BlockStmt(x, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container 
+		
 	}
 
 	void RelOp(out IToken/*!*/ x, out BinaryExpr.Opcode op) {

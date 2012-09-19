@@ -578,9 +578,9 @@ namespace Microsoft.Dafny {
           var e = s.Lines[i];
           var h = s.Hints[i - 1];
           var op = s.CustomOps[i - 1];
-          if (h != null) {
+          foreach (var st in h.Body) {
             Indent(lineInd);
-            PrintStatement(h, lineInd);
+            PrintStatement(st, lineInd);
             wr.WriteLine();
           }
           Indent(lineInd);

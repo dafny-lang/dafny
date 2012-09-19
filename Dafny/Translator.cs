@@ -4008,10 +4008,7 @@ namespace Microsoft.Dafny {
 
           for (int i = s.Steps.Count; 0 <= --i; ) {
             var b = new Bpl.StmtListBuilder();
-            var h = s.Hints[i];
-            if (h != null) {
-              TrStmt(h, b, locals, etran);
-            }
+            TrStmt(s.Hints[i], b, locals, etran);
             b.Add(Assert(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             if (i == s.Steps.Count - 1) {
