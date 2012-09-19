@@ -4012,7 +4012,7 @@ namespace Microsoft.Dafny {
             if (h != null) {
               TrStmt(h, b, locals, etran);
             }
-            b.Add(Assert(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "this calculation step might not hold"));
+            b.Add(Assert(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             if (i == s.Steps.Count - 1) {
               // first iteration (last step)
