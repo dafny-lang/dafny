@@ -1259,21 +1259,17 @@ CalcOp<out IToken x, out BinaryExpr.Opcode/*!*/ op>
      op = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator 
      x = null;
   .)
-  ( RelOp<out x, out op>  (. if (op == BinaryExpr.Opcode.Add) {
-                               // Parsing of RelOp failed, do not report an error again and return Eq
-                               op = BinaryExpr.Opcode.Eq;
-                             } else if (!Microsoft.Dafny.CalcStmt.ValidOp(op)) {
-                               // Invalid operator: resport an error and return Eq
-                               SemErr(x, "this operator is not allowed in calculations");
-                               op = BinaryExpr.Opcode.Eq;
-                             }
-                          .)
-  | EquivOp               (. op = BinaryExpr.Opcode.Iff; 
-                             x = t;
-                          .)
-  | ImpliesOp             (. op = BinaryExpr.Opcode.Imp; 
-                             x = t;
-                          .)
+  ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
+  | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
+  | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
+  | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
+  | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
+  | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
+  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
+  | EquivOp        (. x = t;  op = BinaryExpr.Opcode.Iff; .)
+  | ImpliesOp      (. x = t;  op = BinaryExpr.Opcode.Imp; .)
   )
   .
 Hint<out BlockStmt s>
