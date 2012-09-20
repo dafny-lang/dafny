@@ -117,7 +117,6 @@ bool IsAttribute() {
   Token x = scanner.Peek();
   return la.kind == _lbrace && x.kind == _colon;
 }
-
 /*--------------------------------------------------------------------------*/
 
 
@@ -1633,8 +1632,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		x = t; 
 		if (StartOf(14)) {
 			CalcOp(out opTok, out calcOp);
+			maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(calcOp, calcOp); // guard against non-trasitive calcOp (like !=)
+			if (maybeOp == null) {
+			 SemErr(opTok, "the main operator of a calculation must be transitive");
+			}
+			resOp = calcOp; 
+			
 		}
-		resOp = calcOp; 
 		Expect(6);
 		if (StartOf(10)) {
 			Expression(out e);

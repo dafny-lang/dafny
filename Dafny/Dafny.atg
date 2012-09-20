@@ -1230,7 +1230,13 @@ CalcStmt<out Statement/*!*/ s>
      IToken opTok;
   .)
   "calc"                                                  (. x = t; .)
-  [ CalcOp<out opTok, out calcOp> ]                       (. resOp = calcOp; .)
+  [ CalcOp<out opTok, out calcOp>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(calcOp, calcOp); // guard against non-trasitive calcOp (like !=)
+                                                             if (maybeOp == null) {
+                                                               SemErr(opTok, "the main operator of a calculation must be transitive");
+                                                             }
+                                                             resOp = calcOp; 
+                                                          .)
+  ]
   "{"
   [ Expression<out e>                                     (. lines.Add(e); .)
     ";"

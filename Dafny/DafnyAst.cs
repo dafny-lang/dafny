@@ -2728,6 +2728,7 @@ namespace Microsoft.Dafny {
     [Pure]
     public static bool ValidOp(BinaryExpr.Opcode op) {
       return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
+        || op == BinaryExpr.Opcode.Neq
         || op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp;
     }
 
@@ -2737,6 +2738,8 @@ namespace Microsoft.Dafny {
     [Pure]    
     private static bool Subsumes(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
       Contract.Requires(ValidOp(op1) && ValidOp(op2));
+      if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
+        return op2 == BinaryExpr.Opcode.Eq;
       if (op1 == op2) 
         return true;
       if (op1 == BinaryExpr.Opcode.Iff || op1 == BinaryExpr.Opcode.Imp || op2 == BinaryExpr.Opcode.Iff || op2 == BinaryExpr.Opcode.Imp)
