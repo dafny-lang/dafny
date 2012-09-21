@@ -23,7 +23,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
             CallStmtTests.dfy MultiSets.dfy PredExpr.dfy LetExpr.dfy
             Predicates.dfy Skeletons.dfy Maps.dfy LiberalEquality.dfy
-            RefinementModificationChecking.dfy TailCalls.dfy) do (
+            RefinementModificationChecking.dfy TailCalls.dfy
+            Calculations.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f

@@ -376,5 +376,10 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
 		n + m;
 		n + m + 1;
 		==> n + m + 2; // error: ==> operator requires boolean lines
-	}		
+	}
+	calc {
+		n + m;
+		{ print n + m; } // error: non-ghost statements are not allowed in hints
+		m + n;
+	}			
 }
