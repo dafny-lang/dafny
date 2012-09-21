@@ -542,7 +542,15 @@ ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specificat
 ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
 ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
-48 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(363,4): Error: arguments to + must be int or a collection type (instead got bool)
+ResolutionErrors.dfy(368,4): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors.dfy(371,4): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(371,4): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(372,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(372,8): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(377,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(377,8): Error: second argument to ==> must be of type bool (instead got int)
+56 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -553,7 +561,13 @@ ParseErrors.dfy(15,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(16,19): error: this operator cannot be part of a chain
 ParseErrors.dfy(17,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
-8 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(46,8): error: the main operator of a calculation must be transitive
+ParseErrors.dfy(62,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(63,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(68,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(69,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(75,2): error: this operator cannot continue this calculation
+14 parse errors detected in ParseErrors.dfy
 
 -------------------- Array.dfy --------------------
 Array.dfy(10,8): Error: assignment may update an array element not in the enclosing context's modifies clause

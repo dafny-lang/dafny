@@ -3144,7 +3144,7 @@ namespace Microsoft.Dafny
             ResolveExpression(e1, true);
             Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
             if (!UnifyTypes(e0.Type, e1.Type)) {
-              Error(e1, "all calculation steps must have the same type (got {0} after {1})", e1.Type, e0.Type);
+              Error(e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
             } else {
               BinaryExpr step;
               var op = s.CustomOps[i - 1];
@@ -3163,7 +3163,8 @@ namespace Microsoft.Dafny
           foreach (var h in s.Hints) {
             ResolveStatement(h, true, method);
           }
-          if (s.Steps.Count > 0) {
+          if (prevErrorCount == ErrorCount && s.Steps.Count > 0) {
+            // do not build Result if there were errors, as it might be ill-typed and produce unnecessary resolution errors
             s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());
             ResolveExpression(s.Result, true);
           }
