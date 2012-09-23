@@ -4009,7 +4009,17 @@ namespace Microsoft.Dafny {
           for (int i = s.Steps.Count; 0 <= --i; ) {
             b = new Bpl.StmtListBuilder();
             TrStmt(s.Hints[i], b, locals, etran);
-            b.Add(Assert(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
+            bool splitHappened;
+            var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
+            if (!splitHappened) {
+              b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
+            } else {
+              foreach (var split in ss) {
+                if (!split.IsFree) {
+                  b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
+                }
+              }
+            }
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           }

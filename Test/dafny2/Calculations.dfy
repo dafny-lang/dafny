@@ -80,10 +80,7 @@ ghost method Lemma_Revacc_calc(xs: List, ys: List)
         concat(revacc(xrest, Cons(x, Nil)), ys);
         { Lemma_RevCatCommute(); } // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
         revacc(xrest, concat(Cons(x, Nil), ys));
-        { 
-          assert forall g, gs :: concat(Cons(g, Nil), gs) == Cons(g, gs); 
-          assert concat(Cons(x, Nil), ys) == Cons(x, ys);
-        }
+		// def. concat (x2)
         revacc(xrest, Cons(x, ys));
         // def. revacc
         revacc(xs, ys);
