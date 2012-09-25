@@ -42,6 +42,24 @@ namespace Microsoft.Dafny
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
         var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, CloneAttributes(dd.Attributes));
         return dt;
+      } else if (d is IteratorDecl) {
+        var dd = (IteratorDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var ins = dd.Ins.ConvertAll(CloneFormal);
+        var outs = dd.Outs.ConvertAll(CloneFormal);
+        var reads = CloneSpecFrameExpr(dd.Reads);
+        var mod = CloneSpecFrameExpr(dd.Modifies);
+        var decr = CloneSpecExpr(dd.Decreases);
+        var req = dd.Requires.ConvertAll(CloneMayBeFreeExpr);
+        var yreq = dd.YieldRequires.ConvertAll(CloneMayBeFreeExpr);
+        var ens = dd.Ensures.ConvertAll(CloneMayBeFreeExpr);
+        var yens = dd.YieldEnsures.ConvertAll(CloneMayBeFreeExpr);
+        var body = CloneBlockStmt(dd.Body);
+        var iter = new IteratorDecl(Tok(dd.tok), dd.Name, dd.Module,
+          tps, ins, outs, reads, mod, decr,
+          req, ens, yreq, yens,
+          body, CloneAttributes(dd.Attributes), dd.SignatureIsOmitted);
+        return iter;
       } else if (d is ClassDecl) {
         if (d is DefaultClassDecl) {
           var dd = (ClassDecl)d;
@@ -386,6 +404,10 @@ namespace Microsoft.Dafny
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         r = new ReturnStmt(Tok(s.Tok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+
+      } else if (stmt is YieldStmt) {
+        var s = (YieldStmt)stmt;
+        r = new YieldStmt(Tok(s.Tok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;

@@ -139,7 +139,7 @@ namespace DafnyLanguage
             foreach (var ctor in dt.Ctors) {
               foreach (var dtor in ctor.Destructors) {
                 if (dtor != null) {
-                  IdRegion.Add(newRegions, dtor.tok, dtor, "destructor", true, module);
+                  IdRegion.Add(newRegions, dtor.tok, dtor, null, "destructor", true, module);
                 }
               }
             }
@@ -175,7 +175,7 @@ namespace DafnyLanguage
                 }
               } else if (member is Field) {
                 var fld = (Field)member;
-                IdRegion.Add(newRegions, fld.tok, fld, "field", true, module);
+                IdRegion.Add(newRegions, fld.tok, fld, null, "field", true, module);
               }
             }
           }
@@ -194,7 +194,8 @@ namespace DafnyLanguage
         ExprRegions(fe.E, regions, module);
       }
       if (fe.Field != null) {
-        IdRegion.Add(regions, fe.tok, fe.Field, "field", false, module);
+        Microsoft.Dafny.Type showType = null;  // TODO: if we had the instantiated type of this field, that would have been nice to use here (but the Resolver currently does not compute or store the instantiated type for a FrameExpression)
+        IdRegion.Add(regions, fe.tok, fe.Field, showType, "field", false, module);
       }
     }
 
@@ -206,7 +207,7 @@ namespace DafnyLanguage
         IdRegion.Add(regions, e.tok, e.Var, false, module);
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
-        IdRegion.Add(regions, e.tok, e.Field, "field", false, module);
+        IdRegion.Add(regions, e.tok, e.Field, e.Type, "field", false, module);
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         foreach (var bv in e.BoundVars) {
@@ -298,13 +299,13 @@ namespace DafnyLanguage
           regions.Add(new IdRegion(tok, v, isDefinition, context));
         }
       }
-      public static void Add(List<IdRegion> regions, Bpl.IToken tok, Field decl, string kind, bool isDefinition, ModuleDefinition context) {
+      public static void Add(List<IdRegion> regions, Bpl.IToken tok, Field decl, Microsoft.Dafny.Type showType, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(decl != null);
         Contract.Requires(kind != null);
         if (SurfaceSyntaxToken(tok)) {
-          regions.Add(new IdRegion(tok, decl, kind, isDefinition, context));
+          regions.Add(new IdRegion(tok, decl, showType, kind, isDefinition, context));
         }
       }
 
@@ -325,13 +326,16 @@ namespace DafnyLanguage
         HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
         Kind = !isDefinition ? OccurrenceKind.Use : VarDecl.HasWildcardName(v) ? OccurrenceKind.WildDefinition : OccurrenceKind.Definition;
       }
-      private IdRegion(Bpl.IToken tok, Field decl, string kind, bool isDefinition, ModuleDefinition context) {
+      private IdRegion(Bpl.IToken tok, Field decl, Microsoft.Dafny.Type showType, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(tok != null);
         Contract.Requires(decl != null);
         Contract.Requires(kind != null);
+        if (showType == null) {
+          showType = decl.Type;
+        }
         Start = tok.pos;
         Length = decl.Name.Length;
-        HoverText = string.Format("({2}{3}) {0}: {1}", decl.FullNameInContext(context), decl.Type.TypeName(context), decl.IsGhost ? "ghost " : "", kind);
+        HoverText = string.Format("({2}{3}) {0}: {1}", decl.FullNameInContext(context), showType.TypeName(context), decl.IsGhost ? "ghost " : "", kind);
         Kind = !isDefinition ? OccurrenceKind.Use : OccurrenceKind.Definition;
       }
     }

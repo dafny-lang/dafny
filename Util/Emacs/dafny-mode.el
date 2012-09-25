@@ -31,13 +31,15 @@
 
    `(,(dafny-regexp-opt '(
         "class" "datatype" "codatatype" "type" "function" "predicate" "copredicate"
+        "iterator"
         "ghost" "var" "method" "constructor"
         "module" "import" "default" "as" "opened" "static" "refines"
-        "returns" "requires" "ensures" "modifies" "reads" "free"
+        "returns" "yields" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
-        "assert" "assume" "break" "choose" "then" "else" "if" "label" "return" "while" "print" "where"
+        "assert" "assume" "break" "choose" "then" "else" "if" "label" "return" "yield"
+        "while" "print" "where"
         "old" "forall" "exists" "new" "parallel" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
    `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "object" "set" "seq")) . font-lock-type-face)

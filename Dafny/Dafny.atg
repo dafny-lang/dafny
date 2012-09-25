@@ -139,7 +139,7 @@ IGNORE cr + lf + tab
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 Dafny
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
+= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
      List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
      ModuleDecl submodule;
      // to support multiple files, create a default module only if theModule is null
@@ -159,6 +159,8 @@ Dafny
       DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
     | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
       ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
+    | (. if (isGhost) { SemErr(t, "an iterator is not allowed to be declared as 'ghost'"); } .)
+      IteratorDecl<defaultModule, out iter>     (. defaultModule.TopLevelDecls.Add(iter); .)
     | ClassMemberDecl<membersDefaultClass, isGhost, false>
     )
   }
@@ -178,7 +180,7 @@ Dafny
   EOF
   .
 SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl submodule>
-= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at;
+= (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
      Attributes attrs = null;  IToken/*!*/ id; 
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idRefined = null, idPath = null, idAssignment = null;
@@ -196,13 +198,15 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
        "{"                                       (. module.BodyStartTok = t; .)
         { (. isGhost = false; .)
           [ "ghost"  (. isGhost = true; .) ]
-            ( SubModuleDecl<module, isGhost, out sm>        (. module.TopLevelDecls.Add(sm); .)
+            ( SubModuleDecl<module, isGhost, out sm>       (. module.TopLevelDecls.Add(sm); .)
             | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
-              ClassDecl<module, out c>           (. module.TopLevelDecls.Add(c); .)
+              ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
             | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
-              DatatypeDecl<module, out dt>       (. module.TopLevelDecls.Add(dt); .)
+              DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
             | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
-              ArbitraryTypeDecl<module, out at>  (. module.TopLevelDecls.Add(at); .)
+              ArbitraryTypeDecl<module, out at>            (. module.TopLevelDecls.Add(at); .)
+            | (. if (isGhost) { SemErr(t, "an iterator is not allowed to be declared as 'ghost'"); } .)
+              IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
             | ClassMemberDecl<namedModuleDefaultClassMembers, isGhost, false>
             )
         }
@@ -393,6 +397,55 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
   .)
   .
 /*------------------------------------------------------------------------*/
+IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
+= (. Contract.Ensures(Contract.ValueAtReturn(out iter) != null);
+     IToken/*!*/ id;
+     Attributes attrs = null;
+     List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
+     IToken openParen;
+     List<Formal/*!*/> ins = new List<Formal/*!*/>();
+     List<Formal/*!*/> outs = new List<Formal/*!*/>();
+     List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
+     List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
+     List<Expression/*!*/> decreases = new List<Expression>();
+     List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
+     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+     List<MaybeFreeExpression/*!*/> yieldReq = new List<MaybeFreeExpression/*!*/>();
+     List<MaybeFreeExpression/*!*/> yieldEns = new List<MaybeFreeExpression/*!*/>();
+     List<Expression/*!*/> dec = new List<Expression/*!*/>();
+     Attributes readsAttrs = null;
+     Attributes modAttrs = null;
+     Attributes decrAttrs = null;
+     BlockStmt body = null;
+     bool signatureOmitted = false;
+     IToken bodyStart = Token.NoToken;
+     IToken bodyEnd = Token.NoToken;
+  .)
+  SYNC
+  "iterator"
+  { Attribute<ref attrs> }
+  NoUSIdent<out id>
+  (
+    [ GenericParameters<typeArgs> ]
+    Formals<true, true, ins, out openParen>
+    [ "yields"
+      Formals<false, true, outs, out openParen>
+    ]
+  | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
+  )
+  { IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs> }
+  [ BlockStmt<out body, out bodyStart, out bodyEnd>
+  ]
+  (. iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
+                             new Specification<FrameExpression>(mod, modAttrs), new Specification<FrameExpression>(reads, readsAttrs),
+                             new Specification<Expression>(decreases, decrAttrs),
+                             req, ens, yieldReq, yieldEns,
+                             body, attrs, signatureOmitted);
+     iter.BodyStartTok = bodyStart;
+     iter.BodyEndTok = bodyEnd;
+ .)
+  .
+/*------------------------------------------------------------------------*/
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id;
@@ -488,6 +541,44 @@ MethodSpec<.List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/
     | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> } Expression<out e> SYNC ";"          (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
   | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true> SYNC ";"
+  )
+  .
+IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
+              List<MaybeFreeExpression/*!*/>/*!*/ req, List<MaybeFreeExpression/*!*/>/*!*/ ens,
+              List<MaybeFreeExpression/*!*/>/*!*/ yieldReq, List<MaybeFreeExpression/*!*/>/*!*/ yieldEns,
+              ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
+= (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isFree = false; bool isYield = false; Attributes ensAttrs = null;
+  .)
+  SYNC
+  ( "reads"    { IF(IsAttribute()) Attribute<ref readsAttrs> }
+               [ FrameExpression<out fe>                     (. reads.Add(fe); .)
+                 { "," FrameExpression<out fe>               (. reads.Add(fe); .)
+                 }
+               ] SYNC ";"
+  | "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
+               [ FrameExpression<out fe>                     (. mod.Add(fe); .)
+                 { "," FrameExpression<out fe>               (. mod.Add(fe); .)
+                 }
+               ] SYNC ";"
+  | [ "free"                                                 (. isFree = true; .)
+    ]
+    [ "yield"                                                (. isYield = true; .)
+    ]
+    ( "requires" Expression<out e> SYNC ";"                  (. if (isYield) {
+                                                                  yieldReq.Add(new MaybeFreeExpression(e, isFree));
+                                                                } else {
+                                                                  req.Add(new MaybeFreeExpression(e, isFree));
+                                                                }
+                                                             .)
+    | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> }
+      Expression<out e> SYNC ";"                             (. if (isYield) {
+                                                                  yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
+                                                                } else {
+                                                                  ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
+                                                                }
+                                                             .)
+    )
+  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false> SYNC ";"
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, List<Formal/*!*/>/*!*/ formals, out IToken openParen.>
@@ -814,14 +905,22 @@ ReturnStmt<out Statement/*!*/ s>
    IToken returnTok = null;
    List<AssignmentRhs> rhss = null;
    AssignmentRhs r;
+   bool isYield = false;
    .)
-  "return"                           (. returnTok = t; .)
+  ( "return"                         (. returnTok = t; .)
+  | "yield"                          (. returnTok = t; isYield = true; .)
+  )
   [
       Rhs<out r, null>               (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
       { "," Rhs<out r, null>         (. rhss.Add(r); .)
         }
   ]
-  ";"                                (. s = new ReturnStmt(returnTok, rhss); .)
+  ";"                                (. if (isYield) {
+                                          s = new YieldStmt(returnTok, rhss);
+                                        } else {
+                                          s = new ReturnStmt(returnTok, rhss);
+                                        }
+                                     .)
   .
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();

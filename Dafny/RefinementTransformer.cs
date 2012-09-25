@@ -128,37 +128,46 @@ namespace Microsoft.Dafny
               } else if (dDemandsEqualitySupport) {
                 if (nw is ClassDecl) {
                   // fine, as long as "nw" does not take any type parameters
-                  if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes type parameters", nw.Name);
+                  if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters", nw.Name);
                   }
+                } else if (nw is IteratorDecl) {
+                  reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by an iterator");
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
                 } else {
                   Contract.Assert(nw is IndDatatypeDecl);
-                  if (nw.TypeArgs.Count != 0) {
-                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a datatype that takes type parameters", nw.Name);
+                  if (nw.TypeArgs.Count != d.TypeArgs.Count) {
+                    reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a datatype that takes a different number of type parameters", nw.Name);
                   } else {
                     // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
                     // taken place, so we defer it until the PostResolve phase.
                     var udt = new UserDefinedType(nw.tok, nw.Name, nw, new List<Type>());
-                    postTasks.Enqueue(delegate()
-                    {
+                    postTasks.Enqueue(delegate() {
                       if (!udt.SupportsEquality) {
                         reporter.Error(udt.tok, "datatype '{0}' is used to refine an arbitrary type with equality support, but '{0}' does not support equality", udt.Name);
                       }
                     });
                   }
                 }
+              } else if (d.TypeArgs.Count != nw.TypeArgs.Count) {
+                reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a type that takes a different number of type parameters", nw.Name);
               }
             }
           } else if (nw is ArbitraryTypeDecl) {
             reporter.Error(nw, "an arbitrary type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
           } else if (nw is DatatypeDecl) {
             reporter.Error(nw, "a datatype declaration ({0}) in a refinement module can only replace an arbitrary-type declaration", nw.Name);
+          } else if (nw is IteratorDecl) {
+            if (d is IteratorDecl) {
+              m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
+            } else {
+              reporter.Error(nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+            }
           } else {
             Contract.Assert(nw is ClassDecl);
             if (d is DatatypeDecl) {
-              reporter.Error(nw, "a class declaration ({0}) in a refining module cannot replace a datatype declaration in the refinement base", nw.Name);
+              reporter.Error(nw, "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
             } else {
               m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
             }
@@ -532,6 +541,66 @@ namespace Microsoft.Dafny
     }
 
     // -------------------------------------------------- Merging ---------------------------------------------------------------
+
+    IteratorDecl MergeIterator(IteratorDecl nw, IteratorDecl prev) {
+      Contract.Requires(nw != null);
+      Contract.Requires(prev != null);
+
+      if (nw.Requires.Count != 0) {
+        reporter.Error(nw.Requires[0].E.tok, "a refining iterator is not allowed to add preconditions");
+      }
+      if (nw.YieldRequires.Count != 0) {
+        reporter.Error(nw.YieldRequires[0].E.tok, "a refining iterator is not allowed to add yield preconditions");
+      }
+      if (nw.Reads.Expressions.Count != 0) {
+        reporter.Error(nw.Reads.Expressions[0].E.tok, "a refining iterator is not allowed to extend the reads clause");
+      }
+      if (nw.Modifies.Expressions.Count != 0) {
+        reporter.Error(nw.Modifies.Expressions[0].E.tok, "a refining iterator is not allowed to extend the modifies clause");
+      }
+      if (nw.Decreases.Expressions.Count != 0) {
+        reporter.Error(nw.Decreases.Expressions[0].tok, "a refining iterator is not allowed to extend the decreases clause");
+      }
+
+      if (nw.SignatureIsOmitted) {
+        Contract.Assert(nw.TypeArgs.Count == 0);
+        Contract.Assert(nw.Ins.Count == 0);
+        Contract.Assert(nw.Outs.Count == 0);
+      } else {
+        CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "iterator");
+        CheckAgreement_Parameters(nw.tok, prev.Ins, nw.Ins, nw.Name, "iterator", "in-parameter");
+        CheckAgreement_Parameters(nw.tok, prev.Outs, nw.Outs, nw.Name, "iterator", "yield-parameter");
+      }
+
+      BlockStmt newBody;
+      if (nw.Body == null) {
+        newBody = prev.Body;
+      } else if (prev.Body == null) {
+        newBody = nw.Body;
+      } else {
+        newBody = MergeBlockStmt(nw.Body, prev.Body);
+      }
+
+      var ens = prev.Ensures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      ens.AddRange(nw.Ensures);
+      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      yens.AddRange(nw.YieldEnsures);
+
+      return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction), nw.Name, moduleUnderConstruction,
+        nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
+        nw.SignatureIsOmitted ? prev.Ins.ConvertAll(refinementCloner.CloneFormal) : nw.Ins,
+        nw.SignatureIsOmitted ? prev.Outs.ConvertAll(refinementCloner.CloneFormal) : nw.Outs,
+        refinementCloner.CloneSpecFrameExpr(prev.Reads),
+        refinementCloner.CloneSpecFrameExpr(prev.Modifies),
+        refinementCloner.CloneSpecExpr(prev.Decreases),
+        prev.Requires.ConvertAll(refinementCloner.CloneMayBeFreeExpr),
+        ens,
+        prev.YieldRequires.ConvertAll(refinementCloner.CloneMayBeFreeExpr),
+        yens,
+        newBody,
+        refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes),
+        false);
+    }
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
@@ -1209,8 +1278,8 @@ namespace Microsoft.Dafny
       }
       if (s is SkeletonStatement) {
         reporter.Error(s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
-      } else if (s is ReturnStmt) {
-        reporter.Error(s, "return statements are not allowed in skeletons");
+      } else if (s is ProduceStmt) {
+        reporter.Error(s, (s is YieldStmt ? "yield" : "return") + " statements are not allowed in skeletons");
       } else if (s is BreakStmt) {
         var b = (BreakStmt)s;
         if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel) : loopLevels < b.BreakCount) {

@@ -253,6 +253,7 @@ namespace DafnyLanguage
                 case "in":
                 case "int":
                 case "invariant":
+                case "iterator":
                 case "label":
                 case "match":
                 case "method":
@@ -282,6 +283,8 @@ namespace DafnyLanguage
                 case "type":
                 case "var":
                 case "while":
+                case "yield":
+                case "yields":
                 #endregion
                   break;
                 default:

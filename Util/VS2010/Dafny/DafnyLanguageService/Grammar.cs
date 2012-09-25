@@ -17,12 +17,13 @@ namespace Demo
         StringLiteral stringLiteral = TerminalFactory.CreateCSharpString("String");
 
         this.MarkReservedWords(  // NOTE: these keywords must also appear once more below
-          "class", "ghost", "static", "var", "method", "constructor", "datatype", "codatatype", "type",
+          "class", "ghost", "static", "var", "method", "constructor", "datatype", "codatatype",
+          "iterator", "type",
           "assert", "assume", "new", "this", "object", "refines",
           "module", "import", "as", "default", "opened",
           "if", "then", "else", "while", "invariant",
-          "break", "label", "return", "parallel", "print",
-          "returns", "requires", "ensures", "modifies", "reads", "decreases",
+          "break", "label", "return", "yield", "parallel", "print",
+          "returns", "yields", "requires", "ensures", "modifies", "reads", "decreases",
           "bool", "nat", "int", "false", "true", "null",
           "function", "predicate", "copredicate", "free",
           "in", "forall", "exists",
@@ -269,6 +270,7 @@ namespace Demo
           | "datatype"
           | "codatatype"
           | "type"
+          | "iterator"
           | "assert"
           | "assume"
           | "new"
@@ -288,9 +290,11 @@ namespace Demo
           | "break"
           | "label"
           | "return"
+          | "yield"
           | "parallel"
           | "print"
           | "returns"
+          | "yields"
           | "requires"
           | "ensures"
           | "modifies"

@@ -510,7 +510,7 @@ ResolutionErrors.dfy(194,27): Error: ghost-context break statement is not allowe
 ResolutionErrors.dfy(217,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
 ResolutionErrors.dfy(229,12): Error: trying to break out of more loop levels than there are enclosing loops
 ResolutionErrors.dfy(233,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
-ResolutionErrors.dfy(238,8): Error: return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(238,8): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(23,12): Error: sequence/array/map selection requires a sequence, array or map (got array3<T>)
@@ -1344,8 +1344,8 @@ Dafny program verifier finished with 12 verified, 0 errors
 -------------------- EqualityTypes.dfy --------------------
 EqualityTypes.dfy(31,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
 EqualityTypes.dfy(32,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
-EqualityTypes.dfy(37,11): Error: arbitrary type 'X' is not allowed to be replaced by a datatype that takes type parameters
-EqualityTypes.dfy(38,8): Error: arbitrary type 'Y' is not allowed to be replaced by a class that takes type parameters
+EqualityTypes.dfy(37,11): Error: arbitrary type 'X' is not allowed to be replaced by a datatype that takes a different number of type parameters
+EqualityTypes.dfy(38,8): Error: arbitrary type 'Y' is not allowed to be replaced by a class that takes a different number of type parameters
 EqualityTypes.dfy(42,11): Error: datatype 'X' is used to refine an arbitrary type with equality support, but 'X' does not support equality
 EqualityTypes.dfy(43,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
 EqualityTypes.dfy(63,7): Error: == can only be applied to expressions of types that support equality (got Dt<T>)

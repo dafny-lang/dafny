@@ -287,6 +287,16 @@ namespace Microsoft.Dafny {
         return IsCoDatatype;  // TODO: should really check structure of the type recursively
       }
     }
+    public IteratorDecl AsIteratorType {
+      get {
+        UserDefinedType udt = this as UserDefinedType;
+        if (udt == null) {
+          return null;
+        } else {
+          return udt.ResolvedClass as IteratorDecl;
+        }
+      }
+    }
     public bool IsTypeParameter {
       get {
         return AsTypeParameter != null;
@@ -465,7 +475,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype and TypeArgs match the type parameters of that class/datatype
+    public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
     public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
     public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Type/*!*/>/*!*/ typeArgs, List<IToken> moduleName) {
@@ -481,7 +491,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This constructor constructs a resolved class type
+    /// This constructor constructs a resolved class/datatype/iterator type
     /// </summary>
     public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, TopLevelDecl/*!*/ cd, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
       Contract.Requires(tok != null);
@@ -577,6 +587,8 @@ namespace Microsoft.Dafny {
             i++;
           }
           return true;
+        } else if (ResolvedClass is IteratorDecl) {
+          return false;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
         }
@@ -898,7 +910,7 @@ namespace Microsoft.Dafny {
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
     
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
-    public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
+    public readonly Graph<ICallable/*!*/> CallGraph = new Graph<ICallable/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsGhost;
     public readonly bool IsAbstract; // True iff this module represents an abstract interface
@@ -1146,6 +1158,85 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public interface ICodeContext : ICallable
+  {
+    bool IsGhost { get; }
+    bool IsStatic { get; }
+    List<TypeParameter> TypeArgs { get; }
+    List<Formal> Ins { get ; }
+    List<Formal> Outs { get; }
+    ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
+  }
+
+  public class IteratorDecl : TopLevelDecl, ICodeContext
+  {
+    public readonly List<Formal> Ins;
+    public readonly List<Formal> Outs;
+    public readonly List<Formal> OutsHistory;  // these are the 'xs' variables
+    public readonly Specification<FrameExpression> Reads;
+    public readonly Specification<FrameExpression> Modifies;
+    public readonly Specification<Expression> Decreases;
+    public readonly List<MaybeFreeExpression> Requires;
+    public readonly List<MaybeFreeExpression> Ensures;
+    public readonly List<MaybeFreeExpression> YieldRequires;
+    public readonly List<MaybeFreeExpression> YieldEnsures;
+    public readonly BlockStmt Body;
+    public readonly bool SignatureIsOmitted;
+    public Dictionary<string, MemberDecl> ImplicitlyDefinedMembers;  // filled in during resolution
+    public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
+                        List<Formal> ins, List<Formal> outs,
+                        Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
+                        List<MaybeFreeExpression> requires,
+                        List<MaybeFreeExpression> ensures,
+                        List<MaybeFreeExpression> yieldRequires,
+                        List<MaybeFreeExpression> yieldEnsures,
+                        BlockStmt body, Attributes attributes, bool signatureIsOmitted)
+      : base(tok, name, module, typeArgs, attributes)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(ins != null);
+      Contract.Requires(outs != null);
+      Contract.Requires(reads != null);
+      Contract.Requires(mod != null);
+      Contract.Requires(decreases != null);
+      Contract.Requires(requires != null);
+      Contract.Requires(ensures != null);
+      Contract.Requires(yieldRequires != null);
+      Contract.Requires(yieldEnsures != null);
+      Ins = ins;
+      Outs = outs;
+      Reads = reads;
+      Modifies = mod;
+      Decreases = decreases;
+      Requires = requires;
+      Ensures = ensures;
+      YieldRequires = yieldRequires;
+      YieldEnsures = yieldEnsures;
+      Body = body;
+      SignatureIsOmitted = signatureIsOmitted;
+
+      OutsHistory = new List<Formal>();
+      foreach (var p in Outs) {
+        OutsHistory.Add(new Formal(p.tok, p.Name + "s", new SeqType(p.Type), false, true));
+      }
+    }
+
+    bool ICodeContext.IsGhost { get { return false; } }
+    bool ICodeContext.IsStatic { get { return true; } }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
+    List<Formal> ICodeContext.Ins { get { return this.Ins; } }
+    List<Formal> ICodeContext.Outs { get { return this.Outs; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+  }
+
+  /// <summary>
+  /// An "ICallable" is a function, method, or iterator.
+  /// </summary>
+  public interface ICallable { }
+
   public abstract class MemberDecl : Declaration {
     public readonly bool IsStatic;
     public readonly bool IsGhost;
@@ -1303,31 +1394,31 @@ namespace Microsoft.Dafny {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        throw new NotImplementedException();
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
     public string DisplayName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        throw new NotImplementedException();
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
     public string UniqueName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        throw new NotImplementedException();
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
     public string CompileName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        throw new NotImplementedException();
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
-        throw new NotImplementedException();
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
     public bool IsMutable {
@@ -1502,7 +1593,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Function : MemberDecl, TypeParameter.ParentType {
+  public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public bool IsRecursive;  // filled in during resolution
     public readonly List<TypeParameter/*!*/>/*!*/ TypeArgs;
     public readonly IToken OpenParen;  // can be null (for predicates), if there are no formals
@@ -1588,7 +1679,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Method : MemberDecl, TypeParameter.ParentType
+  public class Method : MemberDecl, TypeParameter.ParentType, ICodeContext
   {
     public readonly bool SignatureIsOmitted;
     public bool MustReverify;
@@ -1642,6 +1733,18 @@ namespace Microsoft.Dafny {
       this.Body = body;
       this.SignatureIsOmitted = signatureOmitted;
       MustReverify = false;
+    }
+
+    bool ICodeContext.IsGhost { get { return this.IsGhost; } }
+    bool ICodeContext.IsStatic { get { return this.IsStatic; } }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
+    List<Formal> ICodeContext.Ins { get { return this.Ins; } }
+    List<Formal> ICodeContext.Outs { get { return this.Outs; } }
+    ModuleDefinition ICodeContext.EnclosingModule {
+      get {
+        Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
+        return this.EnclosingClass.Module;
+      }
     }
   }
 
@@ -1854,10 +1957,11 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ReturnStmt : Statement {
+  public abstract class ProduceStmt : Statement
+  {
     public List<AssignmentRhs> rhss;
     public UpdateStmt hiddenUpdate;
-    public ReturnStmt(IToken tok, List<AssignmentRhs> rhss)
+    public ProduceStmt(IToken tok, List<AssignmentRhs> rhss)
       : base(tok) {
       Contract.Requires(tok != null);
       this.rhss = rhss;
@@ -1876,7 +1980,24 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class AssignmentRhs {
+  public class ReturnStmt : ProduceStmt
+  {
+    public ReturnStmt(IToken tok, List<AssignmentRhs> rhss)
+      : base(tok, rhss) {
+      Contract.Requires(tok != null);
+    }
+  }
+
+  public class YieldStmt : ProduceStmt
+  {
+    public YieldStmt(IToken tok, List<AssignmentRhs> rhss)
+      : base(tok, rhss) {
+      Contract.Requires(tok != null);
+    }
+  }
+
+  public abstract class AssignmentRhs
+  {
     public readonly IToken Tok;
 
     private Attributes attributes;
@@ -2900,15 +3021,27 @@ namespace Microsoft.Dafny {
   public class StaticReceiverExpr : LiteralExpr
   {
     public StaticReceiverExpr(IToken tok, ClassDecl cl)
-      : base(tok)  // constructs a LiteralExpr representing the 'null' literal
+      : this(cl, tok)  // constructs a LiteralExpr representing the 'null' literal
     {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
+    }
+    public StaticReceiverExpr(IToken tok, IteratorDecl iter)
+      : this(iter, tok)  // constructs a LiteralExpr representing the 'null' literal
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(iter != null);
+    }
+    private StaticReceiverExpr(TopLevelDecl decl, IToken tok)  // switch the order of the parameters, just to disambiguate calls
+      : base(tok)  // constructs a LiteralExpr representing the 'null' literal
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(decl != null);
       var typeArgs = new List<Type>();
-      foreach (var ta in cl.TypeArgs) {
+      foreach (var ta in decl.TypeArgs) {
         typeArgs.Add(new InferredTypeProxy());
       }
-      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      Type = new UserDefinedType(tok, decl.Name, decl, typeArgs);
     }
   }
 

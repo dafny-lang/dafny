@@ -92,6 +92,8 @@ namespace Microsoft.Dafny {
             wr.WriteLine(" { }");
             CompileDatatypeConstructors(dt, indent);
             CompileDatatypeStruct(dt, indent);
+          } else if (d is IteratorDecl) {
+            throw new NotImplementedException();  // TODO
           } else if (d is ClassDecl) {
             ClassDecl cl = (ClassDecl)d;
             Indent(indent);
@@ -942,6 +944,8 @@ namespace Microsoft.Dafny {
         if (s.hiddenUpdate != null)
           TrStmt(s.hiddenUpdate, indent);
         Indent(indent); wr.WriteLine("return;");
+      } else if (stmt is YieldStmt) {
+        throw new NotImplementedException();  // TODO
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         var resolved = s.ResolvedStatements;

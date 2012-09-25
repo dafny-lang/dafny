@@ -5,15 +5,17 @@
 \usepackage{listings}
 
 \lstdefinelanguage{dafny}{
-  morekeywords={class,datatype,codatatype,type,bool,nat,int,object,set,multiset,seq,array,array2,array3,map,%
+  morekeywords={class,datatype,codatatype,type,iterator,
+      bool,nat,int,object,set,multiset,seq,array,array2,array3,map,
       function,predicate,copredicate,
       ghost,var,static,refines,
-      method,constructor,returns,module,import,default,opened,as,in,
+      method,constructor,returns,yields,module,import,default,opened,as,in,
       requires,modifies,ensures,reads,decreases,free,
       % expressions
       match,case,false,true,null,old,fresh,choose,this,
       % statements
-      assert,assume,print,new,if,then,else,while,invariant,break,label,return,parallel,where
+      assert,assume,print,new,if,then,else,while,invariant,break,label,return,yield,
+      parallel,where
       },
   literate=%
     {:}{$\colon$}1

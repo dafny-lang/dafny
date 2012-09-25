@@ -345,6 +345,8 @@ namespace Microsoft.Dafny {
             AddDatatype((DatatypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
+          } else if (d is IteratorDecl) {
+            throw new NotImplementedException();  // TODO
           } else if (d is ClassDecl) {
             AddClassMembers((ClassDecl)d);
           } else {
@@ -3766,6 +3768,8 @@ namespace Microsoft.Dafny {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
         }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
+      } else if (stmt is YieldStmt) {
+        throw new NotImplementedException(); // TODO
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         AddComment(builder, s, "assign-such-that statement");

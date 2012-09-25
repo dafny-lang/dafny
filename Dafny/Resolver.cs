@@ -522,14 +522,95 @@ namespace Microsoft.Dafny
               }
             }
           }
+
+        } else if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+
+          // register the names of the implicit members
+          var members = new Dictionary<string, MemberDecl>();
+          iter.ImplicitlyDefinedMembers = members;
+
+          // First, register the iterator's in- and out-parameters as readonly fields
+          foreach (var p in iter.Ins) {
+            if (members.ContainsKey(p.Name)) {
+              Error(p, "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
+            } else {
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              field.EnclosingClass = iter;  // resolve here
+              members.Add(p.Name, field);
+            }
+          }
+          foreach (var p in iter.Outs) {
+            if (members.ContainsKey(p.Name)) {
+              Error(p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
+            } else {
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              field.EnclosingClass = iter;  // resolve here
+              members.Add(p.Name, field);
+            }
+          }
+          var yieldHistoryVariables = new List<MemberDecl>();
+          foreach (var p in iter.OutsHistory) {
+            if (members.ContainsKey(p.Name)) {
+              Error(p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
+            } else {
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              field.EnclosingClass = iter;  // resolve here
+              yieldHistoryVariables.Add(field);  // just record this field for now (until all parameters have been added as members)
+            }
+          }
+          yieldHistoryVariables.ForEach(f => members.Add(f.Name, f));  // now that already-used 'xs' names have been checked for, add these yield-history variables
+
+          var iterTypeArgs = new List<Type>();
+          iter.TypeArgs.ForEach(tp => iterTypeArgs.Add(new UserDefinedType(tp.tok, tp.Name, tp)));
+          var iterType = new UserDefinedType(iter.tok, iter.Name, iter, iterTypeArgs);
+          // Note, the typeArgs parameter to the following Method/Predicate constructors is passed in as the empty list.  What that is
+          // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
+          // iterator type) does.
+          // Also add "Valid" and "MoveNext"
+          var init = new Method(iter.tok, iter.Name, true, false, new List<TypeParameter>(),
+            iter.Ins, new List<Formal>() { new Formal(iter.tok, "iter", iterType, false, false) },
+            /* TODO: Fill in the spec here */
+            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
+            null, null, false);
+          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
+            new List<Formal>(), new List<Expression>(), new List<FrameExpression>()/*TODO: does this need to be filled?*/, new List<Expression>(), new Specification<Expression>(null, null),
+            null/*TODO: does this need to be fileld?*/, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+          var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
+            new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
+            /* TODO: Do the first 3 of the specification components on the next line need to be filled in? */
+            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
+            null, null, false);
+          init.EnclosingClass = iter;
+          valid.EnclosingClass = iter;
+          moveNext.EnclosingClass = iter;
+          MemberDecl member;
+          if (members.TryGetValue(init.Name, out member)) {
+            Error(member.tok, "member name '{0}' is already predefined for this iterator", init.Name);
+          } else {
+            members.Add(init.Name, init);
+          }
+          // If the name of the iterator is "Valid" or "MoveNext", one of the following will produce an error message.  That
+          // error message may not be as clear as it could be, but the situation also seems unlikely to ever occur in practice.
+          if (members.TryGetValue("Valid", out member)) {
+            Error(member.tok, "member name 'Valid' is already predefined for iterators");
+          } else {
+            members.Add(valid.Name, valid);
+          }
+          if (members.TryGetValue("MoveNext", out member)) {
+            Error(member.tok, "member name 'MoveNext' is already predefined for iterators");
+          } else {
+            members.Add(moveNext.Name, moveNext);
+          }
+
         } else {
           DatatypeDecl dt = (DatatypeDecl)d;
 
           // register the names of the constructors
-          Dictionary<string, DatatypeCtor> ctors = new Dictionary<string, DatatypeCtor>();
+          var ctors = new Dictionary<string, DatatypeCtor>();
           datatypeCtors.Add(dt, ctors);
           // ... and of the other members
-          Dictionary<string, MemberDecl> members = new Dictionary<string, MemberDecl>();
+          var members = new Dictionary<string, MemberDecl>();
           datatypeMembers.Add(dt, members);
 
           foreach (DatatypeCtor ctor in dt.Ctors) {
@@ -921,9 +1002,11 @@ namespace Microsoft.Dafny
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(d.TypeArgs, true, d, true);
+        ResolveTypeParameters(d.TypeArgs, true, d);
         if (d is ArbitraryTypeDecl) {
           // nothing to do
+        } else if (d is IteratorDecl) {
+          ResolveIteratorSignature((IteratorDecl)d);
         } else if (d is ClassDecl) {
           ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
@@ -957,8 +1040,15 @@ namespace Microsoft.Dafny
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(d.TypeArgs, false, d, true);
-        if (d is ClassDecl) {
+        ResolveTypeParameters(d.TypeArgs, false, d);
+        if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(iter.TypeArgs, false, iter);
+          ResolveIterator(iter);
+          allTypeParameters.PopMarker();
+
+        } else if (d is ClassDecl) {
           ResolveClassMemberBodies((ClassDecl)d);
         }
         allTypeParameters.PopMarker();
@@ -1067,7 +1157,27 @@ namespace Microsoft.Dafny
         } while (inferredSomething);
         // Now do it for Function and Method signatures
         foreach (var d in declarations) {
-          if (d is ClassDecl) {
+          if (d is IteratorDecl) {
+            var iter = (IteratorDecl)d;
+            foreach (var tp in iter.TypeArgs) {
+              if (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                // here's our chance to infer the need for equality support
+                foreach (var p in iter.Ins) {
+                  if (InferRequiredEqualitySupport(tp, p.Type)) {
+                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    goto DONE;
+                  }
+                }
+                foreach (var p in iter.Outs) {
+                  if (InferRequiredEqualitySupport(tp, p.Type)) {
+                    tp.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    goto DONE;
+                  }
+                }
+              DONE: ;
+              }
+            }
+          } else  if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
               if (!member.IsGhost) {
@@ -1116,7 +1226,22 @@ namespace Microsoft.Dafny
         // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
         // Note that this check can only be done after determining which expressions are ghosts.
         foreach (var d in declarations) {
-          if (d is ClassDecl) {
+          if (d is IteratorDecl) {
+            var iter = (IteratorDecl)d;
+            foreach (var p in iter.Ins) {
+              if (!p.IsGhost) {
+                CheckEqualityTypes_Type(p.tok, p.Type);
+              }
+            }
+            foreach (var p in iter.Outs) {
+              if (!p.IsGhost) {
+                CheckEqualityTypes_Type(p.tok, p.Type);
+              }
+            }
+            if (iter.Body != null) {
+              CheckEqualityTypes_Stmt(iter.Body);
+            }
+          } else  if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
               if (!member.IsGhost) {
@@ -1430,8 +1555,8 @@ namespace Microsoft.Dafny
           }
         }
       } else if (stmt is BreakStmt) {
-      } else if (stmt is ReturnStmt) {
-        var s = (ReturnStmt)stmt;
+      } else if (stmt is ProduceStmt) {
+        var s = (ProduceStmt)stmt;
         if (s.rhss != null) {
           s.rhss.Iter(CheckEqualityTypes_Rhs);
         }
@@ -1654,8 +1779,8 @@ namespace Microsoft.Dafny
         var s = (PrintStmt)stmt;
         s.Args.Iter(arg => CheckTypeInference(arg.E));
       } else if (stmt is BreakStmt) {
-      } else if (stmt is ReturnStmt) {
-        var s = (ReturnStmt)stmt;
+      } else if (stmt is ProduceStmt) {
+        var s = (ProduceStmt)stmt;
         if (s.rhss != null) {
           s.rhss.Iter(rhs => rhs.SubExpressions.Iter(e => CheckTypeInference(e)));
         }
@@ -1794,14 +1919,14 @@ namespace Microsoft.Dafny
         } else if (member is Function) {
           Function f = (Function)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(f.TypeArgs, true, f, false);
+          ResolveTypeParameters(f.TypeArgs, true, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
 
         } else if (member is Method) {
           Method m = (Method)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, true, m, false);
+          ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
 
@@ -1830,14 +1955,14 @@ namespace Microsoft.Dafny
         } else if (member is Function) {
           Function f = (Function)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(f.TypeArgs, false, f, false);
+          ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
 
         } else if (member is Method) {
           Method m = (Method)member;
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, false, m, false);
+          ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
         } else {
@@ -2106,8 +2231,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent, bool isToplevel) {
-
+    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
       // push non-duplicated type parameter names
@@ -2329,6 +2453,113 @@ namespace Microsoft.Dafny
       foreach (Formal p in ctor.Formals) {
         ResolveType(p.tok, p.Type, dtTypeArguments, false);
       }
+    }
+
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveIteratorSignature(IteratorDecl iter) {
+      Contract.Requires(iter != null);
+      scope.PushMarker();
+      if (iter.SignatureIsOmitted) {
+        Error(iter, "iterator signature can be omitted only in refining methods");
+      }
+      var defaultTypeArguments = iter.TypeArgs.Count == 0 ? iter.TypeArgs : null;
+      // resolve in-parameters
+      foreach (Formal p in iter.Ins) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Duplicate parameter name: {0}", p.Name);
+        }
+        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
+      }
+      // resolve yield-parameters
+      foreach (Formal p in iter.Outs) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Duplicate parameter name: {0}", p.Name);
+        }
+        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
+      }
+      // resolve yield-history variables
+      foreach (Formal p in iter.OutsHistory) {
+        if (!scope.Push(p.Name, p)) {
+          Error(p, "Name conflict with yield-history variable: {0}", p.Name);
+        }
+        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
+      }
+      scope.PopMarker();
+    }
+
+    /// <summary>
+    /// Assumes type parameters have already been pushed
+    /// </summary>
+    void ResolveIterator(IteratorDecl iter) {
+      Contract.Requires(iter != null);
+
+      // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
+      scope.PushMarker();
+      scope.AllowInstance = false;  // disallow 'this' from use, which means that the special fields and methods added are not accessible in the syntactically given spec
+      iter.Ins.ForEach(p => scope.Push(p.Name, p));
+
+      // Start resolving specification...
+      foreach (FrameExpression fe in iter.Reads.Expressions) {
+        ResolveFrameExpression(fe, "reads");
+      }
+      foreach (FrameExpression fe in iter.Modifies.Expressions) {
+        ResolveFrameExpression(fe, "modifies");
+      }
+      foreach (Expression e in iter.Decreases.Expressions) {
+        ResolveExpression(e, false);
+        // any type is fine
+      }
+
+      foreach (MaybeFreeExpression e in iter.Requires) {
+        ResolveExpression(e.E, false);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+
+      // In the postcondition, the yield-history variables are also in scope
+      iter.OutsHistory.ForEach(p => scope.Push(p.Name, p));
+
+      foreach (MaybeFreeExpression e in iter.Ensures) {
+        ResolveExpression(e.E, true);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+
+      // For the attributes, yield precondition, yield postcondition, and body, the yield-parameters are also available
+      scope.PushMarker();  // make the yield-parameters appear in the same scope as the outer-most locals of the body (since this is what is done for methods)
+      iter.Outs.ForEach(p => scope.Push(p.Name, p));
+
+      ResolveAttributes(iter.Attributes, false);
+
+      foreach (MaybeFreeExpression e in iter.YieldRequires) {
+        ResolveExpression(e.E, false);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Yield precondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+
+      foreach (MaybeFreeExpression e in iter.YieldEnsures) {
+        ResolveExpression(e.E, true);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Yield postcondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+
+      // Resolve body
+      if (iter.Body != null) {
+        ResolveBlockStatement(iter.Body, false, iter);
+      }
+
+      scope.PopMarker();  // for the yield-parameters and outermost-level locals
+      scope.PopMarker();  // for the in-parameters and yield-history variables
     }
 
     /// <summary>
@@ -2726,9 +2957,9 @@ namespace Microsoft.Dafny
     /// "specContextOnly" means that the statement must be erasable, that is, it should be okay to omit it
     /// at run time.  That means it must not have any side effects on non-ghost variables, for example.
     /// </summary>
-    public void ResolveStatement(Statement stmt, bool specContextOnly, Method method) {
+    public void ResolveStatement(Statement stmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
-      Contract.Requires(method != null);
+      Contract.Requires(codeContext != null);
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
         ResolveAttributes(s.Attributes, false);
@@ -2775,22 +3006,25 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is ReturnStmt) {
-        if (specContextOnly && !method.IsGhost) {
-          // TODO: investigate. This error message is suspicious. It seems that a return statement is only
-          // disallowed from a ghost if or while in a non-ghost method, which is not what this says.
-          Error(stmt, "return statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+      } else if (stmt is ProduceStmt) {
+        var kind = stmt is YieldStmt ? "yield" : "return";
+        if (stmt is YieldStmt && !(codeContext is IteratorDecl)) {
+          Error(stmt, "yield statement is allowed only in iterators");
+        } else if (stmt is ReturnStmt && !(codeContext is Method)) {
+          Error(stmt, "return statement is allowed only in method");
+        } else if (specContextOnly && !codeContext.IsGhost) {
+          Error(stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
         }
-        ReturnStmt s = (ReturnStmt)stmt;
+        var s = (ProduceStmt)stmt;
         if (s.rhss != null) {
-          if (method.Outs.Count != s.rhss.Count)
-            Error(s, "number of return parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, method.Outs.Count);
+          if (codeContext.Outs.Count != s.rhss.Count)
+            Error(s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, codeContext.Outs.Count, kind);
           else {
             Contract.Assert(s.rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
             List<Expression> formals = new List<Expression>();
             int i = 0;
-            foreach (Formal f in method.Outs) {
+            foreach (Formal f in codeContext.Outs) {
               IdentifierExpr ident = new IdentifierExpr(f.tok, f.Name);
               ident.Var = f;
               ident.Type = ident.Var.Type;
@@ -2806,22 +3040,22 @@ namespace Microsoft.Dafny
               i++;
             }
             s.hiddenUpdate = new UpdateStmt(s.Tok, formals, s.rhss, true);
-            // resolving the update statement will check for return statement specifics.
-            ResolveStatement(s.hiddenUpdate, specContextOnly, method);
+            // resolving the update statement will check for return/yield statement specifics.
+            ResolveStatement(s.hiddenUpdate, specContextOnly, codeContext);
           }
-        } else {// this is a regular return statement.
+        } else {// this is a regular return/yield statement.
           s.hiddenUpdate = null;
         }
       } else if (stmt is ConcreteUpdateStatement) {
-        ResolveUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, method);
+        ResolveUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var vd in s.Lhss) {
-          ResolveStatement(vd, specContextOnly, method);
+          ResolveStatement(vd, specContextOnly, codeContext);
           s.ResolvedStatements.Add(vd);
         }
         if (s.Update != null) {
-          ResolveStatement(s.Update, specContextOnly, method);
+          ResolveStatement(s.Update, specContextOnly, codeContext);
           s.ResolvedStatements.Add(s.Update);
         }
 
@@ -2843,7 +3077,7 @@ namespace Microsoft.Dafny
           if (var == null) {
             // the LHS didn't resolve correctly; some error would already have been reported
           } else {
-            lvalueIsGhost = var.IsGhost || method.IsGhost;
+            lvalueIsGhost = var.IsGhost || codeContext.IsGhost;
             if (!var.IsMutable) {
               Error(stmt, "LHS of assignment must denote a mutable variable or field");
             }
@@ -2913,7 +3147,7 @@ namespace Microsoft.Dafny
             }
           } else if (s.Rhs is TypeRhs) {
             TypeRhs rr = (TypeRhs)s.Rhs;
-            Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, method);
+            Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, codeContext);
             if (!lvalueIsGhost) {
               if (rr.ArrayDimensions != null) {
                 foreach (var dim in rr.ArrayDimensions) {
@@ -2952,11 +3186,11 @@ namespace Microsoft.Dafny
 
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
-        ResolveCallStmt(s, specContextOnly, method, null);
+        ResolveCallStmt(s, specContextOnly, codeContext, null);
 
       } else if (stmt is BlockStmt) {
         scope.PushMarker();
-        ResolveBlockStatement((BlockStmt)stmt, specContextOnly, method);
+        ResolveBlockStatement((BlockStmt)stmt, specContextOnly, codeContext);
         scope.PopMarker();
 
       } else if (stmt is IfStmt) {
@@ -2975,14 +3209,14 @@ namespace Microsoft.Dafny
           }
         }
         s.IsGhost = branchesAreSpecOnly;
-        ResolveStatement(s.Thn, branchesAreSpecOnly, method);
+        ResolveStatement(s.Thn, branchesAreSpecOnly, codeContext);
         if (s.Els != null) {
-          ResolveStatement(s.Els, branchesAreSpecOnly, method);
+          ResolveStatement(s.Els, branchesAreSpecOnly, codeContext);
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, null, method);
+        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, null, codeContext);
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
@@ -3027,12 +3261,12 @@ namespace Microsoft.Dafny
           inSpecOnlyContext.Add(s, specContextOnly);
         }
 
-        ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
+        ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
         loopStack.RemoveAt(loopStack.Count - 1);  // pop
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, s, method);
+        s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, s, codeContext);
         foreach (MaybeFreeExpression inv in s.Invariants) {
           ResolveExpression(inv.E, true);
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -3091,7 +3325,7 @@ namespace Microsoft.Dafny
         var prevLoopStack = loopStack;
         labeledStatements = new Scope<Statement>();
         loopStack = new List<Statement>();
-        ResolveStatement(s.Body, bodyMustBeSpecOnly, method);
+        ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
         labeledStatements = prevLblStmts;
         loopStack = prevLoopStack;
         scope.PopMarker();
@@ -3195,7 +3429,7 @@ namespace Microsoft.Dafny
             i++;
           }
           foreach (Statement ss in mc.Body) {
-            ResolveStatement(ss, bodyIsSpecOnly, method);
+            ResolveStatement(ss, bodyIsSpecOnly, codeContext);
           }
           scope.PopMarker();
         }
@@ -3218,13 +3452,15 @@ namespace Microsoft.Dafny
         Error(s.Tok, "skeleton statements are allowed only in refining methods");
         // nevertheless, resolve the underlying statement; hey, why not
         if (s.S != null) {
-          ResolveStatement(s.S, specContextOnly, method);
+          ResolveStatement(s.S, specContextOnly, codeContext);
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
-    private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, Method method) {
+    private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, ICodeContext codeContext) {
+      Contract.Requires(codeContext != null);
+
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
       SeqSelectExpr arrayRangeLhs = null;
@@ -3273,7 +3509,7 @@ namespace Microsoft.Dafny
           bool isEffectful;
           if (rhs is TypeRhs) {
             var tr = (TypeRhs)rhs;
-            ResolveTypeRhs(tr, s, specContextOnly, method);
+            ResolveTypeRhs(tr, s, specContextOnly, codeContext);
             isEffectful = tr.InitCall != null;
           } else if (rhs is HavocRhs) {
             isEffectful = false;
@@ -3379,14 +3615,14 @@ namespace Microsoft.Dafny
       }
 
       foreach (var a in s.ResolvedStatements) {
-        ResolveStatement(a, specContextOnly, method);
+        ResolveStatement(a, specContextOnly, codeContext);
       }
       s.IsGhost = s.ResolvedStatements.TrueForAll(ss => ss.IsGhost);
     }
 
-    bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, AlternativeLoopStmt loopToCatchBreaks, Method method) {
+    bool ResolveAlternatives(List<GuardedAlternative> alternatives, bool specContextOnly, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
       Contract.Requires(alternatives != null);
-      Contract.Requires(method != null);
+      Contract.Requires(codeContext != null);
 
       bool isGhost = specContextOnly;
       // first, resolve the guards, which tells us whether or not the entire statement is a ghost statement
@@ -3412,7 +3648,7 @@ namespace Microsoft.Dafny
       foreach (var alternative in alternatives) {
         scope.PushMarker();
         foreach (Statement ss in alternative.Body) {
-          ResolveStatement(ss, isGhost, method);
+          ResolveStatement(ss, isGhost, codeContext);
         }
         scope.PopMarker();
       }
@@ -3427,9 +3663,9 @@ namespace Microsoft.Dafny
     /// Resolves the given call statement.
     /// Assumes all LHSs have already been resolved (and checked for mutability).
     /// </summary>
-    void ResolveCallStmt(CallStmt s, bool specContextOnly, Method method, Type receiverType) {
+    void ResolveCallStmt(CallStmt s, bool specContextOnly, ICodeContext codeContext, Type receiverType) {
       Contract.Requires(s != null);
-      Contract.Requires(method != null);
+      Contract.Requires(codeContext != null);
       bool isInitCall = receiverType != null;
 
       // resolve receiver
@@ -3441,14 +3677,12 @@ namespace Microsoft.Dafny
       // resolve the method name
       NonProxyType nptype;
       MemberDecl member = ResolveMember(s.Tok, receiverType, s.MethodName, out nptype);
-      Method callee = null;
+      ICodeContext callee = null;
       if (member == null) {
         // error has already been reported by ResolveMember
-      } else if (!(member is Method)) {
-        Error(s, "member {0} in type {1} does not refer to a method", s.MethodName, nptype);
-      } else {
-        callee = (Method)member;
-        s.Method = callee;
+      } else if (member is Method) {
+        s.Method = (Method)member;
+        callee = s.Method;
         if (!isInitCall && callee is Constructor) {
           Error(s, "a constructor is only allowed to be called when an object is being allocated");
         }
@@ -3456,6 +3690,8 @@ namespace Microsoft.Dafny
         if (specContextOnly && !callee.IsGhost) {
           Error(s, "only ghost methods can be called from this context");
         }
+      } else {
+        Error(s, "member {0} in type {1} does not refer to a method", s.MethodName, nptype);
       }
 
       // resolve left-hand sides
@@ -3565,23 +3801,21 @@ namespace Microsoft.Dafny
         }
 
         // Resolution termination check
-        if (method.EnclosingClass != null && callee.EnclosingClass != null) {
-          ModuleDefinition callerModule = method.EnclosingClass.Module;
-          ModuleDefinition calleeModule = callee.EnclosingClass.Module;
-          if (callerModule == calleeModule) {
-            // intra-module call; this is allowed; add edge in module's call graph
-            callerModule.CallGraph.AddEdge(method, callee);
-          } else {
-            //Contract.Assert(dependencies.Reaches(callerModule, calleeModule));
-            //
-          }
+        ModuleDefinition callerModule = codeContext.EnclosingModule;
+        ModuleDefinition calleeModule = callee.EnclosingModule;
+        if (callerModule == calleeModule) {
+          // intra-module call; this is allowed; add edge in module's call graph
+          callerModule.CallGraph.AddEdge(codeContext, callee);
+        } else {
+          //Contract.Assert(dependencies.Reaches(callerModule, calleeModule));
+          //
         }
       }
     }
 
-    void ResolveBlockStatement(BlockStmt blockStmt, bool specContextOnly, Method method) {
+    void ResolveBlockStatement(BlockStmt blockStmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(blockStmt != null);
-      Contract.Requires(method != null);
+      Contract.Requires(codeContext != null);
 
       foreach (Statement ss in blockStmt.Body) {
         labeledStatements.PushMarker();
@@ -3602,7 +3836,7 @@ namespace Microsoft.Dafny
             }
           }
         }
-        ResolveStatement(ss, specContextOnly, method);
+        ResolveStatement(ss, specContextOnly, codeContext);
         labeledStatements.PopMarker();
       }
     }
@@ -3620,6 +3854,8 @@ namespace Microsoft.Dafny
         // this case is checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
       } else if (stmt is ReturnStmt) {
         Error(stmt, "return statement is not allowed inside a parallel statement");
+      } else if (stmt is YieldStmt) {
+        Error(stmt, "yield statement is not allowed inside a parallel statement");
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
@@ -3746,10 +3982,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContextOnly, Method method) {
+    Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
-      Contract.Requires(method != null);
+      Contract.Requires(codeContext != null);
       Contract.Ensures(Contract.Result<Type>() != null);
 
       if (rr.Type == null) {
@@ -3760,7 +3996,7 @@ namespace Microsoft.Dafny
           } else {
             bool callsConstructor = false;
             if (rr.InitCall != null) {
-              ResolveCallStmt(rr.InitCall, specContextOnly, method, rr.EType);
+              ResolveCallStmt(rr.InitCall, specContextOnly, codeContext, rr.EType);
               if (rr.InitCall.Method is Constructor) {
                 callsConstructor = true;
               }
@@ -3826,6 +4062,18 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (!datatypeMembers[dtd].TryGetValue(memberName, out member)) {
           Error(tok, "member {0} does not exist in datatype {1}", memberName, dtd.Name);
+          return null;
+        } else {
+          nptype = (UserDefinedType)receiverType;
+          return member;
+        }
+      }
+
+      IteratorDecl iter = receiverType.AsIteratorType;
+      if (iter != null) {
+        MemberDecl member;  
+        if (!iter.ImplicitlyDefinedMembers.TryGetValue(memberName, out member)) {
+          Error(tok, "member {0} does not exist in iterator {1}", memberName, iter.Name);
           return null;
         } else {
           nptype = (UserDefinedType)receiverType;
@@ -3947,7 +4195,6 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveExpression(Expression expr, bool twoState, List<IVariable> matchVarContext) {
       Contract.Requires(expr != null);
-      Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
       if (expr.Type != null) {
         // expression has already been resovled
@@ -3991,7 +4238,9 @@ namespace Microsoft.Dafny
         if (!scope.AllowInstance) {
           Error(expr, "'this' is not allowed in a 'static' context");
         }
-        expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+        if (currentClass != null) {
+          expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+        }
 
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
@@ -4740,7 +4989,6 @@ namespace Microsoft.Dafny
     /// </summary>
     void CheckIsNonGhost(Expression expr) {
       Contract.Requires(expr != null);
-      Contract.Requires(currentClass != null);
       Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
 
       if (expr is IdentifierExpr) {
@@ -4930,6 +5178,7 @@ namespace Microsoft.Dafny
       //       (if two imported types have the same name, an error message is produced here)
       //  - unambiguous constructor name of a datatype (if two constructors have the same name, an error message is produced here)
       //  - field, function or method name (with implicit receiver) (if the field is occluded by anything above, one can use an explicit "this.")
+      //  - iterator
       //  - static function or method in the enclosing module, or its imports.
 
       Expression r = null;  // resolved version of e
@@ -4949,6 +5198,14 @@ namespace Microsoft.Dafny
       } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a type in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
+        } else if (decl is IteratorDecl) {
+          // ----- root is an iterator
+          if (e.Tokens.Count != 1 || e.Arguments == null) {
+            Error(id, "name of iterator ('{0}') is used as a variable", id.val);
+          } else {
+            r = new StaticReceiverExpr(id, (IteratorDecl)decl);
+            call = new CallRhs(e.tok, r, id.val, e.Arguments);
+          }
         } else if (e.Tokens.Count == 1 && e.Arguments == null) {
           Error(id, "name of type ('{0}') is used as a variable", id.val);
         } else if (e.Tokens.Count == 1 && e.Arguments != null) {
@@ -4993,7 +5250,7 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if ((classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member))
+      } else if ((currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(id.val, out member))
                  || moduleInfo.StaticMembers.TryGetValue(id.val, out member)) // try static members of the current module too.
       {
         // ----- field, function, or method
@@ -5062,6 +5319,14 @@ namespace Microsoft.Dafny
             Error(e.tok, "module {0} cannot be used here", ((ModuleDecl)decl).Name);
           }
           call = ResolveIdentifierSequenceModuleScope(e, p + 1, ((ModuleDecl)decl).Signature, twoState, allowMethodCall);
+        } else if (decl is IteratorDecl) {
+          // ----- root is an iterator
+          if (p + 1 == e.Tokens.Count || e.Arguments == null) {
+            Error(id, "name of iterator ('{0}') is used as a variable", id.val);
+          } else {
+            r = new StaticReceiverExpr(id, (IteratorDecl)decl);
+            call = new CallRhs(e.tok, r, id.val, e.Arguments);
+          }
         } else {
           // ----- root is a datatype
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
@@ -5145,14 +5410,26 @@ namespace Microsoft.Dafny
       if (p < e.Tokens.Count) {
         Contract.Assert(e.Arguments != null);
 
-        Dictionary<string, MemberDecl> members;
-        MemberDecl member;
-        UserDefinedType receiverType = UserDefinedType.DenotesClass(r.Type);
-        if (allowMethodCall &&
-          receiverType != null &&
-          classMembers.TryGetValue((ClassDecl)receiverType.ResolvedClass, out members) &&
-          members.TryGetValue(e.Tokens[p].val, out member) &&
-          member is Method) {
+        
+        bool itIsAMethod = false;
+        if (allowMethodCall) {
+          var udt = r.Type.Normalize() as UserDefinedType;
+          if (udt != null && udt.ResolvedClass != null) {
+            Dictionary<string, MemberDecl> members;
+            if (udt.ResolvedClass is ClassDecl) {
+              classMembers.TryGetValue((ClassDecl)udt.ResolvedClass, out members);
+            } else if (udt.ResolvedClass is IteratorDecl) {
+              members = ((IteratorDecl)udt.ResolvedClass).ImplicitlyDefinedMembers;
+            } else {
+              members = null;
+            }
+            MemberDecl member;
+            if (members != null && members.TryGetValue(e.Tokens[p].val, out member) && member is Method) {
+              itIsAMethod = true;
+            }
+          }
+        }
+        if (itIsAMethod) {
           // method
           call = new CallRhs(e.Tokens[p], r, e.Tokens[p].val, e.Arguments);
           r = null;
@@ -5652,12 +5929,12 @@ namespace Microsoft.Dafny
 
     void ResolveReceiver(Expression expr, bool twoState) {
       Contract.Requires(expr != null);
-      Contract.Requires(currentClass != null);
       Contract.Ensures(expr.Type != null);
 
       if (expr is ThisExpr && !expr.WasResolved()) {
         // Allow 'this' here, regardless of scope.AllowInstance.  The caller is responsible for
         // making sure 'this' does not really get used when it's not available.
+        Contract.Assume(currentClass != null);  // this is really a precondition, in this case
         expr.Type = GetThisType(expr.tok, currentClass);
       } else {
         ResolveExpression(expr, twoState);
@@ -5863,7 +6140,7 @@ namespace Microsoft.Dafny
     /// </summary>
     bool UsesSpecFeatures(Expression expr) {
       Contract.Requires(expr != null);
-      Contract.Requires(currentClass != null);
+      Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
 
       if (expr is LiteralExpr) {
         return false;
