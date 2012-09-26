@@ -287,16 +287,6 @@ namespace Microsoft.Dafny {
         return IsCoDatatype;  // TODO: should really check structure of the type recursively
       }
     }
-    public IteratorDecl AsIteratorType {
-      get {
-        UserDefinedType udt = this as UserDefinedType;
-        if (udt == null) {
-          return null;
-        } else {
-          return udt.ResolvedClass as IteratorDecl;
-        }
-      }
-    }
     public bool IsTypeParameter {
       get {
         return AsTypeParameter != null;
@@ -587,8 +577,6 @@ namespace Microsoft.Dafny {
             i++;
           }
           return true;
-        } else if (ResolvedClass is IteratorDecl) {
-          return false;
         } else if (ResolvedParam != null) {
           return ResolvedParam.MustSupportEquality;
         }
@@ -1168,7 +1156,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
   }
 
-  public class IteratorDecl : TopLevelDecl, ICodeContext
+  public class IteratorDecl : ClassDecl, ICodeContext
   {
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
@@ -1182,7 +1170,6 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression> YieldEnsures;
     public readonly BlockStmt Body;
     public readonly bool SignatureIsOmitted;
-    public Dictionary<string, MemberDecl> ImplicitlyDefinedMembers;  // filled in during resolution
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -1191,7 +1178,7 @@ namespace Microsoft.Dafny {
                         List<MaybeFreeExpression> yieldRequires,
                         List<MaybeFreeExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, bool signatureIsOmitted)
-      : base(tok, name, module, typeArgs, attributes)
+      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -3021,27 +3008,15 @@ namespace Microsoft.Dafny {
   public class StaticReceiverExpr : LiteralExpr
   {
     public StaticReceiverExpr(IToken tok, ClassDecl cl)
-      : this(cl, tok)  // constructs a LiteralExpr representing the 'null' literal
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(cl != null);
-    }
-    public StaticReceiverExpr(IToken tok, IteratorDecl iter)
-      : this(iter, tok)  // constructs a LiteralExpr representing the 'null' literal
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(iter != null);
-    }
-    private StaticReceiverExpr(TopLevelDecl decl, IToken tok)  // switch the order of the parameters, just to disambiguate calls
       : base(tok)  // constructs a LiteralExpr representing the 'null' literal
     {
       Contract.Requires(tok != null);
-      Contract.Requires(decl != null);
+      Contract.Requires(cl != null);
       var typeArgs = new List<Type>();
-      foreach (var ta in decl.TypeArgs) {
+      foreach (var ta in cl.TypeArgs) {
         typeArgs.Add(new InferredTypeProxy());
       }
-      Type = new UserDefinedType(tok, decl.Name, decl, typeArgs);
+      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
     }
   }
 

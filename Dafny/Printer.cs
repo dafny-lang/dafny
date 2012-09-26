@@ -53,17 +53,6 @@ namespace Microsoft.Dafny {
         } else if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
           PrintDatatype((DatatypeDecl)d, indent);
-        } else if (d is ClassDecl) {
-          ClassDecl cl = (ClassDecl)d;
-          if (!cl.IsDefaultClass) {
-            if (i++ != 0) { wr.WriteLine(); }
-            PrintClass(cl, indent);
-          } else if (cl.Members.Count == 0) {
-            // print nothing
-          } else {
-            if (i++ != 0) { wr.WriteLine(); }
-            PrintMembers(cl.Members, indent);
-          }
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           Indent(indent);
@@ -106,17 +95,25 @@ namespace Microsoft.Dafny {
 
           if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
             // also print the members that were created as part of the interpretation of the iterator
-            Contract.Assert(iter.ImplicitlyDefinedMembers != null);  // filled in during resolution
-            var members = new List<MemberDecl>();
-            foreach (var m in iter.ImplicitlyDefinedMembers.Values) {
-              members.Add(m);
-            }
+            Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
             wr.WriteLine("/*---------- iterator members ----------");
             PrintClassMethodHelper("class", null, iter.Name, iter.TypeArgs);
             wr.WriteLine(" {");
-            PrintMembers(members, indent + IndentAmount);
+            PrintMembers(iter.Members, indent + IndentAmount);
             Indent(indent); wr.WriteLine("}");
             wr.WriteLine("---------- iterator members ----------*/");
+          }
+
+        } else if (d is ClassDecl) {
+          ClassDecl cl = (ClassDecl)d;
+          if (!cl.IsDefaultClass) {
+            if (i++ != 0) { wr.WriteLine(); }
+            PrintClass(cl, indent);
+          } else if (cl.Members.Count == 0) {
+            // print nothing
+          } else {
+            if (i++ != 0) { wr.WriteLine(); }
+            PrintMembers(cl.Members, indent);
           }
 
         } else if (d is ModuleDecl) {

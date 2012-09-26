@@ -496,11 +496,97 @@ namespace Microsoft.Dafny
         } else if (d is ArbitraryTypeDecl) {
           // nothing more to register
 
+        } else if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+
+          // register the names of the implicit members
+          var members = new Dictionary<string, MemberDecl>();
+          classMembers.Add(iter, members);
+
+          // First, register the iterator's in- and out-parameters as readonly fields
+          foreach (var p in iter.Ins) {
+            if (members.ContainsKey(p.Name)) {
+              Error(p, "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
+            } else {
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              field.EnclosingClass = iter;  // resolve here
+              members.Add(p.Name, field);
+              iter.Members.Add(field);
+            }
+          }
+          foreach (var p in iter.Outs) {
+            if (members.ContainsKey(p.Name)) {
+              Error(p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
+            } else {
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              field.EnclosingClass = iter;  // resolve here
+              members.Add(p.Name, field);
+              iter.Members.Add(field);
+            }
+          }
+          var yieldHistoryVariables = new List<MemberDecl>();
+          foreach (var p in iter.OutsHistory) {
+            if (members.ContainsKey(p.Name)) {
+              Error(p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
+            } else {
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              field.EnclosingClass = iter;  // resolve here
+              yieldHistoryVariables.Add(field);  // just record this field for now (until all parameters have been added as members)
+            }
+          }
+          // now that already-used 'xs' names have been checked for, add these yield-history variables
+          yieldHistoryVariables.ForEach(f => {
+            members.Add(f.Name, f);
+            iter.Members.Add(f);
+          });
+
+          // Note, the typeArgs parameter to the following Method/Predicate constructors is passed in as the empty list.  What that is
+          // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
+          // iterator type) does.
+          // Also add "Valid" and "MoveNext"
+          var init = new Constructor(iter.tok, iter.Name, new List<TypeParameter>(), iter.Ins,
+            /* TODO: Fill in the spec here */
+            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
+            null, null, false);
+          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
+            new List<Formal>(), new List<Expression>(), new List<FrameExpression>()/*TODO: does this need to be filled?*/, new List<Expression>(), new Specification<Expression>(null, null),
+            null/*TODO: does this need to be fileld?*/, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+          var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
+            new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
+            /* TODO: Do the first 3 of the specification components on the next line need to be filled in? */
+            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
+            null, null, false);
+          init.EnclosingClass = iter;
+          valid.EnclosingClass = iter;
+          moveNext.EnclosingClass = iter;
+          iter.HasConstructor = true;
+          MemberDecl member;
+          if (members.TryGetValue(init.Name, out member)) {
+            Error(member.tok, "member name '{0}' is already predefined for this iterator", init.Name);
+          } else {
+            members.Add(init.Name, init);
+            iter.Members.Add(init);
+          }
+          // If the name of the iterator is "Valid" or "MoveNext", one of the following will produce an error message.  That
+          // error message may not be as clear as it could be, but the situation also seems unlikely to ever occur in practice.
+          if (members.TryGetValue("Valid", out member)) {
+            Error(member.tok, "member name 'Valid' is already predefined for iterators");
+          } else {
+            members.Add(valid.Name, valid);
+            iter.Members.Add(valid);
+          }
+          if (members.TryGetValue("MoveNext", out member)) {
+            Error(member.tok, "member name 'MoveNext' is already predefined for iterators");
+          } else {
+            members.Add(moveNext.Name, moveNext);
+            iter.Members.Add(moveNext);
+          }
+
         } else if (d is ClassDecl) {
           ClassDecl cl = (ClassDecl)d;
 
           // register the names of the class members
-          Dictionary<string, MemberDecl> members = new Dictionary<string, MemberDecl>();
+          var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
 
           bool hasConstructor = false;
@@ -521,86 +607,6 @@ namespace Microsoft.Dafny
                 sig.StaticMembers[m.Name] = m;
               }
             }
-          }
-
-        } else if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-
-          // register the names of the implicit members
-          var members = new Dictionary<string, MemberDecl>();
-          iter.ImplicitlyDefinedMembers = members;
-
-          // First, register the iterator's in- and out-parameters as readonly fields
-          foreach (var p in iter.Ins) {
-            if (members.ContainsKey(p.Name)) {
-              Error(p, "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
-            } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
-              field.EnclosingClass = iter;  // resolve here
-              members.Add(p.Name, field);
-            }
-          }
-          foreach (var p in iter.Outs) {
-            if (members.ContainsKey(p.Name)) {
-              Error(p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
-            } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
-              field.EnclosingClass = iter;  // resolve here
-              members.Add(p.Name, field);
-            }
-          }
-          var yieldHistoryVariables = new List<MemberDecl>();
-          foreach (var p in iter.OutsHistory) {
-            if (members.ContainsKey(p.Name)) {
-              Error(p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
-            } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
-              field.EnclosingClass = iter;  // resolve here
-              yieldHistoryVariables.Add(field);  // just record this field for now (until all parameters have been added as members)
-            }
-          }
-          yieldHistoryVariables.ForEach(f => members.Add(f.Name, f));  // now that already-used 'xs' names have been checked for, add these yield-history variables
-
-          var iterTypeArgs = new List<Type>();
-          iter.TypeArgs.ForEach(tp => iterTypeArgs.Add(new UserDefinedType(tp.tok, tp.Name, tp)));
-          var iterType = new UserDefinedType(iter.tok, iter.Name, iter, iterTypeArgs);
-          // Note, the typeArgs parameter to the following Method/Predicate constructors is passed in as the empty list.  What that is
-          // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
-          // iterator type) does.
-          // Also add "Valid" and "MoveNext"
-          var init = new Method(iter.tok, iter.Name, true, false, new List<TypeParameter>(),
-            iter.Ins, new List<Formal>() { new Formal(iter.tok, "iter", iterType, false, false) },
-            /* TODO: Fill in the spec here */
-            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
-            null, null, false);
-          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
-            new List<Formal>(), new List<Expression>(), new List<FrameExpression>()/*TODO: does this need to be filled?*/, new List<Expression>(), new Specification<Expression>(null, null),
-            null/*TODO: does this need to be fileld?*/, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
-          var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
-            new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
-            /* TODO: Do the first 3 of the specification components on the next line need to be filled in? */
-            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
-            null, null, false);
-          init.EnclosingClass = iter;
-          valid.EnclosingClass = iter;
-          moveNext.EnclosingClass = iter;
-          MemberDecl member;
-          if (members.TryGetValue(init.Name, out member)) {
-            Error(member.tok, "member name '{0}' is already predefined for this iterator", init.Name);
-          } else {
-            members.Add(init.Name, init);
-          }
-          // If the name of the iterator is "Valid" or "MoveNext", one of the following will produce an error message.  That
-          // error message may not be as clear as it could be, but the situation also seems unlikely to ever occur in practice.
-          if (members.TryGetValue("Valid", out member)) {
-            Error(member.tok, "member name 'Valid' is already predefined for iterators");
-          } else {
-            members.Add(valid.Name, valid);
-          }
-          if (members.TryGetValue("MoveNext", out member)) {
-            Error(member.tok, "member name 'MoveNext' is already predefined for iterators");
-          } else {
-            members.Add(moveNext.Name, moveNext);
           }
 
         } else {
@@ -4045,11 +4051,11 @@ namespace Microsoft.Dafny
 
       UserDefinedType ctype = UserDefinedType.DenotesClass(receiverType);
       if (ctype != null) {
-        ClassDecl cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
+        var cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
         if (!classMembers[cd].TryGetValue(memberName, out member)) {
-          Error(tok, "member {0} does not exist in class {1}", memberName, ctype.Name);
+          Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, cd is IteratorDecl ? "iterator" : "class");
           return null;
         } else {
           nptype = ctype;
@@ -4062,18 +4068,6 @@ namespace Microsoft.Dafny
         MemberDecl member;
         if (!datatypeMembers[dtd].TryGetValue(memberName, out member)) {
           Error(tok, "member {0} does not exist in datatype {1}", memberName, dtd.Name);
-          return null;
-        } else {
-          nptype = (UserDefinedType)receiverType;
-          return member;
-        }
-      }
-
-      IteratorDecl iter = receiverType.AsIteratorType;
-      if (iter != null) {
-        MemberDecl member;  
-        if (!iter.ImplicitlyDefinedMembers.TryGetValue(memberName, out member)) {
-          Error(tok, "member {0} does not exist in iterator {1}", memberName, iter.Name);
           return null;
         } else {
           nptype = (UserDefinedType)receiverType;
@@ -5198,14 +5192,6 @@ namespace Microsoft.Dafny
       } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
           Error(id, "The name {0} ambiguously refers to a type in one of the modules {1}", id.val, ((AmbiguousTopLevelDecl)decl).ModuleNames());
-        } else if (decl is IteratorDecl) {
-          // ----- root is an iterator
-          if (e.Tokens.Count != 1 || e.Arguments == null) {
-            Error(id, "name of iterator ('{0}') is used as a variable", id.val);
-          } else {
-            r = new StaticReceiverExpr(id, (IteratorDecl)decl);
-            call = new CallRhs(e.tok, r, id.val, e.Arguments);
-          }
         } else if (e.Tokens.Count == 1 && e.Arguments == null) {
           Error(id, "name of type ('{0}') is used as a variable", id.val);
         } else if (e.Tokens.Count == 1 && e.Arguments != null) {
@@ -5319,14 +5305,6 @@ namespace Microsoft.Dafny
             Error(e.tok, "module {0} cannot be used here", ((ModuleDecl)decl).Name);
           }
           call = ResolveIdentifierSequenceModuleScope(e, p + 1, ((ModuleDecl)decl).Signature, twoState, allowMethodCall);
-        } else if (decl is IteratorDecl) {
-          // ----- root is an iterator
-          if (p + 1 == e.Tokens.Count || e.Arguments == null) {
-            Error(id, "name of iterator ('{0}') is used as a variable", id.val);
-          } else {
-            r = new StaticReceiverExpr(id, (IteratorDecl)decl);
-            call = new CallRhs(e.tok, r, id.val, e.Arguments);
-          }
         } else {
           // ----- root is a datatype
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
@@ -5418,8 +5396,6 @@ namespace Microsoft.Dafny
             Dictionary<string, MemberDecl> members;
             if (udt.ResolvedClass is ClassDecl) {
               classMembers.TryGetValue((ClassDecl)udt.ResolvedClass, out members);
-            } else if (udt.ResolvedClass is IteratorDecl) {
-              members = ((IteratorDecl)udt.ResolvedClass).ImplicitlyDefinedMembers;
             } else {
               members = null;
             }

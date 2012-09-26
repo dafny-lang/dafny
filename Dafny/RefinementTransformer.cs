@@ -131,8 +131,6 @@ namespace Microsoft.Dafny
                   if (nw.TypeArgs.Count != d.TypeArgs.Count) {
                     reporter.Error(nw, "arbitrary type '{0}' is not allowed to be replaced by a class that takes a different number of type parameters", nw.Name);
                   }
-                } else if (nw is IteratorDecl) {
-                  reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by an iterator");
                 } else if (nw is CoDatatypeDecl) {
                   reporter.Error(nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
                 } else {
