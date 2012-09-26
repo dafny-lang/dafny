@@ -744,7 +744,7 @@ namespace Microsoft.Dafny {
     public IToken BodyEndTok = Token.NoToken;
     public readonly string/*!*/ Name;
     string compileName;
-    public string CompileName {
+    public virtual string CompileName {
       get {
         if (compileName == null) {
           compileName = NonglobalVariable.CompilerizeName(Name);
@@ -1252,6 +1252,15 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
 
       return EnclosingClass.FullNameInContext(context) + "." + Name;
+    }
+    public override string CompileName {
+      get {
+        var nm = base.CompileName;
+        if (this.Name == EnclosingClass.Name) {
+          nm = "_" + nm;
+        }
+        return nm;
+      }
     }
     public string FullCompileName {
       get {

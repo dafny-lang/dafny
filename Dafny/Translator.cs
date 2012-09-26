@@ -345,10 +345,13 @@ namespace Microsoft.Dafny {
             AddDatatype((DatatypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
-          } else if (d is IteratorDecl) {
-            throw new NotImplementedException();  // TODO
           } else if (d is ClassDecl) {
             AddClassMembers((ClassDecl)d);
+            var iter = d as IteratorDecl;
+            if (iter != null && iter.Body != null) {
+              // also translate the body of the iterator
+              //KRML  throw new NotImplementedException();  // TODO
+            }
           } else {
             Contract.Assert(false);
           }
@@ -1034,7 +1037,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Neq(o, predef.Null)),
           etran.IsAlloced(f.tok, o));
         Bpl.Expr body = Bpl.Expr.Imp(ante, wh);
-        Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotF));
+        Bpl.Trigger tr = f.IsMutable ? new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(oDotF)) : null;  // the trigger must include both "o" and "h"
         Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new Bpl.VariableSeq(hVar, oVar), tr, body);
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
       }
@@ -3769,7 +3772,7 @@ namespace Microsoft.Dafny {
         }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
-        throw new NotImplementedException(); // TODO
+        //KRML   throw new NotImplementedException(); // TODO
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         AddComment(builder, s, "assign-such-that statement");

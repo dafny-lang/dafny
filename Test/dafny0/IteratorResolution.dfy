@@ -72,6 +72,8 @@ module Mx {
       } else {
         var x: int := h1.t;  // error: h1 would have to be a GenericIteratorResult<int>
       }
+
+      var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
     }
   }
 

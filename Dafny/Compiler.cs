@@ -93,9 +93,86 @@ namespace Microsoft.Dafny {
             CompileDatatypeConstructors(dt, indent);
             CompileDatatypeStruct(dt, indent);
           } else if (d is IteratorDecl) {
-            throw new NotImplementedException();  // TODO
+            var iter = (IteratorDecl)d;
+            // An iterator is compiled as follows:
+            //   public class MyIteratorExample<T>
+            //   {
+            //     public T q;  // in-parameter
+            //     public T x;  // yield-parameter
+            //     public int y;  // yield-parameter
+            //     IEnumerator<object> _iter;
+            //   
+            //     public void _MyIteratorExample(T q) {
+            //       this.q = q;
+            //       _iter = TheIterator();
+            //     }
+            //   
+            //     public void MoveNext(out bool more) {
+            //       more =_iter.MoveNext();
+            //     }
+            //   
+            //     private IEnumerator<object> TheIterator() {
+            //       // the translation of the body of the iterator, with each "yield" turning into a "yield return null;"
+            //       yield break;
+            //     }
+            //   }
+
+            Indent(indent);
+            wr.Write("public class @{0}", iter.CompileName);
+            if (iter.TypeArgs.Count != 0) {
+              wr.Write("<{0}>", TypeParameters(iter.TypeArgs));
+            }
+            wr.WriteLine(" {");
+            var ind = indent + IndentAmount;
+            // here come the fields
+            Constructor ct = null;
+            foreach (var member in iter.Members) {
+              var f = member as Field;
+              if (f != null && !f.IsGhost) {
+                Indent(ind);
+                wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type), f.CompileName, DefaultValue(f.Type));
+              } else if (member is Constructor) {
+                Contract.Assert(ct == null);  // we're expecting just one constructor
+                ct = (Constructor)member;
+              }
+            }
+            Contract.Assert(ct != null);  // we do expect a constructor
+            Indent(ind); wr.WriteLine("System.Collections.Generic.IEnumerator<object> __iter;");
+
+            // here's the initializer method
+            Indent(ind); wr.Write("public void @{0}(", ct.CompileName);
+            string sep = "";
+            foreach (var p in ct.Ins) {
+              if (!p.IsGhost) {
+                // here we rely on the parameters and the corresponding fields having the same names
+                wr.Write("{0}{1} @{2}", sep, TypeName(p.Type), p.CompileName);
+                sep = ", ";
+              }
+            }
+            wr.WriteLine(") {");
+            foreach (var p in ct.Ins) {
+              if (!p.IsGhost) {
+                Indent(ind + IndentAmount);
+                wr.WriteLine("this.@{0} = @{0};", p.CompileName);
+              }
+            }
+            Indent(ind + IndentAmount); wr.WriteLine("__iter = TheIterator();");
+            Indent(ind);  wr.WriteLine("}");
+            // here are the enumerator methods
+            Indent(ind); wr.WriteLine("public void MoveNext(out bool more) { more = __iter.MoveNext(); }");
+            Indent(ind); wr.WriteLine("private System.Collections.Generic.IEnumerator<object> TheIterator() {");
+            if (iter.Body == null) {
+              Error("Iterator {0} has no body", iter.FullName);
+            } else {
+              TrStmt(iter.Body, ind + IndentAmount);
+            }
+            Indent(ind + IndentAmount); wr.WriteLine("yield break;");
+            Indent(ind); wr.WriteLine("}");
+            // end of the class
+            Indent(indent); wr.WriteLine("}");
+
           } else if (d is ClassDecl) {
-            ClassDecl cl = (ClassDecl)d;
+            var cl = (ClassDecl)d;
             Indent(indent);
             wr.Write("public class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
@@ -939,13 +1016,16 @@ namespace Microsoft.Dafny {
         var s = (BreakStmt)stmt;
         Indent(indent);
         wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.UniqueId);
-      } else if (stmt is ReturnStmt) {
-        var s = (ReturnStmt)stmt;
+      } else if (stmt is ProduceStmt) {
+        var s = (ProduceStmt)stmt;
         if (s.hiddenUpdate != null)
           TrStmt(s.hiddenUpdate, indent);
-        Indent(indent); wr.WriteLine("return;");
-      } else if (stmt is YieldStmt) {
-        throw new NotImplementedException();  // TODO
+        Indent(indent);
+        if (s is YieldStmt) {
+          wr.WriteLine("yield return null;");
+        } else {
+          wr.WriteLine("return;");
+        }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         var resolved = s.ResolvedStatements;

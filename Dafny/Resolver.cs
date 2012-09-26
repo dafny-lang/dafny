@@ -546,15 +546,25 @@ namespace Microsoft.Dafny
           // Also add "Valid" and "MoveNext"
           var init = new Constructor(iter.tok, iter.Name, new List<TypeParameter>(), iter.Ins,
             /* TODO: Fill in the spec here */
-            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
+            new List<MaybeFreeExpression>(),
+            new Specification<FrameExpression>(new List<FrameExpression>(), null),
+            new List<MaybeFreeExpression>(),
+            new Specification<Expression>(new List<Expression>(), null),
             null, null, false);
           var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
-            new List<Formal>(), new List<Expression>(), new List<FrameExpression>()/*TODO: does this need to be filled?*/, new List<Expression>(), new Specification<Expression>(null, null),
+            new List<Formal>(),
+            new List<Expression>(),
+            new List<FrameExpression>()/*TODO: does this need to be filled?*/,
+            new List<Expression>(),
+            new Specification<Expression>(new List<Expression>(), null),
             null/*TODO: does this need to be fileld?*/, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
             /* TODO: Do the first 3 of the specification components on the next line need to be filled in? */
-            new List<MaybeFreeExpression>(), new Specification<FrameExpression>(null, null), new List<MaybeFreeExpression>(), new Specification<Expression>(null, null),
+            new List<MaybeFreeExpression>(),
+            new Specification<FrameExpression>(new List<FrameExpression>(), null),
+            new List<MaybeFreeExpression>(),
+            new Specification<Expression>(new List<Expression>(), null),
             null, null, false);
           init.EnclosingClass = iter;
           valid.EnclosingClass = iter;
