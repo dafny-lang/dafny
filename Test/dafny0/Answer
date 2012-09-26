@@ -1615,6 +1615,13 @@ TailCalls.dfy(42,12): Error: 'decreases *' is allowed only on tail-recursive met
 TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive methods
 5 resolution/type errors detected in TailCalls.dfy
 
+-------------------- IteratorResolution.dfy --------------------
+IteratorResolution.dfy(56,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(57,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(61,18): Error: arguments must have the same type (got _T0 and int)
+IteratorResolution.dfy(73,19): Error: RHS (of type bool) not assignable to LHS (of type int)
+4 resolution/type errors detected in IteratorResolution.dfy
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...
