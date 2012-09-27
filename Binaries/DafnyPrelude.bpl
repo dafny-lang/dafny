@@ -613,15 +613,15 @@ var $Tick: TickType;
 // -- Arithmetic -------------------------------------------------
 // ---------------------------------------------------------------
 
-// the connection between % and /
-axiom (forall x:int, y:int :: {x % y} {x / y}  x % y == x - x / y * y);
+// the connection between mod and div
+axiom (forall x:int, y:int :: {x mod y} {x div y}  x mod y == x - x div y * y);
 
 // remainder is always Euclidean Modulus.
-axiom (forall x:int, y:int :: {x % y}  0 < y  ==>  0 <= x % y  &&  x % y < y);
-axiom (forall x:int, y:int :: {x % y}  y < 0  ==>  0 <= x % y  &&  x % y < -y);
+axiom (forall x:int, y:int :: {x mod y}  0 < y  ==>  0 <= x mod y  &&  x mod y < y);
+axiom (forall x:int, y:int :: {x mod y}  y < 0  ==>  0 <= x mod y  &&  x mod y < -y);
 
-// the following axiom has some unfortunate matching, but it does state a property about % that
+// the following axiom has some unfortunate matching, but it does state a property about mod that
 // is sometimes useful
-axiom (forall a: int, b: int, d: int :: { a % d, b % d } 2 <= d && a % d == b % d && a < b  ==>  a + d <= b);
+axiom (forall a: int, b: int, d: int :: { a mod d, b mod d } 2 <= d && a mod d == b mod d && a < b  ==>  a + d <= b);
 
 // ---------------------------------------------------------------
