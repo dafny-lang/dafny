@@ -22,7 +22,6 @@ namespace Microsoft.Dafny
   using System.Diagnostics;
   using VC;
   using System.CodeDom.Compiler;
-  using AI = Microsoft.AbstractInterpretationFramework;
 
   public class DafnyDriver
   {
@@ -536,9 +535,6 @@ namespace Microsoft.Dafny
       if (CommandLineOptions.Clo.UseAbstractInterpretation) {
         if (CommandLineOptions.Clo.Ai.J_Intervals || CommandLineOptions.Clo.Ai.J_Trivial) {
           Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
-        } else if (CommandLineOptions.Clo.Ai.AnySet) {
-          // run one of the old domains
-          Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
         } else {
           // use /infer:j as the default
           CommandLineOptions.Clo.Ai.J_Intervals = true;
