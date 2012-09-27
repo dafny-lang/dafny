@@ -51,8 +51,9 @@ function U2(n: int): Stream<int>
   UpwardBy2(n)
 }
 
-ghost method Lemma2(n: int)
-  ensures Even(UpwardBy2(2*n));  // this is true, but Dafny can't prove it
-{
-  assert Even(U2(2*n));  // ... thanks to this lemma
-}
+// Postponed:
+//ghost method Lemma2(n: int)
+//  ensures Even(UpwardBy2(2*n));  // this is true, and Dafny can prove it
+//{
+//  assert Even(U2(2*n));  // ... thanks to this lemma
+//}
