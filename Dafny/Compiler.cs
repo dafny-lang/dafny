@@ -411,18 +411,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
 
       // public struct Dt<T> : IDatatype{
-      //   Base_Dt<T> d;
+      //   Base_Dt<T> _d;
       //   public Base_Dt<T> _D {
       //     get {
-      //       if (d == null) {
-      //         d = Default;
-      //       } else if (d is Dt__Lazy<T>) {        // co-datatypes only
-      //         d = ((Dt__Lazy<T>)d).Get();         // co-datatypes only
+      //       if (_d == null) {
+      //         _d = Default;
+      //       } else if (_d is Dt__Lazy<T>) {        // co-datatypes only
+      //         _d = ((Dt__Lazy<T>)_d).Get();         // co-datatypes only
       //       }
-      //       return d;
+      //       return _d;
       //     }
       //   }
-      //   public Dt(Base_Dt<T> d) { this.d = d; }
+      //   public Dt(Base_Dt<T> d) { this._d = d; }
       //   static Base_Dt<T> theDefault;
       //   public static Base_Dt<T> Default {
       //     get {
@@ -456,30 +456,30 @@ namespace Microsoft.Dafny {
       int ind = indent + IndentAmount;
 
       Indent(ind);
-      wr.WriteLine("Base_{0} d;", DtT);
+      wr.WriteLine("Base_{0} _d;", DtT);
 
       Indent(ind);
       wr.WriteLine("public Base_{0} _D {{", DtT);
       Indent(ind + IndentAmount);
       wr.WriteLine("get {");
       Indent(ind + 2 * IndentAmount);
-      wr.WriteLine("if (d == null) {");
+      wr.WriteLine("if (_d == null) {");
       Indent(ind + 3 * IndentAmount);
-      wr.WriteLine("d = Default;");
+      wr.WriteLine("_d = Default;");
       if (dt is CoDatatypeDecl) {
         string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
         Indent(ind + 2 * IndentAmount);
-        wr.WriteLine("}} else if (d is {0}__Lazy{1}) {{", dt.CompileName, typeParams);
+        wr.WriteLine("}} else if (_d is {0}__Lazy{1}) {{", dt.CompileName, typeParams);
         Indent(ind + 3 * IndentAmount);
-        wr.WriteLine("d = (({0}__Lazy{1})d).Get();", dt.CompileName, typeParams);
+        wr.WriteLine("_d = (({0}__Lazy{1})_d).Get();", dt.CompileName, typeParams);
       }
       Indent(ind + 2 * IndentAmount);  wr.WriteLine("}");
-      Indent(ind + 2 * IndentAmount);  wr.WriteLine("return d;");
+      Indent(ind + 2 * IndentAmount);  wr.WriteLine("return _d;");
       Indent(ind + IndentAmount);  wr.WriteLine("}");
       Indent(ind);  wr.WriteLine("}");
 
       Indent(ind);
-      wr.WriteLine("public @{0}(Base_{1} d) {{ this.d = d; }}", dt.CompileName, DtT);
+      wr.WriteLine("public @{0}(Base_{1} d) {{ this._d = d; }}", dt.CompileName, DtT);
 
       Indent(ind);
       wr.WriteLine("static Base_{0} theDefault;", DtT);
