@@ -610,18 +610,3 @@ type TickType;
 var $Tick: TickType;
 
 // ---------------------------------------------------------------
-// -- Arithmetic -------------------------------------------------
-// ---------------------------------------------------------------
-
-// the connection between % and /
-axiom (forall x:int, y:int :: {x % y} {x / y}  x % y == x - x / y * y);
-
-// remainder is always Euclidean Modulus.
-axiom (forall x:int, y:int :: {x % y}  0 < y  ==>  0 <= x % y  &&  x % y < y);
-axiom (forall x:int, y:int :: {x % y}  y < 0  ==>  0 <= x % y  &&  x % y < -y);
-
-// the following axiom has some unfortunate matching, but it does state a property about % that
-// is sometimes useful
-axiom (forall a: int, b: int, d: int :: { a % d, b % d } 2 <= d && a % d == b % d && a < b  ==>  a + d <= b);
-
-// ---------------------------------------------------------------

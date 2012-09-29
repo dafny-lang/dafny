@@ -231,9 +231,6 @@ namespace DafnyLanguage
       if (Bpl.CommandLineOptions.Clo.UseAbstractInterpretation) {
         if (Bpl.CommandLineOptions.Clo.Ai.J_Intervals || Bpl.CommandLineOptions.Clo.Ai.J_Trivial) {
           Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
-        } else if (Bpl.CommandLineOptions.Clo.Ai.AnySet) {
-          // run one of the old domains
-          Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
         } else {
           // use /infer:j as the default
           Bpl.CommandLineOptions.Clo.Ai.J_Intervals = true;

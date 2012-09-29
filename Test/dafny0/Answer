@@ -332,10 +332,10 @@ Execution trace:
 Definedness.dfy(86,5): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
+Definedness.dfy(86,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(86,10): Error: target object may be null
+Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 Definedness.dfy(87,10): Error: possible violation of function precondition
@@ -872,6 +872,12 @@ Execution trace:
 Dafny program verifier finished with 32 verified, 11 errors
 
 -------------------- ControlStructures.dfy --------------------
+ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
 ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
 Execution trace:
     (0,0): anon0
@@ -879,12 +885,6 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 ControlStructures.dfy(14,3): Error: missing case in case statement: Purple
 Execution trace:
     (0,0): anon0
@@ -1320,7 +1320,7 @@ CoPredicates.dfy(30,22): Related location: Related location
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 14 verified, 1 error
+Dafny program verifier finished with 12 verified, 1 error
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
