@@ -1616,16 +1616,27 @@ TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive met
 5 resolution/type errors detected in TailCalls.dfy
 
 -------------------- IteratorResolution.dfy --------------------
-IteratorResolution.dfy(56,11): Error: LHS of assignment does not denote a mutable field
-IteratorResolution.dfy(57,11): Error: LHS of assignment does not denote a mutable field
-IteratorResolution.dfy(61,18): Error: arguments must have the same type (got _T0 and int)
-IteratorResolution.dfy(73,19): Error: RHS (of type bool) not assignable to LHS (of type int)
-IteratorResolution.dfy(76,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
-5 resolution/type errors detected in IteratorResolution.dfy
+IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(60,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(64,18): Error: arguments must have the same type (got _T0 and int)
+IteratorResolution.dfy(76,19): Error: RHS (of type bool) not assignable to LHS (of type int)
+IteratorResolution.dfy(79,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
+IteratorResolution.dfy(83,15): Error: logical negation expects a boolean argument (instead got int)
+IteratorResolution.dfy(17,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(18,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(19,12): Error: LHS of assignment does not denote a mutable field
+9 resolution/type errors detected in IteratorResolution.dfy
 
 -------------------- Iterators.dfy --------------------
+Iterators.dfy(36,14): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(1,10): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon31_Then
+    (0,0): anon3
+    (0,0): anon32_Then
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 16 verified, 1 error
 
 -------------------- Superposition.dfy --------------------
 

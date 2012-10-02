@@ -113,7 +113,7 @@ namespace Microsoft.Dafny
       if (member is Field) {
         Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         var f = (Field)member;
-        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
+        return new Field(Tok(f.tok), f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
       } else if (member is Function) {
         var f = (Function)member;
         return CloneFunction(f);

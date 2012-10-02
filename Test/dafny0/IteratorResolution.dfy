@@ -14,6 +14,9 @@ module Mx {
 
   method IteratorUser() {
     var iter := new ExampleIterator.ExampleIterator(15);
+    iter.k := 12;  // error: not allowed to assign to iterator's in-parameters
+    iter.x := 12;  // error: not allowed to assign to iterator's yield-parameters
+    iter.xs := [];  // error: not allowed to assign to iterator's yield-history variables
     var j := 0;
     while (j < 100) {
       var more := iter.MoveNext();
@@ -74,6 +77,11 @@ module Mx {
       }
 
       var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
+
+      var h3 := new GenericIterator.GenericIterator(30);
+      if (h3.t == h3.u) {
+        assert !h3.t;  // error: type mismatch
+      }
     }
   }
 

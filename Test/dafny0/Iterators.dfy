@@ -11,20 +11,133 @@ iterator MyIntIter() yields (x: int, y: int)
   yield;
 }
 
+iterator Naturals(u: int) yields (n: nat)
+  requires u < 25;  // just to have some precondition
+  ensures false;  // never ends
+{
+  n := 0;
+  while (true)
+  {
+    yield n;
+    n := n + 1;
+  }
+}
+
 method Main() {
   var m := new MyIter.MyIter(12);
+  assert m.ys == m.xs == [];
   var a := m.x;
-  // assert !a;  // error: type mismatch
   if (a <= 13) {
     print "-- ", m.x, " --\n";
   }
 
+  var mer := m.MoveNext();
+  if (mer) {
+    mer := m.MoveNext();
+    mer := m.MoveNext();  // error
+  }
+
   var n := new MyIntIter.MyIntIter();
   var patience := 10;
-  while (patience != 0) {
+  while (patience != 0)
+    invariant n.Valid() && fresh(n._new);
+  {
     var more := n.MoveNext();
     if (!more) { break; }
     print n.x, ", ", n.y, "\n";
     patience := patience - 1;
   }
+
+  var o := new Naturals.Naturals(18);
+  var remaining := 100;
+  while (remaining != 0)
+    invariant o.Valid() && fresh(o._new);
+  {
+    var more := o.MoveNext();
+    assert more;
+    print o.n, " ";
+    remaining := remaining - 1;
+    if (remaining % 10 == 0) { print "\n"; }
+  }
 }
+
+// -----------------------------------------------------------
+
+class Cell {
+  var data: int;
+}
+
+iterator IterA(c: Cell)
+  requires c != null;
+  modifies c;
+{
+  while (true) {
+    c.data := *;
+    yield;
+  }
+}
+
+method TestIterA()
+{
+  var c := new Cell;
+  var iter := new IterA.IterA(c);
+  var tmp := c.data;
+  var more := iter.MoveNext();
+  assert tmp == c.data;  // error
+}
+
+// -----------------------------------------------------------
+
+iterator IterB(c: Cell)
+  requires c != null;
+  modifies c;
+  yield ensures c.data == old(c.data);  // error: cannot prove this without a reads clause
+  ensures true;
+{
+  if (*) { yield; }
+  c.data := *;
+}
+
+method TestIterB()
+{
+  var c := new Cell;
+  var iter := new IterB.IterB(c);
+  var tmp := c.data;
+  var more := iter.MoveNext();
+  if (more) {
+    assert tmp == c.data;  // no prob
+  } else {
+    assert tmp == c.data;  // error: the postcondition says nothing about this
+  }
+}
+
+// -----------------------------------------------------------
+
+iterator IterC(c: Cell)
+  requires c != null;
+  modifies c;
+  reads c;
+  yield ensures c.data == old(c.data);  // error: cannot prove this without a reads clause
+  ensures true;
+{
+  if (*) { yield; }
+  c.data := *;
+}
+
+method TestIterC()
+{
+  var c := new Cell;
+  var iter := new IterC.IterC(c);
+  var tmp := c.data;
+  var more := iter.MoveNext();
+  if (more) {
+    assert tmp == c.data;  // no prob
+  } else {
+    assert tmp == c.data;  // error: the postcondition says nothing about this
+  }
+
+  iter := new IterC.IterC(c);
+  c.data := 17;
+  more := iter.MoveNext();  // error: iter.Valid() may not hold
+}
+

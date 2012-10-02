@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
@@ -277,8 +278,9 @@ namespace Microsoft.Dafny
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       int prevErrorCount = ErrorCount;
       ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies);
-      if (ErrorCount == prevErrorCount)
+      if (ErrorCount == prevErrorCount) {
         ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+      }
     }
 
 
@@ -508,7 +510,7 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(p.Name)) {
               Error(p, "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, false, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
               members.Add(p.Name, field);
               iter.Members.Add(field);
@@ -518,7 +520,7 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(p.Name)) {
               Error(p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, true, false, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
               members.Add(p.Name, field);
               iter.Members.Add(field);
@@ -529,7 +531,7 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(p.Name)) {
               Error(p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, false, p.Type, null);
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", true, true, false, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
               yieldHistoryVariables.Add(field);  // just record this field for now (until all parameters have been added as members)
             }
@@ -539,37 +541,48 @@ namespace Microsoft.Dafny
             members.Add(f.Name, f);
             iter.Members.Add(f);
           });
+          // finally, add the additional special variables as fields
+          foreach (var p in iter.ExtraVars) {
+            var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, !p.InParam, false, p.Type, null);
+            field.EnclosingClass = iter;  // resolve here
+            members.Add(field.Name, field);
+            iter.Members.Add(field);
+          }
 
           // Note, the typeArgs parameter to the following Method/Predicate constructors is passed in as the empty list.  What that is
           // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
           // iterator type) does.
-          // Also add "Valid" and "MoveNext"
+          // --- here comes the constructor
           var init = new Constructor(iter.tok, iter.Name, new List<TypeParameter>(), iter.Ins,
-            /* TODO: Fill in the spec here */
             new List<MaybeFreeExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<MaybeFreeExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, false);
+          // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
             new List<Formal>(),
             new List<Expression>(),
-            new List<FrameExpression>()/*TODO: does this need to be filled?*/,
+            new List<FrameExpression>(),
             new List<Expression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null/*TODO: does this need to be fileld?*/, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+            null, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+          // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
-            /* TODO: Do the first 3 of the specification components on the next line need to be filled in? */
             new List<MaybeFreeExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<MaybeFreeExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, false);
+          // add these implicit members to the class
           init.EnclosingClass = iter;
           valid.EnclosingClass = iter;
           moveNext.EnclosingClass = iter;
           iter.HasConstructor = true;
+          iter.Member_Init = init;
+          iter.Member_Valid = valid;
+          iter.Member_MoveNext = moveNext;
           MemberDecl member;
           if (members.TryGetValue(init.Name, out member)) {
             Error(member.tok, "member name '{0}' is already predefined for this iterator", init.Name);
@@ -639,7 +652,7 @@ namespace Microsoft.Dafny
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
-              var query = new SpecialField(ctor.tok, queryName, "is_" + ctor.CompileName, "", "", false, false, Type.Bool, null);
+              var query = new SpecialField(ctor.tok, queryName, "is_" + ctor.CompileName, "", "", false, false, false, Type.Bool, null);
               query.EnclosingClass = dt;  // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;
@@ -743,8 +756,9 @@ namespace Microsoft.Dafny
     }
     MemberDecl CloneMember(MemberDecl member) {
       if (member is Field) {
+        Contract.Assert(!(member is SpecialField));  // we don't expect a SpecialField to be cloned (or do we?)
         var f = (Field)member;
-        return new Field(f.tok, f.Name, f.IsGhost, f.IsMutable, CloneType(f.Type), null);
+        return new Field(f.tok, f.Name, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), null);
       } else if (member is Function) {
         var f = (Function)member;
         return CloneFunction(f.tok, f, f.IsGhost);
@@ -1063,9 +1077,12 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(iter.TypeArgs, false, iter);
           ResolveIterator(iter);
           allTypeParameters.PopMarker();
+          ResolveClassMemberBodies(iter);  // resolve the automatically generated members
 
         } else if (d is ClassDecl) {
-          ResolveClassMemberBodies((ClassDecl)d);
+          var cl = (ClassDecl)d;
+          ResolveAttributes(cl.Attributes, false);
+          ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
       }
@@ -1961,7 +1978,6 @@ namespace Microsoft.Dafny
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
 
-      ResolveAttributes(cl.Attributes, false);
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         if (member is Field) {
@@ -2511,6 +2527,8 @@ namespace Microsoft.Dafny
     void ResolveIterator(IteratorDecl iter) {
       Contract.Requires(iter != null);
 
+      var initialErrorCount = ErrorCount;
+
       // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
       scope.PushMarker();
       scope.AllowInstance = false;  // disallow 'this' from use, which means that the special fields and methods added are not accessible in the syntactically given spec
@@ -2523,11 +2541,6 @@ namespace Microsoft.Dafny
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
         ResolveFrameExpression(fe, "modifies");
       }
-      foreach (Expression e in iter.Decreases.Expressions) {
-        ResolveExpression(e, false);
-        // any type is fine
-      }
-
       foreach (MaybeFreeExpression e in iter.Requires) {
         ResolveExpression(e.E, false);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -2535,23 +2548,13 @@ namespace Microsoft.Dafny
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
       }
-
-      // In the postcondition, the yield-history variables are also in scope
-      iter.OutsHistory.ForEach(p => scope.Push(p.Name, p));
-
-      foreach (MaybeFreeExpression e in iter.Ensures) {
-        ResolveExpression(e.E, true);
-        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
-        }
+      foreach (Expression e in iter.Decreases.Expressions) {
+        ResolveExpression(e, false);
+        // any type is fine
       }
 
-      // For the attributes, yield precondition, yield postcondition, and body, the yield-parameters are also available
-      scope.PushMarker();  // make the yield-parameters appear in the same scope as the outer-most locals of the body (since this is what is done for methods)
-      iter.Outs.ForEach(p => scope.Push(p.Name, p));
-
-      ResolveAttributes(iter.Attributes, false);
+      // Now add the yield-history variables to the scope
+      iter.OutsHistory.ForEach(p => scope.Push(p.Name, p));
 
       foreach (MaybeFreeExpression e in iter.YieldRequires) {
         ResolveExpression(e.E, false);
@@ -2560,6 +2563,20 @@ namespace Microsoft.Dafny
           Error(e.E, "Yield precondition must be a boolean (got {0})", e.E.Type);
         }
       }
+      foreach (MaybeFreeExpression e in iter.Ensures) {
+        ResolveExpression(e.E, true);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+
+      // Finally, add the yield-parameters and extra variables to the scope
+      scope.PushMarker();  // make the yield-parameters appear in the same scope as the outer-most locals of the body (since this is what is done for methods)
+      iter.Outs.ForEach(p => scope.Push(p.Name, p));
+      iter.ExtraVars.ForEach(p => scope.Push(p.Name, p));
+
+      ResolveAttributes(iter.Attributes, false);
 
       foreach (MaybeFreeExpression e in iter.YieldEnsures) {
         ResolveExpression(e.E, true);
@@ -2569,13 +2586,161 @@ namespace Microsoft.Dafny
         }
       }
 
+      var postSpecErrorCount = ErrorCount;
+
       // Resolve body
       if (iter.Body != null) {
         ResolveBlockStatement(iter.Body, false, iter);
       }
 
-      scope.PopMarker();  // for the yield-parameters and outermost-level locals
+      scope.PopMarker();  // for the yield-parameters, extra variables, and outermost-level locals
       scope.PopMarker();  // for the in-parameters and yield-history variables
+
+      if (postSpecErrorCount == initialErrorCount) {
+        CreateIteratorMethodSpecs(iter);
+      }
+    }
+
+    /// <summary>
+    /// Assumes the specification of the iterator itself has been successfully resolved.
+    /// </summary>
+    void CreateIteratorMethodSpecs(IteratorDecl iter) {
+      if (iter.Outs.Count != iter.OutsHistory.Count) {
+        // something must have gone wrong during registration, so don't worry about filling in the specs
+        return;
+      }
+
+      // ---------- here comes the constructor ----------
+      // same requires clause as the iterator itself
+      iter.Member_Init.Req.AddRange(iter.Requires);
+      // modifies this;
+      iter.Member_Init.Mod.Expressions.Add(new FrameExpression(iter.tok, new ThisExpr(iter.tok), null));
+      var ens = iter.Member_Init.Ens;
+      foreach (var p in iter.Ins) {
+        // ensures this.x == x;
+        ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+          new FieldSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new IdentifierExpr(p.tok, p.Name))));
+      }
+      foreach (var p in iter.OutsHistory) {
+        // ensures this.ys == [];
+        ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+          new FieldSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
+      }
+      // ensures this.Valid();
+      ens.Add(new MaybeFreeExpression(new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>())));
+      // ensures this._reads == old(ReadsClause);
+      var modSetSingletons = new List<Expression>();
+      Expression frameSet = new SetDisplayExpr(iter.tok, modSetSingletons);
+      foreach (var fr in iter.Reads.Expressions) {
+        if (fr.FieldName != null) {
+          Error(fr.tok, "sorry, a reads clause for an iterator is not allowed to designate specific fields");
+        } else if (fr.E.Type.IsRefType) {
+          modSetSingletons.Add(fr.E);
+        } else {
+          frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
+        }
+      }
+      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+        new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_reads"),
+        new OldExpr(iter.tok, frameSet))));
+      // ensures this._modifies == old(ModifiesClause);
+      modSetSingletons = new List<Expression>();
+      frameSet = new SetDisplayExpr(iter.tok, modSetSingletons);
+      foreach (var fr in iter.Modifies.Expressions) {
+        if (fr.FieldName != null) {
+          Error(fr.tok, "sorry, a modifies clause for an iterator is not allowed to designate specific fields");
+        } else if (fr.E.Type.IsRefType) {
+          modSetSingletons.Add(fr.E);
+        } else {
+          frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
+        }
+      }
+      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+        new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"),
+        new OldExpr(iter.tok, frameSet))));
+      // ensures this._new == {};
+      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+        new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
+        new SetDisplayExpr(iter.tok, new List<Expression>()))));
+
+      // ---------- here comes predicate Valid() ----------
+      var reads = iter.Member_Valid.Reads;
+      reads.Add(new FrameExpression(iter.tok, new ThisExpr(iter.tok), null));  // reads this;
+      reads.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_reads"), null));  // reads this._reads;
+      reads.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));  // reads this._new;
+
+      // ---------- here comes method MoveNext() ----------
+      // Build a substitution from the formals/variables to the corresponding fields.  Note, because these substitutions
+      // will be applied to an already resolved expression, the recursive idempotent Resolve operation on these method
+      // specifications may not reach down to these new parts.  Hence, these must be resolved right away (and they had better
+      // produce the same types as the subexpression they are replacing).
+      var substMap = new Dictionary<IVariable, Expression>();
+      foreach (var p in iter.Ins.Concat(iter.Outs.Concat(iter.OutsHistory.Concat(iter.ExtraVars)))) {
+        var f = (Field)iter.Members.Find(member => member is Field && member.Name == p.Name);
+        if (f == null) {
+          // something must have gone wrong during registration, so don't worry about adding this parameter to the substitution map
+        } else {
+          var th = new ThisExpr(p.tok);
+          th.Type = GetThisType(p.tok, iter);  // resolve here
+          var pe = new FieldSelectExpr(p.tok, th, p.Name);
+          pe.Field = f; pe.Type = p.Type;  // resolve here
+          substMap.Add(p, pe);
+        }
+      }
+      var subst = new Translator.Substituter(null, substMap);
+      // requires this.Valid();
+      var req = iter.Member_MoveNext.Req;
+      req.Add(new MaybeFreeExpression(new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>())));
+      // requires YieldRequires[subst];
+      foreach (var yp in iter.YieldRequires) {
+        req.Add(new MaybeFreeExpression(subst.Substitute(yp.E), yp.IsFree, subst.SubstAttributes(yp.Attributes)));
+      }
+      // modifies this, this._modifies, this._new;
+      iter.Member_MoveNext.Mod.Expressions.Add(new FrameExpression(iter.tok, new ThisExpr(iter.tok), null));
+      iter.Member_MoveNext.Mod.Expressions.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"), null));
+      iter.Member_MoveNext.Mod.Expressions.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
+      // ensures more ==> this.Valid();
+      ens = iter.Member_MoveNext.Ens;
+      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+        new IdentifierExpr(iter.tok, "more"),
+        new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>()))));
+      // ensures fresh(_new - old(_new));
+      ens.Add(new MaybeFreeExpression(new FreshExpr(iter.tok,
+        new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
+          new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
+          new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
+      // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
+      Contract.Assert(iter.Outs.Count == iter.OutsHistory.Count);
+      for (int i = 0; i < iter.Outs.Count; i++) {
+        var y = iter.Outs[i];
+        var ys = iter.OutsHistory[i];
+        var ite = new ITEExpr(iter.tok, new IdentifierExpr(iter.tok, "more"),
+          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add,
+            new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)),
+            new SeqDisplayExpr(iter.tok, new List<Expression>() { new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) })),
+          new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)));
+        var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite);
+        ens.Add(new MaybeFreeExpression(eq));
+      }
+      // ensures more ==> YieldEnsures[subst];
+      foreach (var ye in iter.YieldEnsures) {
+        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+          new IdentifierExpr(iter.tok, "more"), subst.Substitute(ye.E)),
+          ye.IsFree));
+      }
+      // ensures !more ==> Ensures[subst];
+      foreach (var e in iter.Ensures) {
+        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+          new UnaryExpr(iter.tok, UnaryExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
+          subst.Substitute(e.E)),
+          e.IsFree));
+      }
+      // decreases DecreasesClause[subst];
+      foreach (var d in iter.Decreases.Expressions) {
+        // TODO:  in the following line, "old(E)" should also be replaced by "at(iter._preHeap, E)"
+        iter.Member_MoveNext.Decreases.Expressions.Add(subst.Substitute(d));
+      }
+      iter.Member_MoveNext.Decreases.Attributes = subst.SubstAttributes(iter.Decreases.Attributes);
     }
 
     /// <summary>
@@ -3116,7 +3281,7 @@ namespace Microsoft.Dafny
                 }
               }
             }
-            if (!fse.Field.IsMutable) {
+            if (!fse.Field.IsUserMutable) {
               Error(stmt, "LHS of assignment does not denote a mutable field");
             }
           }
@@ -3693,7 +3858,7 @@ namespace Microsoft.Dafny
       // resolve the method name
       NonProxyType nptype;
       MemberDecl member = ResolveMember(s.Tok, receiverType, s.MethodName, out nptype);
-      ICodeContext callee = null;
+      Method callee = null;
       if (member == null) {
         // error has already been reported by ResolveMember
       } else if (member is Method) {
@@ -3809,7 +3974,7 @@ namespace Microsoft.Dafny
               }
             } else if (resolvedLhs is FieldSelectExpr) {
               var ll = (FieldSelectExpr)resolvedLhs;
-              if (!ll.Field.IsMutable) {
+              if (!ll.Field.IsUserMutable) {
                 Error(resolvedLhs, "LHS of assignment must denote a mutable field");
               }
             }
@@ -3818,10 +3983,11 @@ namespace Microsoft.Dafny
 
         // Resolution termination check
         ModuleDefinition callerModule = codeContext.EnclosingModule;
-        ModuleDefinition calleeModule = callee.EnclosingModule;
+        ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
         if (callerModule == calleeModule) {
           // intra-module call; this is allowed; add edge in module's call graph
-          callerModule.CallGraph.AddEdge(codeContext, callee);
+          var caller = codeContext is Method ? (Method)codeContext : ((IteratorDecl)codeContext).Member_MoveNext;
+          callerModule.CallGraph.AddEdge(caller, callee);
         } else {
           //Contract.Assert(dependencies.Reaches(callerModule, calleeModule));
           //

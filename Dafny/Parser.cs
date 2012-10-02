@@ -499,7 +499,8 @@ bool IsAttribute() {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
 		iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
-		                       new Specification<FrameExpression>(mod, modAttrs), new Specification<FrameExpression>(reads, readsAttrs),
+		                       new Specification<FrameExpression>(reads, readsAttrs),
+		                       new Specification<FrameExpression>(mod, modAttrs),
 		                       new Specification<Expression>(decreases, decrAttrs),
 		                       req, ens, yieldReq, yieldEns,
 		                       body, attrs, signatureOmitted);

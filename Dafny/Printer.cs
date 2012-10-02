@@ -269,7 +269,15 @@ namespace Microsoft.Dafny {
       PrintAttributes(field.Attributes);
       wr.Write(" {0}: ", field.Name);
       PrintType(field.Type);
-      wr.WriteLine(";");
+      wr.Write(";");
+      if (field.IsUserMutable) {
+        // nothing more to say
+      } else if (field.IsMutable) {
+        wr.Write("  // may change, but not directly by program");
+      } else {
+        wr.Write("  // immutable");
+      }
+      wr.WriteLine();
     }
 
     public void PrintFunction(Function f, int indent) {

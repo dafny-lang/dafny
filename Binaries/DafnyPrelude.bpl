@@ -603,6 +603,19 @@ axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
 
 // ---------------------------------------------------------------
+// -- Useful macros ----------------------------------------------
+// ---------------------------------------------------------------
+
+// havoc $Heap \ {this} \ S
+procedure {:inline} $YieldHavoc(this: ref, S: Set BoxType);
+  modifies $Heap;
+  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
+            $o != null && read(old($Heap), $o, alloc) ==>
+              read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
+              $o == this ||
+              S[$Box($o)]);
+
+// ---------------------------------------------------------------
 // -- Non-determinism --------------------------------------------
 // ---------------------------------------------------------------
 

@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
         for (int d = 0; d < dims; d++) {
           string name = dims == 1 ? "Length" : "Length" + d;
           string compiledName = dims == 1 ? "Length" : "GetLength(" + d + ")";
-          Field len = new SpecialField(Token.NoToken, name, compiledName, "new BigInteger(", ")", false, false, Type.Int, null);
+          Field len = new SpecialField(Token.NoToken, name, compiledName, "new BigInteger(", ")", false, false, false, Type.Int, null);
           len.EnclosingClass = arrayClass;  // resolve here
           arrayClass.Members.Add(len);
         }
@@ -898,7 +898,7 @@ namespace Microsoft.Dafny {
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
     
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
-    public readonly Graph<ICallable/*!*/> CallGraph = new Graph<ICallable/*!*/>();  // filled in during resolution
+    public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsGhost;
     public readonly bool IsAbstract; // True iff this module represents an abstract interface
@@ -1153,7 +1153,9 @@ namespace Microsoft.Dafny {
     List<TypeParameter> TypeArgs { get; }
     List<Formal> Ins { get ; }
     List<Formal> Outs { get; }
+    Specification<FrameExpression> Modifies { get; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
+    bool MustReverify { get; }
   }
 
   public class IteratorDecl : ClassDecl, ICodeContext
@@ -1161,6 +1163,7 @@ namespace Microsoft.Dafny {
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
     public readonly List<Formal> OutsHistory;  // these are the 'xs' variables
+    public readonly List<Formal> ExtraVars;  // _reads, _modifies, _new
     public readonly Specification<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Modifies;
     public readonly Specification<Expression> Decreases;
@@ -1170,6 +1173,9 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression> YieldEnsures;
     public readonly BlockStmt Body;
     public readonly bool SignatureIsOmitted;
+    public Constructor Member_Init;  // created during registration phase of resolution; its specification is filled in during resolution
+    public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
+    public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -1207,8 +1213,16 @@ namespace Microsoft.Dafny {
 
       OutsHistory = new List<Formal>();
       foreach (var p in Outs) {
-        OutsHistory.Add(new Formal(p.tok, p.Name + "s", new SeqType(p.Type), false, true));
+        var tp = p.Type;
+        if (tp.IsSubrangeType) {
+          tp = new IntType();  // because SeqType(NatType) is now allowed (despite the fact that the history variable is readonly, which is unfortunate)
+        }
+        OutsHistory.Add(new Formal(p.tok, p.Name + "s", new SeqType(tp), false, true));
       }
+      ExtraVars = new List<Formal>();
+      ExtraVars.Add(new Formal(tok, "_reads", new SetType(new ObjectType()), true, true));
+      ExtraVars.Add(new Formal(tok, "_modifies", new SetType(new ObjectType()), true, true));
+      ExtraVars.Add(new Formal(tok, "_new", new SetType(new ObjectType()), false, true));
     }
 
     bool ICodeContext.IsGhost { get { return false; } }
@@ -1216,7 +1230,9 @@ namespace Microsoft.Dafny {
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> ICodeContext.Outs { get { return this.Outs; } }
+    Specification<FrameExpression> ICodeContext.Modifies { get { return this.Modifies; } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+    bool ICodeContext.MustReverify { get { return false; } }
   }
 
   /// <summary>
@@ -1273,26 +1289,30 @@ namespace Microsoft.Dafny {
   }
 
   public class Field : MemberDecl {
-    public readonly bool IsMutable;
+    public readonly bool IsMutable;  // says whether or not the field can ever change values
+    public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
     public readonly Type Type;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Type != null);
+      Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
     }
 
     public Field(IToken tok, string name, bool isGhost, Type type, Attributes attributes)
-      : this(tok, name, isGhost, true, type, attributes) {
+      : this(tok, name, isGhost, true, true, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
     }
 
-    public Field(IToken tok, string name, bool isGhost, bool isMutable, Type type, Attributes attributes)
+    public Field(IToken tok, string name, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
       : base(tok, name, false, isGhost, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+      Contract.Requires(!isUserMutable || isMutable);
       IsMutable = isMutable;
+      IsUserMutable = isUserMutable;
       Type = type;
     }
   }
@@ -1302,13 +1322,14 @@ namespace Microsoft.Dafny {
     public readonly string CompiledName;
     public readonly string PreString;
     public readonly string PostString;
-    public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool isGhost, bool isMutable, Type type, Attributes attributes)
-      : base(tok, name, isGhost, isMutable, type, attributes) {
+    public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+      : base(tok, name, isGhost, isMutable, isUserMutable, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(compiledName != null);
       Contract.Requires(preString != null);
       Contract.Requires(postString != null);
+      Contract.Requires(!isUserMutable || isMutable);
       Contract.Requires(type != null);
 
       CompiledName = compiledName;
@@ -1323,7 +1344,7 @@ namespace Microsoft.Dafny {
     public readonly Formal CorrespondingFormal;
 
     public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
-      : base(tok, name, compiledName, preString, postString, isGhost, false, type, attributes)
+      : base(tok, name, compiledName, preString, postString, isGhost, false, false, type, attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(enclosingCtor != null);
@@ -1736,12 +1757,14 @@ namespace Microsoft.Dafny {
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> ICodeContext.Outs { get { return this.Outs; } }
+    Specification<FrameExpression> ICodeContext.Modifies { get { return Mod; } }
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
         return this.EnclosingClass.Module;
       }
     }
+    bool ICodeContext.MustReverify { get { return this.MustReverify; } }
   }
 
   public class Constructor : Method
