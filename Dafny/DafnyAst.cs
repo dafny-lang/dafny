@@ -1163,9 +1163,6 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
-    public readonly List<Field> OutsFields;
-    public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
-    public readonly List<Field> DecreasesFields;  // filled in during resolution
     public readonly Specification<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Modifies;
     public readonly Specification<Expression> Decreases;
@@ -1176,6 +1173,12 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression> YieldEnsures;
     public readonly BlockStmt Body;
     public readonly bool SignatureIsOmitted;
+    public readonly List<Field> OutsFields;
+    public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
+    public readonly List<Field> DecreasesFields;  // filled in during resolution
+    public SpecialField Member_Modifies;  // filled in during resolution
+    public SpecialField Member_Reads;  // filled in during resolution
+    public SpecialField Member_New;  // filled in during resolution
     public Constructor Member_Init;  // created during registration phase of resolution; its specification is filled in during resolution
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution

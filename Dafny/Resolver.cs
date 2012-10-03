@@ -544,12 +544,10 @@ namespace Microsoft.Dafny
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          foreach (var p in new List<Tuple<string, bool>>() {
-            new Tuple<string, bool>("_reads", false),
-            new Tuple<string, bool>("_modifies", false),
-            new Tuple<string, bool>("_new", true) })
-          {
-            var field = new SpecialField(iter.tok, p.Item1, p.Item1, "", "", true, p.Item2, p.Item2, new SetType(new ObjectType()), null);
+          iter.Member_Reads = new SpecialField(iter.tok, "_reads", "_reads",          "", "", true, false, false, new SetType(new ObjectType()), null);
+          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", "_modifies", "", "", true, false, false, new SetType(new ObjectType()), null);
+          iter.Member_New = new SpecialField(iter.tok, "_new", "_new",                "", "", true, true, true, new SetType(new ObjectType()), null);
+          foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
             field.EnclosingClass = iter;  // resolve here
             members.Add(field.Name, field);
             iter.Members.Add(field);

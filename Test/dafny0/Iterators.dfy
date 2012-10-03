@@ -121,7 +121,7 @@ iterator IterC(c: Cell)
   yield ensures c.data == old(c.data);
   ensures true;
 {
-  if (*) { yield; }
+  if (*) { yield; }  // this time, all is fine, because the iterator has an appropriate reads clause
   if (*) { yield; }  // this time, all is fine, because the iterator has an appropriate reads clause
   c.data := *;
 }

@@ -813,20 +813,20 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
 
-      // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies)
-      builder.Add(new Bpl.HavocCmd(iter.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
-      // assume the usual two-state boilerplate information
-      // TODO: the following line does not do exactly what we want:
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions/*TODO: should this also include the Reads clause?*/, etran.Old, etran, etran.Old))
-      {
-        if (tri.IsFree) {
-          builder.Add(new Bpl.AssumeCmd(iter.tok, tri.Expr));
-        }
-      }
-
-      // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
+      // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
       var th = new ThisExpr(iter.tok);
       th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+      var rds = new FieldSelectExpr(iter.tok, th, iter.Member_Reads.Name);
+      rds.Field = iter.Member_Reads;  // resolve here
+      rds.Type = iter.Member_Reads.Type;  // resolve here
+      var mod = new FieldSelectExpr(iter.tok, th, iter.Member_Modifies.Name);
+      mod.Field = iter.Member_Modifies;  // resolve here
+      mod.Type = iter.Member_Modifies.Type;  // resolve here
+      builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
+        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
+        new List<Bpl.IdentifierExpr>()));
+
+      // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
       var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
@@ -839,7 +839,12 @@ namespace Microsoft.Dafny {
       }
 
       // simulate a modifies this, this._modifies, this._new;
-      // TODO
+      var nw = new FieldSelectExpr(iter.tok, th, iter.Member_New.Name);
+      nw.Field = iter.Member_New;  // resolve here
+      nw.Type = iter.Member_New.Type;  // resolve here
+      builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
+        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
+        new List<Bpl.IdentifierExpr>()));
 
       // check wellformedness of postconditions
       var yeBuilder = new Bpl.StmtListBuilder();
@@ -906,8 +911,8 @@ namespace Microsoft.Dafny {
       localVariables.Add(yieldCountVariable);
       builder.Add(new Bpl.AssumeCmd(iter.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable), Bpl.Expr.Literal(0))));
       // add a variable $_OldIterHeap
-      // TODO: should this variable have a 'where' clause?
-      localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType)));
+      Bpl.Expr wh = FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType));
+      localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
       // do an initial YieldHavoc
       YieldHavoc(iter.tok, iter, builder, etran);
@@ -3225,7 +3230,11 @@ namespace Microsoft.Dafny {
         if (a == null) {
          return null;
         }
-        Bpl.Expr t = new Bpl.IdentifierExpr(tok, ct is SetType ? "class._System.set" : (ct is SeqType ? "class._System.seq" : "class._System.multiset"), predef.ClassNameType); // ^^^ todo: this needs to talk about multisets too.
+        Bpl.Expr t = new Bpl.IdentifierExpr(tok,
+          ct is SetType ? "class._System.set" :
+          ct is SeqType ? "class._System.seq" :
+          "class._System.multiset",
+          predef.ClassNameType);
         return FunctionCall(tok, BuiltinFunction.TypeTuple, null, t, a);
       } else {
         UserDefinedType ct = (UserDefinedType)type;
@@ -4129,13 +4138,13 @@ namespace Microsoft.Dafny {
         builder.Add(incYieldCount);
         builder.Add(new Bpl.AssumeCmd(s.Tok, YieldCountAssumption(iter, etran)));
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-        var prevYieldHeap = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType));
+        var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType));
         foreach (var p in iter.YieldEnsures) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             // do nothing
           } else {
             bool splitHappened;  // actually, we don't care
-            var ss = TrSplitExpr(p.E, prevYieldHeap, out splitHappened);
+            var ss = TrSplitExpr(p.E, yeEtran, out splitHappened);
             foreach (var split in ss) {
               if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
@@ -4143,7 +4152,7 @@ namespace Microsoft.Dafny {
                 builder.Add(AssertNS(split.E.tok, split.E, "possible violation of yield-ensures condition", stmt.Tok));
               }
             }
-            builder.Add(new Bpl.AssumeCmd(stmt.Tok, prevYieldHeap.TrExpr(p.E)));
+            builder.Add(new Bpl.AssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
           }
         }
         YieldHavoc(iter.tok, iter, builder, etran);
@@ -4435,32 +4444,34 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Generate:
-    ///   $_OldIterHeap := Heap;
     ///   havoc Heap \ {this} \ _reads \ _new;
+    ///   assume this.Valid();
     ///   assume YieldRequires;
+    ///   $_OldIterHeap := Heap;
     /// </summary>
     void YieldHavoc(IToken tok, IteratorDecl iter, StmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(iter != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
-      // $_OldIterHeap := Heap;
-      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_OldIterHeap", predef.HeapType), etran.HeapExpr));
-#if SOON
       // havoc Heap \ {this} \ _reads \ _new;
-      // TODO:  this requires a different design!  'this' is not accessible here.  (For now, just use the local variables.)
-      var setType = TrType(new SetType(new ObjectType()));
+      var th = new ThisExpr(tok);
+      th.Type = Resolver.GetThisType(tok, iter);  // resolve here
+      var rds = new FieldSelectExpr(tok, th, iter.Member_Reads.Name);
+      rds.Field = iter.Member_Reads;  // resolve here
+      rds.Type = iter.Member_Reads.Type;  // resolve here
+      var nw = new FieldSelectExpr(tok, th, iter.Member_New.Name);
+      nw.Field = iter.Member_New;  // resolve here
+      nw.Type = iter.Member_New.Type;  // resolve here
       builder.Add(new Bpl.CallCmd(tok, "$YieldHavoc",
-        new List<Bpl.Expr>() {
-          new Bpl.IdentifierExpr(tok, "_reads", setType),
-          new Bpl.IdentifierExpr(tok, "_new", setType)
-          },
+        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
-#endif
       // assume YieldRequires;
       foreach (var p in iter.YieldRequires) {
         builder.Add(new Bpl.AssumeCmd(tok, etran.TrExpr(p.E)));
       }
+      // $_OldIterHeap := Heap;
+      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_OldIterHeap", predef.HeapType), etran.HeapExpr));
     }
 
     List<Tuple<List<BoundVar>, Expression>> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {

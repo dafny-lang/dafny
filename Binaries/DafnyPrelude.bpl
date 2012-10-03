@@ -606,14 +606,32 @@ axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
 // -- Useful macros ----------------------------------------------
 // ---------------------------------------------------------------
 
-// havoc $Heap \ {this} \ S
-procedure {:inline} $YieldHavoc(this: ref, S: Set BoxType);
+// havoc everything in $Heap, except {this}+rds+nw
+procedure $YieldHavoc(this: ref, rds: Set BoxType, nw: Set BoxType);
+  modifies $Heap;
+  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
+            $o != null && read(old($Heap), $o, alloc) ==>
+            $o == this || rds[$Box($o)] || nw[$Box($o)] ==>
+              read($Heap, $o, $f) == read(old($Heap), $o, $f));
+  ensures $HeapSucc(old($Heap), $Heap);
+
+// havoc everything in $Heap, except rds-mod-{this}
+procedure $IterHavoc0(this: ref, rds: Set BoxType, mod: Set BoxType);
+  modifies $Heap;
+  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
+            $o != null && read(old($Heap), $o, alloc) ==>
+            rds[$Box($o)] && !mod[$Box($o)] && $o != this ==>
+              read($Heap, $o, $f) == read(old($Heap), $o, $f));
+  ensures $HeapSucc(old($Heap), $Heap);
+
+// havoc $Heap at {this}+mod+nw
+procedure $IterHavoc1(this: ref, mod: Set BoxType, nw: Set BoxType);
   modifies $Heap;
   ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
             $o != null && read(old($Heap), $o, alloc) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
-              $o == this ||
-              S[$Box($o)]);
+              $o == this || mod[$Box($o)] || nw[$Box($o)]);
+  ensures $HeapSucc(old($Heap), $Heap);
 
 // ---------------------------------------------------------------
 // -- Non-determinism --------------------------------------------
