@@ -1640,7 +1640,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
 
       // set up the information used to verify the method's modifies clause
-      DefineFrame(iter.tok, iter.Modifies.Expressions, builder, localVariables, null);
+      var iteratorFrame = new List<FrameExpression>();
+      var th = new ThisExpr(iter.tok);
+      th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+      iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
+      iteratorFrame.AddRange(iter.Modifies.Expressions);
+      DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
     }
 
     Bpl.Cmd CaptureState(IToken tok, string/*?*/ additionalInfo) {
@@ -4149,7 +4154,8 @@ namespace Microsoft.Dafny {
               if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else if (!split.IsFree) {
-                builder.Add(AssertNS(split.E.tok, split.E, "possible violation of yield-ensures condition", stmt.Tok));
+                var yieldToken = new NestedToken(s.Tok, split.E.tok);
+                builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok));
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -6387,7 +6393,13 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerOffset + offset <= 1);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame);
+        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame);
+        if (this.oldEtran != null) {
+          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame);
+          etOld.oldEtran = etOld;
+          et.oldEtran = etOld;
+        }
+        return et;
       }
 
       public Bpl.IdentifierExpr TheFrame(IToken tok)

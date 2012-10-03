@@ -1623,18 +1623,50 @@ IteratorResolution.dfy(79,13): Error: when allocating an object of type 'Generic
 IteratorResolution.dfy(83,15): Error: logical negation expects a boolean argument (instead got int)
 IteratorResolution.dfy(17,11): Error: LHS of assignment does not denote a mutable field
 IteratorResolution.dfy(19,12): Error: LHS of assignment does not denote a mutable field
-7 resolution/type errors detected in IteratorResolution.dfy
+IteratorResolution.dfy(123,9): Error: unresolved identifier: _decreases3
+IteratorResolution.dfy(124,21): Error: arguments must have the same type (got int and ?)
+IteratorResolution.dfy(125,14): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(132,9): Error: unresolved identifier: _decreases1
+IteratorResolution.dfy(137,9): Error: unresolved identifier: _decreases0
+12 resolution/type errors detected in IteratorResolution.dfy
 
 -------------------- Iterators.dfy --------------------
-Iterators.dfy(36,14): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(100,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(103,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Iterators.dfy(37,14): Error BP5002: A precondition for this call might not hold.
 Iterators.dfy(1,10): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon31_Then
+    (0,0): anon37_Then
+    (0,0): anon2
+    (0,0): anon38_Then
+    (0,0): anon5
+    (0,0): anon39_Then
+Iterators.dfy(86,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(116,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Iterators.dfy(147,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+Iterators.dfy(152,16): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(122,10): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
     (0,0): anon3
-    (0,0): anon32_Then
 
-Dafny program verifier finished with 16 verified, 1 error
+Dafny program verifier finished with 27 verified, 7 errors
 
 -------------------- Superposition.dfy --------------------
 

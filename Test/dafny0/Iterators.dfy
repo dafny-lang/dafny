@@ -93,9 +93,14 @@ iterator IterB(c: Cell)
   modifies c;
   yield ensures c.data == old(c.data);
   ensures true;
+  decreases c, c != null, c.data;
 {
+  assert _decreases0 == c;
+  assert _decreases1 == (c != null);
+  assert _decreases2 == c.data;  // error: c is not protected by the reads clause
+  var tmp := c.data;
   if (*) { yield; }
-  if (*) { yield; }  // error: cannot prove the yield-ensures clause here (needs a reads clause)
+  assert tmp == c.data;  // error: c is not protected by the reads clause
   c.data := *;
 }
 
@@ -120,9 +125,13 @@ iterator IterC(c: Cell)
   reads c;
   yield ensures c.data == old(c.data);
   ensures true;
+  decreases c, c, c.data;
 {
-  if (*) { yield; }  // this time, all is fine, because the iterator has an appropriate reads clause
-  if (*) { yield; }  // this time, all is fine, because the iterator has an appropriate reads clause
+  assert _decreases2 == c.data;  // this time, all is fine, because the iterator has an appropriate reads clause
+  var tmp := c.data;
+  if (*) { yield; }
+  if (*) { yield; }
+  assert tmp == c.data;  // this time, all is fine, because the iterator has an appropriate reads clause
   c.data := *;
 }
 
