@@ -541,12 +541,31 @@ namespace Microsoft.Dafny
             members.Add(f.Name, f);
             iter.Members.Add(f);
           });
-          // finally, add the additional special variables as fields
+          // add the additional special variables as fields
           foreach (var p in iter.ExtraVars) {
             var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, !p.InParam, false, p.Type, null);
             field.EnclosingClass = iter;  // resolve here
             members.Add(field.Name, field);
             iter.Members.Add(field);
+          }
+          // finally, add special variables to hold the components of the (explicit or implicit) decreases clause
+          bool inferredDecreases;
+          var decr = Translator.MethodDecreasesWithDefault(iter, out inferredDecreases);
+          if (inferredDecreases) {
+            iter.InferredDecreases = true;
+            Contract.Assert(iter.Decreases.Expressions.Count == 0);
+            iter.Decreases.Expressions.AddRange(decr);
+          }
+          // create the fields; unfortunately, we don't know their types yet, so we'll just insert type proxies for now
+          var i = 0;
+          foreach (var p in iter.Decreases.Expressions) {
+            var nm = "_decreases" + i;
+            var field = new SpecialField(p.tok, nm, nm, "", "", true, false, false, new InferredTypeProxy(), null);
+            field.EnclosingClass = iter;  // resolve here
+            members.Add(field.Name, field);
+            iter.Members.Add(field);
+            iter.DecreasesFields.Add(field);
+            i++;
           }
 
           // Note, the typeArgs parameter to the following Method/Predicate constructors is passed in as the empty list.  What that is
@@ -2548,9 +2567,15 @@ namespace Microsoft.Dafny
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
       }
-      foreach (Expression e in iter.Decreases.Expressions) {
+      Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
+      for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
+        var e = iter.Decreases.Expressions[i];
         ResolveExpression(e, false);
-        // any type is fine
+        // any type is fine, but associate this type with the corresponding _decreases<n> field
+        var d = iter.DecreasesFields[i];
+        if (!UnifyTypes(d.Type, e.Type)) {
+          Error(e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
+        }
       }
 
       // Now add the yield-history variables to the scope
@@ -2662,6 +2687,15 @@ namespace Microsoft.Dafny
       ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
         new SetDisplayExpr(iter.tok, new List<Expression>()))));
+      // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
+      Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
+      for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
+        var p = iter.Decreases.Expressions[i];
+        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+          new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), iter.DecreasesFields[i].Name),
+          new OldExpr(iter.tok, p))));
+      }
+      
 
       // ---------- here comes predicate Valid() ----------
       var reads = iter.Member_Valid.Reads;
@@ -2735,10 +2769,11 @@ namespace Microsoft.Dafny
           subst.Substitute(e.E)),
           e.IsFree));
       }
-      // decreases DecreasesClause[subst];
-      foreach (var d in iter.Decreases.Expressions) {
-        // TODO:  in the following line, "old(E)" should also be replaced by "at(iter._preHeap, E)"
-        iter.Member_MoveNext.Decreases.Expressions.Add(subst.Substitute(d));
+      // decreases this._decreases0, this._decreases1, ...;
+      Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
+      for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
+        var p = iter.Decreases.Expressions[i];
+        iter.Member_MoveNext.Decreases.Expressions.Add(new FieldSelectExpr(p.tok, new ThisExpr(p.tok), iter.DecreasesFields[i].Name));
       }
       iter.Member_MoveNext.Decreases.Attributes = subst.SubstAttributes(iter.Decreases.Attributes);
     }

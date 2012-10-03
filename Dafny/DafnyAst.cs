@@ -1154,6 +1154,7 @@ namespace Microsoft.Dafny {
     List<Formal> Ins { get ; }
     List<Formal> Outs { get; }
     Specification<FrameExpression> Modifies { get; }
+    Specification<Expression> Decreases { get; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
   }
@@ -1164,9 +1165,11 @@ namespace Microsoft.Dafny {
     public readonly List<Formal> Outs;
     public readonly List<Formal> OutsHistory;  // these are the 'xs' variables
     public readonly List<Formal> ExtraVars;  // _reads, _modifies, _new
+    public readonly List<Field> DecreasesFields;  // filled in during resolution
     public readonly Specification<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Modifies;
     public readonly Specification<Expression> Decreases;
+    public bool InferredDecreases;  // fill in during resolution/registration
     public readonly List<MaybeFreeExpression> Requires;
     public readonly List<MaybeFreeExpression> Ensures;
     public readonly List<MaybeFreeExpression> YieldRequires;
@@ -1223,6 +1226,7 @@ namespace Microsoft.Dafny {
       ExtraVars.Add(new Formal(tok, "_reads", new SetType(new ObjectType()), true, true));
       ExtraVars.Add(new Formal(tok, "_modifies", new SetType(new ObjectType()), true, true));
       ExtraVars.Add(new Formal(tok, "_new", new SetType(new ObjectType()), false, true));
+      DecreasesFields = new List<Field>();
     }
 
     bool ICodeContext.IsGhost { get { return false; } }
@@ -1231,6 +1235,7 @@ namespace Microsoft.Dafny {
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> ICodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> ICodeContext.Modifies { get { return this.Modifies; } }
+    Specification<Expression> ICodeContext.Decreases { get { return this.Decreases; } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
   }
@@ -1758,6 +1763,7 @@ namespace Microsoft.Dafny {
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> ICodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> ICodeContext.Modifies { get { return Mod; } }
+    Specification<Expression> ICodeContext.Decreases { get { return this.Decreases; } }
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete

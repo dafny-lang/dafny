@@ -2973,11 +2973,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns true if it is known how to meaningfully compare the type's inhabitants.
     /// </summary>
-    bool IsOrdered(Type t) {
+    static bool IsOrdered(Type t) {
       return !t.IsTypeParameter && !t.IsCoDatatype;
     }
 
-    List<Expression> MethodDecreasesWithDefault(Method m, out bool inferredDecreases) {
+    public static List<Expression> MethodDecreasesWithDefault(ICodeContext m, out bool inferredDecreases) {
       Contract.Requires(m != null);
 
       inferredDecreases = false;
@@ -2986,12 +2986,14 @@ namespace Microsoft.Dafny {
         decr = new List<Expression>();
         foreach (Formal p in m.Ins) {
           if (IsOrdered(p.Type)) {
-            IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+            IdentifierExpr ie = new IdentifierExpr(p.tok, p.Name);
             ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
             decr.Add(ie);  // use the method's first parameter instead
           }
         }
         inferredDecreases = true;
+      } else if (m is IteratorDecl) {
+        inferredDecreases = ((IteratorDecl)m).InferredDecreases;
       }
       return decr;
     }
