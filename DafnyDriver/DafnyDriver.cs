@@ -571,13 +571,7 @@ namespace Microsoft.Dafny
       ConditionGeneration vcgen = null;
       try
       {
-        if (CommandLineOptions.Clo.vcVariety == CommandLineOptions.VCVariety.Doomed)
-        {
-          vcgen = new DCGen(program, CommandLineOptions.Clo.SimplifyLogFilePath, CommandLineOptions.Clo.SimplifyLogFileAppend);
-        } else
-        {
-          vcgen = new VCGen(program, CommandLineOptions.Clo.SimplifyLogFilePath, CommandLineOptions.Clo.SimplifyLogFileAppend);
-        }
+        vcgen = new VCGen(program, CommandLineOptions.Clo.SimplifyLogFilePath, CommandLineOptions.Clo.SimplifyLogFileAppend);
       }
       catch (ProverException e)
       {

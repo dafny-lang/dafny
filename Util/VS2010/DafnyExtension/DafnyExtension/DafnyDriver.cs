@@ -255,11 +255,7 @@ namespace DafnyLanguage
 
       ConditionGeneration vcgen = null;
       try {
-        if (Bpl.CommandLineOptions.Clo.vcVariety == Bpl.CommandLineOptions.VCVariety.Doomed) {
-          vcgen = new DCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
-        } else {
-          vcgen = new VCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
-        }
+        vcgen = new VCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
       } catch (Bpl.ProverException) {
         return PipelineOutcome.FatalError;
       }
