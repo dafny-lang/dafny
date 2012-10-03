@@ -91,10 +91,11 @@ method TestIterA()
 iterator IterB(c: Cell)
   requires c != null;
   modifies c;
-  yield ensures c.data == old(c.data);  // error: cannot prove this without a reads clause
+  yield ensures c.data == old(c.data);
   ensures true;
 {
   if (*) { yield; }
+  if (*) { yield; }  // error: cannot prove the yield-ensures clause here (needs a reads clause)
   c.data := *;
 }
 
@@ -117,10 +118,11 @@ iterator IterC(c: Cell)
   requires c != null;
   modifies c;
   reads c;
-  yield ensures c.data == old(c.data);  // error: cannot prove this without a reads clause
+  yield ensures c.data == old(c.data);
   ensures true;
 {
   if (*) { yield; }
+  if (*) { yield; }  // this time, all is fine, because the iterator has an appropriate reads clause
   c.data := *;
 }
 

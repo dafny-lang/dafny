@@ -15,7 +15,7 @@ module Mx {
   method IteratorUser() {
     var iter := new ExampleIterator.ExampleIterator(15);
     iter.k := 12;  // error: not allowed to assign to iterator's in-parameters
-    iter.x := 12;  // error: not allowed to assign to iterator's yield-parameters
+    iter.x := 12;  // note, not allowed to assign to iterator's yield-parameters (except via 'this')
     iter.xs := [];  // error: not allowed to assign to iterator's yield-history variables
     var j := 0;
     while (j < 100) {
@@ -57,7 +57,7 @@ module Mx {
       requires g0.u;
     {
       g0.t := true;  // error: not allowed to assign to .t
-      g0.u := true;  // error: not allowed to assign to .u
+      g0.u := true;  // note, not allowed to assign to iterator's yield-parameters (except via 'this'), but this is checked by the verifier
       var g1 := new GenericIterator.GenericIterator(20);
       assert g1.u < 200;  // .u is an integer
 

@@ -520,30 +520,36 @@ namespace Microsoft.Dafny
             if (members.ContainsKey(p.Name)) {
               Error(p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, true, false, p.Type, null);
+              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, true, true, p.Type, null);
               field.EnclosingClass = iter;  // resolve here
+              iter.OutsFields.Add(field);
               members.Add(p.Name, field);
               iter.Members.Add(field);
             }
           }
-          var yieldHistoryVariables = new List<MemberDecl>();
-          foreach (var p in iter.OutsHistory) {
-            if (members.ContainsKey(p.Name)) {
+          foreach (var p in iter.Outs) {
+            var nm = p.Name + "s";
+            if (members.ContainsKey(nm)) {
               Error(p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", true, true, false, p.Type, null);
+              var tp = new SeqType(p.Type.IsSubrangeType ? new IntType() : p.Type);
+              var field = new SpecialField(p.tok, nm, nm, "", "", true, true, false, tp, null);
               field.EnclosingClass = iter;  // resolve here
-              yieldHistoryVariables.Add(field);  // just record this field for now (until all parameters have been added as members)
+              iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
             }
           }
-          // now that already-used 'xs' names have been checked for, add these yield-history variables
-          yieldHistoryVariables.ForEach(f => {
+          // now that already-used 'ys' names have been checked for, add these yield-history variables
+          iter.OutsHistoryFields.ForEach(f => {
             members.Add(f.Name, f);
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          foreach (var p in iter.ExtraVars) {
-            var field = new SpecialField(p.tok, p.Name, p.CompileName, "", "", p.IsGhost, !p.InParam, false, p.Type, null);
+          foreach (var p in new List<Tuple<string, bool>>() {
+            new Tuple<string, bool>("_reads", false),
+            new Tuple<string, bool>("_modifies", false),
+            new Tuple<string, bool>("_new", true) })
+          {
+            var field = new SpecialField(iter.tok, p.Item1, p.Item1, "", "", true, p.Item2, p.Item2, new SetType(new ObjectType()), null);
             field.EnclosingClass = iter;  // resolve here
             members.Add(field.Name, field);
             iter.Members.Add(field);
@@ -562,9 +568,9 @@ namespace Microsoft.Dafny
             var nm = "_decreases" + i;
             var field = new SpecialField(p.tok, nm, nm, "", "", true, false, false, new InferredTypeProxy(), null);
             field.EnclosingClass = iter;  // resolve here
+            iter.DecreasesFields.Add(field);
             members.Add(field.Name, field);
             iter.Members.Add(field);
-            iter.DecreasesFields.Add(field);
             i++;
           }
 
@@ -2516,25 +2522,12 @@ namespace Microsoft.Dafny
         Error(iter, "iterator signature can be omitted only in refining methods");
       }
       var defaultTypeArguments = iter.TypeArgs.Count == 0 ? iter.TypeArgs : null;
-      // resolve in-parameters
-      foreach (Formal p in iter.Ins) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
+      // resolve the types of the parameters
+      foreach (var p in iter.Ins.Concat(iter.Outs)) {
         ResolveType(p.tok, p.Type, defaultTypeArguments, true);
       }
-      // resolve yield-parameters
-      foreach (Formal p in iter.Outs) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
-        }
-        ResolveType(p.tok, p.Type, defaultTypeArguments, true);
-      }
-      // resolve yield-history variables
-      foreach (Formal p in iter.OutsHistory) {
-        if (!scope.Push(p.Name, p)) {
-          Error(p, "Name conflict with yield-history variable: {0}", p.Name);
-        }
+      // resolve the types of the added fields (in case some of these types would cause the addition of default type arguments)
+      foreach (var p in iter.OutsHistoryFields) {
         ResolveType(p.tok, p.Type, defaultTypeArguments, true);
       }
       scope.PopMarker();
@@ -2545,6 +2538,8 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveIterator(IteratorDecl iter) {
       Contract.Requires(iter != null);
+      Contract.Requires(currentClass == null);
+      Contract.Ensures(currentClass == null);
 
       var initialErrorCount = ErrorCount;
 
@@ -2554,6 +2549,20 @@ namespace Microsoft.Dafny
       iter.Ins.ForEach(p => scope.Push(p.Name, p));
 
       // Start resolving specification...
+      // we start with the decreases clause, because the _decreases<n> fields were only given type proxies before; we'll know
+      // the types only after resolving the decreases clause (and it may be that some of resolution has already seen uses of
+      // these fields; so, with no further ado, here we go
+      Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
+      for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
+        var e = iter.Decreases.Expressions[i];
+        ResolveExpression(e, false);
+        // any type is fine, but associate this type with the corresponding _decreases<n> field
+        var d = iter.DecreasesFields[i];
+        if (!UnifyTypes(d.Type, e.Type)) {
+          // bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
+          Error(e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
+        }
+      }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpression(fe, "reads");
       }
@@ -2567,25 +2576,27 @@ namespace Microsoft.Dafny
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
       }
-      Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
-      for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
-        var e = iter.Decreases.Expressions[i];
-        ResolveExpression(e, false);
-        // any type is fine, but associate this type with the corresponding _decreases<n> field
-        var d = iter.DecreasesFields[i];
-        if (!UnifyTypes(d.Type, e.Type)) {
-          Error(e, "type of field {0} is {1}, but has been constrained elsewhere to be of type {2}", d.Name, e.Type, d.Type);
-        }
-      }
 
-      // Now add the yield-history variables to the scope
-      iter.OutsHistory.ForEach(p => scope.Push(p.Name, p));
+      scope.PopMarker();  // for the in-parameters
+
+      // We resolve the rest of the specification in an instance context.  So mentions of the in- or yield-parameters
+      // get resolved as field dereferences (with an implicit "this")
+      scope.PushMarker();
+      currentClass = iter;
+      Contract.Assert(scope.AllowInstance);
 
       foreach (MaybeFreeExpression e in iter.YieldRequires) {
         ResolveExpression(e.E, false);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E.Type, Type.Bool)) {
           Error(e.E, "Yield precondition must be a boolean (got {0})", e.E.Type);
+        }
+      }
+      foreach (MaybeFreeExpression e in iter.YieldEnsures) {
+        ResolveExpression(e.E, true);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        if (!UnifyTypes(e.E.Type, Type.Bool)) {
+          Error(e.E, "Yield postcondition must be a boolean (got {0})", e.E.Type);
         }
       }
       foreach (MaybeFreeExpression e in iter.Ensures) {
@@ -2596,20 +2607,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      // Finally, add the yield-parameters and extra variables to the scope
-      scope.PushMarker();  // make the yield-parameters appear in the same scope as the outer-most locals of the body (since this is what is done for methods)
-      iter.Outs.ForEach(p => scope.Push(p.Name, p));
-      iter.ExtraVars.ForEach(p => scope.Push(p.Name, p));
-
       ResolveAttributes(iter.Attributes, false);
-
-      foreach (MaybeFreeExpression e in iter.YieldEnsures) {
-        ResolveExpression(e.E, true);
-        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          Error(e.E, "Yield postcondition must be a boolean (got {0})", e.E.Type);
-        }
-      }
 
       var postSpecErrorCount = ErrorCount;
 
@@ -2618,8 +2616,8 @@ namespace Microsoft.Dafny
         ResolveBlockStatement(iter.Body, false, iter);
       }
 
-      scope.PopMarker();  // for the yield-parameters, extra variables, and outermost-level locals
-      scope.PopMarker();  // for the in-parameters and yield-history variables
+      currentClass = null;
+      scope.PopMarker();  // pop off the AllowInstance setting
 
       if (postSpecErrorCount == initialErrorCount) {
         CreateIteratorMethodSpecs(iter);
@@ -2630,10 +2628,7 @@ namespace Microsoft.Dafny
     /// Assumes the specification of the iterator itself has been successfully resolved.
     /// </summary>
     void CreateIteratorMethodSpecs(IteratorDecl iter) {
-      if (iter.Outs.Count != iter.OutsHistory.Count) {
-        // something must have gone wrong during registration, so don't worry about filling in the specs
-        return;
-      }
+      Contract.Requires(iter != null);
 
       // ---------- here comes the constructor ----------
       // same requires clause as the iterator itself
@@ -2646,7 +2641,7 @@ namespace Microsoft.Dafny
         ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
           new FieldSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new IdentifierExpr(p.tok, p.Name))));
       }
-      foreach (var p in iter.OutsHistory) {
+      foreach (var p in iter.OutsHistoryFields) {
         // ensures this.ys == [];
         ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
           new FieldSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
@@ -2695,7 +2690,6 @@ namespace Microsoft.Dafny
           new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), iter.DecreasesFields[i].Name),
           new OldExpr(iter.tok, p))));
       }
-      
 
       // ---------- here comes predicate Valid() ----------
       var reads = iter.Member_Valid.Reads;
@@ -2704,50 +2698,31 @@ namespace Microsoft.Dafny
       reads.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));  // reads this._new;
 
       // ---------- here comes method MoveNext() ----------
-      // Build a substitution from the formals/variables to the corresponding fields.  Note, because these substitutions
-      // will be applied to an already resolved expression, the recursive idempotent Resolve operation on these method
-      // specifications may not reach down to these new parts.  Hence, these must be resolved right away (and they had better
-      // produce the same types as the subexpression they are replacing).
-      var substMap = new Dictionary<IVariable, Expression>();
-      foreach (var p in iter.Ins.Concat(iter.Outs.Concat(iter.OutsHistory.Concat(iter.ExtraVars)))) {
-        var f = (Field)iter.Members.Find(member => member is Field && member.Name == p.Name);
-        if (f == null) {
-          // something must have gone wrong during registration, so don't worry about adding this parameter to the substitution map
-        } else {
-          var th = new ThisExpr(p.tok);
-          th.Type = GetThisType(p.tok, iter);  // resolve here
-          var pe = new FieldSelectExpr(p.tok, th, p.Name);
-          pe.Field = f; pe.Type = p.Type;  // resolve here
-          substMap.Add(p, pe);
-        }
-      }
-      var subst = new Translator.Substituter(null, substMap);
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
       req.Add(new MaybeFreeExpression(new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>())));
-      // requires YieldRequires[subst];
-      foreach (var yp in iter.YieldRequires) {
-        req.Add(new MaybeFreeExpression(subst.Substitute(yp.E), yp.IsFree, subst.SubstAttributes(yp.Attributes)));
-      }
+      // requires YieldRequires;
+      req.AddRange(iter.YieldRequires);
       // modifies this, this._modifies, this._new;
-      iter.Member_MoveNext.Mod.Expressions.Add(new FrameExpression(iter.tok, new ThisExpr(iter.tok), null));
-      iter.Member_MoveNext.Mod.Expressions.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"), null));
-      iter.Member_MoveNext.Mod.Expressions.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
-      // ensures more ==> this.Valid();
-      ens = iter.Member_MoveNext.Ens;
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
-        new IdentifierExpr(iter.tok, "more"),
-        new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>()))));
+      var mod = iter.Member_MoveNext.Mod.Expressions;
+      mod.Add(new FrameExpression(iter.tok, new ThisExpr(iter.tok), null));
+      mod.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"), null));
+      mod.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
       // ensures fresh(_new - old(_new));
+      ens = iter.Member_MoveNext.Ens;
       ens.Add(new MaybeFreeExpression(new FreshExpr(iter.tok,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
+      // ensures more ==> this.Valid();
+      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+        new IdentifierExpr(iter.tok, "more"),
+        new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>()))));
       // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
-      Contract.Assert(iter.Outs.Count == iter.OutsHistory.Count);
-      for (int i = 0; i < iter.Outs.Count; i++) {
-        var y = iter.Outs[i];
-        var ys = iter.OutsHistory[i];
+      Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
+      for (int i = 0; i < iter.OutsFields.Count; i++) {
+        var y = iter.OutsFields[i];
+        var ys = iter.OutsHistoryFields[i];
         var ite = new ITEExpr(iter.tok, new IdentifierExpr(iter.tok, "more"),
           new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add,
             new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)),
@@ -2756,17 +2731,17 @@ namespace Microsoft.Dafny
         var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite);
         ens.Add(new MaybeFreeExpression(eq));
       }
-      // ensures more ==> YieldEnsures[subst];
+      // ensures more ==> YieldEnsures;
       foreach (var ye in iter.YieldEnsures) {
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
-          new IdentifierExpr(iter.tok, "more"), subst.Substitute(ye.E)),
+        ens.Add(new MaybeFreeExpression(
+          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E),
           ye.IsFree));
       }
-      // ensures !more ==> Ensures[subst];
+      // ensures !more ==> Ensures;
       foreach (var e in iter.Ensures) {
         ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
           new UnaryExpr(iter.tok, UnaryExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
-          subst.Substitute(e.E)),
+          e.E),
           e.IsFree));
       }
       // decreases this._decreases0, this._decreases1, ...;
@@ -2775,7 +2750,7 @@ namespace Microsoft.Dafny
         var p = iter.Decreases.Expressions[i];
         iter.Member_MoveNext.Decreases.Expressions.Add(new FieldSelectExpr(p.tok, new ThisExpr(p.tok), iter.DecreasesFields[i].Name));
       }
-      iter.Member_MoveNext.Decreases.Attributes = subst.SubstAttributes(iter.Decreases.Attributes);
+      iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
     }
 
     /// <summary>

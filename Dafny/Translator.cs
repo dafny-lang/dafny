@@ -715,7 +715,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
 
       Bpl.VariableSeq inParams, outParams;
-      GenerateMethodParameters(iter.tok, iter, etran, out inParams, out outParams);
+      GenerateMethodParametersChoose(iter.tok, iter, true, true, false, etran, out inParams, out outParams);
 
       var req = new Bpl.RequiresSeq();
       var mod = new Bpl.IdentifierExprSeq();
@@ -787,25 +787,12 @@ namespace Microsoft.Dafny {
 
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(iter.TypeArgs);
       Bpl.VariableSeq inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
-      Bpl.VariableSeq outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
+      Contract.Assert(1 <= inParams.Length);  // there should at least be a receiver parameter
+      Contract.Assert(proc.OutParams.Length == 0);
 
       var builder = new Bpl.StmtListBuilder();
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new Bpl.VariableSeq();
-      GenerateIteratorImplPrelude(iter, inParams, outParams, builder, localVariables);
-
-      foreach (var p in iter.OutsHistory) {
-        // var ys: seq<...>;
-        // TODO: should this variable have a 'where' clause?
-        localVariables.Add(new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type))));
-      }
-      foreach (var p in iter.ExtraVars) {
-        // var extra: T;
-        // TODO: should this variable have a 'where' clause?
-        localVariables.Add(new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type))));
-      }
-
-
 
       Bpl.StmtList stmts;
       // check well-formedness of the preconditions, and then assume each one of them
@@ -813,18 +800,23 @@ namespace Microsoft.Dafny {
         CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
         builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
+      // check well-formedness of the decreases clauses
+      foreach (var p in iter.Decreases.Expressions) {
+        CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
+      }
       // Note: the reads and modifies clauses are not checked for well-formedness (is that sound?), because it used to
       // be that the syntax was not rich enough for programmers to specify modifies clauses and always being
       // absolutely well-defined.
-      // check well-formedness of the decreases clauses
-      foreach (var p in iter.Decreases.Expressions)
-      {
-        CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
+
+      // Next, we assume about this.* whatever we said that the iterator constructor promises
+      foreach (var p in iter.Member_Init.Ens) {
+        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
 
-      // play havoc with the heap according to the modifies clause and inverse of the reads clause
-      // TODO: something like: builder.Add(new Bpl.HavocCmd(m.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
+      // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies)
+      builder.Add(new Bpl.HavocCmd(iter.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
       // assume the usual two-state boilerplate information
+      // TODO: the following line does not do exactly what we want:
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions/*TODO: should this also include the Reads clause?*/, etran.Old, etran, etran.Old))
       {
         if (tri.IsFree) {
@@ -832,23 +824,22 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // also play havoc with the out parameters
-      if (outParams.Length != 0) {  // don't create an empty havoc statement
-        Bpl.IdentifierExprSeq outH = new Bpl.IdentifierExprSeq();
-        foreach (Bpl.Variable b in outParams) {
-          Contract.Assert(b != null);
-          outH.Add(new Bpl.IdentifierExpr(b.tok, b));
-        }
-        builder.Add(new Bpl.HavocCmd(iter.tok, outH));
-      }
+      // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
+      var th = new ThisExpr(iter.tok);
+      th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+      var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, new List<Expression>());
+      validCall.Function = iter.Member_Valid;  // resolve here
+      validCall.Type = Type.Bool;  // resolve here
+      builder.Add(new Bpl.AssumeCmd(iter.tok, etran.TrExpr(validCall)));
 
-      // check wellformedness of yield requires
+      // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
         CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
         builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
 
-      // TODO: do another havoc
+      // simulate a modifies this, this._modifies, this._new;
+      // TODO
 
       // check wellformedness of postconditions
       var yeBuilder = new Bpl.StmtListBuilder();
@@ -868,7 +859,7 @@ namespace Microsoft.Dafny {
       QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
       Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-        typeParams, inParams, outParams,
+        typeParams, inParams, new VariableSeq(),
         localVariables, stmts, kv);
       sink.TopLevelDeclarations.Add(impl);
 
@@ -892,27 +883,24 @@ namespace Microsoft.Dafny {
 
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(iter.TypeArgs);
       Bpl.VariableSeq inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
-      Bpl.VariableSeq outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
+      Contract.Assert(1 <= inParams.Length);  // there should at least be a receiver parameter
+      Contract.Assert(proc.OutParams.Length == 0);
 
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
       Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
-      GenerateIteratorImplPrelude(iter, inParams, outParams, builder, localVariables);
+      GenerateIteratorImplPrelude(iter, inParams, new VariableSeq(), builder, localVariables);
+
       // add locals for the yield-history variables and the extra variables
-      foreach (var p in iter.OutsHistory) {
-        // var ys: seq<...>;
-        // TODO: should this variable have a 'where' clause?
-        localVariables.Add(new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type))));
-        // ys := [];
-        var ys = etran.TrVar(p.tok, p);
-        builder.Add(Bpl.Cmd.SimpleAssign(p.tok, ys, FunctionCall(p.tok, BuiltinFunction.SeqEmpty, predef.BoxType)));
+      // Assume the precondition and postconditions of the iterator constructor method
+      foreach (var p in iter.Member_Init.Req) {
+        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
-      foreach (var p in iter.ExtraVars) {
-        // var extra: T;
-        // TODO: should this variable have a 'where' clause?
-        localVariables.Add(new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type))));
+      foreach (var p in iter.Member_Init.Ens) {
+        // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
+        builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
-      // also add the _yieldCount variable, and assume its initial value to be 0
+      // add the _yieldCount variable, and assume its initial value to be 0
       yieldCountVariable = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "_yieldCount", Bpl.Type.Int));
       yieldCountVariable.TypedIdent.WhereExpr = YieldCountAssumption(iter, etran);  // by doing this after setting "yieldCountVariable", the variable can be used by YieldCountAssumption
       localVariables.Add(yieldCountVariable);
@@ -930,7 +918,7 @@ namespace Microsoft.Dafny {
       QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
       Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
-        typeParams, inParams, outParams,
+        typeParams, inParams, new VariableSeq(),
         localVariables, stmts, kv);
       sink.TopLevelDeclarations.Add(impl);
 
@@ -947,11 +935,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(yieldCountVariable != null);
       Bpl.Expr wh = Bpl.Expr.True;
-      foreach (var ys in iter.OutsHistory) {
-        // add the conjunct:  _yieldCount == |ys|
+      foreach (var ys in iter.OutsHistoryFields) {
+        // add the conjunct:  _yieldCount == |this.ys|
         wh = Bpl.Expr.And(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
-          FunctionCall(iter.tok, BuiltinFunction.SeqLength, null, etran.TrVar(iter.tok, ys))));
-
+          FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
+          ExpressionTranslator.ReadHeap(iter.tok, etran.HeapExpr,
+            new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
+            new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
       }
       return wh;
     }
@@ -3718,9 +3708,14 @@ namespace Microsoft.Dafny {
     }
 
     private void GenerateMethodParameters(IToken tok, ICodeContext m, ExpressionTranslator etran, out Bpl.VariableSeq inParams, out Bpl.VariableSeq outParams) {
+      GenerateMethodParametersChoose(tok, m, !m.IsStatic, true, true, etran, out inParams, out outParams);
+    }
+
+    private void GenerateMethodParametersChoose(IToken tok, ICodeContext m, bool includeReceiver, bool includeInParams, bool includeOutParams,
+      ExpressionTranslator etran, out Bpl.VariableSeq inParams, out Bpl.VariableSeq outParams) {
       inParams = new Bpl.VariableSeq();
       outParams = new Bpl.VariableSeq();
-      if (!m.IsStatic) {
+      if (includeReceiver) {
         var receiverType = m is MemberDecl ? Resolver.GetReceiverType(tok, (MemberDecl)m) : Resolver.GetThisType(tok, (IteratorDecl)m);
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(tok, "this", predef.RefType), predef.Null),
@@ -3728,19 +3723,24 @@ namespace Microsoft.Dafny {
         Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", predef.RefType, wh), true);
         inParams.Add(thVar);
       }
-      foreach (Formal p in m.Ins) {
-        Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
-        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+      if (includeInParams) {
+        foreach (Formal p in m.Ins) {
+          Bpl.Type varType = TrType(p.Type);
+          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
+        }
       }
-      foreach (Formal p in m.Outs) {
-        Bpl.Type varType = TrType(p.Type);
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
-        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
+      if (includeOutParams) {
+        foreach (Formal p in m.Outs) {
+          Bpl.Type varType = TrType(p.Type);
+          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
+        }
       }
     }
 
-    class BoilerplateTriple {  // a triple that is now a quintuple
+    class BoilerplateTriple
+    {  // a triple that is now a quintuple
       [ContractInvariantMethod]
       void ObjectInvariant() {
         Contract.Invariant(tok != null);
@@ -4103,21 +4103,24 @@ namespace Microsoft.Dafny {
         AddComment(builder, s, "yield statement");
         Contract.Assert(codeContext is IteratorDecl);
         var iter = (IteratorDecl)codeContext;
-        // ys := ys + [y];
-        Contract.Assert(iter.Outs.Count == iter.OutsHistory.Count);
-        for (int i = 0; i < iter.Outs.Count; i++) {
-          var y = iter.Outs[i];
-          var dafnyY = new IdentifierExpr(s.Tok, y.Name);
-          dafnyY.Var = y; dafnyY.Type = y.Type;  // resolve here
-          var ys = iter.OutsHistory[i];
-          var dafnyYs = new IdentifierExpr(s.Tok, ys.Name);
-          dafnyYs.Var = ys; dafnyYs.Type = ys.Type;  // resolve here
+        // this.ys := this.ys + [this.y];
+        var th = new ThisExpr(iter.tok);
+        th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+        Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
+        for (int i = 0; i < iter.OutsFields.Count; i++) {
+          var y = iter.OutsFields[i];
+          var dafnyY = new FieldSelectExpr(s.Tok, th, y.Name);
+          dafnyY.Field = y; dafnyY.Type = y.Type;  // resolve here
+          var ys = iter.OutsHistoryFields[i];
+          var dafnyYs = new FieldSelectExpr(s.Tok, th, ys.Name);
+          dafnyYs.Field = ys; dafnyYs.Type = ys.Type;  // resolve here
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
           dafnySingletonY.Type = ys.Type;  // resolve here
           var rhs = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
           rhs.Type = ys.Type;  // resolve here
-          var cmd = Bpl.Cmd.SimpleAssign(s.Tok, etran.TrVar(s.Tok, ys), etran.TrExpr(rhs));
+          var cmd = Bpl.Cmd.SimpleAssign(s.Tok, (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr,
+            ExpressionTranslator.UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs)));
           builder.Add(cmd);
         }
         // yieldCount := yieldCount + 1;  assume yieldCount == |ys|;

@@ -1163,8 +1163,8 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
-    public readonly List<Formal> OutsHistory;  // these are the 'xs' variables
-    public readonly List<Formal> ExtraVars;  // _reads, _modifies, _new
+    public readonly List<Field> OutsFields;
+    public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
     public readonly List<Field> DecreasesFields;  // filled in during resolution
     public readonly Specification<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Modifies;
@@ -1214,18 +1214,8 @@ namespace Microsoft.Dafny {
       Body = body;
       SignatureIsOmitted = signatureIsOmitted;
 
-      OutsHistory = new List<Formal>();
-      foreach (var p in Outs) {
-        var tp = p.Type;
-        if (tp.IsSubrangeType) {
-          tp = new IntType();  // because SeqType(NatType) is now allowed (despite the fact that the history variable is readonly, which is unfortunate)
-        }
-        OutsHistory.Add(new Formal(p.tok, p.Name + "s", new SeqType(tp), false, true));
-      }
-      ExtraVars = new List<Formal>();
-      ExtraVars.Add(new Formal(tok, "_reads", new SetType(new ObjectType()), true, true));
-      ExtraVars.Add(new Formal(tok, "_modifies", new SetType(new ObjectType()), true, true));
-      ExtraVars.Add(new Formal(tok, "_new", new SetType(new ObjectType()), false, true));
+      OutsFields = new List<Field>();
+      OutsHistoryFields = new List<Field>();
       DecreasesFields = new List<Field>();
     }
 
