@@ -1649,7 +1649,7 @@ namespace Microsoft.Dafny {
             string prefix = "(";
             foreach (Expression dim in tp.ArrayDimensions) {
               wr.Write(prefix);
-              TrExpr(dim);
+              TrParenExpr(dim);
               prefix = ", ";
             }
             wr.Write(")");
@@ -1658,7 +1658,7 @@ namespace Microsoft.Dafny {
             string prefix = "[";
             foreach (Expression dim in tp.ArrayDimensions) {
               wr.Write("{0}(int)", prefix);
-              TrExpr(dim);
+              TrParenExpr(dim);
               prefix = ", ";
             }
             wr.Write("]");
