@@ -329,3 +329,46 @@ ghost method Lemma_ReachBack()
   assert (forall m :: 0 <= m ==> ReachBack_Alt(m));
 }
 
+// ----------------- default decreases clause for functions ----------
+
+class DefaultDecreasesFunction {
+  var data: int;
+  ghost var Repr: set<object>;
+  var next: DefaultDecreasesFunction;
+  predicate Valid()
+    reads this, Repr;
+  {
+    this in Repr && null !in Repr &&
+    (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
+  }
+  function F(x: int): int
+    requires Valid();
+    reads Repr;
+    // the default reads clause is: decreases Repr, x
+  {
+    if next == null || x < 0 then x else next.F(x + data)
+  }
+  function G(x: int): int
+    requires Valid();
+    reads Repr;
+    decreases x;
+  {
+    if next == null || x < 0 then x else next.G(x + data)  // error: failure to reduce 'decreases' measure
+  }
+  function H(x: int): int
+    requires Valid() && 0 <= x;
+    reads Repr;
+    // the default reads clause is: decreases Repr, x
+  {
+    if next != null then
+      next.H(Abs(data))  // this recursive call decreases Repr
+    else if x < 78 then
+      data + x
+    else
+      H(x - 1)  // this recursive call decreases x
+  }
+  function Abs(x: int): int
+  {
+    if x < 0 then -x else x
+  }
+}

@@ -3008,18 +3008,17 @@ namespace Microsoft.Dafny {
       List<Expression> decr = f.Decreases.Expressions;
       if (decr.Count == 0) {
         decr = new List<Expression>();
-        if (f.Reads.Count == 0) {
-          foreach (Formal p in f.Formals) {
-            if (IsOrdered(p.Type)) {
-              IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
-              ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-              decr.Add(ie);  // use the function's first parameter instead
-            }
-          }
-          inferredDecreases = true;
-        } else {
-          decr.Add(FrameToObjectSet(f.Reads));  // use its reads clause instead
+        if (f.Reads.Count != 0) {
+          decr.Add(FrameToObjectSet(f.Reads));  // start the lexicographic tuple with the reads clause
         }
+        foreach (Formal p in f.Formals) {
+          if (IsOrdered(p.Type)) {
+            IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+            ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+            decr.Add(ie);
+          }
+        }
+        inferredDecreases = true;  // use 'true' even if decr.Count==0, because this will trigger an error message that asks the user to consider supplying a decreases clause
       }
       return decr;
     }

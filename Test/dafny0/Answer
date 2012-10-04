@@ -1012,6 +1012,12 @@ Execution trace:
 Dafny program verifier finished with 18 verified, 10 errors
 
 -------------------- Termination.dfy --------------------
+Termination.dfy(356,47): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Else
 Termination.dfy(105,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
@@ -1061,7 +1067,7 @@ Execution trace:
     Termination.dfy(291,3): anon12_Else
     (0,0): anon13_Else
 
-Dafny program verifier finished with 45 verified, 6 errors
+Dafny program verifier finished with 49 verified, 7 errors
 
 -------------------- DTypes.dfy --------------------
 DTypes.dfy(15,14): Error: assertion violation
@@ -1304,7 +1310,7 @@ Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in 
 8 resolution/type errors detected in Coinductive.dfy
 
 -------------------- Corecursion.dfy --------------------
-Corecursion.dfy(15,13): Error: failure to decrease termination measure (note that only functions without side effects can called co-recursively)
+Corecursion.dfy(15,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can called co-recursively)
 Execution trace:
     (0,0): anon3_Else
 Corecursion.dfy(50,5): Error: cannot prove termination; try supplying a decreases clause
