@@ -36,7 +36,12 @@
     <PlatformTarget>x86</PlatformTarget>
     <DocumentationFile>bin\Release\Language.XML</DocumentationFile>
   </PropertyGroup>
-  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" />
+  <PropertyGroup>
+    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
+  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition="(!Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')) And (Exists('$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets'))" />
+  <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="(!Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')) And (!Exists('$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets')) And (Exists('$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets'))" />
   <Import Project="$(MSBuildExtensionsPath32)\..\FSharpPowerPack-2.0.0.0\bin\FSharp.PowerPack.targets" />
   <PropertyGroup>
     <FsLexOutputFolder>$(IntermediateOutputPath)</FsLexOutputFolder>
@@ -80,34 +85,20 @@
     <Compile Include="Jennisys.fs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Boogie">
-      <HintPath>..\..\Binaries\Boogie.exe</HintPath>
-    </Reference>
-    <Reference Include="FSharp.PowerPack">
-      <HintPath>C:\Program Files\FSharpPowerPack-1.9.9.9\bin\FSharp.PowerPack.dll</HintPath>
-    </Reference>
+    <Reference Include="FSharp.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+    <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809" />
     <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Source\Model\Model.csproj">
+    <ProjectReference Include="..\..\..\..\boogie\Source\Model\Model.csproj">
       <Name>Model</Name>
       <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
-  <!--
-  <ItemGroup>
-    <ProjectReference Include="..\..\Source\Model\Model.csproj">
-      <Name>Model</Name>
-      <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-  </ItemGroup>
-  -->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
