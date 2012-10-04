@@ -615,22 +615,22 @@ procedure $YieldHavoc(this: ref, rds: Set BoxType, nw: Set BoxType);
               read($Heap, $o, $f) == read(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
-// havoc everything in $Heap, except rds-mod-{this}
-procedure $IterHavoc0(this: ref, rds: Set BoxType, mod: Set BoxType);
+// havoc everything in $Heap, except rds-modi-{this}
+procedure $IterHavoc0(this: ref, rds: Set BoxType, modi: Set BoxType);
   modifies $Heap;
   ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
             $o != null && read(old($Heap), $o, alloc) ==>
-            rds[$Box($o)] && !mod[$Box($o)] && $o != this ==>
+            rds[$Box($o)] && !modi[$Box($o)] && $o != this ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
-// havoc $Heap at {this}+mod+nw
-procedure $IterHavoc1(this: ref, mod: Set BoxType, nw: Set BoxType);
+// havoc $Heap at {this}+modi+nw
+procedure $IterHavoc1(this: ref, modi: Set BoxType, nw: Set BoxType);
   modifies $Heap;
   ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
             $o != null && read(old($Heap), $o, alloc) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
-              $o == this || mod[$Box($o)] || nw[$Box($o)]);
+              $o == this || modi[$Box($o)] || nw[$Box($o)]);
   ensures $HeapSucc(old($Heap), $Heap);
 
 procedure $IterCollectNewObjects(prevHeap: HeapType, newHeap: HeapType, this: ref, NW: Field (Set BoxType))

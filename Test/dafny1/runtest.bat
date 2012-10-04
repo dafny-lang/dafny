@@ -19,5 +19,5 @@ for %%f in (Queue.dfy PriorityQueue.dfy
             UltraFilter.dfy) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /compile:0 /dprint:out.dfy.tmp %* %%f
+  %DAFNY_EXE% /compile:0 /vcsMaxKeepGoingSplits:2 /dprint:out.dfy.tmp %* %%f
 )

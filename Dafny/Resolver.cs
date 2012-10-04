@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -3584,7 +3583,7 @@ namespace Microsoft.Dafny
             e0 = e1;
           }
           foreach (var h in s.Hints) {
-            ResolveStatement(h, true, method);
+            ResolveStatement(h, true, codeContext);
           }
           if (prevErrorCount == ErrorCount && s.Steps.Count > 0) {
             // do not build Result if there were errors, as it might be ill-typed and produce unnecessary resolution errors

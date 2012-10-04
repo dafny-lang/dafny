@@ -332,10 +332,10 @@ Execution trace:
 Definedness.dfy(86,5): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Definedness.dfy(86,10): Error: target object may be null
+Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
+Definedness.dfy(86,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
 Definedness.dfy(87,10): Error: possible violation of function precondition
@@ -872,12 +872,6 @@ Execution trace:
 Dafny program verifier finished with 32 verified, 11 errors
 
 -------------------- ControlStructures.dfy --------------------
-ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
 Execution trace:
     (0,0): anon0
@@ -885,6 +879,12 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
+ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
 ControlStructures.dfy(14,3): Error: missing case in case statement: Purple
 Execution trace:
     (0,0): anon0
@@ -1649,6 +1649,7 @@ Execution trace:
     Calculations.dfy(31,2): anon5_Else
 
 Dafny program verifier finished with 4 verified, 4 errors
+
 -------------------- IteratorResolution.dfy --------------------
 IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field
 IteratorResolution.dfy(64,18): Error: arguments must have the same type (got _T0 and int)
