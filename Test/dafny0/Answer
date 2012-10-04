@@ -1643,6 +1643,24 @@ Iterators.dfy(174,28): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
+Iterators.dfy(205,7): Error: an assignment to _new is only allowed to shrink the set
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(194,3): anon17_LoopHead
+    (0,0): anon17_LoopBody
+    Iterators.dfy(194,3): anon18_Else
+    (0,0): anon5
+    Iterators.dfy(194,3): anon20_Else
+    (0,0): anon21_Then
+Iterators.dfy(209,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(194,3): anon17_LoopHead
+    (0,0): anon17_LoopBody
+    Iterators.dfy(194,3): anon18_Else
+    (0,0): anon5
+    Iterators.dfy(194,3): anon20_Else
+    (0,0): anon22_Then
 Iterators.dfy(37,14): Error BP5002: A precondition for this call might not hold.
 Iterators.dfy(1,10): Related location: This is the precondition that might not hold.
 Execution trace:
@@ -1669,8 +1687,17 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
+Iterators.dfy(231,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(222,3): anon15_LoopHead
+    (0,0): anon15_LoopBody
+    Iterators.dfy(222,3): anon16_Else
+    (0,0): anon8
+    Iterators.dfy(222,3): anon19_Else
+    (0,0): anon20_Else
 
-Dafny program verifier finished with 34 verified, 8 errors
+Dafny program verifier finished with 38 verified, 11 errors
 
 -------------------- Superposition.dfy --------------------
 

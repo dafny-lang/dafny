@@ -633,6 +633,12 @@ procedure $IterHavoc1(this: ref, mod: Set BoxType, nw: Set BoxType);
               $o == this || mod[$Box($o)] || nw[$Box($o)]);
   ensures $HeapSucc(old($Heap), $Heap);
 
+procedure $IterCollectNewObjects(prevHeap: HeapType, newHeap: HeapType, this: ref, NW: Field (Set BoxType))
+                        returns (s: Set BoxType);
+  ensures (forall bx: BoxType :: { s[bx] } s[bx] <==>
+              read(newHeap, this, NW)[bx] ||
+              ($Unbox(bx) != null && !read(prevHeap, $Unbox(bx):ref, alloc) && read(newHeap, $Unbox(bx):ref, alloc)));
+
 // ---------------------------------------------------------------
 // -- Non-determinism --------------------------------------------
 // ---------------------------------------------------------------

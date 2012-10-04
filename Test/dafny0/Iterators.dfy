@@ -184,3 +184,52 @@ static method AnotherMethod() returns (u: Cell, v: Cell)
 {
   u := new Cell;
 }
+
+iterator DoleOutReferences(u: Cell) yields (r: Cell, c: Cell)
+  yield ensures r != null && fresh(r) && r !in _new;
+  yield ensures c != null && fresh(c);  // but we don't say whether it's in _new
+  ensures false;  // goes forever
+{
+  var myCells: seq<Cell> := [];
+  while (true)
+    invariant forall z :: z in myCells ==> z in _new;
+  {
+    c := new Cell;
+    r := new Cell;
+    c.data, r.data := 12, 12;
+    myCells := myCells + [c];
+    _new := _new - {r};  // remove our interest in 'r'
+    yield;
+    if (*) {
+      _new := _new + {c};  // fine, since 'c' is already in _new
+      _new := _new + {u};  // error: this does not shrink the set
+    } else if (*) {
+      assert c.data == 12;  // still true, since 'c' is in _new
+      assert c in _new;  // as is checked here as well
+      assert r.data == 12;  // error: it may have changed 
+    } else {
+      parallel (z | z in myCells) {
+        z.data := z.data + 1;  // we're allowed to modify these, because they are all in _new
+      }
+    }
+  }
+}
+
+method ClientOfNewReferences()
+{
+  var m := new DoleOutReferences.DoleOutReferences(null);
+  var i := 86;
+  while (i != 0)
+    invariant m.Valid() && fresh(m._new);
+  {
+    var more := m.MoveNext();
+    assert more;  // follows from 'ensures' clause of the iterator
+    if (*) {
+      m.r.data := i;  // this change is allowed, because we own it
+    } else {
+      m.c.data := i;  // this change, by itself, is allowed
+      assert m.Valid();  // error:  ... however, don't expect m.Valid() to survive the change to m.c.data
+    }
+    i := i - 1;
+  }
+}

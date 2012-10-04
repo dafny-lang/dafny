@@ -911,7 +911,10 @@ namespace Microsoft.Dafny {
       localVariables.Add(yieldCountVariable);
       builder.Add(new Bpl.AssumeCmd(iter.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable), Bpl.Expr.Literal(0))));
       // add a variable $_OldIterHeap
-      Bpl.Expr wh = FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType));
+      var oih = new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType);
+      Bpl.Expr wh = BplAnd(
+        FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, oih),
+        FunctionCall(iter.tok, BuiltinFunction.HeapSucc, null, oih, etran.HeapExpr));
       localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
       // do an initial YieldHavoc
@@ -4655,7 +4658,12 @@ namespace Microsoft.Dafny {
         } else {
           lhsType = ((MultiSelectExpr)lhs).Type;
         }
-        CheckSubrange(r.Tok, etran.TrExpr(rhs), lhsType, definedness);
+        var translatedRhs = etran.TrExpr(rhs);
+        CheckSubrange(r.Tok, translatedRhs, lhsType, definedness);
+        if (lhs is FieldSelectExpr) {
+          var fse = (FieldSelectExpr)lhs;
+          Check_NewRestrictions(fse.tok, obj, fse.Field, translatedRhs, definedness, etran);
+        }
       }
 
       // check for duplicate LHSs
@@ -6066,7 +6074,7 @@ namespace Microsoft.Dafny {
           var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
           bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
           lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
-            builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+            bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
           });
 
         } else if (lhs is FieldSelectExpr) {
@@ -6090,11 +6098,12 @@ namespace Microsoft.Dafny {
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
+            Check_NewRestrictions(tok, obj, fse.Field, rhs, bldr, et);
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fse.Field)), rhs));
-            builder.Add(cmd);
+            bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
-            builder.Add(AssumeGoodHeap(tok, et));
+            bldr.Add(AssumeGoodHeap(tok, et));
           });
 
         } else if (lhs is SeqSelectExpr) {
@@ -6126,9 +6135,9 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
-            builder.Add(cmd);
+            bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
-            builder.Add(AssumeGoodHeap(tok, et));
+            bldr.Add(AssumeGoodHeap(tok, et));
           });
 
         } else {
@@ -6158,9 +6167,9 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate(Bpl.Expr rhs, Bpl.StmtListBuilder bldr, ExpressionTranslator et) {
             var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
             Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
-            builder.Add(cmd);
+            bldr.Add(cmd);
             // assume $IsGoodHeap($Heap);
-            builder.Add(AssumeGoodHeap(tok, etran));
+            bldr.Add(AssumeGoodHeap(tok, etran));
           });
         }
 
@@ -6304,6 +6313,23 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.Le(Bpl.Expr.Literal(0), bRhs);
       }
       return null;
+    }
+
+    void Check_NewRestrictions(IToken tok, Bpl.Expr obj, Field f, Bpl.Expr rhs, StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(obj != null);
+      Contract.Requires(f != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      var iter = f.EnclosingClass as IteratorDecl;
+      if (iter != null && f == iter.Member_New) {
+        // Assignments to an iterator _new field is only allowed to shrink the set, so:
+        // assert Set#Subset(rhs, obj._new);
+        var fId = new Bpl.IdentifierExpr(tok, GetField(f));
+        var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs, ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, obj, fId));
+        builder.Add(Assert(tok, subset, "an assignment to " + f.Name + " is only allowed to shrink the set"));
+      }
     }
 
     Bpl.AssumeCmd AssumeGoodHeap(IToken tok, ExpressionTranslator etran) {
