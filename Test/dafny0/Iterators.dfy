@@ -117,7 +117,7 @@ method TestIterB()
   }
 }
 
-// -----------------------------------------------------------
+// ------------------ yield statements, and_decreases variables ----------------------------------
 
 iterator IterC(c: Cell)
   requires c != null;
@@ -152,3 +152,35 @@ method TestIterC()
   more := iter.MoveNext();  // error: iter.Valid() may not hold
 }
 
+// ------------------ allocations inside an iterator ------------------
+
+iterator AllocationIterator(x: Cell)
+{
+  assert _new == {};
+  var h := new Cell;
+  assert _new == {h};
+
+  SomeMethod();
+  assert x !in _new;
+  assert null !in _new;
+  assert h in _new;
+
+  ghost var saveNew := _new;
+  var u, v := AnotherMethod();
+  assert u in _new;
+  if {
+    case true =>  assert v in _new - saveNew ==> v != null && fresh(v);
+    case true =>  assert !fresh(v) ==> v !in _new;
+    case true =>  assert v in _new;  // error: it may be, but, then again, it may not be
+  }
+}
+
+static method SomeMethod()
+{
+}
+
+static method AnotherMethod() returns (u: Cell, v: Cell)
+  ensures u != null && fresh(u);
+{
+  u := new Cell;
+}

@@ -4162,6 +4162,7 @@ namespace Microsoft.Dafny {
           }
         }
         YieldHavoc(iter.tok, iter, builder, etran);
+        builder.Add(CaptureState(s.Tok));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -4806,12 +4807,17 @@ namespace Microsoft.Dafny {
         // initHeap := $Heap;
         exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
         if (s0.Method.Ens.Exists(ens => MentionsOldState(ens.E))) {
+          var heapIdExpr = (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr;
           // advance $Heap, Tick;
-          exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick())));
+          exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(heapIdExpr, etran.Tick())));
           foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), initEtran, etran, initEtran)) {
             if (tri.IsFree) {
               exporter.Add(new Bpl.AssumeCmd(tok, tri.Expr));
             }
+          }
+          if (codeContext is IteratorDecl) {
+            var iter = (IteratorDecl)codeContext;
+            RecordNewObjectsIn_New(tok, iter, initHeap, heapIdExpr, exporter, locals, etran);
           }
         } else {
           // As an optimization, create the illusion that the $Heap is unchanged by the parallel body.
@@ -4848,6 +4854,32 @@ namespace Microsoft.Dafny {
         Bpl.Expr qq = new Bpl.ForallExpr(tok, bvars, Bpl.Expr.Imp(ante, post));
         exporter.Add(new Bpl.AssumeCmd(tok, qq));
       }
+    }
+
+    void RecordNewObjectsIn_New(IToken tok, IteratorDecl iter, Bpl.Expr initHeap, Bpl.IdentifierExpr currentHeap,
+      Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(iter != null);
+      Contract.Requires(initHeap != null);
+      Contract.Requires(currentHeap != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+      // Add all newly allocated objects to the set this._new
+      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$iter_newUpdate" + otherTmpVarCount, predef.SetType(iter.tok, predef.BoxType)));
+      otherTmpVarCount++;
+      locals.Add(updatedSet);
+      var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
+      // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
+      var th = new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType);
+      var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
+      Bpl.Cmd cmd = new CallCmd(iter.tok, "$IterCollectNewObjects",
+        new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
+        new List<Bpl.IdentifierExpr>() { updatedSetIE });
+      builder.Add(cmd);
+      // $Heap[this, _new] := $iter_newUpdate;
+      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, ExpressionTranslator.UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
+      builder.Add(cmd);
     }
 
     void TrParallelProof(ParallelStmt s, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
@@ -5204,6 +5236,16 @@ namespace Microsoft.Dafny {
           bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
         }
       }
+      Bpl.IdentifierExpr initHeap = null;
+      if (codeContext is IteratorDecl) {
+        // var initHeap := $Heap;
+        var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapCallStmt#" + otherTmpVarCount, predef.HeapType));
+        otherTmpVarCount++;
+        locals.Add(initHeapVar);
+        initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
+        // initHeap := $Heap;
+        builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
+      }
       ProcessCallStmt(s.Tok, s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
       for (int i = 0; i < lhsBuilders.Count; i++) {
         var lhs = s.Lhs[i];
@@ -5222,6 +5264,11 @@ namespace Microsoft.Dafny {
         bRhs = etran.CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
 
         lhsBuilders[i](bRhs, builder, etran);
+      }
+      if (codeContext is IteratorDecl) {
+        var iter = (IteratorDecl)codeContext;
+        Contract.Assert(initHeap != null);
+        RecordNewObjectsIn_New(s.Tok, iter, initHeap, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, builder, locals, etran);
       }
       builder.Add(CaptureState(s.Tok));
     }
@@ -6214,6 +6261,16 @@ namespace Microsoft.Dafny {
         Bpl.IdentifierExpr heap = (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr;
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
         builder.Add(cmd);
+        if (codeContext is IteratorDecl) {
+          var iter = (IteratorDecl)codeContext;
+          // $Heap[this, _new] := Set#UnionOne<BoxType>($Heap[this, _new], $Box($nw));
+          var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
+          var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
+          var thisDotNew = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, th, nwField);
+          var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
+          var heapRhs = ExpressionTranslator.UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
+          builder.Add(Bpl.Cmd.SimpleAssign(tok, heap, heapRhs));
+        }
         // assume $IsGoodHeap($Heap);
         builder.Add(AssumeGoodHeap(tok, etran));
         if (tRhs.InitCall != null) {
