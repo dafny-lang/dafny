@@ -29,7 +29,7 @@ namespace Demo
           "in", "forall", "exists",
           "seq", "set", "map", "multiset", "array", "array2", "array3",
           "match", "case",
-          "fresh", "old", "choose", "where"
+          "fresh", "old", "choose", "where", "calc"
           );
 
         StringLiteral s = new StringLiteral("String", "'", StringFlags.AllowsDoubledQuote);
@@ -292,6 +292,7 @@ namespace Demo
           | "return"
           | "yield"
           | "parallel"
+          | "calc"
           | "print"
           | "returns"
           | "yields"

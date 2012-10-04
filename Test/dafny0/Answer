@@ -332,10 +332,10 @@ Execution trace:
 Definedness.dfy(86,5): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
+Definedness.dfy(86,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(86,10): Error: target object may be null
+Definedness.dfy(86,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 Definedness.dfy(87,10): Error: possible violation of function precondition
@@ -542,7 +542,16 @@ ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specificat
 ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
 ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
-48 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(363,4): Error: arguments to + must be int or a collection type (instead got bool)
+ResolutionErrors.dfy(368,4): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors.dfy(371,4): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(371,4): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(372,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(372,8): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(377,8): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(377,8): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(382,4): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+57 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -553,7 +562,13 @@ ParseErrors.dfy(15,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(16,19): error: this operator cannot be part of a chain
 ParseErrors.dfy(17,18): error: this operator cannot be part of a chain
 ParseErrors.dfy(18,18): error: chaining not allowed from the previous operator
-8 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(46,8): error: the main operator of a calculation must be transitive
+ParseErrors.dfy(62,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(63,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(68,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(69,2): error: this operator cannot continue this calculation
+ParseErrors.dfy(75,2): error: this operator cannot continue this calculation
+14 parse errors detected in ParseErrors.dfy
 
 -------------------- Array.dfy --------------------
 Array.dfy(10,8): Error: assignment may update an array element not in the enclosing context's modifies clause
@@ -857,6 +872,12 @@ Execution trace:
 Dafny program verifier finished with 32 verified, 11 errors
 
 -------------------- ControlStructures.dfy --------------------
+ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
 ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
 Execution trace:
     (0,0): anon0
@@ -864,12 +885,6 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 ControlStructures.dfy(14,3): Error: missing case in case statement: Purple
 Execution trace:
     (0,0): anon0
@@ -1305,7 +1320,7 @@ CoPredicates.dfy(30,22): Related location: Related location
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 14 verified, 1 error
+Dafny program verifier finished with 12 verified, 1 error
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
@@ -1615,6 +1630,25 @@ TailCalls.dfy(42,12): Error: 'decreases *' is allowed only on tail-recursive met
 TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive methods
 5 resolution/type errors detected in TailCalls.dfy
 
+-------------------- Calculations.dfy --------------------
+Calculations.dfy(3,4): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+Calculations.dfy(8,13): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon13_Then
+Calculations.dfy(8,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon13_Then
+Calculations.dfy(36,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Calculations.dfy(31,2): anon5_Else
+
+Dafny program verifier finished with 4 verified, 4 errors
 -------------------- IteratorResolution.dfy --------------------
 IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field
 IteratorResolution.dfy(64,18): Error: arguments must have the same type (got _T0 and int)

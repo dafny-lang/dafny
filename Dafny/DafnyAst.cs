@@ -2801,6 +2801,113 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class CalcStmt : Statement
+  {
+    public readonly BinaryExpr.Opcode/*!*/ Op; // main operator of the calculation
+    public readonly List<Expression/*!*/> Lines;
+    public readonly List<BlockStmt/*!*/> Hints;  // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
+    public readonly List<BinaryExpr.Opcode?> CustomOps; // CustomOps[i] comes after line i; null denotes the absence of a custom operator
+    public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
+    public BinaryExpr Result; // expression l0 op ln, filled in during resolution in order to get the correct op
+
+    public static readonly BinaryExpr.Opcode/*!*/ DefaultOp = BinaryExpr.Opcode.Eq; 
+
+    [ContractInvariantMethod]
+    void ObjectInvariant()
+    {
+      Contract.Invariant(ValidOp(Op));
+      Contract.Invariant(Lines != null);
+      Contract.Invariant(Hints != null);
+      Contract.Invariant(CustomOps != null);
+      Contract.Invariant(Steps != null);
+      Contract.Invariant(Hints.Count == Math.Max(Lines.Count - 1, 0));
+      Contract.Invariant(CustomOps.Count == Hints.Count);
+    }
+
+    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<BlockStmt/*!*/> hints, List<BinaryExpr.Opcode?> customOps)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(ValidOp(op));
+      Contract.Requires(lines != null);
+      Contract.Requires(hints != null);
+      Contract.Requires(customOps != null);
+      Contract.Requires(cce.NonNullElements(lines));
+      Contract.Requires(cce.NonNullElements(hints));
+      Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
+      Contract.Requires(customOps.Count == hints.Count);
+      this.Op = op;
+      this.Lines = lines;
+      this.Hints = hints;
+      this.CustomOps = customOps;
+      this.Steps = new List<BinaryExpr>();  
+      this.Result = null;
+    }
+
+    public override IEnumerable<Statement> SubStatements
+    {
+      get {
+        foreach (var h in Hints) {
+          yield return h;
+        }
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions
+    {
+      get {
+        foreach (var l in Lines) {
+            yield return l;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Is op a valid calculation operator (i.e. a transitive relational operator)?
+    /// </summary>
+    [Pure]
+    public static bool ValidOp(BinaryExpr.Opcode op) {
+      return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
+        || op == BinaryExpr.Opcode.Neq
+        || op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp;
+    }
+
+    /// <summary>
+    /// Does op1 subsume op2 (i.e. forall x, y, z :: (x op1 y op2 z) || (x op2 y op1 z) ==> x op1 z)?
+    /// </summary>
+    [Pure]    
+    private static bool Subsumes(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
+      Contract.Requires(ValidOp(op1) && ValidOp(op2));
+      if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
+        return op2 == BinaryExpr.Opcode.Eq;
+      if (op1 == op2) 
+        return true;
+      if (op1 == BinaryExpr.Opcode.Iff || op1 == BinaryExpr.Opcode.Imp || op2 == BinaryExpr.Opcode.Iff || op2 == BinaryExpr.Opcode.Imp)
+        return op2 == BinaryExpr.Opcode.Eq ||
+          (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
+          (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
+      return op2 == BinaryExpr.Opcode.Eq ||
+        (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
+        (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge);
+    }
+
+    /// <summary>
+    /// Resulting operator x op z if x op1 y op2 z.
+    /// (Least upper bound in the Subsumes order).
+    /// Returns null if neither of op1 or op2 subsumes the other.
+    /// </summary>
+    [Pure]
+    public static BinaryExpr.Opcode? ResultOp(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
+      Contract.Requires(ValidOp(op1) && ValidOp(op2));
+      Contract.Ensures(Contract.Result<BinaryExpr.Opcode?>() == null || ValidOp((BinaryExpr.Opcode)Contract.Result<BinaryExpr.Opcode?>()));
+      if (Subsumes(op1, op2)) {
+        return op1;
+      } else if (Subsumes(op2, op1)) {
+        return op2;
+      }
+      return null;
+    }
+  }
+
   public class MatchStmt : Statement
   {
     [ContractInvariantMethod]

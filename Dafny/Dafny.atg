@@ -863,6 +863,7 @@ OneStmt<out Statement/*!*/ s>
   | WhileStmt<out s>
   | MatchStmt<out s>
   | ParallelStmt<out s>
+  | CalcStmt<out s>
   | "label"                            (. x = t; .)
     NoUSIdent<out id> ":"
     OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
@@ -1315,6 +1316,82 @@ ParallelStmt<out Statement/*!*/ s>
   BlockStmt<out block, out bodyStart, out bodyEnd>
   (. s = new ParallelStmt(x, bvars, attrs, range, ens, block); .)
   .
+
+CalcStmt<out Statement/*!*/ s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
+     Token x;
+     BinaryExpr.Opcode op, calcOp = BinaryExpr.Opcode.Eq, resOp = BinaryExpr.Opcode.Eq;     
+     var lines = new List<Expression/*!*/>();
+     var hints = new List<BlockStmt/*!*/>(); 
+     var customOps = new List<BinaryExpr.Opcode?>();
+     BinaryExpr.Opcode? maybeOp;
+     Expression/*!*/ e;
+     BlockStmt/*!*/ h;
+     IToken opTok;
+  .)
+  "calc"                                                  (. x = t; .)
+  [ CalcOp<out opTok, out calcOp>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(calcOp, calcOp); // guard against non-trasitive calcOp (like !=)
+                                                             if (maybeOp == null) {
+                                                               SemErr(opTok, "the main operator of a calculation must be transitive");
+                                                             }
+                                                             resOp = calcOp; 
+                                                          .)
+  ]
+  "{"
+  [ Expression<out e>                                     (. lines.Add(e); .)
+    ";"
+    {
+      Hint<out h>                                         (. hints.Add(h); .)
+      ( CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
+                                                             if (maybeOp == null) {
+                                                               customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
+                                                               SemErr(opTok, "this operator cannot continue this calculation");
+                                                             } else {
+                                                               customOps.Add(op);
+                                                               resOp = (BinaryExpr.Opcode)maybeOp;                                                              
+                                                             }
+                                                          .)
+      |                                                   (. customOps.Add(null); .)
+      )
+      Expression<out e>                                   (. lines.Add(e); .)
+      ";"
+    }
+  ]
+  "}"
+  (. s = new CalcStmt(x, calcOp, lines, hints, customOps); .)
+  .
+CalcOp<out IToken x, out BinaryExpr.Opcode/*!*/ op>
+= (. Contract.Ensures(Microsoft.Dafny.CalcStmt.ValidOp(Contract.ValueAtReturn(out op)));
+     op = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator 
+     x = null;
+  .)
+  ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
+  | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
+  | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
+  | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
+  | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
+  | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
+  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
+  | EquivOp        (. x = t;  op = BinaryExpr.Opcode.Iff; .)
+  | ImpliesOp      (. x = t;  op = BinaryExpr.Opcode.Imp; .)
+  )
+  .
+Hint<out BlockStmt s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); // returns an empty block statement if the hint is empty
+     var subhints = new List<Statement/*!*/>(); 
+     IToken bodyStart, bodyEnd;
+     BlockStmt/*!*/ block;
+     Statement/*!*/ calc;
+     Token x = la;
+  .)
+  { BlockStmt<out block, out bodyStart, out bodyEnd>  (. subhints.Add(block); .)
+  | CalcStmt<out calc>                                (. subhints.Add(calc); .)
+  }
+  (. s = new BlockStmt(x, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container 
+  .)
+  .
 /*------------------------------------------------------------------------*/
 Expression<out Expression/*!*/ e>
 =
@@ -1600,7 +1677,7 @@ MapDisplayExpr<IToken/*!*/ mapToken, out Expression e>
   .
 MapLiteralExpressions<.out List<ExpressionPair> elements.>
 = (. Expression/*!*/ d, r;
-	 elements = new List<ExpressionPair/*!*/>(); .)
+     elements = new List<ExpressionPair/*!*/>(); .)
   Expression<out d> ":=" Expression<out r>      (. elements.Add(new ExpressionPair(d,r)); .)
   { "," Expression<out d> ":=" Expression<out r>(. elements.Add(new ExpressionPair(d,r)); .)
   }

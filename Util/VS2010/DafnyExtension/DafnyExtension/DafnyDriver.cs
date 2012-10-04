@@ -231,9 +231,6 @@ namespace DafnyLanguage
       if (Bpl.CommandLineOptions.Clo.UseAbstractInterpretation) {
         if (Bpl.CommandLineOptions.Clo.Ai.J_Intervals || Bpl.CommandLineOptions.Clo.Ai.J_Trivial) {
           Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
-        } else if (Bpl.CommandLineOptions.Clo.Ai.AnySet) {
-          // run one of the old domains
-          Microsoft.Boogie.AbstractInterpretation.AbstractInterpretation.RunAbstractInterpretation(program);
         } else {
           // use /infer:j as the default
           Bpl.CommandLineOptions.Clo.Ai.J_Intervals = true;
@@ -258,11 +255,7 @@ namespace DafnyLanguage
 
       ConditionGeneration vcgen = null;
       try {
-        if (Bpl.CommandLineOptions.Clo.vcVariety == Bpl.CommandLineOptions.VCVariety.Doomed) {
-          vcgen = new DCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
-        } else {
-          vcgen = new VCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
-        }
+        vcgen = new VCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
       } catch (Bpl.ProverException) {
         return PipelineOutcome.FatalError;
       }

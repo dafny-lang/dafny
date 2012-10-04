@@ -4384,6 +4384,61 @@ namespace Microsoft.Dafny {
           Contract.Assert(false);  // unexpected kind
         }
 
+      } else if (stmt is CalcStmt) {
+        /* Translate into:
+        if (*) {
+            // line well-formedness checks;
+        } else if (*) {
+            hint0;
+            assert t0 op t1;
+            assume false;
+        } else if (*) { ...
+        } else if (*) {
+            hint<n-1>;
+            assert t<n-1> op tn;
+            assume false;
+        }
+        assume t0 op tn;        
+        */
+        var s = (CalcStmt)stmt;
+        Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
+        AddComment(builder, stmt, "calc statement");
+        if (s.Lines.Count > 0) {          
+          Bpl.IfCmd ifCmd = null;
+          Bpl.StmtListBuilder b;
+          // check steps:
+          for (int i = s.Steps.Count; 0 <= --i; ) {
+            b = new Bpl.StmtListBuilder();
+            TrStmt(s.Hints[i], b, locals, etran);
+            bool splitHappened;
+            var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
+            if (!splitHappened) {
+              b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
+            } else {
+              foreach (var split in ss) {
+                if (!split.IsFree) {
+                  b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
+                }
+              }
+            }
+            b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+            ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
+          }
+          // check well-formedness of lines:
+          b = new Bpl.StmtListBuilder();
+          foreach (var e in s.Lines) {            
+            TrStmt_CheckWellformed(e, b, locals, etran, false);
+          }
+          b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
+          ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
+          builder.Add(ifCmd);
+          // assume result:
+          if (s.Steps.Count > 0) {
+            Contract.Assert(s.Result != null); // established by the resolver
+            builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Result)));
+          }
+        }
+
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);

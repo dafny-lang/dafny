@@ -127,9 +127,6 @@
     <Reference Include="AbsInt">
       <HintPath>..\..\Binaries\AbsInt.dll</HintPath>
     </Reference>
-    <Reference Include="AIFramework">
-      <HintPath>..\..\Binaries\AIFramework.dll</HintPath>
-    </Reference>
     <Reference Include="Core">
       <HintPath>..\..\Binaries\Core.dll</HintPath>
     </Reference>

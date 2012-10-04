@@ -43,6 +43,7 @@ method M(N: int, A: array<int>, B: array<int>)
   assert (forall i :: 0 <= i && i < N ==> A[i] == old(A[i]));  // the elements of A were not changed by the loop
   // it now follows from the surjectivity of A that A is the inverse of B:
   assert (forall j :: 0 <= j && j < N && inImage(j) ==> 0 <= B[j] && B[j] < N && A[B[j]] == j);
+  assert (forall j,k :: 0 <= j && j < k && k < N ==> B[j] != B[k]);
 }
 
 static function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification

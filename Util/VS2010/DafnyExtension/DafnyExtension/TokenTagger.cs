@@ -227,10 +227,12 @@ namespace DafnyLanguage
                 #region keywords
                 case "allocated":
                 case "array":
+                case "as":
                 case "assert":
                 case "assume":
                 case "bool":
                 case "break":
+                case "calc":
                 case "case":
                 case "choose":
                 case "class":
@@ -249,7 +251,7 @@ namespace DafnyLanguage
                 case "function":
                 case "ghost":
                 case "if":
-                case "imports":
+                case "import":
                 case "in":
                 case "int":
                 case "invariant":
@@ -265,6 +267,7 @@ namespace DafnyLanguage
                 case "null":
                 case "object":
                 case "old":
+                case "opened":
                 case "parallel":
                 case "predicate":
                 case "print":

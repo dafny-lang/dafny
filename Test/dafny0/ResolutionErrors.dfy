@@ -354,3 +354,32 @@ method MG1(l: GList, n: nat)
   var t := GCons(100, GNil);
   t := GCons(120, l);  // error: types don't match up (List<T$0> versus List<int>)
 }
+
+// ------------------- calc statements ------------------------------
+
+method TestCalc(m: int, n: int, a: bool, b: bool)
+{
+	calc {
+		a + b; // error: invalid line
+		n + m;
+	}
+	calc {
+		a && b;
+		n + m; // error: all lines must have the same type
+	}
+	calc ==> {
+		n + m; // error: ==> operator requires boolean lines
+		n + m + 1;
+		n + m + 2;
+	}		
+	calc {
+		n + m;
+		n + m + 1;
+		==> n + m + 2; // error: ==> operator requires boolean lines
+	}
+	calc {
+		n + m;
+		{ print n + m; } // error: non-ghost statements are not allowed in hints
+		m + n;
+	}			
+}

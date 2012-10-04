@@ -24,7 +24,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             CallStmtTests.dfy MultiSets.dfy PredExpr.dfy LetExpr.dfy
             Predicates.dfy Skeletons.dfy Maps.dfy LiberalEquality.dfy
             RefinementModificationChecking.dfy TailCalls.dfy
-            IteratorResolution.dfy Iterators.dfy) do (
+            Calculations.dfy IteratorResolution.dfy Iterators.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f

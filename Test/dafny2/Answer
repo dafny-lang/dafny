@@ -54,3 +54,7 @@ Dafny program verifier finished with 3 verified, 0 errors
 -------------------- MonotonicHeapstate.dfy --------------------
 
 Dafny program verifier finished with 36 verified, 0 errors
+
+-------------------- Calculations.dfy --------------------
+
+Dafny program verifier finished with 26 verified, 0 errors
