@@ -173,6 +173,8 @@ namespace DafnyLanguage
                 if (m.Body != null) {
                   StatementRegions(m.Body, newRegions, module);
                 }
+              } else if (member is SpecialField) {
+                // do nothing
               } else if (member is Field) {
                 var fld = (Field)member;
                 IdRegion.Add(newRegions, fld.tok, fld, null, "field", true, module);

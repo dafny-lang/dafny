@@ -838,6 +838,10 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
 
+      // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
+      var oldIterHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType));
+      localVariables.Add(oldIterHeap);
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
       // simulate a modifies this, this._modifies, this._new;
       var nw = new FieldSelectExpr(iter.tok, th, iter.Member_New.Name);
       nw.Field = iter.Member_New;  // resolve here
@@ -845,17 +849,50 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
+      // assume the implicit postconditions promised by MoveNext:
+      // assume fresh(_new - old(_new));
+      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType));
+      var old_nw = new OldExpr(iter.tok, nw);
+      old_nw.Type = nw.Type;  // resolve here
+      var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
+      setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
+      Expression cond = new FreshExpr(iter.tok, setDiff);
+      cond.Type = Type.Bool;  // resolve here
+      builder.Add(new Bpl.AssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
       // check wellformedness of postconditions
       var yeBuilder = new Bpl.StmtListBuilder();
       var endBuilder = new Bpl.StmtListBuilder();
+      // In the yield-ensures case:  assume this.Valid();
+      yeBuilder.Add(new Bpl.AssumeCmd(iter.tok, yeEtran.TrExpr(validCall)));
+      Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
+      for (int i = 0; i < iter.OutsFields.Count; i++) {
+        var y = iter.OutsFields[i];
+        var ys = iter.OutsHistoryFields[i];
+        var thisY = new FieldSelectExpr(iter.tok, th, y.Name);
+        thisY.Field = y; thisY.Type = y.Type;  // resolve here
+        var thisYs = new FieldSelectExpr(iter.tok, th, ys.Name);
+        thisYs.Field = ys; thisYs.Type = ys.Type;  // resolve here
+        var oldThisYs = new OldExpr(iter.tok, thisYs);
+        oldThisYs.Type = thisYs.Type;  // resolve here
+        var singleton = new SeqDisplayExpr(iter.tok, new List<Expression>() { thisY });
+        singleton.Type = thisYs.Type;  // resolve here
+        var concat = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Add, oldThisYs, singleton);
+        concat.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat; concat.Type = oldThisYs.Type;  // resolve here
+
+        // In the yield-ensures case:  assume this.ys == old(this.ys) + [this.y];
+        yeBuilder.Add(new Bpl.AssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat))));
+        // In the ensures case:  assume this.ys == old(this.ys);
+        endBuilder.Add(new Bpl.AssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs))));
+      }
+
       foreach (var p in iter.YieldEnsures) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, yeBuilder, etran);
-        yeBuilder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        CheckWellformed(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran);
+        yeBuilder.Add(new Bpl.AssumeCmd(p.E.tok, yeEtran.TrExpr(p.E)));
       }
       foreach (var p in iter.Ensures) {
-        CheckWellformed(p.E, new WFOptions(), localVariables, endBuilder, etran);
-        endBuilder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        CheckWellformed(p.E, new WFOptions(), localVariables, endBuilder, yeEtran);
+        endBuilder.Add(new Bpl.AssumeCmd(p.E.tok, yeEtran.TrExpr(p.E)));
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
