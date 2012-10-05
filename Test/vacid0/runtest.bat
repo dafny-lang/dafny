@@ -1,8 +1,8 @@
 @echo off
 setlocal
 
-set BOOGIEDIR=..\..\Binaries
-set DAFNY_EXE=%BOOGIEDIR%\Dafny.exe
+set BINARIES=..\..\Binaries
+set DAFNY_EXE=%BINARIES\Dafny.exe
 
 for %%f in (LazyInitArray.dfy SparseArray.dfy Composite.dfy) do (
   echo.
