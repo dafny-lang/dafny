@@ -274,7 +274,7 @@ namespace Microsoft.Dafny {
       if (field.IsUserMutable) {
         // nothing more to say
       } else if (field.IsMutable) {
-        wr.Write("  // may change, but not directly by program");
+        wr.Write("  // non-assignable");
       } else {
         wr.Write("  // immutable");
       }

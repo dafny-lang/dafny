@@ -143,6 +143,27 @@ namespace DafnyLanguage
                 }
               }
             }
+          } else if (d is IteratorDecl) {
+            var iter = (IteratorDecl)d;
+            foreach (var p in iter.Ins) {
+              IdRegion.Add(newRegions, p.tok, p, true, module);
+            }
+            foreach (var p in iter.Outs) {
+              IdRegion.Add(newRegions, p.tok, p, true, "yield-parameter", module);
+            }
+            iter.Reads.Expressions.ForEach(fe => FrameExprRegions(fe, newRegions, true, module));
+            iter.Modifies.Expressions.ForEach(fe => FrameExprRegions(fe, newRegions, true, module));
+            iter.Requires.ForEach(e => ExprRegions(e.E, newRegions, module));
+            iter.YieldRequires.ForEach(e => ExprRegions(e.E, newRegions, module));
+            iter.YieldEnsures.ForEach(e => ExprRegions(e.E, newRegions, module));
+            iter.Ensures.ForEach(e => ExprRegions(e.E, newRegions, module));
+            if (!iter.InferredDecreases) {
+              iter.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions, module));
+            }
+            if (iter.Body != null) {
+              StatementRegions(iter.Body, newRegions, module);
+            }
+
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var member in cl.Members) {
@@ -297,8 +318,14 @@ namespace DafnyLanguage
         Contract.Requires(regions != null);
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
+        Add(regions, tok, v, isDefinition, null, context);
+      }
+      public static void Add(List<IdRegion> regions, Bpl.IToken tok, IVariable v, bool isDefinition, string kind, ModuleDefinition context) {
+        Contract.Requires(regions != null);
+        Contract.Requires(tok != null);
+        Contract.Requires(v != null);
         if (SurfaceSyntaxToken(tok)) {
-          regions.Add(new IdRegion(tok, v, isDefinition, context));
+          regions.Add(new IdRegion(tok, v, isDefinition, kind, context));
         }
       }
       public static void Add(List<IdRegion> regions, Bpl.IToken tok, Field decl, Microsoft.Dafny.Type showType, string kind, bool isDefinition, ModuleDefinition context) {
@@ -311,19 +338,21 @@ namespace DafnyLanguage
         }
       }
 
-      private IdRegion(Bpl.IToken tok, IVariable v, bool isDefinition, ModuleDefinition context) {
+      private IdRegion(Bpl.IToken tok, IVariable v, bool isDefinition, string kind, ModuleDefinition context) {
         Contract.Requires(tok != null);
         Contract.Requires(v != null);
         Start = tok.pos;
         Length = v.DisplayName.Length;
-        string kind;
-        if (v is VarDecl) {
-          kind = "local variable";
-        } else if (v is BoundVar) {
-          kind = "bound variable";
-        } else {
-          var formal = (Formal)v;
-          kind = formal.InParam ? "in-parameter" : "out-parameter";
+        if (kind == null) {
+          // use default
+          if (v is VarDecl) {
+            kind = "local variable";
+          } else if (v is BoundVar) {
+            kind = "bound variable";
+          } else {
+            var formal = (Formal)v;
+            kind = formal.InParam ? "in-parameter" : "out-parameter";
+          }
         }
         HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
         Kind = !isDefinition ? OccurrenceKind.Use : VarDecl.HasWildcardName(v) ? OccurrenceKind.WildDefinition : OccurrenceKind.Definition;
@@ -337,7 +366,10 @@ namespace DafnyLanguage
         }
         Start = tok.pos;
         Length = decl.Name.Length;
-        HoverText = string.Format("({2}{3}) {0}: {1}", decl.FullNameInContext(context), showType.TypeName(context), decl.IsGhost ? "ghost " : "", kind);
+        HoverText = string.Format("({4}{2}{3}) {0}: {1}", decl.FullNameInContext(context), showType.TypeName(context),
+          decl.IsGhost ? "ghost " : "",
+          kind,
+          decl.IsUserMutable ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
         Kind = !isDefinition ? OccurrenceKind.Use : OccurrenceKind.Definition;
       }
     }
