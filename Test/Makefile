@@ -7,11 +7,11 @@ all: dafny
 
 dafny: $(addprefix rundfy-, $(TESTS))
 
-show:
-	@echo $(TESTS)
+rundfy-%:
+	@cmd /c "runtest.bat $* $(FLAGS)" || :
 
 long:
 	$(MAKE) TESTS="$(NORMAL) $(LONG)" all
 
-rundfy-%:
-	@if ls -f $*/*.dfy >/dev/null 2>&1 ; then cmd /c "runtest.bat $* $(FLAGS)" ; fi || :
+show:
+	@echo $(TESTS)

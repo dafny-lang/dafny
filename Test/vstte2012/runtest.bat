@@ -2,7 +2,7 @@
 setlocal
 
 set BINARIES=..\..\Binaries
-set DAFNY_EXE=%BINARIES\Dafny.exe
+set DAFNY_EXE=%BINARIES%\Dafny.exe
 
 for %%f in (
     Two-Way-Sort.dfy

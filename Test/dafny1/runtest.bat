@@ -2,7 +2,7 @@
 setlocal
 
 set BINARIES=..\..\Binaries
-set DAFNY_EXE=%BINARIES\Dafny.exe
+set DAFNY_EXE=%BINARIES%\Dafny.exe
 
 for %%f in (Queue.dfy PriorityQueue.dfy
             ExtensibleArray.dfy ExtensibleArrayAuto.dfy

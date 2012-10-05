@@ -2,7 +2,7 @@
 setlocal
 
 set BINARIES=..\..\Binaries
-set DAFNY_EXE=%BINARIES\Dafny.exe
+set DAFNY_EXE=%BINARIES%\Dafny.exe
 
 REM soon again:    SnapshotableTrees.dfy
 for %%f in (
