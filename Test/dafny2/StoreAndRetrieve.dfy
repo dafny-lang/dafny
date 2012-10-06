@@ -19,7 +19,7 @@ ghost module A {
       ensures Contents == old(Contents);
       ensures thing in Contents && L.Function.Apply(matchCriterion, thing);
     {
-      var k :| k in Contents && L.Function.Apply(matchCriterion, k);
+      var k :| assume k in Contents && L.Function.Apply(matchCriterion, k);
       thing := k;
     }
   }
@@ -52,7 +52,7 @@ module B refines A {
       }
       var k := arr[i];
       ...;
-      var a :| Contents == set x | x in a;
+      var a :| assume Contents == set x | x in a;
       arr := a;
     }
   }

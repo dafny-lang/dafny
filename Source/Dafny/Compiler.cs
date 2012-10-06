@@ -1065,13 +1065,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        foreach (var lhs in s.Lhss) {
-          // assigning to a local ghost variable or to a ghost field is okay
-          if (!AssignStmt.LhsIsToGhost(lhs)) {
-            Error("compiling an assign-such-that statement with a non-ghost left-hand side is currently not supported (line {0})", stmt.Tok.line);
-            break;  // no need to say more
-          }
-        }
+        Error("compilation of assign-such-that statements is currently not supported (line {0})", stmt.Tok.line);
 
       } else if (stmt is VarDecl) {
         TrVarDecl((VarDecl)stmt, true, indent);

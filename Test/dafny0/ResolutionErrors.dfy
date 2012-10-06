@@ -423,3 +423,27 @@ class Lamb {
   method Jesus() { }
   method Gwen() { }
 }
+
+// ------------------- assign-such-that and ghosts ------------------------------
+
+method AssignSuchThatFromGhost()
+{
+  var x: int;
+  ghost var g: int;
+
+  x := g;  // error: ghost cannot flow into non-ghost
+  
+  x := *;
+  assume x == g;  // this mix of ghosts and non-ghosts is cool (but, of course,
+                  // the compiler will complain)
+
+  x :| x == g;  // error: left-side has non-ghost, so RHS must be non-ghost as well
+
+  x :| assume x == g;  // this is cool, since it's an assume (but, of course, the
+                       // compiler will complain)
+
+  x :| x == 5;
+  g :| g <= g;
+  g :| assume g < g;  // the compiler will complain here, despite the LHS being
+                      // ghost -- and rightly so, since an assume is used
+}

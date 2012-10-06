@@ -530,7 +530,7 @@ method AssignSuchThat0(a: int, b: int) returns (x: int, y: int)
 
 method AssignSuchThat1(a: int, b: int) returns (x: int, y: int)
 {
-  var k :| assume 0 <= k < a - b;  // this acts like an 'assume 0 < a - b;'
+  ghost var k :| assume 0 <= k < a - b;  // this acts like an 'assume 0 < a - b;'
   assert b < a;
   k :| k == old(2*k);  // note, the 'old' has no effect on local variables like k
   assert k == 0;
@@ -571,7 +571,7 @@ method AssignSuchThat4()
 
 method AssignSuchThat5()
 {
-  var n := new Node;
+  ghost var n := new Node;
   n :| fresh(n);  // fine
   assert false;  // error
 }

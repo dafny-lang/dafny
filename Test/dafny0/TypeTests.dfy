@@ -101,10 +101,8 @@ method M()
   ghost var k: int, l: int;
   var m: int;
 
-  // These three statements are allowed by the resolver, but the compiler will complain
-  // if it ever gets them.
   k :| k < 10;
-  k, m :| 0 <= k < m;
+  k, m :| 0 <= k < m;  // error: LHS has non-ghost and RHS has ghost
   m :| m < 10;
 
   // Because of the ghost guard, these 'if' statements are ghost contexts, so only
