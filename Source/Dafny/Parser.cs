@@ -744,7 +744,8 @@ bool IsAttribute() {
 
 	void MethodDecl(MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m) {
 		Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
-		IToken/*!*/ id;
+		IToken/*!*/ id = Token.NoToken;
+		bool hasName = false;  IToken keywordToken;
 		Attributes attrs = null;
 		List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
 		IToken openParen;
@@ -774,6 +775,7 @@ bool IsAttribute() {
 			}
 			
 		} else SynErr(135);
+		keywordToken = t; 
 		if (isConstructor) {
 		 if (mmod.IsGhost) {
 		   SemErr(t, "constructors cannot be declared 'ghost'");
@@ -786,7 +788,17 @@ bool IsAttribute() {
 		while (la.kind == 6) {
 			Attribute(ref attrs);
 		}
-		NoUSIdent(out id);
+		if (la.kind == 1) {
+			NoUSIdent(out id);
+			hasName = true; 
+		}
+		if (!hasName) {
+		 id = keywordToken;
+		 if (!isConstructor) {
+		   SemErr(la, "a method must be given a name (expecting identifier)");
+		 }
+		}
+		
 		if (la.kind == 26 || la.kind == 32) {
 			if (la.kind == 32) {
 				GenericParameters(typeArgs);
@@ -808,7 +820,7 @@ bool IsAttribute() {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
 		if (isConstructor) {
-		 m = new Constructor(id, id.val, typeArgs, ins,
+		 m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
 		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
 		} else {
 		 m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
@@ -1919,10 +1931,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void Rhs(out AssignmentRhs r, Expression receiverForInitCall) {
 		Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
 		IToken/*!*/ x, newToken;  Expression/*!*/ e;
-		List<Expression> ee = null;
 		Type ty = null;
-		CallStmt initCall = null;
-		List<Expression> args;
+		List<Expression> ee = null;
+		List<Expression> args = null;
 		r = dummyRhs;  // to please compiler
 		Attributes attrs = null;
 		
@@ -1938,43 +1949,25 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					Expect(66);
 					UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
 					
-				} else if (la.kind == 17) {
-					Get();
-					Ident(out x);
-					Expect(26);
-					args = new List<Expression/*!*/>(); 
-					if (StartOf(13)) {
-						Expressions(args);
-					}
-					Expect(28);
-					initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args); 
 				} else {
-					Get();
-					var udf = ty as UserDefinedType;
-					if (udf != null && 0 < udf.Path.Count && udf.TypeArgs.Count == 0) {
-					 // The parsed name had the form "A.B.Ctr", so treat "A.B" as the name of the type and "Ctr" as
-					 // the name of the constructor that's being invoked.
-					 x = udf.tok;
-					 ty = new UserDefinedType(udf.Path[0], udf.Path[udf.Path.Count-1].val, new List<Type>(), udf.Path.GetRange(0,udf.Path.Count-1));
-					} else {
-					 SemErr(t, "expected '.'");
-					 x = null;
+					x = null; args = new List<Expression/*!*/>(); 
+					if (la.kind == 17) {
+						Get();
+						Ident(out x);
 					}
-					args = new List<Expression/*!*/>(); 
+					Expect(26);
 					if (StartOf(13)) {
 						Expressions(args);
 					}
 					Expect(28);
-					if (x != null) {
-					 initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args);
-					}
-					
 				}
 			}
 			if (ee != null) {
 			 r = new TypeRhs(newToken, ty, ee);
+			} else if (args != null) {
+			 r = new TypeRhs(newToken, ty, x == null ? null : x.val, receiverForInitCall, args);
 			} else {
-			 r = new TypeRhs(newToken, ty, initCall);
+			 r = new TypeRhs(newToken, ty);
 			}
 			
 		} else if (la.kind == 67) {

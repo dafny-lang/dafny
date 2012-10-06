@@ -24,7 +24,7 @@ iterator Naturals(u: int) yields (n: nat)
 }
 
 method Main() {
-  var m := new MyIter.MyIter(12);
+  var m := new MyIter(12);
   assert m.ys == m.xs == [];
   var a := m.x;
   if (a <= 13) {
@@ -37,7 +37,7 @@ method Main() {
     mer := m.MoveNext();  // error
   }
 
-  var n := new MyIntIter.MyIntIter();
+  var n := new MyIntIter();
   var patience := 10;
   while (patience != 0)
     invariant n.Valid() && fresh(n._new);
@@ -48,7 +48,7 @@ method Main() {
     patience := patience - 1;
   }
 
-  var o := new Naturals.Naturals(18);
+  var o := new Naturals(18);
   var remaining := 100;
   while (remaining != 0)
     invariant o.Valid() && fresh(o._new);
@@ -80,7 +80,7 @@ iterator IterA(c: Cell)
 method TestIterA()
 {
   var c := new Cell;
-  var iter := new IterA.IterA(c);
+  var iter := new IterA(c);
   var tmp := c.data;
   var more := iter.MoveNext();
   assert tmp == c.data;  // error
@@ -107,7 +107,7 @@ iterator IterB(c: Cell)
 method TestIterB()
 {
   var c := new Cell;
-  var iter := new IterB.IterB(c);
+  var iter := new IterB(c);
   var tmp := c.data;
   var more := iter.MoveNext();
   if (more) {
@@ -138,7 +138,7 @@ iterator IterC(c: Cell)
 method TestIterC()
 {
   var c := new Cell;
-  var iter := new IterC.IterC(c);
+  var iter := new IterC(c);
   var tmp := c.data;
   var more := iter.MoveNext();
   if (more) {
@@ -147,7 +147,7 @@ method TestIterC()
     assert tmp == c.data;  // error: the postcondition says nothing about this
   }
 
-  iter := new IterC.IterC(c);
+  iter := new IterC(c);
   c.data := 17;
   more := iter.MoveNext();  // error: iter.Valid() may not hold
 }
@@ -217,7 +217,7 @@ iterator DoleOutReferences(u: Cell) yields (r: Cell, c: Cell)
 
 method ClientOfNewReferences()
 {
-  var m := new DoleOutReferences.DoleOutReferences(null);
+  var m := new DoleOutReferences(null);
   var i := 86;
   while (i != 0)
     invariant m.Valid() && fresh(m._new);

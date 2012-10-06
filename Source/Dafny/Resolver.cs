@@ -576,7 +576,7 @@ namespace Microsoft.Dafny
           // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
           // iterator type) does.
           // --- here comes the constructor
-          var init = new Constructor(iter.tok, iter.Name, new List<TypeParameter>(), iter.Ins,
+          var init = new Constructor(iter.tok, "_ctor", new List<TypeParameter>(), iter.Ins,
             new List<MaybeFreeExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<MaybeFreeExpression>(),
@@ -637,10 +637,12 @@ namespace Microsoft.Dafny
 
           bool hasConstructor = false;
           foreach (MemberDecl m in cl.Members) {
-            if (members.ContainsKey(m.Name)) {
-              Error(m, "Duplicate member name: {0}", m.Name);
-            } else {
+            if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
+            } else if (m is Constructor && !((Constructor)m).HasName) {
+              Error(m, "More than one default constructor");
+            } else {
+              Error(m, "Duplicate member name: {0}", m.Name);
             }
             if (m is Constructor) {
               hasConstructor = true;
@@ -2757,6 +2759,28 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
+    /// This method calls ResolveTypeLenient with allowShortenedPath=false.
+    /// </summary>
+    public void ResolveType(IToken tok, Type type, List<TypeParameter> defaultTypeArguments, bool allowAutoTypeArguments) {
+      var r = ResolveTypeLenient(tok, type, defaultTypeArguments, allowAutoTypeArguments, false);
+      Contract.Assert(r == null);
+    }
+
+    public class ResolveTypeReturn
+    {
+      public readonly Type ReplacementType;
+      public readonly string LastName;
+      public readonly IToken LastToken;
+      public ResolveTypeReturn(Type replacementType, string lastName, IToken lastToken) {
+        Contract.Requires(replacementType != null);
+        Contract.Requires(lastName != null);
+        Contract.Requires(lastToken != null);
+        ReplacementType = replacementType;
+        LastName = lastName;
+        LastToken = lastToken;
+      }
+    }
+    /// <summary>
     /// If ResolveType encounters a type "T" that takes type arguments but wasn't given any, then:
     /// * If "defaultTypeArguments" is non-null and "defaultTypeArgument.Count" equals the number
     ///   of type arguments that "T" expects, then use these default type arguments as "T"'s arguments.
@@ -2765,8 +2789,12 @@ namespace Microsoft.Dafny
     ///   type parameters will be added to "defaultTypeArguments" to have at least as many type
     ///   parameters as "T" expects, and then a prefix of the "defaultTypeArguments" will be supplied
     ///   as arguments to "T".
+    /// One more thing:  if "allowShortenedPath" is true, then if the resolution would have produced
+    ///   an error message that could have been avoided if "type" denoted an identifier sequence one
+    ///   shorter, then return an unresolved replacement type where the identifier sequence is one
+    ///   shorter.  (In all other cases, the method returns null.)
     /// </summary>
-    public void ResolveType(IToken tok, Type type, List<TypeParameter> defaultTypeArguments, bool allowAutoTypeArguments) {
+    public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, List<TypeParameter> defaultTypeArguments, bool allowAutoTypeArguments, bool allowShortenedPath) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       if (type is BasicType) {
@@ -2803,14 +2831,24 @@ namespace Microsoft.Dafny
         } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
           TopLevelDecl d = null;
 
-          int j = 0;
+          int j;
           var sig = moduleInfo;
-          while (j < t.Path.Count) {
-            if (sig.FindSubmodule(t.Path[j].val, out sig)) {
-              j++;
-              sig = GetSignature(sig);
+          for (j = 0; j < t.Path.Count; j++) {
+            ModuleSignature submodule;
+            if (sig.FindSubmodule(t.Path[j].val, out submodule)) {
+              sig = GetSignature(submodule);
             } else {
-              Error(t.Path[j], ModuleNotFoundErrorMessage(j, t.Path));
+              // maybe the last component of t.Path is actually the type name
+              if (allowShortenedPath && t.TypeArgs.Count == 0 && j == t.Path.Count - 1 && sig.TopLevels.TryGetValue(t.Path[j].val, out d)) {
+                // move the last component of t.Path to t.tok/t.name, tell the caller about this, and continue
+                var reducedPath = new List<IToken>();
+                for (int i = 0; i < j; i++) {
+                  reducedPath.Add(t.Path[i]);
+                }
+                return new ResolveTypeReturn(new UserDefinedType(t.Path[j], t.Path[j].val, t.TypeArgs, reducedPath), t.Name, t.tok);
+              } else {
+                Error(t.Path[j], ModuleNotFoundErrorMessage(j, t.Path));
+              }
               break;
             }
           }
@@ -2875,6 +2913,7 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
+      return null;
     }
 
     public bool UnifyTypes(Type a, Type b) {
@@ -3227,8 +3266,8 @@ namespace Microsoft.Dafny
               // link the receiver parameter properly:
               if (s.rhss[i] is TypeRhs) {
                 var r = (TypeRhs)s.rhss[i];
-                if (r.InitCall != null) {
-                  r.InitCall.Receiver = ident;
+                if (r.Arguments != null) {
+                  r.ReceiverArgumentForInitCall = ident;
                 }
               }
               i++;
@@ -4230,28 +4269,10 @@ namespace Microsoft.Dafny
       Contract.Ensures(Contract.Result<Type>() != null);
 
       if (rr.Type == null) {
-        ResolveType(stmt.Tok, rr.EType, null, true);
-        if (rr.ArrayDimensions == null) {
-          if (!rr.EType.IsRefType) {
-            Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
-          } else {
-            bool callsConstructor = false;
-            if (rr.InitCall != null) {
-              ResolveCallStmt(rr.InitCall, specContextOnly, codeContext, rr.EType);
-              if (rr.InitCall.Method is Constructor) {
-                callsConstructor = true;
-              }
-            }
-            if (!callsConstructor && rr.EType is UserDefinedType) {
-              var udt = (UserDefinedType)rr.EType;
-              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-              if (cl.HasConstructor) {
-                Error(stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
-              }
-            }
-          }
-          rr.Type = rr.EType;
-        } else {
+        if (rr.ArrayDimensions != null) {
+          // ---------- new T[EE]
+          Contract.Assert(rr.Arguments == null && rr.OptionalNameComponent == null && rr.InitCall == null);
+          ResolveType(stmt.Tok, rr.EType, null, true);
           int i = 0;
           if (rr.EType.IsSubrangeType) {
             Error(stmt, "sorry, cannot instantiate 'array' type with a subrange type");
@@ -4265,6 +4286,54 @@ namespace Microsoft.Dafny
             i++;
           }
           rr.Type = builtIns.ArrayType(rr.ArrayDimensions.Count, rr.EType);
+        } else {
+          var initCallTok = rr.Tok;
+          if (rr.OptionalNameComponent == null && rr.Arguments != null) {
+            // Resolve rr.EType and do one of three things:
+            // * If rr.EType denotes a type, then set rr.OptionalNameComponent to "_ctor", which sets up a call to the default constructor.
+            // * If the all-but-last components of rr.EType denote a type, then do EType,OptionalNameComponent := allButLast(EType),last(EType)
+            // * Otherwise, report an error
+            var ret = ResolveTypeLenient(stmt.Tok, rr.EType, null, true, true);
+            if (ret != null) {
+              // While rr.EType does not denote a type, no error has been reported yet and the all-but-last components of rr.EType may
+              // denote a type, so shift the last component to OptionalNameComponent and retry with the suggested type.
+              rr.OptionalNameComponent = ret.LastName;
+              rr.EType = ret.ReplacementType;
+              initCallTok = ret.LastToken;
+              ResolveType(stmt.Tok, rr.EType, null, true);
+            } else {
+              // Either rr.EType resolved correctly as a type or there was no way to drop a last component to make it into something that looked
+              // like a type.  In either case, set OptionalNameComponent to "_ctor" and continue.
+              rr.OptionalNameComponent = "_ctor";
+            }
+          } else {
+            ResolveType(stmt.Tok, rr.EType, null, true);
+          }
+          if (!rr.EType.IsRefType) {
+            Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
+          } else {
+            bool callsConstructor = false;
+            if (rr.Arguments != null) {
+              // ---------- new C.Init(EE)
+              Contract.Assert(rr.OptionalNameComponent != null);  // if it wasn't non-null from the beginning, the code above would have set it to a non-null value
+              rr.InitCall = new CallStmt(initCallTok, new List<Expression>(), rr.ReceiverArgumentForInitCall, rr.OptionalNameComponent, rr.Arguments);
+              ResolveCallStmt(rr.InitCall, specContextOnly, codeContext, rr.EType);
+              if (rr.InitCall.Method is Constructor) {
+                callsConstructor = true;
+              }
+            } else {
+              // ---------- new C
+              Contract.Assert(rr.ArrayDimensions == null && rr.OptionalNameComponent == null && rr.InitCall == null);
+            }
+            if (!callsConstructor && rr.EType is UserDefinedType) {
+              var udt = (UserDefinedType)rr.EType;
+              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+              if (cl.HasConstructor) {
+                Error(stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
+              }
+            }
+          }
+          rr.Type = rr.EType;
         }
       }
       return rr.Type;
@@ -4290,7 +4359,12 @@ namespace Microsoft.Dafny
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
         if (!classMembers[cd].TryGetValue(memberName, out member)) {
-          Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, cd is IteratorDecl ? "iterator" : "class");
+          var kind = cd is IteratorDecl ? "iterator" : "class";
+          if (memberName == "_ctor") {
+            Error(tok, "{0} {1} does not have a default constructor", kind, ctype.Name);
+          } else {
+            Error(tok, "member {0} does not exist in {2} {1}", memberName, ctype.Name, kind);
+          }
           return null;
         } else {
           nptype = ctype;

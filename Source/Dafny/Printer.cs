@@ -338,7 +338,8 @@ namespace Microsoft.Dafny {
       string k = method is Constructor ? "constructor" : "method";
       if (method.IsStatic) { k = "static " + k; }
       if (method.IsGhost) { k = "ghost " + k; }
-      PrintClassMethodHelper(k, method.Attributes, method.Name, method.TypeArgs);
+      string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
+      PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
@@ -840,9 +841,14 @@ namespace Microsoft.Dafny {
             s = ", ";
           }
           wr.Write("]");
-        } else if (t.InitCall != null) {
-          wr.Write(".{0}(", t.InitCall.MethodName);
-          PrintExpressionList(t.InitCall.Args);
+        } else if (t.Arguments == null) {
+          // nothing else to print
+        } else {
+          if (t.OptionalNameComponent != null) {
+            wr.Write(".{0}", t.OptionalNameComponent);
+          }
+          wr.Write("(");
+          PrintExpressionList(t.Arguments);
           wr.Write(")");
         }
       } else {

@@ -494,6 +494,7 @@ Execution trace:
 Dafny program verifier finished with 3 verified, 4 errors
 
 -------------------- ResolutionErrors.dfy --------------------
+ResolutionErrors.dfy(396,2): Error: More than one default constructor
 ResolutionErrors.dfy(48,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(109,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(110,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
@@ -511,6 +512,10 @@ ResolutionErrors.dfy(217,12): Error: ghost-context break statement is not allowe
 ResolutionErrors.dfy(229,12): Error: trying to break out of more loop levels than there are enclosing loops
 ResolutionErrors.dfy(233,12): Error: ghost-context break statement is not allowed to break out of non-ghost loop
 ResolutionErrors.dfy(238,8): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ResolutionErrors.dfy(402,14): Error: when allocating an object of type 'YHWH', one of its constructor methods must be called
+ResolutionErrors.dfy(407,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
+ResolutionErrors.dfy(408,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
+ResolutionErrors.dfy(410,9): Error: class Lamb does not have a default constructor
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(23,12): Error: sequence/array/map selection requires a sequence, array or map (got array3<T>)
@@ -542,16 +547,16 @@ ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specificat
 ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
 ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
-ResolutionErrors.dfy(363,4): Error: arguments to + must be int or a collection type (instead got bool)
-ResolutionErrors.dfy(368,4): Error: all lines in a calculation must have the same type (got int after bool)
-ResolutionErrors.dfy(371,4): Error: first argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(371,4): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(372,8): Error: first argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(372,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(377,8): Error: first argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(377,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(382,4): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-57 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(363,6): Error: arguments to + must be int or a collection type (instead got bool)
+ResolutionErrors.dfy(368,6): Error: all lines in a calculation must have the same type (got int after bool)
+ResolutionErrors.dfy(371,6): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(371,6): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(372,10): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(372,10): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(377,10): Error: first argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(377,10): Error: second argument to ==> must be of type bool (instead got int)
+ResolutionErrors.dfy(382,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+62 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator

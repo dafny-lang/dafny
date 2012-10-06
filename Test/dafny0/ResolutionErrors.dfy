@@ -359,27 +359,67 @@ method MG1(l: GList, n: nat)
 
 method TestCalc(m: int, n: int, a: bool, b: bool)
 {
-	calc {
-		a + b; // error: invalid line
-		n + m;
-	}
-	calc {
-		a && b;
-		n + m; // error: all lines must have the same type
-	}
-	calc ==> {
-		n + m; // error: ==> operator requires boolean lines
-		n + m + 1;
-		n + m + 2;
-	}		
-	calc {
-		n + m;
-		n + m + 1;
-		==> n + m + 2; // error: ==> operator requires boolean lines
-	}
-	calc {
-		n + m;
-		{ print n + m; } // error: non-ghost statements are not allowed in hints
-		m + n;
-	}			
+  calc {
+    a + b; // error: invalid line
+    n + m;
+  }
+  calc {
+    a && b;
+    n + m; // error: all lines must have the same type
+  }
+  calc ==> {
+    n + m; // error: ==> operator requires boolean lines
+    n + m + 1;
+    n + m + 2;
+  }    
+  calc {
+    n + m;
+    n + m + 1;
+    ==> n + m + 2; // error: ==> operator requires boolean lines
+  }
+  calc {
+    n + m;
+    { print n + m; } // error: non-ghost statements are not allowed in hints
+    m + n;
+  }
+}
+
+// ------------------- nameless constructors ------------------------------
+
+class YHWH {
+  var data: int;
+  constructor (x: int)
+    modifies this;
+  {
+    data := x;
+  }
+  constructor (y: bool)  // error: duplicate constructor name
+  {
+  }
+  method Test() {
+    var IAmWhoIAm := new YHWH(5);
+    IAmWhoIAm := new YHWH._ctor(7);  // but, in fact, it is also possible to use the underlying name
+    IAmWhoIAm := new YHWH;  // error: the class has a constructor, so one must be used
+    var s := new Lucifer.Init(5);
+    s := new Lucifer.FromArray(null);
+    s := new Lucifer(false);
+    s := new Lucifer._ctor(false);
+    s := new Lucifer.M();  // error: there is a constructor, so one must be called
+    s := new Lucifer;  // error: there is a constructor, so one must be called
+    var l := new Lamb;
+    l := new Lamb();  // error: there is no default constructor
+    l := new Lamb.Gwen();
+  }
+}
+
+class Lucifer {
+  constructor Init(y: int) { }
+  constructor (nameless: bool) { }
+  constructor FromArray(a: array<int>) { }
+  method M() { }
+}
+
+class Lamb {
+  method Jesus() { }
+  method Gwen() { }
 }

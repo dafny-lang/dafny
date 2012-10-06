@@ -357,10 +357,10 @@ namespace Microsoft.Dafny
         var r = (TypeRhs)rhs;
         if (r.ArrayDimensions != null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr));
-        } else if (r.InitCall != null) {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), (CallStmt)CloneStmt(r.InitCall));
-        } else {
+        } else if (r.Arguments == null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
+        } else {
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.OptionalNameComponent, CloneExpr(r.ReceiverArgumentForInitCall), r.Arguments.ConvertAll(CloneExpr));
         }
       }
       c.Attributes = CloneAttributes(rhs.Attributes);

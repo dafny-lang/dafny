@@ -73,7 +73,7 @@ method Client<T(==)>(l: List, stop: T) returns (s: seq<T>)
   requires l != null && l.Valid();
 {
   var c := new Cell;
-  var iter := new M.M(l, c);
+  var iter := new M(l, c);
   s := [];
   while (true)
     invariant iter.Valid() && fresh(iter._new);

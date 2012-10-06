@@ -465,7 +465,8 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs.>
 /*------------------------------------------------------------------------*/
 MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
-     IToken/*!*/ id;
+     IToken/*!*/ id = Token.NoToken;
+     bool hasName = false;  IToken keywordToken;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
      IToken openParen;
@@ -491,7 +492,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
                                          SemErr(t, "constructors are only allowed in classes");
                                        }
                                     .)
-  )
+  )                                 (. keywordToken = t; .)
   (. if (isConstructor) {
        if (mmod.IsGhost) {
          SemErr(t, "constructors cannot be declared 'ghost'");
@@ -502,7 +503,15 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      }
   .)
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  [ NoUSIdent<out id>               (. hasName = true; .)
+  ]
+  (. if (!hasName) {
+       id = keywordToken;
+       if (!isConstructor) {
+         SemErr(la, "a method must be given a name (expecting identifier)");
+       }
+     }
+  .)
   (
     [ GenericParameters<typeArgs> ]
     Formals<true, !mmod.IsGhost, ins, out openParen>
@@ -515,7 +524,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (. if (isConstructor) {
-       m = new Constructor(id, id.val, typeArgs, ins,
+       m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
      } else {
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
@@ -966,10 +975,9 @@ UpdateStmt<out Statement/*!*/ s>
 Rhs<out AssignmentRhs r, Expression receiverForInitCall>
 = (. Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
      IToken/*!*/ x, newToken;  Expression/*!*/ e;
-     List<Expression> ee = null;
      Type ty = null;
-     CallStmt initCall = null;
-     List<Expression> args;
+     List<Expression> ee = null;
+     List<Expression> args = null;
      r = dummyRhs;  // to please compiler
      Attributes attrs = null;
   .)
@@ -980,33 +988,18 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
       "]"                              (. // make sure an array class with this dimensionality exists
                                           UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
                                        .)
-    | "." Ident<out x>                 
-      "("                              (. // This case happens when we have type<typeargs>.Constructor(args)
-                                          // There is no ambiguity about where the constructor is or whether one exists.
-                                          args = new List<Expression/*!*/>(); .)
+    |                                  (. x = null; args = new List<Expression/*!*/>(); .)
+      [ "." Ident<out x> ]
+      "("
         [ Expressions<args> ]
-      ")"                              (. initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args); .)
-    | "("                              (. var udf = ty as UserDefinedType;
-                                          if (udf != null && 0 < udf.Path.Count && udf.TypeArgs.Count == 0) {
-                                            // The parsed name had the form "A.B.Ctr", so treat "A.B" as the name of the type and "Ctr" as
-                                            // the name of the constructor that's being invoked.
-                                            x = udf.tok;
-                                            ty = new UserDefinedType(udf.Path[0], udf.Path[udf.Path.Count-1].val, new List<Type>(), udf.Path.GetRange(0,udf.Path.Count-1));
-                                          } else {
-                                            SemErr(t, "expected '.'");
-                                            x = null;
-                                          }
-                                          args = new List<Expression/*!*/>(); .)
-        [ Expressions<args> ]
-      ")"                              (. if (x != null) {
-                                            initCall = new CallStmt(x, new List<Expression>(), receiverForInitCall, x.val, args);
-                                          }
-                                       .)
+      ")"
     ]
     (. if (ee != null) {
          r = new TypeRhs(newToken, ty, ee);
+       } else if (args != null) {
+         r = new TypeRhs(newToken, ty, x == null ? null : x.val, receiverForInitCall, args);
        } else {
-         r = new TypeRhs(newToken, ty, initCall);
+         r = new TypeRhs(newToken, ty);
        }
     .)
   /* One day, the choose expression should be treated just as a special case of a method call. */

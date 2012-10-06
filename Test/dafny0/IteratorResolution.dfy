@@ -13,7 +13,7 @@ module Mx {
   }
 
   method IteratorUser() {
-    var iter := new ExampleIterator.ExampleIterator(15);
+    var iter := new ExampleIterator(15);
     iter.k := 12;  // error: not allowed to assign to iterator's in-parameters
     iter.x := 12;  // allowed (but this destroys the validity of 'iter'
     iter.xs := [];  // error: not allowed to assign to iterator's yield-history variables
@@ -41,7 +41,7 @@ module Mx {
   class Client {
     method M() {
       var m := StaticM(5);
-      var it := new ExampleIterator.ExampleIterator(100);
+      var it := new ExampleIterator(100);
       var a, b := Worker(it);
     }
     method Worker(xi: ExampleIterator) returns (k: int, m: int) {
@@ -58,17 +58,17 @@ module Mx {
     {
       g0.t := true;  // error: not allowed to assign to .t
       g0.u := true;  // allowed (but this destroys the validity of 'iter'
-      var g1 := new GenericIterator.GenericIterator(20);
+      var g1 := new GenericIterator(20);
       assert g1.u < 200;  // .u is an integer
 
       assert g2.u == 200;  // error: the type parameter of g2 is unknown
 
-      var h0 := new GenericIteratorResult.GenericIteratorResult();
+      var h0 := new GenericIteratorResult._ctor();
       // so far, the instantiated type of h0 is unknown
       var k := h0.t;
       assert k < 87;
 
-      var h1 := new GenericIteratorResult.GenericIteratorResult();
+      var h1 := new GenericIteratorResult();
       // so far, the instantiated type of h1 is unknown
       if (*) {
         var b: bool := h1.t;  // this determines h1 to be of type GenericIteratorResult<bool>
@@ -78,7 +78,7 @@ module Mx {
 
       var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
 
-      var h3 := new GenericIterator.GenericIterator(30);
+      var h3 := new GenericIterator._ctor(30);
       if (h3.t == h3.u) {
         assert !h3.t;  // error: type mismatch
       }

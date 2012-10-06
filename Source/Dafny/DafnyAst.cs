@@ -1786,6 +1786,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
     }
+
+    public bool HasName {
+      get {
+        return Name != "_ctor";
+      }
+    }
   }
 
   // ------------------------------------------------------------------------------------------------------
@@ -2077,39 +2083,81 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A TypeRhs represents one of three things, each having to do with allocating something in the heap:
+  ///  * new T[EE]
+  ///    This allocates an array of objects of type T (where EE is a list of expression)
+  ///  * new C
+  ///    This allocates an object of type C
+  ///  * new C.Init(EE)
+  ///    This allocates an object of type C and then invokes the method/constructor Init on it
+  /// There are four ways to construct a TypeRhs syntactically:
+  ///  * TypeRhs(T, EE)
+  ///      -- represents new T[EE]
+  ///  * TypeRhs(C)
+  ///      -- represents new C
+  ///  * TypeRhs(Path, null, EE)
+  ///    Here, Path may either be of the form C.Init
+  ///      -- represents new C.Init(EE)
+  ///    or all of Path denotes a type
+  ///      -- represents new C._ctor(EE), where _ctor is the default constructor for class C
+  ///  * TypeRhs(Path, s, EE)
+  ///    Here, Path must denote a type and s is a string that denotes the method/constructor Init
+  ///      -- represents new Path.s(EE)
+  /// </summary>
   public class TypeRhs : AssignmentRhs
   {
-    public readonly Type EType;
+    /// <summary>
+    /// If ArrayDimensions != null, then the TypeRhs represents "new EType[ArrayDimensions]"
+    ///     and Arguments, OptionalNameComponent, and InitCall are all null.
+    /// If Arguments == null, then the TypeRhs represents "new C"
+    ///     and ArrayDimensions, OptionalNameComponent, and InitCall are all null.
+    /// If OptionalNameComponent != null, then the TypeRhs represents "new EType.OptionalNameComponents(Arguments)"
+    ///     and InitCall is filled in by resolution, and ArrayDimensions == null and Arguments != null.
+    /// If OptionalNameComponent == null and Arguments != null, then the TypeRHS has not been resolved yet;
+    ///   resolution will either produce an error or will chop off the last part of "EType" and move it to
+    ///   OptionalNameComponent, after which the case above applies.
+    /// </summary>
+    public Type EType;  // almost readonly, except that resolution can split a given EType into a new EType plus a non-null OptionalNameComponent
     public readonly List<Expression> ArrayDimensions;
-    public CallStmt InitCall;  // may be null (and is definitely null for arrays)
+    public readonly List<Expression> Arguments;
+    public Expression ReceiverArgumentForInitCall;  // may be filled during resolution (and, if so, had better be done before InitCall is filled)
+    public string OptionalNameComponent;
+    public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
     public Type Type;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(EType != null);
+      Contract.Invariant(ArrayDimensions == null || (Arguments == null && OptionalNameComponent == null && InitCall == null));
       Contract.Invariant(ArrayDimensions == null || 1 <= ArrayDimensions.Count);
-      Contract.Invariant(ArrayDimensions == null || InitCall == null);
+      Contract.Invariant(OptionalNameComponent == null || (Arguments != null && ArrayDimensions == null));
     }
 
-    public TypeRhs(IToken tok, Type type)
-      : base(tok)
-    {
-      Contract.Requires(type != null);
-      EType = type;
-    }
-    public TypeRhs(IToken tok, Type type, CallStmt initCall)
-      : base(tok)
-    {
-      Contract.Requires(type != null);
-      EType = type;
-      InitCall = initCall;
-    }
     public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions)
-      : base(tok)
-    {
+      : base(tok) {
+      Contract.Requires(tok != null);
       Contract.Requires(type != null);
       Contract.Requires(arrayDimensions != null && 1 <= arrayDimensions.Count);
       EType = type;
       ArrayDimensions = arrayDimensions;
+    }
+    public TypeRhs(IToken tok, Type type)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      EType = type;
+    }
+    public TypeRhs(IToken tok, Type type, string optionalNameComponent, Expression receiverForInitCall, List<Expression> arguments)
+      : base(tok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(arguments != null);
+      EType = type;
+      OptionalNameComponent = optionalNameComponent;  // may be null
+      ReceiverArgumentForInitCall = receiverForInitCall;
+      Arguments = arguments;
     }
     public override bool CanAffectPreviouslyKnownExpressions {
       get {
@@ -2448,17 +2496,17 @@ namespace Microsoft.Dafny {
     }
 
     public readonly List<Expression/*!*/>/*!*/ Lhs;
-    public Expression/*!*/ Receiver;
+    public Expression Receiver;  // non-null after resolution
     public readonly string/*!*/ MethodName;
     public readonly List<Expression/*!*/>/*!*/ Args;
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // create, initialized, and used by resolution (could be deleted once all of resolution is done)
     public Method Method;  // filled in by resolution
 
-    public CallStmt(IToken tok, List<Expression/*!*/>/*!*/ lhs, Expression/*!*/ receiver,
-      string/*!*/ methodName, List<Expression/*!*/>/*!*/ args)
+    public CallStmt(IToken tok, List<Expression> lhs, Expression receiver, string methodName, List<Expression> args)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(lhs));
+      Contract.Requires(receiver != null);
       Contract.Requires(methodName != null);
       Contract.Requires(cce.NonNullElements(args));
 
