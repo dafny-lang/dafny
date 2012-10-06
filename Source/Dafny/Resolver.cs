@@ -2468,11 +2468,9 @@ namespace Microsoft.Dafny
           Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
         }
       }
-
       foreach (FrameExpression fe in m.Mod.Expressions) {
         ResolveFrameExpression(fe, "modifies");
       }
-
       foreach (Expression e in m.Decreases.Expressions) {
         ResolveExpression(e, false);
         // any type is fine

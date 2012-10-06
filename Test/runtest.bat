@@ -11,7 +11,7 @@ rem Calling fc twice seems to fix (or at least alleviate) the problem.
 fc /W Answer Output > nul
 fc /W Answer Output > nul
 if not errorlevel 1 goto passTest
-echo ============ %1 FAILED ============
+echo ============ %1 FAILED ====================================
 goto errorEnd
 
 :passTest
