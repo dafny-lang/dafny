@@ -1126,7 +1126,7 @@ namespace Microsoft.Dafny {
     // TODO: One could imagine having a precondition on datatype constructors
     public DatatypeDecl EnclosingDatatype;  // filled in during resolution
     public SpecialField QueryField;  // filled in during resolution
-    public List<SpecialField/*may be null*/> Destructors = new List<SpecialField/*may be null*/>();  // contents filled in during resolution
+    public List<SpecialField> Destructors = new List<SpecialField>();  // contents filled in during resolution; includes both implicit (not mentionable in source) and explicit destructors
 
     public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Formal/*!*/>/*!*/ formals, Attributes attributes)
       : base(tok, name, attributes) {
@@ -1791,6 +1791,30 @@ namespace Microsoft.Dafny {
       get {
         return Name != "_ctor";
       }
+    }
+  }
+
+  public class CoMethod : Method
+  {
+    public CoMethod(IToken tok, string name,
+                  bool isStatic,
+                  List<TypeParameter/*!*/>/*!*/ typeArgs,
+                  List<Formal/*!*/>/*!*/ ins, [Captured] List<Formal/*!*/>/*!*/ outs,
+                  List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] Specification<FrameExpression>/*!*/ mod,
+                  List<MaybeFreeExpression/*!*/>/*!*/ ens,
+                  Specification<Expression>/*!*/ decreases,
+                  BlockStmt body,
+                  Attributes attributes, bool signatureOmitted)
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureOmitted) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(ins));
+      Contract.Requires(cce.NonNullElements(outs));
+      Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(mod != null);
+      Contract.Requires(cce.NonNullElements(ens));
+      Contract.Requires(decreases != null);
     }
   }
 

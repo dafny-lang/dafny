@@ -1327,14 +1327,44 @@ Execution trace:
 
 Dafny program verifier finished with 5 verified, 2 errors
 
--------------------- CoPredicates.dfy --------------------
-CoPredicates.dfy(45,1): Error BP5003: A postcondition might not hold on this return path.
-CoPredicates.dfy(44,11): Related location: This is the postcondition that might not hold.
-CoPredicates.dfy(30,22): Related location: Related location
+-------------------- CoinductiveProofs.dfy --------------------
+CoinductiveProofs.dfy(26,12): Error: assertion violation
+CoinductiveProofs.dfy(10,17): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoinductiveProofs.dfy(47,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(46,11): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(42,3): Related location: Related location
+Execution trace:
+    (0,0): anon0
+CoinductiveProofs.dfy(79,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(78,11): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(68,3): Related location: Related location
+Execution trace:
+    (0,0): anon0
+CoinductiveProofs.dfy(88,12): Error: assertion violation
+CoinductiveProofs.dfy(68,3): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoinductiveProofs.dfy(99,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(98,11): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(94,3): Related location: Related location
+Execution trace:
+    (0,0): anon0
+CoinductiveProofs.dfy(144,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(143,22): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(1,24): Related location: Related location
+Execution trace:
+    (0,0): anon0
+CoinductiveProofs.dfy(150,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(149,22): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(1,24): Related location: Related location
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 12 verified, 1 error
+Dafny program verifier finished with 33 verified, 7 errors
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
@@ -1753,7 +1783,7 @@ Dafny program verifier finished with 38 verified, 11 errors
 Verifying CheckWellformed$$_0_M0.C.M ...
   [0 proof obligations]  verified
 
-Verifying _0_M0.C.M ...
+Verifying Impl$$_0_M0.C.M ...
   [4 proof obligations]  verified
 
 Verifying CheckWellformed$$_0_M0.C.P ...
@@ -1776,7 +1806,7 @@ Execution trace:
 Verifying CheckWellformed$$_1_M1.C.M ...
   [0 proof obligations]  verified
 
-Verifying RefinementImpl_M1$$_1_M1.C.M ...
+Verifying Impl$$_1_M1.C.M ...
   [0 proof obligations]  verified
 
 Verifying CheckWellformed$$_1_M1.C.P ...

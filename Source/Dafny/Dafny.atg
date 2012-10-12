@@ -480,12 +480,14 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      Attributes modAttrs = null;
      BlockStmt body = null;
      bool isConstructor = false;
+     bool isCoMethod = false;
      bool signatureOmitted = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
   SYNC
   ( "method"
+  | "comethod"                      (. isCoMethod = true; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -499,6 +501,10 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
        }
        if (mmod.IsStatic) {
          SemErr(t, "constructors cannot be declared 'static'");
+       }
+     } else if (isCoMethod) {
+       if (mmod.IsGhost) {
+         SemErr(t, "comethods cannot be declared 'ghost'");
        }
      }
   .)
@@ -526,6 +532,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   (. if (isConstructor) {
        m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+     } else if (isCoMethod) {
+       m = new CoMethod(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
+                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
      } else {
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);

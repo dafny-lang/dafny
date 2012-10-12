@@ -527,6 +527,9 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
+      } else if (m is CoMethod) {
+        return new CoMethod(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
       } else {
         return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);

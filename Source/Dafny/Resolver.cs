@@ -696,15 +696,15 @@ namespace Microsoft.Dafny
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
             foreach (var formal in ctor.Formals) {
-              SpecialField dtor = null;
-              if (formal.HasName) {
-                if (members.ContainsKey(formal.Name)) {
-                  Error(ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
-                } else {
-                  dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.Name, "", "", formal.IsGhost, formal.Type, null);
-                  dtor.EnclosingClass = dt;  // resolve here
-                  members.Add(formal.Name, dtor);
-                }
+              bool nameError = false;
+              if (formal.HasName && members.ContainsKey(formal.Name)) {
+                Error(ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
+                nameError = true;
+              }
+              var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.Name, "", "", formal.IsGhost, formal.Type, null);
+              dtor.EnclosingClass = dt;  // resolve here
+              if (!nameError && formal.HasName) {
+                members.Add(formal.Name, dtor);
               }
               ctor.Destructors.Add(dtor);
             }
@@ -863,6 +863,9 @@ namespace Microsoft.Dafny
 
       if (m is Constructor) {
         return new Constructor(m.tok, m.Name, tps, ins,
+          req, mod, ens, decreases, null, null, false);
+      } else if (m is CoMethod) {
+        return new CoMethod(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, null, null, false);
       } else {
         return new Method(m.tok, m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -1346,10 +1349,23 @@ namespace Microsoft.Dafny
             }
           }
         }
-        // Check that copredicates are not recursive with non-copredicate functions.
-        foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
-          if (fn.Body != null && (fn is CoPredicate || fn.IsRecursive)) {
-            CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
+        // Check that copredicates are not recursive with non-copredicate functions, and
+        // check that comethods are not recursive with non-comethod methods.
+        foreach (var d in declarations) {
+          if (d is ClassDecl) {
+            foreach (var member in ((ClassDecl)d).Members) {
+              if (member is CoPredicate) {
+                var fn = (CoPredicate)member;
+                if (fn.Body != null) {
+                  CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
+                }
+              } else if (member is CoMethod) {
+                var m = (CoMethod)member;
+                if (m.Body != null) {
+                  CoMethodChecks(m.Body, m);
+                }
+              }
+            }
           }
         }
       }
@@ -1531,7 +1547,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CoPredicateChecks(Expression expr, Function context, CallingPosition cp) {
+    void CoPredicateChecks(Expression expr, CoPredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
       if (expr is ConcreteSyntaxExpression) {
@@ -1544,14 +1560,12 @@ namespace Microsoft.Dafny
         var moduleCallee = e.Function.EnclosingClass.Module;
         if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
           // we're looking at a recursive call
-          if (context is CoPredicate) {
-            if (!(e.Function is CoPredicate)) {
-              Error(e, "a recursive call from a copredicate can go only to other copredicates");
-            } else if (cp != CallingPosition.Positive) {
-              Error(e, "a recursive copredicate call can only be done in positive positions");
-            }
-          } else if (e.Function is CoPredicate) {
-            Error(e, "a recursive call from a non-copredicate can go only to other non-copredicates");
+          if (!(e.Function is CoPredicate)) {
+            Error(e, "a recursive call from a copredicate can go only to other copredicates");
+          } else if (cp != CallingPosition.Positive) {
+            Error(e, "a recursive copredicate call can only be done in positive positions");
+          } else {
+            e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
           }
         }
         // fall through to do the subexpressions
@@ -1599,6 +1613,27 @@ namespace Microsoft.Dafny
         return;
       }
       expr.SubExpressions.Iter(ee => CoPredicateChecks(ee, context, CallingPosition.Neither));
+    }
+
+    void CoMethodChecks(Statement stmt, CoMethod context) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(context != null);
+      if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        if (s.Method is CoMethod) {
+          // all is cool
+        } else {
+          // the call goes from a comethod context to a non-comethod callee
+          var moduleCaller = context.EnclosingClass.Module;
+          var moduleCallee = s.Method.EnclosingClass.Module;
+          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+            // we're looking at a recursive call (to a non-comethod)
+            Error(s, "a recursive call from a comethod can go only to other comethods");
+          }
+        }
+      } else {
+        stmt.SubStatements.Iter(ss => CoMethodChecks(ss, context));
+      }
     }
 
     void CheckEqualityTypes_Stmt(Statement stmt) {
@@ -4390,6 +4425,32 @@ namespace Microsoft.Dafny
       return null;
     }
 
+    /// <summary>
+    /// Returns a resolved FieldSelectExpr.
+    /// </summary>
+    public static FieldSelectExpr NewFieldSelectExpr(IToken tok, Expression obj, Field field, Dictionary<TypeParameter, Type> typeSubstMap) {
+      Contract.Requires(tok != null);
+      Contract.Requires(obj != null);
+      Contract.Requires(field != null);
+      Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
+      Contract.Requires(typeSubstMap != null);
+      var e = new FieldSelectExpr(tok, obj, field.Name);
+      e.Field = field;  // resolve here
+      e.Type = SubstType(field.Type, typeSubstMap);  // resolve here
+      return e;
+    }
+
+    public static Dictionary<TypeParameter, Type> TypeSubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
+      Contract.Requires(formals != null);
+      Contract.Requires(actuals != null);
+      Contract.Requires(formals.Count == actuals.Count);
+      var subst = new Dictionary<TypeParameter, Type>();
+      for (int i = 0; i < formals.Count; i++) {
+        subst.Add(formals[i], actuals[i]);
+      }
+      return subst;
+    }
+
     public static Type SubstType(Type type, Dictionary<TypeParameter/*!*/, Type/*!*/>/*!*/ subst) {
       Contract.Requires(type != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(subst));
@@ -4640,10 +4701,7 @@ namespace Microsoft.Dafny
             Error(expr, "a field must be selected via an object, not just a class name");
           }
           // build the type substitution map
-          Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
-          for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-            subst.Add(ctype.ResolvedClass.TypeArgs[i], ctype.TypeArgs[i]);
-          }
+          var subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
           e.Type = SubstType(e.Field.Type, subst);
         }
 
@@ -6292,7 +6350,7 @@ namespace Microsoft.Dafny
     /// Note: this method is allowed to be called even if "type" does not make sense for "op", as might be the case if
     /// resolution of the binary expression failed.  If so, an arbitrary resolved opcode is returned.
     /// </summary>
-    BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type operandType) {
+    public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type operandType) {
       Contract.Requires(operandType != null);
       switch (op) {
         case BinaryExpr.Opcode.Iff: return BinaryExpr.ResolvedOpcode.Iff;

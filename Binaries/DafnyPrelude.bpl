@@ -471,6 +471,8 @@ function DatatypeCtorId(DatatypeType): DtCtorId;
 
 function DtRank(DatatypeType): int;
 
+function CoDatatypeCertificate#Equal(DatatypeType, DatatypeType): bool;
+
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------
 // ---------------------------------------------------------------

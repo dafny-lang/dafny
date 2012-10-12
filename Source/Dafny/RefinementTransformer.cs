@@ -532,6 +532,9 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
+      } else if (m is CoMethod) {
+        return new CoMethod(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);

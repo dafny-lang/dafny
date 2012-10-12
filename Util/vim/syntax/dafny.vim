@@ -5,7 +5,8 @@
 
 syntax clear
 syntax case match
-syntax keyword dafnyFunction function predicate copredicate method constructor
+syntax keyword dafnyFunction function predicate copredicate
+syntax keyword method constructor comethod
 syntax keyword dafnyTypeDef class datatype codatatype type iterator
 syntax keyword module import opened as default
 syntax keyword dafnyConditional if then else match case 

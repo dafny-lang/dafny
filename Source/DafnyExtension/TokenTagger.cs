@@ -237,6 +237,7 @@ namespace DafnyLanguage
                 case "choose":
                 case "class":
                 case "codatatype":
+                case "comethod":
                 case "constructor":
                 case "copredicate":
                 case "datatype":
