@@ -72,21 +72,12 @@ TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
 TypeTests.dfy(68,17): Error: member F in type C does not refer to a method
 TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
-TypeTests.dfy(78,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(78,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(79,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(79,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(80,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(80,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(82,2): Error: LHS of array assignment must denote an array element (found seq<C>)
-TypeTests.dfy(82,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(82,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(83,2): Error: LHS of array assignment must denote an array element (found seq<C>)
-TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(83,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(84,2): Error: LHS of array assignment must denote an array element (found seq<C>)
-TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(84,10): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(78,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(79,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(80,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(82,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(83,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(84,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
 TypeTests.dfy(90,6): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(91,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
@@ -95,7 +86,7 @@ TypeTests.dfy(105,15): Error: ghost variables are allowed only in specification 
 TypeTests.dfy(115,4): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(116,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(18,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-37 resolution/type errors detected in TypeTests.dfy
+28 resolution/type errors detected in TypeTests.dfy
 
 -------------------- NatTypes.dfy --------------------
 NatTypes.dfy(7,5): Error: value assigned to a nat must be non-negative

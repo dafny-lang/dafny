@@ -3328,11 +3328,7 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
         int prevErrorCount = ErrorCount;
-        if (s.Lhs is SeqSelectExpr) {
-          ResolveSeqSelectExpr((SeqSelectExpr)s.Lhs, true, false);  // allow ghosts for now, tighted up below
-        } else {
-          ResolveExpression(s.Lhs, true);  // allow ghosts for now, tighted up below
-        }
+        ResolveExpression(s.Lhs, true);  // allow ghosts for now, tighted up below
         bool lhsResolvedSuccessfully = ErrorCount == prevErrorCount;
         Contract.Assert(s.Lhs.Type != null);  // follows from postcondition of ResolveExpression
         // check that LHS denotes a mutable variable or a field
@@ -3397,43 +3393,38 @@ namespace Microsoft.Dafny
 
         s.IsGhost = lvalueIsGhost;
         Type lhsType = s.Lhs.Type;
-        if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-          Error(stmt, "cannot assign to a range of array elements (try the 'parallel' statement)");
-          //lhsType = UserDefinedType.ArrayElementType(lhsType);
-        } else {
-          if (s.Rhs is ExprRhs) {
-            ExprRhs rr = (ExprRhs)s.Rhs;
-            ResolveExpression(rr.Expr, true);
-            if (!lvalueIsGhost) {
-              CheckIsNonGhost(rr.Expr);
-            }
-            Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
-            if (!UnifyTypes(lhsType, rr.Expr.Type)) {
-              Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
-            }
-          } else if (s.Rhs is TypeRhs) {
-            TypeRhs rr = (TypeRhs)s.Rhs;
-            Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, codeContext);
-            if (!lvalueIsGhost) {
-              if (rr.ArrayDimensions != null) {
-                foreach (var dim in rr.ArrayDimensions) {
-                  CheckIsNonGhost(dim);
-                }
-              }
-              if (rr.InitCall != null) {
-                foreach (var arg in rr.InitCall.Args) {
-                  CheckIsNonGhost(arg);
-                }
-              }
-            }
-            if (!UnifyTypes(lhsType, t)) {
-              Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
-            }
-          } else if (s.Rhs is HavocRhs) {
-            // nothing else to do
-          } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+        if (s.Rhs is ExprRhs) {
+          ExprRhs rr = (ExprRhs)s.Rhs;
+          ResolveExpression(rr.Expr, true);
+          if (!lvalueIsGhost) {
+            CheckIsNonGhost(rr.Expr);
           }
+          Contract.Assert(rr.Expr.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(lhsType, rr.Expr.Type)) {
+            Error(stmt, "RHS (of type {0}) not assignable to LHS (of type {1})", rr.Expr.Type, lhsType);
+          }
+        } else if (s.Rhs is TypeRhs) {
+          TypeRhs rr = (TypeRhs)s.Rhs;
+          Type t = ResolveTypeRhs(rr, stmt, lvalueIsGhost, codeContext);
+          if (!lvalueIsGhost) {
+            if (rr.ArrayDimensions != null) {
+              foreach (var dim in rr.ArrayDimensions) {
+                CheckIsNonGhost(dim);
+              }
+            }
+            if (rr.InitCall != null) {
+              foreach (var arg in rr.InitCall.Args) {
+                CheckIsNonGhost(arg);
+              }
+            }
+          }
+          if (!UnifyTypes(lhsType, t)) {
+            Error(stmt, "type {0} is not assignable to LHS (of type {1})", t, lhsType);
+          }
+        } else if (s.Rhs is HavocRhs) {
+          // nothing else to do
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
       } else if (stmt is VarDecl) {
         VarDecl s = (VarDecl)stmt;
@@ -3771,22 +3762,16 @@ namespace Microsoft.Dafny
 
       int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
-      SeqSelectExpr arrayRangeLhs = null;
       var update = s as UpdateStmt;
 
       foreach (var lhs in s.Lhss) {
         var ec = ErrorCount;
-        if (lhs is SeqSelectExpr) {
-          var sse = (SeqSelectExpr)lhs;
-          ResolveSeqSelectExpr(sse, true, true);
-          if (arrayRangeLhs == null && !sse.SelectOne) {
-            arrayRangeLhs = sse;
-          }
-        } else {
-          ResolveExpression(lhs, true);
-        }
+        ResolveExpression(lhs, true);
         if (update == null && ec == ErrorCount && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
           Error(lhs, "cannot assign to non-ghost variable in a ghost context");
+        }
+        if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
+          Error(lhs, "cannot assign to a range of array elements (try the 'parallel' statement)");
         }
       }
       // Resolve RHSs
@@ -3848,8 +3833,6 @@ namespace Microsoft.Dafny
           Error(s, "expected method call, found expression");
         } else if (s.Lhss.Count != update.Rhss.Count) {
           Error(s, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, update.Rhss.Count);
-        } else if (arrayRangeLhs != null && s.Lhss.Count != 1) {
-          Error(arrayRangeLhs, "array-range may not be used as LHS of multi-assignment; use separate assignment statements for each array-range assignment");
         } else if (ErrorCount == prevErrorCount) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
           for (int i = 0; i < s.Lhss.Count; i++) {
@@ -3882,8 +3865,6 @@ namespace Microsoft.Dafny
         // if there was an effectful RHS, that must be the only RHS
         if (update.Rhss.Count != 1) {
           Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
-        } else if (arrayRangeLhs != null) {
-          Error(arrayRangeLhs, "Assignment to range of array elements must have a simple expression RHS; try using a temporary local variable");
         } else if (callRhs == null) {
           // must be a single TypeRhs
           if (s.Lhss.Count != 1) {
