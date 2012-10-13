@@ -23,19 +23,28 @@ comethod PosLemma1(n: int)
 {
   PosLemma1(n + 1);
   if (*) {
-    assert Pos(Upward(n + 1));  // error: cannot conclude this here
+    assert Pos(Upward(n + 1));  // error: cannot conclude this here, because we only have a certificate
   }
 }
 
-comethod OutsideCaller_PosLemma(n: int)
+comethod Outside_CoMethod_Caller_PosLemma(n: int)
   requires 1 <= n;
   ensures Pos(Upward(n));
+{  // error: this comethod is supposed to produce a certificate, but instead it establishes the real deal
+   // (which currently produces a complaint from Dafny)
+  assert Upward(n).tail == Upward(n + 1);  // follows from one unrolling of the definition of Upward
+  PosLemma0(n + 1);
+  assert Pos(Upward(n+1));  // this follows directly from the previous line, because it isn't a recursive call
+}
+
+method Outside_Method_Caller_PosLemma(n: int)
+  requires 1 <= n;
+  ensures Pos(Upward(n));  // this method postcondition follows just fine
 {
   assert Upward(n).tail == Upward(n + 1);  // follows from one unrolling of the definition of Upward
   PosLemma0(n + 1);
-  assert Pos(Upward(n+1));  // this follows directly from the previous line, but it's not a recursive call
+  assert Pos(Upward(n+1));  // this follows directly from the previous line, because it isn't a recursive call
 }
-
 
 copredicate X(s: Stream)  // this is equivalent to always returning 'true'
 {
@@ -59,7 +68,7 @@ comethod AlwaysLemma_X2(s: Stream)
 {
   AlwaysLemma_X2(s);
   if (*) {
-    assert X(s);  // actually, we can conclude this here, because the X(s) we're trying to prove gets expanded
+    assert X(s);  // error: cannot conclude the full predicate here
   }
 }
 
@@ -127,12 +136,6 @@ comethod Lemma1(n: int)
   Lemma1(n+1);
 }
 
-comethod BadTheorem(s: Stream<int>)
-//TODO:  ensures false;
-{  // error: cannot establish postcondition 'false', despite the recursive call (this works because CoCall's drop all positive formulas except certificate-based ones)
-  BadTheorem(s.tail);
-}
-
 comethod ProveEquality(n: int)
   ensures Doubles(n) == UpwardBy2(2*n);
 {
@@ -140,13 +143,13 @@ comethod ProveEquality(n: int)
 }
 
 comethod BadEquality0(n: int)
-  ensures Doubles(n) == UpwardBy2(n);  // error: postcondition does not hold
-{
+  ensures Doubles(n) == UpwardBy2(n);
+{  // error: postcondition does not hold
   BadEquality0(n+1);
 }
 
 comethod BadEquality1(n: int)
-  ensures Doubles(n) == UpwardBy2(n+1);  // error: postcondition does not hold
-{
+  ensures Doubles(n) == UpwardBy2(n+1);
+{  // error: postcondition does not hold
   BadEquality1(n+1);
 }

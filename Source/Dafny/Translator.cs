@@ -708,7 +708,7 @@ namespace Microsoft.Dafny {
         string comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
           bool splitHappened;  // we actually don't care
-          foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+          foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
             if (kind == 2 && RefinementToken.IsInherited(s.E.tok, currentModule)) {
               // this precondition was inherited into this module, so just ignore it
             } else {
@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
               if (kind == 3 && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else {
@@ -1929,7 +1929,7 @@ namespace Microsoft.Dafny {
       foreach (Expression p in f.Ens) {
         var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
         var splits = new List<SplitExprInfo>();
-        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, false, etran);
+        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, 0, etran);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
             ens.Add(Ensures(s.E.tok, false, s.E, null, null));
@@ -2901,7 +2901,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Guard, options, locals, builder, etran);
         if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
           bool splitHappened;
-          var ss = TrSplitExpr(e.Guard, etran, out splitHappened);
+          var ss = TrSplitExpr(e.Guard, etran, false, out splitHappened);
           if (!splitHappened) {
             builder.Add(Assert(e.Guard.tok, etran.TrExpr(e.Guard), "condition in assert expression might not hold"));
           } else {
@@ -3364,7 +3364,8 @@ namespace Microsoft.Dafny {
         sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 2), args, res));
       }
       if (f is CoPredicate) {
-        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, f.FullCompileName + "#cert", args, res));
+        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, f.FullCompileName + "#cert0", args, res));
+        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, f.FullCompileName + "#cert1", args, res));
       }
 
       res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
@@ -3445,7 +3446,7 @@ namespace Microsoft.Dafny {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
               if ((kind == MethodTranslationKind.IntraModuleCall || kind == MethodTranslationKind.CoCall) && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -3458,12 +3459,14 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (MaybeFreeExpression p in m.Ens) {
-          var certEtran = kind == MethodTranslationKind.CoCall ? etran.WithCoCallCertificates : etran;
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
-            ens.Add(Ensures(p.E.tok, true, certEtran.TrExpr(p.E), null, comment));
+            ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
-            bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, certEtran, out splitHappened)) {
+            var ss = new List<SplitExprInfo>();
+            var splitHappened/*we actually don't care*/ = TrSplitExpr(p.E, ss, true, int.MaxValue,
+              kind == MethodTranslationKind.CoCall ? 2 : kind == MethodTranslationKind.Implementation && m is CoMethod ? 1 : 0,
+              etran);
+            foreach (var s in ss) {
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else {
@@ -3549,14 +3552,14 @@ namespace Microsoft.Dafny {
           req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, null));
         } else {
           bool splitHappened;  // we actually don't care
-          foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+          foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
             req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
           }
         }
       }
       foreach (MaybeFreeExpression p in m.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
           ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, "Error: postcondition of refined method may be violated", null));
         }
       }
@@ -3648,7 +3651,7 @@ namespace Microsoft.Dafny {
 
       foreach (MaybeFreeExpression p in m.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
           var assert = new Bpl.AssertCmd(method.tok, s.E, ErrorMessageAttribute(s.E.tok, "This is the postcondition that may not hold."));
           assert.ErrorData = "Error: A postcondition of the refined method may not hold.";
           builder.Add(assert);
@@ -3722,7 +3725,7 @@ namespace Microsoft.Dafny {
       var ens = new Bpl.EnsuresSeq();
       foreach (Expression p in f.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p, etran, false, out splitHappened)) {
           if (s.IsChecked) {
             ens.Add(Ensures(s.E.tok, false, s.E, null, null));
           }
@@ -4135,7 +4138,7 @@ namespace Microsoft.Dafny {
             enclosingToken = stmt.Tok;
           }
           bool splitHappened;
-          var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
+          var ss = TrSplitExpr(s.Expr, etran, false, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
             builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok));
@@ -4211,7 +4214,7 @@ namespace Microsoft.Dafny {
             // do nothing
           } else {
             bool splitHappened;  // actually, we don't care
-            var ss = TrSplitExpr(p.E, yeEtran, out splitHappened);
+            var ss = TrSplitExpr(p.E, yeEtran, false, out splitHappened);
             foreach (var split in ss) {
               if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
@@ -4470,7 +4473,7 @@ namespace Microsoft.Dafny {
             b = new Bpl.StmtListBuilder();
             TrStmt(s.Hints[i], b, locals, etran);
             bool splitHappened;
-            var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
+            var ss = TrSplitExpr(s.Steps[i], etran, false, out splitHappened);
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -5049,7 +5052,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(ens.E, definedness, locals, etran, false);
         if (!ens.IsFree) {
           bool splitHappened;  // we actually don't care
-          foreach (var split in TrSplitExpr(ens.E, etran, out splitHappened)) {
+          foreach (var split in TrSplitExpr(ens.E, etran, false, out splitHappened)) {
             if (split.IsChecked) {
               definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of parallel statement"));
             }
@@ -5180,7 +5183,7 @@ namespace Microsoft.Dafny {
           invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
         } else {
           bool splitHappened;
-          var ss = TrSplitExpr(loopInv.E, etran, out splitHappened);
+          var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
           if (!splitHappened) {
             var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
             invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
@@ -6507,7 +6510,7 @@ namespace Microsoft.Dafny {
       /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
       /// </summary>
       ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, int layerOffset, string modifiesFrame, bool produceCoCertificates) {
+        Function applyLimited_CurrentFunction, int layerOffset, string modifiesFrame) {
 
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
@@ -6523,7 +6526,6 @@ namespace Microsoft.Dafny {
         this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
         this.layerOffset = layerOffset;
         this.modifiesFrame = modifiesFrame;
-        this.ProducingCoCertificates = produceCoCertificates;
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, IToken heapToken)
@@ -6554,7 +6556,7 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar)
-        : this(translator, predef, heap, thisVar, null, 0, "$_Frame", false) {
+        : this(translator, predef, heap, thisVar, null, 0, "$_Frame") {
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heap != null);
@@ -6562,7 +6564,7 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, string modifiesFrame)
-        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerOffset, modifiesFrame, etran.ProducingCoCertificates) {
+        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerOffset, modifiesFrame) {
         Contract.Requires(etran != null);
         Contract.Requires(modifiesFrame != null);
       }
@@ -6573,7 +6575,7 @@ namespace Microsoft.Dafny {
           Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerOffset, modifiesFrame, ProducingCoCertificates);
+            oldEtran = new ExpressionTranslator(translator, predef, new Bpl.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerOffset, modifiesFrame);
             oldEtran.oldEtran = oldEtran;
           }
           return oldEtran;
@@ -6586,18 +6588,11 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public ExpressionTranslator WithCoCallCertificates {
-        get {
-          // don't bother caching it
-          return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset, modifiesFrame, true);
-        }
-      }
-
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction) {
         Contract.Requires(applyLimited_CurrentFunction != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset, modifiesFrame, ProducingCoCertificates);
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset, modifiesFrame);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
@@ -6605,9 +6600,9 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerOffset + offset <= 1);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame, ProducingCoCertificates);
+        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame);
         if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame, ProducingCoCertificates);
+          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerOffset + offset, modifiesFrame);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }
@@ -6824,7 +6819,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          return TrFunctionCallExpr(e, ProducingCoCertificates);
+          return TrFunctionCallExpr(e, 0);
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
@@ -6936,9 +6931,6 @@ namespace Microsoft.Dafny {
               bOpcode = BinaryOperator.Opcode.Or; break;
 
             case BinaryExpr.ResolvedOpcode.EqCommon:
-              if (ProducingCoCertificates && e.E0.Type.IsCoDatatype) {
-                return translator.FunctionCall(e.tok, BuiltinFunction.CoCallCertificateEq, null, e0, e1);
-              }
               bOpcode = BinaryOperator.Opcode.Eq; break;
             case BinaryExpr.ResolvedOpcode.NeqCommon:
               bOpcode = BinaryOperator.Opcode.Neq; break;
@@ -7182,20 +7174,35 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public Bpl.Expr TrFunctionCallExpr(FunctionCallExpr e, bool useCertificateName) {
+      /// <summary>
+      /// Return a Boogie call corresponding to "e".
+      /// If certificatePrimes == 0 or the function is not a copredicate, then the usual function name is used (modulated, as
+      /// usual, by the layer offset).
+      /// Otherwise (that is, if certificatePrimes > 0 and the function is a copredicate), then the function generated will
+      /// be one for a proof certificate, where certificatePrimes indicates the number of ``primes'' on the certificate.
+      /// For example, for a copredicate P(s), if certificatePrimes==1, then P'(s) will be produced, and if certificatePrimes==2,
+      /// then P''(s) will be produced.  Note, although the ``primes'' reflect the way one might speak of these on a
+      /// whiteboard, P' and P'' are actually denoted P#cert0 and P#cert1 in the Boogie file.
+      /// </summary>
+      public Bpl.Expr TrFunctionCallExpr(FunctionCallExpr e, int certificatePrimes) {
         Contract.Requires(e != null);
-        int offsetToUse = e.Function.IsRecursive ? this.layerOffset : 0;
+        Contract.Requires(0 <= certificatePrimes && certificatePrimes < 3);
+
         if (e.Function.IsRecursive) {
           Statistics_CustomLayerFunctionCount++;
         }
-        string nm = FunctionName(e.Function, 1 + offsetToUse);
-        if (useCertificateName && e.Function is CoPredicate) {
-          nm = e.Function.FullCompileName + "#cert";
-        } else if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive) {
-          ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
-          if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
-            if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
-              nm = FunctionName(e.Function, 0 + offsetToUse);
+        string nm;
+        if (0 < certificatePrimes && e.Function is CoPredicate) {
+          nm = e.Function.FullCompileName + "#cert" + (certificatePrimes - 1);
+        } else {
+          int offsetToUse = e.Function.IsRecursive ? this.layerOffset : 0;
+          nm = FunctionName(e.Function, 1 + offsetToUse);
+          if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive) {
+            ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
+            if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
+              if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
+                nm = FunctionName(e.Function, 0 + offsetToUse);
+              }
             }
           }
         }
@@ -7203,6 +7210,39 @@ namespace Microsoft.Dafny {
         Bpl.ExprSeq args = FunctionInvocationArguments(e);
         Bpl.Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
         return CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
+      }
+
+      /// <summary>
+      /// Return a Boogie expression that denotes e0==e1.
+      /// If certificatePrimes == 0 or the equality is not on codatatypes, then the usual equality symbol name is used.
+      /// Otherwise (that is, if certificatePrimes > 0 and the function is a copredicate), then the function generated will
+      /// be one for a proof certificate, where certificatePrimes indicates the number of ``primes'' on the certificate.
+      /// For example, for an equality A==B on codatatypes, if certificatePrimes==1, then A ~~' B will be produced, and if
+      /// certificatePrimes==2, then A ~~'' B will be produced.  Note, although the ``primes'' reflect the way one might speak
+      /// of these on a whiteboard, ~~' and ~~'' are actually denoted CoDatatypeCertificate#Equal0 and
+      /// CoDatatypeCertificate#Equal1 in the Boogie file.
+      /// </summary>
+      /// </summary>
+      public Bpl.Expr TrEquality(IToken tok, Expression e0, Expression e1, int certificatePrimes) {
+        Contract.Requires(tok != null);
+        Contract.Requires(e0 != null);
+        Contract.Requires(e1 != null);
+        Contract.Requires(0 <= certificatePrimes && certificatePrimes < 3);
+        if (0 < certificatePrimes && e0.Type.IsCoDatatype) {
+          if (certificatePrimes == 1) {
+            // primed equality
+            return translator.FunctionCall(tok, BuiltinFunction.CoCallCertificateEq0, null, TrExpr(e0), TrExpr(e1));
+          } else {
+            // double-primed equality
+            return translator.FunctionCall(tok, BuiltinFunction.CoCallCertificateEq1, null, TrExpr(e0), TrExpr(e1));
+          }
+        } else {
+          // ordinary equality
+          var eq = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, e0, e1);
+          eq.ResolvedOp = Resolver.ResolveOp(eq.Op, e0.Type);  // resolve here
+          eq.Type = Type.Bool;  // resolve here
+          return TrExpr(eq);
+        }
       }
 
       public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, Bpl.VariableSeq bvars) {
@@ -7641,7 +7681,8 @@ namespace Microsoft.Dafny {
       MapUnion,
       MapGlue,
 
-      CoCallCertificateEq,
+      CoCallCertificateEq0,
+      CoCallCertificateEq1,
 
       IndexField,
       MultiIndexField,
@@ -7843,10 +7884,14 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Map#Disjoint", typeInstantiation, args);
 
-        case BuiltinFunction.CoCallCertificateEq:
+        case BuiltinFunction.CoCallCertificateEq0:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "CoDatatypeCertificate#Equal", typeInstantiation, args);
+          return FunctionCall(tok, "CoDatatypeCertificate#Equal0", typeInstantiation, args);
+        case BuiltinFunction.CoCallCertificateEq1:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "CoDatatypeCertificate#Equal1", typeInstantiation, args);
 
         case BuiltinFunction.IndexField:
           Contract.Assert(args.Length == 1);
@@ -7988,13 +8033,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, out bool splitHappened) {
+    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool inCoContext, out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, codeContext is CoMethod, etran);
+      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, inCoContext ? 1 : 0, etran);
       return splits;
     }
 
@@ -8003,37 +8048,39 @@ namespace Microsoft.Dafny {
     /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function if
     /// if it declared in the current module and its height is less than "heightLimit".
     /// 
-    /// If "inCoContext", then any copredicate P(s) appearing in a positive position is interpreted as
-    /// a proof certificate P'(s) for P(s), and similarly an equality A==B on co-datatype values is interpreted as
-    /// a proof certificate A~~B for the equality.  These certificate interpretations have an effect on inlining.
+    /// If "coContextDepth > 0", then any copredicate P(s) appearing in a positive position is interpreted as
+    /// a proof certificate P'(s) or P''(s) for P(s), and similarly an equality A==B on co-datatype values is
+    /// interpreted as a proof certificate A ~~' B or A ~~'' B for the equality.  These certificate interpretations
+    /// have an effect on inlining.
     /// In particular, where P(s) would inline into:
     ///    check P(s) \/ H(s)
     ///    check P(s) \/ P(s.tail)
     ///    free P(s)
     /// P'(s) inlines into:
-    ///    check P(s) \/ H(s)
-    ///    check P(s) \/ P'(s.tail)
+    ///    check P'(s) \/ H(s)
+    ///    check P'(s) \/ P''(s.tail)
     ///    free P'(s)
     /// Analogously, it would be possible to inline an equality A==B into:
     ///     check A==B \/ A.head==B.head
     ///     check A==B \/ A.tail==B.tail
     ///     free A==B
-    /// but that's not done (because equalities are not ordinarily inlined).  However, a proof certificate A~~B
-    /// is inline:
-    ///     check A==B \/ A.head==B.head
-    ///     check A==B \/ A.tail~~B.tail
-    ///     free A~~B
+    /// but that's not done (because equalities are not ordinarily inlined).  However, a proof certificate for
+    /// the equality is lined:
+    ///     check A ~~' B \/ A.head == B.head
+    ///     check A ~~' B \/ A.tail ~~'' B.tail
+    ///     free A ~~' B
     /// </summary>
-    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, bool inCoContext, ExpressionTranslator etran) {
+    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, int coContextDepth, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type is BoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type is BoolType));
       Contract.Requires(splits != null);
+      Contract.Requires(0 <= coContextDepth && coContextDepth < 3);
       Contract.Requires(etran != null);
 
       if (expr is BoxingCastExpr) {
         var bce = (BoxingCastExpr)expr;
         var ss = new List<SplitExprInfo>();
-        if (TrSplitExpr(bce.E, ss, position, heightLimit, inCoContext, etran)) {
+        if (TrSplitExpr(bce.E, ss, position, heightLimit, coContextDepth, etran)) {
           foreach (var s in ss) {
             splits.Add(new SplitExprInfo(s.Kind, etran.CondApplyBox(s.E.tok, s.E, bce.FromType, bce.ToType)));
           }
@@ -8042,17 +8089,17 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inCoContext, etran);
+        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, coContextDepth, etran);
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return TrSplitExpr(etran.GetSubstitutedBody(e), splits, position, heightLimit, inCoContext, etran);
+        return TrSplitExpr(etran.GetSubstitutedBody(e), splits, position, heightLimit, coContextDepth, etran);
 
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.Not) {
           var ss = new List<SplitExprInfo>();
-          if (TrSplitExpr(e.E, ss, !position, heightLimit, inCoContext, etran)) {
+          if (TrSplitExpr(e.E, ss, !position, heightLimit, coContextDepth, etran)) {
             foreach (var s in ss) {
               splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Unary(s.E.tok, UnaryOperator.Opcode.Not, s.E)));
             }
@@ -8063,13 +8110,13 @@ namespace Microsoft.Dafny {
       } else if (expr is BinaryExpr) {
         var bin = (BinaryExpr)expr;
         if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          TrSplitExpr(bin.E0, splits, position, heightLimit, inCoContext, etran);
-          TrSplitExpr(bin.E1, splits, position, heightLimit, inCoContext, etran);
+          TrSplitExpr(bin.E0, splits, position, heightLimit, coContextDepth, etran);
+          TrSplitExpr(bin.E1, splits, position, heightLimit, coContextDepth, etran);
           return true;
 
         } else  if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          TrSplitExpr(bin.E0, splits, position, heightLimit, inCoContext, etran);
-          TrSplitExpr(bin.E1, splits, position, heightLimit, inCoContext, etran);
+          TrSplitExpr(bin.E0, splits, position, heightLimit, coContextDepth, etran);
+          TrSplitExpr(bin.E1, splits, position, heightLimit, coContextDepth, etran);
           return true;
 
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
@@ -8077,14 +8124,14 @@ namespace Microsoft.Dafny {
           if (position) {
             var lhs = etran.TrExpr(bin.E0);
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(bin.E1, ss, position, heightLimit, inCoContext, etran);
+            TrSplitExpr(bin.E1, ss, position, heightLimit, coContextDepth, etran);
             foreach (var s in ss) {
               // as the source location in the following implication, use that of the translated "s"
               splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, lhs, s.E)));
             }
           } else {
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(bin.E0, ss, !position, heightLimit, inCoContext, etran);
+            TrSplitExpr(bin.E0, ss, !position, heightLimit, coContextDepth, etran);
             var rhs = etran.TrExpr(bin.E1);
             foreach (var s in ss) {
               // as the source location in the following implication, use that of the translated "s"
@@ -8092,38 +8139,37 @@ namespace Microsoft.Dafny {
             }
           }
           return true;
-        } else if (inCoContext && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+        } else if (position && coContextDepth == 2 && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+          var eq = etran.TrEquality(bin.tok, bin.E0, bin.E1, 2);
+          splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, eq));
+          return true;
+        } else if (position && coContextDepth == 1 && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
           var udt = (UserDefinedType)bin.E0.Type;  // cast is justified by the IsCoDatatype in the guard
           var cotype = (CoDatatypeDecl)udt.ResolvedClass;  // ditto
           // "inline" the equality, and add appropriate certificate-equality operators.
           // For example, for possibly infinite lists:
           //     codatatype SList<T> = Nil | SCons(head: T, tail: SList<T>);
           // produce:
-          //   free A ~~ B
-          //   checked A == B || (A.Nil? ==> B.Nil?)
-          //   checked A == B || (A.Cons? ==> B.Cons? && A.head ~~ B.head && A.tail ~~ B.tail)
-          // where ~~ stands for either ordinary equality or, for codatatypes, certificate-equality
+          //   free A ~~' B
+          //   checked A ~~' B || (A.Nil? ==> B.Nil?)
+          //   checked A ~~' B || (A.Cons? ==> B.Cons? && A.head ~~'' B.head && A.tail ~~'' B.tail)
+          // where ~~' and ~~'' stand for primed and double-primed certificate equality, respectively
+          // (and, for non-codatatypes, ~~'' is just ordinary equality).
 
-          var certEtran = etran.WithCoCallCertificates;
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, certEtran.TrExpr(bin)));
+          var eq = etran.TrEquality(bin.tok, bin.E0, bin.E1, 1);
+          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, eq));
           // We want to use the regular etran translation for bin.E0 and bin.E1, but use the etran.WithCoCallCertificates
           // translation for the equalities, so translate the operands here and stuff them into a BoogieWrapper.
-          var A = new BoogieWrapper(etran.TrExpr(bin.E0), bin.E0.Type);
-          var B = new BoogieWrapper(etran.TrExpr(bin.E1), bin.E1.Type);
+          var A = bin.E0;
+          var B = bin.E1;
           var typeSubstMap = Resolver.TypeSubstitutionMap(cotype.TypeArgs, udt.TypeArgs);
-          var eq = etran.TrExpr(bin);
           foreach (var ctor in cotype.Ctors) {
-            var a = Resolver.NewFieldSelectExpr(bin.tok, A, ctor.QueryField, typeSubstMap);
-            var b = Resolver.NewFieldSelectExpr(bin.tok, B, ctor.QueryField, typeSubstMap);
-            var lhs = certEtran.TrExpr(a);
-            var rhs = certEtran.TrExpr(b);
+            var lhs = etran.TrExpr(Resolver.NewFieldSelectExpr(bin.tok, A, ctor.QueryField, typeSubstMap));
+            var rhs = etran.TrExpr(Resolver.NewFieldSelectExpr(bin.tok, B, ctor.QueryField, typeSubstMap));
             foreach (var dtor in ctor.Destructors) {  // note, ctor.Destructors has a field for every constructor parameter, whether or not the parameter was named in the source
-              a = Resolver.NewFieldSelectExpr(bin.tok, A, dtor, typeSubstMap);
-              b = Resolver.NewFieldSelectExpr(bin.tok, B, dtor, typeSubstMap);
-              var q = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Eq, a, b);
-              q.ResolvedOp = Resolver.ResolveOp(q.Op, a.Type);  // resolve here
-              q.Type = Type.Bool;  // resolve here
-              rhs = Bpl.Expr.And(rhs, certEtran.TrExpr(q));
+              var a = Resolver.NewFieldSelectExpr(bin.tok, A, dtor, typeSubstMap);
+              var b = Resolver.NewFieldSelectExpr(bin.tok, B, dtor, typeSubstMap);
+              rhs = Bpl.Expr.And(rhs, etran.TrEquality(bin.tok, a, b, 2));
             }
             splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, Bpl.Expr.Binary(new NestedToken(bin.tok, ctor.tok), BinaryOperator.Opcode.Or, eq, Bpl.Expr.Imp(lhs, rhs))));
           }
@@ -8136,7 +8182,7 @@ namespace Microsoft.Dafny {
         var ssThen = new List<SplitExprInfo>();
         var ssElse = new List<SplitExprInfo>();
         // Note: The following lines intentionally uses | instead of ||, because we need both calls to TrSplitExpr
-        if (TrSplitExpr(ite.Thn, ssThen, position, heightLimit, inCoContext, etran) | TrSplitExpr(ite.Els, ssElse, position, heightLimit, inCoContext, etran)) {
+        if (TrSplitExpr(ite.Thn, ssThen, position, heightLimit, coContextDepth, etran) | TrSplitExpr(ite.Els, ssElse, position, heightLimit, coContextDepth, etran)) {
           var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
           var test = etran.TrExpr(ite.Test);
           foreach (var s in ssThen) {
@@ -8161,14 +8207,14 @@ namespace Microsoft.Dafny {
         if (position) {
           var guard = etran.TrExpr(e.Guard);
           var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.Body, ss, position, heightLimit, inCoContext, etran);
+          TrSplitExpr(e.Body, ss, position, heightLimit, coContextDepth, etran);
           foreach (var s in ss) {
             // as the source location in the following implication, use that of the translated "s"
             splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, guard, s.E)));
           }
         } else {
           var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.Guard, ss, !position, heightLimit, inCoContext, etran);
+          TrSplitExpr(e.Guard, ss, !position, heightLimit, coContextDepth, etran);
           var rhs = etran.TrExpr(e.Body);
           foreach (var s in ss) {
             // as the source location in the following implication, use that of the translated "s"
@@ -8179,85 +8225,91 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return TrSplitExpr(e.E, splits, position, heightLimit, inCoContext, etran.Old);
+        return TrSplitExpr(e.E, splits, position, heightLimit, coContextDepth, etran.Old);
 
-      } else if (expr is FunctionCallExpr) {
+      } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;
-        if (position && !etran.ProducingCoCertificates) {
-          var f = fexp.Function;
-          Contract.Assert(f != null);  // filled in during resolution
-          var module = f.EnclosingClass.Module;
-          var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
+        var f = fexp.Function;
+        Contract.Assert(f != null);  // filled in during resolution
+        var module = f.EnclosingClass.Module;
+        var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
-          if (module == currentModule && functionHeight < heightLimit && f.Body != null && !(f.Body.Resolved is MatchExpr)) {
-            if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
-                f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
-                (codeContext == null || !codeContext.MustReverify)) {
-              // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
-              // that needed to be proved about the function was proved already in the previous module, even without the body definition).
-            } else {
-              // inline this body
-              Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-              Contract.Assert(fexp.Args.Count == f.Formals.Count);
-              for (int i = 0; i < f.Formals.Count; i++) {
-                Formal p = f.Formals[i];
-                Expression arg = fexp.Args[i];
-                arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), p.Type);
-                arg.Type = p.Type;  // resolve here
-                substMap.Add(p, arg);
-              }
-              Expression body = Substitute(f.Body, fexp.Receiver, substMap);
-
-              // Produce, for a "body" split into b0, b1, b2:
-              //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
-              //     checked F#canCall(args) ==> F(args) || b0
-              //     checked F#canCall(args) ==> F(args) || b1
-              //     checked F#canCall(args) ==> F(args) || b2
-              // For "inCoContext", split into:
-              //     free F#canCall(args) && F'(args)
-              //     checked F#canCall(args) ==> F(args) || b0'
-              //     checked F#canCall(args) ==> F(args) || b1'
-              //     checked F#canCall(args) ==> F(args) || b2'
-              // where the primes indicate certificate translations.
-
-              // F#canCall(args)
-              Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
-              ExprSeq args = etran.FunctionInvocationArguments(fexp);
-              Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-
-              if (inCoContext && f is CoPredicate) {
-                // F'(args)
-                var fargs = etran.TrFunctionCallExpr(fexp, true);
-                // F#canCall(args) && F'(args)
-                var fr = Bpl.Expr.And(canCall, fargs);
-                splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
-              } else {
-                // F(args)
-                var fargs = etran.TrExpr(fexp);
-                // body
-                var trBody = etran.TrExpr(body);
-                trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
-                // F#canCall(args) && F(args) && (b0 && b1 && b2)
-                var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
-                splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
-              }
-
-              // recurse on body
-              var fargsOriginalFunction = etran.TrFunctionCallExpr(fexp, false);
-              var ss = new List<SplitExprInfo>();
-              TrSplitExpr(body, ss, position, functionHeight, inCoContext, inCoContext && f is CoPredicate ? etran.WithCoCallCertificates : etran);
-              foreach (var s in ss) {
-                if (s.IsChecked) {
-                  var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
-                  var bodyOrConjunct = Bpl.Expr.Or(fargsOriginalFunction, unboxedConjunct);
-                  var p = Bpl.Expr.Binary(new NestedToken(fexp.tok, s.E.tok), BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
-                  splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
-                }
-              }
-
-              return true;
+        if (module == currentModule && functionHeight < heightLimit && f.Body != null && !(f.Body.Resolved is MatchExpr) && coContextDepth < 2) {
+          if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
+              f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
+              (codeContext == null || !codeContext.MustReverify)) {
+            // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
+            // that needed to be proved about the function was proved already in the previous module, even without the body definition).
+          } else {
+            // inline this body
+            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+            Contract.Assert(fexp.Args.Count == f.Formals.Count);
+            for (int i = 0; i < f.Formals.Count; i++) {
+              Formal p = f.Formals[i];
+              Expression arg = fexp.Args[i];
+              arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), p.Type);
+              arg.Type = p.Type;  // resolve here
+              substMap.Add(p, arg);
             }
+            Expression body = Substitute(f.Body, fexp.Receiver, substMap);
+
+            // Produce, for a "body" split into b0, b1, b2:
+            //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
+            //     checked F#canCall(args) ==> F(args) || b0
+            //     checked F#canCall(args) ==> F(args) || b1
+            //     checked F#canCall(args) ==> F(args) || b2
+            // For "inCoContext", split into:
+            //     free F#canCall(args) && F'(args)
+            //     checked F#canCall(args) ==> F'(args) || b0''
+            //     checked F#canCall(args) ==> F'(args) || b1''
+            //     checked F#canCall(args) ==> F'(args) || b2''
+            // where the primes indicate certificate translations.
+
+            // F#canCall(args)
+            Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
+            ExprSeq args = etran.FunctionInvocationArguments(fexp);
+            Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+
+            Bpl.Expr fargs;
+            if (coContextDepth > 0 && f is CoPredicate) {
+              // F'(args)
+              fargs = etran.TrFunctionCallExpr(fexp, coContextDepth);
+              // F#canCall(args) && F'(args)
+              var fr = Bpl.Expr.And(canCall, fargs);
+              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
+            } else {
+              // F(args)
+              fargs = etran.TrExpr(fexp);
+              // body
+              var trBody = etran.TrExpr(body);
+              trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
+              // F#canCall(args) && F(args) && (b0 && b1 && b2)
+              var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
+              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
+            }
+
+            // recurse on body
+            var ss = new List<SplitExprInfo>();
+            TrSplitExpr(body, ss, position, functionHeight, coContextDepth > 0 && f is CoPredicate ? 2 : 0, etran);
+            foreach (var s in ss) {
+              if (s.IsChecked) {
+                var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
+                var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
+                var p = Bpl.Expr.Binary(new NestedToken(fexp.tok, s.E.tok), BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+            }
+
+            return true;
           }
+        }
+        // If we get here, then we're in a positive position but the inlining attempt failed.  If we just fall through
+        // here, then we'll get the ordinary function call (without inlining).  But in co-contexts, that's not what we
+        // want, because in co-contexts we are supposed to change copredicates into proof certificates about copredicates.
+        // So, we do that check here.
+        if (f is CoPredicate && coContextDepth > 0) {
+          splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, etran.TrFunctionCallExpr(fexp, coContextDepth)));
+          return true;
         }
 
       } else if ((position && expr is ForallExpr) || (!position && expr is ExistsExpr)) {

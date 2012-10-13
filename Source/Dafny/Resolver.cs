@@ -1146,6 +1146,11 @@ namespace Microsoft.Dafny
                 if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
                   Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
                 }
+                if (m is CoMethod) {
+                  foreach (var ens in m.Ens) {
+                    CheckCoMethodConclusions(ens.E, true);
+                  }
+                }
               } else if (member is Function) {
                 var f = (Function)member;
                 if (f.Body != null) {
@@ -6558,6 +6563,97 @@ namespace Microsoft.Dafny
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    /// <summary>
+    /// This method checks that all conjuncts occurring in positive positions are either copredicate
+    /// calls or codatatype equality (because these things are what TrSplitExpr in the Translator
+    /// turns into proof certificates).
+    /// </summary>
+    void CheckCoMethodConclusions(Expression expr, bool position) {
+      Contract.Requires(expr != null);
+      if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        CheckCoMethodConclusions(e.ResolvedExpression, position);
+        return;
+
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        // TrSplitExpr continues by substituting away the bound variables. The that substitution routine
+        // is not easily available here in the Resolver, we go for a stricter test here, namely to make
+        // sure that the entire body of the let expression satisfies the CheckCoMethodConclusions.
+        CheckCoMethodConclusions(e.Body, position);
+        return;
+
+      } else if (expr is LiteralExpr) {
+        var e = (LiteralExpr)expr;
+        if (e.Value is bool && (bool)e.Value == position) {
+          // might as well allow "true" in positive contexts and "false" in negative contexts
+          return;
+        }
+        
+      } else if (expr is UnaryExpr) {
+        var e = (UnaryExpr)expr;
+        if (e.Op == UnaryExpr.Opcode.Not) {
+          CheckCoMethodConclusions(e.E, !position);
+          return;
+        }
+
+      } else if (expr is BinaryExpr) {
+        var bin = (BinaryExpr)expr;
+        if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          CheckCoMethodConclusions(bin.E0, position);
+          CheckCoMethodConclusions(bin.E1, position);
+          return;
+        } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          CheckCoMethodConclusions(bin.E0, position);
+          CheckCoMethodConclusions(bin.E1, position);
+          return;
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+          // let the recursive calls follow what TrSplitExpr does
+          if (position) {
+            CheckCoMethodConclusions(bin.E1, position);
+          } else {
+            CheckCoMethodConclusions(bin.E0, !position);
+          }
+          return;
+        } else if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+          // this is cool
+          return;
+        }
+
+      } else if (expr is ITEExpr) {
+        var ite = (ITEExpr)expr;
+        CheckCoMethodConclusions(ite.Thn, position);
+        CheckCoMethodConclusions(ite.Els, position);
+        return;
+
+      } else if (expr is PredicateExpr) {
+        var e = (PredicateExpr)expr;
+        // let the recursive calls follow what TrSplitExpr does
+        if (position) {
+          CheckCoMethodConclusions(e.Body, position);
+        } else {
+          CheckCoMethodConclusions(e.Guard, !position);
+        }
+        return;
+
+      } else if (expr is OldExpr) {
+        var e = (OldExpr)expr;
+        CheckCoMethodConclusions(e.E, position);
+
+      } else if (expr is FunctionCallExpr && position) {
+        var fexp = (FunctionCallExpr)expr;
+        if (fexp.Function is CoPredicate) {
+          // all is cool
+          return;
+        }
+      }
+
+      // if we get here, we have an atomic conjunct other than the allowed ones that were already checked above
+      if (position) {
+        Error(expr, "only copredicates and equalities of codatatypes are allowed as conclusions of comethods");
       }
     }
   }
