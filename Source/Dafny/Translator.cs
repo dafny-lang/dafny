@@ -5883,12 +5883,10 @@ namespace Microsoft.Dafny {
           var p = FunctionCall(tok, "$IsGoodSet", Bpl.Type.Bool, x, ex);
           r = r == null ? p : BplAnd(r, p);
         }
-#if LATER_MAYBE
       } else if (type.IsDatatype) {
         UserDefinedType udt = (UserDefinedType)type;
         var oneOfTheCases = FunctionCall(tok, "$IsA#" + udt.ResolvedClass.FullCompileName, Bpl.Type.Bool, x);
         r = BplAnd(r, oneOfTheCases);
-#endif
       }
       return r;
     }

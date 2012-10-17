@@ -871,12 +871,6 @@ Execution trace:
 Dafny program verifier finished with 32 verified, 11 errors
 
 -------------------- ControlStructures.dfy --------------------
-ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 ControlStructures.dfy(5,3): Error: missing case in case statement: Blue
 Execution trace:
     (0,0): anon0
@@ -884,6 +878,12 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
+ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
 ControlStructures.dfy(14,3): Error: missing case in case statement: Purple
 Execution trace:
     (0,0): anon0
