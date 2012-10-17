@@ -247,3 +247,8 @@ function FwdBugFunction(f: Fwd): bool
 }
 
 datatype Fwd = FwdNil | FwdCons(int, Fwd);
+
+method TestAllCases(f: Fwd)
+{
+  assert f.FwdNil? || f.FwdCons?;
+}
