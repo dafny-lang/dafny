@@ -5766,8 +5766,10 @@ namespace Microsoft.Dafny {
         return u.IsDatatype;
       } else if (t.IsRefType) {
         return u.IsRefType;
+      } else if (t is MultiSetType) {
+        return u is MultiSetType;
       } else if (t is MapType) {
-        return false;
+        return u is MapType;
       } else {
         Contract.Assert(t.IsTypeParameter);
         return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
@@ -5791,39 +5793,60 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
         atmost = Bpl.Expr.Imp(e0, e1);
-      } else if (ty is IntType) {
-        eq = Bpl.Expr.Eq(e0, e1);
-        less = Bpl.Expr.Lt(e0, e1);
-        atmost = Bpl.Expr.Le(e0, e1);
-        if (includeLowerBound) {
-          less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), e0), less);
-          atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), e0), atmost);
+
+      } else if (ty is IntType || ty is SeqType || ty.IsDatatype) {
+        Bpl.Expr b0, b1;
+        if (ty is IntType) {
+          b0 = e0;
+          b1 = e1;
+        } else if (ty is SeqType) {
+          b0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
+          b1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
+        } else if (ty.IsDatatype) {
+          b0 = FunctionCall(tok, BuiltinFunction.DtRank, null, e0);
+          b1 = FunctionCall(tok, BuiltinFunction.DtRank, null, e1);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
         }
+        eq = Bpl.Expr.Eq(b0, b1);
+        less = Bpl.Expr.Lt(b0, b1);
+        atmost = Bpl.Expr.Le(b0, b1);
+        if (ty is IntType && includeLowerBound) {
+          less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
+          atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
+        }
+
       } else if (ty is EverIncreasingType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Gt(e0, e1);
         atmost = Bpl.Expr.Ge(e0, e1);
-      } else if (ty is SetType) {
-        eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, e0, e1);
-        less = etran.ProperSubset(tok, e0, e1);
-        atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1);
-      } else if (ty is SeqType) {
-        Bpl.Expr b0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
-        Bpl.Expr b1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
-        eq = Bpl.Expr.Eq(b0, b1);
-        less = Bpl.Expr.Lt(b0, b1);
-        atmost = Bpl.Expr.Le(b0, b1);
-      } else if (ty.IsDatatype) {
-        Bpl.Expr b0 = FunctionCall(tok, BuiltinFunction.DtRank, null, e0);
-        Bpl.Expr b1 = FunctionCall(tok, BuiltinFunction.DtRank, null, e1);
-        eq = Bpl.Expr.Eq(b0, b1);
-        less = Bpl.Expr.Lt(b0, b1);
-        atmost = Bpl.Expr.Le(b0, b1);
+
+      } else if (ty is SetType || ty is MapType) {
+        Bpl.Expr b0, b1;
+        if (ty is SetType) {
+          b0 = e0;
+          b1 = e1;
+        } else if (ty is MapType) {
+          // for maps, compare their domains as sets
+          b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, predef.BoxType, predef.BoxType), e0);
+          b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, predef.BoxType, predef.BoxType), e1);
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();
+        }
+        eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
+        less = etran.ProperSubset(tok, b0, b1);
+        atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
+
+      } else if (ty is MultiSetType) {
+        eq = FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
+        less = etran.ProperMultiset(tok, e0, e1);
+        atmost = FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
 
       } else {
         // reference type
-        Bpl.Expr b0 = Bpl.Expr.Neq(e0, predef.Null);
-        Bpl.Expr b1 = Bpl.Expr.Neq(e1, predef.Null);
+        Contract.Assert(ty.IsRefType);  // otherwise, unexpected type
+        var b0 = Bpl.Expr.Neq(e0, predef.Null);
+        var b1 = Bpl.Expr.Neq(e1, predef.Null);
         eq = Bpl.Expr.Iff(b0, b1);
         less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
         atmost = Bpl.Expr.Imp(b0, b1);
@@ -6959,17 +6982,13 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.SetNeq:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperSubset:
-              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
-                translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e0, e1),
-                Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1)));
+              return ProperSubset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.Subset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.Superset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0);
             case BinaryExpr.ResolvedOpcode.ProperSuperset:
-              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
-                translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0),
-                Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1)));
+              return ProperSubset(expr.tok, e1, e0);
             case BinaryExpr.ResolvedOpcode.Disjoint:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetDisjoint, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.InSet:
@@ -6992,17 +7011,13 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.MapNeq:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.MapEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
-                translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetSubset, null, e0, e1),
-                Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1)));
+              return ProperMultiset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSubset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSuperset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetSubset, null, e1, e0);
             case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-              return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
-                translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetSubset, null, e1, e0),
-                Bpl.Expr.Not(translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1)));
+              return ProperMultiset(expr.tok, e1, e0);
             case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetDisjoint, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.InMultiSet:
@@ -7331,9 +7346,17 @@ namespace Microsoft.Dafny {
         Contract.Requires(e1 != null);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-        return Bpl.Expr.And(
+        return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And,
           translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
           Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
+      }
+      public Bpl.Expr ProperMultiset(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+        Contract.Requires(tok != null);
+        Contract.Requires(e0 != null);
+        Contract.Requires(e1 != null);
+        return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And,
+          translator.FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1),
+          Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1)));
       }
       public Bpl.Expr ProperPrefix(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
         Contract.Requires(tok != null);

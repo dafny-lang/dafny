@@ -372,3 +372,41 @@ class DefaultDecreasesFunction {
     if x < 0 then -x else x
   }
 }
+
+// ----------------- multisets and maps ----------
+
+module MultisetTests {
+  function F(a: multiset<int>, n: nat): int
+    decreases a, n;
+  {
+    if n == 0 then 0 else F(a, n-1)
+  }
+
+  function F'(a: multiset<int>, n: nat): int  // inferred decreases clause
+  {
+    if n == 0 then 0 else F'(a, n-1)
+  }
+
+  ghost method M(n: nat, b: multiset<int>)
+    ensures F(b, n) == 0;  // proved via automatic induction
+  {
+  }
+}
+
+module MapTests {
+  function F(a: map<int,int>, n: nat): int
+    decreases a, n;
+  {
+    if n == 0 then 0 else F(a, n-1)
+  }
+
+  function F'(a: map<int,int>, n: nat): int  // inferred decreases clause
+  {
+    if n == 0 then 0 else F'(a, n-1)
+  }
+
+  ghost method M(n: nat, b: map<int,int>)
+    ensures F(b, n) == 0;  // proved via automatic induction
+  {
+  }
+}
