@@ -1572,8 +1572,16 @@ CallStmtTests.dfy(15,8): Error: actual out-parameter 0 is required to be a ghost
 2 resolution/type errors detected in CallStmtTests.dfy
 
 -------------------- MultiSets.dfy --------------------
+MultiSets.dfy(157,3): Error BP5003: A postcondition might not hold on this return path.
+MultiSets.dfy(156,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+MultiSets.dfy(163,3): Error BP5003: A postcondition might not hold on this return path.
+MultiSets.dfy(162,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 22 verified, 0 errors
+Dafny program verifier finished with 38 verified, 2 errors
 
 -------------------- PredExpr.dfy --------------------
 PredExpr.dfy(4,12): Error: condition in assert expression might not hold

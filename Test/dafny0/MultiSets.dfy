@@ -101,3 +101,65 @@ method test11(a: array<int>, n: int, c: int)
 {
 
 }
+
+// ----------- the following tests mostly have to do with sets -------------
+
+class BoxTests<G> {
+  // ---------- sets ----------
+  ghost method LemmaSet0<T>(a: set<T>, b: set<T>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;
+  {
+  }
+
+  ghost method LemmaSet1(a: set<G>, b: set<G>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;
+  {
+  }
+
+  ghost method LemmaSet2(a: set<int>, b: set<int>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;
+  {
+  }
+
+  ghost method LemmaSet3(a: set<object>, b: set<object>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;
+  {
+  }
+
+  ghost method LemmaSet4(a: set<bool>, b: set<bool>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;
+  {
+  }
+
+  ghost method Lemma_NonEmpty(x : set<int>, y : set<int>)
+    requires x * y == {};
+    ensures x !! y;
+  {
+    assert forall k :: k !in (x*y);
+  }
+
+  // ---------- sequences (don't require any special tricks in the encoding) ----------
+  ghost method LemmaSeq(a: seq<int>, b: seq<int>)
+    requires |a| <= |b| && forall i :: 0 <= i < |a| ==> a[i] == b[i];
+    ensures a <= b;
+  {
+  }
+
+  // ---------- multisets ----------
+  ghost method LemmaMultiset0<T>(a: multiset<T>, b: multiset<T>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;  // error: this property does not hold for multisets
+  {
+  }
+
+  ghost method LemmaMultiset1(a: multiset<int>, b: multiset<int>)
+    requires forall x :: x in a ==> x in b;
+    ensures a <= b;  // error: this property does not hold for multisets
+  {
+  }
+}

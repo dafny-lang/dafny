@@ -434,6 +434,15 @@ function $IsCanonicalBoolBox(BoxType): bool;
 axiom $IsCanonicalBoolBox($Box(false)) && $IsCanonicalBoolBox($Box(true));
 axiom (forall b: BoxType :: { $Unbox(b): bool } $IsCanonicalBoolBox(b) ==> $Box($Unbox(b): bool) == b);
 
+// The following function and axiom are used to obtain a $Box($Unbox(_)) wrapper around
+// certain expressions.  Note that it assumes any booleans contained in the set are canonical
+// (which is the case for any set that occurs in an execution of a Dafny program).
+// The role of the parameter 'dummy' in the following is (an unfortunately clumsy construction
+// whose only purpose is) simply to tell Boogie how to instantiate the type parameter 'T'.
+function $IsGoodSet<T>(s: Set BoxType, dummy: T): bool;
+axiom (forall<T> ss: Set BoxType, dummy: T, bx: BoxType :: { $IsGoodSet(ss, dummy), ss[bx] }
+  $IsGoodSet(ss, dummy) ==> ss[bx] ==> bx == $Box($Unbox(bx):T));
+
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
 // ---------------------------------------------------------------

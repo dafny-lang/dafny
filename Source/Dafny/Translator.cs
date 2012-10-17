@@ -3805,7 +3805,7 @@ namespace Microsoft.Dafny {
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
           Bpl.Type varType = TrType(p.Type);
-          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
+          Bpl.Expr wh = GetExtendedWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
           inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), true));
         }
       }
@@ -5860,6 +5860,39 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.filename, stmt.Tok.line, stmt.Tok.col)));
     }
 
+    /// <summary>
+    /// This method can give a strong 'where' condition than GetWhereClause.  However, the additional properties
+    /// are such that they would take effort (both in prover time and time spent designing more axioms) in order
+    /// for the prover to be able to establish them.  Hence, these properties are applied more selectively.  Applying
+    /// properties selectively is dicey and can easily lead to soundness issues.  Therefore, these properties are
+    /// applied to method in-parameters.
+    /// </summary>
+    Bpl.Expr GetExtendedWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(x != null);
+      Contract.Requires(type != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+      var r = GetWhereClause(tok, x, type, etran);
+      type = type.Normalize();
+      if (type is SetType) {
+        var t = (SetType)type;
+        // $IsGoodSet(x, V), where V is a value whose type is the same as the element type of the set.
+        var ex = ExemplaryBoxValue(t.Arg);
+        if (ex != null) {
+          var p = FunctionCall(tok, "$IsGoodSet", Bpl.Type.Bool, x, ex);
+          r = r == null ? p : BplAnd(r, p);
+        }
+#if LATER_MAYBE
+      } else if (type.IsDatatype) {
+        UserDefinedType udt = (UserDefinedType)type;
+        var oneOfTheCases = FunctionCall(tok, "$IsA#" + udt.ResolvedClass.FullCompileName, Bpl.Type.Bool, x);
+        r = BplAnd(r, oneOfTheCases);
+#endif
+      }
+      return r;
+    }
+
     Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran)
     {
       Contract.Requires(tok != null);
@@ -5910,17 +5943,18 @@ namespace Microsoft.Dafny {
         Bpl.BoundVariable tVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$t#" + otherTmpVarCount, predef.BoxType));
         otherTmpVarCount++;
         Bpl.Expr t = new Bpl.IdentifierExpr(tok, tVar);
-        Bpl.Expr xSubT = Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, x, t), Bpl.Expr.Literal(0));
+        Bpl.Expr xSubT = Bpl.Expr.SelectTok(tok, x, t);
         Bpl.Expr unboxT = ExpressionTranslator.ModeledAsBoxType(st.Arg) ? t : FunctionCall(tok, BuiltinFunction.Unbox, TrType(st.Arg), t);
 
         Bpl.Expr isGoodMultiset = FunctionCall(tok, BuiltinFunction.IsGoodMultiSet, null, x);
         Bpl.Expr wh = GetWhereClause(tok, unboxT, st.Arg, etran);
         if (wh != null) {
           Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubT));
-          var q = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(xSubT, wh));
+          var q = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(Bpl.Expr.Lt(Bpl.Expr.Literal(0), xSubT), wh));
           isGoodMultiset = Bpl.Expr.And(isGoodMultiset, q);
         }
         return isGoodMultiset;
+
       } else if (type is SeqType) {
         SeqType st = (SeqType)type;
         // (forall i: int :: { Seq#Index(x,i) }
@@ -5996,6 +6030,26 @@ namespace Microsoft.Dafny {
       }
 
       return null;
+    }
+
+    /// <summary>
+    /// Returns null or a Boogie expression whose type is the same as the translated, non-boxed
+    /// Dafny type "type".  The method is always allowed to return null, if no such value is conveniently
+    /// available.
+    /// </summary>
+    Bpl.Expr ExemplaryBoxValue(Type type) {
+      Contract.Requires(type != null);
+      Contract.Requires(predef != null);
+      type = type.Normalize();
+      if (type is BoolType) {
+        return Bpl.Expr.Literal(false);
+      } else if (type is IntType) {
+        return Bpl.Expr.Literal(0);
+      } else if (type.IsRefType) {
+        return predef.Null;
+      } else {
+        return null;
+      }
     }
 
     Bpl.Expr GetBoolBoxCondition(Expr box, Type type) {
