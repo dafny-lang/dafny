@@ -447,3 +447,55 @@ method AssignSuchThatFromGhost()
   g :| assume g < g;  // the compiler will complain here, despite the LHS being
                       // ghost -- and rightly so, since an assume is used
 }
+
+// ------------------------ inferred type arguments ----------------------------
+
+// Put the following tests in a separate module, so that the method bodies will
+// be type checked even if there are resolution errors in other modules.
+module NoTypeArgs0 {
+  datatype List<T> = Nil | Cons(T, List);
+  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>);
+
+  method DoAPrefix0<A, B, C>(xs: List) returns (ys: List<A>)
+  {
+    ys := xs;
+  }
+
+  method DoAPrefix1<A, B, C>(xs: List) returns (ys: List<B>)
+  {
+    ys := xs;  // error: List<B> cannot be assign to a List<A>
+  }
+
+  method DoAPrefix2<A, B, C>(xs: List) returns (ys: List<B>)
+  {
+    ys := xs;  // error: List<B> cannot be assign to a List<A>
+  }
+
+  function FTree0(t: Tree): Tree
+  {
+    match t
+    case Leaf(_,_) => t
+    case Node(x, y) => x
+  }  
+
+  function FTree1(t: Tree): Tree
+  {
+    match t
+    case Leaf(_,_) => t
+    case Node(x, y) => y  // error: y does not have the right type
+  }
+
+  function FTree2<A,B,C>(t: Tree): Tree<A,B>
+  {
+    t
+  }
+}
+
+module NoTypeArgs1 {
+  datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>);
+
+  function FTree3<T>(t: Tree): Tree<T,T>  // error: type of 't' does not have enough type parameters
+  {
+    t
+  }
+}

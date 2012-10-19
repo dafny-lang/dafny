@@ -80,3 +80,15 @@ ghost method Lemma(xs: List, ys: List)
       assert forall a, b, c :: concat(a, concat(b, c)) == concat(concat(a, b), c);
   }
 }
+
+// ------ Here are some test cases where the inferred arguments will be a prefix of the given ones
+
+method DoAPrefix<A, B, C>(xs: List) returns (ys: List<A>)
+{
+  ys := xs;
+}
+
+function FDoAPrefix<A, B, C>(xs: List): List<A>
+{
+  xs
+}
