@@ -239,7 +239,7 @@ namespace DafnyLanguage
       }
 
       if (Bpl.CommandLineOptions.Clo.LoopUnrollCount != -1) {
-        program.UnrollLoops(Bpl.CommandLineOptions.Clo.LoopUnrollCount);
+        program.UnrollLoops(Bpl.CommandLineOptions.Clo.LoopUnrollCount, Bpl.CommandLineOptions.Clo.SoundLoopUnrolling);
       }
 
       if (Bpl.CommandLineOptions.Clo.ExpandLambdas) {
