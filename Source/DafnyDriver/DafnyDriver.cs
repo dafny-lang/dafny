@@ -543,7 +543,7 @@ namespace Microsoft.Dafny
       }
 
       if (CommandLineOptions.Clo.LoopUnrollCount != -1) {
-        program.UnrollLoops(CommandLineOptions.Clo.LoopUnrollCount);
+        program.UnrollLoops(CommandLineOptions.Clo.LoopUnrollCount, CommandLineOptions.Clo.SoundLoopUnrolling);
       }
 
       if (CommandLineOptions.Clo.PrintInstrumented) {
