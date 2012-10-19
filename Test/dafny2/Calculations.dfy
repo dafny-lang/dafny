@@ -80,7 +80,7 @@ ghost method Lemma_Revacc_calc(xs: List, ys: List)
         concat(revacc(xrest, Cons(x, Nil)), ys);
         { Lemma_RevCatCommute(); } // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
         revacc(xrest, concat(Cons(x, Nil), ys));
-		// def. concat (x2)
+        // def. concat (x2)
         revacc(xrest, Cons(x, ys));
         // def. revacc
         revacc(xs, ys);
@@ -115,7 +115,7 @@ ghost method Lemma_Revacc(xs: List, ys: List)
       assert concat(reverse(xs), ys)
           == // def. reverse
               concat(concat(reverse(xrest), Cons(x, Nil)), ys)
-          == // induction hypothesis:  Lemma3a(xrest, Cons(x, Nil))
+          == // induction hypothesis:  Lemma_Revacc(xrest, Cons(x, Nil))
               concat(revacc(xrest, Cons(x, Nil)), ys);
           Lemma_RevCatCommute();  // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
       assert concat(revacc(xrest, Cons(x, Nil)), ys)
