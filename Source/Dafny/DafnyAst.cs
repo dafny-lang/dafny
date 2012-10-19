@@ -371,7 +371,6 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      Contract.Assume(cce.IsPeerConsistent(Arg));
       return "set<" + base.Arg.TypeName(context) + ">";
     }
   }
@@ -384,7 +383,6 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      Contract.Assume(cce.IsPeerConsistent(Arg));
       return "multiset<" + base.Arg.TypeName(context) + ">";
     }
   }
@@ -397,7 +395,6 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      Contract.Assume(cce.IsPeerConsistent(Arg));
       return "seq<" + base.Arg.TypeName(context) + ">";
     }
   }
@@ -414,8 +411,6 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      Contract.Assume(cce.IsPeerConsistent(Domain));
-      Contract.Assume(cce.IsPeerConsistent(Range));
       return "map<" + Domain.TypeName(context) + ", " + Range.TypeName(context) + ">";
     }
   }
@@ -595,7 +590,6 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
 
-      Contract.Assume(T == null || cce.IsPeerConsistent(T));
       return T == null ? "?" : T.TypeName(context);
     }
     public override bool SupportsEquality {
@@ -3188,7 +3182,6 @@ namespace Microsoft.Dafny {
       }
       [NoDefaultContract]  // no particular validity of 'this' is required, except that it not be committed
       set {
-        Contract.Requires(cce.IsValid(this));
         Contract.Requires(!WasResolved());  // set it only once
         Contract.Requires(value != null);
         //modifies type;

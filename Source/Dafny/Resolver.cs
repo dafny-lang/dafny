@@ -216,7 +216,7 @@ namespace Microsoft.Dafny
           }
           if (ErrorCount == errorCount && !m.IsGhost) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            var nw = (new Cloner()).CloneModuleDefinition(m, m.CompileName + "_Compile");
+            var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinedSig;
             sig.CompileSignature = compileSig;
@@ -3432,11 +3432,9 @@ namespace Microsoft.Dafny
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
       } else if (stmt is VarDecl) {
-        VarDecl s = (VarDecl)stmt;
-        if (s.OptionalType != null) {
-          ResolveType(stmt.Tok, s.OptionalType, null, true);
-          s.type = s.OptionalType;
-        }
+        var s = (VarDecl)stmt;
+        ResolveType(stmt.Tok, s.OptionalType, null, true);
+        s.type = s.OptionalType;
         // now that the declaration has been processed, add the name to the scope
         if (!scope.Push(s.Name, s)) {
           Error(s, "Duplicate local-variable name: {0}", s.Name);

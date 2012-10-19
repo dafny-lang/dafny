@@ -36,22 +36,6 @@ public static class cce {
   [Pure]
   public static void EndExpose() {
   }
-  [Pure]
-  public static bool IsPeerConsistent(object o) {
-    return true;
-  }
-  [Pure]
-  public static bool IsConsistent(object o) {
-    return true;
-  }
-  [Pure]
-  public static bool IsExposable(object o) {
-    return true;
-  }
-  [Pure]
-  public static bool IsExposed(object o) {
-    return true;
-  }
   public static class Owner {
     [Pure]
     public static bool Same(object o, object p) {
@@ -77,10 +61,6 @@ public static class cce {
   public class UnreachableException : Exception {
     public UnreachableException() {
     }
-  }
-  [Pure]
-  public static bool IsValid(Microsoft.Dafny.Expression expression) {
-    return true;
   }
 }
 

@@ -140,7 +140,7 @@ namespace Microsoft.Dafny
         return new MapType(CloneType(tt.Domain), CloneType(tt.Range));
       } else if (t is UserDefinedType) {
         var tt = (UserDefinedType)t;
-        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => Tok(x)));
+        return new UserDefinedType(Tok(tt.tok), tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(Tok));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
       } else if (t is ParamTypeProxy) {
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
         var aa = e.Arguments == null ? null : e.Arguments.ConvertAll(CloneExpr);
-        return new IdentifierSequence(e.Tokens.ConvertAll(tk => Tok(tk)), e.OpenParen == null ? null : Tok(e.OpenParen), aa);
+        return new IdentifierSequence(e.Tokens.ConvertAll(Tok), e.OpenParen == null ? null : Tok(e.OpenParen), aa);
 
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
