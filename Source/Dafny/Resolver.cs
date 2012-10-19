@@ -207,7 +207,6 @@ namespace Microsoft.Dafny
           var sig = literalDecl.Signature;
           // set up environment
           var preResolveErrorCount = ErrorCount;
-          useCompileSignatures = false;
           ResolveModuleDefinition(m, sig);
           if (ErrorCount == preResolveErrorCount) {
             refinementTransformer.PostResolve(m);
@@ -216,13 +215,15 @@ namespace Microsoft.Dafny
           }
           if (ErrorCount == errorCount && !m.IsGhost) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
+            Contract.Assert(!useCompileSignatures);
+            useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinedSig;
             sig.CompileSignature = compileSig;
-            useCompileSignatures = true;
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
+            useCompileSignatures = false;  // reset the flag
           }
         } else if (decl is AliasModuleDecl) {
           var alias = (AliasModuleDecl)decl;
@@ -447,7 +448,7 @@ namespace Microsoft.Dafny
         // First go through and add anything from the opened imports
         foreach (var im in declarations) {
           if (im is ModuleDecl && ((ModuleDecl)im).Opened) {
-            var s = ((ModuleDecl)im).Signature;
+            var s = GetSignature(((ModuleDecl)im).Signature);
             // classes:
             foreach (var kv in s.TopLevels) {
               TopLevelDecl d;
