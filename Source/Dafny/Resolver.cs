@@ -2511,6 +2511,9 @@ namespace Microsoft.Dafny
       }
       foreach (FrameExpression fe in m.Mod.Expressions) {
         ResolveFrameExpression(fe, "modifies");
+        if (m is CoMethod) {
+          Error(fe.tok, "comethods are not allowed to have modifies clauses");
+        }
       }
       foreach (Expression e in m.Decreases.Expressions) {
         ResolveExpression(e, false);
