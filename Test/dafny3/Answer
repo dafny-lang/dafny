@@ -6,3 +6,7 @@ Dafny program verifier finished with 15 verified, 0 errors
 -------------------- Streams.dfy --------------------
 
 Dafny program verifier finished with 38 verified, 0 errors
+
+-------------------- Dijkstra.dfy --------------------
+
+Dafny program verifier finished with 11 verified, 0 errors
