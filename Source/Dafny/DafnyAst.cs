@@ -746,7 +746,7 @@ namespace Microsoft.Dafny {
         return compileName;
       }
     }
-    public readonly Attributes Attributes;
+    public Attributes Attributes;  // readonly, except during class merging in the refinement transformations
 
     public Declaration(IToken tok, string name, Attributes attributes) {
       Contract.Requires(tok != null);
@@ -1151,6 +1151,7 @@ namespace Microsoft.Dafny {
     Specification<Expression> Decreases { get; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
+    string FullCompileName { get; }
   }
 
   public class IteratorDecl : ClassDecl, ICodeContext
@@ -2025,6 +2026,7 @@ namespace Microsoft.Dafny {
 
   public class ReturnStmt : ProduceStmt
   {
+    public bool ReverifyPost;  // set during pre-resolution refinement transformation
     public ReturnStmt(IToken tok, List<AssignmentRhs> rhss)
       : base(tok, rhss) {
       Contract.Requires(tok != null);

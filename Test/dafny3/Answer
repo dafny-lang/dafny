@@ -10,3 +10,7 @@ Dafny program verifier finished with 38 verified, 0 errors
 -------------------- Dijkstra.dfy --------------------
 
 Dafny program verifier finished with 11 verified, 0 errors
+
+-------------------- CachedContainer.dfy --------------------
+
+Dafny program verifier finished with 47 verified, 0 errors

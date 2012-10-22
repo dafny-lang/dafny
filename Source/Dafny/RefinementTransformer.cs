@@ -606,6 +606,8 @@ namespace Microsoft.Dafny
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
 
+      nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
+
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < nw.Members.Count; i++) {
@@ -619,7 +621,9 @@ namespace Microsoft.Dafny
       foreach (var member in prev.Members) {
         int index;
         if (!declaredNames.TryGetValue(member.Name, out index)) {
-          nw.Members.Add(refinementCloner.CloneMember(member));
+          var nwMember = refinementCloner.CloneMember(member);
+          nwMember.RefinementBase = member;
+          nw.Members.Add(nwMember);
         } else {
           var nwMember = nw.Members[index];
           if (nwMember is Field) {
@@ -678,9 +682,9 @@ namespace Microsoft.Dafny
               } else if (f.Body != null) {
                 reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
-              var newFn = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
-              newFn.RefinementBase = member;
-              nw.Members[index] = newFn;
+              var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              newF.RefinementBase = member;
+              nw.Members[index] = newF;
             }
 
           } else {
@@ -1285,8 +1289,11 @@ namespace Microsoft.Dafny
       }
       if (s is SkeletonStatement) {
         reporter.Error(s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
-      } else if (s is ProduceStmt) {
-        reporter.Error(s, (s is YieldStmt ? "yield" : "return") + " statements are not allowed in skeletons");
+      } else if (s is ReturnStmt) {
+        // allow return statements, but make note of that this requires verifying the postcondition
+        ((ReturnStmt)s).ReverifyPost = true;
+      } else if (s is YieldStmt) {
+        reporter.Error(s, "yield statements are not allowed in skeletons");
       } else if (s is BreakStmt) {
         var b = (BreakStmt)s;
         if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel) : loopLevels < b.BreakCount) {

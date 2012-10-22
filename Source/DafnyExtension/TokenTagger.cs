@@ -242,6 +242,7 @@ namespace DafnyLanguage
                 case "copredicate":
                 case "datatype":
                 case "decreases":
+                case "default":
                 case "else":
                 case "ensures":
                 case "exists":

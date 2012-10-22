@@ -645,39 +645,22 @@ namespace Microsoft.Dafny {
     void AddIteratorSpecAndBody(IteratorDecl iter) {
       Contract.Requires(iter != null);
 
-      bool isRefinementMethod = RefinementToken.IsInherited(iter.tok, iter.Module);
-
       // wellformedness check for method specification
-      Bpl.Procedure proc = AddIteratorProc(iter, 0, isRefinementMethod);
+      Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.TopLevelDeclarations.Add(proc);
       AddIteratorWellformed(iter, proc);
       // the method itself
       if (iter.Body != null) {
-        proc = AddIteratorProc(iter, 1, isRefinementMethod);
+        proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
         sink.TopLevelDeclarations.Add(proc);
-        if (isRefinementMethod) {
-          proc = AddIteratorProc(iter, 3, isRefinementMethod);
-          sink.TopLevelDeclarations.Add(proc);
-        }
         // ...and its implementation
         AddIteratorImpl(iter, proc);
       }
     }
 
-    /// <summary>
-    /// This method is expected to be called at most 3 times for each procedure in the program:
-    /// *  once with kind==0, which says to create a procedure for the wellformedness check of the
-    ///    method's specification
-    /// *  once with kind==1, which says to create the ordinary procedure for the method, always
-    ///    suitable for inter-module callers, and for non-refinement methods also suitable for
-    ///    the implementation and intra-module callers of the method
-    /// *  possibly once with kind==3 (allowed only if isRefinementMethod), which says to create
-    ///    a procedure suitable for the implementation of a refinement method
-    /// </summary>
-    Bpl.Procedure AddIteratorProc(IteratorDecl iter, int kind, bool isRefinementMethod) {
+    Bpl.Procedure AddIteratorProc(IteratorDecl iter, MethodTranslationKind kind) {
       Contract.Requires(iter != null);
-      Contract.Requires(0 <= kind && kind < 4 && kind != 2);
-      Contract.Requires(isRefinementMethod || kind < 2);
+      Contract.Requires(kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation);
       Contract.Requires(predef != null);
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
@@ -689,12 +672,13 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
 
       Bpl.VariableSeq inParams, outParams;
-      GenerateMethodParametersChoose(iter.tok, iter, true, true, false, etran, out inParams, out outParams);
+      GenerateMethodParametersChoose(iter.tok, iter, kind, true, true, false, etran, out inParams, out outParams);
 
       var req = new Bpl.RequiresSeq();
       var mod = new Bpl.IdentifierExprSeq();
       var ens = new Bpl.EnsuresSeq();
-      if (kind == 0 || (kind == 1 && !isRefinementMethod) || kind == 3) {  // the other cases have no need for a free precondition
+      // FREE PRECONDITIONS
+      if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && InMethodContext;
         Bpl.Expr context = Bpl.Expr.And(
           Bpl.Expr.Eq(Bpl.Expr.Literal(iter.Module.Height), etran.ModuleContextHeight()),
@@ -704,28 +688,33 @@ namespace Microsoft.Dafny {
       mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
 
-      if (kind != 0) {
-        string comment = "user-defined preconditions";
+      if (kind != MethodTranslationKind.SpecWellformedness) {
+        // USER-DEFINED SPECIFICATIONS
+        var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
-          bool splitHappened;  // we actually don't care
-          foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
-            if (kind == 2 && RefinementToken.IsInherited(s.E.tok, currentModule)) {
-              // this precondition was inherited into this module, so just ignore it
-            } else {
-              req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
-              // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
+          if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
+            req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+          } else {
+            bool splitHappened;  // we actually don't care
+            foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+              if (kind == MethodTranslationKind.IntraModuleCall && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+                // this precondition was inherited into this module, so just ignore it
+              } else {
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
+                // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
+              }
             }
           }
           comment = null;
         }
         comment = "user-defined postconditions";
-        foreach (MaybeFreeExpression p in iter.Ensures) {
+        foreach (var p in iter.Ensures) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
             foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
-              if (kind == 3 && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+              if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else {
                 ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, null));
@@ -739,15 +728,9 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(iter.TypeArgs);
-      string name;
-      switch (kind) {
-        case 0: name = "CheckWellformed$$" + iter.FullCompileName; break;
-        case 1: name = iter.FullCompileName; break;
-        case 3: name = string.Format("RefinementImpl_{0}$${1}", iter.Module.Name, iter.FullCompileName); break;
-        default: Contract.Assert(false); throw new cce.UnreachableException();  // unexpected kind
-      }
-      Bpl.Procedure proc = new Bpl.Procedure(iter.tok, name, typeParams, inParams, outParams, req, mod, ens);
+      var typeParams = TrTypeParamDecls(iter.TypeArgs);
+      var name = MethodName(iter, kind);
+      var proc = new Bpl.Procedure(iter.tok, name, typeParams, inParams, outParams, req, mod, ens);
 
       currentModule = null;
       codeContext = null;
@@ -1572,6 +1555,8 @@ namespace Microsoft.Dafny {
         }
         // translate the body of the method
         Contract.Assert(m.Body != null);  // follows from method precondition and the if guard
+        // _reverifyPost := false;
+        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "_reverifyPost", Bpl.Type.Bool), Bpl.Expr.False));
         stmts = TrStmt2StmtList(builder, m.Body, localVariables, etran);
       } else {
         // check well-formedness of the preconditions, and then assume each one of them
@@ -3422,11 +3407,11 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
 
       Bpl.VariableSeq inParams, outParams;
-      GenerateMethodParameters(m.tok, m, etran, out inParams, out outParams);
+      GenerateMethodParameters(m.tok, m, kind, etran, out inParams, out outParams);
 
-      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
-      Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
-      Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
+      var req = new Bpl.RequiresSeq();
+      var mod = new Bpl.IdentifierExprSeq();
+      var ens = new Bpl.EnsuresSeq();
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && InMethodContext;
@@ -3440,8 +3425,8 @@ namespace Microsoft.Dafny {
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
         // USER-DEFINED SPECIFICATIONS
-        string comment = "user-defined preconditions";
-        foreach (MaybeFreeExpression p in m.Req) {
+        var comment = "user-defined preconditions";
+        foreach (var p in m.Req) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
@@ -3458,7 +3443,7 @@ namespace Microsoft.Dafny {
           comment = null;
         }
         comment = "user-defined postconditions";
-        foreach (MaybeFreeExpression p in m.Ens) {
+        foreach (var p in m.Ens) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
@@ -3467,11 +3452,12 @@ namespace Microsoft.Dafny {
               kind == MethodTranslationKind.CoCall ? 2 : kind == MethodTranslationKind.Implementation && m is CoMethod ? 1 : 0,
               etran);
             foreach (var s in ss) {
+              var post = s.E;
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
-                // this postcondition was inherited into this module, so just ignore it
-              } else {
-                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, null));
+                // this postcondition was inherited into this module, so make it into the form "_reverifyPost ==> s.E"
+                post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "_reverifyPost", Bpl.Type.Bool), post);
               }
+              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, post, null, null));
             }
           }
           comment = null;
@@ -3481,9 +3467,9 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
-      string name = MethodName(m, kind);
-      Bpl.Procedure proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
+      var typeParams = TrTypeParamDecls(m.TypeArgs);
+      var name = MethodName(m, kind);
+      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
 
       currentModule = null;
       codeContext = null;
@@ -3491,7 +3477,7 @@ namespace Microsoft.Dafny {
       return proc;
     }
 
-    static string MethodName(Method m, MethodTranslationKind kind) {
+    static string MethodName(ICodeContext m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
       switch (kind) {
         case MethodTranslationKind.SpecWellformedness:
@@ -3510,17 +3496,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Return an expression that is like "expr", but where all atomic formulas in positive positions have been replaced
-    /// by "true", except for co-recursive copredicate calls and equality operations on codatatypes which have been
-    /// replaced by BoogieWrapper's containing "certEtran" translations of the positively occurring formulas.
-    /// </summary>
-    Expression CoMethodTrim(Expression expr, ExpressionTranslator certEtran) {
-      Contract.Requires(expr != null);
-      Contract.Requires(certEtran != null);
-      return new BoogieWrapper(certEtran.TrExpr(expr), expr.Type);  // TODO
-    }
-
     private void AddMethodRefinementCheck(MethodCheck methodCheck) {
 
       // First, we generate the declaration of the procedure. This procedure has the same
@@ -3533,7 +3508,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
 
       Bpl.VariableSeq inParams, outParams;
-      GenerateMethodParameters(m.tok, m, etran, out inParams, out outParams);
+      GenerateMethodParameters(m.tok, m, MethodTranslationKind.Implementation, etran, out inParams, out outParams);
 
       Bpl.RequiresSeq req = new Bpl.RequiresSeq();
       Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
@@ -3570,7 +3545,7 @@ namespace Microsoft.Dafny {
       // Generate procedure, and then add it to the sink
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
       string name = "CheckRefinement$$" + m.FullCompileName + "$" + methodCheck.Refining.FullCompileName;
-      Bpl.Procedure proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new Bpl.EnsuresSeq());
+      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new Bpl.EnsuresSeq());
 
       sink.TopLevelDeclarations.Add(proc);
 
@@ -3580,14 +3555,14 @@ namespace Microsoft.Dafny {
       inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
-      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
-      Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
+      var builder = new Bpl.StmtListBuilder();
+      var localVariables = new Bpl.VariableSeq();
       GenerateImplPrelude(m, inParams, outParams, builder, localVariables);
 
       // Generate the call to the refining method
       Method method = methodCheck.Refining;
       Expression receiver = new ThisExpr(Token.NoToken);
-      Bpl.ExprSeq ins = new Bpl.ExprSeq();
+      var ins = new Bpl.ExprSeq();
       if (!method.IsStatic) {
         ins.Add(etran.TrExpr(receiver));
       }
@@ -3596,19 +3571,19 @@ namespace Microsoft.Dafny {
       // but Boogie doesn't give us a hook for that.  So, we set up our own local variables here to
       // store the actual parameters.
       // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
-      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < method.Ins.Count; i++) {
-        Formal p = method.Ins[i];
-        VarDecl local = new VarDecl(p.tok, p.Name + "#", p.Type, p.IsGhost);
+        var p = method.Ins[i];
+        var local = new VarDecl(p.tok, p.Name + "#", p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
-        IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
+        var ie = new IdentifierExpr(local.Tok, local.UniqueName);
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(p, ie);
         localVariables.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
 
-        Bpl.IdentifierExpr param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+        var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
         var bActual = new Bpl.IdentifierExpr(Token.NoToken, m.Ins[i].UniqueName, TrType(m.Ins[i].Type));
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, param, etran.CondApplyUnbox(Token.NoToken, bActual, cce.NonNull( m.Ins[i].Type),p.Type));
+        var cmd = Bpl.Cmd.SimpleAssign(p.tok, param, etran.CondApplyUnbox(Token.NoToken, bActual, cce.NonNull( m.Ins[i].Type),p.Type));
         builder.Add(cmd);
         ins.Add(param);
       }
@@ -3617,8 +3592,8 @@ namespace Microsoft.Dafny {
       CheckFrameSubset(method.tok, method.Mod.Expressions, receiver, substMap, etran, builder, "call may modify locations not in the refined method's modifies clause", null);
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
-      Bpl.IdentifierExprSeq outs = new Bpl.IdentifierExprSeq();
-      List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>();
+      var outs = new Bpl.IdentifierExprSeq();
+      var tmpOuts = new List<Bpl.IdentifierExpr>();
       for (int i = 0; i < m.Outs.Count; i++) {
         var bLhs = m.Outs[i];
         if (!ExpressionTranslator.ModeledAsBoxType(method.Outs[i].Type) && ExpressionTranslator.ModeledAsBoxType(bLhs.Type)) {
@@ -3636,8 +3611,7 @@ namespace Microsoft.Dafny {
       }
 
       // Make the call
-      Bpl.CallCmd call = new Bpl.CallCmd(method.tok, method.FullCompileName, ins, outs);
-      builder.Add(call);
+      builder.Add(new Bpl.CallCmd(method.tok, method.FullCompileName, ins, outs));
 
       for (int i = 0; i < m.Outs.Count; i++) {
         var bLhs = m.Outs[i];
@@ -3649,7 +3623,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (MaybeFreeExpression p in m.Ens) {
+      foreach (var p in m.Ens) {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
           var assert = new Bpl.AssertCmd(method.tok, s.E, ErrorMessageAttribute(s.E.tok, "This is the postcondition that may not hold."));
@@ -3657,10 +3631,10 @@ namespace Microsoft.Dafny {
           builder.Add(assert);
         }
       }
-      Bpl.StmtList stmts = builder.Collect(method.tok); // this token is for the implict return, which should be for the refining method,
-                                                        // as this is where the error is.
+      var stmts = builder.Collect(method.tok); // this token is for the implict return, which should be for the refining method,
+                                               // as this is where the error is.
      
-      Bpl.Implementation impl = new Bpl.Implementation(m.tok, proc.Name,
+      var impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
         localVariables, stmts, etran.TrAttributes(m.Attributes, null));
       sink.TopLevelDeclarations.Add(impl);
@@ -3786,11 +3760,11 @@ namespace Microsoft.Dafny {
       currentModule = null;
     }
 
-    private void GenerateMethodParameters(IToken tok, ICodeContext m, ExpressionTranslator etran, out Bpl.VariableSeq inParams, out Bpl.VariableSeq outParams) {
-      GenerateMethodParametersChoose(tok, m, !m.IsStatic, true, true, etran, out inParams, out outParams);
+    private void GenerateMethodParameters(IToken tok, ICodeContext m, MethodTranslationKind kind, ExpressionTranslator etran, out Bpl.VariableSeq inParams, out Bpl.VariableSeq outParams) {
+      GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, out inParams, out outParams);
     }
 
-    private void GenerateMethodParametersChoose(IToken tok, ICodeContext m, bool includeReceiver, bool includeInParams, bool includeOutParams,
+    private void GenerateMethodParametersChoose(IToken tok, ICodeContext m, MethodTranslationKind kind, bool includeReceiver, bool includeInParams, bool includeOutParams,
       ExpressionTranslator etran, out Bpl.VariableSeq inParams, out Bpl.VariableSeq outParams) {
       inParams = new Bpl.VariableSeq();
       outParams = new Bpl.VariableSeq();
@@ -3814,6 +3788,9 @@ namespace Microsoft.Dafny {
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.UniqueName, varType), p.Type, etran);
           outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
+        }
+        if (kind == MethodTranslationKind.Implementation) {
+          outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "_reverifyPost", Bpl.Type.Bool), false));
         }
       }
     }
@@ -4173,6 +4150,10 @@ namespace Microsoft.Dafny {
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
+        if (s.ReverifyPost) {
+          // _reverifyPost := true;
+          builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, new Bpl.IdentifierExpr(s.Tok, "_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
+        }
         if (s.hiddenUpdate != null) {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
         }
