@@ -1,5 +1,5 @@
 
-ghost module R1 {
+abstract module R1 {
   var f: int;
   method m(y: set<int>) returns (r: int)
     modifies this;
@@ -8,7 +8,7 @@ ghost module R1 {
   }
 }
 
-ghost module R2 refines R1 {
+abstract module R2 refines R1 {
   var g: nat;
   method m ...
   {

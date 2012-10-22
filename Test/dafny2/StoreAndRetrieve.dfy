@@ -1,4 +1,4 @@
-ghost module A {
+abstract module A {
   import L = Library;
   class {:autocontracts} StoreAndRetrieve<Thing> {
     ghost var Contents: set<Thing>;

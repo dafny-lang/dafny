@@ -146,23 +146,13 @@ Dafny
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
-     bool isGhost;
   .)
-  { (. isGhost = false; .)
-    [ "ghost"  (. isGhost = true; .) ]
-
-    ( SubModuleDecl<defaultModule, isGhost, out submodule> 
-                                                (. defaultModule.TopLevelDecls.Add(submodule); .)
-    | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
-      ClassDecl<defaultModule, out c>           (. defaultModule.TopLevelDecls.Add(c); .)
-    | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
-      DatatypeDecl<defaultModule, out dt>       (. defaultModule.TopLevelDecls.Add(dt); .)
-    | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
-      ArbitraryTypeDecl<defaultModule, out at>  (. defaultModule.TopLevelDecls.Add(at); .)
-    | (. if (isGhost) { SemErr(t, "an iterator is not allowed to be declared as 'ghost'"); } .)
-      IteratorDecl<defaultModule, out iter>     (. defaultModule.TopLevelDecls.Add(iter); .)
-    | ClassMemberDecl<membersDefaultClass, isGhost, false>
-    )
+  { SubModuleDecl<defaultModule, out submodule> (. defaultModule.TopLevelDecls.Add(submodule); .)
+  | ClassDecl<defaultModule, out c>             (. defaultModule.TopLevelDecls.Add(c); .)
+  | DatatypeDecl<defaultModule, out dt>         (. defaultModule.TopLevelDecls.Add(dt); .)
+  | ArbitraryTypeDecl<defaultModule, out at>    (. defaultModule.TopLevelDecls.Add(at); .)
+  | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
+  | ClassMemberDecl<membersDefaultClass, false>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
      DefaultClassDecl defaultClass = null;
@@ -179,36 +169,30 @@ Dafny
      } .)
   EOF
   .
-SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl submodule>
+SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
 = (. ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
      Attributes attrs = null;  IToken/*!*/ id; 
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idRefined = null, idPath = null, idAssignment = null;
-     bool isGhost = false;
      ModuleDefinition module;
      ModuleDecl sm;
      submodule = null; // appease compiler
+     bool isAbstract = false;
      bool opened = false;
   .)
-  ( "module"
+  ( [ "abstract"  (. isAbstract = true; .) ]
+    "module"
     { Attribute<ref attrs> }
     NoUSIdent<out id>                          
     
-      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isOverallModuleGhost, false, idRefined == null ? null : idRefined, attrs, false); .)
+      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, attrs, false); .)
        "{"                                       (. module.BodyStartTok = t; .)
-        { (. isGhost = false; .)
-          [ "ghost"  (. isGhost = true; .) ]
-            ( SubModuleDecl<module, isGhost, out sm>       (. module.TopLevelDecls.Add(sm); .)
-            | (. if (isGhost) { SemErr(t, "a class is not allowed to be declared as 'ghost'"); } .)
-              ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
-            | (. if (isGhost) { SemErr(t, "a datatype/codatatype is not allowed to be declared as 'ghost'"); } .)
-              DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
-            | (. if (isGhost) { SemErr(t, "a type is not allowed to be declared as 'ghost'"); } .)
-              ArbitraryTypeDecl<module, out at>            (. module.TopLevelDecls.Add(at); .)
-            | (. if (isGhost) { SemErr(t, "an iterator is not allowed to be declared as 'ghost'"); } .)
-              IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
-            | ClassMemberDecl<namedModuleDefaultClassMembers, isGhost, false>
-            )
+        { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
+        | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)
+        | DatatypeDecl<module, out dt>                 (. module.TopLevelDecls.Add(dt); .)
+        | ArbitraryTypeDecl<module, out at>            (. module.TopLevelDecls.Add(at); .)
+        | IteratorDecl<module, out iter>               (. module.TopLevelDecls.Add(iter); .)
+        | ClassMemberDecl<namedModuleDefaultClassMembers, false>
         }
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
@@ -220,7 +204,7 @@ SubModuleDecl<ModuleDefinition parent, bool isOverallModuleGhost, out ModuleDecl
                             | ";" 
                                  (. idPath = new List<IToken>(); idPath.Add(id); submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
                             | "as" QualifiedName<out idPath>  ["default" QualifiedName<out idAssignment> ] ";"
-                                 (.submodule = new AbstractModuleDecl(idPath, id, parent, idAssignment, opened); .)
+                                 (.submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
                           )
       )
   )
@@ -248,7 +232,7 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
   NoUSIdent<out id>
   [ GenericParameters<typeArgs> ]
   "{"                                            (. bodyStart = t; .)
-  { ClassMemberDecl<members, false, true>
+  { ClassMemberDecl<members, true>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs);
@@ -256,12 +240,11 @@ ClassDecl<ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
      c.BodyEndTok = t;
   .)
   .
-ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool isAlreadyGhost, bool allowConstructors.>
+ClassMemberDecl<.List<MemberDecl/*!*/>/*!*/ mm, bool allowConstructors.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
      MemberModifiers mmod = new MemberModifiers();
-     mmod.IsGhost = isAlreadyGhost;
   .)
   { "ghost"                                (. mmod.IsGhost = true; .)
   | "static"                               (. mmod.IsStatic = true; .)

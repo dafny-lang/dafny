@@ -58,7 +58,7 @@ module CoRecursion {
   }
 }
 
-ghost module S {
+abstract module S {
   class C {
     var f: int;
     method m()
@@ -91,7 +91,7 @@ method NotMain() {
 }
 
 
-ghost module S1 {
+abstract module S1 {
   import B as S default T;
   static method do()
 }

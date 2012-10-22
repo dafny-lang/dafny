@@ -20,7 +20,7 @@ namespace Demo
           "class", "ghost", "static", "var", "method", "constructor", "comethod", "datatype", "codatatype",
           "iterator", "type",
           "assert", "assume", "new", "this", "object", "refines",
-          "module", "import", "as", "default", "opened",
+          "abstract", "module", "import", "as", "default", "opened",
           "if", "then", "else", "while", "invariant",
           "break", "label", "return", "yield", "parallel", "print",
           "returns", "yields", "requires", "ensures", "modifies", "reads", "decreases",
@@ -278,6 +278,7 @@ namespace Demo
           | "this"
           | "object"
           | "refines"
+          | "abstract"
           | "module"
           | "import"
           | "default"

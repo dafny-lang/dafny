@@ -4,7 +4,7 @@
 // Version with proof divided into stages:  June 2012.
 // Copyright (c) 2008-2012 Microsoft.
 
-ghost module M0 {
+abstract module M0 {
   // In this module, we declare the Node class, the definition of Reachability, and the specification
   // and implementation of the Schorr-Waite algorithm.
 
@@ -140,7 +140,7 @@ ghost module M0 {
   }
 }
 
-ghost module M1 refines M0 {
+abstract module M1 refines M0 {
   // In this superposition, we start reasoning about the marks.  In particular, we prove that the method
   // marks all reachable nodes.
   method SchorrWaite...
@@ -176,7 +176,7 @@ ghost module M1 refines M0 {
   }
 }
 
-ghost module M2 refines M1 {
+abstract module M2 refines M1 {
   // In this superposition, we prove that only reachable nodes are marked.  Essentially, we want
   // to add a loop invariant that says t is reachable from root, because then the loop invariant
   // that marked nodes are reachable follows.  More precisely, we need to say that the node

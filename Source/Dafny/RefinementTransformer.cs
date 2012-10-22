@@ -98,17 +98,17 @@ namespace Microsoft.Dafny
           if (d is ModuleDecl) {
             if (!(nw is ModuleDecl)) {
               reporter.Error(nw, "a module ({0}) must refine another module", nw.Name);
-            } else if (!(d is AbstractModuleDecl)) {
-              reporter.Error(nw, "a module ({0}) can only refine abstract modules", nw.Name);
+            } else if (!(d is ModuleFacadeDecl)) {
+              reporter.Error(nw, "a module ({0}) can only refine a module facade", nw.Name);
             } else {
-              ModuleSignature original = ((AbstractModuleDecl)d).OriginalSignature;
+              ModuleSignature original = ((ModuleFacadeDecl)d).OriginalSignature;
               ModuleSignature derived = null;
               if (nw is AliasModuleDecl) {
                 derived = ((AliasModuleDecl)nw).Signature;
-              } else if (nw is AbstractModuleDecl) {
-                derived = ((AbstractModuleDecl)nw).Signature;
+              } else if (nw is ModuleFacadeDecl) {
+                derived = ((ModuleFacadeDecl)nw).Signature;
               } else {
-                reporter.Error(nw, "a module ({0}) can only be refined by alias or abstract modules", d.Name);
+                reporter.Error(nw, "a module ({0}) can only be refined by an alias module or a module facade", d.Name);
               }
               if (derived != null) {
                 // check that the new module refines the previous declaration

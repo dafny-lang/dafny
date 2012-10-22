@@ -33,7 +33,7 @@
         "class" "datatype" "codatatype" "type" "iterator"
         "function" "predicate" "copredicate"
         "ghost" "var" "method" "constructor" "comethod"
-        "module" "import" "default" "as" "opened" "static" "refines"
+        "abstract" "module" "import" "default" "as" "opened" "static" "refines"
         "returns" "yields" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"
         )) . font-lock-builtin-face)

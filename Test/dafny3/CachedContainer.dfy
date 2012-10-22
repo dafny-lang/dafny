@@ -1,5 +1,5 @@
-// give the method signatures and specs 
-ghost module M0 {
+// give the method signatures and specs
+abstract module M0 {
   class {:autocontracts} Container<T(==)> {
     ghost var Contents: set<T>;
     predicate Valid()
@@ -16,7 +16,7 @@ ghost module M0 {
 }
 
 // provide bodies for the methods
-ghost module M1 refines M0 {
+abstract module M1 refines M0 {
   class Container<T(==)> {
     constructor... {
       Contents := {};

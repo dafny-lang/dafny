@@ -122,6 +122,9 @@ namespace Microsoft.Dafny {
           Indent(indent);
           if (d is LiteralModuleDecl) {
             ModuleDefinition module = ((LiteralModuleDecl)d).ModuleDef;
+            if (module.IsAbstract) {
+              wr.Write("abstract ");
+            }
             wr.Write("module");
             PrintAttributes(module.Attributes);
             wr.Write(" {0} ", module.Name);
@@ -140,10 +143,10 @@ namespace Microsoft.Dafny {
             wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
             wr.WriteLine("= {0};", Util.Comma(".", ((AliasModuleDecl)d).Path, id => id.val));
-          } else if (d is AbstractModuleDecl) {
-            wr.Write("import"); if (((AbstractModuleDecl)d).Opened) wr.Write(" opened");
-            wr.Write(" {0} ", ((AbstractModuleDecl)d).Name);
-            wr.WriteLine("as {0};", Util.Comma(".", ((AbstractModuleDecl)d).Path, id => id.val));
+          } else if (d is ModuleFacadeDecl) {
+            wr.Write("import"); if (((ModuleFacadeDecl)d).Opened) wr.Write(" opened");
+            wr.Write(" {0} ", ((ModuleFacadeDecl)d).Name);
+            wr.WriteLine("as {0};", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
           }
         } else {
           Contract.Assert(false);  // unexpected TopLevelDecl

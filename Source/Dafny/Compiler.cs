@@ -68,8 +68,8 @@ namespace Microsoft.Dafny {
       CompileBuiltIns(program.BuiltIns);
 
       foreach (ModuleDefinition m in program.CompileModules) {
-        if (m.IsGhost) {
-          // the purpose of a ghost module is to skip compilation
+        if (m.IsAbstract) {
+          // the purpose of an abstract module is to skip compilation
           continue;
         }
         int indent = 0;

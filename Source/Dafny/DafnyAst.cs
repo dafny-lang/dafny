@@ -845,7 +845,7 @@ namespace Microsoft.Dafny {
     }
   }
   // Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
-  public class AbstractModuleDecl : ModuleDecl
+  public class ModuleFacadeDecl : ModuleDecl
   {
     public ModuleDecl Root;
     public readonly List<IToken> Path;
@@ -853,7 +853,7 @@ namespace Microsoft.Dafny {
     public readonly List<IToken> CompilePath;
     public ModuleSignature OriginalSignature;
     
-    public AbstractModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent, List<IToken> compilePath, bool opened)
+    public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, List<IToken> compilePath, bool opened)
       : base(name, name.val, parent, opened) {
       Path = path;
       Root = null;
@@ -894,8 +894,8 @@ namespace Microsoft.Dafny {
     public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
     public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
-    public readonly bool IsGhost;
-    public readonly bool IsAbstract; // True iff this module represents an abstract interface
+    public readonly bool IsAbstract;
+    public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -903,13 +903,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isGhost, bool isAbstract, List<IToken> refinementBase, Attributes attributes, bool isBuiltinName)
+    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isFacade, List<IToken> refinementBase, Attributes attributes, bool isBuiltinName)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       RefinementBaseName = refinementBase;
-      IsGhost = isGhost;
       IsAbstract = isAbstract;
+      IsFacade = isFacade;
       RefinementBaseRoot = null;
       RefinementBase = null;
       IsBuiltinName = isBuiltinName;

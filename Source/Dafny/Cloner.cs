@@ -14,7 +14,7 @@ namespace Microsoft.Dafny
       if (m is DefaultModuleDecl) {
         nw = new DefaultModuleDecl();
       } else {
-        nw = new ModuleDefinition(Tok(m.tok), name, m.IsGhost, m.IsAbstract, m.RefinementBaseName, CloneAttributes(m.Attributes), true);
+        nw = new ModuleDefinition(Tok(m.tok), name, m.IsAbstract, m.IsFacade, m.RefinementBaseName, CloneAttributes(m.Attributes), true);
       }
       foreach (var d in m.TopLevelDecls) {
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
@@ -85,9 +85,9 @@ namespace Microsoft.Dafny
           alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
-        } else if (d is AbstractModuleDecl) {
-          var a = (AbstractModuleDecl)d;
-          var abs = new AbstractModuleDecl(a.Path, a.tok, m, a.CompilePath, a.Opened);
+        } else if (d is ModuleFacadeDecl) {
+          var a = (ModuleFacadeDecl)d;
+          var abs = new ModuleFacadeDecl(a.Path, a.tok, m, a.CompilePath, a.Opened);
           abs.Signature = a.Signature;
           abs.OriginalSignature = a.OriginalSignature;
           return abs;

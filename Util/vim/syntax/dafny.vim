@@ -8,7 +8,7 @@ syntax case match
 syntax keyword dafnyFunction function predicate copredicate
 syntax keyword method constructor comethod
 syntax keyword dafnyTypeDef class datatype codatatype type iterator
-syntax keyword module import opened as default
+syntax keyword abstract module import opened as default
 syntax keyword dafnyConditional if then else match case 
 syntax keyword dafnyRepeat while parallel
 syntax keyword dafnyStatement assume assert return yield new print break label where calc

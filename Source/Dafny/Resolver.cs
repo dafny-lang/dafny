@@ -215,7 +215,7 @@ namespace Microsoft.Dafny
             // give rewriter a chance to do processing
             rewriter.PostResolve(m);
           }
-          if (ErrorCount == errorCount && !m.IsGhost) {
+          if (ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
@@ -236,8 +236,8 @@ namespace Microsoft.Dafny
           } else {
             alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
-        } else if (decl is AbstractModuleDecl) {
-          var abs = (AbstractModuleDecl)decl;
+        } else if (decl is ModuleFacadeDecl) {
+          var abs = (ModuleFacadeDecl)decl;
           ModuleSignature p;
           if (ResolvePath(abs.Root, abs.Path, out p)) {
             abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
@@ -342,8 +342,8 @@ namespace Microsoft.Dafny
           if (!bindings.BindName(subdecl.Name, subdecl, subBindings)) {
             Error(subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
           }
-        } else if (tld is AbstractModuleDecl) {
-          var subdecl = (AbstractModuleDecl)tld;
+        } else if (tld is ModuleFacadeDecl) {
+          var subdecl = (ModuleFacadeDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
             Error(subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
           }
@@ -392,8 +392,8 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(moduleDecl, root);
           alias.Root = root;
         }
-      } else if (moduleDecl is AbstractModuleDecl) {
-        var abs = moduleDecl as AbstractModuleDecl;
+      } else if (moduleDecl is ModuleFacadeDecl) {
+        var abs = moduleDecl as ModuleFacadeDecl;
         ModuleDecl root;
         if (!bindings.TryLookup(abs.Path[0], out root))
           Error(abs.tok, ModuleNotFoundErrorMessage(0, abs.Path));
@@ -443,7 +443,7 @@ namespace Microsoft.Dafny
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
-      sig.IsGhost = moduleDef.IsGhost;
+      sig.IsGhost = moduleDef.IsAbstract;
       List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
 
       if (useImports) {
@@ -766,10 +766,10 @@ namespace Microsoft.Dafny
           alias.ModuleReference = a.ModuleReference;
           alias.Signature = a.Signature;
           return alias;
-        } else if (d is AbstractModuleDecl) {
-          var abs = (AbstractModuleDecl)d;
+        } else if (d is ModuleFacadeDecl) {
+          var abs = (ModuleFacadeDecl)d;
           var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
-          var a = new AbstractModuleDecl(abs.Path, abs.tok, m, abs.CompilePath, abs.Opened);
+          var a = new ModuleFacadeDecl(abs.Path, abs.tok, m, abs.CompilePath, abs.Opened);
           a.Signature = sig;
           a.OriginalSignature = abs.OriginalSignature;
           return a;
@@ -1072,17 +1072,17 @@ namespace Microsoft.Dafny
           ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
-          if (!def.IsGhost) {
+          if (!def.IsAbstract) {
             if (decl.Signature.IsGhost)
               {
-                if (!(def.IsDefaultModule)) // _module is allowed to contain ghost modules, but not be ghost itself. Note this presents a challenge to
-                                            // trusted verification, as toplevels can't be trusted if they invoke ghost module members.
-                Error(d.tok, "ghost modules can only be imported into other ghost modules, not physical ones.");
+                if (!(def.IsDefaultModule)) // _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
+                                            // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
+                Error(d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
               } else {
                 // physical modules are allowed everywhere
               }
           } else {
-            // everything is allowed in a ghost module
+            // everything is allowed in an abstract module
           }
         } else {
           ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
