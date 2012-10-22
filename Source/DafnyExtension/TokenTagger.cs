@@ -226,7 +226,6 @@ namespace DafnyLanguage
               switch (s) {
                 #region keywords
                 case "abstract":
-                case "allocated":
                 case "array":
                 case "as":
                 case "assert":
