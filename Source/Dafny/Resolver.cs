@@ -185,10 +185,9 @@ namespace Microsoft.Dafny
           // global variable moduleInfo. Then the signatures of the module members are resolved, followed
           // by the bodies.
           var literalDecl = (LiteralModuleDecl)decl;
-          var m = (literalDecl).ModuleDef;
+          var m = literalDecl.ModuleDef;
 
           var errorCount = ErrorCount;
-          rewriter.PreResolve(m);
           ModuleSignature refinedSig = null;
           if (m.RefinementBaseRoot != null) {
             if (ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out refinedSig)) {
@@ -201,6 +200,9 @@ namespace Microsoft.Dafny
             } else {
               Error(m.RefinementBaseName[0], "module ({0}) named as refinement base does not exist", Util.Comma(".", m.RefinementBaseName, x => x.val));
             }
+          }
+          if (errorCount == ErrorCount) {
+            rewriter.PreResolve(m);
           }
           literalDecl.Signature = RegisterTopLevelDecls(m, true);
           literalDecl.Signature.Refines = refinedSig;
@@ -4451,10 +4453,9 @@ namespace Microsoft.Dafny
       Contract.Requires(obj != null);
       Contract.Requires(field != null);
       Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
-      Contract.Requires(typeSubstMap != null);
       var e = new FieldSelectExpr(tok, obj, field.Name);
       e.Field = field;  // resolve here
-      e.Type = SubstType(field.Type, typeSubstMap);  // resolve here
+      e.Type = typeSubstMap == null ? field.Type : SubstType(field.Type, typeSubstMap);  // resolve here
       return e;
     }
 

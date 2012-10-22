@@ -1236,6 +1236,7 @@ namespace Microsoft.Dafny {
     public readonly bool IsStatic;
     public readonly bool IsGhost;
     public TopLevelDecl EnclosingClass;  // filled in during resolution
+    public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
 
     public MemberDecl(IToken tok, string name, bool isStatic, bool isGhost, Attributes attributes)
       : base(tok, name, attributes) {
@@ -3262,7 +3263,6 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(tok != null);
       this.Value = b;
-
     }
   }
 

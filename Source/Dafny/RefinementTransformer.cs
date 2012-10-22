@@ -629,6 +629,8 @@ namespace Microsoft.Dafny
             } else {
               reporter.Error(nwMember, "a field declaration ({0}) in a refining class ({1}) must replace a field in the refinement base", nwMember.Name, nw.Name);
             }
+            nwMember.RefinementBase = member;
+
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
@@ -676,7 +678,9 @@ namespace Microsoft.Dafny
               } else if (f.Body != null) {
                 reporter.Error(nwMember, "a refining function is not allowed to extend/change the body");
               }
-              nw.Members[index] = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              var newFn = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+              newFn.RefinementBase = member;
+              nw.Members[index] = newFn;
             }
 
           } else {
@@ -726,7 +730,9 @@ namespace Microsoft.Dafny
                   replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              nw.Members[index] = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
+              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
+              newM.RefinementBase = member;
+              nw.Members[index] = newM;
             }
           }
         }
