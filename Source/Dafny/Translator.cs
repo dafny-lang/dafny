@@ -7677,6 +7677,18 @@ namespace Microsoft.Dafny {
         Bpl.Expr dttypeFunc = translator.FunctionCall(tok, BuiltinFunction.DtType, null, e);
         Bpl.Expr r = Bpl.Expr.Eq(dttypeFunc, new Bpl.IdentifierExpr(tok, translator.GetClass(resolvedClass)));
 
+#if DISTINGUISH_BY_TYPE_PARAMETERS
+        // Note, it would be good to distinguish different datatype values based on the types that have been
+        // used to instantiate the datatypes.  That's what the code below does.  However, this would require
+        // a different encoding for datatype values whose parameters don't determine the type parameters.  For
+        // example, the value Nil in a standard List<A> type would have to be encoded, not as just one function
+        // Nil(), but as a function parameterized by the type parameter.  If 'a' is a Boogie expression denoting
+        // the type representation of 'A', then the encoding could be Nil(a), in which case an appropriate
+        // axiom would be:  forall t :: DtTypeParams(Nil(t), 0) == t.  Currently, Dafny does not have a full
+        // encoding of type representations.  That would be good to have; until then, however, it's best to
+        // to be consistent with when these conjuncts are introduced, which leaves the only choice to always
+        // omit them.
+
         // DtTypeParams(e, #) == T
         int n = 0;
         foreach (Type arg in typeArgs) {
@@ -7687,6 +7699,7 @@ namespace Microsoft.Dafny {
           }
           n++;
         }
+#endif
 
         return r;
       }
