@@ -48,6 +48,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Binaries\Basetypes.dll</HintPath>
     </Reference>
+    <Reference Include="BVD">
+      <HintPath>..\..\Binaries\BVD.exe</HintPath>
+    </Reference>
     <Reference Include="CodeContractsExtender, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Binaries\CodeContractsExtender.dll</HintPath>
