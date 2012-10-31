@@ -133,6 +133,9 @@ namespace DafnyLanguage
       List<IdRegion> newRegions = new List<IdRegion>();
 
       foreach (var module in program.Modules) {
+        if (module.IsFacade) {
+          continue;
+        }
         foreach (var d in module.TopLevelDecls) {
           if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;

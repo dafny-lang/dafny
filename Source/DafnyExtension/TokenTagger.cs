@@ -259,6 +259,7 @@ namespace DafnyLanguage
                 case "invariant":
                 case "iterator":
                 case "label":
+                case "map":
                 case "match":
                 case "method":
                 case "modifies":
