@@ -311,7 +311,7 @@ namespace DafnyLanguage
       Snapshot = snapshot;
     }
     public SnapshotSpan Span() {
-      Contract.Requires(Snapshot != null);  // requires that Snapshot has been filled in
+      Contract.Assume(Snapshot != null);  // requires that Snapshot has been filled in
       var line = Snapshot.GetLineFromLineNumber(Line);
       Contract.Assume(Column <= line.Length);  // this is really a precondition of the constructor + FillInSnapshot
       var length = Math.Min(line.Length - Column, 5);

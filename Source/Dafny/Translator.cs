@@ -1555,8 +1555,8 @@ namespace Microsoft.Dafny {
         }
         // translate the body of the method
         Contract.Assert(m.Body != null);  // follows from method precondition and the if guard
-        // _reverifyPost := false;
-        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "_reverifyPost", Bpl.Type.Bool), Bpl.Expr.False));
+        // $_reverifyPost := false;
+        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.False));
         stmts = TrStmt2StmtList(builder, m.Body, localVariables, etran);
       } else {
         // check well-formedness of the preconditions, and then assume each one of them
@@ -3454,8 +3454,8 @@ namespace Microsoft.Dafny {
             foreach (var s in ss) {
               var post = s.E;
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
-                // this postcondition was inherited into this module, so make it into the form "_reverifyPost ==> s.E"
-                post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "_reverifyPost", Bpl.Type.Bool), post);
+                // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
+                post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "$_reverifyPost", Bpl.Type.Bool), post);
               }
               ens.Add(Ensures(s.E.tok, s.IsOnlyFree, post, null, null));
             }
@@ -3790,7 +3790,7 @@ namespace Microsoft.Dafny {
           outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, varType, wh), false));
         }
         if (kind == MethodTranslationKind.Implementation) {
-          outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "_reverifyPost", Bpl.Type.Bool), false));
+          outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));
         }
       }
     }
@@ -4151,8 +4151,8 @@ namespace Microsoft.Dafny {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
         if (s.ReverifyPost) {
-          // _reverifyPost := true;
-          builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, new Bpl.IdentifierExpr(s.Tok, "_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
+          // $_reverifyPost := true;
+          builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, new Bpl.IdentifierExpr(s.Tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
         }
         if (s.hiddenUpdate != null) {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
