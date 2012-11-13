@@ -1784,6 +1784,9 @@ namespace Microsoft.Dafny {
         wellFormed = Bpl.Expr.And(wellFormed, wh);
       }
 
+      // (formalsAreWellFormed[h0] || canCallF(h0,...)) && (formalsAreWellFormed[h0] || canCallF(h0,...))
+      Bpl.Expr fwf0 = Bpl.Expr.True;
+      Bpl.Expr fwf1 = Bpl.Expr.True;
       foreach (Formal p in f.Formals) {
         Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
         bvars.Add(bv);
@@ -1791,10 +1794,14 @@ namespace Microsoft.Dafny {
         f0args.Add(formal);
         f1args.Add(formal);
         Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0);
-        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
+        if (wh != null) { fwf0 = Bpl.Expr.And(fwf0, wh); }
         wh = GetWhereClause(p.tok, formal, p.Type, etran1);
-        if (wh != null) { wellFormed = Bpl.Expr.And(wellFormed, wh); }
+        if (wh != null) { fwf1 = Bpl.Expr.And(fwf1, wh); }
       }
+      var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool));
+      wellFormed = Bpl.Expr.And(wellFormed, Bpl.Expr.And(
+        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f0args), fwf0),
+        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f1args), fwf1)));
 
       string axiomComment = "frame axiom for " + f.FullCompileName;
       Bpl.FunctionCall fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullCompileName, TrType(f.ResultType)));
