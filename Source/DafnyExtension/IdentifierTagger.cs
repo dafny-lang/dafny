@@ -141,7 +141,7 @@ namespace DafnyLanguage
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
               foreach (var dtor in ctor.Destructors) {
-                if (dtor != null) {
+                if (dtor.CorrespondingFormal.HasName) {
                   IdRegion.Add(newRegions, dtor.tok, dtor, null, "destructor", true, module);
                 }
               }
@@ -372,7 +372,7 @@ namespace DafnyLanguage
         HoverText = string.Format("({4}{2}{3}) {0}: {1}", decl.FullNameInContext(context), showType.TypeName(context),
           decl.IsGhost ? "ghost " : "",
           kind,
-          decl.IsUserMutable ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
+          decl.IsUserMutable || decl is DatatypeDestructor ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
         Kind = !isDefinition ? OccurrenceKind.Use : OccurrenceKind.Definition;
       }
     }
