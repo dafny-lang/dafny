@@ -1120,7 +1120,7 @@ namespace Microsoft.Dafny {
     // TODO: One could imagine having a precondition on datatype constructors
     public DatatypeDecl EnclosingDatatype;  // filled in during resolution
     public SpecialField QueryField;  // filled in during resolution
-    public List<SpecialField> Destructors = new List<SpecialField>();  // contents filled in during resolution; includes both implicit (not mentionable in source) and explicit destructors
+    public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // contents filled in during resolution; includes both implicit (not mentionable in source) and explicit destructors
 
     public DatatypeCtor(IToken/*!*/ tok, string/*!*/ name, [Captured] List<Formal/*!*/>/*!*/ formals, Attributes attributes)
       : base(tok, name, attributes) {
