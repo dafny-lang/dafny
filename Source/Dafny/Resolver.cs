@@ -4524,7 +4524,7 @@ namespace Microsoft.Dafny
             // there were no substitutions
             return type;
           } else {
-            return new UserDefinedType(t.tok, t.Name, t.ResolvedClass, newArgs);
+            return new UserDefinedType(t.tok, t.Name, t.ResolvedClass, newArgs, t.Path);
           }
         } else {
           // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't

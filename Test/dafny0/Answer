@@ -1265,7 +1265,7 @@ Execution trace:
     (0,0): anon13
     TypeParameters.dfy(153,3): anon24_Else
 
-Dafny program verifier finished with 35 verified, 5 errors
+Dafny program verifier finished with 38 verified, 5 errors
 
 -------------------- Datatypes.dfy --------------------
 Datatypes.dfy(79,20): Error: assertion violation

@@ -425,7 +425,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Path));
     }
 
-    public readonly List<IToken> Path;  // may be null
+    public readonly List<IToken> Path;
     public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
@@ -478,18 +478,34 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator type
     /// </summary>
-    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, TopLevelDecl/*!*/ cd, [Captured] List<Type/*!*/>/*!*/ typeArgs) {
+    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, TopLevelDecl/*!*/ cd, [Captured] List<Type/*!*/>/*!*/ typeArgs)
+      : this(tok, name, cd, typeArgs, null)
+    {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
-      this.tok = tok;
-      this.Name = name;
-      this.TypeArgs = typeArgs;
-      this.ResolvedClass = cd;
-      this.Path = new List<IToken>();
     }
 
+    /// <summary>
+    /// This constructor constructs a resolved class/datatype/iterator type
+    /// </summary>
+    public UserDefinedType(IToken/*!*/ tok, string/*!*/ name, TopLevelDecl/*!*/ cd, [Captured] List<Type/*!*/>/*!*/ typeArgs, List<IToken> moduleName) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cd != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(moduleName == null || cce.NonNullElements(moduleName));
+      this.tok = tok;
+      this.Name = name;
+      this.ResolvedClass = cd;
+      this.TypeArgs = typeArgs;
+      if (moduleName != null)
+        this.Path = moduleName;
+      else
+        this.Path = new List<IToken>();
+    }
+    
     /// <summary>
     /// This constructor constructs a resolved type parameter
     /// </summary>

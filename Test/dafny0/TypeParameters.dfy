@@ -189,3 +189,31 @@ method TyKn_Main(k0: TyKn_K) {
   assert k2 != null ==> k2.F() == 176;  // the canCall mechanism does the trick here, but so does the encoding
                                         // via k2's where clause
 }
+
+// ------------------- there was once a bug in the handling of the following example
+
+module OneLayer
+{
+  datatype wrap<V> = Wrap(V);
+}
+
+module TwoLayers
+{
+  import OneLayer;
+  datatype wrap2<T> = Wrap2(get: OneLayer.wrap<T>);
+  
+  function F<U>(w: wrap2<U>) : OneLayer.wrap<U>
+  {
+    match w
+    case Wrap2(a) => a
+  }
+  function G<U>(w: wrap2<U>) : OneLayer.wrap<U>
+  {
+    match w
+    case Wrap2(a) => w.get
+  }
+  function H<U>(w: wrap2<U>) : OneLayer.wrap<U>
+  {
+    w.get
+  }
+}
