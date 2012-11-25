@@ -124,7 +124,11 @@ namespace DafnyLanguage
 
       foreach (var module in program.Modules) {
         if (!module.IsDefaultModule) {
-          newRegions.Add(new ORegion(module, "module"));
+          var nm = "module";
+          if (module.IsAbstract) {
+            nm = "abstract " + nm;
+          }
+          newRegions.Add(new ORegion(module, nm));
         }
         foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
           if (!HasBodyTokens(d) && !(d is Dafny.ClassDecl)) {
@@ -139,8 +143,12 @@ namespace DafnyLanguage
           } else if (d is Dafny.ModuleDecl) {
             // do nothing here, since the outer loop handles modules
           } else {
-            Dafny.ClassDecl cl = (Dafny.ClassDecl)d;
-            if (!cl.IsDefaultClass) {
+            var cl = (Dafny.ClassDecl)d;
+            if (cl.IsDefaultClass) {
+              // do nothing
+            } else if (cl is Dafny.IteratorDecl) {
+              newRegions.Add(new ORegion(cl, "iterator"));
+            } else {
               newRegions.Add(new ORegion(cl, "class"));
             }
             // do the class members (in particular, functions and methods)
@@ -151,15 +159,22 @@ namespace DafnyLanguage
               if (m is Dafny.Function && ((Dafny.Function)m).Body != null) {
                 var nm =
                   m is Dafny.CoPredicate ? "copredicate" :
-                  m is Dafny.PrefixPredicate ? "prefix predicate" :
+                  // m is Dafny.PrefixPredicate ? "prefix predicate" :  // this won't ever occur here
                   m is Dafny.Predicate ? "predicate" :
                   "function";
+                if (!m.IsGhost) {
+                  nm += " method";
+                }
                 newRegions.Add(new ORegion(m, nm));
               } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
                 var nm =
                   m is Dafny.Constructor ? "constructor" :
-                  m is Dafny.PrefixMethod ? "prefix method" :
+                  m is Dafny.CoMethod ? "comethod" :
+                  // m is Dafny.PrefixMethod ? "prefix method" :  // this won't ever occur here
                   "method";
+                if (m.IsGhost && !(m is Dafny.CoMethod)) {
+                  nm = "ghost " + nm;
+                }
                 newRegions.Add(new ORegion(m, nm));
               }
             }
