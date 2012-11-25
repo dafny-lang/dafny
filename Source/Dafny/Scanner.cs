@@ -505,10 +505,10 @@ public class Scanner {
 			case "type": t.kind = 26; break;
 			case "iterator": t.kind = 30; break;
 			case "yields": t.kind = 31; break;
-			case "method": t.kind = 35; break;
-			case "comethod": t.kind = 36; break;
-			case "constructor": t.kind = 37; break;
-			case "returns": t.kind = 38; break;
+			case "returns": t.kind = 32; break;
+			case "method": t.kind = 36; break;
+			case "comethod": t.kind = 37; break;
+			case "constructor": t.kind = 38; break;
 			case "modifies": t.kind = 39; break;
 			case "free": t.kind = 40; break;
 			case "requires": t.kind = 41; break;
@@ -667,7 +667,7 @@ public class Scanner {
 			case 22:
 				{t.kind = 29; break;}
 			case 23:
-				{t.kind = 32; break;}
+				{t.kind = 33; break;}
 			case 24:
 				{t.kind = 57; break;}
 			case 25:
@@ -756,13 +756,13 @@ public class Scanner {
 				if (ch == '|') {AddCh(); goto case 44;}
 				else {t.kind = 23; break;}
 			case 61:
-				recEnd = pos; recKind = 33;
-				if (ch == '=') {AddCh(); goto case 66;}
-				else {t.kind = 33; break;}
-			case 62:
 				recEnd = pos; recKind = 34;
-				if (ch == '=') {AddCh(); goto case 31;}
+				if (ch == '=') {AddCh(); goto case 66;}
 				else {t.kind = 34; break;}
+			case 62:
+				recEnd = pos; recKind = 35;
+				if (ch == '=') {AddCh(); goto case 31;}
+				else {t.kind = 35; break;}
 			case 63:
 				recEnd = pos; recKind = 97;
 				if (ch == '=') {AddCh(); goto case 32;}

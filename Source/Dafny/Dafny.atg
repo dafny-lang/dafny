@@ -411,7 +411,9 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
   (
     [ GenericParameters<typeArgs> ]
     Formals<true, true, ins, out openParen>
-    [ "yields"
+    [ ( "yields"
+      | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
+      )
       Formals<false, true, outs, out openParen>
     ]
   | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
