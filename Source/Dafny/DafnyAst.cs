@@ -1693,9 +1693,27 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every copredicate P.
+  /// </summary>
+  public class PrefixPredicate : Function
+  {
+    public readonly Formal K;
+    public PrefixPredicate(IToken tok, string name, bool isStatic,
+                     List<TypeParameter> typeArgs, IToken openParen, Formal k, List<Formal> formals,
+                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
+                     Expression body, Attributes attributes, bool signatureOmitted)
+      : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
+      Contract.Requires(k != null);
+      Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
+      K = k;
+    }
+  }
+
   public class CoPredicate : Function
   {
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
+    public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
     public CoPredicate(IToken tok, string name, bool isStatic,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
@@ -1806,8 +1824,27 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every copredicate P.
+  /// </summary>
+  public class PrefixMethod : Method
+  {
+    public readonly Formal K;
+    public PrefixMethod(IToken tok, string name, bool isStatic,
+                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
+                        List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                        BlockStmt body, Attributes attributes, bool signatureOmitted)
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureOmitted) {
+      Contract.Requires(k != null);
+      Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
+      K = k;
+    }
+  }
+
   public class CoMethod : Method
   {
+    public PrefixMethod PrefixMethod;  // filled in during resolution (name registration)
+
     public CoMethod(IToken tok, string name,
                   bool isStatic,
                   List<TypeParameter/*!*/>/*!*/ typeArgs,
@@ -2469,7 +2506,7 @@ namespace Microsoft.Dafny {
     }
     public static bool HasWildcardName(IVariable v) {
       Contract.Requires(v != null);
-      return v.Name.StartsWith("_");
+      return v.Name.StartsWith("_v");
     }
     public static string DisplayNameHelper(IVariable v) {
       Contract.Requires(v != null);
@@ -3353,6 +3390,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Name = name;
+    }
+  }
+
+  /// <summary>
+  /// Indicates the that identifier did not appear explicitly in the source text (like the "_k" in
+  /// calls to co-recursive things).
+  /// </summary>
+  public class ImplicitIdentifierExpr : IdentifierExpr
+  {
+    public ImplicitIdentifierExpr(IToken tok, string name)
+      : base(tok, name) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
     }
   }
 

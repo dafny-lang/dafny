@@ -149,9 +149,18 @@ namespace DafnyLanguage
                 continue;
               }
               if (m is Dafny.Function && ((Dafny.Function)m).Body != null) {
-                newRegions.Add(new ORegion(m, m is Dafny.CoPredicate ? "copredicate" : m is Dafny.Predicate ? "predicate" : "function"));
+                var nm =
+                  m is Dafny.CoPredicate ? "copredicate" :
+                  m is Dafny.PrefixPredicate ? "prefix predicate" :
+                  m is Dafny.Predicate ? "predicate" :
+                  "function";
+                newRegions.Add(new ORegion(m, nm));
               } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
-                newRegions.Add(new ORegion(m, m is Dafny.Constructor ? "constructor" : "method"));
+                var nm =
+                  m is Dafny.Constructor ? "constructor" :
+                  m is Dafny.PrefixMethod ? "prefix method" :
+                  "method";
+                newRegions.Add(new ORegion(m, nm));
               }
             }
           }

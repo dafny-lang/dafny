@@ -642,6 +642,36 @@ namespace Microsoft.Dafny
           foreach (MemberDecl m in cl.Members) {
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
+              if (m is CoPredicate || m is CoMethod) {
+                var extraName = m.Name + "#";
+                MemberDecl extraMember;
+                var cloner = new Cloner();
+                var formals = new List<Formal>();
+                var k = new Formal(m.tok, "_k", new NatType(), true, false);
+                formals.Add(k);
+                if (m is CoPredicate) {
+                  var cop = (CoPredicate)m;
+                  formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
+                  // create prefix predicate
+                  cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.IsStatic,
+                    cop.TypeArgs.ConvertAll(cloner.CloneTypeParam), cop.OpenParen, k, formals,
+                    cop.Req.ConvertAll(cloner.CloneExpr), cop.Reads.ConvertAll(cloner.CloneFrameExpr), cop.Ens.ConvertAll(cloner.CloneExpr),
+                    new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
+                    null /*body is filled in later*/, null, false);
+                  extraMember = cop.PrefixPredicate;
+                } else {
+                  var com = (CoMethod)m;
+                  formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
+                  // create prefix method
+                  com.PrefixMethod = new PrefixMethod(com.tok, extraName, com.IsStatic,
+                    com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
+                    com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod), com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
+                    new Specification<Expression>(new List<Expression>() { new IdentifierExpr(com.tok, k.Name) }, null),
+                    null /*body is filled in later*/, null, false);
+                  extraMember = com.PrefixMethod;
+                }
+                members.Add(extraName, extraMember);
+              }
             } else if (m is Constructor && !((Constructor)m).HasName) {
               Error(m, "More than one default constructor");
             } else {
@@ -1104,10 +1134,7 @@ namespace Microsoft.Dafny
         ResolveTypeParameters(d.TypeArgs, false, d);
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-          allTypeParameters.PushMarker();
-          ResolveTypeParameters(iter.TypeArgs, false, iter);
           ResolveIterator(iter);
-          allTypeParameters.PopMarker();
           ResolveClassMemberBodies(iter);  // resolve the automatically generated members
 
         } else if (d is ClassDecl) {
@@ -2023,18 +2050,36 @@ namespace Microsoft.Dafny
           ResolveType(member.tok, ((Field)member).Type, ResolveTypeOption.DontInfer, null);
 
         } else if (member is Function) {
-          Function f = (Function)member;
+          var f = (Function)member;
+          var ec = ErrorCount;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(f.TypeArgs, true, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
+          if (f is CoPredicate && ec == ErrorCount) {
+            var ff = ((CoPredicate)f).PrefixPredicate;
+            ff.EnclosingClass = cl;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(ff.TypeArgs, true, ff);
+            ResolveFunctionSignature(ff);
+            allTypeParameters.PopMarker();
+          }
 
         } else if (member is Method) {
-          Method m = (Method)member;
+          var m = (Method)member;
+          var ec = ErrorCount;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
+          if (m is CoMethod && ec == ErrorCount) {
+            var mm = ((CoMethod)m).PrefixMethod;
+            mm.EnclosingClass = cl;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(mm.TypeArgs, true, mm);
+            ResolveMethodSignature(mm);
+            allTypeParameters.PopMarker();
+          }
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
@@ -2058,18 +2103,35 @@ namespace Microsoft.Dafny
           // nothing more to do
 
         } else if (member is Function) {
-          Function f = (Function)member;
+          var f = (Function)member;
+          var ec = ErrorCount;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
+          if (f is CoPredicate && ec == ErrorCount) {
+            var ff = ((CoPredicate)f).PrefixPredicate;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(ff.TypeArgs, false, ff);
+            ResolveFunction(ff);
+            allTypeParameters.PopMarker();
+          }
 
         } else if (member is Method) {
-          Method m = (Method)member;
+          var m = (Method)member;
+          var ec = ErrorCount;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
+          if (m is CoMethod && ec == ErrorCount) {
+            var mm = ((CoMethod)m).PrefixMethod;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(mm.TypeArgs, false, mm);
+            ResolveMethod(mm);
+            allTypeParameters.PopMarker();
+          }
+
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
@@ -4628,12 +4690,16 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is IdentifierExpr) {
-        IdentifierExpr e = (IdentifierExpr)expr;
+        var e = (IdentifierExpr)expr;
         e.Var = scope.Find(e.Name);
-        if (e.Var == null) {
-          Error(expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
-        } else {
+        if (e.Var != null) {
           expr.Type = e.Var.Type;
+        } else if (e is ImplicitIdentifierExpr) {
+          // Evidently, the variable _k has been introduced in a context where it is not allowed.  This is a symptom of
+          // a prefix predicate being called without an explicit depth parameter in a context where a depth is expected.
+          Error(expr, "a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)");
+        } else {
+          Error(expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
         }
 
       } else if (expr is DatatypeValue) {

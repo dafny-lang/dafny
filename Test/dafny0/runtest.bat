@@ -17,7 +17,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             Comprehensions.dfy Basics.dfy ControlStructures.dfy
             Termination.dfy DTypes.dfy ParallelResolveErrors.dfy Parallel.dfy
             TypeParameters.dfy Datatypes.dfy
-            Coinductive.dfy Corecursion.dfy CoinductiveProofs.dfy
+            Coinductive.dfy Corecursion.dfy CoResolution.dfy
+            CoinductiveProofs.dfy
             TypeAntecedents.dfy NoTypeArgs.dfy EqualityTypes.dfy SplitExpr.dfy
             LoopModifies.dfy Refinement.dfy RefinementErrors.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy

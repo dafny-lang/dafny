@@ -1326,6 +1326,22 @@ Execution trace:
 
 Dafny program verifier finished with 5 verified, 2 errors
 
+-------------------- CoResolution.dfy --------------------
+CoResolution.dfy(22,8): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+CoResolution.dfy(23,3): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+CoResolution.dfy(24,7): Error: member Undeclared# does not exist in class _default
+CoResolution.dfy(25,7): Error: member Undeclared# does not exist in class _default
+CoResolution.dfy(26,2): Error: unresolved identifier: Undeclared#
+CoResolution.dfy(26,12): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+CoResolution.dfy(27,2): Error: unresolved identifier: Undeclared#
+CoResolution.dfy(30,2): Error: wrong number of function arguments (got 3, expected 2)
+CoResolution.dfy(31,5): Error: unresolved identifier: _k
+CoResolution.dfy(37,30): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+CoResolution.dfy(38,20): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+CoResolution.dfy(41,9): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+CoResolution.dfy(42,4): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
+13 resolution/type errors detected in CoResolution.dfy
+
 -------------------- CoinductiveProofs.dfy --------------------
 CoinductiveProofs.dfy(26,12): Error: assertion violation
 CoinductiveProofs.dfy(10,17): Related location: Related location

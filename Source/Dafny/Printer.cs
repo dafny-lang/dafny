@@ -177,6 +177,12 @@ namespace Microsoft.Dafny {
         if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent);
+          var com = m as CoMethod;
+          if (com != null && com.PrefixMethod != null) {
+            Indent(indent); wr.WriteLine("/***");
+            PrintMethod(com.PrefixMethod, indent);
+            Indent(indent); wr.WriteLine("***/");
+          }
           state = 2;
         } else if (m is Field) {
           if (state == 2) { wr.WriteLine(); }
@@ -185,6 +191,12 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent);
+          var cop = m as CoPredicate;
+          if (cop != null && cop.PrefixPredicate != null) {
+            Indent(indent); wr.WriteLine("/***");
+            PrintFunction(cop.PrefixPredicate, indent);
+            Indent(indent); wr.WriteLine("***/");
+          }
           state = 2;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -1098,9 +1110,7 @@ namespace Microsoft.Dafny {
         if (e.OpenParen == null) {
           Contract.Assert(e.Args.Count == 0);
         } else {
-          wr.Write("(");
-          PrintExpressionList(e.Args);
-          wr.Write(")");
+          PrintCallArguments(e.Name, e.Args);
         }
         if (parensNeeded) { wr.Write(")"); }
 
@@ -1343,14 +1353,14 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
         string sep = "";
+        string name = null;
         foreach (var id in e.Tokens) {
-          wr.Write("{0}{1}", sep, id.val);
+          name = id.val;
+          wr.Write("{0}{1}", sep, name);
           sep = ".";
         }
         if (e.Arguments != null) {
-          wr.Write("(");
-          PrintExpressionList(e.Arguments);
-          wr.Write(")");
+          PrintCallArguments(name, e.Arguments);
         }
 
       } else if (expr is MatchExpr) {
@@ -1362,6 +1372,32 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    void PrintCallArguments(string name, List<Expression> args) {
+      Contract.Requires(name != null);
+      Contract.Requires(args != null);
+      if (name.EndsWith("#")) {
+        Contract.Assert(args.Count != 0);
+        Expression k = null;
+        var rest = new List<Expression>();
+        foreach (var a in args) {
+          if (k == null) {
+            k = a;
+          } else {
+            rest.Add(a);
+          }
+        }
+        if (!(k is ImplicitIdentifierExpr)) {
+          wr.Write("[");
+          PrintExpression(k);
+          wr.Write("]");
+        }
+        args = rest;
+      }
+      wr.Write("(");
+      PrintExpressionList(args);
+      wr.Write(")");
     }
 
     private void PrintQuantifierDomain(List<BoundVar> boundVars, Attributes attrs, Expression range) {

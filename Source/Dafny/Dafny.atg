@@ -27,7 +27,7 @@ struct MemberModifiers {
   public bool IsGhost;
   public bool IsStatic;
 }
-// helper routine for parsing call statements
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "module".
@@ -1775,7 +1775,12 @@ DottedIdentifiersAndFunction<out Expression e>
   { "."
     Ident<out id>                      (. idents.Add(id); .)
   }
-  [ "("                                (. openParen = t;  args = new List<Expression>(); .)
+  [                                    (. args = new List<Expression>(); .)
+    [ "#"                              (. Expression k = new ImplicitIdentifierExpr(t, "_k"); .)
+      [ "[" Expression<out k> "]"
+      ]                                (. id.val = id.val + "#";  args.Add(k); .)
+    ]
+    "("                                (. openParen = t; .)
       [ Expressions<args> ]
     ")"
   ]
@@ -1789,7 +1794,12 @@ Suffix<ref Expression/*!*/ e>
   .)
   ( "."
     Ident<out id>
-    [ "("                                      (. IToken openParen = t;  args = new List<Expression/*!*/>();  func = true; .)
+    [                                          (. args = new List<Expression/*!*/>();  func = true; .)
+      [ "#"                                    (. Expression k = new ImplicitIdentifierExpr(t, "_k"); .)
+        [ "[" Expression<out k> "]"
+        ]                                      (. id.val = id.val + "#";  args.Add(k); .)
+      ]
+      "("                                      (. IToken openParen = t; .)
         [ Expressions<args> ]
       ")"                                      (. e = new FunctionCallExpr(id, id.val, e, openParen, args); .)
     ]                                          (. if (!func) { e = new ExprDotName(id, e, id.val); } .)
