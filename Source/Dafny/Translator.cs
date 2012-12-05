@@ -592,46 +592,38 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(f);
 
         } else if (member is Function) {
-          Function f = (Function)member;
-          AddFunction(f);
-          if (f.IsRecursive) {
-            AddLimitedAxioms(f, 2);
-            AddLimitedAxioms(f, 1);
-          }
-          for (int layerOffset = 0; layerOffset < 2; layerOffset++) {
-            var body = f.Body == null ? null : f.Body.Resolved;
-            if (body is MatchExpr) {
-              AddFunctionAxiomCase(f, (MatchExpr)body, null, layerOffset);
-              AddFunctionAxiom(f, null, f.Ens, null, layerOffset);
-            } else {
-              AddFunctionAxiom(f, body, f.Ens, null, layerOffset);
-            }
-            if (!f.IsRecursive) { break; }
-          }
-          AddFrameAxiom(f);
+          var f = (Function)member;
+          AddClassMember_Function(f);
           AddWellformednessCheck(f);
+          var cop = f as CoPredicate;
+          if (cop != null) {
+            AddClassMember_Function(cop.PrefixPredicate);
+            // skip the well-formedness check, because it has already been done for the copredicate
+          }
 
         } else if (member is Method) {
           Method m = (Method)member;
-          bool isRefinementMethod = RefinementToken.IsInherited(m.tok, m.EnclosingClass.Module);
 
           // wellformedness check for method specification
-          Bpl.Procedure proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
-          sink.TopLevelDeclarations.Add(proc);
           if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {
             // skip the well-formedness check, because it has already been done for the iterator
           } else {
+            var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
+            sink.TopLevelDeclarations.Add(proc);
             AddMethodImpl(m, proc, true);
           }
           // the method spec itself
           sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.InterModuleCall));
           sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.IntraModuleCall));
           if (m is CoMethod) {
+            // Let the CoCall and Impl forms to use m.PrefixMethod signature and specification (and
+            // note that m.PrefixMethod.Body == m.Body.
+            m = ((CoMethod)m).PrefixMethod;
             sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.CoCall));
           }
           if (m.Body != null) {
             // ...and its implementation
-            proc = AddMethod(m, MethodTranslationKind.Implementation);
+            var proc = AddMethod(m, MethodTranslationKind.Implementation);
             sink.TopLevelDeclarations.Add(proc);
             AddMethodImpl(m, proc, false);
           }
@@ -640,6 +632,25 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
+    }
+
+    private void AddClassMember_Function(Function f) {
+      AddFunction(f);
+      if (f.IsRecursive) {
+        AddLimitedAxioms(f, 2);
+        AddLimitedAxioms(f, 1);
+      }
+      for (int layerOffset = 0; layerOffset < 2; layerOffset++) {
+        var body = f.Body == null ? null : f.Body.Resolved;
+        if (body is MatchExpr) {
+          AddFunctionAxiomCase(f, (MatchExpr)body, null, layerOffset);
+          AddFunctionAxiom(f, null, f.Ens, null, layerOffset);
+        } else {
+          AddFunctionAxiom(f, body, f.Ens, null, layerOffset);
+        }
+        if (!f.IsRecursive) { break; }
+      }
+      AddFrameAxiom(f);
     }
 
     void AddIteratorSpecAndBody(IteratorDecl iter) {
@@ -696,7 +707,7 @@ namespace Microsoft.Dafny {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
               if (kind == MethodTranslationKind.IntraModuleCall && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -713,7 +724,7 @@ namespace Microsoft.Dafny {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else {
@@ -1034,6 +1045,9 @@ namespace Microsoft.Dafny {
         sink.TopLevelDeclarations.Add(ax);
         ax = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, body, ens, specialization, layerOffset);
         sink.TopLevelDeclarations.Add(ax);
+        if (f is CoPredicate) {
+          AddPrefixPredicateAxioms(((CoPredicate)f).PrefixPredicate);
+        }
       } else {
         var ax = FunctionAxiom(f, FunctionAxiomVisibility.All, body, ens, specialization, layerOffset);
         sink.TopLevelDeclarations.Add(ax);
@@ -1097,15 +1111,10 @@ namespace Microsoft.Dafny {
       // ante:  $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
       Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
 
-      Bpl.BoundVariable bvThis;
-      Bpl.Expr bvThisIdExpr;
-      if (f.IsStatic) {
-        bvThis = null;
-        bvThisIdExpr = null;
-      } else {
-        bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, predef.RefType));
+      if (!f.IsStatic) {
+        var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, predef.RefType));
         formals.Add(bvThis);
-        bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
+        var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         args.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
         Type thisType = Resolver.GetReceiverType(f.tok, f);
@@ -1123,8 +1132,27 @@ namespace Microsoft.Dafny {
           if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
         }
       }
+      List<Formal> specializationFormals;
+      if (specialization == null) {
+        specializationFormals = null;
+      } else if (f is PrefixPredicate) {
+        var pp = (PrefixPredicate)f;
+        // the specialization formals are given in terms of the co-predicate formals, but we're sitting
+        // here with the prefix predicate, so lets map them over
+        var paramMap = new Dictionary<Formal, Formal>();
+        for (int i = 0; i < pp.Co.Formals.Count; i++) {
+          paramMap.Add(pp.Co.Formals[i], pp.Formals[i + 1]);
+        }
+        specializationFormals = new List<Formal>();
+        foreach (var p in specialization.Formals) {
+          specializationFormals.Add(paramMap[p]);
+        }
+        Contract.Assert(specializationFormals.Count == specialization.Formals.Count);
+      } else {
+        specializationFormals = specialization.Formals;
+      }
       foreach (Formal p in f.Formals) {
-        int i = specialization == null ? -1 : specialization.Formals.FindIndex(val => val == p);
+        int i = specializationFormals == null ? -1 : specializationFormals.FindIndex(val => val == p);
         if (i == -1) {
           bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
           formals.Add(bv);
@@ -1184,7 +1212,11 @@ namespace Microsoft.Dafny {
       if (body == null) {
         meat = Bpl.Expr.True;
       } else {
-        Expression bodyWithSubst = Substitute(body, null, substMap);
+        var bodyWithSubst = Substitute(body, null, substMap);
+        if (f is PrefixPredicate) {
+          var pp = (PrefixPredicate)f;
+          bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
+        }
         if (layerOffset == 0) {
           meat = Bpl.Expr.And(
             CanCallAssumption(bodyWithSubst, etran),
@@ -1220,6 +1252,42 @@ namespace Microsoft.Dafny {
         }
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+    }
+
+    /// <summary>
+    /// For a copredicate P, "pp" is the prefix predicate for P (such that P = pp.Co) and
+    /// "body" is the body of P.  Return what would be the body of the prefix predicate pp.
+    /// In particular, return
+    ///   0 LESS _k  IMPLIES  body'
+    /// where body' is body with the formals of P replaced by the corresponding
+    /// formals of pp and with corecursive calls P(s) replaced by recursive calls to
+    /// pp(_k - 1, s).
+    /// </summary>
+    Expression PrefixSubstitution(PrefixPredicate pp, Expression body) {
+      Contract.Requires(pp != null);
+
+      var paramMap = new Dictionary<IVariable, Expression>();
+      for (int i = 0; i < pp.Co.Formals.Count; i++) {
+        var replacement = pp.Formals[i + 1];  // the +1 is to skip pp's _k parameter
+        var param = new IdentifierExpr(replacement.tok, replacement.Name);
+        param.Var = replacement;  // resolve here
+        param.Type = replacement.Type;  // resolve here
+        paramMap.Add(pp.Co.Formals[i], param);
+      }
+
+      var k = new IdentifierExpr(pp.tok, pp.K.Name);
+      k.Var = pp.K;  // resolve here
+      k.Type = pp.K.Type;  // resolve here
+      var kMinusOne = CreateIntSub(pp.tok, k, CreateIntLiteral(pp.tok, 1));
+
+      var s = new PrefixCallSubstituter(null, paramMap, pp.Co, kMinusOne);
+      body = s.Substitute(body);
+
+      // add antecedent "0 < _k ==>"
+      var kIsPositive = new BinaryExpr(pp.tok, BinaryExpr.Opcode.Lt, CreateIntLiteral(pp.tok, 0), k);
+      kIsPositive.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
+      kIsPositive.Type = Type.Int;  // resolve here
+      return DafnyImp(kIsPositive, body);
     }
 
     void AddLimitedAxioms(Function f, int fromLayer) {
@@ -1264,6 +1332,79 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(origFuncAppl));
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Eq(origFuncAppl, limitedFuncAppl));
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(f.tok, ax));
+    }
+
+    /// <summary>
+    /// Add the axioms:
+    ///   forall s :: P(s) ==> forall k: nat :: P#[k](s)
+    ///   forall s :: (forall k: nat :: P#[k](s)) ==> P(s)
+    /// where "s" is "heap, formals".  In more details:
+    ///   forall s :: { P(s) } s-has-appropriate-values && P(s) ==> forall k { P#[k](s) } :: 0 ATMOST k ==> P#[k](s)
+    ///   forall s :: { P(s) } s-has-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](s)) ==> P(s)
+    /// </summary>
+    void AddPrefixPredicateAxioms(PrefixPredicate pp) {
+      Contract.Requires(pp != null);
+      Contract.Requires(predef != null);
+      var co = pp.Co;
+      var tok = pp.tok;
+      var etran = new ExpressionTranslator(this, predef, tok);
+
+      var bvs = new Bpl.VariableSeq();
+      var coArgs = new Bpl.ExprSeq();
+      var prefixArgs = new Bpl.ExprSeq();
+      var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, predef.HeapVarName, predef.HeapType));
+      bvs.Add(bv);
+      coArgs.Add(new Bpl.IdentifierExpr(tok, bv));
+      prefixArgs.Add(new Bpl.IdentifierExpr(tok, bv));
+      // ante:  $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
+      Bpl.Expr ante = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
+
+      if (!pp.IsStatic) {
+        var bvThis = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, etran.This, predef.RefType));
+        bvs.Add(bvThis);
+        var bvThisIdExpr = new Bpl.IdentifierExpr(tok, bvThis);
+        coArgs.Add(bvThisIdExpr);
+        prefixArgs.Add(bvThisIdExpr);
+        // add well-typedness conjunct to antecedent
+        Type thisType = Resolver.GetReceiverType(tok, pp);
+        Bpl.Expr wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(bvThisIdExpr, predef.Null),
+          etran.GoodRef(tok, bvThisIdExpr, thisType));
+        ante = Bpl.Expr.And(ante, wh);
+      }
+
+      // add the formal _k
+      var k = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, pp.Formals[0].UniqueName, TrType(pp.Formals[0].Type)));
+      var kId = new Bpl.IdentifierExpr(tok, k);
+      prefixArgs.Add(kId);
+      var kWhere = GetWhereClause(tok, kId, pp.Formals[0].Type, etran);
+
+      foreach (var p in co.Formals) {
+        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
+        bvs.Add(bv);
+        var formal = new Bpl.IdentifierExpr(p.tok, bv);
+        coArgs.Add(formal);
+        prefixArgs.Add(formal);
+        // add well-typedness conjunct to antecedent
+        var wh = GetWhereClause(p.tok, formal, p.Type, etran);
+        if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
+      }
+
+      var funcID = new Bpl.IdentifierExpr(tok, FunctionName(co, 1), TrType(co.ResultType));
+      var coAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), coArgs);
+      funcID = new Bpl.IdentifierExpr(tok, FunctionName(pp, 1), TrType(pp.ResultType));
+      var prefixAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgs);
+
+      // forall s :: { P(s) } s-has-appropriate-values && P(s) ==> forall k { P#[k](s) } :: 0 ATMOST k ==> P#[k](s)
+      var tr = new Bpl.Trigger(tok, true, new ExprSeq(prefixAppl));
+      var allK = new Bpl.ForallExpr(tok, new VariableSeq(k), tr, BplImp(kWhere, prefixAppl));
+      tr = new Bpl.Trigger(tok, true, new ExprSeq(coAppl));
+      var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), allK));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, allS));
+
+      // forall s :: { P(s) } s-has-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](s)) ==> P(s)
+      allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, allK), coAppl));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, allS));
     }
 
     /// <summary>
@@ -1921,7 +2062,7 @@ namespace Microsoft.Dafny {
       foreach (Expression p in f.Ens) {
         var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
         var splits = new List<SplitExprInfo>();
-        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, 0, etran);
+        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, null, etran);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
             ens.Add(Ensures(s.E.tok, false, s.E, null, null));
@@ -2339,7 +2480,7 @@ namespace Microsoft.Dafny {
         r = BplAnd(r, CanCallAssumption(e.Args, etran));
         // get to assume canCall
         Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullCompileName + "#canCall", Bpl.Type.Bool);
-        ExprSeq args = etran.FunctionInvocationArguments(e);
+        ExprSeq args = etran.FunctionInvocationArguments(e, null);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         r = BplAnd(r, canCallFuncAppl);
         return r;
@@ -2453,6 +2594,21 @@ namespace Microsoft.Dafny {
         and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
         and.Type = Type.Bool;  // resolve here
         return and;
+      }
+    }
+
+    Expression DafnyImp(Expression a, Expression b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+
+      if (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b)) {
+        return b;
+      } else {
+        BinaryExpr imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
+        imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
+        imp.Type = Type.Bool;  // resolve here
+        return imp;
       }
     }
 
@@ -2790,7 +2946,7 @@ namespace Microsoft.Dafny {
         }
         // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
         Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullCompileName + "#canCall", Bpl.Type.Bool);
-        ExprSeq args = etran.FunctionInvocationArguments(e);
+        ExprSeq args = etran.FunctionInvocationArguments(e, null);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         builder.Add(new Bpl.AssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
 
@@ -2893,7 +3049,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Guard, options, locals, builder, etran);
         if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
           bool splitHappened;
-          var ss = TrSplitExpr(e.Guard, etran, false, out splitHappened);
+          var ss = TrSplitExpr(e.Guard, etran, null, out splitHappened);
           if (!splitHappened) {
             builder.Add(Assert(e.Guard.tok, etran.TrExpr(e.Guard), "condition in assert expression might not hold"));
           } else {
@@ -2988,7 +3144,7 @@ namespace Microsoft.Dafny {
 
       inferredDecreases = false;
       List<Expression> decr = m.Decreases.Expressions;
-      if (decr.Count == 0) {
+      if (decr.Count == 0 || (m is PrefixMethod && decr.Count == 1)) {
         decr = new List<Expression>();
         foreach (Formal p in m.Ins) {
           if (IsOrdered(p.Type)) {
@@ -3355,10 +3511,6 @@ namespace Microsoft.Dafny {
         sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 0), args, res));
         sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 2), args, res));
       }
-      if (f is CoPredicate) {
-        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, f.FullCompileName + "#cert0", args, res));
-        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, f.FullCompileName + "#cert1", args, res));
-      }
 
       res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       Bpl.Function canCallF = new Bpl.Function(f.tok, f.FullCompileName + "#canCall", args, res);
@@ -3438,7 +3590,7 @@ namespace Microsoft.Dafny {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
               if ((kind == MethodTranslationKind.IntraModuleCall || kind == MethodTranslationKind.CoCall) && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -3450,14 +3602,19 @@ namespace Microsoft.Dafny {
           comment = null;
         }
         comment = "user-defined postconditions";
+        IdentifierExpr depthArgument = null;
+        if (m is PrefixMethod) {
+          var pm = (PrefixMethod)m;
+          depthArgument = new IdentifierExpr(pm.tok, pm.K.Name);
+          depthArgument.Var = pm.K;  // resolve here
+          depthArgument.Type = pm.K.Type;  // resolve here
+        }
         foreach (var p in m.Ens) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             var ss = new List<SplitExprInfo>();
-            var splitHappened/*we actually don't care*/ = TrSplitExpr(p.E, ss, true, int.MaxValue,
-              kind == MethodTranslationKind.CoCall ? 2 : kind == MethodTranslationKind.Implementation && m is CoMethod ? 1 : 0,
-              etran);
+            var splitHappened/*we actually don't care*/ = TrSplitExpr(p.E, ss, true, int.MaxValue, depthArgument, etran);
             foreach (var s in ss) {
               var post = s.E;
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -3534,14 +3691,14 @@ namespace Microsoft.Dafny {
           req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, null));
         } else {
           bool splitHappened;  // we actually don't care
-          foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+          foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
             req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
           }
         }
       }
       foreach (MaybeFreeExpression p in m.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
           ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, "Error: postcondition of refined method may be violated", null));
         }
       }
@@ -3632,7 +3789,7 @@ namespace Microsoft.Dafny {
 
       foreach (var p in m.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p.E, etran, false, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
           var assert = new Bpl.AssertCmd(method.tok, s.E, ErrorMessageAttribute(s.E.tok, "This is the postcondition that may not hold."));
           assert.ErrorData = "Error: A postcondition of the refined method may not hold.";
           builder.Add(assert);
@@ -3706,7 +3863,7 @@ namespace Microsoft.Dafny {
       var ens = new Bpl.EnsuresSeq();
       foreach (Expression p in f.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p, etran, false, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p, etran, null, out splitHappened)) {
           if (s.IsChecked) {
             ens.Add(Ensures(s.E.tok, false, s.E, null, null));
           }
@@ -4122,7 +4279,7 @@ namespace Microsoft.Dafny {
             enclosingToken = stmt.Tok;
           }
           bool splitHappened;
-          var ss = TrSplitExpr(s.Expr, etran, false, out splitHappened);
+          var ss = TrSplitExpr(s.Expr, etran, null, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
             builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok));
@@ -4202,7 +4359,7 @@ namespace Microsoft.Dafny {
             // do nothing
           } else {
             bool splitHappened;  // actually, we don't care
-            var ss = TrSplitExpr(p.E, yeEtran, false, out splitHappened);
+            var ss = TrSplitExpr(p.E, yeEtran, null, out splitHappened);
             foreach (var split in ss) {
               if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
@@ -4461,7 +4618,7 @@ namespace Microsoft.Dafny {
             b = new Bpl.StmtListBuilder();
             TrStmt(s.Hints[i], b, locals, etran);
             bool splitHappened;
-            var ss = TrSplitExpr(s.Steps[i], etran, false, out splitHappened);
+            var ss = TrSplitExpr(s.Steps[i], etran, null, out splitHappened);
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -5040,7 +5197,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(ens.E, definedness, locals, etran, false);
         if (!ens.IsFree) {
           bool splitHappened;  // we actually don't care
-          foreach (var split in TrSplitExpr(ens.E, etran, false, out splitHappened)) {
+          foreach (var split in TrSplitExpr(ens.E, etran, null, out splitHappened)) {
             if (split.IsChecked) {
               definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of parallel statement"));
             }
@@ -5171,7 +5328,7 @@ namespace Microsoft.Dafny {
           invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
         } else {
           bool splitHappened;
-          var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
+          var ss = TrSplitExpr(loopInv.E, etran, null, out splitHappened);
           if (!splitHappened) {
             var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
             invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
@@ -5404,13 +5561,50 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
+      // 'codeContext' can be a Method or an IteratorDecl.  In case of the latter, the caller is really
+      // the iterator's MoveNext method.  Computer the caller here:
+      Method caller = codeContext as Method ?? ((IteratorDecl)codeContext).Member_MoveNext;
+      // Figure out if the call is recursive or not, which will be used below to determine the need for a
+      // termination check and the need to include an implicit _k-1 argument.
+      bool isRecursiveCall = false;
+      if (method is PrefixMethod) {
+        // An explicit call to a prefix method is allowed only within the corresponding comethod's SCC, so
+        // this is really a recursive call.
+        Contract.Assert(codeContext is PrefixMethod);  // sanity check
+        isRecursiveCall = true;
+      } else {
+        // consult the call graph to figure out if this is a recursive call
+        var module = method.EnclosingClass.Module;
+        if (module == currentModule) {
+          // Note, prefix methods are not recorded in the call graph, but their corresponding comethods are.
+          Method cllr = caller is PrefixMethod ? ((PrefixMethod)caller).Co : caller;
+          if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(cllr)) {
+            isRecursiveCall = true;
+          }
+        }
+      }
+
+      MethodTranslationKind kind;
+      var callee = method;
+      if (method is CoMethod && isRecursiveCall) {
+        kind = MethodTranslationKind.CoCall;
+        callee = ((CoMethod)method).PrefixMethod;
+      } else if (method is PrefixMethod) {
+        // an explicit call to a prefix method is allowed only inside the SCC of the corresponding comethod,
+        // so we consider this to be a co-call
+        kind = MethodTranslationKind.CoCall;
+      } else if (RefinementToken.IsInherited(method.tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+        kind = MethodTranslationKind.IntraModuleCall;
+      } else {
+        kind = MethodTranslationKind.InterModuleCall;
+      }
+
+      // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
       Bpl.ExprSeq ins = new Bpl.ExprSeq();
       if (!method.IsStatic) {
-        if (bReceiver == null) {
-          if (!(dafnyReceiver is ThisExpr)) {
-            CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
-          }
+        if (bReceiver == null && !(dafnyReceiver is ThisExpr)) {
+          CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
         }
         ins.Add(etran.TrExpr(receiver));
       }
@@ -5419,43 +5613,47 @@ namespace Microsoft.Dafny {
       // but Boogie doesn't give us a hook for that.  So, we set up our own local variables here to
       // store the actual parameters.
       // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
-      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-      for (int i = 0; i < method.Ins.Count; i++) {
-        Formal p = method.Ins[i];
-        VarDecl local = new VarDecl(p.tok, p.Name + "#", p.Type, p.IsGhost);
+      var substMap = new Dictionary<IVariable, Expression>();
+      for (int i = 0; i < callee.Ins.Count; i++) {
+        var formal = callee.Ins[i];
+        var local = new VarDecl(formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
-        IdentifierExpr ie = new IdentifierExpr(local.Tok, local.UniqueName);
+        var ie = new IdentifierExpr(local.Tok, local.UniqueName);
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
-        substMap.Add(p, ie);
+        substMap.Add(formal, ie);
         locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.UniqueName, TrType(local.Type))));
 
-        Bpl.IdentifierExpr param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-        Expression actual = Args[i];
-        TrStmt_CheckWellformed(actual, builder, locals, etran, true);
-        var bActual = etran.TrExpr(actual);
-        CheckSubrange(actual.tok, bActual, p.Type, builder);
-        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, param, etran.CondApplyBox(actual.tok, bActual, cce.NonNull(actual.Type), method.Ins[i].Type));
+        var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+        Bpl.Expr bActual;
+        if (i == 0 && method is CoMethod && isRecursiveCall) {
+          // Treat this call to M(args) as a call to the corresponding prefix method M#(_k - 1, args), so insert an argument here.
+          var k = ((PrefixMethod)caller).K;
+          bActual = Bpl.Expr.Sub(new Bpl.IdentifierExpr(k.tok, k.UniqueName, Bpl.Type.Int), Bpl.Expr.Literal(1));
+        } else {
+          Expression actual;
+          if (method is CoMethod && isRecursiveCall) {
+            actual = Args[i - 1];
+          } else {
+            actual = Args[i];
+          }
+          TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          bActual = etran.CondApplyBox(actual.tok, etran.TrExpr(actual), actual.Type, formal.Type);
+          CheckSubrange(actual.tok, bActual, formal.Type, builder);
+        }
+        Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
         ins.Add(param);
       }
 
       // Check modifies clause of a subcall is a subset of the current frame.
-      CheckFrameSubset(tok, method.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+      CheckFrameSubset(tok, callee.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
 
       // Check termination
-      ModuleDefinition module = method.EnclosingClass.Module;
-      bool isRecursiveCall = false;
-      if (module == currentModule) {
-        var caller = codeContext is Method ? (Method)codeContext : ((IteratorDecl)codeContext).Member_MoveNext;
-        if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(caller)) {
-          isRecursiveCall = true;
-          if (!(method is CoMethod)) {
-            bool contextDecrInferred, calleeDecrInferred;
-            List<Expression> contextDecreases = MethodDecreasesWithDefault(caller, out contextDecrInferred);
-            List<Expression> calleeDecreases = MethodDecreasesWithDefault(method, out calleeDecrInferred);
-            CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred, null);
-          }
-        }
+      if (isRecursiveCall) {
+        bool contextDecrInferred, calleeDecrInferred;
+        List<Expression> contextDecreases = MethodDecreasesWithDefault(caller, out contextDecrInferred);
+        List<Expression> calleeDecreases = MethodDecreasesWithDefault(callee, out calleeDecrInferred);
+        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -5463,7 +5661,7 @@ namespace Microsoft.Dafny {
       List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>();
       for (int i = 0; i < Lhss.Count; i++) {
         var bLhs = Lhss[i];
-        if (ExpressionTranslator.ModeledAsBoxType(method.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(LhsTypes[i])) {
+        if (ExpressionTranslator.ModeledAsBoxType(callee.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(LhsTypes[i])) {
           // we need an Unbox
           Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, "$tmp##" + otherTmpVarCount, predef.BoxType));
           otherTmpVarCount++;
@@ -5478,15 +5676,7 @@ namespace Microsoft.Dafny {
       }
 
       // Make the call
-      MethodTranslationKind kind;
-      if (isRecursiveCall && method is CoMethod) {
-        kind = MethodTranslationKind.CoCall;
-      } else if (RefinementToken.IsInherited(method.tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
-        kind = MethodTranslationKind.IntraModuleCall;
-      } else {
-        kind = MethodTranslationKind.InterModuleCall;
-      }
-      Bpl.CallCmd call = new Bpl.CallCmd(tok, MethodName(method, kind), ins, outs);
+      Bpl.CallCmd call = new Bpl.CallCmd(tok, MethodName(callee, kind), ins, outs);
       builder.Add(call);
 
       // Unbox results as needed
@@ -6882,7 +7072,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          return TrFunctionCallExpr(e, 0);
+          return TrFunctionCallExpr(e, null);
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
@@ -7231,39 +7421,32 @@ namespace Microsoft.Dafny {
 
       /// <summary>
       /// Return a Boogie call corresponding to "e".
-      /// If certificatePrimes == 0 or the function is not a copredicate, then the usual function name is used (modulated, as
+      /// If coContextDepth is null or the function is not a copredicate, then the usual function name is used (modulated, as
       /// usual, by the layer offset).
-      /// Otherwise (that is, if certificatePrimes > 0 and the function is a copredicate), then the function generated will
-      /// be one for a proof certificate, where certificatePrimes indicates the number of ``primes'' on the certificate.
-      /// For example, for a copredicate P(s), if certificatePrimes==1, then P'(s) will be produced, and if certificatePrimes==2,
-      /// then P''(s) will be produced.  Note, although the ``primes'' reflect the way one might speak of these on a
-      /// whiteboard, P' and P'' are actually denoted P#cert0 and P#cert1 in the Boogie file.
+      /// Otherwise (that is, if certificatePrimes != null and the function is a copredicate), then the function generated will
+      /// be one for the corresponding prefix predicate, using coContextDepth as the depth argument.
       /// </summary>
-      public Bpl.Expr TrFunctionCallExpr(FunctionCallExpr e, int certificatePrimes) {
+      public Bpl.Expr TrFunctionCallExpr(FunctionCallExpr e, Bpl.Expr coContextDepth) {
         Contract.Requires(e != null);
-        Contract.Requires(0 <= certificatePrimes && certificatePrimes < 3);
 
-        if (e.Function.IsRecursive) {
+        var isRecursive = e.Function.IsRecursive;
+        var f = coContextDepth != null && e.Function is CoPredicate ? ((CoPredicate)e.Function).PrefixPredicate : e.Function;
+        if (isRecursive) {
           Statistics_CustomLayerFunctionCount++;
         }
-        string nm;
-        if (0 < certificatePrimes && e.Function is CoPredicate) {
-          nm = e.Function.FullCompileName + "#cert" + (certificatePrimes - 1);
-        } else {
-          int offsetToUse = e.Function.IsRecursive ? this.layerOffset : 0;
-          nm = FunctionName(e.Function, 1 + offsetToUse);
-          if (this.applyLimited_CurrentFunction != null && e.Function.IsRecursive) {
-            ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
-            if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
-              if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
-                nm = FunctionName(e.Function, 0 + offsetToUse);
-              }
+        int offsetToUse = isRecursive ? this.layerOffset : 0;
+        string nm = FunctionName(f, 1 + offsetToUse);
+        if (this.applyLimited_CurrentFunction != null && isRecursive) {
+          ModuleDefinition module = cce.NonNull(f.EnclosingClass).Module;
+          if (module == cce.NonNull(applyLimited_CurrentFunction.EnclosingClass).Module) {
+            if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
+              nm = FunctionName(e.Function, 0 + offsetToUse);
             }
           }
         }
-        Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(e.tok, nm, translator.TrType(cce.NonNull(e.Type)));
-        Bpl.ExprSeq args = FunctionInvocationArguments(e);
-        Bpl.Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+        var id = new Bpl.IdentifierExpr(e.tok, nm, translator.TrType(e.Type));
+        var args = FunctionInvocationArguments(e, e.Function is CoPredicate ? coContextDepth : null);
+        var result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
         return CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
       }
 
@@ -7348,7 +7531,7 @@ namespace Microsoft.Dafny {
         return typeAntecedent;
       }
 
-      public ExprSeq FunctionInvocationArguments(FunctionCallExpr e) {
+      public ExprSeq FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr depthArgument) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<ExprSeq>() != null);
 
@@ -7356,6 +7539,9 @@ namespace Microsoft.Dafny {
         args.Add(HeapExpr);
         if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
+        }
+        if (depthArgument != null) {
+          args.Add(depthArgument);
         }
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
@@ -8109,13 +8295,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool inCoContext, out bool splitHappened) {
+    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, Expression coContextDepth, out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, inCoContext ? 1 : 0, etran);
+      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, coContextDepth, etran);
       return splits;
     }
 
@@ -8124,9 +8310,9 @@ namespace Microsoft.Dafny {
     /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function if
     /// if it declared in the current module and its height is less than "heightLimit".
     /// 
-    /// If "coContextDepth > 0", then any copredicate P(s) appearing in a positive position is interpreted as
-    /// a proof certificate P'(s) or P''(s) for P(s), and similarly an equality A==B on co-datatype values is
-    /// interpreted as a proof certificate A ~~' B or A ~~'' B for the equality.  These certificate interpretations
+    /// If "coContextDepth != null", then any copredicate P(s) appearing in a positive position is interpreted as
+    /// a prefix predicate P#[coContextDepth](s), and similarly an equality A==B on co-datatype values is
+    /// interpreted as a proof certificate A ==#[coContextDepth] B.  These prefix-predicate interpretations
     /// have an effect on inlining.
     /// In particular, where P(s) would inline into:
     ///    check P(s) \/ H(s)
@@ -8146,11 +8332,10 @@ namespace Microsoft.Dafny {
     ///     check A ~~' B \/ A.tail ~~'' B.tail
     ///     free A ~~' B
     /// </summary>
-    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, int coContextDepth, ExpressionTranslator etran) {
+    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, Expression coContextDepth, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type is BoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type is BoolType));
       Contract.Requires(splits != null);
-      Contract.Requires(0 <= coContextDepth && coContextDepth < 3);
       Contract.Requires(etran != null);
 
       if (expr is BoxingCastExpr) {
@@ -8215,6 +8400,7 @@ namespace Microsoft.Dafny {
             }
           }
           return true;
+#if SOON
         } else if (position && coContextDepth == 2 && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
           var eq = etran.TrEquality(bin.tok, bin.E0, bin.E1, 2);
           splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, eq));
@@ -8250,6 +8436,7 @@ namespace Microsoft.Dafny {
             splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, Bpl.Expr.Binary(new NestedToken(bin.tok, ctor.tok), BinaryOperator.Opcode.Or, eq, Bpl.Expr.Imp(lhs, rhs))));
           }
           return true;
+#endif
         }
 
       } else if (expr is ITEExpr) {
@@ -8307,10 +8494,16 @@ namespace Microsoft.Dafny {
         var fexp = (FunctionCallExpr)expr;
         var f = fexp.Function;
         Contract.Assert(f != null);  // filled in during resolution
+        if (f is CoPredicate && coContextDepth != null) {
+          // rewrite P(s) into P#[coContextDepth](s)
+          var cop = (CoPredicate)f;
+          var prefixPredCall = cop.CreatePrefixPredicateCall(fexp, coContextDepth);
+          return TrSplitExpr(prefixPredCall, splits, position, heightLimit, null, etran);
+        }
         var module = f.EnclosingClass.Module;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
-        if (module == currentModule && functionHeight < heightLimit && f.Body != null && !(f.Body.Resolved is MatchExpr) && coContextDepth < 2) {
+        if (module == currentModule && functionHeight < heightLimit && f.Body != null && !(f.Body.Resolved is MatchExpr)) {
           if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
               f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
               (codeContext == null || !codeContext.MustReverify)) {
@@ -8327,7 +8520,12 @@ namespace Microsoft.Dafny {
               arg.Type = p.Type;  // resolve here
               substMap.Add(p, arg);
             }
-            Expression body = Substitute(f.Body, fexp.Receiver, substMap);
+            var body = f.Body;
+            if (f is PrefixPredicate) {
+              var pp = (PrefixPredicate)f;
+              body = PrefixSubstitution(pp, body);
+            }
+            body = Substitute(body, fexp.Receiver, substMap);
 
             // Produce, for a "body" split into b0, b1, b2:
             //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
@@ -8343,30 +8541,22 @@ namespace Microsoft.Dafny {
 
             // F#canCall(args)
             Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
-            ExprSeq args = etran.FunctionInvocationArguments(fexp);
+            ExprSeq args = etran.FunctionInvocationArguments(fexp, null);
             Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
 
             Bpl.Expr fargs;
-            if (coContextDepth > 0 && f is CoPredicate) {
-              // F'(args)
-              fargs = etran.TrFunctionCallExpr(fexp, coContextDepth);
-              // F#canCall(args) && F'(args)
-              var fr = Bpl.Expr.And(canCall, fargs);
-              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
-            } else {
-              // F(args)
-              fargs = etran.TrExpr(fexp);
-              // body
-              var trBody = etran.TrExpr(body);
-              trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
-              // F#canCall(args) && F(args) && (b0 && b1 && b2)
-              var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
-              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
-            }
+            // F(args)
+            fargs = etran.TrExpr(fexp);
+            // body
+            var trBody = etran.TrExpr(body);
+            trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
+            // F#canCall(args) && F(args) && (b0 && b1 && b2)
+            var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
 
             // recurse on body
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(body, ss, position, functionHeight, coContextDepth > 0 && f is CoPredicate ? 2 : 0, etran);
+            TrSplitExpr(body, ss, position, functionHeight, null, etran);
             foreach (var s in ss) {
               if (s.IsChecked) {
                 var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
@@ -8378,14 +8568,6 @@ namespace Microsoft.Dafny {
 
             return true;
           }
-        }
-        // If we get here, then we're in a positive position but the inlining attempt failed.  If we just fall through
-        // here, then we'll get the ordinary function call (without inlining).  But in co-contexts, that's not what we
-        // want, because in co-contexts we are supposed to change copredicates into proof certificates about copredicates.
-        // So, we do that check here.
-        if (f is CoPredicate && coContextDepth > 0) {
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, etran.TrFunctionCallExpr(fexp, coContextDepth)));
-          return true;
         }
 
       } else if ((position && expr is ForallExpr) || (!position && expr is ExistsExpr)) {
@@ -8875,6 +9057,30 @@ namespace Microsoft.Dafny {
             newFce.Type = e.Type;
           }
           return newFce;
+        }
+        return base.Substitute(expr);
+      }
+    }
+    public class PrefixCallSubstituter : Substituter
+    {
+      readonly CoPredicate coPred;
+      readonly Expression coDepth;
+      readonly ModuleDefinition module;
+      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, CoPredicate copred, Expression depth)
+        : base(receiverReplacement, substMap) {
+        Contract.Requires(copred != null);
+        Contract.Requires(depth != null);
+        coPred = copred;
+        coDepth = depth;
+        module = copred.EnclosingClass.Module;
+      }
+      public override Expression Substitute(Expression expr) {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          if (e.Function is CoPredicate && e.Function.EnclosingClass.Module == module &&
+            module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(coPred)) {
+            expr = coPred.CreatePrefixPredicateCall(e, coDepth);
+          }
         }
         return base.Substitute(expr);
       }

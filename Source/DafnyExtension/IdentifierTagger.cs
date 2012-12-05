@@ -355,6 +355,9 @@ namespace DafnyLanguage
           } else {
             var formal = (Formal)v;
             kind = formal.InParam ? "in-parameter" : "out-parameter";
+            if (formal is ImplicitFormal) {
+              kind = "implicit " + kind;
+            }
           }
         }
         HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);

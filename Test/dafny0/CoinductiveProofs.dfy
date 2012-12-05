@@ -23,18 +23,18 @@ comethod PosLemma1(n: int)
 {
   PosLemma1(n + 1);
   if (*) {
-    assert Pos(Upward(n + 1));  // error: cannot conclude this here, because we only have a certificate
+    assert Pos(Upward(n + 1));  // error: cannot conclude this here, because we only have prefix predicates
   }
 }
 
 comethod Outside_CoMethod_Caller_PosLemma(n: int)
   requires 1 <= n;
   ensures Pos(Upward(n));
-{  // error: this comethod is supposed to produce a certificate, but instead it establishes the real deal
-   // (which currently produces a complaint from Dafny)
+{
   assert Upward(n).tail == Upward(n + 1);  // follows from one unrolling of the definition of Upward
   PosLemma0(n + 1);
   assert Pos(Upward(n+1));  // this follows directly from the previous line, because it isn't a recursive call
+  // ... and it implies the prefix predicate we're supposed to establish
 }
 
 method Outside_Method_Caller_PosLemma(n: int)

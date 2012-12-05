@@ -647,7 +647,7 @@ namespace Microsoft.Dafny
                 MemberDecl extraMember;
                 var cloner = new Cloner();
                 var formals = new List<Formal>();
-                var k = new Formal(m.tok, "_k", new NatType(), true, false);
+                var k = new ImplicitFormal(m.tok, "_k", new NatType(), true, false);
                 formals.Add(k);
                 if (m is CoPredicate) {
                   var cop = (CoPredicate)m;
@@ -657,17 +657,26 @@ namespace Microsoft.Dafny
                     cop.TypeArgs.ConvertAll(cloner.CloneTypeParam), cop.OpenParen, k, formals,
                     cop.Req.ConvertAll(cloner.CloneExpr), cop.Reads.ConvertAll(cloner.CloneFrameExpr), cop.Ens.ConvertAll(cloner.CloneExpr),
                     new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
-                    null /*body is filled in later*/, null, false);
+                    cop.Body, null, cop);
                   extraMember = cop.PrefixPredicate;
                 } else {
                   var com = (CoMethod)m;
+                  // _k has already been added to 'formals', so append the original formals
                   formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
-                  // create prefix method
+                  // prepend "free requires 0 < _k;", since the postcondition of a comethod holds trivially if _k is 0
+                  var req = new List<MaybeFreeExpression>();
+                  req.Add(new MaybeFreeExpression(new BinaryExpr(k.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(k.tok, 0), new IdentifierExpr(k.tok, k.Name)), true));
+                  req.AddRange(com.Req.ConvertAll(cloner.CloneMayBeFreeExpr));
+                  // prepend _k to the given decreases clause
+                  var decr = new List<Expression>();
+                  decr.Add(new IdentifierExpr(com.tok, k.Name));
+                  decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+                  // Create prefix method.  Note that the body is not cloned, but simply shared.
                   com.PrefixMethod = new PrefixMethod(com.tok, extraName, com.IsStatic,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                    com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod), com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
-                    new Specification<Expression>(new List<Expression>() { new IdentifierExpr(com.tok, k.Name) }, null),
-                    null /*body is filled in later*/, null, false);
+                    req, cloner.CloneSpecFrameExpr(com.Mod), com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
+                    new Specification<Expression>(decr, null),
+                    com.Body, null, com);
                   extraMember = com.PrefixMethod;
                 }
                 members.Add(extraName, extraMember);
@@ -2607,8 +2616,16 @@ namespace Microsoft.Dafny
       }
 
       // Resolve body
-      if (m.Body != null) {
-        ResolveBlockStatement(m.Body, m.IsGhost, m);
+      if (m is CoMethod) {
+        // don't resolve the body here; instead, resolve it in the scope of the corresponding
+        // prefix method's signature
+      } else if (m.Body != null) {
+        var codeContext = m;
+        if (m is PrefixMethod) {
+          // this will cause the correct edges to be inserted into the call graph
+          codeContext = ((PrefixMethod)m).Co;
+        }
+        ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
       }
 
       scope.PopMarker();  // for the out-parameters and outermost-level locals

@@ -961,6 +961,20 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public static IEnumerable<CoMethod> AllCoMethods(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          foreach (var member in cl.Members) {
+            var m = member as CoMethod;
+            if (m != null) {
+              yield return m;
+            }
+          }
+        }
+      }
+    }
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
@@ -1593,6 +1607,20 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
+  /// An ImplicitFormal is a parameter that is declared implicitly, in particular the "_k" depth parameter
+  /// of each comethod (for use in the comethod body only, not the specification).
+  /// </summary>
+  public class ImplicitFormal : Formal
+  {
+    public ImplicitFormal(IToken/*!*/ tok, string/*!*/ name, Type/*!*/ type, bool inParam, bool isGhost)
+      : base(tok, name, type, inParam, isGhost) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);
+    }
+  }
+
+  /// <summary>
   /// A "ThisSurrogate" is used during translation time to make the treatment of the receiver more similar to
   /// the treatment of other in-parameters.
   /// </summary>
@@ -1699,14 +1727,17 @@ namespace Microsoft.Dafny {
   public class PrefixPredicate : Function
   {
     public readonly Formal K;
+    public readonly CoPredicate Co;
     public PrefixPredicate(IToken tok, string name, bool isStatic,
                      List<TypeParameter> typeArgs, IToken openParen, Formal k, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
+                     Expression body, Attributes attributes, CoPredicate coPred)
+      : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, false) {
       Contract.Requires(k != null);
+      Contract.Requires(coPred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
       K = k;
+      Co = coPred;
     }
   }
 
@@ -1721,6 +1752,26 @@ namespace Microsoft.Dafny {
                      Expression body, Attributes attributes, bool signatureOmitted)
       : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(),
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureOmitted) {
+    }
+
+    /// <summary>
+    /// For the given call P(s), return P#[depth](s).  The resulting expression shares some of the subexpressions
+    /// with 'fexp' (that is, what is returned is not necessarily a clone).
+    /// </summary>
+    public FunctionCallExpr CreatePrefixPredicateCall(FunctionCallExpr fexp, Expression depth) {
+      Contract.Requires(fexp != null);
+      Contract.Requires(fexp.Function == this);
+      Contract.Requires(depth != null);
+      Contract.Ensures(Contract.Result<FunctionCallExpr>() != null);
+
+      var args = new List<Expression>() { depth };
+      args.AddRange(fexp.Args);
+      var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
+      prefixPredCall.Function = this.PrefixPredicate;  // resolve here
+      prefixPredCall.TypeArgumentSubstitutions = fexp.TypeArgumentSubstitutions;  // resolve here
+      prefixPredCall.Type = fexp.Type;  // resolve here
+      prefixPredCall.CoCall = fexp.CoCall;  // resolve here
+      return prefixPredCall;
     }
   }
 
@@ -1830,14 +1881,17 @@ namespace Microsoft.Dafny {
   public class PrefixMethod : Method
   {
     public readonly Formal K;
+    public readonly CoMethod Co;
     public PrefixMethod(IToken tok, string name, bool isStatic,
                         List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                         List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
-                        BlockStmt body, Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureOmitted) {
+                        BlockStmt body, Attributes attributes, CoMethod co)
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, false) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
+      Contract.Requires(co != null);
       K = k;
+      Co = co;
     }
   }
 

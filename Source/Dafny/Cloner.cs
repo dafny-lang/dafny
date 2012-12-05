@@ -375,7 +375,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public Statement CloneStmt(Statement stmt) {
+    public virtual Statement CloneStmt(Statement stmt) {
       if (stmt == null) {
         return null;
       }
