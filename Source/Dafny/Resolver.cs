@@ -1608,6 +1608,7 @@ namespace Microsoft.Dafny
         CoPredicateChecks(e.Test, context, CallingPosition.Neither);
         CoPredicateChecks(e.Thn, context, cp);
         CoPredicateChecks(e.Els, context, cp);
+        return;
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         CoPredicateChecks(e.Body, context, cp);
