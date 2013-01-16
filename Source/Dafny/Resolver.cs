@@ -279,10 +279,11 @@ namespace Microsoft.Dafny
       moduleInfo = MergeSignature(sig, systemNameInfo);
       // resolve
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
+      var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = ErrorCount;
-      ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies);
+      ResolveTopLevelDecls_Signatures(m, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       if (ErrorCount == prevErrorCount) {
-        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies);
+        ResolveTopLevelDecls_Meat(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       }
     }
 
@@ -1096,9 +1097,10 @@ namespace Microsoft.Dafny
       }
       return i == Path.Count;
     }
-    public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
+    public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
-      Contract.Requires(datatypeDependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(datatypeDependencies));
+      Contract.Requires(datatypeDependencies != null);
+      Contract.Requires(codatatypeDependencies != null);
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
@@ -1124,15 +1126,16 @@ namespace Microsoft.Dafny
             // everything is allowed in an abstract module
           }
         } else {
-          ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies);
+          ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies, codatatypeDependencies);
         }
         allTypeParameters.PopMarker();
       }
     }
 
-    public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies) {
+    public void ResolveTopLevelDecls_Meat(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies));
+      Contract.Requires(cce.NonNullElements(codatatypeDependencies));
 
       int prevErrorCount = ErrorCount;
 
@@ -1211,6 +1214,13 @@ namespace Microsoft.Dafny
           // do the following check once per SCC, so call it on each SCC representative
           SccStratosphereCheck(dtd, datatypeDependencies);
           DetermineEqualitySupport(dtd, datatypeDependencies);
+        }
+      }
+
+      // Set the SccRepr field of codatatypes
+      foreach (var repr in codatatypeDependencies.TopologicallySortedComponents()) {
+        foreach (var codt in codatatypeDependencies.GetSCC(repr)) {
+          codt.SscRepr = repr;
         }
       }
 
@@ -2151,9 +2161,10 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveCtorTypes(DatatypeDecl/*!*/ dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
+    void ResolveCtorTypes(DatatypeDecl/*!*/ dt, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ coDependencies) {
       Contract.Requires(dt != null);
-      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);
+      Contract.Requires(coDependencies != null);
       foreach (DatatypeCtor ctor in dt.Ctors) {
 
         ctor.EnclosingDatatype = dt;
@@ -2163,10 +2174,21 @@ namespace Microsoft.Dafny
         allTypeParameters.PopMarker();
 
         if (dt is IndDatatypeDecl) {
+          // The dependencies of interest among inductive datatypes are all (inductive data)types mentioned in the parameter types
           var idt = (IndDatatypeDecl)dt;
           dependencies.AddVertex(idt);
           foreach (Formal p in ctor.Formals) {
             AddDatatypeDependencyEdge(idt, p.Type, dependencies);
+          }
+        } else {
+          // The dependencies of interest among codatatypes are just the top-level types of parameters.
+          var codt = (CoDatatypeDecl)dt;
+          coDependencies.AddVertex(codt);
+          foreach (var p in ctor.Formals) {
+            var co = p.Type.AsCoDatatype;
+            if (co != null && codt.Module == co.Module) {
+              coDependencies.AddEdge(codt, co);
+            }
           }
         }
       }
@@ -2179,7 +2201,7 @@ namespace Microsoft.Dafny
 
       var dependee = tp.AsIndDatatype;
       if (dependee != null && dt.Module == dependee.Module) {
-        dependencies.AddEdge((IndDatatypeDecl)dt, dependee);
+        dependencies.AddEdge(dt, dependee);
         foreach (var ta in ((UserDefinedType)tp).TypeArgs) {
           AddDatatypeDependencyEdge(dt, ta, dependencies);
         }

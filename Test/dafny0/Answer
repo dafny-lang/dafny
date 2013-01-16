@@ -1353,9 +1353,9 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-CoPrefix.dfy(114,1): Error BP5003: A postcondition might not hold on this return path.
-CoPrefix.dfy(113,11): Related location: This is the postcondition that might not hold.
-CoPrefix.dfy(101,17): Related location: Related location
+CoPrefix.dfy(112,1): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(111,11): Related location: This is the postcondition that might not hold.
+CoPrefix.dfy(99,17): Related location: Related location
 Execution trace:
     (0,0): anon0
 

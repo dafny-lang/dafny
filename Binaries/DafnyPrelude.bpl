@@ -480,10 +480,6 @@ function DatatypeCtorId(DatatypeType): DtCtorId;
 
 function DtRank(DatatypeType): int;
 
-function CoDatatypeCertificate#Equal0(DatatypeType, DatatypeType): bool;
-function CoDatatypeCertificate#Equal1(DatatypeType, DatatypeType): bool;
-axiom (forall d, e: DatatypeType :: d == e ==> CoDatatypeCertificate#Equal0(d, e));
-
 // ---------------------------------------------------------------
 // -- Axiom contexts ---------------------------------------------
 // ---------------------------------------------------------------

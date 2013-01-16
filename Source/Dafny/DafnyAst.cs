@@ -1123,6 +1123,8 @@ namespace Microsoft.Dafny {
 
   public class CoDatatypeDecl : DatatypeDecl
   {
+    public CoDatatypeDecl SscRepr;  // filled in during resolution
+
     public CoDatatypeDecl(IToken/*!*/ tok, string/*!*/ name, ModuleDefinition/*!*/ module, List<TypeParameter/*!*/>/*!*/ typeArgs,
       [Captured] List<DatatypeCtor/*!*/>/*!*/ ctors, Attributes attributes)
       : base(tok, name, module, typeArgs, ctors, attributes) {

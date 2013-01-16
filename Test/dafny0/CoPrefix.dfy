@@ -81,13 +81,11 @@ ghost method {:induction true} Theorem0_Lemma(k: nat)
 {
 }
 
-/** SOON
 comethod Theorem1()
   ensures append(zeros(), ones()) == zeros();
 {
   Theorem1();
 }
-** SOON */
 
 codatatype IList = ICons(head: int, tail: IList);
 
@@ -112,4 +110,36 @@ comethod Theorem2_NotAProof(n: int)
   requires 1 <= n;
   ensures Pos(UpIList(n));
 {  // error: this is not a proof
+}
+
+codatatype TList<T> = TCons(head: T, tail: TList);
+
+function Next<T>(t: T): T
+
+function FF<T>(h: T): TList<T>
+{
+  TCons(h, FF(Next(h)))
+}
+
+function GG<T>(h: T): TList<T>
+{
+  TCons(h, GG(Next(h)))
+}
+
+comethod Compare<T>(h: T)
+  ensures FF(h) == GG(h);
+{
+  assert FF(h).head == GG(h).head;
+  Compare(Next(h));
+  if {
+    case true =>
+      assert FF(h).tail == GG(h).tail;  // error: full equality is not known here
+    case true =>
+//      assert FF(h).tail == GG(h).tail;
+    case true =>
+//      assert FF(h).tail ==#[_k] GG(h).tail;
+    case true =>
+//      assert FF(h).tail ==#[_k - 1] GG(h).tail;
+    case true =>
+  }
 }
