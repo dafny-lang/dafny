@@ -1022,6 +1022,10 @@ namespace Microsoft.Dafny
         var e = (BinaryExpr)expr;
         return new BinaryExpr(e.tok, e.Op, CloneExpr(e.E0), CloneExpr(e.E1));
 
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        return new TernaryExpr(e.tok, e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
+
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
         return CloneExpr(e.E);  // just clone the desugaring, since it's already available
@@ -1654,6 +1658,7 @@ namespace Microsoft.Dafny
         CoPredicateChecks(e.Test, context, CallingPosition.Neither);
         CoPredicateChecks(e.Thn, context, cp);
         CoPredicateChecks(e.Els, context, cp);
+        return;
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         CoPredicateChecks(e.Body, context, cp);
@@ -3205,7 +3210,10 @@ namespace Microsoft.Dafny
 
         // In the remaining cases, proxy is a restricted proxy and t is a non-proxy
       } else if (proxy is DatatypeProxy) {
-        if (t.IsIndDatatype) {
+        var dtp = (DatatypeProxy)proxy;
+        if (!dtp.Co && t.IsIndDatatype) {
+          // all is fine, proxy can be redirected to t
+        } else if (dtp.Co && t.IsCoDatatype) {
           // all is fine, proxy can be redirected to t
         } else {
           return false;
@@ -3287,7 +3295,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(!Contract.Result<bool>() || a.T != null || b.T != null);
 
       if (a is DatatypeProxy) {
-        if (b is DatatypeProxy) {
+        if (b is DatatypeProxy && ((DatatypeProxy)a).Co == ((DatatypeProxy)b).Co) {
           // all is fine
           a.T = b;
           return true;
@@ -4733,10 +4741,6 @@ namespace Microsoft.Dafny
         e.Var = scope.Find(e.Name);
         if (e.Var != null) {
           expr.Type = e.Var.Type;
-        } else if (e is ImplicitIdentifierExpr) {
-          // Evidently, the variable _k has been introduced in a context where it is not allowed.  This is a symptom of
-          // a prefix predicate being called without an explicit depth parameter in a context where a depth is expected.
-          Error(expr, "a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)");
         } else {
           Error(expr, "Identifier does not denote a local variable, parameter, or bound variable: {0}", e.Name);
         }
@@ -5005,12 +5009,12 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add: {
               if (e.Op == BinaryExpr.Opcode.Lt && e.E0.Type.IsIndDatatype) {
-                if (!UnifyTypes(e.E1.Type, new DatatypeProxy())) {
+                if (!UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
               } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.IsIndDatatype) {
-                if (!UnifyTypes(e.E0.Type, new DatatypeProxy())) {
+                if (!UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
                 }
                 expr.Type = Type.Bool;
@@ -5038,7 +5042,7 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge: {
               if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.IsIndDatatype) {
-                if (!UnifyTypes(e.E1.Type, new DatatypeProxy())) {
+                if (!UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
@@ -5084,6 +5088,30 @@ namespace Microsoft.Dafny
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
         }
         e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
+
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        ResolveExpression(e.E0, twoState);
+        ResolveExpression(e.E1, twoState);
+        ResolveExpression(e.E2, twoState);
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            if (!UnifyTypes(e.E0.Type, Type.Int)) {
+              Error(e.E0, "prefix-equality limit argument must be an integer expression (got {0})", e.E0.Type);
+            }
+            if (!UnifyTypes(e.E1.Type, new DatatypeProxy(true))) {
+              Error(expr, "arguments to prefix equality must be codatatypes (instead of {0})", e.E1.Type);
+            }
+            if (!UnifyTypes(e.E1.Type, e.E2.Type)) {
+              Error(expr, "arguments must have the same type (got {0} and {1})", e.E1.Type, e.E2.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
+          default:
+            Contract.Assert(false);  // unexpected ternary operator
+            break;
+        }
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
@@ -5540,6 +5568,17 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.RankGt:
           case BinaryExpr.ResolvedOpcode.RankLt:
             Error(expr, "rank comparisons are allowed only in specification and ghost contexts");
+            return;
+          default:
+            break;
+        }
+
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            Error(expr, "prefix equalities are allowed only in specification and ghost contexts");
             return;
           default:
             break;
@@ -6514,7 +6553,7 @@ namespace Microsoft.Dafny
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
         case BinaryExpr.Opcode.Lt:
-          if (operandType.IsIndDatatype || operandType is DatatypeProxy) {
+          if (operandType.IsIndDatatype || (operandType is DatatypeProxy && !((DatatypeProxy)operandType).Co)) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
@@ -6669,6 +6708,16 @@ namespace Microsoft.Dafny
           return true;
         }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            return true;
+          default:
+            break;
+        }
+        return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1) || UsesSpecFeatures(e.E2);
       } else if (expr is NamedExpr) {
         return moduleInfo.IsGhost ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is ComprehensionExpr) {

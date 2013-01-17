@@ -2174,6 +2174,9 @@ namespace Microsoft.Dafny {
           wr.Write(")");
         }
 
+      } else if (expr is TernaryExpr) {
+        Contract.Assume(false);  // currently, none of the ternary expressions is compilable
+
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         // The Dafny "let" expression

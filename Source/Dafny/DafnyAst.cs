@@ -658,6 +658,10 @@ namespace Microsoft.Dafny {
   /// This proxy stands for any datatype.
   /// </summary>
   public class DatatypeProxy : RestrictedTypeProxy {
+    public readonly bool Co;  // false means only inductive datatypes; true means only co-inductive datatypes
+    public DatatypeProxy(bool co) {
+      Co = co;
+    }
     public override int OrderID {
       get {
         return 0;
@@ -3450,19 +3454,6 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// Indicates the that identifier did not appear explicitly in the source text (like the "_k" in
-  /// calls to co-recursive things).
-  /// </summary>
-  public class ImplicitIdentifierExpr : IdentifierExpr
-  {
-    public ImplicitIdentifierExpr(IToken tok, string name)
-      : base(tok, name) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-    }
-  }
-
-  /// <summary>
   /// If an "AutoGhostIdentifierExpr" is used as the out-parameter of a ghost method or
   /// a method with a ghost parameter, resolution will change the .Var's .IsGhost to true
   /// automatically.  This class is intended to be used only as a communicate between the
@@ -4023,6 +4014,34 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TernaryExpr : Expression
+  {
+    public readonly Opcode Op;
+    public readonly Expression E0;
+    public readonly Expression E1;
+    public readonly Expression E2;
+    public enum Opcode { /*SOON: IfOp,*/ PrefixEqOp, PrefixNeqOp }
+    public TernaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, Expression e2)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e2 != null);
+      Op = op;
+      E0 = e0;
+      E1 = e1;
+      E2 = e2;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return E0;
+        yield return E1;
+        yield return E2;
+      }
+    }
+  }
+
   public class LetExpr : Expression
   {
     public readonly List<BoundVar> Vars;
@@ -4543,8 +4562,9 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Expression> Operands;
     public readonly List<BinaryExpr.Opcode> Operators;
+    public readonly List<Expression/*?*/> PrefixLimits;
     public readonly Expression E;
-    public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, Expression desugaring)
+    public ChainingExpression(IToken tok, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<Expression/*?*/> prefixLimits, Expression desugaring)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(operands != null);
@@ -4554,6 +4574,7 @@ namespace Microsoft.Dafny {
 
       Operands = operands;
       Operators = operators;
+      PrefixLimits = prefixLimits;
       E = desugaring;
     }
   }

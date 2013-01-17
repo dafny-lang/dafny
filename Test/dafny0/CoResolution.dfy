@@ -19,25 +19,49 @@ copredicate D()
 
 copredicate S(d: set<int>)
 {
-  this.S#(d) &&  // error: the call to S# must give an explicit depth argument
-  S#(d) &&  // error: the call to S# must give an explicit depth argument
-  this.Undeclared#(d) &&  // error: 'Undeclared#' is undeclared, and depth argument is left implicit
   this.Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
-  Undeclared#(d) &&  // error: 'Undeclared#' is undeclared, and depth argument is left implicit
   Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
   this.S#[5](d) &&
   S#[5](d) &&
-  S#(5, d) &&  // error: the '5' here does not give the depth argument
   S#[_k](d)  // error: _k is not an identifier in scope
 }
 
 comethod CM(d: set<int>)
 {
   var b;
-  b := this.S#[5](d) && this.S#(d + d);  // error: cannot rely on implicit depth argument here
-  b := S#[5](d) && S#(d + d);  // error: cannot rely on implicit depth argument here
+  b := this.S#[5](d);
+  b := S#[5](d);
   this.CM#[5](d);
   CM#[5](d);
-  this.CM#(d + d);  // error: must give an explicit depth argument
-  CM#(d + d);  // error: must give an explicit depth argument
+}
+
+module GhostCheck0 {
+  codatatype Stream<G> = Cons(head: G, tail: Stream);
+  method UseStream0(s: Stream)
+  {
+    var x := 3;
+    if (s == s.tail) {  // error: this operation is allowed only in ghost contexts
+      x := x + 2;
+    }
+  }
+}
+module GhostCheck1 {
+  codatatype Stream<G> = Cons(head: G, tail: Stream);
+  method UseStream1(s: Stream)
+  {
+    var x := 3;
+    if (s ==#[20] s.tail) {  // this seems innocent enough, but it's currently not supported by the compiler, so...
+      x := x + 7;  // error: therefore, this is an error
+    }
+  }
+}
+module GhostCheck2 {
+  codatatype Stream<G> = Cons(head: G, tail: Stream);
+  ghost method UseStreamGhost(s: Stream)
+  {
+    var x := 3;
+    if (s == s.tail) {  // fine
+      x := x + 2;
+    }
+  }
 }

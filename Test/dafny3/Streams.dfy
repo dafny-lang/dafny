@@ -49,13 +49,35 @@ comethod Theorem0(M: Stream<X>)
       Theorem0(N);
   }
 }
-comethod Theorem0_alt(M: Stream<X>)
+comethod Theorem0_Alt(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
   if (M.Cons?) {
-    Theorem0(M.tail);
+    Theorem0_Alt(M.tail);
   }
 }
+ghost method Theorem0_Par(M: Stream<X>)
+  ensures map_fg(M) == map_f(map_g(M));
+{
+  parallel (k: nat) {
+    Theorem0_Ind(k, M);
+  }
+}
+ghost method Theorem0_Ind(k: nat, M: Stream<X>)
+  ensures map_fg(M) ==#[k] map_f(map_g(M));
+{
+  if (k != 0) {
+    match (M) {
+      case Nil =>
+      case Cons(x, N) =>
+        Theorem0_Ind(k-1, N);
+    }
+  }
+}
+ghost method Theorem0_AutoInd(k: nat, M: Stream<X>)
+  ensures map_fg(M) ==#[k] map_f(map_g(M));
+// {  // TODO: this is not working yet, apparently
+// }
 
 // map f (append M N) = append (map f M) (map f N)
 comethod Theorem1(M: Stream<X>, N: Stream<X>)
@@ -67,12 +89,39 @@ comethod Theorem1(M: Stream<X>, N: Stream<X>)
       Theorem1(M', N);
   }
 }
-comethod Theorem1_alt(M: Stream<X>, N: Stream<X>)
+comethod Theorem1_Alt(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
   if (M.Cons?) {
-    Theorem1(M.tail, N);
+    Theorem1_Alt(M.tail, N);
   }
+}
+ghost method Theorem1_Par(M: Stream<X>, N: Stream<X>)
+  ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
+{
+  parallel (k: nat) {
+    Theorem1_Ind(k, M, N);
+  }
+}
+ghost method Theorem1_Ind(k: nat, M: Stream<X>, N: Stream<X>)
+  ensures map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));
+{
+  // this time, try doing the 'if' inside the 'match' (instead of the other way around)
+  match (M) {
+    case Nil =>
+    case Cons(x, M') =>
+      if (k != 0) {
+        Theorem1_Ind(k-1, M', N);
+      }
+  }
+}
+ghost method Theorem1_AutoInd(k: nat, M: Stream<X>, N: Stream<X>)
+  ensures map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));
+// {  // TODO: this is not working yet, apparently
+// }
+ghost method Theorem1_AutoForall()
+{
+//  assert forall k: nat, M, N :: map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));  // TODO: this is not working yet, apparently
 }
 
 // append NIL M = M
@@ -92,11 +141,11 @@ comethod Theorem3(M: Stream<X>)
       Theorem3(N);
   }
 }
-comethod Theorem3_alt(M: Stream<X>)
+comethod Theorem3_Alt(M: Stream<X>)
   ensures append(M, Nil) == M;
 {
   if (M.Cons?) {
-    Theorem3(M.tail);
+    Theorem3_Alt(M.tail);
   }
 }
 
@@ -110,11 +159,11 @@ comethod Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
       Theorem4(M', N, P);
   }
 }
-comethod Theorem4_alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
+comethod Theorem4_Alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
   ensures append(M, append(N, P)) == append(append(M, N), P);
 {
   if (M.Cons?) {
-    Theorem4(M.tail, N, P);
+    Theorem4_Alt(M.tail, N, P);
   }
 }
 
@@ -122,7 +171,7 @@ comethod Theorem4_alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
 
 // Flatten can't be written as just:
 //
-//     function SimpleFlatten<T>(M: Stream<Stream>): Stream
+//     function SimpleFlatten(M: Stream<Stream>): Stream
 //     {
 //       match M
 //       case Nil => Nil
@@ -130,9 +179,9 @@ comethod Theorem4_alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
 //     }
 //
 // because this function fails to be productive given an infinite stream of Nil's.
-// Instead, here are two variations SimpleFlatten.  The first variation (FlattenStartMarker)
+// Instead, here are two variations of SimpleFlatten.  The first variation (FlattenStartMarker)
 // prepends a "startMarker" to each of the streams in "M".  The other (FlattenNonEmpties)
-// insists that "M" contains no empty streams.  One can prove a theorem that relates these
+// insists that "M" contain no empty streams.  One can prove a theorem that relates these
 // two versions.
 
 // This first variation of Flatten returns a stream of the streams in M, each preceded with
@@ -140,18 +189,18 @@ comethod Theorem4_alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
 
 function FlattenStartMarker<T>(M: Stream<Stream>, startMarker: T): Stream
 {
-  FlattenStartMarkerAcc(Nil, M, startMarker)
+  PrependThenFlattenStartMarker(Nil, M, startMarker)
 }
 
-function FlattenStartMarkerAcc<T>(accumulator: Stream, M: Stream<Stream>, startMarker: T): Stream
+function PrependThenFlattenStartMarker<T>(prefix: Stream, M: Stream<Stream>, startMarker: T): Stream
 {
-  match accumulator
+  match prefix
   case Cons(hd, tl) =>
-    Cons(hd, FlattenStartMarkerAcc(tl, M, startMarker))
+    Cons(hd, PrependThenFlattenStartMarker(tl, M, startMarker))
   case Nil =>
     match M
     case Nil => Nil
-    case Cons(s, N) => Cons(startMarker, FlattenStartMarkerAcc(s, N, startMarker))
+    case Cons(s, N) => Cons(startMarker, PrependThenFlattenStartMarker(s, N, startMarker))
 }
 
 // The next variation of Flatten requires M to contain no empty streams.
@@ -166,26 +215,24 @@ copredicate StreamOfNonEmpties(M: Stream<Stream>)
 function FlattenNonEmpties(M: Stream<Stream>): Stream
   requires StreamOfNonEmpties(M);
 {
-  FlattenNonEmptiesAcc(Nil, M)
+  PrependThenFlattenNonEmpties(Nil, M)
 }
 
-function FlattenNonEmptiesAcc(accumulator: Stream, M: Stream<Stream>): Stream
+function PrependThenFlattenNonEmpties(prefix: Stream, M: Stream<Stream>): Stream
   requires StreamOfNonEmpties(M);
 {
-  match accumulator
+  match prefix
   case Cons(hd, tl) =>
-    Cons(hd, FlattenNonEmptiesAcc(tl, M))
+    Cons(hd, PrependThenFlattenNonEmpties(tl, M))
   case Nil =>
     match M
     case Nil => Nil
-    case Cons(s, N) => Cons(s.head, FlattenNonEmptiesAcc(s.tail, N))
+    case Cons(s, N) => Cons(s.head, PrependThenFlattenNonEmpties(s.tail, N))
 }
 
 // We can prove a theorem that links the previous two variations of flatten.  To
 // do that, we first define a function that prepends an element to each stream
 // of a given stream of streams.
-// The "assume" statements below are temporary workaround.  They make the proofs
-// unsound, but, as a temporary measure, they express the intent of the proofs.
 
 function Prepend<T>(x: T, M: Stream<Stream>): Stream<Stream>
   ensures StreamOfNonEmpties(Prepend(x, M));
@@ -201,58 +248,82 @@ ghost method Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
   Lemma_Flatten(Nil, M, startMarker);
 }
 
-comethod Lemma_Flatten<T>(accumulator: Stream, M: Stream<Stream>, startMarker: T)
-  ensures FlattenStartMarkerAcc(accumulator, M, startMarker) == FlattenNonEmptiesAcc(accumulator, Prepend(startMarker, M));
+comethod Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
+  ensures PrependThenFlattenStartMarker(prefix, M, startMarker) == PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
 {
-  calc {
-    FlattenStartMarkerAcc(accumulator, M, startMarker);
-    { Lemma_FlattenAppend0(accumulator, M, startMarker); }
-    append(accumulator, FlattenStartMarkerAcc(Nil, M, startMarker));
-    { Lemma_Flatten(Nil, M, startMarker);
-      assume FlattenStartMarkerAcc(Nil, M, startMarker) == FlattenNonEmptiesAcc(Nil, Prepend(startMarker, M));  // postcondition of the co-recursive call
-    }
-    append(accumulator, FlattenNonEmptiesAcc(Nil, Prepend(startMarker, M)));
-    { Lemma_FlattenAppend1(accumulator, Prepend(startMarker, M)); }
-    FlattenNonEmptiesAcc(accumulator, Prepend(startMarker, M));
+  match (prefix) {
+    case Cons(hd, tl) =>
+    Lemma_Flatten(tl, M, startMarker);
+    case Nil =>
+      match (M) {
+        case Nil =>
+        case Cons(s, N) =>
+          if (*) {
+            // This is all that's needed for the proof
+            Lemma_Flatten(s, N, startMarker);
+          } else {
+            // ...but here are some calculations that try to show more of what's going on
+            // (It would be nice to have ==#[...] available as an operator in calculations.)
+
+            // massage the LHS:
+            calc {
+              PrependThenFlattenStartMarker(prefix, M, startMarker);
+            ==  // def. PrependThenFlattenStartMarker
+              Cons(startMarker, PrependThenFlattenStartMarker(s, N, startMarker));
+            }
+            // massage the RHS:
+            calc {
+              PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
+            ==  // M == Cons(s, N)
+              PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, Cons(s, N)));
+            ==  // def. Prepend
+              PrependThenFlattenNonEmpties(prefix, Cons(Cons(startMarker, s), Prepend(startMarker, N)));
+            ==  // def. PrependThenFlattenNonEmpties
+              Cons(Cons(startMarker, s).head, PrependThenFlattenNonEmpties(Cons(startMarker, s).tail, Prepend(startMarker, N)));
+            ==  // Cons, head, tail
+              Cons(startMarker, PrependThenFlattenNonEmpties(s, Prepend(startMarker, N)));
+            }
+
+            // all together now:
+            calc {
+              PrependThenFlattenStartMarker(prefix, M, startMarker) ==#[_k] PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
+              { // by the calculation above, we have:
+                assert PrependThenFlattenStartMarker(prefix, M, startMarker) == Cons(startMarker, PrependThenFlattenStartMarker(s, N, startMarker)); }
+              Cons(startMarker, PrependThenFlattenStartMarker(s, N, startMarker)) ==#[_k] PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
+              { // and by the other calculation above, we have:
+                assert PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M)) == Cons(startMarker, PrependThenFlattenNonEmpties(s, Prepend(startMarker, N))); }
+              Cons(startMarker, PrependThenFlattenStartMarker(s, N, startMarker)) ==#[_k] Cons(startMarker, PrependThenFlattenNonEmpties(s, Prepend(startMarker, N)));
+            ==  // def. of ==#[_k] for _k != 0
+              startMarker == startMarker &&
+              PrependThenFlattenStartMarker(s, N, startMarker) ==#[_k-1] PrependThenFlattenNonEmpties(s, Prepend(startMarker, N));
+              { Lemma_Flatten(s, N, startMarker);
+                // the postcondition of the call we just made (which invokes the co-induction hypothesis) is:
+                assert PrependThenFlattenStartMarker(s, N, startMarker) ==#[_k-1] PrependThenFlattenNonEmpties(s, Prepend(startMarker, N));
+              }
+              true;
+            }
+          }
+      }
   }
 }
 
 comethod Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
-  ensures FlattenStartMarkerAcc(s, M, startMarker) == append(s, FlattenStartMarkerAcc(Nil, M, startMarker));
+  ensures PrependThenFlattenStartMarker(s, M, startMarker) == append(s, PrependThenFlattenStartMarker(Nil, M, startMarker));
 {
   match (s) {
     case Nil =>
     case Cons(hd, tl) =>
-      calc {
-        FlattenStartMarkerAcc(Cons(hd, tl), M, startMarker);
-        Cons(hd, FlattenStartMarkerAcc(tl, M, startMarker));
-        { Lemma_FlattenAppend0(tl, M, startMarker);
-          assume FlattenStartMarkerAcc(tl, M, startMarker) == append(tl, FlattenStartMarkerAcc(Nil, M, startMarker));  // this is the postcondition of the co-recursive call
-        }
-        Cons(hd, append(tl, FlattenStartMarkerAcc(Nil, M, startMarker)));
-        // def. append
-        append(Cons(hd, tl), FlattenStartMarkerAcc(Nil, M, startMarker));
-      }
+      Lemma_FlattenAppend0(tl, M, startMarker);
   }
 }
 
 comethod Lemma_FlattenAppend1<T>(s: Stream, M: Stream<Stream>)
   requires StreamOfNonEmpties(M);
-  ensures FlattenNonEmptiesAcc(s, M) == append(s, FlattenNonEmptiesAcc(Nil, M));
+  ensures PrependThenFlattenNonEmpties(s, M) == append(s, PrependThenFlattenNonEmpties(Nil, M));
 {
   match (s) {
     case Nil =>
     case Cons(hd, tl) =>
-      calc {
-        FlattenNonEmptiesAcc(Cons(hd, tl), M);
-        // def. FlattenNonEmptiesAcc
-        Cons(hd, FlattenNonEmptiesAcc(tl, M));
-        { Lemma_FlattenAppend1(tl, M);
-          assume FlattenNonEmptiesAcc(tl, M) == append(tl, FlattenNonEmptiesAcc(Nil, M));  // postcondition of the co-recursive call
-        }
-        Cons(hd, append(tl, FlattenNonEmptiesAcc(Nil, M)));
-        // def. append
-        append(Cons(hd, tl), FlattenNonEmptiesAcc(Nil, M));
-      }
+      Lemma_FlattenAppend1(tl, M);
   }
 }

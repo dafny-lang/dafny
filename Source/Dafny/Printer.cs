@@ -1224,6 +1224,33 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            var opBindingStrength = 0x30;
+            var fragileLeftContext = true;
+            var fragileRightContext = true;
+
+            int opBS = opBindingStrength & 0xF8;
+            int ctxtBS = contextBindingStrength & 0xF8;
+            bool parensNeeded = opBS < ctxtBS ||
+              (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
+
+            if (parensNeeded) { wr.Write("("); }
+            PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, -1);
+            wr.Write(" {0}#[", e.Op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=");
+            PrintExpression(e.E0);
+            wr.Write("] ");
+            PrintExpr(e.E2, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
+            if (parensNeeded) { wr.Write(")"); }
+            break;
+          default:
+            Contract.Assert(false);  // unexpected ternary operator
+            break;
+        }
+
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
         // determine if parens are needed
@@ -1237,7 +1264,13 @@ namespace Microsoft.Dafny {
         PrintExpr(e.Operands[0], opBindingStrength, true, false, -1);
         for (int i = 0; i < e.Operators.Count; i++) {
           string op = BinaryExpr.OpcodeString(e.Operators[i]);
-          wr.Write(" {0} ", op);
+          if (e.PrefixLimits[i] == null) {
+            wr.Write(" {0} ", op);
+          } else {
+            wr.Write(" {0}#[", op);
+            PrintExpression(e.PrefixLimits[i]);
+            wr.Write("] ");
+          }
           PrintExpr(e.Operands[i+1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), -1);
         }
         if (parensNeeded) { wr.Write(")"); }
@@ -1388,11 +1421,9 @@ namespace Microsoft.Dafny {
             rest.Add(a);
           }
         }
-        if (!(k is ImplicitIdentifierExpr)) {
-          wr.Write("[");
-          PrintExpression(k);
-          wr.Write("]");
-        }
+        wr.Write("[");
+        PrintExpression(k);
+        wr.Write("]");
         args = rest;
       }
       wr.Write("(");

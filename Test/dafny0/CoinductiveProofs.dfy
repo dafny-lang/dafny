@@ -153,3 +153,28 @@ comethod BadEquality1(n: int)
 {  // error: postcondition does not hold
   BadEquality1(n+1);
 }
+
+// test that match statements/expressions get the correct assumption (which wasn't always the case)
+
+codatatype IList<T> = INil | ICons(head: T, tail: IList<T>);
+
+ghost method M(s: IList)
+{
+  match (s) {
+    case INil =>
+      assert s == INil;
+    case ICons(a, b) =>
+      assert s == ICons(a, b);
+  }
+}
+
+function G(s: IList): int
+{
+  match s
+  case INil =>
+    assert s == INil;
+    0
+  case ICons(a, b) =>
+    assert s == ICons(a, b);
+    0
+}

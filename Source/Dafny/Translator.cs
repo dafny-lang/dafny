@@ -564,7 +564,7 @@ namespace Microsoft.Dafny {
         fff.Body = BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, null/*TODO: BOGUS*/, true));
         sink.TopLevelDeclarations.Add(fff);
 
-        // axiom (forall d0, d1: DatatypeType :: { Eq$Dt(d0, d1) } Eq$Dt(d0, d1) ==> d0 == d1);
+        // axiom (forall d0, d1: DatatypeType :: { Eq$Dt(d0, d1) } Eq$Dt(d0, d1) <==> d0 == d1);
         var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
         d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
         var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
         var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
         var eq = Bpl.Expr.Eq(d0, d1);
         var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(eqDt));
-        var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, Bpl.Expr.Imp(eqDt, eq));
+        var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, Bpl.Expr.Iff(eqDt, eq));
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
 
         // And here's the limited version:
@@ -600,7 +600,8 @@ namespace Microsoft.Dafny {
 
         // function $PrefixEqual#Dt(k: int, d0: DatatypeType, d1: DatatypeType): bool
         // {
-        //   d0.head == d1.head && $PrefixEqual#0#Dt(k-1, d0.tail, d1.tail))
+        //   0 < k ==>
+        //   (d0.head == d1.head && $PrefixEqual#0#Dt(k-1, d0.tail, d1.tail)))
         // }
         var peq_k = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int), true);
         k = new Bpl.IdentifierExpr(dt.tok, peq_k);
@@ -612,7 +613,8 @@ namespace Microsoft.Dafny {
         var peq1 = new Bpl.Function(dt.tok, CoPrefixName(codecl, false), new Bpl.VariableSeq(peq_k, peq_d0, peq_d1), peq_resType,
           "prefix equality for codatatype " + dt.FullName);
         var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
-        peq1.Body = BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, kMinusOne, true));
+        var z = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+        peq1.Body = Bpl.Expr.Imp(z, BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, kMinusOne, true)));
         sink.TopLevelDeclarations.Add(peq1);
 
         // Add the 'limited' version:
@@ -637,7 +639,7 @@ namespace Microsoft.Dafny {
         ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), tr, Bpl.Expr.Eq(p1, p0));
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
 
-        // Finally, the connection between the full codatatype equality and its prefix version
+        // The connection between the full codatatype equality and its prefix version
         // axiom (forall d0, d1: DatatypeType :: $Eq#Dt(d0, d1) <==>
         //                                       (forall k: int :: 0 <= k ==> $PrefixEqual#Dt(k, d0, d1)));
         kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
@@ -652,6 +654,21 @@ namespace Microsoft.Dafny {
         eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, null, d0, d1);
         body = Bpl.Expr.Iff(eqDt, q);
         q = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), body);
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
+
+        // With the axioms above, going from d0==d1 to a prefix equality requires going via the full codatatype
+        // equality, which in turn requires the full codatatype equality to be present.  The following axiom
+        // provides a shortcut:
+        // axiom (forall d0, d1: DatatypeType, k: int :: d0 == d1 && 0 <= k ==> $PrefixEqual#_module.Stream(k, d0, d1));
+        kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+        k = new Bpl.IdentifierExpr(dt.tok, kVar);
+        d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+        d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+        d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+        d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+        prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
+        body = Bpl.Expr.Imp(BplAnd(Bpl.Expr.Eq(d0, d1), Bpl.Expr.Le(Bpl.Expr.Literal(0), k)), prefixEq);
+        q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), body);
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
       }
     }
@@ -2528,6 +2545,23 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr r = BplAnd(t0, t1);
         return z == null ? r : BplAnd(r, z);
+
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        var t0 = IsTotal(e.E0, etran);
+        var t1 = IsTotal(e.E1, etran);
+        var t2 = IsTotal(e.E2, etran);
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            var z = Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0));
+            return BplAnd(
+              BplAnd(IsTotal(e.E0, etran), z),
+              BplAnd(IsTotal(e.E1, etran), IsTotal(e.E2, etran)));
+          default:
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
+        }
+
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         Bpl.Expr total = Bpl.Expr.True;
@@ -2686,6 +2720,10 @@ namespace Microsoft.Dafny {
             break;
         }
         return BplAnd(t0, t1);
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        return BplAnd(CanCallAssumption(e.E0, etran), BplAnd(CanCallAssumption(e.E1, etran), CanCallAssumption(e.E2, etran)));
+
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         Bpl.Expr canCall = Bpl.Expr.True;
@@ -3179,6 +3217,22 @@ namespace Microsoft.Dafny {
             break;
           default:
             CheckWellformed(e.E1, options, locals, builder, etran);
+            break;
+        }
+
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        foreach (var ee in e.SubExpressions) {
+          CheckWellformed(ee, options, locals, builder, etran);
+        }
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), "prefix-equality limit must be at least 0", options.AssertKv));
+
+            break;
+          default:
+            Contract.Assert(false);  // unexpected ternary expression
             break;
         }
 
@@ -7484,6 +7538,25 @@ namespace Microsoft.Dafny {
           }
           return Bpl.Expr.Binary(expr.tok, bOpcode, e0, e1);
 
+        } else if (expr is TernaryExpr) {
+          var e = (TernaryExpr)expr;
+          var e0 = TrExpr(e.E0);
+          var e1 = TrExpr(e.E1);
+          var e2 = TrExpr(e.E2);
+          switch (e.Op) {
+            case TernaryExpr.Opcode.PrefixEqOp:
+            case TernaryExpr.Opcode.PrefixNeqOp:
+              var cot = e.E1.Type.AsCoDatatype;
+              Contract.Assert(cot != null);  // the argument types of prefix equality (and prefix disequality) are codatatypes
+              var r = translator.FunctionCall(expr.tok, CoPrefixName(cot, false), Bpl.Type.Bool, e0, e1, e2);
+              if (e.Op == TernaryExpr.Opcode.PrefixEqOp) {
+                return r;
+              } else {
+                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, r);
+              }
+            default:
+              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
+          }
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           return TrExpr(GetSubstitutedBody(e));
@@ -8535,9 +8608,14 @@ namespace Microsoft.Dafny {
         } else if (position && coContextDepth != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
           var codecl = bin.E0.Type.AsCoDatatype;
           Contract.Assert(codecl != null);
-          foreach (var c in CoPrefixEquality(bin.tok, codecl, etran.TrExpr(bin.E0), etran.TrExpr(bin.E1), etran.TrExpr(coContextDepth), false)) {
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, c));
+          var k = etran.TrExpr(coContextDepth);
+          var e0 = etran.TrExpr(bin.E0);
+          var e1 = etran.TrExpr(bin.E1);
+          var coEqK = FunctionCall(bin.tok, CoPrefixName(codecl, false), null, k, e0, e1);
+          foreach (var c in CoPrefixEquality(bin.tok, codecl, e0, e1, k, false)) {
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, BplOr(coEqK, c)));
           }
+          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, coEqK));
           return true;
 #if SOON
         } else if (position && coContextDepth == 1 && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
@@ -8800,8 +8878,8 @@ namespace Microsoft.Dafny {
         translatedExpression = etran.TrExpr(expr);
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
-      // TODO: Is the the following call to ContainsChange expensive?  It's linear in the size of "expr", but we get here many times in TrSpliExpr, so wouldn't the total
-      // time in the size of the expression passed to the first TrSpliExpr be quadratic?
+      // TODO: Is the the following call to ContainsChange expensive?  It's linear in the size of "expr", but we get here many times in TrSplitExpr, so wouldn't the total
+      // time in the size of the expression passed to the first TrSplitExpr be quadratic?
       if (RefinementToken.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule)) {
         // If "expr" contains a subexpression that has changed from the inherited expression, we'll destructively
         // change the token of the translated expression to make it look like it's not inherited.  This will cause "e" to
@@ -8961,7 +9039,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Worker routine for VarOccursInArgumentToRecursiveFunction(expr,n), where the additional parameter 'exprIsProminent' says whether or
-    /// not 'expr' prominent status in its context.
+    /// not 'expr' has prominent status in its context.
     /// DafnyInductionHeuristic cases 0 and 1 are assumed to be handled elsewhere (i.e., a precondition of this method is DafnyInductionHeuristic is at least 2).
     /// Parameter 'n' is allowed to be a ThisSurrogate.
     /// </summary>
@@ -9024,6 +9102,17 @@ namespace Microsoft.Dafny {
           }
         }
         return false;
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        switch (e.Op) {
+          case TernaryExpr.Opcode.PrefixEqOp:
+          case TernaryExpr.Opcode.PrefixNeqOp:
+            return VarOccursInArgumentToRecursiveFunction(e.E0, n, true) ||
+              VarOccursInArgumentToRecursiveFunction(e.E1, n, subExprIsProminent) ||
+              VarOccursInArgumentToRecursiveFunction(e.E2, n, subExprIsProminent);
+          default:
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
+        }
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
         var q = n.Type.IsDatatype ? exprIsProminent : subExprIsProminent;  // prominent status continues, if we're looking for a variable whose type is a datatype
@@ -9343,6 +9432,15 @@ namespace Microsoft.Dafny {
             BinaryExpr newBin = new BinaryExpr(expr.tok, e.Op, e0, e1);
             newBin.ResolvedOp = e.ResolvedOp;  // part of what needs to be done to resolve on the fly (newBin.Type is set below, at end)
             newExpr = newBin;
+          }
+
+        } else if (expr is TernaryExpr) {
+          var e = (TernaryExpr)expr;
+          var e0 = Substitute(e.E0);
+          var e1 = Substitute(e.E1);
+          var e2 = Substitute(e.E2);
+          if (e0 != e.E0 || e1 != e.E1 || e2 != e.E2) {
+            newExpr = new TernaryExpr(expr.tok, e.Op, e0, e1, e2);
           }
 
         } else if (expr is LetExpr) {

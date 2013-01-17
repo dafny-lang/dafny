@@ -283,6 +283,10 @@ namespace Microsoft.Dafny
         var e = (BinaryExpr)expr;
         return new BinaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1));
 
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        return new TernaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E0), CloneExpr(e.E1), CloneExpr(e.E2));
+
       } else if (expr is ChainingExpression) {
         var e = (ChainingExpression)expr;
         return CloneExpr(e.E);  // just clone the desugaring, since it's already available

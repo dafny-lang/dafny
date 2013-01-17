@@ -1426,6 +1426,8 @@ RelationalExpression<out Expression/*!*/ e>
      IToken x, firstOpTok = null;  Expression e0, e1, acc = null;  BinaryExpr.Opcode op;
      List<Expression> chain = null;
      List<BinaryExpr.Opcode> ops = null;
+     List<Expression/*?*/> prefixLimits = null;
+     Expression k;
      int kind = 0;  // 0 ("uncommitted") indicates chain of ==, possibly with one !=
                     // 1 ("ascending")   indicates chain of ==, <, <=, possibly with one !=
                     // 2 ("descending")  indicates chain of ==, >, >=, possibly with one !=
@@ -1434,15 +1436,21 @@ RelationalExpression<out Expression/*!*/ e>
      bool hasSeenNeq = false;
   .)
   Term<out e0>                     (. e = e0; .)
-  [ RelOp<out x, out op>           (. firstOpTok = x; .)
-    Term<out e1>                   (. e = new BinaryExpr(x, op, e0, e1);
-                                      if (op == BinaryExpr.Opcode.Disjoint)
-                                        acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+  [ RelOp<out x, out op, out k>    (. firstOpTok = x; .)
+    Term<out e1>                   (. if (k == null) {
+                                        e = new BinaryExpr(x, op, e0, e1);
+                                        if (op == BinaryExpr.Opcode.Disjoint)
+                                          acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, e0, e1); // accumulate first two operands.
+                                      } else {
+                                        Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
+                                        e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
+                                      }
                                    .)
     {                              (. if (chain == null) {
                                         chain = new List<Expression>();
                                         ops = new List<BinaryExpr.Opcode>();
-                                        chain.Add(e0);  ops.Add(op);  chain.Add(e1);
+                                        prefixLimits = new List<Expression>();
+                                        chain.Add(e0);  ops.Add(op);  prefixLimits.Add(k);  chain.Add(e1);
                                         switch (op) {
                                           case BinaryExpr.Opcode.Eq:
                                             kind = 0;  break;
@@ -1462,7 +1470,7 @@ RelationalExpression<out Expression/*!*/ e>
                                       }
                                       e0 = e1;
                                    .)
-      RelOp<out x, out op>         (. switch (op) {
+      RelOp<out x, out op, out k>  (. switch (op) {
                                         case BinaryExpr.Opcode.Eq:
                                           if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); }
                                           break;
@@ -1488,32 +1496,38 @@ RelationalExpression<out Expression/*!*/ e>
                                           kind = 3;  break;
                                       }
                                    .)
-      Term<out e1>                 (. ops.Add(op); chain.Add(e1);
-                                      if (op == BinaryExpr.Opcode.Disjoint) {
+      Term<out e1>                 (. ops.Add(op); prefixLimits.Add(k); chain.Add(e1);
+                                      if (k != null) {
+                                        Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
+                                        e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
+                                      } else if (op == BinaryExpr.Opcode.Disjoint) {
                                         e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, acc, e1));
                                         acc = new BinaryExpr(x, BinaryExpr.Opcode.Add, acc, e1); //e0 has already been added.
-                                      }
-                                      else
+                                      } else {
                                         e = new BinaryExpr(x, BinaryExpr.Opcode.And, e, new BinaryExpr(x, op, e0, e1));
+                                      }
                                    .)
     }
   ]
   (. if (chain != null) {
-       e = new ChainingExpression(firstOpTok, chain, ops, e);
+       e = new ChainingExpression(firstOpTok, chain, ops, prefixLimits, e);
      }
   .)
   .
-RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op>
+RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
      x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/;
      IToken y;
+     k = null;
   .)
   ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
+    [ "#" "[" Expression<out k> "]" ]
   | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
   | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
   | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
   | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
+    [ "#" "[" Expression<out k> "]" ]
   | "!!"           (. x = t;  op = BinaryExpr.Opcode.Disjoint; .)
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
   | /* The next operator is "!in", but Coco evidently parses "!in" even when it is a prefix of, say, "!initialized".
@@ -1778,9 +1792,8 @@ DottedIdentifiersAndFunction<out Expression e>
     Ident<out id>                      (. idents.Add(id); .)
   }
   [                                    (. args = new List<Expression>(); .)
-    [ "#"                              (. Expression k = new ImplicitIdentifierExpr(t, "_k"); .)
-      [ "[" Expression<out k> "]"
-      ]                                (. id.val = id.val + "#";  args.Add(k); .)
+    [ "#"                              (. id.val = id.val + "#";  Expression k; .)
+      "[" Expression<out k> "]"        (. args.Add(k); .)
     ]
     "("                                (. openParen = t; .)
       [ Expressions<args> ]
@@ -1797,9 +1810,8 @@ Suffix<ref Expression/*!*/ e>
   ( "."
     Ident<out id>
     [                                          (. args = new List<Expression/*!*/>();  func = true; .)
-      [ "#"                                    (. Expression k = new ImplicitIdentifierExpr(t, "_k"); .)
-        [ "[" Expression<out k> "]"
-        ]                                      (. id.val = id.val + "#";  args.Add(k); .)
+      [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
+        "[" Expression<out k> "]"              (. args.Add(k); .)
       ]
       "("                                      (. IToken openParen = t; .)
         [ Expressions<args> ]

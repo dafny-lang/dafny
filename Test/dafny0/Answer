@@ -1327,20 +1327,12 @@ Execution trace:
 Dafny program verifier finished with 5 verified, 2 errors
 
 -------------------- CoResolution.dfy --------------------
-CoResolution.dfy(22,8): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-CoResolution.dfy(23,3): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-CoResolution.dfy(24,7): Error: member Undeclared# does not exist in class _default
-CoResolution.dfy(25,7): Error: member Undeclared# does not exist in class _default
-CoResolution.dfy(26,2): Error: unresolved identifier: Undeclared#
-CoResolution.dfy(26,12): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-CoResolution.dfy(27,2): Error: unresolved identifier: Undeclared#
-CoResolution.dfy(30,2): Error: wrong number of function arguments (got 3, expected 2)
-CoResolution.dfy(31,5): Error: unresolved identifier: _k
-CoResolution.dfy(37,30): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-CoResolution.dfy(38,20): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-CoResolution.dfy(41,9): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-CoResolution.dfy(42,4): Error: a call to a prefix predicate/method in this context must explicitly specify a depth argument (given in square brackets just after the # sign)
-13 resolution/type errors detected in CoResolution.dfy
+CoResolution.dfy(43,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)
+CoResolution.dfy(54,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+CoResolution.dfy(22,7): Error: member Undeclared# does not exist in class _default
+CoResolution.dfy(23,2): Error: unresolved identifier: Undeclared#
+CoResolution.dfy(26,5): Error: unresolved identifier: _k
+5 resolution/type errors detected in CoResolution.dfy
 
 -------------------- CoPrefix.dfy --------------------
 CoPrefix.dfy(61,7): Error: failure to decrease termination measure
@@ -1348,7 +1340,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-CoPrefix.dfy(74,7): Error: failure to decrease termination measure
+CoPrefix.dfy(74,7): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
@@ -1358,8 +1350,12 @@ CoPrefix.dfy(111,11): Related location: This is the postcondition that might not
 CoPrefix.dfy(99,17): Related location: Related location
 Execution trace:
     (0,0): anon0
+CoPrefix.dfy(136,25): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
 
-Dafny program verifier finished with 17 verified, 3 errors
+Dafny program verifier finished with 23 verified, 4 errors
 
 -------------------- CoinductiveProofs.dfy --------------------
 CoinductiveProofs.dfy(26,12): Error: assertion violation
@@ -1401,7 +1397,7 @@ CoinductiveProofs.dfy(152,22): Related location: This is the postcondition that 
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 32 verified, 8 errors
+Dafny program verifier finished with 35 verified, 8 errors
 
 -------------------- TypeAntecedents.dfy --------------------
 TypeAntecedents.dfy(32,13): Error: assertion violation
