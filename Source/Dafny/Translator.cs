@@ -366,8 +366,7 @@ namespace Microsoft.Dafny {
       return sink;
     }
 
-    void AddDatatype(DatatypeDecl dt)
-    {
+    void AddDatatype(DatatypeDecl dt) {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
       sink.TopLevelDeclarations.Add(GetClass(dt));
@@ -423,9 +422,19 @@ namespace Microsoft.Dafny {
 
         // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
         fn = GetReadonlyField(ctor.QueryField);
-        lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, new Bpl.IdentifierExpr(ctor.tok, fn.InParams[0].Name, predef.DatatypeType));
-        fn.Body = Bpl.Expr.Eq(lhs, new Bpl.IdentifierExpr(ctor.tok, cid));  // this uses the "cid" defined for the previous axiom
         sink.TopLevelDeclarations.Add(fn);
+        // and here comes the associated axiom:
+        {
+          var thVar = new Bpl.BoundVariable(ctor.tok, new TypedIdent(ctor.tok, "this", predef.DatatypeType));
+          var th = new Bpl.IdentifierExpr(ctor.tok, thVar);
+          var queryPredicate = FunctionCall(ctor.tok, fn.Name, null, th);
+          var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
+          var rhs = Bpl.Expr.Eq(ctorId, new Bpl.IdentifierExpr(ctor.tok, cid));  // this uses the "cid" defined for the previous axiom
+          var body = Bpl.Expr.Iff(queryPredicate, rhs);
+          var tr = new Bpl.Trigger(ctor.tok, true, new ExprSeq(queryPredicate));
+          var ax = new Bpl.ForallExpr(ctor.tok, new VariableSeq(thVar), tr, body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, ax));
+        }
 
         // Add:  axiom (forall params, h: HeapType ::
         //                 { DtAlloc(#dt.ctor(params), h) }
@@ -448,8 +457,8 @@ namespace Microsoft.Dafny {
           }
           i++;
         }
-        Bpl.Trigger tr = new Bpl.Trigger(ctor.tok, true, new ExprSeq(lhs));
-        q = new Bpl.ForallExpr(ctor.tok, bvs, tr, Bpl.Expr.Imp(isGoodHeap, Bpl.Expr.Iff(lhs, pt)));
+        Bpl.Trigger trg = new Bpl.Trigger(ctor.tok, true, new ExprSeq(lhs));
+        q = new Bpl.ForallExpr(ctor.tok, bvs, trg, Bpl.Expr.Imp(isGoodHeap, Bpl.Expr.Iff(lhs, pt)));
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
 
         // Add injectivity axioms:
@@ -536,140 +545,182 @@ namespace Microsoft.Dafny {
       //     Dt.Ctor0?(d) || Dt.Ctor1?(d) || ...
       //   }
       var cases_dBv = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d", predef.DatatypeType), true);
-      var cases_dId = new Bpl.IdentifierExpr(dt.tok, cases_dBv.Name, predef.DatatypeType);
-      Bpl.Expr cases_body = null;
-      foreach (DatatypeCtor ctor in dt.Ctors) {
-        var disj = FunctionCall(ctor.tok, ctor.QueryField.FullCompileName, Bpl.Type.Bool, cases_dId);
-        cases_body = cases_body == null ? disj : Bpl.Expr.Or(cases_body, disj);
-      }
       var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullCompileName, new Bpl.VariableSeq(cases_dBv), cases_resType);
-      cases_fn.Body = cases_body;
       sink.TopLevelDeclarations.Add(cases_fn);
+      // and here comes the actual axiom:
+      {
+        var dVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d", predef.DatatypeType));
+        var d = new Bpl.IdentifierExpr(dt.tok, dVar);
+        var lhs = FunctionCall(dt.tok, cases_fn.Name, null, d);
+        Bpl.Expr cases_body = Bpl.Expr.False;
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          var disj = FunctionCall(ctor.tok, ctor.QueryField.FullCompileName, Bpl.Type.Bool, d);
+          cases_body = BplOr(cases_body, disj);
+        }
+        var body = Bpl.Expr.Iff(lhs, cases_body);
+        var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(lhs));
+        var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(dVar), tr, body);
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+      }
 
       if (dt is CoDatatypeDecl) {
         var codecl = (CoDatatypeDecl)dt;
         // Add:
-        // function $Eq#Dt(d0, d1: DatatypeType): bool
-        // {
-        //   ...fields are equal...
-        // }
-        var peq_d0 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
-        var d0 = new Bpl.IdentifierExpr(dt.tok, peq_d0);
-        var peq_d1 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
-        var d1 = new Bpl.IdentifierExpr(dt.tok, peq_d1);
-        var peq_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var fff = new Bpl.Function(dt.tok, "$Eq#" + dt.FullCompileName, new Bpl.VariableSeq(peq_d0, peq_d1), peq_resType,
-          "equality for codatatype " + dt.FullName);
-        fff.Body = BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, null/*TODO: BOGUS*/, true));
-        sink.TopLevelDeclarations.Add(fff);
+        // function $Eq#Dt(d0, d1: DatatypeType): bool;
+        {
+          var d0Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
+          var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
+          var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var fn = new Bpl.Function(dt.tok, "$Eq#" + dt.FullCompileName, new Bpl.VariableSeq(d0Var, d1Var), resType,
+            "equality for codatatype " + dt.FullName);
+          sink.TopLevelDeclarations.Add(fn);
+        }
+        // axiom (forall d0, d1: DatatypeType :: { $Eq#Dt(d0, d1) } $Eq#Dt(d0, d1) <==>
+        //   (d0.Nil? ==> d1.Nil?) &&
+        //   (d0.Cons? ==> d1.Cons? && d0.head == d1.head && $Eq$0#Dt(k-1, d0.tail, d1.tail));
+        {
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
+          var body = Bpl.Expr.Iff(eqDt, BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, null, true)));
+          var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(eqDt));
+          var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        }
 
         // axiom (forall d0, d1: DatatypeType :: { Eq$Dt(d0, d1) } Eq$Dt(d0, d1) <==> d0 == d1);
-        var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
-        d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
-        var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
-        d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-        var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
-        var eq = Bpl.Expr.Eq(d0, d1);
-        var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(eqDt));
-        var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, Bpl.Expr.Iff(eqDt, eq));
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        {
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
+          var eq = Bpl.Expr.Eq(d0, d1);
+          var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(eqDt));
+          var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, Bpl.Expr.Iff(eqDt, eq));
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        }
 
         // And here's the limited version:
-        peq_d0 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
-        d0 = new Bpl.IdentifierExpr(dt.tok, peq_d0);
-        peq_d1 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
-        d1 = new Bpl.IdentifierExpr(dt.tok, peq_d1);
-        peq_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        fff = new Bpl.Function(dt.tok, "$Eq$0#" + dt.FullCompileName, new Bpl.VariableSeq(peq_d0, peq_d1), peq_resType,
-          "equality (limited version) for codatatype " + dt.FullName);
-        sink.TopLevelDeclarations.Add(fff);
-        // axiom (forall d0: DatatypeType, d1: DatatypeType  :: { $Eq#Dt(d0,d1) }
+        // function $Eq$0#Dt(d0, d1: DatatypeType): bool
+        {
+          var d0Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
+          var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
+          var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var fn = new Bpl.Function(dt.tok, "$Eq$0#" + dt.FullCompileName, new Bpl.VariableSeq(d0Var, d1Var), resType,
+            "equality (limited version) for codatatype " + dt.FullName);
+          sink.TopLevelDeclarations.Add(fn);
+        }
+        // axiom (forall d0: DatatypeType, d1: DatatypeType :: { $Eq#Dt(d0,d1) }
         //   $Eq#Dt(d0,d1) == $Eq#0#Dt(d0,d1));
-        var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
-        var k = new Bpl.IdentifierExpr(dt.tok, kVar);
-        d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
-        d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
-        d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
-        d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-        eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
-        var eqDt0 = FunctionCall(dt.tok, "$Eq$0#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
-        tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(eqDt));
-        ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, Bpl.Expr.Eq(eqDt, eqDt0));
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        {
+          var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+          var k = new Bpl.IdentifierExpr(dt.tok, kVar);
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
+          var eqDt0 = FunctionCall(dt.tok, "$Eq$0#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
+          var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(eqDt));
+          var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), tr, Bpl.Expr.Eq(eqDt, eqDt0));
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        }
 
+        // Now for prefix equality:
         // function $PrefixEqual#Dt(k: int, d0: DatatypeType, d1: DatatypeType): bool
-        // {
+        {
+          var kVar = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int), true);
+          var d0Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
+          var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
+          var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var fn = new Bpl.Function(dt.tok, CoPrefixName(codecl, false), new Bpl.VariableSeq(kVar, d0Var, d1Var), resType,
+            "prefix equality for codatatype " + dt.FullName);
+          sink.TopLevelDeclarations.Add(fn);
+        }
+        // axiom (forall k: int, d0, d1: DatatypeType :: { $PrefixEqual#Dt(k, d0, d1) } $PrefixEqual#Dt(k, d0, d1) <==>
         //   0 < k ==>
-        //   (d0.head == d1.head && $PrefixEqual#0#Dt(k-1, d0.tail, d1.tail)))
-        // }
-        var peq_k = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int), true);
-        k = new Bpl.IdentifierExpr(dt.tok, peq_k);
-        peq_d0 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
-        d0 = new Bpl.IdentifierExpr(dt.tok, peq_d0);
-        peq_d1 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
-        d1 = new Bpl.IdentifierExpr(dt.tok, peq_d1);
-        peq_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var peq1 = new Bpl.Function(dt.tok, CoPrefixName(codecl, false), new Bpl.VariableSeq(peq_k, peq_d0, peq_d1), peq_resType,
-          "prefix equality for codatatype " + dt.FullName);
-        var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
-        var z = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
-        peq1.Body = Bpl.Expr.Imp(z, BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, kMinusOne, true)));
-        sink.TopLevelDeclarations.Add(peq1);
+        //     (d0.Nil? ==> d1.Nil?) &&
+        //     (d0.Cons? ==> d1.Cons? && d0.head == d1.head && $PrefixEqual#0#Dt(k-1, d0.tail, d1.tail))
+        {
+          var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+          var k = new Bpl.IdentifierExpr(dt.tok, kVar);
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, false), Bpl.Type.Bool, k, d0, d1);
+          var pos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+          var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
+          var body = Bpl.Expr.Iff(prefixEq, Bpl.Expr.Imp(pos, BplAnd(CoPrefixEquality(dt.tok, codecl, d0, d1, kMinusOne, true))));
+          var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(prefixEq));
+          var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), tr, body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        }
 
         // Add the 'limited' version:
         // function $PrefixEqual#0#Dt(k: int, d0: DatatypeType, d1: DatatypeType): bool;
-        peq_k = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int), true);
-        peq_d0 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
-        peq_d1 = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
-        peq_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var peq0 = new Bpl.Function(dt.tok, CoPrefixName(codecl, true), new Bpl.VariableSeq(peq_k, peq_d0, peq_d1), peq_resType);
-        sink.TopLevelDeclarations.Add(peq0);
+        {
+          var kVar = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int), true);
+          var d0Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType), true);
+          var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
+          var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var fn = new Bpl.Function(dt.tok, CoPrefixName(codecl, true), new Bpl.VariableSeq(kVar, d0Var, d1Var), resType);
+          sink.TopLevelDeclarations.Add(fn);
+        }
         // axiom (forall k: int, d0: DatatypeType, d1: DatatypeType  :: { $PrefixEqual#Dt(k,d0,d1) }
         //   $PrefixEqual#Dt(k,d0,d1) == $PrefixEqual#0#Dt(k,d0,d1));
-        kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
-        k = new Bpl.IdentifierExpr(dt.tok, kVar);
-        d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
-        d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
-        d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
-        d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-        Bpl.Expr p1 = new Bpl.NAryExpr(dt.tok, new Bpl.FunctionCall(peq1), new ExprSeq(k, d0, d1));
-        Bpl.Expr p0 = new Bpl.NAryExpr(dt.tok, new FunctionCall(peq0), new ExprSeq(k, d0, d1));
-        tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(p1));
-        ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), tr, Bpl.Expr.Eq(p1, p0));
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        {
+          var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+          var k = new Bpl.IdentifierExpr(dt.tok, kVar);
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var p0 = FunctionCall(dt.tok, CoPrefixName(codecl, true), Bpl.Type.Bool, k, d0, d1);
+          var p1 = FunctionCall(dt.tok, CoPrefixName(codecl, false), Bpl.Type.Bool, k, d0, d1);
+          var tr = new Bpl.Trigger(dt.tok, true, new ExprSeq(p1));
+          var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), tr, Bpl.Expr.Eq(p1, p0));
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+        }
 
         // The connection between the full codatatype equality and its prefix version
         // axiom (forall d0, d1: DatatypeType :: $Eq#Dt(d0, d1) <==>
         //                                       (forall k: int :: 0 <= k ==> $PrefixEqual#Dt(k, d0, d1)));
-        kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
-        k = new Bpl.IdentifierExpr(dt.tok, kVar);
-        d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
-        d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
-        d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
-        d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-        var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
-        var body = Bpl.Expr.Imp(Bpl.Expr.Le(Bpl.Expr.Literal(0), k), prefixEq);
-        var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar), body);
-        eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, null, d0, d1);
-        body = Bpl.Expr.Iff(eqDt, q);
-        q = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), body);
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
+        {
+          var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+          var k = new Bpl.IdentifierExpr(dt.tok, kVar);
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
+          var body = Bpl.Expr.Imp(Bpl.Expr.Le(Bpl.Expr.Literal(0), k), prefixEq);
+          var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar), body);
+          var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, null, d0, d1);
+          q = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), Bpl.Expr.Iff(eqDt, q));
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
+        }
 
         // With the axioms above, going from d0==d1 to a prefix equality requires going via the full codatatype
         // equality, which in turn requires the full codatatype equality to be present.  The following axiom
         // provides a shortcut:
         // axiom (forall d0, d1: DatatypeType, k: int :: d0 == d1 && 0 <= k ==> $PrefixEqual#_module.Stream(k, d0, d1));
-        kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
-        k = new Bpl.IdentifierExpr(dt.tok, kVar);
-        d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
-        d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
-        d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
-        d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-        prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
-        body = Bpl.Expr.Imp(BplAnd(Bpl.Expr.Eq(d0, d1), Bpl.Expr.Le(Bpl.Expr.Literal(0), k)), prefixEq);
-        q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), body);
-        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
+        {
+          var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+          var k = new Bpl.IdentifierExpr(dt.tok, kVar);
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
+          var body = Bpl.Expr.Imp(BplAnd(Bpl.Expr.Eq(d0, d1), Bpl.Expr.Le(Bpl.Expr.Literal(0), k)), prefixEq);
+          var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
+        }
       }
     }
 
@@ -689,12 +740,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(A != null);
       Contract.Requires(B != null);
       Contract.Requires(predef != null);
+      var etran = new ExpressionTranslator(this, predef, dt.tok);
       // For example, for possibly infinite lists:
       //     codatatype SList<T> = Nil | SCons(head: T, tail: SList<T>);
       // produce:
       //   (A.Nil? ==> B.Nil?) &&
       //   (A.Cons? ==> B.Cons? && A.head == B.head && Equal(k, A.tail, B.tail))
-      var etran = new ExpressionTranslator(this, predef, tok);
       foreach (var ctor in dt.Ctors) {
         var lhs = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(GetReadonlyField(ctor.QueryField)), new Bpl.ExprSeq(A));
         Bpl.Expr rhs = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(GetReadonlyField(ctor.QueryField)), new Bpl.ExprSeq(B));
@@ -8606,50 +8657,38 @@ namespace Microsoft.Dafny {
           }
           return true;
         } else if (position && coContextDepth != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+          // rewrite A==B into A==#[coContextDepth]B
           var codecl = bin.E0.Type.AsCoDatatype;
           Contract.Assert(codecl != null);
-          var k = etran.TrExpr(coContextDepth);
-          var e0 = etran.TrExpr(bin.E0);
-          var e1 = etran.TrExpr(bin.E1);
-          var coEqK = FunctionCall(bin.tok, CoPrefixName(codecl, false), null, k, e0, e1);
-          foreach (var c in CoPrefixEquality(bin.tok, codecl, e0, e1, k, false)) {
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, BplOr(coEqK, c)));
-          }
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, coEqK));
-          return true;
-#if SOON
-        } else if (position && coContextDepth == 1 && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
-          var udt = (UserDefinedType)bin.E0.Type;  // cast is justified by the IsCoDatatype in the guard
-          var cotype = (CoDatatypeDecl)udt.ResolvedClass;  // ditto
-          // "inline" the equality, and add appropriate certificate-equality operators.
-          // For example, for possibly infinite lists:
-          //     codatatype SList<T> = Nil | SCons(head: T, tail: SList<T>);
-          // produce:
-          //   free A ~~' B
-          //   checked A ~~' B || (A.Nil? ==> B.Nil?)
-          //   checked A ~~' B || (A.Cons? ==> B.Cons? && A.head ~~'' B.head && A.tail ~~'' B.tail)
-          // where ~~' and ~~'' stand for primed and double-primed certificate equality, respectively
-          // (and, for non-codatatypes, ~~'' is just ordinary equality).
+          var prefixEq = new TernaryExpr(bin.tok, TernaryExpr.Opcode.PrefixEqOp, coContextDepth, bin.E0, bin.E1);
+          prefixEq.Type = Type.Bool;  // resolve here
+          return TrSplitExpr(prefixEq, splits, position, heightLimit, null, etran);
+        }
 
-          var eq = etran.TrEquality(bin.tok, bin.E0, bin.E1, 1);
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, eq));
-          // We want to use the regular etran translation for bin.E0 and bin.E1, but use the etran.WithCoCallCertificates
-          // translation for the equalities, so translate the operands here and stuff them into a BoogieWrapper.
-          var A = bin.E0;
-          var B = bin.E1;
-          var typeSubstMap = Resolver.TypeSubstitutionMap(cotype.TypeArgs, udt.TypeArgs);
-          foreach (var ctor in cotype.Ctors) {
-            var lhs = etran.TrExpr(Resolver.NewFieldSelectExpr(bin.tok, A, ctor.QueryField, typeSubstMap));
-            var rhs = etran.TrExpr(Resolver.NewFieldSelectExpr(bin.tok, B, ctor.QueryField, typeSubstMap));
-            foreach (var dtor in ctor.Destructors) {  // note, ctor.Destructors has a field for every constructor parameter, whether or not the parameter was named in the source
-              var a = Resolver.NewFieldSelectExpr(bin.tok, A, dtor, typeSubstMap);
-              var b = Resolver.NewFieldSelectExpr(bin.tok, B, dtor, typeSubstMap);
-              rhs = Bpl.Expr.And(rhs, etran.TrEquality(bin.tok, a, b, 2));
-            }
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, Bpl.Expr.Binary(new NestedToken(bin.tok, ctor.tok), BinaryOperator.Opcode.Or, eq, Bpl.Expr.Imp(lhs, rhs))));
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+        if ((e.Op == TernaryExpr.Opcode.PrefixEqOp && position) || (e.Op == TernaryExpr.Opcode.PrefixNeqOp && !position)) {
+          var codecl = e.E1.Type.AsCoDatatype;
+          Contract.Assert(codecl != null);
+          var k = etran.TrExpr(e.E0);
+          var A = etran.TrExpr(e.E1);
+          var B = etran.TrExpr(e.E2);
+          // split as shows here for possibly infinite lists:
+          //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Nil? ==> B.Nil?)
+          //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#Dt(k - 1, A.tail, B.tail))
+          //   free $PrefixEqual#Dt(k, A, B);
+          var kPos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+          var prefixEqK = FunctionCall(expr.tok, CoPrefixName(codecl, false), null, k, A, B);
+          var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
+          // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
+          var etran2 = etran.LayerOffset(1);
+          var A2 = etran2.TrExpr(e.E1);
+          var B2 = etran2.TrExpr(e.E2);
+          foreach (var c in CoPrefixEquality(expr.tok, codecl, A2, B2, kMinusOne, false)) {
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, BplOr(prefixEqK, Bpl.Expr.Imp(kPos, c))));
           }
+          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
           return true;
-#endif
         }
 
       } else if (expr is ITEExpr) {
