@@ -717,7 +717,7 @@ namespace Microsoft.Dafny {
           var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
           var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
           var prefixEqK = FunctionCall(dt.tok, CoPrefixName(codecl, true), null, k, d0, d1);
-          var prefixEqM = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
+          var prefixEqM = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, m, d0, d1);
           var range = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), k), Bpl.Expr.Le(k, m));
           var body = Bpl.Expr.Imp(BplAnd(range, prefixEqM), prefixEqK);
           var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, mVar, d0Var, d1Var), body);
@@ -9149,6 +9149,8 @@ namespace Microsoft.Dafny {
           var exp = e.Args[i];
           if (DafnyOptions.O.InductionHeuristic < 6) {
             variantArgument = rec;
+          } else if (f is ImplicitFormal) {
+            variantArgument = true;
           } else {
             // The argument position is considered to be "variant" if the function is recursive and the argument participates
             // in the effective decreases clause of the function.  The argument participates if it's a free variable
