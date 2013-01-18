@@ -705,6 +705,25 @@ namespace Microsoft.Dafny {
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
         }
 
+        // A consequence of the definition of prefix equalities is the following:
+        // axiom (forall k, m: int, d0, d1: DatatypeType :: 0 <= k <= m && $PrefixEq#Dt(m, d0, d1) ==> $PrefixEq$0#Dt(k, d0, d1));
+        {
+          var kVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "k", Bpl.Type.Int));
+          var k = new Bpl.IdentifierExpr(dt.tok, kVar);
+          var mVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "m", Bpl.Type.Int));
+          var m = new Bpl.IdentifierExpr(dt.tok, mVar);
+          var d0Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d0", predef.DatatypeType));
+          var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
+          var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
+          var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
+          var prefixEqK = FunctionCall(dt.tok, CoPrefixName(codecl, true), null, k, d0, d1);
+          var prefixEqM = FunctionCall(dt.tok, CoPrefixName(codecl, false), null, k, d0, d1);
+          var range = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), k), Bpl.Expr.Le(k, m));
+          var body = Bpl.Expr.Imp(BplAnd(range, prefixEqM), prefixEqK);
+          var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, mVar, d0Var, d1Var), body);
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
+        }
+
         // With the axioms above, going from d0==d1 to a prefix equality requires going via the full codatatype
         // equality, which in turn requires the full codatatype equality to be present.  The following axiom
         // provides a shortcut:
