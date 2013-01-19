@@ -677,9 +677,10 @@ namespace Microsoft.Dafny
                   // Create prefix method.  Note that the body is not cloned, but simply shared.
                   com.PrefixMethod = new PrefixMethod(com.tok, extraName, com.IsStatic,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                    req, cloner.CloneSpecFrameExpr(com.Mod), com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
+                    req, cloner.CloneSpecFrameExpr(com.Mod), new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the comethod's postconditions have been resolved
                     new Specification<Expression>(decr, null),
-                    com.Body, null, com);
+                    null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the comethod is known
+                    null, com);
                   extraMember = com.PrefixMethod;
                   // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(com.PrefixMethod, com);
@@ -1166,6 +1167,35 @@ namespace Microsoft.Dafny
       }
 
       if (ErrorCount == prevErrorCount) {
+        // fill in the postconditions and bodies of prefix methods
+        foreach (var com in ModuleDefinition.AllCoMethods(declarations)) {
+          var prefixMethod = com.PrefixMethod;
+          Contract.Assume(prefixMethod.Ens.Count == 0 && prefixMethod.Body == null);  // there are not supposed have have been filled in before
+          // compute the postconditions of the prefix method
+          var k = prefixMethod.Ins[0];
+          foreach (var p in com.Ens) {
+            var coConclusions = new HashSet<Expression>();
+            CheckCoMethodConclusions(p.E, true, coConclusions);
+            var subst = new CoMethodPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name));
+            var post = subst.CloneExpr(p.E);
+            prefixMethod.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+          }
+          // Compute the statement body of the prefix method
+          if (com.Body != null) {
+            var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
+            var subst = new CoMethodBodyCloner(kMinusOne);
+            prefixMethod.Body = subst.CloneBlockStmt(com.Body);
+          }
+          // The prefix method now has all its components, so it's finally time we resolve it
+          currentClass = (ClassDecl)prefixMethod.EnclosingClass;
+          allTypeParameters.PushMarker();
+          ResolveTypeParameters(currentClass.TypeArgs, false, currentClass);
+          ResolveTypeParameters(prefixMethod.TypeArgs, false, prefixMethod);
+          ResolveMethod(prefixMethod);
+          allTypeParameters.PopMarker();
+          currentClass = null;
+        }
+
         foreach (TopLevelDecl d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
@@ -1195,11 +1225,6 @@ namespace Microsoft.Dafny
                 }
                 if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
                   Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
-                }
-                if (m is CoMethod) {
-                  foreach (var ens in m.Ens) {
-                    CheckCoMethodConclusions(ens.E, true);
-                  }
                 }
               } else if (member is Function) {
                 var f = (Function)member;
@@ -2173,13 +2198,6 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
-          if (m is CoMethod && ec == ErrorCount) {
-            var mm = ((CoMethod)m).PrefixMethod;
-            allTypeParameters.PushMarker();
-            ResolveTypeParameters(mm.TypeArgs, false, mm);
-            ResolveMethod(mm);
-            allTypeParameters.PopMarker();
-          }
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
@@ -2668,15 +2686,14 @@ namespace Microsoft.Dafny
       }
 
       // Resolve body
-      if (m is CoMethod) {
-        // don't resolve the body here; instead, resolve it in the scope of the corresponding
-        // prefix method's signature
-      } else if (m.Body != null) {
-        var codeContext = m;
-        if (m is PrefixMethod) {
-          // this will cause the correct edges to be inserted into the call graph
-          codeContext = ((PrefixMethod)m).Co;
+      if (m.Body != null) {
+        if (m is CoMethod) {
+          // The body may mentioned the implicitly declared parameter _k.  Throw it into the
+          // scope before resolving the body.
+          var k = ((CoMethod)m).PrefixMethod.Ins[0];
+          scope.Push(k.Name, k);  // we expect no name conflict for _k
         }
+        var codeContext = m;
         ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
       }
 
@@ -6779,93 +6796,61 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// This method checks that all conjuncts occurring in positive positions are either copredicate
-    /// calls or codatatype equality (because these things are what TrSplitExpr in the Translator
-    /// turns into proof certificates).
+    /// This method adds to "coConclusions" all copredicate calls and codatatype equalities that occur
+    /// in positive positions and not under existential quantification.  If "expr" is the postcondition
+    /// of a comethod, then the "coConclusions" are the subexpressions that need to be replaced in order
+    /// to create the postcondition of the corresponding prefix method.
     /// </summary>
-    void CheckCoMethodConclusions(Expression expr, bool position) {
+    void CheckCoMethodConclusions(Expression expr, bool position, ISet<Expression> coConclusions) {
       Contract.Requires(expr != null);
       if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        CheckCoMethodConclusions(e.ResolvedExpression, position);
-        return;
+        CheckCoMethodConclusions(e.ResolvedExpression, position, coConclusions);
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        // TrSplitExpr continues by substituting away the bound variables. The that substitution routine
-        // is not easily available here in the Resolver, we go for a stricter test here, namely to make
-        // sure that the entire body of the let expression satisfies the CheckCoMethodConclusions.
-        CheckCoMethodConclusions(e.Body, position);
-        return;
+        // For simplicity, only look in the body of the let expression, that is, ignoring the RHS of the
+        // binding and ignoring what that binding would expand to in the body.
+        CheckCoMethodConclusions(e.Body, position, coConclusions);
 
-      } else if (expr is LiteralExpr) {
-        var e = (LiteralExpr)expr;
-        if (e.Value is bool && (bool)e.Value == position) {
-          // might as well allow "true" in positive contexts and "false" in negative contexts
-          return;
-        }
-        
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.Not) {
-          CheckCoMethodConclusions(e.E, !position);
-          return;
+          CheckCoMethodConclusions(e.E, !position, coConclusions);
         }
 
       } else if (expr is BinaryExpr) {
         var bin = (BinaryExpr)expr;
-        if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          CheckCoMethodConclusions(bin.E0, position);
-          CheckCoMethodConclusions(bin.E1, position);
-          return;
-        } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          CheckCoMethodConclusions(bin.E0, position);
-          CheckCoMethodConclusions(bin.E1, position);
-          return;
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          CheckCoMethodConclusions(bin.E0, position, coConclusions);
+          CheckCoMethodConclusions(bin.E1, position, coConclusions);
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          // let the recursive calls follow what TrSplitExpr does
-          if (position) {
-            CheckCoMethodConclusions(bin.E1, position);
-          } else {
-            CheckCoMethodConclusions(bin.E0, !position);
-          }
-          return;
+          CheckCoMethodConclusions(bin.E0, !position, coConclusions);
+          CheckCoMethodConclusions(bin.E1, position, coConclusions);
         } else if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
-          // this is cool
-          return;
+          coConclusions.Add(bin);
+        } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
+          coConclusions.Add(bin);
         }
 
       } else if (expr is ITEExpr) {
         var ite = (ITEExpr)expr;
-        CheckCoMethodConclusions(ite.Thn, position);
-        CheckCoMethodConclusions(ite.Els, position);
-        return;
+        CheckCoMethodConclusions(ite.Thn, position, coConclusions);
+        CheckCoMethodConclusions(ite.Els, position, coConclusions);
 
       } else if (expr is PredicateExpr) {
         var e = (PredicateExpr)expr;
-        // let the recursive calls follow what TrSplitExpr does
-        if (position) {
-          CheckCoMethodConclusions(e.Body, position);
-        } else {
-          CheckCoMethodConclusions(e.Guard, !position);
-        }
-        return;
+        CheckCoMethodConclusions(e.Body, position, coConclusions);
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        CheckCoMethodConclusions(e.E, position);
+        CheckCoMethodConclusions(e.E, position, coConclusions);
 
       } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;
         if (fexp.Function is CoPredicate) {
-          // all is cool
-          return;
+          coConclusions.Add(fexp);
         }
-      }
-
-      // if we get here, we have an atomic conjunct other than the allowed ones that were already checked above
-      if (position) {
-        Error(expr, "only copredicates and equalities of codatatypes are allowed as conclusions of comethods");
       }
     }
   }

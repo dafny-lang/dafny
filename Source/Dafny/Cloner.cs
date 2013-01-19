@@ -543,4 +543,91 @@ namespace Microsoft.Dafny
       return tok;
     }
   }
+
+  /// <summary>
+  /// The CoMethodPostconditionSubstituter clones the postcondition declared on a comethod, but replaces
+  /// the calls and equalities in "coConclusions" with corresponding prefix versions.  The resulting
+  /// expression is then appropriate to be a postcondition of the comethod's corresponding prefix method.
+  /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
+  /// is not cloned with each use; it is simply used as is.
+  /// </summary>
+  class CoMethodPostconditionSubstituter : Cloner
+  {
+    readonly ISet<Expression> coConclusions;
+    readonly Expression k;
+    public CoMethodPostconditionSubstituter(ISet<Expression> coConclusions, Expression k) {
+      Contract.Requires(coConclusions != null);
+      Contract.Requires(k != null);
+      this.coConclusions = coConclusions;
+      this.k = k;
+    }
+    public override Expression CloneExpr(Expression expr) {
+      if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        return CloneExpr(e.Resolved);
+      } else  if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        if (coConclusions.Contains(e)) {
+          var receiver = CloneExpr(e.Receiver);
+          var args = new List<Expression>();
+          args.Add(k);
+          foreach (var arg in e.Args) {
+            args.Add(CloneExpr(arg));
+          }
+          return new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
+        }
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        if ((e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) && coConclusions.Contains(e)) {
+          var op = e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp;
+          var A = CloneExpr(e.E0);
+          var B = CloneExpr(e.E1);
+          var teq = new TernaryExpr(Tok(e.tok), op, k, A, B);
+          return teq;
+        }
+      }
+      return base.CloneExpr(expr);
+    }
+  }
+
+  /// <summary>
+  /// The task of the CoMethodBodyCloner is to fill in the implicit _k-1 arguments in corecursive comethod calls.
+  /// The source statement and the given "k" are assumed to have been resolved, and the resulting statement will also be resolved.
+  /// </summary>
+  class CoMethodBodyCloner : Cloner
+  {
+    readonly Expression k;
+    public CoMethodBodyCloner(Expression k) {
+      Contract.Requires(k != null);
+      this.k = k;
+    }
+    public override Statement CloneStmt(Statement stmt) {
+      if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        if (s.ResolvedStatements.Count == 1) {
+          var r = CloneStmt(s.ResolvedStatements[0]);
+          // don't forget to add labels to the cloned statement
+          AddStmtLabels(r, stmt.Labels);
+          r.Attributes = CloneAttributes(stmt.Attributes);
+          return r;
+        }
+      } else if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        var lhs = s.Lhs.ConvertAll(CloneExpr);
+        var receiver = CloneExpr(s.Receiver);
+        var args = new List<Expression>();
+        args.Add(k);
+        foreach (var arg in s.Args) {
+          args.Add(CloneExpr(arg));
+        }
+        var r = new CallStmt(Tok(s.Tok), lhs, receiver, s.MethodName + "#", args);
+
+        // don't forget to add labels to the cloned statement
+        AddStmtLabels(r, stmt.Labels);
+        r.Attributes = CloneAttributes(stmt.Attributes);
+        return r;
+      }
+      return base.CloneStmt(stmt);
+    }
+  }
 }
