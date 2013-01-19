@@ -105,7 +105,7 @@ module CoPredicateResolutionErrors {
 
 // --------------------------------------------------
 
-module InvalidCoMethodConclusions {
+module UnfruitfulCoMethodConclusions {
   codatatype Stream<T> = Cons(head: T, tail: Stream);
 
   copredicate Positive(s: Stream<int>)
@@ -114,7 +114,7 @@ module InvalidCoMethodConclusions {
   }
 
   comethod BadTheorem(s: Stream)
-    ensures false;  // error: invalid comethod conclusion
+    ensures false;
   {
     BadTheorem(s.tail);
   }
@@ -123,12 +123,12 @@ module InvalidCoMethodConclusions {
     ensures true && !false;
     ensures s.head == 8 ==> Positive(s);
     ensures s.tail == s;
-    ensures s.head < 100;  // error: invalid comethod conclusion
+    ensures s.head < 100;
     ensures Positive(s) ==> s.tail == s;
-    ensures Positive(s) ==> s.head > 88;  // error: bad RHS of implication
+    ensures Positive(s) ==> s.head > 88;
     ensures !Positive(s) ==> s.tail == s;
     ensures !(true && !false ==> Positive(s) && !Positive(s));
-    ensures !(false && !true ==> Positive(s) && !Positive(s));  // error: bad LHS of implication
+    ensures !(false && !true ==> Positive(s) && !Positive(s));
   {
   }
 }

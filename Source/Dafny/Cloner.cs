@@ -596,9 +596,12 @@ namespace Microsoft.Dafny
   /// </summary>
   class CoMethodBodyCloner : Cloner
   {
+    readonly CoMethod context;
     readonly Expression k;
-    public CoMethodBodyCloner(Expression k) {
+    public CoMethodBodyCloner(CoMethod context, Expression k) {
+      Contract.Requires(context != null);
       Contract.Requires(k != null);
+      this.context = context;
       this.k = k;
     }
     public override Statement CloneStmt(Statement stmt) {
@@ -613,19 +616,26 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        var lhs = s.Lhs.ConvertAll(CloneExpr);
-        var receiver = CloneExpr(s.Receiver);
-        var args = new List<Expression>();
-        args.Add(k);
-        foreach (var arg in s.Args) {
-          args.Add(CloneExpr(arg));
-        }
-        var r = new CallStmt(Tok(s.Tok), lhs, receiver, s.MethodName + "#", args);
+        if (s.Method is CoMethod) {
+          var moduleCaller = context.EnclosingClass.Module;
+          var moduleCallee = s.Method.EnclosingClass.Module;
+          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+            // we're looking at a recursive call to a comethod
+            var lhs = s.Lhs.ConvertAll(CloneExpr);
+            var receiver = CloneExpr(s.Receiver);
+            var args = new List<Expression>();
+            args.Add(k);
+            foreach (var arg in s.Args) {
+              args.Add(CloneExpr(arg));
+            }
+            var r = new CallStmt(Tok(s.Tok), lhs, receiver, s.MethodName + "#", args);
 
-        // don't forget to add labels to the cloned statement
-        AddStmtLabels(r, stmt.Labels);
-        r.Attributes = CloneAttributes(stmt.Attributes);
-        return r;
+            // don't forget to add labels to the cloned statement
+            AddStmtLabels(r, stmt.Labels);
+            r.Attributes = CloneAttributes(stmt.Attributes);
+            return r;
+          }
+        }
       }
       return base.CloneStmt(stmt);
     }

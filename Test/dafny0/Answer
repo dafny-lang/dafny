@@ -1310,11 +1310,7 @@ Coinductive.dfy(90,8): Error: a recursive copredicate call can only be done in p
 Coinductive.dfy(91,8): Error: a recursive copredicate call can only be done in positive positions
 Coinductive.dfy(92,8): Error: a recursive copredicate call can only be done in positive positions and cannot sit inside an existential quantifier
 Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in positive positions and cannot sit inside an existential quantifier
-Coinductive.dfy(117,12): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
-Coinductive.dfy(126,19): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
-Coinductive.dfy(128,35): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
-Coinductive.dfy(131,14): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
-12 resolution/type errors detected in Coinductive.dfy
+8 resolution/type errors detected in Coinductive.dfy
 
 -------------------- Corecursion.dfy --------------------
 Corecursion.dfy(15,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can called co-recursively)
@@ -1343,68 +1339,86 @@ CoResolution.dfy(92,4): Error: a recursive call from a comethod can go only to o
 CoPrefix.dfy(60,7): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Then
+    (0,0): anon7_Then
+    (0,0): anon8_Else
+    (0,0): anon9_Then
 CoPrefix.dfy(73,7): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Then
+    (0,0): anon7_Then
+    (0,0): anon8_Else
+    (0,0): anon9_Then
 CoPrefix.dfy(111,1): Error BP5003: A postcondition might not hold on this return path.
 CoPrefix.dfy(110,11): Related location: This is the postcondition that might not hold.
 CoPrefix.dfy(98,17): Related location: Related location
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
 CoPrefix.dfy(135,25): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
+    (0,0): anon9_Then
+    (0,0): anon10_Then
 CoPrefix.dfy(139,25): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
+    (0,0): anon12_Then
+CoPrefix.dfy(148,1): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(147,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 23 verified, 5 errors
+Dafny program verifier finished with 24 verified, 6 errors
 
 -------------------- CoinductiveProofs.dfy --------------------
 CoinductiveProofs.dfy(26,12): Error: assertion violation
 CoinductiveProofs.dfy(10,17): Related location: Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon5_Then
+    (0,0): anon6_Then
 CoinductiveProofs.dfy(56,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(55,11): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(51,3): Related location: Related location
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
 CoinductiveProofs.dfy(71,12): Error: assertion violation
 CoinductiveProofs.dfy(51,3): Related location: Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon5_Then
+    (0,0): anon6_Then
 CoinductiveProofs.dfy(88,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(87,11): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(77,3): Related location: Related location
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
 CoinductiveProofs.dfy(97,12): Error: assertion violation
 CoinductiveProofs.dfy(77,3): Related location: Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon5_Then
+    (0,0): anon6_Then
 CoinductiveProofs.dfy(108,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(107,11): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(103,3): Related location: Related location
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
 CoinductiveProofs.dfy(147,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(146,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
 CoinductiveProofs.dfy(153,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(152,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
 
 Dafny program verifier finished with 35 verified, 8 errors
 

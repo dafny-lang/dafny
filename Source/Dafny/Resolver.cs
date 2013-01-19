@@ -666,10 +666,6 @@ namespace Microsoft.Dafny
                   var com = (CoMethod)m;
                   // _k has already been added to 'formals', so append the original formals
                   formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
-                  // prepend "free requires 0 < _k;", since the postcondition of a comethod holds trivially if _k is 0
-                  var req = new List<MaybeFreeExpression>();
-                  req.Add(new MaybeFreeExpression(new BinaryExpr(k.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(k.tok, 0), new IdentifierExpr(k.tok, k.Name)), true));
-                  req.AddRange(com.Req.ConvertAll(cloner.CloneMayBeFreeExpr));
                   // prepend _k to the given decreases clause
                   var decr = new List<Expression>();
                   decr.Add(new IdentifierExpr(com.tok, k.Name));
@@ -677,10 +673,11 @@ namespace Microsoft.Dafny
                   // Create prefix method.  Note that the body is not cloned, but simply shared.
                   com.PrefixMethod = new PrefixMethod(com.tok, extraName, com.IsStatic,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                    req, cloner.CloneSpecFrameExpr(com.Mod), new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the comethod's postconditions have been resolved
+                    com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod),
+                    new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the comethod's postconditions have been resolved
                     new Specification<Expression>(decr, null),
                     null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the comethod is known
-                    null, com);
+                    cloner.CloneAttributes(com.Attributes), com);
                   extraMember = com.PrefixMethod;
                   // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(com.PrefixMethod, com);
@@ -1183,8 +1180,11 @@ namespace Microsoft.Dafny
           // Compute the statement body of the prefix method
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new CoMethodBodyCloner(kMinusOne);
-            prefixMethod.Body = subst.CloneBlockStmt(com.Body);
+            var subst = new CoMethodBodyCloner(com, kMinusOne);
+            var mainBody = subst.CloneBlockStmt(com.Body);
+            var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
+            var condBody = new IfStmt(com.BodyStartTok, kPositive, mainBody, null);
+            prefixMethod.Body = new BlockStmt(com.tok, new List<Statement>() { condBody });
           }
           // The prefix method now has all its components, so it's finally time we resolve it
           currentClass = (ClassDecl)prefixMethod.EnclosingClass;
@@ -2673,9 +2673,6 @@ namespace Microsoft.Dafny
         scope.Push(p.Name, p);
       }
 
-      // attributes are allowed to mention both in- and out-parameters
-      ResolveAttributes(m.Attributes, false);
-
       // ... continue resolving specification
       foreach (MaybeFreeExpression e in m.Ens) {
         ResolveExpression(e.E, true);
@@ -2696,6 +2693,9 @@ namespace Microsoft.Dafny
         var codeContext = m;
         ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
       }
+
+      // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for comethods)
+      ResolveAttributes(m.Attributes, false);
 
       scope.PopMarker();  // for the out-parameters and outermost-level locals
       scope.PopMarker();  // for the in-parameters
