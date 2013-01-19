@@ -660,6 +660,8 @@ namespace Microsoft.Dafny
                     new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
                     cop.Body, null, cop);
                   extraMember = cop.PrefixPredicate;
+                  // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
+                  moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
                 } else {
                   var com = (CoMethod)m;
                   // _k has already been added to 'formals', so append the original formals
@@ -679,6 +681,8 @@ namespace Microsoft.Dafny
                     new Specification<Expression>(decr, null),
                     com.Body, null, com);
                   extraMember = com.PrefixMethod;
+                  // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
+                  moduleDef.CallGraph.AddEdge(com.PrefixMethod, com);
                 }
                 members.Add(extraName, extraMember);
               }
@@ -1414,6 +1418,15 @@ namespace Microsoft.Dafny
             foreach (var member in ((ClassDecl)d).Members) {
               if (member is CoPredicate) {
                 var fn = (CoPredicate)member;
+                // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
+                // of their soundness)
+                if (fn.Ens.Count != 0) {
+                  Error(fn.Ens[0].tok, "a copredicate is not allowed to declare any ensures clause");
+                }
+                // Also check for 'reads' clauses
+                if (fn.Reads.Count != 0) {
+                  Error(fn.Reads[0].tok, "a copredicate is not allowed to declare any reads clause");  // (why?)
+                }
                 if (fn.Body != null) {
                   CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
@@ -1621,7 +1634,14 @@ namespace Microsoft.Dafny
           if (!(e.Function is CoPredicate)) {
             Error(e, "a recursive call from a copredicate can go only to other copredicates");
           } else if (cp != CallingPosition.Positive) {
-            Error(e, "a recursive copredicate call can only be done in positive positions");
+            var msg = "a recursive copredicate call can only be done in positive positions";
+            if (cp == CallingPosition.Neither) {
+              // this may be inside a 
+              msg += " and cannot sit inside an existential quantifier";
+            } else {
+              // the co-call is not inside an existential quantifier, so don't bother mentioning the part of existentials in the error message
+            }
+            Error(e, msg);
           } else {
             e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
           }
@@ -1665,6 +1685,11 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
+        if ((cp == CallingPosition.Positive && e is ExistsExpr) || (cp == CallingPosition.Negative && e is ForallExpr)) {
+          // Don't allow any co-recursive calls under an existential, because that can be unsound.
+          // (Actually, I think we could be more liberal here--we could allow this if the range is finite.)
+          cp = CallingPosition.Neither;
+        }
         if (e.Range != null) {
           CoPredicateChecks(e.Range, context, e is ExistsExpr ? Invert(cp) : cp);
         }
@@ -1679,7 +1704,7 @@ namespace Microsoft.Dafny
       Contract.Requires(context != null);
       if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        if (s.Method is CoMethod) {
+        if (s.Method is CoMethod || s.Method is PrefixMethod) {
           // all is cool
         } else {
           // the call goes from a comethod context to a non-comethod callee
@@ -1687,7 +1712,7 @@ namespace Microsoft.Dafny
           var moduleCallee = s.Method.EnclosingClass.Module;
           if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
             // we're looking at a recursive call (to a non-comethod)
-            Error(s, "a recursive call from a comethod can go only to other comethods");
+            Error(s, "a recursive call from a comethod can go only to other comethods and prefix methods");
           }
         }
       } else {

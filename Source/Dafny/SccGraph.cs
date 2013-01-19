@@ -108,7 +108,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Idempotently adds verices 'from' and 'to' the graph, and then
+    /// Idempotently adds vertices 'from' and 'to' the graph, and then
     /// adds an edge from 'from' to 'to'.
     /// </summary>
     public void AddEdge(Node from, Node to) {

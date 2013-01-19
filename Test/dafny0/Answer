@@ -1308,8 +1308,8 @@ Coinductive.dfy(35,11): Error: because of cyclic dependencies among constructor 
 Coinductive.dfy(61,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
 Coinductive.dfy(90,8): Error: a recursive copredicate call can only be done in positive positions
 Coinductive.dfy(91,8): Error: a recursive copredicate call can only be done in positive positions
-Coinductive.dfy(92,8): Error: a recursive copredicate call can only be done in positive positions
-Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in positive positions
+Coinductive.dfy(92,8): Error: a recursive copredicate call can only be done in positive positions and cannot sit inside an existential quantifier
+Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in positive positions and cannot sit inside an existential quantifier
 Coinductive.dfy(117,12): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
 Coinductive.dfy(126,19): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
 Coinductive.dfy(128,35): Error: only copredicates and equalities of codatatypes are allowed as conclusions of comethods
@@ -1327,35 +1327,44 @@ Execution trace:
 Dafny program verifier finished with 5 verified, 2 errors
 
 -------------------- CoResolution.dfy --------------------
-CoResolution.dfy(43,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)
-CoResolution.dfy(54,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-CoResolution.dfy(22,7): Error: member Undeclared# does not exist in class _default
-CoResolution.dfy(23,2): Error: unresolved identifier: Undeclared#
-CoResolution.dfy(26,5): Error: unresolved identifier: _k
-5 resolution/type errors detected in CoResolution.dfy
+CoResolution.dfy(14,9): Error: member Undeclared# does not exist in class _default
+CoResolution.dfy(15,4): Error: unresolved identifier: Undeclared#
+CoResolution.dfy(18,7): Error: unresolved identifier: _k
+CoResolution.dfy(36,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)
+CoResolution.dfy(47,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+CoResolution.dfy(64,10): Error: a copredicate is not allowed to declare any reads clause
+CoResolution.dfy(70,31): Error: a copredicate is not allowed to declare any ensures clause
+CoResolution.dfy(79,20): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(83,20): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(92,4): Error: a recursive call from a comethod can go only to other comethods and prefix methods
+10 resolution/type errors detected in CoResolution.dfy
 
 -------------------- CoPrefix.dfy --------------------
-CoPrefix.dfy(61,7): Error: failure to decrease termination measure
+CoPrefix.dfy(60,7): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-CoPrefix.dfy(74,7): Error: cannot prove termination; try supplying a decreases clause
+CoPrefix.dfy(73,7): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-CoPrefix.dfy(112,1): Error BP5003: A postcondition might not hold on this return path.
-CoPrefix.dfy(111,11): Related location: This is the postcondition that might not hold.
-CoPrefix.dfy(99,17): Related location: Related location
+CoPrefix.dfy(111,1): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(110,11): Related location: This is the postcondition that might not hold.
+CoPrefix.dfy(98,17): Related location: Related location
 Execution trace:
     (0,0): anon0
-CoPrefix.dfy(136,25): Error: assertion violation
+CoPrefix.dfy(135,25): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
+CoPrefix.dfy(139,25): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
 
-Dafny program verifier finished with 23 verified, 4 errors
+Dafny program verifier finished with 23 verified, 5 errors
 
 -------------------- CoinductiveProofs.dfy --------------------
 CoinductiveProofs.dfy(26,12): Error: assertion violation

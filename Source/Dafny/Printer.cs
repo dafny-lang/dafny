@@ -298,7 +298,7 @@ namespace Microsoft.Dafny {
 
     public void PrintFunction(Function f, int indent) {
       Contract.Requires(f != null);
-      var isPredicate = f is Predicate;
+      var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f is CoPredicate ? "copredicate" : "function";
       if (f.IsStatic) { k = "static " + k; }

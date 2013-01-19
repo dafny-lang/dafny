@@ -44,7 +44,6 @@ ghost method Theorem0_Manual()
   parallel (k: nat) {
     Theorem0_Lemma(k);
   }
-  assume (forall k: nat :: atmost#[k](zeros(), ones())) ==> atmost(zeros(), ones());
 }
 
 datatype Natural = Zero | Succ(Natural);
@@ -135,11 +134,11 @@ comethod Compare<T>(h: T)
     case true =>
       assert FF(h).tail == GG(h).tail;  // error: full equality is not known here
     case true =>
-//      assert FF(h).tail == GG(h).tail;
+      assert FF(h) ==#[_k] GG(h);  // yes, this is the postcondition to be proved, and it is known to hold
     case true =>
-//      assert FF(h).tail ==#[_k] GG(h).tail;
+      assert FF(h).tail ==#[_k] GG(h).tail;  // error: only _k-1 equality of the tails is known here
     case true =>
-//      assert FF(h).tail ==#[_k - 1] GG(h).tail;
+      assert FF(h).tail ==#[_k - 1] GG(h).tail;  // yes, follows from call to Compare
     case true =>
   }
 }
