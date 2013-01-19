@@ -964,7 +964,7 @@ namespace Microsoft.Dafny {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
               if (kind == MethodTranslationKind.IntraModuleCall && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -981,7 +981,7 @@ namespace Microsoft.Dafny {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else {
@@ -2319,7 +2319,7 @@ namespace Microsoft.Dafny {
       foreach (Expression p in f.Ens) {
         var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
         var splits = new List<SplitExprInfo>();
-        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, null, etran);
+        bool splitHappened/*we actually don't care*/ = TrSplitExpr(p, splits, true, functionHeight, etran);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
             ens.Add(Ensures(s.E.tok, false, s.E, null, null));
@@ -2754,7 +2754,7 @@ namespace Microsoft.Dafny {
         r = BplAnd(r, CanCallAssumption(e.Args, etran));
         // get to assume canCall
         Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullCompileName + "#canCall", Bpl.Type.Bool);
-        ExprSeq args = etran.FunctionInvocationArguments(e, null);
+        ExprSeq args = etran.FunctionInvocationArguments(e);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         r = BplAnd(r, canCallFuncAppl);
         return r;
@@ -3233,7 +3233,7 @@ namespace Microsoft.Dafny {
         }
         // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
         Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullCompileName + "#canCall", Bpl.Type.Bool);
-        ExprSeq args = etran.FunctionInvocationArguments(e, null);
+        ExprSeq args = etran.FunctionInvocationArguments(e);
         Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
         builder.Add(new Bpl.AssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
 
@@ -3352,7 +3352,7 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Guard, options, locals, builder, etran);
         if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
           bool splitHappened;
-          var ss = TrSplitExpr(e.Guard, etran, null, out splitHappened);
+          var ss = TrSplitExpr(e.Guard, etran, out splitHappened);
           if (!splitHappened) {
             builder.Add(Assert(e.Guard.tok, etran.TrExpr(e.Guard), "condition in assert expression might not hold"));
           } else {
@@ -3893,7 +3893,7 @@ namespace Microsoft.Dafny {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
               if ((kind == MethodTranslationKind.IntraModuleCall || kind == MethodTranslationKind.CoCall) && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -3905,19 +3905,12 @@ namespace Microsoft.Dafny {
           comment = null;
         }
         comment = "user-defined postconditions";
-        IdentifierExpr depthArgument = null;
-        if (m is PrefixMethod) {
-          var pm = (PrefixMethod)m;
-          depthArgument = new IdentifierExpr(pm.tok, pm.K.Name);
-          depthArgument.Var = pm.K;  // resolve here
-          depthArgument.Type = pm.K.Type;  // resolve here
-        }
         foreach (var p in m.Ens) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
           } else {
             var ss = new List<SplitExprInfo>();
-            var splitHappened/*we actually don't care*/ = TrSplitExpr(p.E, ss, true, int.MaxValue, depthArgument, etran);
+            var splitHappened/*we actually don't care*/ = TrSplitExpr(p.E, ss, true, int.MaxValue, etran);
             foreach (var s in ss) {
               var post = s.E;
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -3994,14 +3987,14 @@ namespace Microsoft.Dafny {
           req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, null));
         } else {
           bool splitHappened;  // we actually don't care
-          foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
+          foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
             req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
           }
         }
       }
       foreach (MaybeFreeExpression p in m.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
           ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, "Error: postcondition of refined method may be violated", null));
         }
       }
@@ -4092,7 +4085,7 @@ namespace Microsoft.Dafny {
 
       foreach (var p in m.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p.E, etran, null, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
           var assert = new Bpl.AssertCmd(method.tok, s.E, ErrorMessageAttribute(s.E.tok, "This is the postcondition that may not hold."));
           assert.ErrorData = "Error: A postcondition of the refined method may not hold.";
           builder.Add(assert);
@@ -4166,7 +4159,7 @@ namespace Microsoft.Dafny {
       var ens = new Bpl.EnsuresSeq();
       foreach (Expression p in f.Ens) {
         bool splitHappened;  // we actually don't care
-        foreach (var s in TrSplitExpr(p, etran, null, out splitHappened)) {
+        foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
           if (s.IsChecked) {
             ens.Add(Ensures(s.E.tok, false, s.E, null, null));
           }
@@ -4571,7 +4564,7 @@ namespace Microsoft.Dafny {
             enclosingToken = stmt.Tok;
           }
           bool splitHappened;
-          var ss = TrSplitExpr(s.Expr, etran, null, out splitHappened);
+          var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
             builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok));
@@ -4651,7 +4644,7 @@ namespace Microsoft.Dafny {
             // do nothing
           } else {
             bool splitHappened;  // actually, we don't care
-            var ss = TrSplitExpr(p.E, yeEtran, null, out splitHappened);
+            var ss = TrSplitExpr(p.E, yeEtran, out splitHappened);
             foreach (var split in ss) {
               if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
@@ -4910,7 +4903,7 @@ namespace Microsoft.Dafny {
             b = new Bpl.StmtListBuilder();
             TrStmt(s.Hints[i], b, locals, etran);
             bool splitHappened;
-            var ss = TrSplitExpr(s.Steps[i], etran, null, out splitHappened);
+            var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -5489,7 +5482,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(ens.E, definedness, locals, etran, false);
         if (!ens.IsFree) {
           bool splitHappened;  // we actually don't care
-          foreach (var split in TrSplitExpr(ens.E, etran, null, out splitHappened)) {
+          foreach (var split in TrSplitExpr(ens.E, etran, out splitHappened)) {
             if (split.IsChecked) {
               definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of parallel statement"));
             }
@@ -5620,7 +5613,7 @@ namespace Microsoft.Dafny {
           invariants.Add(new Bpl.AssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
         } else {
           bool splitHappened;
-          var ss = TrSplitExpr(loopInv.E, etran, null, out splitHappened);
+          var ss = TrSplitExpr(loopInv.E, etran, out splitHappened);
           if (!splitHappened) {
             var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
             invariants.Add(Assert(loopInv.E.tok, wInv, "loop invariant violation"));
@@ -7364,7 +7357,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is FunctionCallExpr) {
           FunctionCallExpr e = (FunctionCallExpr)expr;
-          return TrFunctionCallExpr(e, null);
+          return TrFunctionCallExpr(e);
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
@@ -7741,16 +7734,12 @@ namespace Microsoft.Dafny {
 
       /// <summary>
       /// Return a Boogie call corresponding to "e".
-      /// If coContextDepth is null or the function is not a copredicate, then the usual function name is used (modulated, as
-      /// usual, by the layer offset).
-      /// Otherwise (that is, if certificatePrimes != null and the function is a copredicate), then the function generated will
-      /// be one for the corresponding prefix predicate, using coContextDepth as the depth argument.
       /// </summary>
-      public Bpl.Expr TrFunctionCallExpr(FunctionCallExpr e, Bpl.Expr coContextDepth) {
+      public Bpl.Expr TrFunctionCallExpr(FunctionCallExpr e) {
         Contract.Requires(e != null);
 
         var isRecursive = e.Function.IsRecursive;
-        var f = coContextDepth != null && e.Function is CoPredicate ? ((CoPredicate)e.Function).PrefixPredicate : e.Function;
+        var f = e.Function;
         if (isRecursive) {
           Statistics_CustomLayerFunctionCount++;
         }
@@ -7765,7 +7754,7 @@ namespace Microsoft.Dafny {
           }
         }
         var id = new Bpl.IdentifierExpr(e.tok, nm, translator.TrType(e.Type));
-        var args = FunctionInvocationArguments(e, e.Function is CoPredicate ? coContextDepth : null);
+        var args = FunctionInvocationArguments(e);
         var result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
         return CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
       }
@@ -7818,7 +7807,7 @@ namespace Microsoft.Dafny {
         return typeAntecedent;
       }
 
-      public ExprSeq FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr depthArgument) {
+      public ExprSeq FunctionInvocationArguments(FunctionCallExpr e) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<ExprSeq>() != null);
 
@@ -7826,9 +7815,6 @@ namespace Microsoft.Dafny {
         args.Add(HeapExpr);
         if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
-        }
-        if (depthArgument != null) {
-          args.Add(depthArgument);
         }
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
@@ -8570,13 +8556,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, Expression coContextDepth, out bool splitHappened) {
+    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, coContextDepth, etran);
+      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, etran);
       return splits;
     }
 
@@ -8584,30 +8570,8 @@ namespace Microsoft.Dafny {
     /// Tries to split the expression into tactical conjuncts (if "position") or disjuncts (if "!position").
     /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function if
     /// if it declared in the current module and its height is less than "heightLimit".
-    /// 
-    /// If "coContextDepth != null", then any copredicate P(s) appearing in a positive position is interpreted as
-    /// a prefix predicate P#[coContextDepth](s), and similarly an equality A==B on co-datatype values is
-    /// interpreted as a proof certificate A ==#[coContextDepth] B.  These prefix-predicate interpretations
-    /// have an effect on inlining.
-    /// In particular, where P(s) would inline into:
-    ///    check P(s) \/ H(s)
-    ///    check P(s) \/ P(s.tail)
-    ///    free P(s)
-    /// P'(s) inlines into:
-    ///    check P'(s) \/ H(s)
-    ///    check P'(s) \/ P''(s.tail)
-    ///    free P'(s)
-    /// Analogously, it would be possible to inline an equality A==B into:
-    ///     check A==B \/ A.head==B.head
-    ///     check A==B \/ A.tail==B.tail
-    ///     free A==B
-    /// but that's not done (because equalities are not ordinarily inlined).  However, a proof certificate for
-    /// the equality is lined:
-    ///     check A ~~' B \/ A.head == B.head
-    ///     check A ~~' B \/ A.tail ~~'' B.tail
-    ///     free A ~~' B
     /// </summary>
-    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, Expression coContextDepth, ExpressionTranslator etran) {
+    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type is BoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type is BoolType));
       Contract.Requires(splits != null);
@@ -8616,7 +8580,7 @@ namespace Microsoft.Dafny {
       if (expr is BoxingCastExpr) {
         var bce = (BoxingCastExpr)expr;
         var ss = new List<SplitExprInfo>();
-        if (TrSplitExpr(bce.E, ss, position, heightLimit, coContextDepth, etran)) {
+        if (TrSplitExpr(bce.E, ss, position, heightLimit, etran)) {
           foreach (var s in ss) {
             splits.Add(new SplitExprInfo(s.Kind, etran.CondApplyBox(s.E.tok, s.E, bce.FromType, bce.ToType)));
           }
@@ -8625,17 +8589,17 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, coContextDepth, etran);
+        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, etran);
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return TrSplitExpr(etran.GetSubstitutedBody(e), splits, position, heightLimit, coContextDepth, etran);
+        return TrSplitExpr(etran.GetSubstitutedBody(e), splits, position, heightLimit, etran);
 
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.Not) {
           var ss = new List<SplitExprInfo>();
-          if (TrSplitExpr(e.E, ss, !position, heightLimit, coContextDepth, etran)) {
+          if (TrSplitExpr(e.E, ss, !position, heightLimit, etran)) {
             foreach (var s in ss) {
               splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Unary(s.E.tok, UnaryOperator.Opcode.Not, s.E)));
             }
@@ -8646,13 +8610,13 @@ namespace Microsoft.Dafny {
       } else if (expr is BinaryExpr) {
         var bin = (BinaryExpr)expr;
         if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          TrSplitExpr(bin.E0, splits, position, heightLimit, coContextDepth, etran);
-          TrSplitExpr(bin.E1, splits, position, heightLimit, coContextDepth, etran);
+          TrSplitExpr(bin.E0, splits, position, heightLimit, etran);
+          TrSplitExpr(bin.E1, splits, position, heightLimit, etran);
           return true;
 
         } else  if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          TrSplitExpr(bin.E0, splits, position, heightLimit, coContextDepth, etran);
-          TrSplitExpr(bin.E1, splits, position, heightLimit, coContextDepth, etran);
+          TrSplitExpr(bin.E0, splits, position, heightLimit, etran);
+          TrSplitExpr(bin.E1, splits, position, heightLimit, etran);
           return true;
 
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
@@ -8660,14 +8624,14 @@ namespace Microsoft.Dafny {
           if (position) {
             var lhs = etran.TrExpr(bin.E0);
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(bin.E1, ss, position, heightLimit, coContextDepth, etran);
+            TrSplitExpr(bin.E1, ss, position, heightLimit, etran);
             foreach (var s in ss) {
               // as the source location in the following implication, use that of the translated "s"
               splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, lhs, s.E)));
             }
           } else {
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(bin.E0, ss, !position, heightLimit, coContextDepth, etran);
+            TrSplitExpr(bin.E0, ss, !position, heightLimit, etran);
             var rhs = etran.TrExpr(bin.E1);
             foreach (var s in ss) {
               // as the source location in the following implication, use that of the translated "s"
@@ -8675,13 +8639,6 @@ namespace Microsoft.Dafny {
             }
           }
           return true;
-        } else if (position && coContextDepth != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
-          // rewrite A==B into A==#[coContextDepth]B
-          var codecl = bin.E0.Type.AsCoDatatype;
-          Contract.Assert(codecl != null);
-          var prefixEq = new TernaryExpr(bin.tok, TernaryExpr.Opcode.PrefixEqOp, coContextDepth, bin.E0, bin.E1);
-          prefixEq.Type = Type.Bool;  // resolve here
-          return TrSplitExpr(prefixEq, splits, position, heightLimit, null, etran);
         }
 
       } else if (expr is TernaryExpr) {
@@ -8716,7 +8673,7 @@ namespace Microsoft.Dafny {
         var ssThen = new List<SplitExprInfo>();
         var ssElse = new List<SplitExprInfo>();
         // Note: The following lines intentionally uses | instead of ||, because we need both calls to TrSplitExpr
-        if (TrSplitExpr(ite.Thn, ssThen, position, heightLimit, coContextDepth, etran) | TrSplitExpr(ite.Els, ssElse, position, heightLimit, coContextDepth, etran)) {
+        if (TrSplitExpr(ite.Thn, ssThen, position, heightLimit, etran) | TrSplitExpr(ite.Els, ssElse, position, heightLimit, etran)) {
           var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
           var test = etran.TrExpr(ite.Test);
           foreach (var s in ssThen) {
@@ -8741,14 +8698,14 @@ namespace Microsoft.Dafny {
         if (position) {
           var guard = etran.TrExpr(e.Guard);
           var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.Body, ss, position, heightLimit, coContextDepth, etran);
+          TrSplitExpr(e.Body, ss, position, heightLimit, etran);
           foreach (var s in ss) {
             // as the source location in the following implication, use that of the translated "s"
             splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, guard, s.E)));
           }
         } else {
           var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.Guard, ss, !position, heightLimit, coContextDepth, etran);
+          TrSplitExpr(e.Guard, ss, !position, heightLimit, etran);
           var rhs = etran.TrExpr(e.Body);
           foreach (var s in ss) {
             // as the source location in the following implication, use that of the translated "s"
@@ -8759,18 +8716,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return TrSplitExpr(e.E, splits, position, heightLimit, coContextDepth, etran.Old);
+        return TrSplitExpr(e.E, splits, position, heightLimit, etran.Old);
 
       } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;
         var f = fexp.Function;
         Contract.Assert(f != null);  // filled in during resolution
-        if (f is CoPredicate && coContextDepth != null) {
-          // rewrite P(s) into P#[coContextDepth](s)
-          var cop = (CoPredicate)f;
-          var prefixPredCall = cop.CreatePrefixPredicateCall(fexp, coContextDepth);
-          return TrSplitExpr(prefixPredCall, splits, position, heightLimit, null, etran);
-        }
         var module = f.EnclosingClass.Module;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
@@ -8812,7 +8763,7 @@ namespace Microsoft.Dafny {
 
             // F#canCall(args)
             Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
-            ExprSeq args = etran.FunctionInvocationArguments(fexp, null);
+            ExprSeq args = etran.FunctionInvocationArguments(fexp);
             Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
 
             Bpl.Expr fargs;
@@ -8827,7 +8778,7 @@ namespace Microsoft.Dafny {
 
             // recurse on body
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(body, ss, position, functionHeight, null, etran);
+            TrSplitExpr(body, ss, position, functionHeight, etran);
             foreach (var s in ss) {
               if (s.IsChecked) {
                 var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
