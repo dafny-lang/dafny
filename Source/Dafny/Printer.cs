@@ -872,6 +872,14 @@ namespace Microsoft.Dafny {
           PrintExpressionList(t.Arguments);
           wr.Write(")");
         }
+      } else if (rhs is CallRhs) {
+        var r = (CallRhs)rhs;
+        if (!(r.Receiver is ImplicitThisExpr)) {
+          PrintExpr(r.Receiver, 0x70, false, false, -1);
+          wr.Write(".");
+        }
+        wr.Write("{0}", r.MethodName);
+        PrintActualArguments(r.Args, r.MethodName);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
       }

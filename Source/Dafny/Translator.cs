@@ -5852,20 +5852,13 @@ namespace Microsoft.Dafny {
       // Figure out if the call is recursive or not, which will be used below to determine the need for a
       // termination check and the need to include an implicit _k-1 argument.
       bool isRecursiveCall = false;
-      if (method is PrefixMethod) {
-        // An explicit call to a prefix method is allowed only within the corresponding comethod's SCC, so
-        // this is really a recursive call.
-        Contract.Assert(codeContext is PrefixMethod);  // sanity check
-        isRecursiveCall = true;
-      } else {
-        // consult the call graph to figure out if this is a recursive call
-        var module = method.EnclosingClass.Module;
-        if (module == currentModule) {
-          // Note, prefix methods are not recorded in the call graph, but their corresponding comethods are.
-          Method cllr = caller is PrefixMethod ? ((PrefixMethod)caller).Co : caller;
-          if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(cllr)) {
-            isRecursiveCall = true;
-          }
+      // consult the call graph to figure out if this is a recursive call
+      var module = method.EnclosingClass.Module;
+      if (module == currentModule) {
+        // Note, prefix methods are not recorded in the call graph, but their corresponding comethods are.
+        Method cllr = caller is PrefixMethod ? ((PrefixMethod)caller).Co : caller;
+        if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(cllr)) {
+          isRecursiveCall = true;
         }
       }
 

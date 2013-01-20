@@ -607,29 +607,38 @@ namespace Microsoft.Dafny
     public override Statement CloneStmt(Statement stmt) {
       if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
-        if (s.ResolvedStatements.Count == 1) {
-          var r = CloneStmt(s.ResolvedStatements[0]);
-          // don't forget to add labels to the cloned statement
-          AddStmtLabels(r, stmt.Labels);
-          r.Attributes = CloneAttributes(stmt.Attributes);
-          return r;
+        if (s.ResolvedStatements.Count == 1 && s.ResolvedStatements[0] is CallStmt) {
+          var call = (CallStmt)s.ResolvedStatements[0];
+          var moduleCaller = context.EnclosingClass.Module;
+          var moduleCallee = call.Method.EnclosingClass.Module;
+          if (call.Method is CoMethod && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(call.Method)) {
+            // we're looking at a recursive call to a comethod
+            var args = new List<Expression>();
+            args.Add(k);
+            foreach (var arg in call.Args) {
+              args.Add(CloneExpr(arg));
+            }
+            var rhs = new CallRhs(Tok(call.Tok), CloneExpr(call.Receiver), call.MethodName + "#", args);
+            var r = new UpdateStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), new List<AssignmentRhs>() { rhs }, s.CanMutateKnownState);
+            // don't forget to add labels to the cloned statement
+            AddStmtLabels(r, stmt.Labels);
+            r.Attributes = CloneAttributes(stmt.Attributes);
+            return r;
+          }
         }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method is CoMethod) {
           var moduleCaller = context.EnclosingClass.Module;
           var moduleCallee = s.Method.EnclosingClass.Module;
-          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+          if (s.Method is CoMethod && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
             // we're looking at a recursive call to a comethod
-            var lhs = s.Lhs.ConvertAll(CloneExpr);
-            var receiver = CloneExpr(s.Receiver);
             var args = new List<Expression>();
             args.Add(k);
             foreach (var arg in s.Args) {
               args.Add(CloneExpr(arg));
             }
-            var r = new CallStmt(Tok(s.Tok), lhs, receiver, s.MethodName + "#", args);
-
+            var r = new CallStmt(Tok(s.Tok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName + "#", args);
             // don't forget to add labels to the cloned statement
             AddStmtLabels(r, stmt.Labels);
             r.Attributes = CloneAttributes(stmt.Attributes);

@@ -148,3 +148,44 @@ comethod {:induction false} BadTheorem(s: IList)
 {  // error: postcondition violation
   BadTheorem(s.tail);
 }
+
+// ---------------------------------
+
+// Make sure recursive calls get checked for termination
+module Recursion {
+  comethod X() { Y(); }
+  comethod Y() { X(); }
+
+  comethod G(x: int)
+    ensures x < 100;
+  {  // error: postcondition violation (when _k == 0)
+    H(x);
+  }
+  comethod H(x: int)
+    ensures x < 100;
+  {  // error: postcondition violation (when _k == 0)
+    G(x);
+  }
+  
+  comethod A(x: int) { B(x); }
+  comethod B(x: int)
+  {
+    A#[10](x);  // error: this is a recursive call, and the termination metric may not be going down
+  }
+  
+  comethod A'(x: int) { B'(x); }
+  comethod B'(x: int)
+  {
+    if (10 < _k) {
+      A'#[10](x);
+    }
+  }
+  
+  comethod A''(x: int) { B''(x); }
+  comethod B''(x: int)
+  {
+    if (0 < x) {
+      A''#[_k](x-1);
+    }
+  }
+}

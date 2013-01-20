@@ -1310,6 +1310,7 @@ CalcStmt<out Statement/*!*/ s>
      BinaryExpr.Opcode op, calcOp = BinaryExpr.Opcode.Eq, resOp = BinaryExpr.Opcode.Eq;     
      var lines = new List<Expression/*!*/>();
      var hints = new List<BlockStmt/*!*/>(); 
+     BinaryExpr.Opcode? customOp;
      var customOps = new List<BinaryExpr.Opcode?>();
      BinaryExpr.Opcode? maybeOp;
      Expression/*!*/ e;
@@ -1328,18 +1329,16 @@ CalcStmt<out Statement/*!*/ s>
   [ Expression<out e>                                     (. lines.Add(e); .)
     ";"
     {
-      Hint<out h>                                         (. hints.Add(h); .)
-      ( CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
+      Hint<out h>                                         (. hints.Add(h); customOp = null; .)
+      [ CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
                                                              if (maybeOp == null) {
-                                                               customOps.Add(null); // pretend the operator was not there to satisfy the precondition of the CalcStmt contructor
                                                                SemErr(opTok, "this operator cannot continue this calculation");
                                                              } else {
-                                                               customOps.Add(op);
+                                                               customOp = op;
                                                                resOp = (BinaryExpr.Opcode)maybeOp;                                                              
                                                              }
                                                           .)
-      |                                                   (. customOps.Add(null); .)
-      )
+      ]                                                   (. customOps.Add(customOp); .)
       Expression<out e>                                   (. lines.Add(e); .)
       ";"
     }

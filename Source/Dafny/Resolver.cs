@@ -1167,6 +1167,9 @@ namespace Microsoft.Dafny
         // fill in the postconditions and bodies of prefix methods
         foreach (var com in ModuleDefinition.AllCoMethods(declarations)) {
           var prefixMethod = com.PrefixMethod;
+          if (prefixMethod == null) {
+            continue;  // something went wrong during registration of the prefix method (probably a duplicated comethod name)
+          }
           Contract.Assume(prefixMethod.Ens.Count == 0 && prefixMethod.Body == null);  // there are not supposed have have been filled in before
           // compute the postconditions of the prefix method
           var k = prefixMethod.Ins[0];
@@ -2146,8 +2149,10 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          if (m is CoMethod && ec == ErrorCount) {
-            var mm = ((CoMethod)m).PrefixMethod;
+          var com = m as CoMethod;
+          if (com != null && com.PrefixMethod != null && ec == ErrorCount) {
+            var mm = com.PrefixMethod;
+            // resolve signature of the prefix method
             mm.EnclosingClass = cl;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(mm.TypeArgs, true, mm);
@@ -2684,10 +2689,11 @@ namespace Microsoft.Dafny
 
       // Resolve body
       if (m.Body != null) {
-        if (m is CoMethod) {
+        var com = m as CoMethod;
+        if (com != null && com.PrefixMethod != null) {
           // The body may mentioned the implicitly declared parameter _k.  Throw it into the
           // scope before resolving the body.
-          var k = ((CoMethod)m).PrefixMethod.Ins[0];
+          var k = com.PrefixMethod.Ins[0];
           scope.Push(k.Name, k);  // we expect no name conflict for _k
         }
         var codeContext = m;
@@ -3981,6 +3987,10 @@ namespace Microsoft.Dafny
           isEffectful = tr.InitCall != null;
         } else if (rhs is HavocRhs) {
           isEffectful = false;
+        } else if (rhs is CallRhs) {
+          // (a CallRhs is never parsed; we must have got here from an act of cloning)
+          isEffectful = true;
+          callRhs = callRhs ?? (CallRhs)rhs;
         } else {
           var er = (ExprRhs)rhs;
           if (er.Expr is IdentifierSequence) {

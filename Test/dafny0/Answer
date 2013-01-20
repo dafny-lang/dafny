@@ -1336,6 +1336,20 @@ CoResolution.dfy(92,4): Error: a recursive call from a comethod can go only to o
 10 resolution/type errors detected in CoResolution.dfy
 
 -------------------- CoPrefix.dfy --------------------
+CoPrefix.dfy(161,3): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(160,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+CoPrefix.dfy(166,3): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(165,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+CoPrefix.dfy(173,5): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
 CoPrefix.dfy(60,7): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
@@ -1370,7 +1384,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 24 verified, 6 errors
+Dafny program verifier finished with 41 verified, 9 errors
 
 -------------------- CoinductiveProofs.dfy --------------------
 CoinductiveProofs.dfy(26,12): Error: assertion violation
