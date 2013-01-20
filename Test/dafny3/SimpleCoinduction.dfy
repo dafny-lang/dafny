@@ -64,7 +64,6 @@ copredicate True(s: Stream)
 comethod AlwaysTrue(s: Stream)
   ensures True(s);
 {
-  AlwaysTrue(s.tail);  // WHY does this not happen automatically? (Because 's' is not quantified over)
 }
 
 copredicate AlsoTrue(s: Stream)
@@ -75,7 +74,16 @@ copredicate AlsoTrue(s: Stream)
 comethod AlsoAlwaysTrue(s: Stream)
   ensures AlsoTrue(s);
 {
-  // AlsoAlwaysTrue(s);  // here, the recursive call is not needed, because it uses the same 's', so 's' does not need to be quantified over
+}
+
+copredicate TT(y: int)
+{
+  TT(y+1)
+}
+
+comethod AlwaysTT(y: int)
+  ensures TT(y);
+{
 }
 
 // -----------------------------------------------------------------------

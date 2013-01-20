@@ -271,6 +271,13 @@ namespace Microsoft.Dafny
               fn.IsRecursive = true;
             }
           }
+          if (fn.IsRecursive && fn is CoPredicate) {
+            // this means the corresponding prefix predicate is also recursive
+            var prefixPred = ((CoPredicate)fn).PrefixPredicate;
+            if (prefixPred != null) {
+              prefixPred.IsRecursive = true;
+            }
+          }
         }
       }
     }

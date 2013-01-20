@@ -9093,13 +9093,20 @@ namespace Microsoft.Dafny {
           var exp = e.Args[i];
           if (DafnyOptions.O.InductionHeuristic < 6) {
             variantArgument = rec;
-          } else if (f is ImplicitFormal) {
-            variantArgument = true;
-          } else {
-            // The argument position is considered to be "variant" if the function is recursive and the argument participates
-            // in the effective decreases clause of the function.  The argument participates if it's a free variable
-            // of a term in the explicit decreases clause.
-            variantArgument = rec && decr.Exists(ee => ContainsFreeVariable(ee, false, f));
+          } else if (rec) {
+            // The argument position is considered to be "variant" if the function is recursive and...
+            // ... it has something to do with why the callee is well-founded, which happens when...
+            if (f is ImplicitFormal) {
+              // ... it is the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix method, or
+              variantArgument = true;
+            } else if (decr.Exists(ee => ContainsFreeVariable(ee, false, f))) {
+              // ... it participates in the effective decreases clause of the function, which happens when it is
+              // a free variable of a term in the explicit decreases clause, or
+              variantArgument = true;
+            } else {
+              // ... the callee is a prefix predicate.
+              variantArgument = true;
+            }
           }
           if (VarOccursInArgumentToRecursiveFunction(exp, n, variantArgument || subExprIsProminent)) {
             return true;
