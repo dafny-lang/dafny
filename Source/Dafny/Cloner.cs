@@ -293,7 +293,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return new LetExpr(Tok(e.tok), e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body));
+        return new LetExpr(Tok(e.tok), e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
 
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;

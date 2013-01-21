@@ -2185,6 +2185,7 @@ namespace Microsoft.Dafny {
         //    ExpressionSequence(x = G, E)
         // preceded by the declaration of x.
         Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
+        Contract.Assert(e.Exact);  // because !Exact is ghost only
         for (int i = 0; i < e.Vars.Count; i++) {
           wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = ", e.Vars[i].CompileName);
           TrExpr(e.RHSs[i]);

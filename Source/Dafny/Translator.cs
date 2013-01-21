@@ -9571,7 +9571,7 @@ namespace Microsoft.Dafny {
           }
           var body = Substitute(e.Body);
           if (anythingChanged || body != e.Body) {
-            newExpr = new LetExpr(e.tok, e.Vars, rhss, body);
+            newExpr = new LetExpr(e.tok, e.Vars, rhss, body, e.Exact);
           }
 
       } else if (expr is NamedExpr) {
