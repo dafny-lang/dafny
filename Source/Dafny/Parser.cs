@@ -3096,6 +3096,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		e = dummyExpr;
 		BoundVar d;
 		List<BoundVar> letVars;  List<Expression> letRHSs;
+		bool exact = true;
 		
 		Expect(24);
 		x = t;
@@ -3108,7 +3109,12 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			IdentTypeOptional(out d);
 			letVars.Add(d); 
 		}
-		Expect(62);
+		if (la.kind == 62) {
+			Get();
+		} else if (la.kind == 64) {
+			Get();
+			exact = false; 
+		} else SynErr(207);
 		Expression(out e);
 		letRHSs.Add(e); 
 		while (la.kind == 25) {
@@ -3118,7 +3124,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		Expect(14);
 		Expression(out e);
-		e = new LetExpr(x, letVars, letRHSs, e); 
+		e = new LetExpr(x, letVars, letRHSs, e, exact); 
 	}
 
 	void NamedExpr(out Expression e) {
@@ -3165,7 +3171,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 113) {
 			Get();
-		} else SynErr(207);
+		} else SynErr(208);
 	}
 
 	void Exists() {
@@ -3173,7 +3179,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 115) {
 			Get();
-		} else SynErr(208);
+		} else SynErr(209);
 	}
 
 	void AttributeBody(ref Attributes attrs) {
@@ -3468,8 +3474,9 @@ public class Errors {
 			case 204: s = "invalid ConstAtomExpression"; break;
 			case 205: s = "invalid QSep"; break;
 			case 206: s = "invalid QuantifierGuts"; break;
-			case 207: s = "invalid Forall"; break;
-			case 208: s = "invalid Exists"; break;
+			case 207: s = "invalid LetExpr"; break;
+			case 208: s = "invalid Forall"; break;
+			case 209: s = "invalid Exists"; break;
 
 			default: s = "error " + n; break;
 		}

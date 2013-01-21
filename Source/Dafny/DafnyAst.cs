@@ -4047,11 +4047,13 @@ namespace Microsoft.Dafny {
     public readonly List<BoundVar> Vars;
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
-    public LetExpr(IToken tok, List<BoundVar> vars, List<Expression> rhss, Expression body)
+    public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
+    public LetExpr(IToken tok, List<BoundVar> vars, List<Expression> rhss, Expression body, bool exact)
       : base(tok) {
       Vars = vars;
       RHSs = rhss;
       Body = body;
+      Exact = exact;
     }
     public override IEnumerable<Expression> SubExpressions {
       get {

@@ -1041,7 +1041,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return new LetExpr(e.tok, e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body));
+        return new LetExpr(e.tok, e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
 
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -1716,6 +1716,9 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
+        foreach (var rhs in e.RHSs) {
+          CoPredicateChecks(rhs, context, CallingPosition.Neither);
+        }
         CoPredicateChecks(e.Body, context, cp);
         return;
       } else if (expr is QuantifierExpr) {
@@ -5174,23 +5177,44 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        foreach (var rhs in e.RHSs) {
-          ResolveExpression(rhs, twoState);
-        }
-        scope.PushMarker();
-        if (e.Vars.Count != e.RHSs.Count) {
-          Error(expr, "let expression must have same number of bound variables (found {0}) as RHSs (found {1})", e.Vars.Count, e.RHSs.Count);
-        }
-        int i = 0;
-        foreach (var v in e.Vars) {
-          if (!scope.Push(v.Name, v)) {
-            Error(v, "Duplicate let-variable name: {0}", v.Name);
+        if (e.Exact) {
+          foreach (var rhs in e.RHSs) {
+            ResolveExpression(rhs, twoState);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
-          if (i < e.RHSs.Count && !UnifyTypes(v.Type, e.RHSs[i].Type)) {
-            Error(e.RHSs[i].tok, "type of RHS ({0}) does not match type of bound variable ({1})", e.RHSs[i].Type, v.Type);
+          scope.PushMarker();
+          if (e.Vars.Count != e.RHSs.Count) {
+            Error(expr, "let expression must have same number of bound variables (found {0}) as RHSs (found {1})", e.Vars.Count, e.RHSs.Count);
           }
-          i++;
+          int i = 0;
+          foreach (var v in e.Vars) {
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate let-variable name: {0}", v.Name);
+            }
+            ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+            if (i < e.RHSs.Count && !UnifyTypes(v.Type, e.RHSs[i].Type)) {
+              Error(e.RHSs[i].tok, "type of RHS ({0}) does not match type of bound variable ({1})", e.RHSs[i].Type, v.Type);
+            }
+            i++;
+          }
+        } else {
+          // let-such-that expression
+          if (e.RHSs.Count != 1) {
+            Error(expr, "let-such-that expression must have just one RHS (found {0})", e.RHSs.Count);
+          }
+          // the bound variables are in scope in the RHS of a let-such-that expression
+          scope.PushMarker();
+          foreach (var v in e.Vars) {
+            if (!scope.Push(v.Name, v)) {
+              Error(v, "Duplicate let-variable name: {0}", v.Name);
+            }
+            ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+          }
+          foreach (var rhs in e.RHSs) {
+            ResolveExpression(rhs, twoState);
+            if (!UnifyTypes(rhs.Type, Type.Bool)) {
+              Error(rhs.tok, "type of RHS of let-such-that expression must be boolean (got {0})", rhs.Type);
+            }
+          }
         }
         ResolveExpression(e.Body, twoState);
         scope.PopMarker();
@@ -6777,6 +6801,13 @@ namespace Microsoft.Dafny
             break;
         }
         return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1) || UsesSpecFeatures(e.E2);
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        if (e.Exact) {
+          return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
+        } else {
+          return true;  // let-such-that is always ghost
+        }
       } else if (expr is NamedExpr) {
         return moduleInfo.IsGhost ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is ComprehensionExpr) {

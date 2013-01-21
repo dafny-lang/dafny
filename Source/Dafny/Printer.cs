@@ -1299,7 +1299,11 @@ namespace Microsoft.Dafny {
           PrintType(": ", v.Type);
           sep = ", ";
         }
-        wr.Write(" := ");
+        if (e.Exact) {
+          wr.Write(" := ");
+        } else {
+          wr.Write(" :| ");
+        }
         PrintExpressionList(e.RHSs);
         wr.Write("; ");
         PrintExpression(e.Body);
