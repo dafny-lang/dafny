@@ -1762,7 +1762,7 @@ namespace Microsoft.Dafny {
       moreBvs.AddRange(bvs);
       moreBvs.Add(k);
       var z = Bpl.Expr.Eq(kId, Bpl.Expr.Literal(0));
-      funcID = new Bpl.IdentifierExpr(tok, FunctionName(pp, 0), TrType(pp.ResultType));
+      funcID = new Bpl.IdentifierExpr(tok, FunctionName(pp, pp.IsRecursive ? 0 : 1), TrType(pp.ResultType));
       var prefixLimited = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgs);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, BplImp(BplAnd(ante, z), prefixLimited));
       sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, trueAtZero));
