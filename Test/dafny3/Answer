@@ -15,6 +15,10 @@ Dafny program verifier finished with 11 verified, 0 errors
 
 Dafny program verifier finished with 47 verified, 0 errors
 
+-------------------- SimpleInduction.dfy --------------------
+
+Dafny program verifier finished with 12 verified, 0 errors
+
 -------------------- SimpleCoinduction.dfy --------------------
 
 Dafny program verifier finished with 31 verified, 0 errors
@@ -22,3 +26,11 @@ Dafny program verifier finished with 31 verified, 0 errors
 -------------------- CalcExample.dfy --------------------
 
 Dafny program verifier finished with 6 verified, 0 errors
+
+-------------------- InductionVsCoinduction.dfy --------------------
+
+Dafny program verifier finished with 20 verified, 0 errors
+
+-------------------- Zip.dfy --------------------
+
+Dafny program verifier finished with 24 verified, 0 errors

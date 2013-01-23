@@ -6,7 +6,8 @@ set DAFNY_EXE=%BINARIES%\Dafny.exe
 
 for %%f in (
   Iter.dfy Streams.dfy Dijkstra.dfy CachedContainer.dfy
-  SimpleCoinduction.dfy CalcExample.dfy
+  SimpleInduction.dfy SimpleCoinduction.dfy CalcExample.dfy
+  InductionVsCoinduction.dfy Zip.dfy
 ) do (
   echo.
   echo -------------------- %%f --------------------
