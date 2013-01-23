@@ -587,3 +587,37 @@ method AssignSuchThat7<T>(A: set<T>, x: T) {
   var B :| A <= B;
   assert x in A ==> x in B;
 }
+
+// ----------- let-such-that expressions ------------------------
+
+function method LetSuchThat_P(x: int): bool
+
+method LetSuchThat0(ghost g: int)
+  requires LetSuchThat_P(g);
+{
+  var t :| LetSuchThat_P(t);  // assign-such-that statement
+  ghost var u := var q :| LetSuchThat_P(q); q + 1;  // let-such-that expression
+  if (forall a,b | LetSuchThat_P(a) && LetSuchThat_P(b) :: a == b) {
+    assert t < u;
+  }
+  assert LetSuchThat_P(u-1);  // yes
+  assert LetSuchThat_P(u);  // error: no reason to expect this to hold
+}
+
+method LetSuchThat1<T>(A: set<T>)
+{
+  ghost var C := var B :| A <= B; A - B;
+  assert C == {};
+}
+
+method LetSuchThat2(n: nat)
+{
+  ghost var x := (var k :| k < n; k) + 3;  // fine, such a k always exists
+  assert x < n+3;
+  if (*) {
+    x := var k :| 0 <= k < n; k;  // error: there may not be such a k
+  } else {
+    x := var k: nat :| k < n; k;  // error: there may not be such a k
+  }
+}
+

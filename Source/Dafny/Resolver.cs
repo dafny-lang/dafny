@@ -5666,7 +5666,11 @@ namespace Microsoft.Dafny
           default:
             break;
         }
-
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        if (!e.Exact) {
+          Error(expr, "let-such-that expressions are allowed only in ghost contexts");
+        }
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         if (e.MissingBounds != null) {
@@ -6112,7 +6116,7 @@ namespace Microsoft.Dafny
           bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
         } else {
           // Go through the conjuncts of the range expression to look for bounds.
-          Expression lowerBound = bv.Type is NatType ? new LiteralExpr(bv.tok, new BigInteger(0)) : null;
+          Expression lowerBound = bv.Type is NatType ? Resolver.CreateResolvedLiteral(bv.tok, 0) : null;
           Expression upperBound = null;
           bool foundBoundsForBv = false;
           if (returnAllBounds && lowerBound != null) {
@@ -6469,12 +6473,22 @@ namespace Microsoft.Dafny
     public static Expression Minus(Expression e, int n) {
       Contract.Requires(0 <= n);
 
-      var nn = new LiteralExpr(e.tok, n);
-      nn.Type = Type.Int;
+      var nn = CreateResolvedLiteral(e.tok, n);
       var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, e, nn);
       p.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
       p.Type = Type.Int;
       return p;
+    }
+
+    public static Expression CreateResolvedLiteral(IToken tok, int n) {
+      Contract.Requires(tok != null);
+      if (0 <= n) {
+        var nn = new LiteralExpr(tok, n);
+        nn.Type = Type.Int;
+        return nn;
+      } else {
+        return Minus(CreateResolvedLiteral(tok, 0), -n);
+      }
     }
 
     /// <summary>

@@ -499,3 +499,17 @@ module NoTypeArgs1 {
     t
   }
 }
+
+// ----------- let-such-that expressions ------------------------
+
+method LetSuchThat(ghost z: int, n: nat)
+{
+  var x: int;
+  x := var y :| y < 0; y;  // fine
+
+  x := var y :| y < z; y;  // error (x2): RHS depends on a ghost (both on the :| expression and on the z variable)
+
+  x := var w :| w == 2*w; w;
+  x := var w := 2*w; w;  // error: the 'w' in the RHS of the assignment is not in scope
+  ghost var xg := var w :| w == 2*w; w;
+}
