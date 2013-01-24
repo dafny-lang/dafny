@@ -410,3 +410,19 @@ module MapTests {
   {
   }
 }
+
+// --------------------- The following regression test case relies on the previous rank
+// --------------------- really being evaluated in the initial state
+
+class C {
+  var v: nat;
+  method Terminate()
+    modifies this;
+    decreases v;
+  {
+    if (v != 0) {
+      v := v - 1;
+      Terminate();
+    }
+  }
+}

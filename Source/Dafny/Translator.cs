@@ -2041,7 +2041,7 @@ namespace Microsoft.Dafny {
                 es = Substitute(es, null, decrSubstMap);
                 decrCallee.Add(exprTran.TrExpr(es));
               }
-              return DecreasesCheck(decrToks, decrTypes, decrCallee, decrCaller, exprTran, null, null, false, true);
+              return DecreasesCheck(decrToks, decrTypes, decrCallee, decrCaller, null, null, false, true);
             };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_PARALLEL_RANGE
@@ -3362,7 +3362,7 @@ namespace Microsoft.Dafny {
                     Contract.Assert(false);  // unexpected CoCallResolution
                     goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
                 }
-                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, builder,
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
                   contextDecrInferred, hint);
               }
             }
@@ -5826,7 +5826,7 @@ namespace Microsoft.Dafny {
           types.Add(cce.NonNull(e.Type));
           decrs.Add(etran.TrExpr(e));
         }
-        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, etran, null, null, true, false);
+        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, null, null, true, false);
         invariants.Add(new Bpl.AssumeCmd(s.Tok, decrCheck));
       }
 
@@ -5862,7 +5862,7 @@ namespace Microsoft.Dafny {
           types.Add(cce.NonNull(e.Type));
           decrs.Add(etran.TrExpr(e));
         }
-        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, etran, loopBodyBuilder, " at end of loop iteration", false, false);
+        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
         string msg;
         if (inferredDecreases) {
           msg = "cannot prove termination; try supplying a decreases clause for the loop";
@@ -6099,7 +6099,7 @@ namespace Microsoft.Dafny {
         bool contextDecrInferred, calleeDecrInferred;
         List<Expression> contextDecreases = MethodDecreasesWithDefault(caller, out contextDecrInferred);
         List<Expression> calleeDecreases = MethodDecreasesWithDefault(callee, out calleeDecrInferred);
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, builder, contextDecrInferred, null);
+        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, contextDecrInferred, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -6268,15 +6268,16 @@ namespace Microsoft.Dafny {
     /// the check is:
     ///     allowance || (calleeDecreases LESS contextDecreases).
     /// </summary>
-    void CheckCallTermination(IToken/*!*/ tok, List<Expression/*!*/>/*!*/ contextDecreases, List<Expression/*!*/>/*!*/ calleeDecreases,
+    void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                               Bpl.Expr allowance,
-                              Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/>/*!*/ substMap,
-                              ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, bool inferredDecreases, string hint) {
+                              Expression receiverReplacement, Dictionary<IVariable,Expression> substMap,
+                              ExpressionTranslator etranCurrent, ExpressionTranslator etranInitial, Bpl.StmtListBuilder builder, bool inferredDecreases, string hint) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(contextDecreases));
       Contract.Requires(cce.NonNullElements(calleeDecreases));
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
-      Contract.Requires(etran != null);
+      Contract.Requires(etranCurrent != null);
+      Contract.Requires(etranInitial != null);
       Contract.Requires(builder != null);
 
       // The interpretation of the given decreases-clause expression tuples is as a lexicographic tuple, extended into
@@ -6304,11 +6305,11 @@ namespace Microsoft.Dafny {
         }
         toks.Add(tok);
         types.Add(e0.Type);
-        callee.Add(etran.TrExpr(e0));
-        caller.Add(etran.TrExpr(e1));
+        callee.Add(etranCurrent.TrExpr(e0));
+        caller.Add(etranInitial.TrExpr(e1));
       }
       bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
-      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, etran, builder, "", endsWithWinningTopComparison, false);
+      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, builder, "", endsWithWinningTopComparison, false);
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
@@ -6326,13 +6327,12 @@ namespace Microsoft.Dafny {
     /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
     /// </summary>
     Bpl.Expr DecreasesCheck(List<IToken/*!*/>/*!*/ toks, List<Type/*!*/>/*!*/ types, List<Bpl.Expr/*!*/>/*!*/ ee0, List<Bpl.Expr/*!*/>/*!*/ ee1,
-                             ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound)
+                            Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound)
     {
       Contract.Requires(cce.NonNullElements(toks));
       Contract.Requires(cce.NonNullElements(types));
       Contract.Requires(cce.NonNullElements(ee0));
       Contract.Requires(cce.NonNullElements(ee1));
-      Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       Contract.Requires(types.Count == ee0.Count && ee0.Count == ee1.Count);
       Contract.Requires(builder == null || suffixMsg != null);
@@ -6345,7 +6345,7 @@ namespace Microsoft.Dafny {
       List<Bpl.Expr> Less = new List<Bpl.Expr>(N);
       for (int i = 0; i < N; i++) {
         Bpl.Expr less, atmost, eq;
-        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out atmost, out eq, etran, includeLowerBound);
+        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out atmost, out eq, includeLowerBound);
         Eq.Add(eq);
         Less.Add(allowNoChange ? atmost : less);
       }
@@ -6411,14 +6411,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq,
-                       ExpressionTranslator/*!*/ etran, bool includeLowerBound)
+    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq, bool includeLowerBound)
      {
       Contract.Requires(tok != null);
       Contract.Requires(ty != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.ValueAtReturn(out less)!=null);
       Contract.Ensures(Contract.ValueAtReturn(out atmost)!=null);
@@ -6469,12 +6467,12 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();
         }
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
-        less = etran.ProperSubset(tok, b0, b1);
+        less = ProperSubset(tok, b0, b1);
         atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
 
       } else if (ty is MultiSetType) {
         eq = FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
-        less = etran.ProperMultiset(tok, e0, e1);
+        less = ProperMultiset(tok, e0, e1);
         atmost = FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
 
       } else {
@@ -7911,13 +7909,13 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.SetNeq:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SetEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperSubset:
-              return ProperSubset(expr.tok, e0, e1);
+              return translator.ProperSubset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.Subset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.Superset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetSubset, null, e1, e0);
             case BinaryExpr.ResolvedOpcode.ProperSuperset:
-              return ProperSubset(expr.tok, e1, e0);
+              return translator.ProperSubset(expr.tok, e1, e0);
             case BinaryExpr.ResolvedOpcode.Disjoint:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SetDisjoint, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.InSet:
@@ -7940,13 +7938,13 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.MapNeq:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.MapEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-              return ProperMultiset(expr.tok, e0, e1);
+              return translator.ProperMultiset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSubset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSuperset:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetSubset, null, e1, e0);
             case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-              return ProperMultiset(expr.tok, e1, e0);
+              return translator.ProperMultiset(expr.tok, e1, e0);
             case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetDisjoint, null, e0, e1);
             case BinaryExpr.ResolvedOpcode.InMultiSet:
@@ -7965,7 +7963,7 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.SeqNeq:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperPrefix:
-              return ProperPrefix(expr.tok, e0, e1);
+              return translator.ProperPrefix(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.Prefix:
               {
                 Bpl.Expr len0 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e0);
@@ -8242,36 +8240,6 @@ namespace Microsoft.Dafny {
           }
         }
         return fieldName;
-      }
-
-      public Bpl.Expr ProperSubset(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
-        Contract.Requires(tok != null);
-        Contract.Requires(e0 != null);
-        Contract.Requires(e1 != null);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-        return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And,
-          translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
-          Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
-      }
-      public Bpl.Expr ProperMultiset(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
-        Contract.Requires(tok != null);
-        Contract.Requires(e0 != null);
-        Contract.Requires(e1 != null);
-        return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And,
-          translator.FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1),
-          Bpl.Expr.Not(translator.FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1)));
-      }
-      public Bpl.Expr ProperPrefix(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
-        Contract.Requires(tok != null);
-        Contract.Requires(e0 != null);
-        Contract.Requires(e1 != null);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        Bpl.Expr len0 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
-        Bpl.Expr len1 = translator.FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
-        return Bpl.Expr.And(
-          Bpl.Expr.Lt(len0, len1),
-          translator.FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
       }
 
       public Bpl.Expr CondApplyBox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
@@ -8933,6 +8901,36 @@ namespace Microsoft.Dafny {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), aa);
     }
 
+    public Bpl.Expr ProperSubset(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And,
+        FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
+        Bpl.Expr.Not(FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
+    }
+    public Bpl.Expr ProperMultiset(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And,
+        FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1),
+        Bpl.Expr.Not(FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1)));
+    }
+    public Bpl.Expr ProperPrefix(IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+      Bpl.Expr len0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
+      Bpl.Expr len1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
+      return Bpl.Expr.And(
+        Bpl.Expr.Lt(len0, len1),
+        FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
+    }
+
     Bpl.Expr ArrayLength(IToken tok, Bpl.Expr arr, int totalDims, int dim) {
       Contract.Requires(tok != null);
       Contract.Requires(arr != null);
@@ -9235,7 +9233,7 @@ namespace Microsoft.Dafny {
           }
           Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
 
-          Bpl.Expr less = DecreasesCheck(toks, types, kk, nn, etran, null, null, false, true);
+          Bpl.Expr less = DecreasesCheck(toks, types, kk, nn, null, null, false, true);
 
           Bpl.Expr ihBody = etran.TrExpr(bodyK);
           if (!position) {
