@@ -70,7 +70,7 @@ class {:autocontracts} ExtensibleArray<T> {
 
   method Append(t: T)
     ensures Contents == old(Contents) + [t];
-    decreases Repr;
+    decreases Contents;
   {
     if (length == 0 || length % 256 != 0) {
       // there is room in "elements"
