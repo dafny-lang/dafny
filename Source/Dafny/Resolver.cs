@@ -5377,10 +5377,11 @@ namespace Microsoft.Dafny
 
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
-        Contract.Assert(!twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
         if (matchVarContext == null) {
           Error(me, "'match' expressions are not supported in this context");
           matchVarContext = new List<IVariable>();
+        } else {
+          Contract.Assert(!twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
         }
         ResolveExpression(me.Source, twoState);
         Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
