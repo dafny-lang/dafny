@@ -54,3 +54,22 @@ class Node<T> {
                         next.Valid())
   }
 }
+
+// ---------------------------------------------------------------------------------------
+// The following examples requires that quantifiers are boosted (that is, #2) when checked
+// versus not boosted (#1) when assumed.
+
+function F(x: nat): int
+{
+  if x == 0 then 0 else 1 + F(x-1)
+}
+
+method M(N: nat)
+{
+  var i := 0;
+  while (i < N)
+    invariant forall x {:induction false} :: 0 <= x <= i ==> F(x) == x;
+  {
+    i := i + 1;
+  }
+}

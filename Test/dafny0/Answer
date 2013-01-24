@@ -1397,6 +1397,7 @@ Execution trace:
     (0,0): anon9_Then
     (0,0): anon10_Then
 CoPrefix.dfy(139,25): Error: assertion violation
+CoPrefix.dfy(114,23): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
@@ -1448,11 +1449,13 @@ Execution trace:
     (0,0): anon3_Then
 CoinductiveProofs.dfy(147,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(146,22): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(1,24): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 CoinductiveProofs.dfy(153,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(152,22): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(1,24): Related location: Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -1506,7 +1509,7 @@ EqualityTypes.dfy(82,8): Error: type parameter 0 (T) passed to method M must sup
 
 -------------------- SplitExpr.dfy --------------------
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 
 -------------------- LoopModifies.dfy --------------------
 LoopModifies.dfy(6,5): Error: assignment may update an array element not in the enclosing context's modifies clause

@@ -9065,8 +9065,10 @@ namespace Microsoft.Dafny {
           var etran2 = etran.LayerOffset(1);
           var A2 = etran2.TrExpr(e.E1);
           var B2 = etran2.TrExpr(e.E2);
-          foreach (var c in CoPrefixEquality(expr.tok, codecl, A2, B2, kMinusOne, 1 + etran.layerOffset)) {
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, BplOr(prefixEqK, Bpl.Expr.Imp(kPos, c))));
+          var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
+          foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, A2, B2, kMinusOne, 1 + etran.layerOffset)) {
+            var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kPos, c));
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
           }
           splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
           return true;
@@ -9184,11 +9186,13 @@ namespace Microsoft.Dafny {
             // recurse on body
             var ss = new List<SplitExprInfo>();
             TrSplitExpr(body, ss, position, functionHeight, etran);
+            var needsTokenAdjust = TrSplitNeedsTokenAdjustment(body);
             foreach (var s in ss) {
               if (s.IsChecked) {
                 var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
                 var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
-                var p = Bpl.Expr.Binary(new NestedToken(fexp.tok, s.E.tok), BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
+                var tok = needsTokenAdjust ? (IToken)new ForceCheckToken(body.tok) : (IToken)new NestedToken(fexp.tok, s.E.tok);
+                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
               }
             }
@@ -9246,7 +9250,10 @@ namespace Microsoft.Dafny {
           //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
           //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
           // or similar for existentials.
-          var caseProduct = new List<Bpl.Expr>() { new Bpl.LiteralExpr(expr.tok, true) };  // make sure to include the correct token information
+          var caseProduct = new List<Bpl.Expr>() {
+            // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
+            new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
+          };
           var i = 0;
           foreach (var n in inductionVariables) {
             var newCases = new List<Bpl.Expr>();
@@ -9279,6 +9286,26 @@ namespace Microsoft.Dafny {
           // Finally, assume the original quantifier (forall/exists n :: P(n))
           splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));
           return true;
+
+        } else {
+          // Don't use induction on these quantifiers.
+          // Nevertheless, produce two translated versions of the quantifier, one that uses #2 functions (that is, layerOffset 1)
+          // for checking and one that uses #1 functions (that is, layerOffset 0) for assuming.
+          var etranBoost = etran.LayerOffset(1);
+          var r = etranBoost.TrExpr(expr);
+          var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
+          if (needsTokenAdjustment) {
+            r.tok = new ForceCheckToken(expr.tok);
+          }
+          if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
+            // apparently, the LayerOffset(1) we did had no effect
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, r));
+            return needsTokenAdjustment;
+          } else {
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, r));  // check the boosted expression
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));  // assume the ordinary expression
+            return true;
+          }
         }
       }
 
@@ -9292,17 +9319,17 @@ namespace Microsoft.Dafny {
         translatedExpression = etran.TrExpr(expr);
         splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
       }
-      // TODO: Is the the following call to ContainsChange expensive?  It's linear in the size of "expr", but we get here many times in TrSplitExpr, so wouldn't the total
-      // time in the size of the expression passed to the first TrSplitExpr be quadratic?
-      if (RefinementToken.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule)) {
-        // If "expr" contains a subexpression that has changed from the inherited expression, we'll destructively
-        // change the token of the translated expression to make it look like it's not inherited.  This will cause "e" to
-        // be verified again in the refining module.
+      if (TrSplitNeedsTokenAdjustment(expr)) {
         translatedExpression.tok = new ForceCheckToken(expr.tok);
-        splitHappened = true;  // count this as a split, so this translated expression is not ignored
+        splitHappened = true;
       }
       splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
       return splitHappened;
+    }
+
+    bool TrSplitNeedsTokenAdjustment(Expression expr) {
+      Contract.Requires(expr != null);
+      return RefinementToken.IsInherited(expr.tok, currentModule) && (codeContext == null || !codeContext.MustReverify) && RefinementTransformer.ContainsChange(expr, currentModule);
     }
 
     List<BoundVar> ApplyInduction(QuantifierExpr e) {
