@@ -13,6 +13,12 @@ namespace Microsoft.Dafny
       : base("Dafny", "Dafny program verifier") {
     }
 
+    public override string VersionNumber {
+      get {
+        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
+      }
+    }
+
     private static DafnyOptions clo;
     public static DafnyOptions O {
       get { return clo; }
