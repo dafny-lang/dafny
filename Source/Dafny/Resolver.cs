@@ -1719,7 +1719,8 @@ namespace Microsoft.Dafny
         foreach (var rhs in e.RHSs) {
           CoPredicateChecks(rhs, context, CallingPosition.Neither);
         }
-        CoPredicateChecks(e.Body, context, cp);
+        // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
+        CoPredicateChecks(e.Body, context, e.Exact ? cp : CallingPosition.Neither);
         return;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
