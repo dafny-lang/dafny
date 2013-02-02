@@ -13,15 +13,15 @@ class RingBuffer<T>
     this in Repr && null !in Repr &&
     data != null && data in Repr &&
     data.Length == N &&
-    (N == 0 ==> len == first == 0 && Contents == []) &&
-    (N != 0 ==> len <= N && first < N) &&
-    Contents == if first + len <= N then data[first..first+len] 
-                                    else data[first..] + data[..first+len-N]
+    (N == 0 ==> len == start == 0 && Contents == []) &&
+    (N != 0 ==> len <= N && start < N) &&
+    Contents == if start + len <= N then data[start..start+len] 
+                                    else data[start..] + data[..start+len-N]
   }
 
   // private implementation:
   var data: array<T>;
-  var first: nat;
+  var start: nat;
   var len: nat;
 
   constructor Create(n: nat)
@@ -32,7 +32,7 @@ class RingBuffer<T>
     Repr := {this};
     data := new T[n];
     Repr := Repr + {data};
-    first, len := 0, 0;
+    start, len := 0, 0;
     Contents, N := [], n;
   }
 
@@ -51,7 +51,7 @@ class RingBuffer<T>
     requires Contents != [];
     ensures x == Contents[0];
   {
-    x := data[first];
+    x := data[start];
   }
 
   method Push(x: T)
@@ -61,8 +61,8 @@ class RingBuffer<T>
     ensures Valid() && fresh(Repr - old(Repr));
     ensures Contents == old(Contents) + [x] && N == old(N);
   {
-    var nextEmpty := if first + len < data.Length 
-                     then first + len else first + len - data.Length;
+    var nextEmpty := if start + len < data.Length 
+                     then start + len else start + len - data.Length;
     data[nextEmpty] := x;
     len := len + 1;
     Contents := Contents + [x];
@@ -75,8 +75,8 @@ class RingBuffer<T>
     ensures Valid() && fresh(Repr - old(Repr));
     ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N);
   {
-    x := data[first];
-    first, len := if first + 1 == data.Length then 0 else first + 1, len - 1;
+    x := data[start];
+    start, len := if start + 1 == data.Length then 0 else start + 1, len - 1;
     Contents := Contents[1..];
   }
 }

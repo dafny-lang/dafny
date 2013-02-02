@@ -6,25 +6,25 @@ class {:autocontracts} RingBuffer<T>
 
   // private implementation:
   var data: array<T>;
-  var first: nat;
+  var start: nat;
   var len: nat;
 
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
-  predicate Valid
+  predicate Valid()
   {
     data != null &&
     data.Length == N &&
-    (N == 0 ==> len == first == 0 && Contents == []) &&
-    (N != 0 ==> len <= N && first < N) &&
-    Contents == if first + len <= N then data[first..first+len] 
-                                    else data[first..] + data[..first+len-N]
+    (N == 0 ==> len == start == 0 && Contents == []) &&
+    (N != 0 ==> len <= N && start < N) &&
+    Contents == if start + len <= N then data[start..start+len] 
+                                    else data[start..] + data[..start+len-N]
   }
 
   constructor Create(n: nat)
     ensures Contents == [] && N == n;
   {
     data := new T[n];
-    first, len := 0, 0;
+    start, len := 0, 0;
     Contents, N := [], n;
   }
 
@@ -39,15 +39,24 @@ class {:autocontracts} RingBuffer<T>
     requires Contents != [];
     ensures x == Contents[0];
   {
-    x := data[first];
+    x := data[start];
   }
 
   method Enqueue(x: T)
-    requires |Contents| != N;
-    ensures Contents == old(Contents) + [x] && N == old(N);
+    //requires |Contents| != N;
+    ensures Contents == old(Contents) + [x] && N >= old(N);
   {
-    var nextEmpty := if first + len < data.Length 
-                     then first + len else first + len - data.Length;
+    if (len == data.Length) {
+      var more := data.Length;
+      var d := new T[data.Length + more];
+      parallel (i | 0 <= i < data.Length) {
+        d[if i < start then i else i + more] := data[i];
+      }
+      data := d;
+      N, start := N + more, start + more;
+    }
+    var nextEmpty := if start + len < data.Length 
+                     then start + len else start + len - data.Length;
     data[nextEmpty] := x;
     len := len + 1;
     Contents := Contents + [x];
@@ -57,8 +66,8 @@ class {:autocontracts} RingBuffer<T>
     requires Contents != [];
     ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N);
   {
-    x := data[first];
-    first, len := if first + 1 == data.Length then 0 else first + 1, len - 1;
+    x := data[start];
+    start, len := if start + 1 == data.Length then 0 else start + 1, len - 1;
     Contents := Contents[1..];
   }
 }
