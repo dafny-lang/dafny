@@ -111,6 +111,7 @@ CHARACTERS
   quote = '"'.
   nondigit = letter + special.
   idchar = nondigit + digit.
+  nonidchar = ANY - idchar.
   nonquote = letter + digit + space + glyph.
   /* exclude the characters in 'array' */
   nondigitMinusA = nondigit - 'a'.
@@ -133,6 +134,7 @@ TOKENS
   colon = ':'.
   lbrace = '{'.
   rbrace = '}'.
+  notIn = "!in" CONTEXT (nonidchar).
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -1527,20 +1529,19 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
   | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
     [ "#" "[" Expression<out k> "]" ]
-  | "!!"           (. x = t;  op = BinaryExpr.Opcode.Disjoint; .)
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
-  | /* The next operator is "!in", but Coco evidently parses "!in" even when it is a prefix of, say, "!initialized".
-     * The reason for this seems to be that the first character of "!in" is not a letter.  So, here is the workaround:
-     */
+  | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
+  | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is gready 
+       so if "!!" is a valid token, we won't be able to scan it as two "!" when needed: */
     "!"            (. x = t;  y = Token.NoToken; .)
-    [ "in"         (. y = t; .)
+    [ "!"          (. y = t; .)
     ]              (. if (y == Token.NoToken) {
                         SemErr(x, "invalid RelOp");
                       } else if (y.pos != x.pos + 1) {
-                        SemErr(x, "invalid RelOp (perhaps you intended \"!in\" with no intervening whitespace?)");
+                        SemErr(x, "invalid RelOp (perhaps you intended \"!!\" with no intervening whitespace?)");
                       } else {
-                        x.val = "!in";
-                        op = BinaryExpr.Opcode.NotIn;
+                        x.val = "!!";
+                        op = BinaryExpr.Opcode.Disjoint;
                       }
                    .)
   | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
