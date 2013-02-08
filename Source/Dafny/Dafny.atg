@@ -1328,10 +1328,9 @@ CalcStmt<out Statement/*!*/ s>
                                                           .)
   ]
   "{"
-  [ Expression<out e>                                     (. lines.Add(e); .)
+  [ Expression<out e>                                     (. lines.Add(e); customOp = null; .)
     ";"
     {
-      Hint<out h>                                         (. hints.Add(h); customOp = null; .)
       [ CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "this operator cannot continue this calculation");
@@ -1341,7 +1340,8 @@ CalcStmt<out Statement/*!*/ s>
                                                              }
                                                           .)
       ]                                                   (. customOps.Add(customOp); .)
-      Expression<out e>                                   (. lines.Add(e); .)
+      Hint<out h>                                         (. hints.Add(h); .)
+      Expression<out e>                                   (. lines.Add(e); customOp = null; .)
       ";"
     }
   ]

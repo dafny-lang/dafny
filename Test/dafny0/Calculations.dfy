@@ -12,8 +12,8 @@ method CalcTest0(s: seq<int>) {
 	if (|s| > 0) {
 		calc {
 			s[0]; // OK: well-formed in this context
-			{ assert s[0] == s[0]; }
-			<= s[0];
+			<= { assert s[0] == s[0]; }
+			s[0];
 		}
 	}
 }

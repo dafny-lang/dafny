@@ -239,8 +239,9 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
         2 * Count(a, up, |a|, K);
         { Lemma_Split(a, lo, up, |a|, K); }
         2 * Count(a, lo, |a|, K) - 2 * Count(a, lo, up, K);
-        { assert HasMajority(a, lo, |a|, K); } // loop invariant (1)
-        > |a| - lo - 2 * Count(a, lo, up, K);
+        > { assert HasMajority(a, lo, |a|, K); } // loop invariant (1)
+        |a| - lo - 2 * Count(a, lo, up, K);
+        >= 
         { if (k == K) {
             calc {
               2 * Count(a, lo, up, K);              
@@ -251,15 +252,15 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
           } else {
             calc {
               2 * Count(a, lo, up, K);
-              { Lemma_Unique(a, lo, up, k, K); }
-              <= 2 * ((up - lo) - Count(a, lo, up, k));
+              <= { Lemma_Unique(a, lo, up, k, K); }
+              2 * ((up - lo) - Count(a, lo, up, k));
               { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
               up - lo;
             }
           }
           assert 2 * Count(a, lo, up, K) <= up - lo;
         }
-        >= |a| - lo - (up - lo);
+        |a| - lo - (up - lo);
         |a| - up;
       }
       assert HasMajority(a, up, |a|, K);
@@ -323,6 +324,7 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
         2 * Count(a, lo, |a|, K) > |a| - lo;
         { Lemma_Split(a, lo, up, |a|, K); }
         2 * Count(a, lo, up, K) + 2 * Count(a, up, |a|, K) > |a| - lo;
+        ==> 
         { if (k == K) {
             calc {
               2 * Count(a, lo, up, K);
@@ -343,7 +345,7 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
           assert 2 * Count(a, lo, up, K) <= up - lo;
         }
         // subtract off Count(a, lo, up, K) from the LHS and subtract off the larger amount up - lo from the RHS
-        ==> 2 * Count(a, up, |a|, K) > (|a| - lo) - (up - lo);
+        2 * Count(a, up, |a|, K) > (|a| - lo) - (up - lo);
         2 * Count(a, up, |a|, K) > |a| - up;
         HasMajority(a, up, |a|, K);
       }	

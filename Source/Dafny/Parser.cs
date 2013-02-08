@@ -1835,11 +1835,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(6);
 		if (StartOf(14)) {
 			Expression(out e);
-			lines.Add(e); 
+			lines.Add(e); customOp = null; 
 			Expect(15);
 			while (StartOf(19)) {
-				Hint(out h);
-				hints.Add(h); customOp = null; 
 				if (StartOf(18)) {
 					CalcOp(out opTok, out op);
 					maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
@@ -1852,8 +1850,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					
 				}
 				customOps.Add(customOp); 
+				Hint(out h);
+				hints.Add(h); 
 				Expression(out e);
-				lines.Add(e); 
+				lines.Add(e); customOp = null; 
 				Expect(15);
 			}
 		}

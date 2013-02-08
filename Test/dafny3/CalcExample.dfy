@@ -19,8 +19,8 @@ method M(a: int, b: int, c: int, x: int)
     f(f(a, b), c);
     { assert f(a, b) == x; }
     f(x, c);
-    { assert c <= x; Monotonicity(c, x); }
-    <= f(x, x);
+    <= { assert c <= x; Monotonicity(c, x); }
+    f(x, x);
     { DiagonalIdentity(x); }
     x;
   }

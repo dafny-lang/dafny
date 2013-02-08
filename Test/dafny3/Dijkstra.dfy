@@ -28,8 +28,8 @@ ghost method lemma_ping(j: nat, n: nat)
       j <= n;
       { lemma_ping(j - 1, n - 1); }
       j - 1 <= f(n - 1);
-      { lemma_ping(j - 1, f(n - 1)); }
-      ==> j - 1 <= f(f(n - 1));
+      ==> { lemma_ping(j - 1, f(n - 1)); }
+      j - 1 <= f(f(n - 1));
       // (0)
       j - 1 <= f(f(n - 1)) && f(f(n - 1)) < f(n);
       ==> j - 1 < f(n);
