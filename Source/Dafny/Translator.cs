@@ -5081,8 +5081,15 @@ namespace Microsoft.Dafny {
           }
           // check well-formedness of lines:
           b = new Bpl.StmtListBuilder();
-          foreach (var e in s.Lines) {            
-            TrStmt_CheckWellformed(e, b, locals, etran, false);
+          TrStmt_CheckWellformed(s.Lines.Last(), b, locals, etran, false);
+          for (int i = s.Steps.Count; 0 <= --i; ) {
+            // If lines i and i + 1 are connected by ==>, add line i to the well-fornedness context for all following lines
+            if (s.Steps[i].ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+              Bpl.IfCmd wfIfCmd = new Bpl.IfCmd(s.Tok, etran.TrExpr(s.Lines[i]), b.Collect(s.Tok), null, null);
+              b = new Bpl.StmtListBuilder();
+              b.Add(wfIfCmd);
+            }
+            TrStmt_CheckWellformed(s.Lines[i], b, locals, etran, false); 
           }
           b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
