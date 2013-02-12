@@ -121,7 +121,7 @@ ghost method Lemma_Revacc(xs: List, ys: List)
       assert concat(revacc(xrest, Cons(x, Nil)), ys)
           == revacc(xrest, concat(Cons(x, Nil), ys));
 
-      assert forall g, gs :: concat(Cons(g, Nil), gs) == Cons(g, gs);
+      assert forall g: _T0, gs :: concat(Cons(g, Nil), gs) == Cons(g, gs);
 
       assert revacc(xrest, concat(Cons(x, Nil), ys))
           == // the assert lemma just above

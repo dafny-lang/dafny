@@ -513,3 +513,22 @@ method LetSuchThat(ghost z: int, n: nat)
   x := var w := 2*w; w;  // error: the 'w' in the RHS of the assignment is not in scope
   ghost var xg := var w :| w == 2*w; w;
 }
+
+// ------------ quantified variables whose types are not inferred ----------
+
+module NonInferredType {
+  predicate P<T>(x: T)
+
+  method NonInferredType0(x: int)
+  {
+    var t;
+    assume forall z :: P(z) && z == t;
+    assume t == x;  // this statement determined the type of z
+  }
+
+  method NonInferredType1(x: int)
+  {
+    var t;
+    assume forall z :: P(z) && z == t;  // error: the type of z is not determined
+  }
+}

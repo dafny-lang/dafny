@@ -1211,6 +1211,10 @@ namespace Microsoft.Dafny
             foreach (var member in ((ClassDecl)d).Members) {
               if (member is Method) {
                 var m = (Method)member;
+                m.Req.Iter(mfe => CheckTypeInference(mfe.E));
+                m.Ens.Iter(mfe => CheckTypeInference(mfe.E));
+                m.Mod.Expressions.Iter(fe => CheckTypeInference(fe.E));
+                m.Decreases.Expressions.Iter(CheckTypeInference);
                 if (m.Body != null) {
                   CheckTypeInference(m.Body);
                   bool tail = true;
@@ -1238,6 +1242,10 @@ namespace Microsoft.Dafny
                 }
               } else if (member is Function) {
                 var f = (Function)member;
+                f.Req.Iter(CheckTypeInference);
+                f.Ens.Iter(CheckTypeInference);
+                f.Reads.Iter(fe => CheckTypeInference(fe.E));
+                f.Decreases.Expressions.Iter(CheckTypeInference);
                 if (f.Body != null) {
                   CheckTypeInference(f.Body);
                   bool tail = true;
@@ -1977,17 +1985,27 @@ namespace Microsoft.Dafny
       }
     }
 
-    bool CheckTypeInference(Expression e) {
-      if (e == null) return false;
-      foreach (Expression se in e.SubExpressions) {
-        if (CheckTypeInference(se))
-          return true;
+    void CheckTypeIsDetermined(IToken tok, Type t, string what) {
+      Contract.Requires(tok != null);
+      Contract.Requires(t != null);
+      Contract.Requires(what != null);
+      t = t.Normalize();
+      if (t is TypeProxy && !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy)) {
+        Error(tok, "the type of this {0} is underspecified, but it cannot be an arbitrary type.", what);
       }
-      if (e.Type is TypeProxy && !(e.Type is InferredTypeProxy || e.Type is ParamTypeProxy || e.Type is ObjectTypeProxy)) {
-        Error(e.tok, "the type of this expression is underspecified, but it cannot be an arbitrary type.");
-        return true;
+    }
+    void CheckTypeInference(Expression e) {
+      if (e == null) return;
+      e.SubExpressions.Iter(CheckTypeInference);
+      var ce = e as ComprehensionExpr;
+      if (ce != null) {
+        foreach (var bv in ce.BoundVars) {
+          if (bv.Type.Normalize() is TypeProxy) {
+            Error(bv.tok, "type of bound variable '{0}' could not determined; please specify the type explicitly", bv.Name);
+          }
+        }
       }
-      return false;
+      CheckTypeIsDetermined(e.tok, e.Type, "expression");
     }
     void CheckTypeInference(Statement stmt) {
       Contract.Requires(stmt != null);
@@ -2007,9 +2025,7 @@ namespace Microsoft.Dafny
       } else if (stmt is VarDecl) {
         var s = (VarDecl)stmt;
         s.SubStatements.Iter(CheckTypeInference);
-        if (s.Type is TypeProxy && !(s.Type is InferredTypeProxy || s.Type is ParamTypeProxy || s.Type is ObjectTypeProxy)) {
-          Error(s.Tok, "the type of this expression is underspecified, but it cannot be an arbitrary type.");
-        }
+        CheckTypeIsDetermined(s.Tok, s.Type, "local variable");
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         CheckTypeInference(s.Receiver);
@@ -2046,6 +2062,7 @@ namespace Microsoft.Dafny
         var s = (ParallelStmt)stmt;
         CheckTypeInference(s.Range);
         CheckTypeInference(s.Body);
+        s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
       } else if (stmt is CalcStmt) {
         // NadiaToDo: is this correct?
         var s = (CalcStmt)stmt;
