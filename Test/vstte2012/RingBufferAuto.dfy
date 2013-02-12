@@ -43,18 +43,9 @@ class {:autocontracts} RingBuffer<T>
   }
 
   method Enqueue(x: T)
-    //requires |Contents| != N;
-    ensures Contents == old(Contents) + [x] && N >= old(N);
+    requires |Contents| != N;
+    ensures Contents == old(Contents) + [x] && N == old(N);
   {
-    if (len == data.Length) {
-      var more := data.Length;
-      var d := new T[data.Length + more];
-      parallel (i | 0 <= i < data.Length) {
-        d[if i < start then i else i + more] := data[i];
-      }
-      data := d;
-      N, start := N + more, start + more;
-    }
     var nextEmpty := if start + len < data.Length 
                      then start + len else start + len - data.Length;
     data[nextEmpty] := x;
