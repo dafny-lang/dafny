@@ -3088,6 +3088,14 @@ namespace Microsoft.Dafny {
       }
       return null;
     }
+
+    /// <summary>
+    /// Should line i be used as a well-formedness context for the following lines and hints?
+    /// (The line must be boolean).
+    /// </summary>
+    public bool IsContextLine(int i) {
+       return Steps[i].ResolvedOp == BinaryExpr.ResolvedOpcode.Imp;
+    }
   }
 
   public class MatchStmt : Statement

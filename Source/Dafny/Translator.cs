@@ -5083,8 +5083,8 @@ namespace Microsoft.Dafny {
           b = new Bpl.StmtListBuilder();
           TrStmt_CheckWellformed(s.Lines.Last(), b, locals, etran, false);
           for (int i = s.Steps.Count; 0 <= --i; ) {
-            // If lines i and i + 1 are connected by ==>, add line i to the well-fornedness context for all following lines
-            if (s.Steps[i].ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+            // If line i is a context line, add it to the well-fornedness context for all following lines
+            if (s.IsContextLine(i)) {
               Bpl.IfCmd wfIfCmd = new Bpl.IfCmd(s.Tok, etran.TrExpr(s.Lines[i]), b.Collect(s.Tok), null, null);
               b = new Bpl.StmtListBuilder();
               b.Add(wfIfCmd);
