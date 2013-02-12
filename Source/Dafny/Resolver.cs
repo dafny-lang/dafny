@@ -3800,9 +3800,10 @@ namespace Microsoft.Dafny
             // The only supported kind with ensures clauses is Proof.
             s.Kind = ParallelStmt.ParBodyKind.Proof;
           } else {
-            // There are two special cases:
+            // There are three special cases:
             // * Assign, which is the only kind of the parallel statement that allows a heap update.
             // * Call, which is a single call statement with no side effects or output parameters.
+            // * A single calc statement, which is a special case of Proof where the postcondition can be inferred.
             // The effect of Assign and the postcondition of Call will be seen outside the parallel
             // statement.
             Statement s0 = s.S0;
@@ -3810,6 +3811,10 @@ namespace Microsoft.Dafny
               s.Kind = ParallelStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {
               s.Kind = ParallelStmt.ParBodyKind.Call;
+            } else if (s0 is CalcStmt) {
+              s.Kind = ParallelStmt.ParBodyKind.Proof;
+              // add the conclusion of the calc as a free postcondition
+              s.Ens.Add(new MaybeFreeExpression(((CalcStmt)s0).Result, true));
             } else {
               s.Kind = ParallelStmt.ParBodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
