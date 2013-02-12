@@ -5042,18 +5042,20 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt) {
         /* Translate into:
         if (*) {
-            // line well-formedness checks;
+            assert wf(line0);
         } else if (*) {
             hint0;
-            assert t0 op t1;
+            assert wf(line1);
+            assert line0 op line1;
             assume false;
         } else if (*) { ...
         } else if (*) {
             hint<n-1>;
-            assert t<n-1> op tn;
+            assert wf(line<n>);
+            assert line<n-1> op line<n>;
             assume false;
         }
-        assume t0 op tn;        
+        assume line<0> op line<n>;        
         */
         var s = (CalcStmt)stmt;
         Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
@@ -5062,11 +5064,21 @@ namespace Microsoft.Dafny {
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtListBuilder b;
           // check steps:
-          for (int i = s.Steps.Count; 0 <= --i; ) {
+          for (int i = s.Steps.Count; 0 <= --i; ) {            
             b = new Bpl.StmtListBuilder();
+            // assume all previous context lines:
+            for (int j = 0; j <= i; j++) {
+              if (s.IsContextLine(j)) {
+                b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Lines[j])));
+              }
+            }
+            // hint:
             TrStmt(s.Hints[i], b, locals, etran);
+            // check well formedness of the goal line:
+            TrStmt_CheckWellformed(s.Lines[i + 1], b, locals, etran, false);
             bool splitHappened;
             var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
+            // assert step:
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -5079,18 +5091,9 @@ namespace Microsoft.Dafny {
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           }
-          // check well-formedness of lines:
+          // check well formedness of the first line:
           b = new Bpl.StmtListBuilder();
-          TrStmt_CheckWellformed(s.Lines.Last(), b, locals, etran, false);
-          for (int i = s.Steps.Count; 0 <= --i; ) {
-            // If line i is a context line, add it to the well-fornedness context for all following lines
-            if (s.IsContextLine(i)) {
-              Bpl.IfCmd wfIfCmd = new Bpl.IfCmd(s.Tok, etran.TrExpr(s.Lines[i]), b.Collect(s.Tok), null, null);
-              b = new Bpl.StmtListBuilder();
-              b.Add(wfIfCmd);
-            }
-            TrStmt_CheckWellformed(s.Lines[i], b, locals, etran, false); 
-          }
+          TrStmt_CheckWellformed(s.Lines.First(), b, locals, etran, false);
           b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
