@@ -2382,6 +2382,10 @@ namespace Microsoft.Dafny {
         var e = (PredicateExpr)expr;
         TrExpr(e.Body);
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        TrExpr(e.Body);
+
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         wr.Write("(");

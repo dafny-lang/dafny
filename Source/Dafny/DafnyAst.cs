@@ -1190,6 +1190,24 @@ namespace Microsoft.Dafny {
     string FullCompileName { get; }
   }
 
+  /// <summary>
+  /// Applies when we are neither inside a method, nor iterator.
+  /// </summary>
+  public class NoContext : ICodeContext
+  {
+    // NadiaToDo: do these defaults make sense?
+    bool ICodeContext.IsGhost { get { return true; } }
+    bool ICodeContext.IsStatic { get { return true; } }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
+    List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+    List<Formal> ICodeContext.Outs { get { return new List<Formal>(); } }
+    Specification<FrameExpression> ICodeContext.Modifies { get { return new Specification<FrameExpression>(null, null); } }
+    Specification<Expression> ICodeContext.Decreases { get { return new Specification<Expression>(null, null); } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return null; } }
+    bool ICodeContext.MustReverify { get { return false; } }
+    public string FullCompileName { get {return ""; } }  
+  }
+
   public class IteratorDecl : ClassDecl, ICodeContext
   {
     public readonly List<Formal> Ins;
@@ -4309,6 +4327,49 @@ namespace Microsoft.Dafny {
     }
     public override string Kind { get { return "assume"; } }
   }
+
+  public class CalcExpr : Expression
+  {
+    public readonly CalcStmt Guard;
+    public readonly Expression Body;
+    public AssumeExpr AsAssumeExpr; // assume expression that has the conclusion of the calc statement as a guard and this.Body as a body, filled in during resolution
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Guard != null);
+      Contract.Invariant(Body != null);
+      Contract.Invariant(!this.WasResolved() || AsAssumeExpr != null);
+    }
+
+    public CalcExpr(IToken tok, CalcStmt guard, Expression body)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(body != null);
+      Guard = guard;
+      Body = body;
+    }
+
+    public CalcExpr(IToken tok, CalcStmt guard, Expression body, AssumeExpr asAssume)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(body != null);
+      Guard = guard;
+      Body = body;
+      AsAssumeExpr = asAssume;
+    }
+    
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        // NadiaToDo: is this correct?
+        foreach (var e in Guard.SubExpressions) {
+            yield return e;
+        }
+        yield return Body;
+      }
+    }
+  }
+
 
   public class ITEExpr : Expression
   {

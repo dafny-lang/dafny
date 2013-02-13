@@ -1383,6 +1383,16 @@ namespace Microsoft.Dafny {
         PrintExpression(e.Body);
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        PrintStatement(e.Guard, indent);
+        wr.WriteLine();
+        Indent(indent);
+        PrintExpression(e.Body);
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is ITEExpr) {
         ITEExpr ite = (ITEExpr)expr;
         bool parensNeeded = !isRightmost;

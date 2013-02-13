@@ -2783,6 +2783,10 @@ namespace Microsoft.Dafny {
         } else {
           return BplAnd(gTotal, Bpl.Expr.Imp(g, bTotal));
         }
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        // NadiaToDo: actually need to check if all the lines and hints(?!) are total
+        return IsTotal(e.AsAssumeExpr, etran);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = IsTotal(e.Test, etran);
@@ -2967,6 +2971,10 @@ namespace Microsoft.Dafny {
           Bpl.Expr g = etran.TrExpr(e.Guard);
           return BplAnd(gCanCall, Bpl.Expr.Imp(g, bCanCall));
         }
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        // NadiaToDo: also check all the lines and hints
+        return CanCallAssumption(e.AsAssumeExpr, etran);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Test, etran);
@@ -3529,6 +3537,11 @@ namespace Microsoft.Dafny {
         } else {
           builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(e.Guard)));
         }
+        CheckWellformed(e.Body, options, locals, builder, etran);
+
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        TrStmt(e.Guard, builder, locals, etran);
         CheckWellformed(e.Body, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
@@ -8121,6 +8134,10 @@ namespace Microsoft.Dafny {
           var e = (PredicateExpr)expr;
           return TrExpr(e.Body);
 
+        } else if (expr is CalcExpr) {
+          var e = (CalcExpr)expr;
+          return TrExpr(e.Body);
+
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
           Bpl.Expr g = TrExpr(e.Test);
@@ -9129,6 +9146,10 @@ namespace Microsoft.Dafny {
         }
         return true;
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        return TrSplitExpr(e.AsAssumeExpr, splits, position, heightLimit, etran);
+
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         return TrSplitExpr(e.E, splits, position, heightLimit, etran.Old);
@@ -9607,6 +9628,11 @@ namespace Microsoft.Dafny {
         // ignore the guard
         return VarOccursInArgumentToRecursiveFunction(e.Body, n);
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        // ignore the guard
+        return VarOccursInArgumentToRecursiveFunction(e.Body, n);
+
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, subExprIsProminent) ||  // test is not "prominent"
@@ -10014,6 +10040,16 @@ namespace Microsoft.Dafny {
               newExpr = new AssumeExpr(e.tok, g, b);
             }
           }
+
+        } else if (expr is CalcExpr) {
+          var e = (CalcExpr)expr;
+          // NadiaToDo: how to substitute a calc statement?
+          //Expression g = Substitute(e.Guard);
+          Expression b = Substitute(e.Body);
+          if (b != e.Body) {
+            newExpr = new CalcExpr(e.tok, e.Guard, b, e.AsAssumeExpr);
+          }          
+
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;

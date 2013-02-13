@@ -1700,6 +1700,7 @@ MapComprehensionExpr<IToken/*!*/ mapToken, out Expression e>
 EndlessExpression<out Expression e>
 = (. IToken/*!*/ x;
      Expression e0, e1;
+     Statement s;
      e = dummyExpr;
   .)
   ( "if"                            (. x = t; .)
@@ -1715,6 +1716,8 @@ EndlessExpression<out Expression e>
   | "assume"                        (. x = t; .)
     Expression<out e0> ";"
     Expression<out e1>              (. e = new AssumeExpr(x, e0, e1); .)
+  | CalcStmt<out s>             
+    Expression<out e1>              (. e = new CalcExpr(s.Tok, (CalcStmt)s, e1); .)
   | LetExpr<out e>
   | NamedExpr<out e>
   )

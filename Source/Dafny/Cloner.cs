@@ -327,6 +327,10 @@ namespace Microsoft.Dafny
           return new AssumeExpr(Tok(e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
         }
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        return new CalcExpr(Tok(e.tok), (CalcStmt)CloneStmt(e.Guard), CloneExpr(e.Body), (AssumeExpr)CloneExpr(e.AsAssumeExpr));
+
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         return new ITEExpr(Tok(e.tok), CloneExpr(e.Test), CloneExpr(e.Thn), CloneExpr(e.Els));
