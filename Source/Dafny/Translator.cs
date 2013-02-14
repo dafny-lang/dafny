@@ -2722,6 +2722,9 @@ namespace Microsoft.Dafny {
           Bpl.Expr g = etran.TrExpr(e.Guard);
           return BplAnd(gCanCall, Bpl.Expr.Imp(g, bCanCall));
         }
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        return CanCallAssumption(e.AsAssumeExpr, etran);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Test, etran);
@@ -3284,6 +3287,11 @@ namespace Microsoft.Dafny {
         } else {
           builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(e.Guard)));
         }
+        CheckWellformed(e.Body, options, locals, builder, etran);
+
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        TrStmt(e.Guard, builder, locals, etran);
         CheckWellformed(e.Body, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
@@ -4797,18 +4805,20 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt) {
         /* Translate into:
         if (*) {
-            // line well-formedness checks;
+            assert wf(line0);
         } else if (*) {
             hint0;
-            assert t0 op t1;
+            assert wf(line1);
+            assert line0 op line1;
             assume false;
         } else if (*) { ...
         } else if (*) {
             hint<n-1>;
-            assert t<n-1> op tn;
+            assert wf(line<n>);
+            assert line<n-1> op line<n>;
             assume false;
         }
-        assume t0 op tn;        
+        assume line<0> op line<n>;        
         */
         var s = (CalcStmt)stmt;
         Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
@@ -4817,11 +4827,21 @@ namespace Microsoft.Dafny {
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtListBuilder b;
           // check steps:
-          for (int i = s.Steps.Count; 0 <= --i; ) {
+          for (int i = s.Steps.Count; 0 <= --i; ) {            
             b = new Bpl.StmtListBuilder();
+            // assume all previous context lines:
+            for (int j = 0; j <= i; j++) {
+              if (s.IsContextLine(j)) {
+                b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Lines[j])));
+              }
+            }
+            // hint:
             TrStmt(s.Hints[i], b, locals, etran);
+            // check well formedness of the goal line:
+            TrStmt_CheckWellformed(s.Lines[i + 1], b, locals, etran, false);
             bool splitHappened;
             var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
+            // assert step:
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -4834,11 +4854,9 @@ namespace Microsoft.Dafny {
             b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
             ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           }
-          // check well-formedness of lines:
+          // check well formedness of the first line:
           b = new Bpl.StmtListBuilder();
-          foreach (var e in s.Lines) {            
-            TrStmt_CheckWellformed(e, b, locals, etran, false);
-          }
+          TrStmt_CheckWellformed(s.Lines.First(), b, locals, etran, false);
           b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
@@ -7866,6 +7884,10 @@ namespace Microsoft.Dafny {
           var e = (PredicateExpr)expr;
           return TrExpr(e.Body);
 
+        } else if (expr is CalcExpr) {
+          var e = (CalcExpr)expr;
+          return TrExpr(e.Body);
+
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
           Bpl.Expr g = TrExpr(e.Test);
@@ -8874,6 +8896,10 @@ namespace Microsoft.Dafny {
         }
         return true;
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        return TrSplitExpr(e.AsAssumeExpr, splits, position, heightLimit, etran);
+
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         return TrSplitExpr(e.E, splits, position, heightLimit, etran.Old);
@@ -9352,6 +9378,11 @@ namespace Microsoft.Dafny {
         // ignore the guard
         return VarOccursInArgumentToRecursiveFunction(e.Body, n);
 
+      } else if (expr is CalcExpr) {
+        var e = (CalcExpr)expr;
+        // ignore the guard
+        return VarOccursInArgumentToRecursiveFunction(e.Body, n);
+
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         return VarOccursInArgumentToRecursiveFunction(e.Test, n, subExprIsProminent) ||  // test is not "prominent"
@@ -9759,6 +9790,12 @@ namespace Microsoft.Dafny {
               newExpr = new AssumeExpr(e.tok, g, b);
             }
           }
+
+        } else if (expr is CalcExpr) {
+          var e = (CalcExpr)expr;
+          // Since this is only done after the well-formedness checks (is this true?) use the unsound version
+          // Note: if we ever have a statement substitutor, it can be used here
+          newExpr = Substitute(e.AsAssumeExpr);
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
