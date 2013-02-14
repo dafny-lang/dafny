@@ -1195,17 +1195,21 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class NoContext : ICodeContext
   {
-    // NadiaToDo: do these defaults make sense?
+    public readonly ModuleDefinition Module;
+    public NoContext(ModuleDefinition module) 
+    {
+      this.Module = module;    
+    }
     bool ICodeContext.IsGhost { get { return true; } }
-    bool ICodeContext.IsStatic { get { return true; } }
+    bool ICodeContext.IsStatic { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     List<Formal> ICodeContext.Outs { get { return new List<Formal>(); } }
     Specification<FrameExpression> ICodeContext.Modifies { get { return new Specification<FrameExpression>(null, null); } }
     Specification<Expression> ICodeContext.Decreases { get { return new Specification<Expression>(null, null); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return null; } }
-    bool ICodeContext.MustReverify { get { return false; } }
-    public string FullCompileName { get {return ""; } }  
+    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+    public string FullCompileName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }  
   }
 
   public class IteratorDecl : ClassDecl, ICodeContext

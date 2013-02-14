@@ -1074,7 +1074,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
-        // NadiaToDo: What's the difference between CloneExpr here and in Cloner?
+        // NadiaToDo: Remove this cloner
         return new CalcExpr(e.tok, (CalcStmt)((new Cloner()).CloneStmt(e.Guard)), CloneExpr(e.Body), (AssumeExpr)CloneExpr(e.AsAssumeExpr));
 
       } else if (expr is ITEExpr) {
@@ -1169,7 +1169,7 @@ namespace Microsoft.Dafny
 
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          ResolveAttributes(cl.Attributes, false, new NoContext());
+          ResolveAttributes(cl.Attributes, false, new NoContext(cl.Module));
           ResolveClassMemberBodies(cl);
         }
         allTypeParameters.PopMarker();
@@ -2210,7 +2210,7 @@ namespace Microsoft.Dafny
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         if (member is Field) {
-          ResolveAttributes(member.Attributes, false, new NoContext());
+          ResolveAttributes(member.Attributes, false, new NoContext(currentClass.Module));
           // nothing more to do
 
         } else if (member is Function) {
@@ -2567,9 +2567,9 @@ namespace Microsoft.Dafny
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
-      ResolveAttributes(f.Attributes, false, new NoContext());
+      ResolveAttributes(f.Attributes, false, new NoContext(currentClass.Module));
       foreach (Expression r in f.Req) {
-        ResolveExpression(r, false, new NoContext());
+        ResolveExpression(r, false, new NoContext(currentFunction.EnclosingClass.Module));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(r.Type, Type.Bool)) {
           Error(r, "Precondition must be a boolean (got {0})", r.Type);
@@ -2579,20 +2579,20 @@ namespace Microsoft.Dafny
         ResolveFrameExpression(fr, "reads");
       }
       foreach (Expression r in f.Ens) {
-        ResolveExpression(r, false, new NoContext());  // since this is a function, the postcondition is still a one-state predicate
+        ResolveExpression(r, false, new NoContext(currentClass.Module));  // since this is a function, the postcondition is still a one-state predicate
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(r.Type, Type.Bool)) {
           Error(r, "Postcondition must be a boolean (got {0})", r.Type);
         }
       }
       foreach (Expression r in f.Decreases.Expressions) {
-        ResolveExpression(r, false, new NoContext());
+        ResolveExpression(r, false, new NoContext(currentClass.Module));
         // any type is fine
       }
       if (f.Body != null) {
         var prevErrorCount = ErrorCount;
         List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
-        ResolveExpression(f.Body, false, new NoContext(), matchVarContext);
+        ResolveExpression(f.Body, false, new NoContext(currentClass.Module), matchVarContext);
         if (!f.IsGhost) {
           CheckIsNonGhost(f.Body);
         }
@@ -2608,7 +2608,7 @@ namespace Microsoft.Dafny
     void ResolveFrameExpression(FrameExpression fe, string kind) {
       Contract.Requires(fe != null);
       Contract.Requires(kind != null);
-      ResolveExpression(fe.E, false, new NoContext());
+      ResolveExpression(fe.E, false, new NoContext(currentClass.Module));
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       if (t is CollectionType) {
@@ -5387,11 +5387,15 @@ namespace Microsoft.Dafny
 
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
+        int prevErrorCount = ErrorCount;
         ResolveStatement(e.Guard, twoState, codeContext);
         ResolveExpression(e.Body, twoState, codeContext);
         Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
-        e.AsAssumeExpr = new AssumeExpr(e.tok, e.Guard.Result, e.Body);
-        ResolveExpression(e.AsAssumeExpr, twoState, codeContext);
+        if (prevErrorCount == ErrorCount) {
+          // Do not build AsAssumeExpression if there were errors, because e.Guard.Result might be null
+          e.AsAssumeExpr = new AssumeExpr(e.tok, e.Guard.Result, e.Body);
+          ResolveExpression(e.AsAssumeExpr, twoState, codeContext);
+        }        
         expr.Type = e.Body.Type;
 
       } else if (expr is ITEExpr) {

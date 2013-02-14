@@ -2785,8 +2785,7 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
-        // NadiaToDo: actually need to check if all the lines and hints(?!) are total
-        return IsTotal(e.AsAssumeExpr, etran);
+        return IsTotal(e.Body, etran);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = IsTotal(e.Test, etran);
@@ -2973,7 +2972,6 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
-        // NadiaToDo: also check all the lines and hints
         return CanCallAssumption(e.AsAssumeExpr, etran);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
@@ -10043,13 +10041,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is CalcExpr) {
           var e = (CalcExpr)expr;
-          // NadiaToDo: how to substitute a calc statement?
-          //Expression g = Substitute(e.Guard);
-          Expression b = Substitute(e.Body);
-          if (b != e.Body) {
-            newExpr = new CalcExpr(e.tok, e.Guard, b, e.AsAssumeExpr);
-          }          
-
+          // Since this is only done after the well-formedness checks (is this true?) use the unsound version
+          // Note: if we ever have a statement substitutor, it can be used here
+          newExpr = Substitute(e.AsAssumeExpr);
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
