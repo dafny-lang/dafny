@@ -39,7 +39,7 @@ class SoWellformed {
   }
 
   method O(a: SoWellformed, b: int) returns (c: bool, d: SoWellformed)
-    modifies a.next;  // this may not be well-defined, but that's okay for modifies clauses
+    modifies a.next;  // error: this is not well-defined if a == null (but it's okay to have a.next==null)
   {
     c := true;
   }

@@ -1117,13 +1117,13 @@ namespace Microsoft.Dafny {
         CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
         builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
+      // check well-formedness of the modifies and reads clauses
+      CheckFrameWellFormed(iter.Modifies.Expressions, localVariables, builder, etran);
+      CheckFrameWellFormed(iter.Reads.Expressions, localVariables, builder, etran);
       // check well-formedness of the decreases clauses
       foreach (var p in iter.Decreases.Expressions) {
         CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
       }
-      // Note: the reads and modifies clauses are not checked for well-formedness (is that sound?), because it used to
-      // be that the syntax was not rich enough for programmers to specify modifies clauses and always being
-      // absolutely well-defined.
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
       foreach (var p in iter.Member_Init.Ens) {
@@ -2066,9 +2066,8 @@ namespace Microsoft.Dafny {
           CheckWellformed(p.E, new WFOptions(), localVariables, builder, etran);
           builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
         }
-        // Note: the modifies clauses are not checked for well-formedness (is that sound?), because it used to
-        // be that the syntax was not rich enough for programmers to specify modifies clauses and always being
-        // absolutely well-defined.
+        // check well-formedness of the modifies clause
+        CheckFrameWellFormed(m.Mod.Expressions, localVariables, builder, etran);
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions)
         {
@@ -2116,6 +2115,19 @@ namespace Microsoft.Dafny {
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
       _tmpIEs.Clear();
+    }
+
+    void CheckFrameWellFormed(List<FrameExpression> fes, VariableSeq locals, StmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Requires(fes != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      foreach (var fe in fes) {
+        CheckWellformed(fe.E, new WFOptions(), locals, builder, etran);
+        if (fe.Field != null && fe.E.Type.IsRefType) {
+          builder.Add(Assert(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), predef.Null), "frame expression may dereference null"));
+        }
+      }
     }
 
     void GenerateImplPrelude(Method m, Bpl.VariableSeq inParams, Bpl.VariableSeq outParams,
@@ -2342,7 +2354,7 @@ namespace Microsoft.Dafny {
       // requires o to denote an expression of type RefType
       // "rw" is is allowed to contain a WildcardExpr
 
-      Bpl.Expr disjunction = null;
+      Bpl.Expr disjunction = Bpl.Expr.False;
       foreach (FrameExpression rwComponent in rw) {
         Expression e = rwComponent.E;
         if (receiverReplacement != null) {
@@ -2368,21 +2380,12 @@ namespace Microsoft.Dafny {
           // o == old(e)
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
         }
-        disjunct = Bpl.Expr.And(IsTotal(e, etran), disjunct);
         if (rwComponent.Field != null) {
           disjunct = Bpl.Expr.And(disjunct, Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.tok, GetField(rwComponent.Field))));
         }
-        if (disjunction == null) {
-          disjunction = disjunct;
-        } else {
-          disjunction = Bpl.Expr.Or(disjunction, disjunct);
-        }
+        disjunction = BplOr(disjunction, disjunct);
       }
-      if (disjunction == null) {
-        return Bpl.Expr.False;
-      } else {
-        return disjunction;
-      }
+      return disjunction;
     }
 
     void AddWellformednessCheck(Function f) {
@@ -2444,9 +2447,8 @@ namespace Microsoft.Dafny {
         CheckWellformed(p, new WFOptions(f, null, false), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
       }
-      // Note: the reads clauses are not checked for well-formedness (is that sound?), because it used to
-      // be that the syntax was not rich enough for programmers to specify reads clauses and always being
-      // absolutely well-defined.
+      // check well-formedness of the reads clause
+      CheckFrameWellFormed(f.Reads, locals, builder, etran);
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
       foreach (Expression p in f.Decreases.Expressions)
       {
@@ -2562,253 +2564,6 @@ namespace Microsoft.Dafny {
 
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(tok, ctor.FullName, predef.DatatypeType);
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), args);
-    }
-
-    Bpl.Expr IsTotal(Expression expr, ExpressionTranslator etran) {
-      Contract.Requires(expr != null);Contract.Requires(etran != null);
-      Contract.Requires(predef != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
-        return Bpl.Expr.True;
-      } else if (expr is DisplayExpression) {
-        DisplayExpression e = (DisplayExpression)expr;
-        return IsTotal(e.Elements, etran);
-      } else if (expr is FieldSelectExpr) {
-        FieldSelectExpr e = (FieldSelectExpr)expr;
-        if (e.Obj is ThisExpr) {
-          return Bpl.Expr.True;
-        } else {
-          var t = IsTotal(e.Obj, etran);
-          if (e.Obj.Type.IsRefType) {
-            t = BplAnd(t, Bpl.Expr.Neq(etran.TrExpr(e.Obj), predef.Null));
-          } else if (e.Field is DatatypeDestructor) {
-            var dtor = (DatatypeDestructor)e.Field;
-            t = BplAnd(t, FunctionCall(e.tok, dtor.EnclosingCtor.QueryField.FullCompileName, Bpl.Type.Bool, etran.TrExpr(e.Obj)));
-          }
-          return t;
-        }
-      } else if (expr is SeqSelectExpr) {
-        SeqSelectExpr e = (SeqSelectExpr)expr;
-        bool isSequence = e.Seq.Type is SeqType;
-        if (e.Seq.Type is MapType) {
-          Bpl.Expr total = IsTotal(e.Seq, etran);
-          Bpl.Expr map = etran.TrExpr(e.Seq);
-          var e0 = etran.TrExpr(e.E0);
-          Bpl.Expr inDomain = FunctionCall(expr.tok, BuiltinFunction.MapDomain, predef.MapType(e.tok, predef.BoxType, predef.BoxType), map);
-          inDomain = Bpl.Expr.Select(inDomain, etran.BoxIfNecessary(e.tok, e0, e.E0.Type));
-          total = BplAnd(total, inDomain);
-          return total;
-        } else {
-          Bpl.Expr total = IsTotal(e.Seq, etran);
-          Bpl.Expr seq = etran.TrExpr(e.Seq);
-          Bpl.Expr e0 = null;
-          if (e.E0 != null) {
-            e0 = etran.TrExpr(e.E0);
-            total = BplAnd(total, IsTotal(e.E0, etran));
-            total = BplAnd(total, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne));
-          }
-          if (e.E1 != null) {
-            total = BplAnd(total, IsTotal(e.E1, etran));
-            total = BplAnd(total, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true));
-          }
-          return total;
-        }
-      } else if (expr is MultiSelectExpr) {
-        MultiSelectExpr e = (MultiSelectExpr)expr;
-        Bpl.Expr total = IsTotal(e.Array, etran);
-        Bpl.Expr array = etran.TrExpr(e.Array);
-        int i = 0;
-        foreach (Expression idx in e.Indices) {
-          total = BplAnd(total, IsTotal(idx, etran));
-
-          Bpl.Expr index = etran.TrExpr(idx);
-          Bpl.Expr lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
-          Bpl.Expr length = ArrayLength(idx.tok, array, e.Indices.Count, i);
-          Bpl.Expr upper = Bpl.Expr.Lt(index, length);
-          total = BplAnd(total, Bpl.Expr.And(lower, upper));
-          i++;
-        }
-        return total;
-      } else if (expr is SeqUpdateExpr) {
-        SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        Bpl.Expr total = IsTotal(e.Seq, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        Bpl.Expr index = etran.TrExpr(e.Index);
-        total = BplAnd(total, IsTotal(e.Index, etran));
-        total = BplAnd(total, InSeqRange(expr.tok, index, seq, true, null, false));
-        total = BplAnd(total, IsTotal(e.Value, etran));
-        return total;
-      } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
-        Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
-        // check well-formedness of receiver
-        Bpl.Expr r = IsTotal(e.Receiver, etran);
-        if (!e.Function.IsStatic && !(e.Receiver is ThisExpr)) {
-          r = BplAnd(r, Bpl.Expr.Neq(etran.TrExpr(e.Receiver), predef.Null));
-        }
-        // check well-formedness of the other parameters
-        r = BplAnd(r, IsTotal(e.Args, etran));
-        // create a substitution map from each formal parameter to the corresponding actual parameter
-        Dictionary<IVariable,Expression> substMap = new Dictionary<IVariable,Expression>();
-        for (int i = 0; i < e.Function.Formals.Count; i++) {
-          var formal = e.Function.Formals[i];
-          var s = CheckSubrange_Expr(e.Args[i].tok, etran.TrExpr(e.Args[i]), formal.Type);
-          if (s != null) {
-            r = BplAnd(r, s);
-          }
-          substMap.Add(formal, e.Args[i]);
-        }
-        // check that the preconditions for the call hold
-        foreach (Expression p in e.Function.Req) {
-          Expression precond = Substitute(p, e.Receiver, substMap);
-          r = BplAnd(r, etran.TrExpr(precond));
-        }
-        // TODO: if this is a recursive call, also conjoin the well-ordering predicate
-        return r;
-      } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        var r = IsTotal(dtv.Arguments, etran);
-        for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
-          var formal = dtv.Ctor.Formals[i];
-          var arg = dtv.Arguments[i];
-          var s = CheckSubrange_Expr(arg.tok, etran.TrExpr(arg), formal.Type);
-          if (s != null) {
-            r = BplAnd(r, s);
-          }
-        }
-        return r;
-      } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        return IsTotal(e.E, etran.Old);
-      } else if (expr is MultiSetFormingExpr) {
-        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-        return IsTotal(e.E, etran);
-      } else if (expr is FreshExpr) {
-        FreshExpr e = (FreshExpr)expr;
-        return IsTotal(e.E, etran);
-      } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
-        Bpl.Expr t = IsTotal(e.E, etran);
-        if (e.Op == UnaryExpr.Opcode.SetChoose) {
-          Bpl.Expr emptySet = FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
-          return Bpl.Expr.And(t, Bpl.Expr.Neq(etran.TrExpr(e.E), emptySet));
-        } else  if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
-          return Bpl.Expr.And(t, Bpl.Expr.Neq(etran.TrExpr(e.E), predef.Null));
-        }
-        return t;
-      } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
-        Bpl.Expr t0 = IsTotal(e.E0, etran);
-        Bpl.Expr t1 = IsTotal(e.E1, etran);
-        Bpl.Expr z = null;
-        switch (e.ResolvedOp) {
-          case BinaryExpr.ResolvedOpcode.And:
-          case BinaryExpr.ResolvedOpcode.Imp:
-            t1 = Bpl.Expr.Imp(etran.TrExpr(e.E0), t1);
-            break;
-          case BinaryExpr.ResolvedOpcode.Or:
-            t1 = Bpl.Expr.Imp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
-            break;
-          case BinaryExpr.ResolvedOpcode.Div:
-          case BinaryExpr.ResolvedOpcode.Mod:
-            z = Bpl.Expr.Neq(etran.TrExpr(e.E1), Bpl.Expr.Literal(0));
-            break;
-          default:
-            break;
-        }
-        Bpl.Expr r = BplAnd(t0, t1);
-        return z == null ? r : BplAnd(r, z);
-
-      } else if (expr is TernaryExpr) {
-        var e = (TernaryExpr)expr;
-        var t0 = IsTotal(e.E0, etran);
-        var t1 = IsTotal(e.E1, etran);
-        var t2 = IsTotal(e.E2, etran);
-        switch (e.Op) {
-          case TernaryExpr.Opcode.PrefixEqOp:
-          case TernaryExpr.Opcode.PrefixNeqOp:
-            var z = Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0));
-            return BplAnd(
-              BplAnd(IsTotal(e.E0, etran), z),
-              BplAnd(IsTotal(e.E1, etran), IsTotal(e.E2, etran)));
-          default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
-        }
-
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        if (e.Exact) {
-          Bpl.Expr total = Bpl.Expr.True;
-          foreach (var rhs in e.RHSs) {
-            total = BplAnd(total, IsTotal(rhs, etran));
-          }
-          return BplAnd(total, IsTotal(etran.GetSubstitutedBody(e), etran));
-        } else {
-          // IsTotal(var b :| RHS(b); Body(b)) =
-          //   (forall b :: typeAntecedent ==> IsTotal(RHS(b))) &&
-          //   (exists b :: typeAntecedent && RHS(b)) &&
-          //   (forall b :: typeAntecedent ==> IsTotal(RHS(b)) && RHS(b) ==> IsTotal(Body(b)))
-          var bvars = new Bpl.VariableSeq();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.Vars, bvars);
-          Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
-          var totalRHS = IsTotal(e.RHSs[0], etran);
-          var trRHS = etran.TrExpr(e.RHSs[0]);
-          var totalBody = IsTotal(e.Body, etran);
-          return BplAnd(BplAnd(
-            new Bpl.ForallExpr(e.tok, bvars, Bpl.Expr.Imp(typeAntecedent, totalRHS)),
-            new Bpl.ExistsExpr(e.tok, bvars, BplAnd(typeAntecedent, trRHS))),
-            new Bpl.ForallExpr(e.tok, bvars, Bpl.Expr.Imp(typeAntecedent, Bpl.Expr.Imp(BplAnd(totalRHS, trRHS), totalBody))));
-        }
-
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        var total = IsTotal(e.Term, etran);
-        if (e.Range != null) {
-          total = BplAnd(IsTotal(e.Range, etran), BplImp(etran.TrExpr(e.Range), total));
-        }
-        if (total != Bpl.Expr.True) {
-          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
-          total = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, total));
-        }
-        return total;
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        Bpl.Expr gTotal = IsTotal(e.Guard, etran);
-        Bpl.Expr g = etran.TrExpr(e.Guard);
-        Bpl.Expr bTotal = IsTotal(e.Body, etran);
-        if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
-          return BplAnd(gTotal, BplAnd(g, bTotal));
-        } else {
-          return BplAnd(gTotal, Bpl.Expr.Imp(g, bTotal));
-        }
-      } else if (expr is ITEExpr) {
-        ITEExpr e = (ITEExpr)expr;
-        Bpl.Expr total = IsTotal(e.Test, etran);
-        Bpl.Expr test = etran.TrExpr(e.Test);
-        total = BplAnd(total, Bpl.Expr.Imp(test, IsTotal(e.Thn, etran)));
-        total = BplAnd(total, Bpl.Expr.Imp(Bpl.Expr.Not(test), IsTotal(e.Els, etran)));
-        return total;
-      } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        return IsTotal(e.ResolvedExpression, etran);
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
-      }
-    }
-
-    Bpl.Expr/*!*/ IsTotal(List<Expression/*!*/>/*!*/ exprs, ExpressionTranslator/*!*/ etran) {
-      Contract.Requires(etran != null);
-      Contract.Requires(exprs != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      Bpl.Expr total = Bpl.Expr.True;
-      foreach (Expression e in exprs) {
-        Contract.Assert(e != null);
-        total = BplAnd(total, IsTotal(e, etran));
-      }
-      return total;
     }
 
     Bpl.Expr CanCallAssumption(Expression expr, ExpressionTranslator etran) {
@@ -5831,10 +5586,10 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
-      // as the first thing inside the loop, generate:  if (!w) { assert IsTotal(inv); assume false; }
+      // as the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
-      // generate:  assert IsTotal(guard); if (!guard) { break; }
+      // generate:  CheckWellformed(guard); if (!guard) { break; }
       Bpl.Expr guard = null;
       if (Guard != null) {
         TrStmt_CheckWellformed(Guard, loopBodyBuilder, locals, etran, true);
@@ -8612,7 +8367,7 @@ namespace Microsoft.Dafny {
       DtRank,
       DtAlloc,
 
-      GenericAlloc
+      GenericAlloc,
     }
 
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.

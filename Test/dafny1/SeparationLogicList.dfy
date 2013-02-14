@@ -53,7 +53,7 @@ class ListNode<T> {
   var next: ListNode<T>;
 
   static function IsList(l: ListNode<T>): bool
-    reads l, l.Repr;
+    reads l, if l != null then l.Repr else {};
   {
     if l == null then
       true
