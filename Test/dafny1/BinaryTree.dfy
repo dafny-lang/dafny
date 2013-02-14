@@ -50,7 +50,7 @@ class IntSet {
 
   static method InsertHelper(x: int, n: Node) returns (m: Node)
     requires n == null || n.Valid();
-    modifies n.Repr;
+    modifies if n != null then n.Repr else {};
     ensures m != null && m.Valid();
     ensures n == null ==> fresh(m.Repr) && m.Contents == {x};
     ensures n != null ==> m == n && n.Contents == old(n.Contents) + {x};

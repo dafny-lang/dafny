@@ -318,6 +318,9 @@ Execution trace:
 Definedness.dfy(33,16): Error: target object may be null
 Execution trace:
     (0,0): anon0
+Definedness.dfy(42,16): Error: target object may be null
+Execution trace:
+    (0,0): anon0
 Definedness.dfy(50,18): Error: target object may be null
 Execution trace:
     (0,0): anon0
@@ -473,7 +476,7 @@ Execution trace:
     (0,0): anon2
     (0,0): anon8_Else
 
-Dafny program verifier finished with 22 verified, 36 errors
+Dafny program verifier finished with 21 verified, 37 errors
 
 -------------------- FunctionSpecifications.dfy --------------------
 FunctionSpecifications.dfy(32,3): Error BP5003: A postcondition might not hold on this return path.
