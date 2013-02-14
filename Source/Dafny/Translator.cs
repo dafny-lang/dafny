@@ -3291,7 +3291,10 @@ namespace Microsoft.Dafny {
 
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
+        // TrStmt needs a context so give it one:
+        codeContext = new NoContext(this.currentModule);
         TrStmt(e.Guard, builder, locals, etran);
+        codeContext = null;
         CheckWellformed(e.Body, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
@@ -9795,7 +9798,11 @@ namespace Microsoft.Dafny {
           var e = (CalcExpr)expr;
           // Since this is only done after the well-formedness checks (is this true?) use the unsound version
           // Note: if we ever have a statement substitutor, it can be used here
-          newExpr = Substitute(e.AsAssumeExpr);
+          AssumeExpr e1 = (AssumeExpr)Substitute(e.AsAssumeExpr);
+          if (e1 != e.AsAssumeExpr) {
+            // We cannot just return e1: this violates the contract that the type of an expression can be only set once.
+            newExpr = new AssumeExpr(e.tok, e1.Guard, e1.Body);
+          }
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;

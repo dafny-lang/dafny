@@ -941,6 +941,7 @@ namespace Microsoft.Dafny
     BoundVar CloneBoundVar(BoundVar bv) {
       return new BoundVar(bv.tok, bv.Name, CloneType(bv.Type));
     }
+    // ToDo: Remove this and use cloner
     Expression CloneExpr(Expression expr) {
       if (expr == null) {
         return null;
@@ -1074,7 +1075,6 @@ namespace Microsoft.Dafny
 
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
-        // NadiaToDo: Remove this cloner
         return new CalcExpr(e.tok, (CalcStmt)((new Cloner()).CloneStmt(e.Guard)), CloneExpr(e.Body), (AssumeExpr)CloneExpr(e.AsAssumeExpr));
 
       } else if (expr is ITEExpr) {
@@ -2607,8 +2607,8 @@ namespace Microsoft.Dafny
 
     void ResolveFrameExpression(FrameExpression fe, string kind) {
       Contract.Requires(fe != null);
-      Contract.Requires(kind != null);
-      ResolveExpression(fe.E, false, new NoContext(currentClass.Module));
+      Contract.Requires(kind != null);      
+      ResolveExpression(fe.E, false, new NoContext(moduleInfo.ModuleDef));
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       if (t is CollectionType) {
@@ -4844,7 +4844,7 @@ namespace Microsoft.Dafny
         } else if (!(d is DatatypeDecl)) {
           Error(expr.tok, "Expected datatype: {0}", dtv.DatatypeName);
         } else {
-          ResolveDatatypeValue(twoState, dtv, (DatatypeDecl)d);
+          ResolveDatatypeValue(twoState, codeContext, dtv, (DatatypeDecl)d);
         }
 
       } else if (expr is DisplayExpression) {
@@ -4990,7 +4990,7 @@ namespace Microsoft.Dafny
         if (!twoState) {
           Error(expr, "old expressions are not allowed in this context");
         }
-        ResolveExpression(e.E, twoState, null);
+        ResolveExpression(e.E, twoState, codeContext, null);
         expr.Type = e.E.Type;
 
       } else if (expr is MultiSetFormingExpr) {
@@ -5530,7 +5530,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveDatatypeValue(bool twoState, DatatypeValue dtv, DatatypeDecl dt) {
+    private void ResolveDatatypeValue(bool twoState, ICodeContext codeContext, DatatypeValue dtv, DatatypeDecl dt) {
       // this resolution is a little special, in that the syntax shows only the base name, not its instantiation (which is inferred)
       List<Type> gt = new List<Type>(dt.TypeArgs.Count);
       Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
@@ -5556,7 +5556,7 @@ namespace Microsoft.Dafny
       int j = 0;
       foreach (Expression arg in dtv.Arguments) {
         Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
-        ResolveExpression(arg, twoState, null);
+        ResolveExpression(arg, twoState, codeContext, null);
         Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
         if (formal != null) {
           Type st = SubstType(formal.Type, subst);
@@ -5982,7 +5982,7 @@ namespace Microsoft.Dafny
           var dt = (DatatypeDecl)decl;  // otherwise, unexpected TopLevelDecl
           var args = (e.Tokens.Count == p + 2 ? e.Arguments : null) ?? new List<Expression>();
           r = new DatatypeValue(id, id.val, e.Tokens[p + 1].val, args);
-          ResolveDatatypeValue(twoState, (DatatypeValue)r, dt);
+          ResolveDatatypeValue(twoState, codeContext, (DatatypeValue)r, dt);
           if (e.Tokens.Count != p + 2) {
             r = ResolveSuffix(r, e, p + 2, twoState, codeContext, allowMethodCall, out call);
           }
@@ -5996,7 +5996,7 @@ namespace Microsoft.Dafny
           var dt = pair.Item1.EnclosingDatatype;
           var args = (e.Tokens.Count == p + 1 ? e.Arguments : null) ?? new List<Expression>();
           r = new DatatypeValue(id, dt.Name, id.val, args);
-          ResolveDatatypeValue(twoState, (DatatypeValue)r, dt);
+          ResolveDatatypeValue(twoState, codeContext, (DatatypeValue)r, dt);
           if (e.Tokens.Count != p + 1) {
             r = ResolveSuffix(r, e, p + 1, twoState, codeContext, allowMethodCall, out call);
           }
@@ -6053,7 +6053,7 @@ namespace Microsoft.Dafny
         var resolved = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
         if (resolved != null) {
           r = resolved;
-          ResolveExpression(r, twoState, null);
+          ResolveExpression(r, twoState, codeContext, null);
         }
       }
 
@@ -6083,7 +6083,7 @@ namespace Microsoft.Dafny
           r = null;
         } else {
           r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.OpenParen, e.Arguments);
-          ResolveExpression(r, twoState, null);
+          ResolveExpression(r, twoState, codeContext, null);
         }
       } else if (e.Arguments != null) {
         Contract.Assert(p == e.Tokens.Count);
