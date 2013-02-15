@@ -143,13 +143,14 @@ ghost method Lemma_Fib()
   calc {
     Fib(5);
     Fib(4) + Fib(3);
+  <
     calc {
       Fib(2);
       Fib(0) + Fib(1);
       0 + 1;
       1;
     }
-    < 6;
+    6;
   }
 }
 
