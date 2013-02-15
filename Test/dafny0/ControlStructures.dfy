@@ -237,3 +237,29 @@ method TheBreaker_SomeBad(M: int, N: int, O: int)
   }
   assert M <= i || b == 12;  // error: e == 37
 }
+
+// --------------- paren-free syntax ---------------
+
+method PF1(d: D)
+  requires d == D.Green;
+{
+  if d != D.Green { 		// guards can be written without parens
+    match d {
+    }
+  }
+  if { case false => assert false; case true => assert true; }
+  if {1, 2, 3} <= {1, 2} {  // conflict between display set as guard and alternative statement is resolved
+  	assert false;
+  }  
+  while d != D.Green {
+  	assert false;
+  }
+  while d != D.Green
+  	decreases 1;
+  {
+  	assert false;
+  }
+  while {1, 2, 3} <= {1, 2} {
+  	assert false;
+  }  
+}
