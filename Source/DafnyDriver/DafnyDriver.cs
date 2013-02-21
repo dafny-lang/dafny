@@ -124,6 +124,7 @@ namespace Microsoft.Dafny
 
     public static void ErrorWriteLine(string format, params object[] args) {
       Contract.Requires(format != null);
+      Contract.Requires(args != null);
       string s = string.Format(format, args);
       ErrorWriteLine(s);
     }
@@ -192,6 +193,7 @@ namespace Microsoft.Dafny
 
     private static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
     {
+      Contract.Requires(dafnyProgram != null);
       // Compile the Dafny program into a string that contains the C# program
       StringWriter sw = new StringWriter();
       Dafny.Compiler compiler = new Dafny.Compiler(sw);

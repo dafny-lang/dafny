@@ -338,7 +338,8 @@ namespace Microsoft.Dafny {
     const int IndentAmount = 2; // The amount of indent for each new scope
     const string BunchaSpaces = "                                ";
     void Indent(int amount)
-    {  Contract.Requires( 0 <= amount);
+    {
+      Contract.Requires(0 <= amount);
 
       while (0 < amount) {
         wr.Write(BunchaSpaces.Substring(0, amount));
@@ -807,6 +808,7 @@ namespace Microsoft.Dafny {
     }
 
     void PrintWhileStatement(int indent, WhileStmt s, bool omitGuard, bool omitBody) {
+      Contract.Requires(0 <= indent);
       if (omitGuard) {
         wr.WriteLine("while ...");
       } else {

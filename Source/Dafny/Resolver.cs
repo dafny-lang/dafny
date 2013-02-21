@@ -421,6 +421,8 @@ namespace Microsoft.Dafny
     }
 
     private string ModuleNotFoundErrorMessage(int i, List<IToken> path) {
+      Contract.Requires(path != null);
+      Contract.Requires(0 <= i && i < path.Count);
       return "module " + path[i].val + " does not exist" +
         (1 < path.Count ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" : "");
     }
@@ -4768,6 +4770,8 @@ namespace Microsoft.Dafny
     /// "twoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
     void ResolveExpression(Expression expr, bool twoState, ICodeContext codeContext) {
+      Contract.Requires(expr != null);
+      Contract.Requires(codeContext != null);
       ResolveExpression(expr, twoState, codeContext, null);
     }
 
@@ -5954,7 +5958,7 @@ namespace Microsoft.Dafny
       //  - static function or method of sig.
       // This is used to look up names that appear after a dot in a sequence identifier. For example, in X.M.*, M should be looked up in X, but
       // should not consult the local scope. This distingushes this from the above, in that local scope, imported modules, etc. are ignored.
-      Contract.Requires(p < e.Tokens.Count);
+      Contract.Requires(0 <= p && p < e.Tokens.Count);
       Expression r = null;  // resolved version of e
       CallRhs call = null;
 

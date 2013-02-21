@@ -212,6 +212,8 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public abstract bool Equals(Type that);
+
     public bool IsSubrangeType {
       get { return this is NatType; }
     }
@@ -321,12 +323,18 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context) {
       return "bool";
     }
+    public override bool Equals(Type that) {
+      return that.Normalize() is BoolType;
+    }
   }
 
   public class IntType : BasicType {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       return "int";
+    }
+    public override bool Equals(Type that) {
+      return that.Normalize() is IntType;
     }
   }
 
@@ -343,6 +351,9 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       return "object";
+    }
+    public override bool Equals(Type that) {
+      return that.Normalize() is ObjectType;
     }
   }
 
@@ -373,6 +384,10 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
       return "set<" + base.Arg.TypeName(context) + ">";
     }
+    public override bool Equals(Type that) {
+      var t = that.Normalize() as SetType;
+      return t != null && Arg.Equals(t.Arg);
+    }
   }
 
   public class MultiSetType : CollectionType
@@ -385,6 +400,10 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
       return "multiset<" + base.Arg.TypeName(context) + ">";
     }
+    public override bool Equals(Type that) {
+      var t = that.Normalize() as MultiSetType;
+      return t != null && Arg.Equals(t.Arg);
+    }
   }
 
   public class SeqType : CollectionType {
@@ -396,6 +415,10 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
       return "seq<" + base.Arg.TypeName(context) + ">";
+    }
+    public override bool Equals(Type that) {
+      var t = that.Normalize() as SeqType;
+      return t != null && Arg.Equals(t.Arg);
     }
   }
   public class MapType : CollectionType
@@ -412,6 +435,10 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
       return "map<" + Domain.TypeName(context) + ", " + Range.TypeName(context) + ">";
+    }
+    public override bool Equals(Type that) {
+      var t = that.Normalize() as MapType;
+      return t != null && Arg.Equals(t.Arg);
     }
   }
 
@@ -520,6 +547,11 @@ namespace Microsoft.Dafny {
       this.Path = new List<IToken>();
     }
 
+    public override bool Equals(Type that) {
+      var t = that.Normalize() as UserDefinedType;
+      return t != null && ResolvedClass == t.ResolvedClass && ResolvedParam == t.ResolvedParam;
+    }
+
     /// <summary>
     /// If type denotes a resolved class type, then return that class type.
     /// Otherwise, return null.
@@ -615,6 +647,15 @@ namespace Microsoft.Dafny {
         } else {
           return base.SupportsEquality;
         }
+      }
+    }
+    public override bool Equals(Type that) {
+      var i = Normalize();
+      if (i is TypeProxy) {
+        var u = that.Normalize() as TypeProxy;
+        return u != null && object.ReferenceEquals(i, u);
+      } else {
+        return i.Equals(that);
       }
     }
   }

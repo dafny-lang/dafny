@@ -139,6 +139,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(tickType != null);
         Contract.Requires(setTypeCtor != null);
         Contract.Requires(multiSetTypeCtor != null);
+        Contract.Requires(mapTypeCtor != null);
+        Contract.Requires(arrayLength != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(fieldNameType != null);
         Contract.Requires(heap != null);
@@ -427,7 +429,7 @@ namespace Microsoft.Dafny {
         {
           var thVar = new Bpl.BoundVariable(ctor.tok, new TypedIdent(ctor.tok, "this", predef.DatatypeType));
           var th = new Bpl.IdentifierExpr(ctor.tok, thVar);
-          var queryPredicate = FunctionCall(ctor.tok, fn.Name, null, th);
+          var queryPredicate = FunctionCall(ctor.tok, fn.Name, Bpl.Type.Bool, th);
           var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
           var rhs = Bpl.Expr.Eq(ctorId, new Bpl.IdentifierExpr(ctor.tok, cid));  // this uses the "cid" defined for the previous axiom
           var body = Bpl.Expr.Iff(queryPredicate, rhs);
@@ -552,7 +554,7 @@ namespace Microsoft.Dafny {
       {
         var dVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d", predef.DatatypeType));
         var d = new Bpl.IdentifierExpr(dt.tok, dVar);
-        var lhs = FunctionCall(dt.tok, cases_fn.Name, null, d);
+        var lhs = FunctionCall(dt.tok, cases_fn.Name, Bpl.Type.Bool, d);
         Bpl.Expr cases_body = Bpl.Expr.False;
         foreach (DatatypeCtor ctor in dt.Ctors) {
           var disj = FunctionCall(ctor.tok, ctor.QueryField.FullCompileName, Bpl.Type.Bool, d);
@@ -783,10 +785,10 @@ namespace Microsoft.Dafny {
           var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
           var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
           var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, 1), null, k, d0, d1);
+          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, d0, d1);
           var body = Bpl.Expr.Imp(Bpl.Expr.Le(Bpl.Expr.Literal(0), k), prefixEq);
           var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar), body);
-          var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, null, d0, d1);
+          var eqDt = FunctionCall(dt.tok, "$Eq#" + dt.FullCompileName, Bpl.Type.Bool, d0, d1);
           q = new Bpl.ForallExpr(dt.tok, new VariableSeq(d0Var, d1Var), Bpl.Expr.Iff(eqDt, q));
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
         }
@@ -802,8 +804,8 @@ namespace Microsoft.Dafny {
           var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
           var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
           var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-          var prefixEqK = FunctionCall(dt.tok, CoPrefixName(codecl, 0), null, k, d0, d1);
-          var prefixEqM = FunctionCall(dt.tok, CoPrefixName(codecl, 1), null, m, d0, d1);
+          var prefixEqK = FunctionCall(dt.tok, CoPrefixName(codecl, 0), Bpl.Type.Bool, k, d0, d1);
+          var prefixEqM = FunctionCall(dt.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, m, d0, d1);
           var range = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), k), Bpl.Expr.Le(k, m));
           var body = Bpl.Expr.Imp(BplAnd(range, prefixEqM), prefixEqK);
           var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, mVar, d0Var, d1Var), body);
@@ -821,7 +823,7 @@ namespace Microsoft.Dafny {
           var d0 = new Bpl.IdentifierExpr(dt.tok, d0Var);
           var d1Var = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType));
           var d1 = new Bpl.IdentifierExpr(dt.tok, d1Var);
-          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, 1), null, k, d0, d1);
+          var prefixEq = FunctionCall(dt.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, d0, d1);
           var body = Bpl.Expr.Imp(BplAnd(Bpl.Expr.Eq(d0, d1), Bpl.Expr.Le(Bpl.Expr.Literal(0), k)), prefixEq);
           var q = new Bpl.ForallExpr(dt.tok, new VariableSeq(kVar, d0Var, d1Var), body);
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, q));
@@ -3490,6 +3492,9 @@ namespace Microsoft.Dafny {
       [Pure]
       public override string TypeName(ModuleDefinition context) {
         return "_increasingInt";
+      }
+      public override bool Equals(Type that) {
+        return that.Normalize() is EverIncreasingType;
       }
     }
 
@@ -8660,6 +8665,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
+      Contract.Requires(returnType != null);
       Contract.Requires(args != null);
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
@@ -8837,7 +8843,7 @@ namespace Microsoft.Dafny {
           //   checked $PrefixEqual#Dt(k, A, B) || (0 < k ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
           //   free $PrefixEqual#Dt(k, A, B);
           var kPos = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
-          var prefixEqK = FunctionCall(expr.tok, CoPrefixName(codecl, 1), null, k, A, B);
+          var prefixEqK = FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
           var kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
           // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
           var etran2 = etran.LayerOffset(1);

@@ -462,6 +462,7 @@ namespace Microsoft.Dafny
       moduleUnderConstruction = null;
     }
     Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
+      Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 

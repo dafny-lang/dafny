@@ -54,6 +54,7 @@ namespace Microsoft.Dafny {
 
     readonly int IndentAmount = 2;
     void Indent(int ind) {
+      Contract.Requires(0 <= ind);
       string spaces = "          ";
       for (; spaces.Length < ind; ind -= spaces.Length) {
         wr.Write(spaces);
@@ -61,7 +62,8 @@ namespace Microsoft.Dafny {
       wr.Write(spaces.Substring(0, ind));
     }
 
-    public void Compile(Program program) {Contract.Requires(program != null);
+    public void Compile(Program program) {
+      Contract.Requires(program != null);
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine();
       ReadRuntimeSystem();
@@ -757,6 +759,7 @@ namespace Microsoft.Dafny {
     }
 
     void CompileReturnBody(Expression body, int indent) {
+      Contract.Requires(0 <= indent);
       body = body.Resolved;
       if (body is MatchExpr) {
         MatchExpr me = (MatchExpr)body;
@@ -1693,6 +1696,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sourceType != null);
       Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
+      Contract.Requires(0 <= indent);
       // if (source.is_Ctor0) {
       //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
       //   ...

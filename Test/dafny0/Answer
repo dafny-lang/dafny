@@ -1786,15 +1786,15 @@ TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive met
 Calculations.dfy(3,4): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon11_Then
+    (0,0): anon17_Then
 Calculations.dfy(8,13): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon13_Then
+    (0,0): anon19_Then
 Calculations.dfy(8,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon13_Then
+    (0,0): anon19_Then
 Calculations.dfy(42,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
