@@ -1039,7 +1039,7 @@ Execution trace:
     (0,0): anon89_Then
     (0,0): anon61
 
-Dafny program verifier finished with 18 verified, 10 errors
+Dafny program verifier finished with 20 verified, 10 errors
 
 -------------------- Termination.dfy --------------------
 Termination.dfy(356,47): Error: failure to decrease termination measure
@@ -1795,12 +1795,12 @@ Calculations.dfy(8,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-Calculations.dfy(36,11): Error: assertion violation
+Calculations.dfy(42,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Calculations.dfy(31,2): anon5_Else
+    Calculations.dfy(37,2): anon5_Else
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 5 verified, 4 errors
 
 -------------------- IteratorResolution.dfy --------------------
 IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field

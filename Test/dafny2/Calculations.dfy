@@ -208,3 +208,66 @@ ghost method Window(xs: List, ys: List)
     true;
   }
 }
+
+// In the following we use a combination of calc and parallel
+
+function ith<a>(xs: List, i: nat): a
+  requires i < length(xs);
+{
+  match xs
+  case Cons(x, xrest) => if i == 0 then x else ith(xrest, i - 1)
+}
+
+ghost method lemma_zero_length(xs: List)
+  ensures length(xs) == 0 <==> xs.Nil?;
+{}
+
+ghost method lemma_extensionality(xs: List, ys: List)
+  requires length(xs) == length(ys); // (0)
+  requires forall i: nat | i < length(xs) :: ith(xs, i) == ith(ys, i); // (1)
+  ensures xs == ys;
+{
+  match xs {
+    case Nil => 
+      calc {
+        true;
+        // (0)
+        length(xs) == length(ys);
+        0 == length(ys);
+        { lemma_zero_length(ys); }
+        Nil == ys;
+        xs == ys;
+      }
+    case Cons(x, xrest) =>
+      match ys {
+        case Cons(y, yrest) =>
+          calc {
+            xs;
+            Cons(x, xrest);
+            calc {
+              x;
+              ith(xs, 0);
+              // (1) with i = 0
+              ith(ys, 0);
+              y;
+            }
+            Cons(y, xrest);
+            { 
+              parallel (j: nat | j < length(xrest)) {
+                calc {
+                  ith(xrest, j);
+                  ith(xs, j + 1);
+                  // (1) with i = j + 1
+                  ith(ys, j + 1);
+                  ith(yrest, j);
+                }
+              }
+              lemma_extensionality(xrest, yrest); 
+            }
+            Cons(y, yrest);
+            ys;
+          }
+      }
+  }
+}
+

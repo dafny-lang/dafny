@@ -16,6 +16,12 @@ method CalcTest0(s: seq<int>) {
 			s[0];
 		}
 	}
+	assume forall x :: x in s ==> x >= 0;
+	calc ==> {
+		0 < |s|;
+		{ assert s[0] >= 0; } // OK: well-formed after previous line
+		s[0] >= 0; // OK: well-formed after previous line
+	}
 }
 
 method CalcTest1(x: int, y: int) {
@@ -34,4 +40,14 @@ method CalcTest2(x: int, y: int) {
 		y + x;
 	}
 	assert x == 0; // error: even though assumed above, is not exported by the calculation
+}
+
+// calc expression:
+function CalcTest(s: seq<int>): int {
+	calc < {
+		0;
+		{ assume |s| == 5; }
+		|s|;
+	}
+	s[0]
 }

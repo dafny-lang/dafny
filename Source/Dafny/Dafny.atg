@@ -97,6 +97,20 @@ bool IsAttribute() {
   Token x = scanner.Peek();
   return la.kind == _lbrace && x.kind == _colon;
 }
+
+bool IsAlternative() {
+  Token x = scanner.Peek();
+  return la.kind == _lbrace && x.val == "case";
+}
+
+bool IsLoopSpec() {
+  return la.val == "invariant" | la.val == "decreases" | la.val == "modifies";
+}
+
+bool IsLoopSpecOrAlternative() {
+  Token x = scanner.Peek();
+  return IsLoopSpec() || (la.kind == _lbrace && x.val == "case");
+}
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -1067,6 +1081,10 @@ IfStmt<out Statement/*!*/ ifStmt>
   .)
   "if"                       (. x = t; .)
   (
+    IF(IsAlternative())
+    AlternativeBlock<out alternatives>
+    (. ifStmt = new AlternativeStmt(x, alternatives); .)
+  |
     ( Guard<out guard>
     | "..."                  (. guardOmitted = true; .)
     )
@@ -1082,9 +1100,6 @@ IfStmt<out Statement/*!*/ ifStmt>
          ifStmt = new IfStmt(x, guard, thn, els);
        }
     .)
-  |
-    AlternativeBlock<out alternatives>
-    (. ifStmt = new AlternativeStmt(x, alternatives); .)
   )
   .
 AlternativeBlock<.out List<GuardedAlternative> alternatives.>
@@ -1118,6 +1133,11 @@ WhileStmt<out Statement/*!*/ stmt>
   .)
   "while"                    (. x = t; .)
   (
+    IF(IsLoopSpecOrAlternative())
+    LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
+    AlternativeBlock<out alternatives>
+    (. stmt = new AlternativeLoopStmt(x, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
+  |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | "..."                      (. guardOmitted = true; .)
     )
@@ -1141,10 +1161,6 @@ WhileStmt<out Statement/*!*/ stmt>
         stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
       }
     .)
-  |
-    LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
-    AlternativeBlock<out alternatives>
-    (. stmt = new AlternativeLoopStmt(x, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
   )
   .
 LoopSpec<.out List<MaybeFreeExpression/*!*/> invariants, out List<Expression/*!*/> decreases, out List<FrameExpression/*!*/> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
@@ -1192,11 +1208,19 @@ DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
   .
 Guard<out Expression e>   /* null represents demonic-choice */
 = (. Expression/*!*/ ee;  e = null; .)
-  "("
+  (
+    "("
+    BareGuard<out ee>       (. e = ee; .)
+    ")"
+  |
+    BareGuard<out ee>       (. e = ee; .)
+  )
+  .
+BareGuard<out Expression e>   /* null represents demonic-choice */
+= (. Expression/*!*/ ee;  e = null; .)
   ( "*"                      (. e = null; .)
   | Expression<out ee>       (. e = ee; .)
   )
-  ")"
   .
 MatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
