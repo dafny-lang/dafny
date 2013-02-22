@@ -13,11 +13,11 @@ class MyClass<T, U> {
     ensures old(null) != this;
   {
     x := 12;
-    while (x < 100)
+    while x < 100
       invariant x <= 100;
     {
       x := x + 17;
-      if (x % 20 == 3) {
+      if x % 20 == 3 {
         x := this.x + 1;
       } else {
         this.x := x + 0;
@@ -2221,7 +2221,7 @@ out.tmp.dfy(502,15): Error: left-hand sides 1 and 2 may refer to the same locati
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
-    out.tmp.dfy(495,18): anon28_Else
+    out.tmp.dfy(495,17): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
     (0,0): anon7
