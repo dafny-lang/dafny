@@ -479,32 +479,30 @@ Execution trace:
 Dafny program verifier finished with 21 verified, 37 errors
 
 -------------------- FunctionSpecifications.dfy --------------------
-FunctionSpecifications.dfy(32,3): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(32,25): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(28,13): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon8_Else
     (0,0): anon9_Else
-    (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Else
-    (0,0): anon7
-FunctionSpecifications.dfy(35,10): Error BP5003: A postcondition might not hold on this return path.
+    (0,0): anon10_Then
+    (0,0): anon11_Else
+FunctionSpecifications.dfy(42,3): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(37,24): Related location: This is the postcondition that might not hold.
 Execution trace:
-    (0,0): anon12_Else
-    (0,0): anon15_Else
-    (0,0): anon16_Then
-    (0,0): anon11
+    (0,0): anon11_Else
+    (0,0): anon14_Else
+    (0,0): anon15_Then
 FunctionSpecifications.dfy(50,11): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon9_Then
+    (0,0): anon8_Then
     (0,0): anon3
 FunctionSpecifications.dfy(56,10): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(57,22): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon5_Else
 
-Dafny program verifier finished with 3 verified, 4 errors
+Dafny program verifier finished with 8 verified, 4 errors
 
 -------------------- ResolutionErrors.dfy --------------------
 ResolutionErrors.dfy(466,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
@@ -1045,9 +1043,9 @@ Dafny program verifier finished with 20 verified, 10 errors
 Termination.dfy(356,47): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
-    (0,0): anon10_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+    (0,0): anon9_Else
 Termination.dfy(105,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
@@ -1684,8 +1682,8 @@ Execution trace:
     (0,0): anon3_Else
 PredExpr.dfy(36,15): Error: value assigned to a nat must be non-negative
 Execution trace:
+    (0,0): anon5_Else
     (0,0): anon6_Else
-    (0,0): anon7_Else
 PredExpr.dfy(49,17): Error: condition in assert expression might not hold
 Execution trace:
     (0,0): anon0

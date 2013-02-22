@@ -3244,7 +3244,17 @@ namespace Microsoft.Dafny {
           }
           builder.Add(Assert(e.tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
           builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(rhs)));
-          CheckWellformed(Substitute(e.Body, null, substMap), options, locals, builder, etran);
+          var letBody = Substitute(e.Body, null, substMap);
+          CheckWellformed(letBody, options, locals, builder, etran);
+          // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
+          if (result != null) {
+            Contract.Assert(resultType != null);
+            var bResult = etran.TrExpr(letBody);
+            CheckSubrange(letBody.tok, bResult, resultType, builder);
+            builder.Add(new Bpl.AssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
+            builder.Add(new Bpl.AssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
+            result = null;
+          }
         }
 
       } else if (expr is NamedExpr) {
@@ -3302,11 +3312,12 @@ namespace Microsoft.Dafny {
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         CheckWellformed(e.Test, options, locals, builder, etran);
-        Bpl.StmtListBuilder bThen = new Bpl.StmtListBuilder();
-        Bpl.StmtListBuilder bElse = new Bpl.StmtListBuilder();
-        CheckWellformed(e.Thn, options, locals, bThen, etran);
-        CheckWellformed(e.Els, options, locals, bElse, etran);
+        var bThen = new Bpl.StmtListBuilder();
+        var bElse = new Bpl.StmtListBuilder();
+        CheckWellformedWithResult(e.Thn, options, result, resultType, locals, bThen, etran);
+        CheckWellformedWithResult(e.Els, options, result, resultType, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
+        result = null;
 
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
@@ -6983,7 +6994,6 @@ namespace Microsoft.Dafny {
       //   axiom (forall g:G ::
       //            { $let$x(g) }
       //            { $let$y(g) }
-      //            typeAntecedents ==>
       //            $let$_canCall(g)) ==>
       //            P($let$x(g), $let$y(g), g));
 
@@ -7017,7 +7027,7 @@ namespace Microsoft.Dafny {
       }
 
       var etran = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
-      Bpl.Expr typeAntecedents;
+      Bpl.Expr typeAntecedents;  // later ignored
       Bpl.VariableSeq gg = info.GAsVars(this, false, out typeAntecedents, etran);
       var gExprs = new List<Bpl.Expr>();
       foreach (Bpl.Variable g in gg) {
@@ -7040,7 +7050,7 @@ namespace Microsoft.Dafny {
       }
       var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
       var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-      Bpl.Expr ax = Bpl.Expr.Imp(typeAntecedents, Bpl.Expr.Imp(canCall, etran.TrExpr(p)));
+      Bpl.Expr ax = Bpl.Expr.Imp(canCall, etran.TrExpr(p));
       if (gg.Length != 0) {
         ax = new Bpl.ForallExpr(e.tok, gg, tr, ax);
       }

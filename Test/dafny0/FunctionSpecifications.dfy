@@ -58,3 +58,32 @@ function HoldsAtLeastForZero(x: int): bool
 {
   x < -2  // error: this does not hold for 0
 }
+
+// ----- Some functions that deal with let-such-that and if-then-else expressions and having them pass
+// ----- the subrange test (which they didn't always do).
+
+function IncA(x: nat): nat
+  ensures x < IncA(x);
+{
+  if x == 17 then
+    18
+  else
+    var y :| x < y;
+    y
+}
+
+ghost method M() {
+  var z := IncA(10);
+  assert z != 0;
+}
+
+function IncB(i: nat): nat
+{
+  var n :| n>i; n
+}
+
+function IncC(i: nat): int
+  ensures IncC(i)>=0;
+{
+  var n :| n>i; n
+}
