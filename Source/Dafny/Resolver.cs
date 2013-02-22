@@ -369,9 +369,9 @@ namespace Microsoft.Dafny
       if (m.RefinementBaseName != null) {
         ModuleDecl other;
         if (!bindings.TryLookup(m.RefinementBaseName[0], out other)) {
-          Error(m, "module {0} named as refinement base does not exist", m.RefinementBaseName[0].val);
+          Error(m.RefinementBaseName[0], "module {0} named as refinement base does not exist", m.RefinementBaseName[0].val);
         } else if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
-          Error(m, "module cannot refine itself: {0}", m.RefinementBaseName[0].val);
+          Error(m.RefinementBaseName[0], "module cannot refine itself: {0}", m.RefinementBaseName[0].val);
         } else {
           Contract.Assert(other != null);  // follows from postcondition of TryGetValue
           dependencies.AddEdge(decl, other);
