@@ -789,9 +789,9 @@ namespace Microsoft.Dafny {
         if (omitGuard) {
           wr.Write("if ... ");
         } else {
-          wr.Write("if (");
+          wr.Write("if ");
           PrintGuard(s.Guard);
-          wr.Write(") ");
+          wr.Write(" ");
         }
         PrintStatement(s.Thn, indent);
         if (s.Els == null) {
@@ -812,9 +812,9 @@ namespace Microsoft.Dafny {
       if (omitGuard) {
         wr.WriteLine("while ...");
       } else {
-        wr.Write("while (");
+        wr.Write("while ");
         PrintGuard(s.Guard);
-        wr.WriteLine(")");
+        wr.WriteLine();
       }
 
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);
