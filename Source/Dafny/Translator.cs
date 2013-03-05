@@ -9609,9 +9609,10 @@ namespace Microsoft.Dafny {
       public override Expression Substitute(Expression expr) {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          if (e.Function is CoPredicate && e.Function.EnclosingClass.Module == module &&
-            module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(coPred)) {
-            expr = coPred.CreatePrefixPredicateCall(e, coDepth);
+          var cof = e.Function as CoPredicate;
+          if (cof != null && cof.EnclosingClass.Module == module &&
+            module.CallGraph.GetSCCRepresentative(cof) == module.CallGraph.GetSCCRepresentative(coPred)) {
+            expr = cof.CreatePrefixPredicateCall(e, coDepth);
           }
         }
         return base.Substitute(expr);
@@ -9767,11 +9768,11 @@ namespace Microsoft.Dafny {
             newExpr = new LetExpr(e.tok, e.Vars, rhss, body, e.Exact);
           }
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        var body = Substitute(e.Body);
-        var contract = e.Contract == null ? null : Substitute(e.Contract);
-        newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
+        } else if (expr is NamedExpr) {
+          var e = (NamedExpr)expr;
+          var body = Substitute(e.Body);
+          var contract = e.Contract == null ? null : Substitute(e.Contract);
+          newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           Expression newRange = e.Range == null ? null : Substitute(e.Range);
