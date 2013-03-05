@@ -17,10 +17,12 @@ method CalcTest0(s: seq<int>) {
 		}
 	}
 	assume forall x :: x in s ==> x >= 0;
-	calc ==> {
+	calc {
 		0 < |s|;
-		{ assert s[0] >= 0; } // OK: well-formed after previous line
-		s[0] >= 0; // OK: well-formed after previous line
+	==>	{ assert s[0] >= 0; }   // OK: well-formed after previous line
+		s[0] >= 0;                // OK: well-formed after previous line
+  <==> { assert s[0] >= 0; }  // OK: well-formed when the previous line is well-formed
+    s[0] > 0 || s[0] == 0;    // OK: well-formed when the previous line is well-formed
 	}
 }
 
@@ -43,7 +45,7 @@ method CalcTest2(x: int, y: int) {
 }
 
 // calc expression:
-function CalcTest(s: seq<int>): int {
+function CalcTest3(s: seq<int>): int {
 	calc < {
 		0;
 		{ assume |s| == 5; }

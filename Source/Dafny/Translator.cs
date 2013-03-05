@@ -1853,6 +1853,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition currentModule = null;  // the name of the module whose members are currently being translated
     ICodeContext codeContext = null;  // the method/iterator whose implementation is currently being translated
     LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
+    bool assertAsAssume = false; // generate assume statements instead of assert statements
     int loopHeapVarCount = 0;
     int otherTmpVarCount = 0;
     Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
@@ -4406,7 +4407,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(errorMessage != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      if (assertAsAssume || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition);
       } else {
@@ -4445,7 +4446,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      if (assertAsAssume || (RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
         return new Bpl.AssumeCmd(tok, condition, kv);
       } else {
@@ -4826,12 +4827,16 @@ namespace Microsoft.Dafny {
         if (*) {
             assert wf(line0);
         } else if (*) {
+            assume wf(line0);
+            // if op is ==>: assume line0;
             hint0;
             assert wf(line1);
             assert line0 op line1;
             assume false;
         } else if (*) { ...
         } else if (*) {
+            assume wf(line<n-1>);
+            // if op is ==>: assume line<n-1>;
             hint<n-1>;
             assert wf(line<n>);
             assert line<n-1> op line<n>;
@@ -4848,19 +4853,26 @@ namespace Microsoft.Dafny {
           // check steps:
           for (int i = s.Steps.Count; 0 <= --i; ) {            
             b = new Bpl.StmtListBuilder();
-            // assume all previous context lines:
-            for (int j = 0; j <= i; j++) {
-              if (s.IsContextLine(j)) {
-                b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Lines[j])));
-              }
+            // assume wf[line<i>]:
+            AddComment(b, stmt, "assume wf[line" + i.ToString() + "]");
+            assertAsAssume = true;
+            TrStmt_CheckWellformed(s.Lines[i], b, locals, etran, false);
+            assertAsAssume = false;
+            if (s.Steps[i].ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+              // assume line<i>:
+              AddComment(b, stmt, "assume line" + i.ToString());
+              b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Lines[i]))); 
             }
             // hint:
+            AddComment(b, stmt, "Hint" + i.ToString());
             TrStmt(s.Hints[i], b, locals, etran);
             // check well formedness of the goal line:
+            AddComment(b, stmt, "assert wf[line" + (i + 1).ToString() + "]");
             TrStmt_CheckWellformed(s.Lines[i + 1], b, locals, etran, false);
             bool splitHappened;
             var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
             // assert step:
+            AddComment(b, stmt, "assert line" + i.ToString() + " " + s.Steps[i].ResolvedOp.ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -4875,6 +4887,7 @@ namespace Microsoft.Dafny {
           }
           // check well formedness of the first line:
           b = new Bpl.StmtListBuilder();
+          AddComment(b, stmt, "assume wf[line0]");
           TrStmt_CheckWellformed(s.Lines.First(), b, locals, etran, false);
           b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
