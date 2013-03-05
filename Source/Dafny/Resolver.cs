@@ -3880,9 +3880,19 @@ namespace Microsoft.Dafny
             }
             e0 = e1;
           }
+                  
+          // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a parallel statement
+          var prevLblStmts = labeledStatements;
+          var prevLoopStack = loopStack;
+          labeledStatements = new Scope<Statement>();
+          loopStack = new List<Statement>();
           foreach (var h in s.Hints) {
             ResolveStatement(h, true, codeContext);
+            CheckHintRestrictions(h);
           }
+          labeledStatements = prevLblStmts;
+          loopStack = prevLoopStack;          
+
           if (prevErrorCount == ErrorCount && s.Steps.Count > 0) {
             // do not build Result if there were errors, as it might be ill-typed and produce unnecessary resolution errors
             s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());
@@ -4517,6 +4527,124 @@ namespace Microsoft.Dafny
         Error(tok, "the body of the enclosing parallel statement is not allowed to update heap locations");
       }
     }
+
+    /// <summary>
+    /// Check that a statment is a valid hint for a calculation.
+    /// ToDo: generalize the part for compound statements to take a delegate?
+    /// </summary>
+    public void CheckHintRestrictions(Statement stmt) {
+      Contract.Requires(stmt != null);
+      if (stmt is PredicateStmt) {
+        // cool
+      } else if (stmt is PrintStmt) {
+        // not allowed in ghost context
+      } else if (stmt is BreakStmt) {
+        // already checked while resolving hints
+      } else if (stmt is ReturnStmt) {
+        Error(stmt, "return statement is not allowed inside a hint");
+      } else if (stmt is YieldStmt) {
+        Error(stmt, "yield statement is not allowed inside a hint");
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        foreach (var lhs in s.Lhss) {
+          CheckHintLhs(s.Tok, lhs.Resolved);
+        }
+      } else if (stmt is AssignStmt) {
+        var s = (AssignStmt)stmt;
+        CheckHintLhs(s.Tok, s.Lhs.Resolved);
+      } else if (stmt is VarDecl) {
+        // cool
+      } else if (stmt is CallStmt) {
+        var s = (CallStmt)stmt;
+        if (s.Method.Mod.Expressions.Count != 0) {
+          Error(stmt, "calls to methods with side-effects are not allowed inside a hint");
+        }
+      } else if (stmt is ConcreteSyntaxStatement) {
+        var s = (ConcreteSyntaxStatement)stmt;
+        foreach (var ss in s.ResolvedStatements) {
+          CheckHintRestrictions(ss);
+        }
+      } else if (stmt is BlockStmt) {
+        var s = (BlockStmt)stmt;
+        scope.PushMarker();
+        foreach (var ss in s.Body) {
+          CheckHintRestrictions(ss);
+        }
+        scope.PopMarker();
+
+      } else if (stmt is IfStmt) {
+        var s = (IfStmt)stmt;
+        CheckHintRestrictions(s.Thn);
+        if (s.Els != null) {
+          CheckHintRestrictions(s.Els);
+        }
+
+      } else if (stmt is AlternativeStmt) {
+        var s = (AlternativeStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          foreach (var ss in alt.Body) {
+            CheckHintRestrictions(ss);
+          }
+        }
+
+      } else if (stmt is WhileStmt) {
+        WhileStmt s = (WhileStmt)stmt;
+        CheckHintRestrictions(s.Body);
+
+      } else if (stmt is AlternativeLoopStmt) {
+        var s = (AlternativeLoopStmt)stmt;
+        foreach (var alt in s.Alternatives) {
+          foreach (var ss in alt.Body) {
+            CheckHintRestrictions(ss);
+          }
+        }
+
+      } else if (stmt is ParallelStmt) {
+        var s = (ParallelStmt)stmt;
+        switch (s.Kind) {
+          case ParallelStmt.ParBodyKind.Assign:
+            Error(stmt, "a parallel statement with heap updates is not allowed inside a hint");
+            break;
+          case ParallelStmt.ParBodyKind.Call:
+          case ParallelStmt.ParBodyKind.Proof:
+            // these are fine, since they don't update any non-local state
+            break;
+          default:
+            Contract.Assert(false);  // unexpected kind
+            break;
+        }
+		
+      } else if (stmt is CalcStmt) {
+        var s = (CalcStmt)stmt;
+        foreach (var h in s.Hints) {
+          CheckHintRestrictions(h);
+        }
+
+      } else if (stmt is MatchStmt) {
+        var s = (MatchStmt)stmt;
+        foreach (var kase in s.Cases) {
+          foreach (var ss in kase.Body) {
+            CheckHintRestrictions(ss);
+          }
+        }
+
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();
+      }
+    }
+
+    void CheckHintLhs(IToken tok, Expression lhs) {
+      var idExpr = lhs as IdentifierExpr;
+      if (idExpr != null) {
+        if (scope.ContainsDecl(idExpr.Var)) {
+          Error(tok, "a hint is not allowed to update a variable declared outside the hint");
+        }
+      } else {
+        Error(tok, "a hint is not allowed to update heap locations");
+      }
+    }
+
+
 
     Type ResolveTypeRhs(TypeRhs rr, Statement stmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(rr != null);

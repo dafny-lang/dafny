@@ -384,6 +384,37 @@ method TestCalc(m: int, n: int, a: bool, b: bool)
   }
 }
 
+/* Side-effect checks */
+ghost var ycalc: int;
+
+ghost method Mod(a: int)
+  modifies this;
+  ensures ycalc == a;
+{
+  ycalc := a;
+}  
+  
+ghost method Bad()
+  modifies this;
+  ensures 0 == 1;
+{
+  var x: int;
+  calc {
+    0;
+    { Mod(0); }     // methods with side-effects are not allowed
+    ycalc;
+    { ycalc := 1; } // heap updates are not allowed
+    1;
+    { x := 1; }     // updates to locals defined outside of the hint are not allowed
+    x;
+    {
+      var x: int;
+      x := 1;       // this is OK
+    }
+    1;
+  }
+}
+
 // ------------------- nameless constructors ------------------------------
 
 class YHWH {
