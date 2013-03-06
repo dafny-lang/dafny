@@ -116,7 +116,7 @@ ghost method lemma1(t: Tree, s:seq<int>)
 ghost method lemma2(s: seq<int>)
   ensures (exists t: Tree :: toList(0,t) == s) ==> build(s).Res?;
 {
-  parallel(t | toList(0,t) == s) {
+  forall t | toList(0,t) == s {
     lemma1(t, s);
   } 
 }
@@ -130,7 +130,7 @@ ghost method lemma2(s: seq<int>)
 ghost method completeness()
   ensures forall s: seq<int> :: ((exists t: Tree :: toList(0,t) == s) ==> build(s).Res?);
 {
-  parallel(s) {
+  forall s {
     lemma2(s);
   }
 }

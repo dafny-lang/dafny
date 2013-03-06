@@ -629,16 +629,17 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
 
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
-        wr.Write("parallel (");
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
+        wr.Write("forall");
         if (s.BoundVars.Count != 0) {
+          wr.Write(" ");
           PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
         }
         if (s.Ens.Count == 0) {
-          wr.Write(") ");
+          wr.Write(" ");
         } else {
-          wr.WriteLine(")");
+          wr.WriteLine();
           PrintSpec("ensures", s.Ens, indent + IndentAmount);
           Indent(indent);
         }

@@ -85,7 +85,7 @@ class BreadthFirstSearch<Vertex(==)>
       ghost var pathToV := Find(source, v, paths);
     
       if (v == dest) {
-        parallel (p | IsPath(source, dest, p))
+        forall p | IsPath(source, dest, p)
           ensures |pathToV| <= |p|;
         {
           Lemma_IsPath_R(source, dest, p, AllVertices);
@@ -110,7 +110,7 @@ class BreadthFirstSearch<Vertex(==)>
 
     // show that "dest" in not in any reachability set, no matter 
     // how many successors one follows
-    parallel (nn)
+    forall nn
       ensures dest !in R(source, nn, AllVertices);
     {
       if (Value(nn) < Value(dd)) {
@@ -122,7 +122,7 @@ class BreadthFirstSearch<Vertex(==)>
 
     // Now, show what what the above means in terms of IsPath.  More 
     // precisely, show that there is no path "p" from "source" to "dest".
-    parallel (p | IsPath(source, dest, p))
+    forall p | IsPath(source, dest, p)
       // this and the previous two lines will establish the 
       // absurdity of a "p" satisfying IsPath(source, dest, p)
       ensures false;  
@@ -130,7 +130,7 @@ class BreadthFirstSearch<Vertex(==)>
       Lemma_IsPath_R(source, dest, p, AllVertices);
       // a consequence of Lemma_IsPath_R is:  
       // dest in R(source, ToNat(|p|), AllVertices)
-      // but that contradicts the conclusion of the preceding parallel statement
+      // but that contradicts the conclusion of the preceding forall statement
     }
 
     d := -1;  // indicate "no path"

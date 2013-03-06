@@ -22,7 +22,7 @@ ghost method FibLemma(n: nat)
 }
 
 /*
-  The 'parallel' statement has the effect of applying its body simultaneously
+  The 'forall' statement has the effect of applying its body simultaneously
   to all values of the bound variables---in the first example, to all k
   satisfying 0 <= k < n, and in the second example, to all non-negative n. 
 */
@@ -30,7 +30,7 @@ ghost method FibLemma(n: nat)
 ghost method FibLemma_Alternative(n: nat)
   ensures Fib(n) % 2 == 0 <==> n % 3 == 0;
 {
-  parallel (k | 0 <= k < n) {
+  forall k | 0 <= k < n {
     FibLemma_Alternative(k);
   }
 }
@@ -38,7 +38,7 @@ ghost method FibLemma_Alternative(n: nat)
 ghost method FibLemma_All()
   ensures forall n :: 0 <= n ==> (Fib(n) % 2 == 0 <==> n % 3 == 0);
 {
-  parallel (n | 0 <= n) {
+  forall n | 0 <= n {
     FibLemma(n);
   }
 }

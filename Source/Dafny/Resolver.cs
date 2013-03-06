@@ -1625,14 +1625,14 @@ namespace Microsoft.Dafny
             return TailRecursionStatus.NotTailRecursive;
           }
         }
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
         var status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
         if (status != TailRecursionStatus.CanBeFollowedByAnything) {
           if (status == TailRecursionStatus.NotTailRecursive) {
             // an error has already been reported
           } else if (reportErrors) {
-            Error(tailCall.Tok, "a recursive call inside a parallel statement is not a tail call");
+            Error(tailCall.Tok, "a recursive call inside a forall statement is not a tail call");
           }
           return TailRecursionStatus.NotTailRecursive;
         }
@@ -1840,8 +1840,8 @@ namespace Microsoft.Dafny
           CheckEqualityTypes(alt.Guard);
           alt.Body.Iter(CheckEqualityTypes_Stmt);
         }
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
         CheckEqualityTypes(s.Range);
         CheckEqualityTypes_Stmt(s.Body);
       } else if (stmt is MatchStmt) {
@@ -2065,8 +2065,8 @@ namespace Microsoft.Dafny
           CheckTypeInference(alt.Guard);
           alt.Body.Iter(CheckTypeInference);
         }
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
         CheckTypeInference(s.Range);
         CheckTypeInference(s.Body);
         s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
@@ -3610,7 +3610,7 @@ namespace Microsoft.Dafny
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
             if (!slhs.SelectOne) {
-              Error(stmt, "cannot assign to a range of array elements (try the 'parallel' statement)");
+              Error(stmt, "cannot assign to a range of array elements (try the 'forall' statement)");
             }
           }
 
@@ -3770,8 +3770,8 @@ namespace Microsoft.Dafny
           // any type is fine
         }
 
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
 
         int prevErrorCount = ErrorCount;
         scope.PushMarker();
@@ -3784,7 +3784,7 @@ namespace Microsoft.Dafny
         ResolveExpression(s.Range, true, codeContext);
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(s.Range.Type, Type.Bool)) {
-          Error(stmt, "range restriction in parallel statement must be of type bool (instead got {0})", s.Range.Type);
+          Error(stmt, "range restriction in forall statement must be of type bool (instead got {0})", s.Range.Type);
         }
         foreach (var ens in s.Ens) {
           ResolveExpression(ens.E, true, codeContext);
@@ -3807,7 +3807,7 @@ namespace Microsoft.Dafny
         }
         s.IsGhost = bodyMustBeSpecOnly;
 
-        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a parallel statement
+        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
         var prevLblStmts = labeledStatements;
         var prevLoopStack = loopStack;
         labeledStatements = new Scope<Statement>();
@@ -3821,33 +3821,33 @@ namespace Microsoft.Dafny
           // determine the Kind and run some additional checks on the body
           if (s.Ens.Count != 0) {
             // The only supported kind with ensures clauses is Proof.
-            s.Kind = ParallelStmt.ParBodyKind.Proof;
+            s.Kind = ForallStmt.ParBodyKind.Proof;
           } else {
             // There are three special cases:
-            // * Assign, which is the only kind of the parallel statement that allows a heap update.
+            // * Assign, which is the only kind of the forall statement that allows a heap update.
             // * Call, which is a single call statement with no side effects or output parameters.
             // * A single calc statement, which is a special case of Proof where the postcondition can be inferred.
-            // The effect of Assign and the postcondition of Call will be seen outside the parallel
+            // The effect of Assign and the postcondition of Call will be seen outside the forall
             // statement.
             Statement s0 = s.S0;
             if (s0 is AssignStmt) {
-              s.Kind = ParallelStmt.ParBodyKind.Assign;
+              s.Kind = ForallStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {
-              s.Kind = ParallelStmt.ParBodyKind.Call;
+              s.Kind = ForallStmt.ParBodyKind.Call;
             } else if (s0 is CalcStmt) {
-              s.Kind = ParallelStmt.ParBodyKind.Proof;
+              s.Kind = ForallStmt.ParBodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               s.Ens.Add(new MaybeFreeExpression(((CalcStmt)s0).Result, true));
             } else {
-              s.Kind = ParallelStmt.ParBodyKind.Proof;
+              s.Kind = ForallStmt.ParBodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
                 // an empty statement, so don't produce any warning
               } else {
-                Warning(s.Tok, "the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause");
+                Warning(s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
           }
-          CheckParallelBodyRestrictions(s.Body, s.Kind);
+          CheckForallStatementBodyRestrictions(s.Body, s.Kind);
         }
 		
       } else if (stmt is CalcStmt) {
@@ -3881,7 +3881,7 @@ namespace Microsoft.Dafny
             e0 = e1;
           }
                   
-          // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a parallel statement
+          // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
           var prevLblStmts = labeledStatements;
           var prevLoopStack = loopStack;
           labeledStatements = new Scope<Statement>();
@@ -4016,7 +4016,7 @@ namespace Microsoft.Dafny
           Error(lhs, "cannot assign to non-ghost variable in a ghost context");
         }
         if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-          Error(lhs, "cannot assign to a range of array elements (try the 'parallel' statement)");
+          Error(lhs, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
       }
       // Resolve RHSs
@@ -4385,47 +4385,47 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// This method performs some additional checks on the body "stmt" of a parallel statement of kind "kind".
+    /// This method performs some additional checks on the body "stmt" of a forall statement of kind "kind".
     /// </summary>
-    public void CheckParallelBodyRestrictions(Statement stmt, ParallelStmt.ParBodyKind kind) {
+    public void CheckForallStatementBodyRestrictions(Statement stmt, ForallStmt.ParBodyKind kind) {
       Contract.Requires(stmt != null);
       if (stmt is PredicateStmt) {
         // cool
       } else if (stmt is PrintStmt) {
-        Error(stmt, "print statement is not allowed inside a parallel statement");
+        Error(stmt, "print statement is not allowed inside a forall statement");
       } else if (stmt is BreakStmt) {
-        // this case is checked already in the first pass through the parallel body, by doing so from an empty set of labeled statements and resetting the loop-stack
+        // this case is checked already in the first pass through the forall-statement body, by doing so from an empty set of labeled statements and resetting the loop-stack
       } else if (stmt is ReturnStmt) {
-        Error(stmt, "return statement is not allowed inside a parallel statement");
+        Error(stmt, "return statement is not allowed inside a forall statement");
       } else if (stmt is YieldStmt) {
-        Error(stmt, "yield statement is not allowed inside a parallel statement");
+        Error(stmt, "yield statement is not allowed inside a forall statement");
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckParallelBodyLhs(s.Tok, lhs.Resolved, kind);
+          CheckForallStatementBodyLhs(s.Tok, lhs.Resolved, kind);
         }
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         foreach (var ss in s.ResolvedStatements) {
-          CheckParallelBodyRestrictions(ss, kind);
+          CheckForallStatementBodyRestrictions(ss, kind);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckParallelBodyLhs(s.Tok, s.Lhs.Resolved, kind);
+        CheckForallStatementBodyLhs(s.Tok, s.Lhs.Resolved, kind);
         var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
         if (rhs is TypeRhs) {
-          if (kind == ParallelStmt.ParBodyKind.Assign) {
-            Error(rhs.Tok, "new allocation not supported in parallel statements");
+          if (kind == ForallStmt.ParBodyKind.Assign) {
+            Error(rhs.Tok, "new allocation not supported in forall statements");
           } else {
             var t = (TypeRhs)rhs;
             if (t.InitCall != null) {
-              CheckParallelBodyRestrictions(t.InitCall, kind);
+              CheckForallStatementBodyRestrictions(t.InitCall, kind);
             }
           }
         } else if (rhs is ExprRhs) {
           var r = ((ExprRhs)rhs).Expr.Resolved;
-          if (kind == ParallelStmt.ParBodyKind.Assign && r is UnaryExpr && ((UnaryExpr)r).Op == UnaryExpr.Opcode.SetChoose) {
-            Error(r, "set choose operator not supported inside the enclosing parallel statement");
+          if (kind == ForallStmt.ParBodyKind.Assign && r is UnaryExpr && ((UnaryExpr)r).Op == UnaryExpr.Opcode.SetChoose) {
+            Error(r, "set choose operator not supported inside the enclosing forall statement");
           }
         }
       } else if (stmt is VarDecl) {
@@ -4436,64 +4436,64 @@ namespace Microsoft.Dafny
           var idExpr = lhs as IdentifierExpr;
           if (idExpr != null) {
             if (scope.ContainsDecl(idExpr.Var)) {
-              Error(stmt, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
+              Error(stmt, "body of forall statement is attempting to update a variable declared outside the forall statement");
             }
           } else {
-            Error(stmt, "the body of the enclosing parallel statement is not allowed to update heap locations");
+            Error(stmt, "the body of the enclosing forall statement is not allowed to update heap locations");
           }
         }
         if (!s.Method.IsGhost) {
-          // The reason for this restriction is that the compiler is going to omit the parallel statement altogether--it has
+          // The reason for this restriction is that the compiler is going to omit the forall statement altogether--it has
           // no effect.  However, print effects are not documented, so to make sure that the compiler does not omit a call to
           // a method that prints something, all calls to non-ghost methods are disallowed.  (Note, if this restriction
           // is somehow lifted in the future, then it is still necessary to enforce s.Method.Mod.Expressions.Count != 0 for
           // calls to non-ghost methods.)
-          Error(s, "the body of the enclosing parallel statement is not allowed to call non-ghost methods");
+          Error(s, "the body of the enclosing forall statement is not allowed to call non-ghost methods");
         }
 
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         scope.PushMarker();
         foreach (var ss in s.Body) {
-          CheckParallelBodyRestrictions(ss, kind);
+          CheckForallStatementBodyRestrictions(ss, kind);
         }
         scope.PopMarker();
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        CheckParallelBodyRestrictions(s.Thn, kind);
+        CheckForallStatementBodyRestrictions(s.Thn, kind);
         if (s.Els != null) {
-          CheckParallelBodyRestrictions(s.Els, kind);
+          CheckForallStatementBodyRestrictions(s.Els, kind);
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckParallelBodyRestrictions(ss, kind);
+            CheckForallStatementBodyRestrictions(ss, kind);
           }
         }
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
-        CheckParallelBodyRestrictions(s.Body, kind);
+        CheckForallStatementBodyRestrictions(s.Body, kind);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckParallelBodyRestrictions(ss, kind);
+            CheckForallStatementBodyRestrictions(ss, kind);
           }
         }
 
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
         switch (s.Kind) {
-          case ParallelStmt.ParBodyKind.Assign:
-            Error(stmt, "a parallel statement with heap updates is not allowed inside the body of another parallel statement");
+          case ForallStmt.ParBodyKind.Assign:
+            Error(stmt, "a forall statement with heap updates is not allowed inside the body of another forall statement");
             break;
-          case ParallelStmt.ParBodyKind.Call:
-          case ParallelStmt.ParBodyKind.Proof:
+          case ForallStmt.ParBodyKind.Call:
+          case ForallStmt.ParBodyKind.Proof:
             // these are fine, since they don't update any non-local state
             break;
           default:
@@ -4508,7 +4508,7 @@ namespace Microsoft.Dafny
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
           foreach (var ss in kase.Body) {
-            CheckParallelBodyRestrictions(ss, kind);
+            CheckForallStatementBodyRestrictions(ss, kind);
           }
         }
 
@@ -4517,14 +4517,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CheckParallelBodyLhs(IToken tok, Expression lhs, ParallelStmt.ParBodyKind kind) {
+    void CheckForallStatementBodyLhs(IToken tok, Expression lhs, ForallStmt.ParBodyKind kind) {
       var idExpr = lhs as IdentifierExpr;
       if (idExpr != null) {
         if (scope.ContainsDecl(idExpr.Var)) {
-          Error(tok, "body of parallel statement is attempting to update a variable declared outside the parallel statement");
+          Error(tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
         }
-      } else if (kind != ParallelStmt.ParBodyKind.Assign) {
-        Error(tok, "the body of the enclosing parallel statement is not allowed to update heap locations");
+      } else if (kind != ForallStmt.ParBodyKind.Assign) {
+        Error(tok, "the body of the enclosing forall statement is not allowed to update heap locations");
       }
     }
 
@@ -4599,14 +4599,14 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
         switch (s.Kind) {
-          case ParallelStmt.ParBodyKind.Assign:
-            Error(stmt, "a parallel statement with heap updates is not allowed inside a hint");
+          case ForallStmt.ParBodyKind.Assign:
+            Error(stmt, "a forall statement with heap updates is not allowed inside a hint");
             break;
-          case ParallelStmt.ParBodyKind.Call:
-          case ParallelStmt.ParBodyKind.Proof:
+          case ForallStmt.ParBodyKind.Call:
+          case ForallStmt.ParBodyKind.Proof:
             // these are fine, since they don't update any non-local state
             break;
           default:

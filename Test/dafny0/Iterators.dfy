@@ -208,7 +208,7 @@ iterator DoleOutReferences(u: Cell) yields (r: Cell, c: Cell)
       assert c in _new;  // as is checked here as well
       assert r.data == 12;  // error: it may have changed 
     } else {
-      parallel (z | z in myCells) {
+      forall z | z in myCells {
         z.data := z.data + 1;  // we're allowed to modify these, because they are all in _new
       }
     }

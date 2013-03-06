@@ -85,12 +85,12 @@ class Queue<T> {
     tail.next := n;
     tail := n;
 
-    parallel (m | m in spine) {
+    forall m | m in spine {
       m.tailContents := m.tailContents + [t];
     }
     contents := head.tailContents;
 
-    parallel (m | m in spine) {
+    forall m | m in spine {
       m.footprint := m.footprint + n.footprint;
     }
     footprint := footprint + n.footprint;

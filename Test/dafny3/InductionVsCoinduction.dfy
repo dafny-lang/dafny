@@ -75,7 +75,7 @@ ghost method {:induction false} SAppendIsAssociativeK(k:nat, a:Stream, b:Stream,
 ghost method SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
-  parallel (k:nat) { SAppendIsAssociativeK(k, a, b, c); }
+  forall k:nat { SAppendIsAssociativeK(k, a, b, c); }
   // assert for clarity only, postcondition follows directly from it
   assert (forall k:nat :: SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c)));
 }

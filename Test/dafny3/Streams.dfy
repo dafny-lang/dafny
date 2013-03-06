@@ -59,7 +59,7 @@ comethod Theorem0_Alt(M: Stream<X>)
 ghost method Theorem0_Par(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
-  parallel (k: nat) {
+  forall k: nat {
     Theorem0_Ind(k, M);
   }
 }
@@ -99,7 +99,7 @@ comethod Theorem1_Alt(M: Stream<X>, N: Stream<X>)
 ghost method Theorem1_Par(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
-  parallel (k: nat) {
+  forall k: nat {
     Theorem1_Ind(k, M, N);
   }
 }

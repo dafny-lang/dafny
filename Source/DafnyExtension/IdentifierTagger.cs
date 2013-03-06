@@ -282,8 +282,8 @@ namespace DafnyLanguage
       } else  if (stmt is VarDecl) {
         var s = (VarDecl)stmt;
         IdRegion.Add(regions, s.Tok, s, true, module);
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
         s.BoundVars.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;

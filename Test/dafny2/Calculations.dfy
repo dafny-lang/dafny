@@ -209,7 +209,7 @@ ghost method Window(xs: List, ys: List)
   }
 }
 
-// In the following we use a combination of calc and parallel
+// In the following we use a combination of calc and forall
 
 function ith<a>(xs: List, i: nat): a
   requires i < length(xs);
@@ -253,7 +253,7 @@ ghost method lemma_extensionality(xs: List, ys: List)
             }
             Cons(y, xrest);
             { 
-              parallel (j: nat | j < length(xrest)) {
+              forall (j: nat | j < length(xrest)) {
                 calc {
                   ith(xrest, j);
                   ith(xs, j + 1);

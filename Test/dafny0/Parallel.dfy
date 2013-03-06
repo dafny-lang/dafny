@@ -19,23 +19,23 @@ method ParallelStatement_Resolve(
   requires a != null && null !in spine;
   modifies a, spine;
 {
-  parallel (i: int | 0 <= i < a.Length && i % 2 == 0) {
+  forall (i: int | 0 <= i < a.Length && i % 2 == 0) {
     a[i] := a[(i + 1) % a.Length] + 3;
   }
 
-  parallel (o | o in spine) {
+  forall (o | o in spine) {
     o.st := o.st + Repr;
   }
 
-  parallel (x, y | x in S && 0 <= y+x < 100) {
+  forall (x, y | x in S && 0 <= y+x < 100) {
     Lemma(clx, x, y);  // error: precondition does not hold (clx may be null)
   }
 
-  parallel (x, y | x in S && 0 <= y+x < 100) {
+  forall (x, y | x in S && 0 <= y+x < 100) {
     cly.CLemma(x + y);  // error: receiver might be null
   }
 
-  parallel (p | 0 <= p)
+  forall (p | 0 <= p)
     ensures F(p) <= Sum(p) + p - 1;  // error (no connection is known between F and Sum)
   {
     assert 0 <= G(p);
@@ -73,7 +73,7 @@ method M0(S: set<C>)
   ensures forall o :: o in S ==> o.data == 85;
   ensures forall o :: o != null && o !in S ==> o.data == old(o.data);
 {
-  parallel (s | s in S) {
+  forall (s | s in S) {
     s.data := 85;
   }
 }
@@ -81,18 +81,18 @@ method M0(S: set<C>)
 method M1(S: set<C>, x: C)
   requires null !in S && x in S;
 {
-  parallel (s | s in S)
+  forall (s | s in S)
     ensures s.data < 100;
   {
     assume s.data == 85;
   }
   if (*) {
-    assert x.data == 85;  // error (cannot be inferred from parallel ensures clause)
+    assert x.data == 85;  // error (cannot be inferred from forall ensures clause)
   } else {
     assert x.data < 120;
   }
 
-  parallel (s | s in S)
+  forall (s | s in S)
     ensures s.data < 70;  // error
   {
     assume s.data == 85;
@@ -104,10 +104,10 @@ method M2() returns (a: array<int>)
   ensures forall i,j :: 0 <= i < a.Length/2 <= j < a.Length ==> a[i] < a[j];
 {
   a := new int[250];
-  parallel (i: nat | i < 125) {
+  forall (i: nat | i < 125) {
     a[i] := 423;
   }
-  parallel (i | 125 <= i < 250) {
+  forall (i | 125 <= i < 250) {
     a[i] := 300 + i;
   }
 }
@@ -115,7 +115,7 @@ method M2() returns (a: array<int>)
 method M4(S: set<C>, k: int)
   modifies S;
 {
-  parallel (s | s in S && s != null) {
+  forall (s | s in S && s != null) {
     s.n := k;  // error: k might be negative
   }
 }
@@ -124,25 +124,25 @@ method M5()
 {
   if {
   case true =>
-    parallel (x | 0 <= x < 100) {
+    forall (x | 0 <= x < 100) {
       PowerLemma(x, x);
     }
     assert Pred(34, 34);
 
   case true =>
-    parallel (x,y | 0 <= x < 100 && y == x+1) {
+    forall (x,y | 0 <= x < 100 && y == x+1) {
       PowerLemma(x, y);
     }
     assert Pred(34, 35);
 
   case true =>
-    parallel (x,y | 0 <= x < y < 100) {
+    forall (x,y | 0 <= x < y < 100) {
       PowerLemma(x, y);
     }
     assert Pred(34, 35);
 
   case true =>
-    parallel (x | x in set k | 0 <= k < 100) {
+    forall (x | x in set k | 0 <= k < 100) {
       PowerLemma(x, x);
     }
     assert Pred(34, 34);
@@ -152,17 +152,17 @@ method M5()
 method Main()
 {
   var a := new int[180];
-  parallel (i | 0 <= i < 180) {
+  forall (i | 0 <= i < 180) {
     a[i] := 2*i + 100;
   }
   var sq := [0, 0, 0, 2, 2, 2, 5, 5, 5];
-  parallel (i | 0 <= i < |sq|) {
+  forall (i | 0 <= i < |sq|) {
     a[20+i] := sq[i];
   }
-  parallel (t | t in sq) {
+  forall (t | t in sq) {
     a[t] := 1000;
   }
-  parallel (t,u | t in sq && t < 4 && 10 <= u < 10+t) {
+  forall (t,u | t in sq && t < 4 && 10 <= u < 10+t) {
     a[u] := 6000 + t;
   }
   var k := 0;
@@ -178,11 +178,11 @@ method DuplicateUpdate() {
   var a := new int[180];
   var sq := [0, 0, 0, 2, 2, 2, 5, 5, 5];
   if (*) {
-    parallel (t,u | t in sq && 10 <= u < 10+t) {
+    forall (t,u | t in sq && 10 <= u < 10+t) {
       a[u] := 6000 + t;  // error: a[10] (and a[11]) are assigned more than once
     }
   } else {
-    parallel (t,u | t in sq && t < 4 && 10 <= u < 10+t) {
+    forall (t,u | t in sq && t < 4 && 10 <= u < 10+t) {
       a[u] := 6000 + t;  // with the 't < 4' conjunct in the line above, this is fine
     }
   }
@@ -193,8 +193,8 @@ ghost method DontDoMuch(x: int)
 }
 
 method OmittedRange() {
-  parallel (x) { }
-  parallel (x) {
+  forall (x) { }
+  forall (x) {
     DontDoMuch(x);
   }
 }
@@ -210,7 +210,7 @@ ghost static method TwoState0(y: int)
 }
 
 method TwoState_Main0() {
-  parallel (x) { TwoState0(x); }
+  forall (x) { TwoState0(x); }
   assert false;  // error: this location is indeed reachable (if the translation before it is sound)
 }
 
@@ -222,7 +222,7 @@ ghost static method TwoState1(y: int)
 }
 
 method TwoState_Main1() {
-  parallel (x) { TwoState1(x); }
+  forall (x) { TwoState1(x); }
   assert false;  // error: this location is indeed reachable (if the translation before it is sound)
 }
 
@@ -231,7 +231,7 @@ method X_Legit(c: TwoState_C)
   modifies c;
 {
   c.data := c.data + 1;
-  parallel (x | c.data <= x)
+  forall (x | c.data <= x)
     ensures old(c.data) < x;  // note that the 'old' refers to the method's initial state
   {
   }
@@ -241,12 +241,12 @@ method X_Legit(c: TwoState_C)
 // ensures clause.
 // However, there's an important difference in the translation, which is that the
 // occurrence of 'fresh' here refers to the initial state of the TwoStateMain2
-// method, not the beginning of the 'parallel' statement.
-// Still, care needs to be taken in the translation to make sure that the parallel
+// method, not the beginning of the 'forall' statement.
+// Still, care needs to be taken in the translation to make sure that the forall
 // statement's effect on the heap is not optimized away.
 method TwoState_Main2()
 {
-  parallel (x: int)
+  forall (x: int)
     ensures exists o: TwoState_C :: o != null && fresh(o);
   {
     TwoState0(x);
@@ -257,12 +257,12 @@ method TwoState_Main2()
 // At first glance, this looks like an inlined version of TwoState_Main0 above.
 // However, there's an important difference in the translation, which is that the
 // occurrence of 'fresh' here refers to the initial state of the TwoStateMain3
-// method, not the beginning of the 'parallel' statement.
-// Still, care needs to be taken in the translation to make sure that the parallel
+// method, not the beginning of the 'forall' statement.
+// Still, care needs to be taken in the translation to make sure that the forall
 // statement's effect on the heap is not optimized away.
 method TwoState_Main3()
 {
-  parallel (x: int)
+  forall (x: int)
     ensures exists o: TwoState_C :: o != null && fresh(o);
   {
     var p := new TwoState_C;
@@ -270,7 +270,7 @@ method TwoState_Main3()
   assert false;  // error: this location is indeed reachable (if the translation before it is sound)
 }
 
-// ------- empty parallel statement -----------------------------------------
+// ------- empty forall statement -----------------------------------------
 
 var emptyPar: int;
 
@@ -278,7 +278,7 @@ method Empty_Parallel0()
   modifies this;
   ensures emptyPar == 8;
 {
-  parallel () {
+  forall () {
     this.emptyPar := 8;
   }
 }
@@ -290,19 +290,19 @@ ghost method EmptyPar_Lemma(x: int)
 method Empty_Parallel1()
   ensures EmptyPar_P(8);
 {
-  parallel () {
+  forall {
     EmptyPar_Lemma(8);
   }
 }
 
 method Empty_Parallel2()
 {
-  parallel ()
+  forall
     ensures exists k :: EmptyPar_P(k);
   {
     var y := 8;
     assume EmptyPar_P(y);
   }
   assert exists k :: EmptyPar_P(k);  // yes
-  assert EmptyPar_P(8);  // error: the parallel statement's ensures clause does not promise this
+  assert EmptyPar_P(8);  // error: the forall statement's ensures clause does not promise this
 }

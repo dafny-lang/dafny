@@ -144,7 +144,7 @@ class Modifies {
   method F(s: set<Modifies>)
     modifies s;
   {
-    parallel (m | m in s && m != null && 2 <= m.x) {
+    forall m | m in s && m != null && 2 <= m.x {
       m.x := m.x + 1;
     }
     if (this in s) {
@@ -157,17 +157,17 @@ class Modifies {
   {
     var m := 3;  // this is a different m
 
-    parallel (m | m in s && m == this) {
+    forall m | m in s && m == this {
       m.x := m.x + 1;
     }
     if (s <= {this}) {
-      parallel (m | m in s) {
+      forall (m | m in s) {
         m.x := m.x + 1;
       }
       F(s);
     }
-    parallel (m | m in s) ensures true; { assert m == null || m.x < m.x + 10; }
-    parallel (m | m != null && m in s) {
+    forall (m | m in s) ensures true; { assert m == null || m.x < m.x + 10; }
+    forall (m | m != null && m in s) {
       m.x := m.x + 1;  // error: may violate modifies clause
     }
   }
@@ -304,7 +304,7 @@ class SomeType
     requires null !in stack;
     modifies stack;
   {
-    parallel (n | n in stack) {
+    forall n | n in stack {
       n.x := 10;
     }
   }

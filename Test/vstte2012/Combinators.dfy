@@ -225,7 +225,7 @@ ghost method Lemma_FindAndStep(t: Term) returns (r: Term, C: Context, u: Term)
         // that FindAndStep(b) gives C[Step(u)].
         return Apply(t.car, r), value_C(t.car, C), u;
       } else {
-        parallel (C,u | IsContext(C) && t == EvalExpr(C,u))
+        forall C,u | IsContext(C) && t == EvalExpr(C,u)
           ensures Step(u) == u;
         {
           // The following assert and the first assert of each "case" are
@@ -442,7 +442,7 @@ ghost method VerificationTask3()
   ensures forall n: nat ::
     TerminatingReduction(ks(n)) == if n % 2 == 0 then K else Apply(K, K);
 {
-  parallel (n: nat) {
+  forall n: nat {
     VT3(n);
   }
 }

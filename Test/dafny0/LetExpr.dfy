@@ -38,7 +38,7 @@ method M3(a: array<int>) returns (r: int)
 
   assert Fib(1000) == 1000;  // does it still know this?
 
-  parallel (i | 0 <= i < a.Length) ensures true; {
+  forall i | 0 <= i < a.Length ensures true; {
     var j := i+1;
     assert j < a.Length ==> a[i] == a[j];
   }

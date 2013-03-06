@@ -16,12 +16,13 @@
       match,case,false,true,null,old,fresh,choose,this,
       % statements
       assert,assume,print,new,if,then,else,while,invariant,break,label,return,yield,
-      parallel,where,calc
+      where,calc
       },
   literate=%
     {:}{$\colon$}1
     {::}{$\bullet$}2
     {:=}{$:$$=$}2
+    {:|}{${:}\!\!|$}2
     {!}{$\lnot$}1
     {!!}{$\not\cap$}1
     {==}{$=$}1
@@ -31,7 +32,6 @@
     {<=}{$\le$}1
     {>=}{$\ge$}1
     % the following isn't actually Dafny, but it gives the option to produce nicer latex
-    {|=>}{$\Rightarrow$}2
     {<=set}{$\subseteq$}1
     {+set}{$\cup$}1
     {*set}{$\cap$}1

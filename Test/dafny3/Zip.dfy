@@ -8,7 +8,7 @@ properties, drawing from:
 Some proofs are automatic (EvenZipLemma), whereas some others require a single
 recursive call to be made explicitly.
 
-Note that the automatically inserted parallel statement
+Note that the automatically inserted forall statement
 is in principle strong enough in all cases above, but the incompletness
 of reasoning with quantifiers in SMT solvers make the explicit calls
 necessary.

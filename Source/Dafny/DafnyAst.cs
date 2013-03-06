@@ -2957,7 +2957,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ParallelStmt : Statement
+  public class ForallStmt : Statement
   {
     public readonly List<BoundVar/*!*/> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
     public readonly Expression/*!*/ Range;
@@ -2980,7 +2980,7 @@ namespace Microsoft.Dafny {
     /// * More kinds may be allowed in the future.
     /// * One could also allow Call to call non-ghost methods without side effects.  However, that
     ///   would seem pointless in the program, so they are disallowed (to avoid any confusion that
-    ///   such use of the parallel statement might actually have a point).
+    ///   such use of the forall statement might actually have a point).
     /// * One could allow Proof even without ensures clauses that "export" what was learned.
     ///   However, that might give the false impression that the body is nevertheless exported.
     /// </summary>
@@ -2996,7 +2996,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Body != null);
     }
 
-    public ParallelStmt(IToken tok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<MaybeFreeExpression/*!*/>/*!*/ ens, Statement body)
+    public ForallStmt(IToken tok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<MaybeFreeExpression/*!*/>/*!*/ ens, Statement body)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(boundVars));

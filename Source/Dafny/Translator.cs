@@ -1957,10 +1957,10 @@ namespace Microsoft.Dafny {
             // Also, let Pre be the precondition and VF be the decreases clause.
             // Then, insert into the method body what amounts to:
             //     assume case-analysis-on-parameter[[ y' ]];
-            //     parallel (this', y' | Pre(this', x, y') && VF(this', x, y') << VF(this, x, y)) {
+            //     forall (this', y' | Pre(this', x, y') && VF(this', x, y') << VF(this, x, y)) {
             //       this'.M(x, y');
             //     }
-            // Generate bound variables for the parallel statement, and a substitution for the Pre and VF
+            // Generate bound variables for the forall statement, and a substitution for the Pre and VF
 
             // assume case-analysis-on-parameter[[ y' ]];
             foreach (var inFormal in m.Ins) {
@@ -2047,14 +2047,14 @@ namespace Microsoft.Dafny {
               return DecreasesCheck(decrToks, decrTypes, decrCallee, decrCaller, null, null, false, true);
             };
 
-#if VERIFY_CORRECTNESS_OF_TRANSLATION_PARALLEL_RANGE
+#if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
             var definedness = new Bpl.StmtListBuilder();
             var exporter = new Bpl.StmtListBuilder();
-            TrParallelCall(m.tok, parBoundVars, parRange, decrCheck, recursiveCall, definedness, exporter, localVariables, etran);
+            TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, recursiveCall, definedness, exporter, localVariables, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
 #else
-            TrParallelCall(m.tok, parBoundVars, parRange, decrCheck, recursiveCall, null, builder, localVariables, etran);
+            TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, recursiveCall, null, builder, localVariables, etran);
 #endif
           }
         }
@@ -4779,10 +4779,10 @@ namespace Microsoft.Dafny {
           delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e); },
           builder, locals, etran);
 
-      } else if (stmt is ParallelStmt) {
-        AddComment(builder, stmt, "parallel statement");
-        var s = (ParallelStmt)stmt;
-        if (s.Kind == ParallelStmt.ParBodyKind.Assign) {
+      } else if (stmt is ForallStmt) {
+        AddComment(builder, stmt, "forall statement");
+        var s = (ForallStmt)stmt;
+        if (s.Kind == ForallStmt.ParBodyKind.Assign) {
           Contract.Assert(s.Ens.Count == 0);
           if (s.BoundVars.Count == 0) {
             TrStmt(s.Body, builder, locals, etran);
@@ -4790,13 +4790,13 @@ namespace Microsoft.Dafny {
             var s0 = (AssignStmt)s.S0;
             var definedness = new Bpl.StmtListBuilder();
             var updater = new Bpl.StmtListBuilder();
-            TrParallelAssign(s, s0, definedness, updater, locals, etran);
+            TrForallAssign(s, s0, definedness, updater, locals, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
             builder.Add(CaptureState(stmt.Tok));
           }
 
-        } else if (s.Kind == ParallelStmt.ParBodyKind.Call) {
+        } else if (s.Kind == ForallStmt.ParBodyKind.Call) {
           Contract.Assert(s.Ens.Count == 0);
           if (s.BoundVars.Count == 0) {
             TrStmt(s.Body, builder, locals, etran);
@@ -4804,16 +4804,16 @@ namespace Microsoft.Dafny {
             var s0 = (CallStmt)s.S0;
             var definedness = new Bpl.StmtListBuilder();
             var exporter = new Bpl.StmtListBuilder();
-            TrParallelCall(s.Tok, s.BoundVars, s.Range, null, s0, definedness, exporter, locals, etran);
+            TrForallStmtCall(s.Tok, s.BoundVars, s.Range, null, s0, definedness, exporter, locals, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             builder.Add(CaptureState(stmt.Tok));
           }
 
-        } else if (s.Kind == ParallelStmt.ParBodyKind.Proof) {
+        } else if (s.Kind == ForallStmt.ParBodyKind.Proof) {
           var definedness = new Bpl.StmtListBuilder();
           var exporter = new Bpl.StmtListBuilder();
-          TrParallelProof(s, definedness, exporter, locals, etran);
+          TrForallProof(s, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
           builder.Add(CaptureState(stmt.Tok));
@@ -5101,10 +5101,10 @@ namespace Microsoft.Dafny {
       return null;  // TODO: this can be improved
     }
 
-    void TrParallelAssign(ParallelStmt s, AssignStmt s0,
+    void TrForallAssign(ForallStmt s, AssignStmt s0,
       Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder updater, Bpl.VariableSeq locals, ExpressionTranslator etran) {
       // The statement:
-      //   parallel (x,y | Range(x,y)) {
+      //   forall (x,y | Range(x,y)) {
       //     (a)   E(x,y) . f :=  G(x,y);
       //     (b)   A(x,y) [ I0(x,y), I1(x,y), ... ] :=  G(x,y);
       //   }
@@ -5204,7 +5204,7 @@ namespace Microsoft.Dafny {
       GetObjFieldDetails(lhsPrime, etran, out objPrime, out FPrime);
       definedness.Add(Assert(s0.Tok,
         Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
-        "left-hand sides for different parallel-statement bound variables may refer to the same location"));
+        "left-hand sides for different forall-statement bound variables may refer to the same location"));
 
       definedness.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
 
@@ -5266,7 +5266,7 @@ namespace Microsoft.Dafny {
 
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
-    void TrParallelCall(IToken tok, List<BoundVar> boundVars, Expression range, ExpressionConverter additionalRange, CallStmt s0,
+    void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, Expression range, ExpressionConverter additionalRange, CallStmt s0,
       Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
@@ -5279,7 +5279,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       // Translate:
-      //   parallel (x,y | Range(x,y)) {
+      //   forall (x,y | Range(x,y)) {
       //     E(x,y) . M( Args(x,y) );
       //   }
       // as:
@@ -5327,7 +5327,7 @@ namespace Microsoft.Dafny {
 
       // Now for the other branch, where the postcondition of the call is exported.
       {
-        var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$initHeapParallelStmt#" + otherTmpVarCount, predef.HeapType));
+        var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$initHeapForallStmt#" + otherTmpVarCount, predef.HeapType));
         otherTmpVarCount++;
         locals.Add(initHeapVar);
         var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
@@ -5348,7 +5348,7 @@ namespace Microsoft.Dafny {
             RecordNewObjectsIn_New(tok, iter, initHeap, heapIdExpr, exporter, locals, etran);
           }
         } else {
-          // As an optimization, create the illusion that the $Heap is unchanged by the parallel body.
+          // As an optimization, create the illusion that the $Heap is unchanged by the forall-statement body.
           exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(etran.Tick())));
         }
 
@@ -5410,9 +5410,9 @@ namespace Microsoft.Dafny {
       builder.Add(cmd);
     }
 
-    void TrParallelProof(ParallelStmt s, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+    void TrForallProof(ForallStmt s, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
       // Translate:
-      //   parallel (x,y | Range(x,y))
+      //   forall (x,y | Range(x,y))
       //     ensures Post(x,y);
       //   {
       //     Body;
@@ -5457,7 +5457,7 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, out splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of parallel statement"));
+              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
             }
           }
         }
@@ -5467,7 +5467,7 @@ namespace Microsoft.Dafny {
 
       // Now for the other branch, where the ensures clauses are exported.
 
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapParallelStmt#" + otherTmpVarCount, predef.HeapType));
+      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$initHeapForallStmt#" + otherTmpVarCount, predef.HeapType));
       otherTmpVarCount++;
       locals.Add(initHeapVar);
       var initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
@@ -5483,7 +5483,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        // As an optimization, create the illusion that the $Heap is unchanged by the parallel body.
+        // As an optimization, create the illusion that the $Heap is unchanged by the forall-statement body.
         exporter.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq(etran.Tick())));
       }
 
@@ -6509,7 +6509,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(!(lhs is ConcreteSyntaxExpression));
-      Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'parallel' statements
+      Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'forall' statements
       Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(locals));

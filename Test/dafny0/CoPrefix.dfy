@@ -41,7 +41,7 @@ comethod {:induction false} Theorem0()
 ghost method Theorem0_Manual()
   ensures atmost(zeros(), ones());
 {
-  parallel (k: nat) {
+  forall k: nat {
     Theorem0_Lemma(k);
   }
 }

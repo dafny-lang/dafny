@@ -32,7 +32,7 @@ class List<T> {
   {
     if (n == a.Length) {
       var b := new T[2 * a.Length];
-      parallel (i | 0 <= i < a.Length) {
+      forall i | 0 <= i < a.Length {
         b[i] := a[i];
       }
       assert b[..n] == a[..n] == Contents;

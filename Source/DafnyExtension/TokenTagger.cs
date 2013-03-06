@@ -271,7 +271,6 @@ namespace DafnyLanguage
                 case "object":
                 case "old":
                 case "opened":
-                case "parallel":
                 case "predicate":
                 case "print":
                 case "reads":

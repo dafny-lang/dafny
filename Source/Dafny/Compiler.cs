@@ -1163,26 +1163,26 @@ namespace Microsoft.Dafny {
           wr.WriteLine("}");
         }
 
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
-        if (s.Kind != ParallelStmt.ParBodyKind.Assign) {
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
+        if (s.Kind != ForallStmt.ParBodyKind.Assign) {
           // Call and Proof have no side effects, so they can simply be optimized away.
           return;
         } else if (s.BoundVars.Count == 0) {
-          // the bound variables just spell out a single point, so the parallel statement is equivalent to one execution of the body
+          // the bound variables just spell out a single point, so the forall statement is equivalent to one execution of the body
           TrStmt(s.Body, indent);
           return;
         }
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
-          // The parallel statement says to havoc a bunch of things.  This can be efficiently compiled
+          // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
           return;
         }
         var rhs = ((ExprRhs)s0.Rhs).Expr;
 
         // Compile:
-        //   parallel (w,x,y,z | Range(w,x,y,z)) {
+        //   forall (w,x,y,z | Range(w,x,y,z)) {
         //     LHS(w,x,y,z) := RHS(w,x,y,z);
         //   }
         // where w,x,y,z have types seq<W>,set<X>,int,bool and LHS has L-1 top-level subexpressions
@@ -1206,7 +1206,7 @@ namespace Microsoft.Dafny {
         //
         // Note, because the .NET Tuple class only supports up to 8 components, the compiler implementation
         // here supports arrays only up to 6 dimensions.  This does not seem like a serious practical limitation.
-        // However, it may be more noticeable if the parallel statement supported parallel assignments in its
+        // However, it may be more noticeable if the forall statement supported forall assignments in its
         // body.  To support cases where tuples would need more than 8 components, .NET Tuple's would have to
         // be nested.
 
@@ -1231,7 +1231,7 @@ namespace Microsoft.Dafny {
           var lhs = (MultiSelectExpr)s0.Lhs;
           L = 2 + lhs.Indices.Count;
           if (8 < L) {
-            Error("compiler currently does not support assignments to more-than-6-dimensional arrays in parallel statements");
+            Error("compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements");
             return;
           }
           tupleTypeArgs = TypeName(lhs.Array.Type);

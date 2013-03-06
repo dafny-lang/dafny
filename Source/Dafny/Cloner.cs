@@ -448,9 +448,9 @@ namespace Microsoft.Dafny
         var s = (AlternativeLoopStmt)stmt;
         r = new AlternativeLoopStmt(Tok(s.Tok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative));
 
-      } else if (stmt is ParallelStmt) {
-        var s = (ParallelStmt)stmt;
-        r = new ParallelStmt(Tok(s.Tok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
+      } else if (stmt is ForallStmt) {
+        var s = (ForallStmt)stmt;
+        r = new ForallStmt(Tok(s.Tok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
 
       } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
