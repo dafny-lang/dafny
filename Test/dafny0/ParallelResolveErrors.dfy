@@ -9,6 +9,7 @@ class C {
   }
   ghost method Init_ModifyStuff(c: C) modifies this, c; { }
   method NonGhostMethod() { print "hello\n"; }
+  ghost method GhostMethodWithModifies(x: int) modifies this; { gdata := gdata + x; }
 }
 
 method M0(IS: set<int>)
@@ -59,11 +60,11 @@ method M0(IS: set<int>)
   forall (i | 0 <= i < 20)
     ensures true;
   {
-    var c := new C;  // allowed
-    var d := new C.Init_ModifyNothing();
-    var e := new C.Init_ModifyThis();
-    var f := new C.Init_ModifyStuff(e);
-    c.Init_ModifyStuff(d);
+    var c := new C;  // error: 'new' not allowed in ghost context
+    var d := new C.Init_ModifyNothing();  // error: 'new' not allowed in ghost context
+    var e := new C.Init_ModifyThis();  // error: 'new' not allowed in ghost context
+    var f := new C.Init_ModifyStuff(e);  // error: 'new' not allowed in ghost context
+    c.Init_ModifyStuff(d);  // error: not allowed to call method with modifies clause in ghost context
     c.NonGhostMethod();  // error: only allowed to call ghost methods (because of possible 'print' statements, sigh)
   }
 }
@@ -102,7 +103,22 @@ method M1() {
 
 method M2() {
   var a := new int[100];
-  forall (x | 0 <= x < 100) {
-    a[x] :| assume a[x] > 0;  // error: not allowed to update heap location in a forall statement with an assume
+  forall (x | 0 <= x < 100)
+    ensures true;
+  {
+    a[x] :| assume a[x] > 0;  // error: not allowed to update heap location in a proof-forall statement
+  }
+}
+
+method M3(c: C)
+  requires c != null;
+{
+  forall x {
+    c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
+  }
+  forall x
+    ensures true;
+  {
+    c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
   }
 }

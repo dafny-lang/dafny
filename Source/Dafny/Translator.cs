@@ -1085,7 +1085,7 @@ namespace Microsoft.Dafny {
           }
           comment = null;
         }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, etran.Old, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
       }
@@ -2080,7 +2080,7 @@ namespace Microsoft.Dafny {
         // play havoc with the heap according to the modifies clause
         builder.Add(new Bpl.HavocCmd(m.tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr)));
         // assume the usual two-state boilerplate information
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, etran.Old, etran, etran.Old))
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old))
         {
           if (tri.IsFree) {
             builder.Add(new Bpl.AssumeCmd(m.tok, tri.Expr));
@@ -3682,10 +3682,16 @@ namespace Microsoft.Dafny {
         Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullCompileName, ty), false);
         fields.Add(f, fc);
-        // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f;
+        // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
+        //       $IsGhostField(f);    // if the field is a ghost field
+        // OR:
+        //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.tok, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
-        Bpl.Axiom ax = new Bpl.Axiom(f.tok, Bpl.Expr.And(fdim, declType));
+        Bpl.Expr cond = Bpl.Expr.And(fdim, declType);
+        var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
+        cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
+        Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
         sink.TopLevelDeclarations.Add(ax);
       }
       return fc;
@@ -3868,7 +3874,7 @@ namespace Microsoft.Dafny {
           }
           comment = null;
         }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, etran.Old, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
       }
@@ -3944,7 +3950,7 @@ namespace Microsoft.Dafny {
           ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, "Error: postcondition of refined method may be violated", null));
         }
       }
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, etran.Old, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
         ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
       }
 
@@ -4237,7 +4243,7 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
+    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
       Contract.Requires(modifiesClause != null);
@@ -4245,15 +4251,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<BoilerplateTriple>>()));
 
-      List<BoilerplateTriple> boilerplate = new List<BoilerplateTriple>();
-
-      // the frame condition, which is free since it is checked with every heap update and call
-      boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, etranPre, etran, etranMod), null, "frame condition"));
-
-      // HeapSucc(S1, S2)
-      Bpl.Expr heapSucc = FunctionCall(tok, BuiltinFunction.HeapSucc, null, etranPre.HeapExpr, etran.HeapExpr);
-      boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
-
+      var boilerplate = new List<BoilerplateTriple>();
+      if (isGhostContext && modifiesClause.Count == 0) {
+        // plain and simple:  S1 == S2
+        boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, "frame condition"));
+      } else {
+        // the frame condition, which is free since it is checked with every heap update and call
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, etranPre, etran, etranMod), null, "frame condition"));
+        // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
+        Bpl.Expr heapSucc = FunctionCall(tok, isGhostContext ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, etranPre.HeapExpr, etran.HeapExpr);
+        boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
+      }
       return boilerplate;
     }
 
@@ -4264,7 +4272,7 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
+    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -4275,23 +4283,28 @@ namespace Microsoft.Dafny {
 
       // generate:
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
-      //      o != null && old($Heap)[o,alloc] ==>
+      //      o != null
+      //      && old($Heap)[o,alloc]                     // include only in non-ghost contexts
+      //      ==>
       //        $Heap[o,f] == PreHeap[o,f] ||
       //        (o,f) in modifiesClause)
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
-      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      var alpha = new Bpl.TypeVariable(tok, "alpha");
+      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var f = new Bpl.IdentifierExpr(tok, fVar);
 
       Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, o, f);
       Bpl.Expr preHeapOF = ExpressionTranslator.ReadHeap(tok, etranPre.HeapExpr, o, f);
-      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranMod.IsAlloced(tok, o));
+      Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
+      if (!isGhostContext) {
+        ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
+      }
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
 
       consequent = Bpl.Expr.Or(consequent, InRWClause(tok, o, f, modifiesClause, etranMod, null, null));
 
-      Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
+      var tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(heapOF));
       return new Bpl.ForallExpr(tok, new Bpl.TypeVariableSeq(alpha), new Bpl.VariableSeq(oVar, fVar), null, tr, Bpl.Expr.Imp(ante, consequent));
     }
     Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IToken/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
@@ -4780,9 +4793,9 @@ namespace Microsoft.Dafny {
           builder, locals, etran);
 
       } else if (stmt is ForallStmt) {
-        AddComment(builder, stmt, "forall statement");
         var s = (ForallStmt)stmt;
         if (s.Kind == ForallStmt.ParBodyKind.Assign) {
+          AddComment(builder, stmt, "forall statement (assign)");
           Contract.Assert(s.Ens.Count == 0);
           if (s.BoundVars.Count == 0) {
             TrStmt(s.Body, builder, locals, etran);
@@ -4797,8 +4810,10 @@ namespace Microsoft.Dafny {
           }
 
         } else if (s.Kind == ForallStmt.ParBodyKind.Call) {
+          AddComment(builder, stmt, "forall statement (call)");
           Contract.Assert(s.Ens.Count == 0);
           if (s.BoundVars.Count == 0) {
+            Contract.Assert(LiteralExpr.IsTrue(s.Range));  // follows from the invariant of ForallStmt
             TrStmt(s.Body, builder, locals, etran);
           } else {
             var s0 = (CallStmt)s.S0;
@@ -4811,6 +4826,7 @@ namespace Microsoft.Dafny {
           }
 
         } else if (s.Kind == ForallStmt.ParBodyKind.Proof) {
+          AddComment(builder, stmt, "forall statement (proof)");
           var definedness = new Bpl.StmtListBuilder();
           var exporter = new Bpl.StmtListBuilder();
           TrForallProof(s, definedness, exporter, locals, etran);
@@ -5301,18 +5317,20 @@ namespace Microsoft.Dafny {
       // INIT is the substitution [old($Heap),$Heap := old($Heap),initHeap].
 
       if (definedness != null) {
-        // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
-        // here (rather than a TrBoundVariables).  However, there is currently no way to apply
-        // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
-        Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-        var ante = etran.TrBoundVariables(boundVars, bvars, true);
-        locals.AddRange(bvars);
-        var havocIds = new Bpl.IdentifierExprSeq();
-        foreach (Bpl.Variable bv in bvars) {
-          havocIds.Add(new Bpl.IdentifierExpr(tok, bv));
+        if (boundVars.Count != 0) {
+          // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
+          // here (rather than a TrBoundVariables).  However, there is currently no way to apply
+          // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+          Bpl.VariableSeq bvars = new Bpl.VariableSeq();
+          var ante = etran.TrBoundVariables(boundVars, bvars, true);
+          locals.AddRange(bvars);
+          var havocIds = new Bpl.IdentifierExprSeq();
+          foreach (Bpl.Variable bv in bvars) {
+            havocIds.Add(new Bpl.IdentifierExpr(tok, bv));
+          }
+          definedness.Add(new Bpl.HavocCmd(tok, havocIds));
+          definedness.Add(new Bpl.AssumeCmd(tok, ante));
         }
-        definedness.Add(new Bpl.HavocCmd(tok, havocIds));
-        definedness.Add(new Bpl.AssumeCmd(tok, ante));
         TrStmt_CheckWellformed(range, definedness, locals, etran, false);
         definedness.Add(new Bpl.AssumeCmd(range.tok, etran.TrExpr(range)));
         if (additionalRange != null) {
@@ -5334,22 +5352,18 @@ namespace Microsoft.Dafny {
         var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
         // initHeap := $Heap;
         exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
-        if (s0.Method.Ens.Exists(ens => MentionsOldState(ens.E))) {
-          var heapIdExpr = (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr;
-          // advance $Heap, Tick;
-          exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(heapIdExpr, etran.Tick())));
-          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), initEtran, etran, initEtran)) {
-            if (tri.IsFree) {
-              exporter.Add(new Bpl.AssumeCmd(tok, tri.Expr));
-            }
+        var heapIdExpr = (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr;
+        // advance $Heap, Tick;
+        exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(heapIdExpr, etran.Tick())));
+        Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, initEtran, etran, initEtran)) {
+          if (tri.IsFree) {
+            exporter.Add(new Bpl.AssumeCmd(tok, tri.Expr));
           }
-          if (codeContext is IteratorDecl) {
-            var iter = (IteratorDecl)codeContext;
-            RecordNewObjectsIn_New(tok, iter, initHeap, heapIdExpr, exporter, locals, etran);
-          }
-        } else {
-          // As an optimization, create the illusion that the $Heap is unchanged by the forall-statement body.
-          exporter.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(etran.Tick())));
+        }
+        if (codeContext is IteratorDecl) {
+          var iter = (IteratorDecl)codeContext;
+          RecordNewObjectsIn_New(tok, iter, initHeap, heapIdExpr, exporter, locals, etran);
         }
 
         var bvars = new Bpl.VariableSeq();
@@ -5433,18 +5447,20 @@ namespace Microsoft.Dafny {
       //     assume (forall x,y :: Range(x,y)[old($Heap),$Heap := old($Heap),initHeap] ==> Post(x,y));
       //   }
 
-      // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
-      // here (rather than a TrBoundVariables).  However, there is currently no way to apply
-      // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
-      Bpl.VariableSeq bvars = new Bpl.VariableSeq();
-      var ante = etran.TrBoundVariables(s.BoundVars, bvars, true);
-      locals.AddRange(bvars);
-      var havocIds = new Bpl.IdentifierExprSeq();
-      foreach (Bpl.Variable bv in bvars) {
-        havocIds.Add(new Bpl.IdentifierExpr(s.Tok, bv));
+      if (s.BoundVars.Count != 0) {
+        // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
+        // here (rather than a TrBoundVariables).  However, there is currently no way to apply
+        // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+        var bVars = new Bpl.VariableSeq();
+        var typeAntecedent = etran.TrBoundVariables(s.BoundVars, bVars, true);
+        locals.AddRange(bVars);
+        var havocIds = new Bpl.IdentifierExprSeq();
+        foreach (Bpl.Variable bv in bVars) {
+          havocIds.Add(new Bpl.IdentifierExpr(s.Tok, bv));
+        }
+        definedness.Add(new Bpl.HavocCmd(s.Tok, havocIds));
+        definedness.Add(new Bpl.AssumeCmd(s.Tok, typeAntecedent));
       }
-      definedness.Add(new Bpl.HavocCmd(s.Tok, havocIds));
-      definedness.Add(new Bpl.AssumeCmd(s.Tok, ante));
       TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
       definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
 
@@ -5474,22 +5490,17 @@ namespace Microsoft.Dafny {
       var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
       // initHeap := $Heap;
       exporter.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
-      if (s.Ens.Exists(ens => MentionsOldState(ens.E))) {
-        // advance $Heap;
-        exporter.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick())));
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, new List<FrameExpression>(), initEtran, etran, initEtran)) {
-          if (tri.IsFree) {
-            exporter.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
-          }
+      // advance $Heap;
+      exporter.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick())));
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, new List<FrameExpression>(), s.IsGhost, initEtran, etran, initEtran)) {
+        if (tri.IsFree) {
+          exporter.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
         }
-      } else {
-        // As an optimization, create the illusion that the $Heap is unchanged by the forall-statement body.
-        exporter.Add(new Bpl.HavocCmd(s.Tok, new Bpl.IdentifierExprSeq(etran.Tick())));
       }
 
-      bvars = new Bpl.VariableSeq();
+      var bvars = new Bpl.VariableSeq();
       Dictionary<IVariable, Expression> substMap;
-      ante = initEtran.TrBoundVariablesRename(s.BoundVars, bvars, out substMap);
+      var ante = initEtran.TrBoundVariablesRename(s.BoundVars, bvars, out substMap);
       var range = Substitute(s.Range, null, substMap);
       ante = BplAnd(ante, initEtran.TrExpr(range));
 
@@ -5608,7 +5619,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
       // include boilerplate invariants
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, codeContext.Modifies.Expressions, etranPreLoop, etran, etran.Old))
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, codeContext.Modifies.Expressions, s.IsGhost, etranPreLoop, etran, etran.Old))
       {
           if (tri.IsFree) {
               invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
@@ -8406,6 +8417,7 @@ namespace Microsoft.Dafny {
 
       IsGoodHeap,
       HeapSucc,
+      HeapSuccGhost,
 
       DynamicType,  // allocated type (of object reference)
       DtType,       // type of datatype value
@@ -8415,6 +8427,7 @@ namespace Microsoft.Dafny {
       DeclType,
       FieldOfDecl,
       FDim,  // field dimension (0 - named, 1 or more - indexed)
+      IsGhostField,
 
       DatatypeCtorId,
       DtRank,
@@ -8627,6 +8640,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$HeapSucc", Bpl.Type.Bool, args);
+        case BuiltinFunction.HeapSuccGhost:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$HeapSuccGhost", Bpl.Type.Bool, args);
 
         case BuiltinFunction.DynamicType:
           Contract.Assert(args.Length == 1);
@@ -8660,6 +8677,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "FDim", Bpl.Type.Int, args);
+        case BuiltinFunction.IsGhostField:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "$IsGhostField", Bpl.Type.Bool, args);
 
         case BuiltinFunction.DatatypeCtorId:
           Contract.Assert(args.Length == 1);
@@ -9554,22 +9575,6 @@ namespace Microsoft.Dafny {
           fvs.Remove(v);
         }
       }
-    }
-
-    /// <summary>
-    /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old(...)" or "fresh(...)".
-    /// </summary>
-    public static bool MentionsOldState(Expression expr) {
-      Contract.Requires(expr != null);
-      if (expr is OldExpr || expr is FreshExpr) {
-        return true;
-      }
-      foreach (var ee in expr.SubExpressions) {
-        if (MentionsOldState(ee)) {
-          return true;
-        }
-      }
-      return false;
     }
 
     public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {

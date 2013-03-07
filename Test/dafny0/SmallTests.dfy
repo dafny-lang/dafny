@@ -571,8 +571,8 @@ method AssignSuchThat4()
 
 method AssignSuchThat5()
 {
-  ghost var n := new Node;
-  n :| fresh(n);  // fine
+  var k := new Node;
+  ghost var n: Node :| fresh(n);  // fine
   assert false;  // error
 }
 
@@ -621,3 +621,45 @@ method LetSuchThat2(n: nat)
   }
 }
 
+// ------------- ghost loops only modify ghost fields
+
+class GT {
+  var x: int;
+  var y: int;
+  ghost var z: int;
+  method M0(N: int)
+    modifies this;
+  {
+    x := 18;
+    var n := 0;
+    while n < 100 {  // not a ghost loop
+      n, y := n + 1, y + 1;
+    }
+    assert x == 18;  // error: the verifier loses this information for the loop
+  }
+  method M1(ghost N: int)
+    modifies this;
+  {
+    x := 18;
+    ghost var n := N;
+    while n < 100 {  // a ghost loop
+      n, z := n + 1, z + 1;
+    }
+    assert x == 18;  // fine, the verifier knows that the loop modifies only ghost state
+  }
+  method P0()
+    modifies this;
+  ghost method P1()
+    modifies this;
+  method Q()
+    modifies this;
+  {
+    if (*) {
+      P0();
+      assert forall x: GT :: x != null ==> !fresh(x);  // error: method P2 may have allocated stuff
+    } else {
+      P1();
+      assert forall x: GT :: x != null ==> !fresh(x);  // fine, because the ghost method does not allocate anything
+    }
+  }
+}

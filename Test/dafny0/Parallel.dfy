@@ -203,27 +203,15 @@ method OmittedRange() {
 
 class TwoState_C { ghost var data: int; }
 
+// It is not possible to achieve this postcondition in a ghost method, because ghost
+// contexts are not allowed to allocate state.  Callers of this ghost method will know
+// that the postcondition is tantamount to 'false'.
 ghost static method TwoState0(y: int)
   ensures exists o: TwoState_C :: o != null && fresh(o);
-{
-  var p := new TwoState_C;
-}
 
 method TwoState_Main0() {
   forall (x) { TwoState0(x); }
-  assert false;  // error: this location is indeed reachable (if the translation before it is sound)
-}
-
-ghost static method TwoState1(y: int)
-  ensures exists c: TwoState_C :: c != null && c.data != old(c.data);
-{
-  var c := new TwoState_C;
-  c.data := c.data + 1;
-}
-
-method TwoState_Main1() {
-  forall (x) { TwoState1(x); }
-  assert false;  // error: this location is indeed reachable (if the translation before it is sound)
+  assert false;  // no prob, because the postcondition of TwoState0 implies false
 }
 
 method X_Legit(c: TwoState_C)
@@ -242,8 +230,6 @@ method X_Legit(c: TwoState_C)
 // However, there's an important difference in the translation, which is that the
 // occurrence of 'fresh' here refers to the initial state of the TwoStateMain2
 // method, not the beginning of the 'forall' statement.
-// Still, care needs to be taken in the translation to make sure that the forall
-// statement's effect on the heap is not optimized away.
 method TwoState_Main2()
 {
   forall (x: int)
@@ -251,12 +237,12 @@ method TwoState_Main2()
   {
     TwoState0(x);
   }
-  assert false;  // error: this location is indeed reachable (if the translation before it is sound)
+  assert false;  // fine, for the postcondition of the forall statement implies false
 }
 
 // At first glance, this looks like an inlined version of TwoState_Main0 above.
 // However, there's an important difference in the translation, which is that the
-// occurrence of 'fresh' here refers to the initial state of the TwoStateMain3
+// occurrence of 'fresh' here refers to the initial state of the TwoState_Main3
 // method, not the beginning of the 'forall' statement.
 // Still, care needs to be taken in the translation to make sure that the forall
 // statement's effect on the heap is not optimized away.
@@ -265,9 +251,9 @@ method TwoState_Main3()
   forall (x: int)
     ensures exists o: TwoState_C :: o != null && fresh(o);
   {
-    var p := new TwoState_C;
+    assume false;  // (there's no other way to achieve this forall-statement postcondition)
   }
-  assert false;  // error: this location is indeed reachable (if the translation before it is sound)
+  assert false;  // it is known that the forall's postcondition is contradictory, so this assert is fine
 }
 
 // ------- empty forall statement -----------------------------------------

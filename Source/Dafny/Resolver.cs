@@ -4417,10 +4417,7 @@ namespace Microsoft.Dafny
           if (kind == ForallStmt.ParBodyKind.Assign) {
             Error(rhs.Tok, "new allocation not supported in forall statements");
           } else {
-            var t = (TypeRhs)rhs;
-            if (t.InitCall != null) {
-              CheckForallStatementBodyRestrictions(t.InitCall, kind);
-            }
+            Error(rhs.Tok, "new allocation not allowed in ghost context");
           }
         } else if (rhs is ExprRhs) {
           var r = ((ExprRhs)rhs).Expr.Resolved;
@@ -4441,6 +4438,9 @@ namespace Microsoft.Dafny
           } else {
             Error(stmt, "the body of the enclosing forall statement is not allowed to update heap locations");
           }
+        }
+        if (s.Method.Mod.Expressions.Count != 0) {
+          Error(stmt, "the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause");
         }
         if (!s.Method.IsGhost) {
           // The reason for this restriction is that the compiler is going to omit the forall statement altogether--it has
@@ -4652,6 +4652,10 @@ namespace Microsoft.Dafny
       Contract.Requires(codeContext != null);
       Contract.Ensures(Contract.Result<Type>() != null);
 
+      // "new" is not allowed in ghost contexts
+      if (specContextOnly) {
+        Error(rr.Tok, "'new' is not allowed in ghost contexts");
+      }
       if (rr.Type == null) {
         if (rr.ArrayDimensions != null) {
           // ---------- new T[EE]
