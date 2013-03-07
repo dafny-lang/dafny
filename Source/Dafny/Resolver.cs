@@ -3854,8 +3854,8 @@ namespace Microsoft.Dafny
         var prevErrorCount = ErrorCount;
         CalcStmt s = (CalcStmt)stmt;
         s.IsGhost = true;
+        var resOp = s.Op;
         if (s.Lines.Count > 0) {
-          var resOp = s.Op;
           var e0 = s.Lines.First();
           ResolveExpression(e0, true, codeContext);
           Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
@@ -3893,12 +3893,14 @@ namespace Microsoft.Dafny
           labeledStatements = prevLblStmts;
           loopStack = prevLoopStack;          
 
-          if (prevErrorCount == ErrorCount && s.Steps.Count > 0) {
-            // do not build Result if there were errors, as it might be ill-typed and produce unnecessary resolution errors
-            s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());
-            ResolveExpression(s.Result, true, codeContext);
-          }
         }
+        if (prevErrorCount == ErrorCount && s.Lines.Count > 0 && s.Steps.Count > 0) {
+          // do not build Result from the lines if there were errors, as it might be ill-typed and produce unnecessary resolution errors
+          s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());
+        } else {
+          s.Result = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, CreateResolvedLiteral(s.Tok, 0), CreateResolvedLiteral(s.Tok, 0));
+        }
+        ResolveExpression(s.Result, true, codeContext);
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == 0 || s.Result != null);
 
