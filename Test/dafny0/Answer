@@ -72,12 +72,12 @@ TypeTests.dfy(58,8): Error: Duplicate local-variable name: x
 TypeTests.dfy(61,6): Error: Duplicate local-variable name: y
 TypeTests.dfy(68,17): Error: member F in type C does not refer to a method
 TypeTests.dfy(69,17): Error: a method called as an initialization method must not have any result arguments
-TypeTests.dfy(78,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(79,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(80,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(82,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(83,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
-TypeTests.dfy(84,3): Error: cannot assign to a range of array elements (try the 'parallel' statement)
+TypeTests.dfy(78,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(79,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(80,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(82,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(83,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(84,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(90,6): Error: sorry, cannot instantiate collection type with a subrange type
 TypeTests.dfy(91,9): Error: sorry, cannot instantiate type parameter with a subrange type
 TypeTests.dfy(92,8): Error: sorry, cannot instantiate 'array' type with a subrange type
@@ -1132,20 +1132,20 @@ Dafny program verifier finished with 27 verified, 6 errors
 -------------------- ParallelResolveErrors.dfy --------------------
 ParallelResolveErrors.dfy(7,9): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ParallelResolveErrors.dfy(17,6): Error: LHS of assignment must denote a mutable variable or field
-ParallelResolveErrors.dfy(22,6): Error: body of parallel statement is attempting to update a variable declared outside the parallel statement
+ParallelResolveErrors.dfy(22,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 ParallelResolveErrors.dfy(40,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(52,13): Error: set choose operator not supported inside the enclosing parallel statement
-ParallelResolveErrors.dfy(57,13): Error: new allocation not supported in parallel statements
-ParallelResolveErrors.dfy(67,6): Error: the body of the enclosing parallel statement is not allowed to call non-ghost methods
+ParallelResolveErrors.dfy(52,13): Error: set choose operator not supported inside the enclosing forall statement
+ParallelResolveErrors.dfy(57,13): Error: new allocation not supported in forall statements
+ParallelResolveErrors.dfy(67,6): Error: the body of the enclosing forall statement is not allowed to call non-ghost methods
 ParallelResolveErrors.dfy(74,19): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(78,18): Error: return statement is not allowed inside a parallel statement
+ParallelResolveErrors.dfy(78,18): Error: return statement is not allowed inside a forall statement
 ParallelResolveErrors.dfy(85,21): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(86,20): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(87,20): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(96,24): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(97,24): Error: break label is undefined or not in scope: OutsideLoop
-ParallelResolveErrors.dfy(105,2): Warning: the conclusion of the body of this parallel statement will not be known outside the parallel statement; consider using an 'ensures' clause
-ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing parallel statement is not allowed to update heap locations
+ParallelResolveErrors.dfy(105,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing forall statement is not allowed to update heap locations
 15 resolution/type errors detected in ParallelResolveErrors.dfy
 
 -------------------- Parallel.dfy --------------------
@@ -1174,7 +1174,7 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon38_Then
     (0,0): anon20
-Parallel.dfy(39,18): Error: possible violation of postcondition of parallel statement
+Parallel.dfy(39,18): Error: possible violation of postcondition of forall statement
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
@@ -1207,7 +1207,7 @@ Execution trace:
     (0,0): anon10_Else
     (0,0): anon3
     (0,0): anon11_Then
-Parallel.dfy(96,20): Error: possible violation of postcondition of parallel statement
+Parallel.dfy(96,20): Error: possible violation of postcondition of forall statement
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -1220,7 +1220,7 @@ Execution trace:
     (0,0): anon6_Then
     (0,0): anon7_Then
     (0,0): anon3
-Parallel.dfy(182,12): Error: left-hand sides for different parallel-statement bound variables may refer to the same location
+Parallel.dfy(182,12): Error: left-hand sides for different forall-statement bound variables may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon19_Then
@@ -1787,15 +1787,15 @@ TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive met
 Calculations.dfy(3,4): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon17_Then
+    (0,0): anon20_Then
 Calculations.dfy(8,13): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon19_Then
+    (0,0): anon22_Then
 Calculations.dfy(8,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon19_Then
+    (0,0): anon22_Then
 Calculations.dfy(44,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -2239,10 +2239,10 @@ Execution trace:
 out.tmp.dfy(509,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(522,10): Error: assertion violation
+out.tmp.dfy(523,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(549,10): Error: assertion violation
+out.tmp.dfy(550,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -2250,13 +2250,13 @@ Execution trace:
     (0,0): anon4
     (0,0): anon10_Then
     (0,0): anon7
-out.tmp.dfy(563,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+out.tmp.dfy(564,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
     (0,0): anon3
-out.tmp.dfy(565,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+out.tmp.dfy(566,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
