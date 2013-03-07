@@ -213,6 +213,21 @@ Execution trace:
 SmallTests.dfy(375,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
+SmallTests.dfy(638,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(635,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    SmallTests.dfy(635,5): anon8_Else
+    (0,0): anon3
+    (0,0): anon9_Then
+    (0,0): anon6
+SmallTests.dfy(659,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon8_Then
+    (0,0): anon3
 SmallTests.dfy(285,3): Error BP5003: A postcondition might not hold on this return path.
 SmallTests.dfy(279,11): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -296,7 +311,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
 
-Dafny program verifier finished with 75 verified, 29 errors
+Dafny program verifier finished with 81 verified, 31 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
@@ -510,6 +525,18 @@ ResolutionErrors.dfy(502,7): Error: RHS (of type List<A>) not assignable to LHS 
 ResolutionErrors.dfy(516,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
 ResolutionErrors.dfy(528,24): Error: Wrong number of type arguments (0 instead of 2) passed to class/datatype: Tree
 ResolutionErrors.dfy(563,18): Error: type of bound variable 'z' could not determined; please specify the type explicitly
+ResolutionErrors.dfy(576,13): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(577,9): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(584,14): Error: new allocation not supported in forall statements
+ResolutionErrors.dfy(589,11): Error: the body of the enclosing forall statement is not allowed to update heap locations
+ResolutionErrors.dfy(589,14): Error: new allocation not allowed in ghost context
+ResolutionErrors.dfy(599,23): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(606,15): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(606,15): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(606,10): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(615,17): Error: 'new' is not allowed in ghost contexts
+ResolutionErrors.dfy(617,20): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(619,8): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(427,2): Error: More than one default constructor
 ResolutionErrors.dfy(48,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(109,9): Error: ghost variables are allowed only in specification contexts
@@ -582,7 +609,7 @@ ResolutionErrors.dfy(541,7): Error: let-such-that expressions are allowed only i
 ResolutionErrors.dfy(541,20): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(543,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(544,18): Error: unresolved identifier: w
-77 resolution/type errors detected in ResolutionErrors.dfy
+89 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -1131,22 +1158,28 @@ Dafny program verifier finished with 27 verified, 6 errors
 
 -------------------- ParallelResolveErrors.dfy --------------------
 ParallelResolveErrors.dfy(7,9): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(17,6): Error: LHS of assignment must denote a mutable variable or field
-ParallelResolveErrors.dfy(22,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-ParallelResolveErrors.dfy(40,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(52,13): Error: set choose operator not supported inside the enclosing forall statement
-ParallelResolveErrors.dfy(57,13): Error: new allocation not supported in forall statements
-ParallelResolveErrors.dfy(67,6): Error: the body of the enclosing forall statement is not allowed to call non-ghost methods
-ParallelResolveErrors.dfy(74,19): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(78,18): Error: return statement is not allowed inside a forall statement
-ParallelResolveErrors.dfy(85,21): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(86,20): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(87,20): Error: break label is undefined or not in scope: OutsideLoop
-ParallelResolveErrors.dfy(96,24): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(97,24): Error: break label is undefined or not in scope: OutsideLoop
-ParallelResolveErrors.dfy(105,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
-ParallelResolveErrors.dfy(106,9): Error: the body of the enclosing forall statement is not allowed to update heap locations
-15 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(18,6): Error: LHS of assignment must denote a mutable variable or field
+ParallelResolveErrors.dfy(23,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(41,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(53,13): Error: set choose operator not supported inside the enclosing forall statement
+ParallelResolveErrors.dfy(58,13): Error: new allocation not supported in forall statements
+ParallelResolveErrors.dfy(63,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(64,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(65,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(66,13): Error: new allocation not allowed in ghost context
+ParallelResolveErrors.dfy(67,6): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
+ParallelResolveErrors.dfy(68,6): Error: the body of the enclosing forall statement is not allowed to call non-ghost methods
+ParallelResolveErrors.dfy(75,19): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(79,18): Error: return statement is not allowed inside a forall statement
+ParallelResolveErrors.dfy(86,21): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(87,20): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(88,20): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(97,24): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(98,24): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(109,9): Error: the body of the enclosing forall statement is not allowed to update heap locations
+ParallelResolveErrors.dfy(117,6): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
+ParallelResolveErrors.dfy(122,6): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
+22 resolution/type errors detected in ParallelResolveErrors.dfy
 
 -------------------- Parallel.dfy --------------------
 Parallel.dfy(31,5): Error BP5002: A precondition for this call might not hold.
@@ -1226,33 +1259,13 @@ Execution trace:
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon5
-Parallel.dfy(214,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-    (0,0): anon3
-Parallel.dfy(226,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-    (0,0): anon3
-Parallel.dfy(254,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon5
-Parallel.dfy(270,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon5
-Parallel.dfy(307,10): Error: assertion violation
+Parallel.dfy(293,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon3
 
-Dafny program verifier finished with 41 verified, 13 errors
+Dafny program verifier finished with 40 verified, 9 errors
 
 -------------------- TypeParameters.dfy --------------------
 TypeParameters.dfy(44,22): Error: assertion violation
@@ -2015,6 +2028,21 @@ Execution trace:
 SmallTests.dfy(375,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
+SmallTests.dfy(638,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    SmallTests.dfy(635,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    SmallTests.dfy(635,5): anon8_Else
+    (0,0): anon3
+    (0,0): anon9_Then
+    (0,0): anon6
+SmallTests.dfy(659,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon8_Then
+    (0,0): anon3
 SmallTests.dfy(285,3): Error BP5003: A postcondition might not hold on this return path.
 SmallTests.dfy(279,11): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -2098,7 +2126,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
 
-Dafny program verifier finished with 75 verified, 29 errors
+Dafny program verifier finished with 81 verified, 31 errors
 out.tmp.dfy(33,11): Error: index out of range
 Execution trace:
     (0,0): anon0
@@ -2178,8 +2206,23 @@ Execution trace:
 out.tmp.dfy(285,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-out.tmp.dfy(401,3): Error BP5003: A postcondition might not hold on this return path.
-out.tmp.dfy(395,11): Related location: This is the postcondition that might not hold.
+out.tmp.dfy(386,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    out.tmp.dfy(382,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    out.tmp.dfy(382,5): anon8_Else
+    (0,0): anon3
+    (0,0): anon9_Then
+    (0,0): anon6
+out.tmp.dfy(412,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon8_Then
+    (0,0): anon3
+out.tmp.dfy(449,3): Error BP5003: A postcondition might not hold on this return path.
+out.tmp.dfy(443,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
@@ -2188,27 +2231,27 @@ Execution trace:
     (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
-out.tmp.dfy(425,12): Error: assertion violation
+out.tmp.dfy(473,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon7
-out.tmp.dfy(430,10): Error: assertion violation
+out.tmp.dfy(478,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(440,4): Error: cannot prove termination; try supplying a decreases clause
+out.tmp.dfy(488,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
-out.tmp.dfy(448,10): Error BP5003: A postcondition might not hold on this return path.
-out.tmp.dfy(449,41): Related location: This is the postcondition that might not hold.
+out.tmp.dfy(496,10): Error BP5003: A postcondition might not hold on this return path.
+out.tmp.dfy(497,41): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon6_Else
-out.tmp.dfy(486,12): Error: assertion violation
+out.tmp.dfy(534,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-out.tmp.dfy(500,20): Error: left-hand sides 0 and 1 may refer to the same location
+out.tmp.dfy(548,20): Error: left-hand sides 0 and 1 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
@@ -2220,11 +2263,11 @@ Execution trace:
     (0,0): anon31_Then
     (0,0): anon32_Then
     (0,0): anon12
-out.tmp.dfy(502,15): Error: left-hand sides 1 and 2 may refer to the same location
+out.tmp.dfy(550,15): Error: left-hand sides 1 and 2 may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
-    out.tmp.dfy(495,17): anon28_Else
+    out.tmp.dfy(543,17): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
     (0,0): anon7
@@ -2236,13 +2279,13 @@ Execution trace:
     (0,0): anon37_Then
     (0,0): anon22
     (0,0): anon38_Then
-out.tmp.dfy(509,25): Error: target object may be null
+out.tmp.dfy(557,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(523,10): Error: assertion violation
+out.tmp.dfy(570,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(550,10): Error: assertion violation
+out.tmp.dfy(597,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -2250,18 +2293,18 @@ Execution trace:
     (0,0): anon4
     (0,0): anon10_Then
     (0,0): anon7
-out.tmp.dfy(564,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+out.tmp.dfy(611,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
     (0,0): anon3
-out.tmp.dfy(566,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+out.tmp.dfy(613,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
 
-Dafny program verifier finished with 75 verified, 29 errors
+Dafny program verifier finished with 81 verified, 31 errors
 
 -------------------- LetExpr.dfy --------------------
 LetExpr.dfy(5,12): Error: assertion violation

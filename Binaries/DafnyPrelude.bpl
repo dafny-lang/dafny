@@ -520,12 +520,14 @@ axiom (forall<T> cl : ClassName, nm: NameFamily ::
    {FieldOfDecl(cl, nm): Field T}
    DeclType(FieldOfDecl(cl, nm): Field T) == cl && DeclName(FieldOfDecl(cl, nm): Field T) == nm);
 
+function $IsGhostField<T>(Field T): bool;
+
 // ---------------------------------------------------------------
 // -- Allocatedness ----------------------------------------------
 // ---------------------------------------------------------------
 
 const unique alloc: Field bool;
-axiom FDim(alloc) == 0;
+axiom FDim(alloc) == 0 && !$IsGhostField(alloc);  // treat as non-ghost field, because it cannot be changed by ghost code
 
 function DtAlloc(DatatypeType, HeapType): bool;
 axiom (forall h, k: HeapType, d: DatatypeType ::
@@ -610,6 +612,13 @@ axiom (forall a,b,c: HeapType :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: HeapType, k: HeapType :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
+
+function $HeapSuccGhost(HeapType, HeapType): bool;
+axiom (forall h: HeapType, k: HeapType :: { $HeapSuccGhost(h,k) }
+  $HeapSuccGhost(h,k) ==>
+    $HeapSucc(h,k) &&
+    (forall<alpha> o: ref, f: Field alpha :: { read(k, o, f) }
+      !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
 
 // ---------------------------------------------------------------
 // -- Useful macros ----------------------------------------------

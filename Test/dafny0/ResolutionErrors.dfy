@@ -563,3 +563,66 @@ module NonInferredType {
     assume forall z :: P(z) && z == t;  // error: the type of z is not determined
   }
 }
+
+// ------------ Here are some tests that ghost contexts don't allocate objects -------------
+
+module GhostAllocationTests {
+  class G { }
+  iterator GIter() { }
+
+  ghost method GhostNew0()
+    ensures exists o: G :: o != null && fresh(o);
+  {
+    var p := new G;  // error: ghost context is not allowed to allocate state
+    p := new G;  // error: ditto
+  }
+
+  method GhostNew1(n: nat)
+  {
+    var a := new G[n];
+    forall i | 0 <= i < n {
+      a[i] := new G;  // error: 'new' is currently not supported in forall statements
+    }
+    forall i | 0 <= i < n
+      ensures true;  // this makes the whole 'forall' statement into a ghost statement
+    {
+      a[i] := new G;  // error: 'new' not allowed in ghost contexts, and proof-forall cannot update state
+    }
+  }
+
+  method GhostNew2(n: nat, ghost g: int) returns (t: G, z: int)
+  {
+    if n < 0 {
+      z, t := 5, new G;  // fine
+    }
+    if n < g {
+      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
+    }
+  }
+
+  method GhostNew3(ghost b: bool)
+  {
+    if (b) {
+      var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
+    }
+  }
+
+  method GhostNew4(n: nat)
+  {
+    var g := new G;
+    calc {
+      5;
+      { var y := new G; }  // error: 'new' not allowed in ghost contexts
+      2 + 3;
+      { if n != 0 { GhostNew4(n-1); } }  // error: cannot call non-ghost method in a ghost context
+      1 + 4;
+      { GhostNew5(g); }  // error: cannot call method with nonempty modifies
+      -5 + 10;
+    }
+  }
+
+  ghost method GhostNew5(g: G)
+    modifies g;
+  {
+  }
+}

@@ -315,7 +315,7 @@ namespace Microsoft.Dafny
       // A simple query method has out parameters, its body has no effect other than to assign to them,
       // and the postcondition does not explicitly mention the pre-state.
       return m.Outs.Count != 0 && m.Body != null && LocalAssignsOnly(m.Body) &&
-        m.Ens.TrueForAll(mfe => !Translator.MentionsOldState(mfe.E));
+        m.Ens.TrueForAll(mfe => !MentionsOldState(mfe.E));
     }
 
     bool LocalAssignsOnly(Statement s) {
@@ -336,6 +336,22 @@ namespace Microsoft.Dafny
         }
       }
       return true;
+    }
+
+    /// <summary>
+    /// Returns true iff 'expr' is a two-state expression, that is, if it mentions "old(...)" or "fresh(...)".
+    /// </summary>
+    static bool MentionsOldState(Expression expr) {
+      Contract.Requires(expr != null);
+      if (expr is OldExpr || expr is FreshExpr) {
+        return true;
+      }
+      foreach (var ee in expr.SubExpressions) {
+        if (MentionsOldState(ee)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public static BinaryExpr BinBoolExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {
