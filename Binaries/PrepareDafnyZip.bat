@@ -13,8 +13,8 @@ for %%f in (
   CodeContractsExtender.dll           CodeContractsExtender.pdb
   Core.dll                            Core.pdb
   Dafny.exe                           Dafny.pdb
-  DafnyPrelude.bpl                    DafnyRuntime.cs
   DafnyPipeline.dll                   DafnyPipeline.pdb
+  DafnyPrelude.bpl                    DafnyRuntime.cs
   Graph.dll                           Graph.pdb
   Model.dll                           Model.pdb
   ParserHelper.dll                    ParserHelper.pdb
