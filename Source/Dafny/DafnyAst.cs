@@ -3833,6 +3833,7 @@ namespace Microsoft.Dafny {
     public enum Opcode {
       Iff,
       Imp,
+      Exp, // turned into Imp during resolution; the order of subexpressions is reversed
       And,
       Or,
       Eq,
@@ -4013,6 +4014,8 @@ namespace Microsoft.Dafny {
           return "<==>";
         case Opcode.Imp:
           return "==>";
+        case Opcode.Exp:
+          return "<==";
         case Opcode.And:
           return "&&";
         case Opcode.Or:

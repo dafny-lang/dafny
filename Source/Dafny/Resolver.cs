@@ -5198,6 +5198,7 @@ namespace Microsoft.Dafny
         switch (e.Op) {
           case BinaryExpr.Opcode.Iff:
           case BinaryExpr.Opcode.Imp:
+          case BinaryExpr.Opcode.Exp:
           case BinaryExpr.Opcode.And:
           case BinaryExpr.Opcode.Or:
             if (!UnifyTypes(e.E0.Type, Type.Bool)) {
@@ -6800,6 +6801,7 @@ namespace Microsoft.Dafny
       switch (op) {
         case BinaryExpr.Opcode.Iff: return BinaryExpr.ResolvedOpcode.Iff;
         case BinaryExpr.Opcode.Imp: return BinaryExpr.ResolvedOpcode.Imp;
+        case BinaryExpr.Opcode.Exp: return BinaryExpr.ResolvedOpcode.Imp;
         case BinaryExpr.Opcode.And: return BinaryExpr.ResolvedOpcode.And;
         case BinaryExpr.Opcode.Or: return BinaryExpr.ResolvedOpcode.Or;
         case BinaryExpr.Opcode.Eq:
