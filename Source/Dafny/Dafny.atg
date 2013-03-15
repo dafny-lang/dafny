@@ -1396,6 +1396,7 @@ CalcOp<out IToken x, out BinaryExpr.Opcode/*!*/ op>
   | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   | EquivOp        (. x = t;  op = BinaryExpr.Opcode.Iff; .)
   | ImpliesOp      (. x = t;  op = BinaryExpr.Opcode.Imp; .)
+  | ExpliesOp      (. x = t;  op = BinaryExpr.Opcode.Exp; .) 
   )
   .
 Hint<out BlockStmt s>
@@ -1433,9 +1434,9 @@ ImpliesExpliesExpression<out Expression/*!*/ e0>
   [ ImpliesOp                                  (. x = t; .)
     ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
   | ExpliesOp                                  (. x = t; .)
-    LogicalExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
+    LogicalExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
     { ExpliesOp                                (. x = t; .)
-      LogicalExpression<out e1>                (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
+      LogicalExpression<out e1>                (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
     }
   ]
   .

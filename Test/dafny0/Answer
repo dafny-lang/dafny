@@ -1800,19 +1800,19 @@ TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive met
 Calculations.dfy(3,4): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon20_Then
+    (0,0): anon24_Then
 Calculations.dfy(8,13): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon22_Then
+    (0,0): anon26_Then
 Calculations.dfy(8,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon22_Then
-Calculations.dfy(44,11): Error: assertion violation
+    (0,0): anon26_Then
+Calculations.dfy(52,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Calculations.dfy(39,2): anon5_Else
+    Calculations.dfy(47,2): anon5_Else
 
 Dafny program verifier finished with 5 verified, 4 errors
 
