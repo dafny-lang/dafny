@@ -3523,16 +3523,25 @@ namespace Microsoft.Dafny
             List<Expression> formals = new List<Expression>();
             int i = 0;
             foreach (Formal f in codeContext.Outs) {
-              IdentifierExpr ident = new IdentifierExpr(f.tok, f.Name);
-              ident.Var = f;
-              ident.Type = ident.Var.Type;
-              Contract.Assert(f.Type != null);
-              formals.Add(ident);
+              Expression produceLhs;
+              if (stmt is ReturnStmt) {
+                var ident = new IdentifierExpr(f.tok, f.Name);
+                // resolve it here to avoid capture into more closely declared local variables
+                ident.Var = f;
+                ident.Type = ident.Var.Type;
+                Contract.Assert(f.Type != null);
+                produceLhs = ident;
+              } else {
+                var yieldIdent = new FieldSelectExpr(f.tok, new ImplicitThisExpr(f.tok), f.Name);
+                ResolveExpression(yieldIdent, true, codeContext);
+                produceLhs = yieldIdent;
+              }
+              formals.Add(produceLhs);
               // link the receiver parameter properly:
               if (s.rhss[i] is TypeRhs) {
                 var r = (TypeRhs)s.rhss[i];
                 if (r.Arguments != null) {
-                  r.ReceiverArgumentForInitCall = ident;
+                  r.ReceiverArgumentForInitCall = produceLhs;
                 }
               }
               i++;
@@ -6197,7 +6206,6 @@ namespace Microsoft.Dafny
 
       if (p < e.Tokens.Count) {
         Contract.Assert(e.Arguments != null);
-
         
         bool itIsAMethod = false;
         if (allowMethodCall) {
@@ -7351,7 +7359,7 @@ namespace Microsoft.Dafny
       for (int n = names.Count; 0 <= --n; ) {
         if (names[n] == null) {
           if (topScopeOnly) {
-            return null;  // no present
+            return null;  // not present
           }
         } else if (names[n] == name) {
           Thing t = things[n];

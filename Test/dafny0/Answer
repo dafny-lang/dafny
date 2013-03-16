@@ -1669,7 +1669,7 @@ ReturnErrors.dfy(41,10): Error: can only have initialization methods which modif
 
 -------------------- ReturnTests.dfy --------------------
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 
 -------------------- ChainingDisjointTests.dfy --------------------
 

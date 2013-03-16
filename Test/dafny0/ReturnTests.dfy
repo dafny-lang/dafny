@@ -57,3 +57,14 @@ method testing5() returns (r: int)
    r := 2;
    return; // sanity check.
 }
+
+iterator yieldTesting() yields (a: int, b: int)
+   yield ensures a == 1 && b == 2;
+{
+   a, b := 2, 1; // these are wrong
+   if (true)
+   {
+      var a, b := 3, 4;
+      yield 1, 2;// return updates non-shadowed, formal parameters correctly
+   }
+}

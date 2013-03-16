@@ -4571,6 +4571,10 @@ namespace Microsoft.Dafny {
         AddComment(builder, s, "yield statement");
         Contract.Assert(codeContext is IteratorDecl);
         var iter = (IteratorDecl)codeContext;
+        // if the yield statement has arguments, do them first
+        if (s.hiddenUpdate != null) {
+          TrStmt(s.hiddenUpdate, builder, locals, etran);
+        }
         // this.ys := this.ys + [this.y];
         var th = new ThisExpr(iter.tok);
         th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
