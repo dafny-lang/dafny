@@ -211,8 +211,8 @@ public class UTF8Buffer: Buffer {
 public class Scanner {
 	const char EOL = '\n';
 	const int eofSym = 0; /* pdt */
-	const int maxT = 118;
-	const int noSym = 118;
+	const int maxT = 120;
+	const int noSym = 120;
 
 
 	[ContractInvariantMethod]
@@ -278,8 +278,9 @@ public class Scanner {
 		start[8800] = 36; 
 		start[8804] = 37; 
 		start[8805] = 38; 
-		start[8660] = 41; 
-		start[8658] = 43; 
+		start[8660] = 40; 
+		start[8658] = 42; 
+		start[8656] = 43; 
 		start[38] = 44; 
 		start[8743] = 46; 
 		start[8744] = 48; 
@@ -545,15 +546,15 @@ public class Scanner {
 			case "forall": t.kind = 80; break;
 			case "parallel": t.kind = 81; break;
 			case "calc": t.kind = 82; break;
-			case "in": t.kind = 98; break;
-			case "false": t.kind = 105; break;
-			case "true": t.kind = 106; break;
-			case "null": t.kind = 107; break;
-			case "this": t.kind = 108; break;
-			case "fresh": t.kind = 109; break;
-			case "old": t.kind = 110; break;
-			case "then": t.kind = 111; break;
-			case "exists": t.kind = 114; break;
+			case "in": t.kind = 100; break;
+			case "false": t.kind = 107; break;
+			case "true": t.kind = 108; break;
+			case "null": t.kind = 109; break;
+			case "this": t.kind = 110; break;
+			case "fresh": t.kind = 111; break;
+			case "old": t.kind = 112; break;
+			case "then": t.kind = 113; break;
+			case "exists": t.kind = 116; break;
 			default: break;
 		}
 	}
@@ -705,47 +706,46 @@ public class Scanner {
 			case 38:
 				{t.kind = 88; break;}
 			case 39:
-				if (ch == '>') {AddCh(); goto case 40;}
-				else {goto case 0;}
-			case 40:
 				{t.kind = 89; break;}
-			case 41:
+			case 40:
 				{t.kind = 90; break;}
-			case 42:
+			case 41:
 				{t.kind = 91; break;}
-			case 43:
+			case 42:
 				{t.kind = 92; break;}
+			case 43:
+				{t.kind = 94; break;}
 			case 44:
 				if (ch == '&') {AddCh(); goto case 45;}
 				else {goto case 0;}
 			case 45:
-				{t.kind = 93; break;}
-			case 46:
-				{t.kind = 94; break;}
-			case 47:
 				{t.kind = 95; break;}
-			case 48:
+			case 46:
 				{t.kind = 96; break;}
-			case 49:
+			case 47:
 				{t.kind = 97; break;}
+			case 48:
+				{t.kind = 98; break;}
+			case 49:
+				{t.kind = 99; break;}
 			case 50:
-				{t.kind = 100; break;}
-			case 51:
-				{t.kind = 101; break;}
-			case 52:
 				{t.kind = 102; break;}
-			case 53:
+			case 51:
 				{t.kind = 103; break;}
-			case 54:
+			case 52:
 				{t.kind = 104; break;}
+			case 53:
+				{t.kind = 105; break;}
+			case 54:
+				{t.kind = 106; break;}
 			case 55:
-				{t.kind = 113; break;}
-			case 56:
 				{t.kind = 115; break;}
-			case 57:
-				{t.kind = 116; break;}
-			case 58:
+			case 56:
 				{t.kind = 117; break;}
+			case 57:
+				{t.kind = 118; break;}
+			case 58:
+				{t.kind = 119; break;}
 			case 59:
 				recEnd = pos; recKind = 5;
 				if (ch == '=') {AddCh(); goto case 29;}
@@ -753,10 +753,10 @@ public class Scanner {
 				else if (ch == ':') {AddCh(); goto case 57;}
 				else {t.kind = 5; break;}
 			case 60:
-				recEnd = pos; recKind = 99;
+				recEnd = pos; recKind = 101;
 				if (ch == 'i') {AddCh(); goto case 12;}
 				else if (ch == '=') {AddCh(); goto case 35;}
-				else {t.kind = 99; break;}
+				else {t.kind = 101; break;}
 			case 61:
 				recEnd = pos; recKind = 14;
 				if (ch == '=') {AddCh(); goto case 66;}
@@ -780,16 +780,20 @@ public class Scanner {
 				else {t.kind = 36; break;}
 			case 66:
 				recEnd = pos; recKind = 29;
-				if (ch == '>') {AddCh(); goto case 42;}
+				if (ch == '>') {AddCh(); goto case 41;}
 				else {t.kind = 29; break;}
 			case 67:
-				recEnd = pos; recKind = 112;
+				recEnd = pos; recKind = 114;
 				if (ch == '.') {AddCh(); goto case 26;}
-				else {t.kind = 112; break;}
+				else {t.kind = 114; break;}
 			case 68:
 				recEnd = pos; recKind = 83;
-				if (ch == '=') {AddCh(); goto case 39;}
+				if (ch == '=') {AddCh(); goto case 69;}
 				else {t.kind = 83; break;}
+			case 69:
+				recEnd = pos; recKind = 93;
+				if (ch == '>') {AddCh(); goto case 39;}
+				else {t.kind = 93; break;}
 
 		}
 		t.val = new String(tval, 0, tlen);

@@ -8,6 +8,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -3107,13 +3108,36 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Is op a valid calculation operator (i.e. a transitive relational operator)?
+    /// The line whose well-formedness is independant from other lines.
+    /// (Last line in case of explies-calculation, first line otherwise).
+    /// </summary>
+    public Expression InitalLine() 
+    {
+      Contract.Requires(Lines.Count > 0);
+      Contract.Requires(Result != null);  // Available after resolution
+      if (Result.Op == BinaryExpr.Opcode.Exp) {
+        return Lines.Last();
+      } else {
+        return Lines.First();
+      }
+    }
+
+    /// <summary>
+    /// Is op a valid calculation operator?
     /// </summary>
     [Pure]
     public static bool ValidOp(BinaryExpr.Opcode op) {
       return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
         || op == BinaryExpr.Opcode.Neq
-        || op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp;
+        || LogicOp(op);
+    }
+
+    /// <summary>
+    /// Is op a valid operator only for Boolean lines?
+    /// </summary>
+    [Pure]
+    public static bool LogicOp(BinaryExpr.Opcode op) {
+      return op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp || op == BinaryExpr.Opcode.Exp;
     }
 
     /// <summary>
@@ -3126,9 +3150,10 @@ namespace Microsoft.Dafny {
         return op2 == BinaryExpr.Opcode.Eq;
       if (op1 == op2) 
         return true;
-      if (op1 == BinaryExpr.Opcode.Iff || op1 == BinaryExpr.Opcode.Imp || op2 == BinaryExpr.Opcode.Iff || op2 == BinaryExpr.Opcode.Imp)
+      if (LogicOp(op1) || LogicOp(op2))
         return op2 == BinaryExpr.Opcode.Eq ||
           (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
+          (op1 == BinaryExpr.Opcode.Exp && op2 == BinaryExpr.Opcode.Iff) ||
           (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
       return op2 == BinaryExpr.Opcode.Eq ||
         (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
@@ -3833,6 +3858,7 @@ namespace Microsoft.Dafny {
     public enum Opcode {
       Iff,
       Imp,
+      Exp, // turned into Imp during resolution
       And,
       Or,
       Eq,
@@ -4013,6 +4039,8 @@ namespace Microsoft.Dafny {
           return "<==>";
         case Opcode.Imp:
           return "==>";
+        case Opcode.Exp:
+          return "<==";
         case Opcode.And:
           return "&&";
         case Opcode.Or:
@@ -4065,8 +4093,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       this.Op = op;
-      this.E0 = e0;
-      this.E1 = e1;
+      if (op == Opcode.Exp) {
+        // The order of operands is reversed so that it can be turned into implication during resolution
+        this.E0 = e1;
+        this.E1 = e0;
+      } else {
+        this.E0 = e0;
+        this.E1 = e1;
+      }
     }
 
     public override IEnumerable<Expression> SubExpressions {

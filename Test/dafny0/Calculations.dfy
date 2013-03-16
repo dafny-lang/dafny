@@ -24,6 +24,14 @@ method CalcTest0(s: seq<int>) {
   <==> { assert s[0] >= 0; }  // OK: well-formed when the previous line is well-formed
     s[0] > 0 || s[0] == 0;    // OK: well-formed when the previous line is well-formed
 	}
+  
+  calc { // same as the last one, but well-formedness is checked in reverse order
+    s[0] + 1 > 0;
+  <==>
+    s[0] >= 0;
+  <== { assert s[0] >= 0; }
+    0 < |s|;
+  }  
 }
 
 method CalcTest1(x: int, y: int) {

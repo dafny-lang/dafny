@@ -66,6 +66,16 @@ method ChallengeTruth(j: int, k: int)
   assert j <= j + k != k + j + 1 < k+k+j <=/*this is the error*/ j+j+k < k+k+j+j == 2*k + 2*j == 2*(k+j);
 }
 
+// ---------- reverse implication ------------------------------------
+
+method Explies(s: seq<int>, i: nat)
+  requires forall x :: x in s ==> x > 0;
+{
+  var a, b, c: bool;
+  assert a <== b <== c <== false;   // OK, because <== is left-associative
+  assert s[i] > 0 <== i < |s|;      // OK, because <== is short-circuiting from the right
+}
+
 // --------- multi assignments --------------------------------
 
 class Multi {

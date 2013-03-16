@@ -1210,6 +1210,8 @@ namespace Microsoft.Dafny {
             opBindingStrength = 0x21; break;
           case BinaryExpr.Opcode.Imp:
             opBindingStrength = 0x10; fragileLeftContext = true; break;
+          case BinaryExpr.Opcode.Exp:
+            opBindingStrength = 0x11; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Iff:
             opBindingStrength = 0x08; break;
           default:
@@ -1233,6 +1235,16 @@ namespace Microsoft.Dafny {
           int ind = indent + IndentAmount;
           Indent(ind);
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, ind);
+        } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Exp) {
+          PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, indent);
+          wr.WriteLine(" {0}", op);
+          int ind = indent + IndentAmount;
+          Indent(ind);
+          PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, ind);
+        } else if (e.Op == BinaryExpr.Opcode.Exp) {
+          PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, -1);
+          wr.Write(" {0} ", op);
+          PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
         } else {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, -1);
           wr.Write(" {0} ", op);

@@ -1396,6 +1396,7 @@ CalcOp<out IToken x, out BinaryExpr.Opcode/*!*/ op>
   | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   | EquivOp        (. x = t;  op = BinaryExpr.Opcode.Iff; .)
   | ImpliesOp      (. x = t;  op = BinaryExpr.Opcode.Imp; .)
+  | ExpliesOp      (. x = t;  op = BinaryExpr.Opcode.Exp; .) 
   )
   .
 Hint<out BlockStmt s>
@@ -1420,13 +1421,25 @@ Expression<out Expression/*!*/ e>
 /*------------------------------------------------------------------------*/
 EquivExpression<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
-  ImpliesExpression<out e0>
+  ImpliesExpliesExpression<out e0>
   { EquivOp                                    (. x = t; .)
-    ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
+    ImpliesExpliesExpression<out e1>           (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
 EquivOp = "<==>" | '\u21d4'.
 /*------------------------------------------------------------------------*/
+ImpliesExpliesExpression<out Expression/*!*/ e0>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
+  LogicalExpression<out e0>
+  [ ImpliesOp                                  (. x = t; .)
+    ImpliesExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
+  | ExpliesOp                                  (. x = t; .)
+    LogicalExpression<out e1>                  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
+    { ExpliesOp                                (. x = t; .)
+      LogicalExpression<out e1>                (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e0, e1); .)
+    }
+  ]
+  .
 ImpliesExpression<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0>
@@ -1435,6 +1448,7 @@ ImpliesExpression<out Expression/*!*/ e0>
   ]
   .
 ImpliesOp = "==>" | '\u21d2'.
+ExpliesOp = "<==" | '\u21d0'.
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression/*!*/ e0>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
