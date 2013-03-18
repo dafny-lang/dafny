@@ -8,7 +8,7 @@ for %%f in (
   Iter.dfy Streams.dfy Dijkstra.dfy CachedContainer.dfy
   SimpleInduction.dfy SimpleCoinduction.dfy CalcExample.dfy
   InductionVsCoinduction.dfy Zip.dfy SetIterations.dfy
-  Paulson.dfy
+  Paulson.dfy Filter.dfy
 ) do (
   echo.
   echo -------------------- %%f --------------------

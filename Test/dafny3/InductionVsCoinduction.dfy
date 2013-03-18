@@ -25,7 +25,7 @@ function Up(n: int): Stream<int>
  */
 
 function FivesUp(n: int): Stream<int>
-  decreases (n + 4) / 5 * 5 - n;
+  decreases 4 - (n-1) % 5;
 {
   if n % 5 == 0 then SCons(n, FivesUp(n+1))
   else FivesUp(n+1)
@@ -113,7 +113,7 @@ comethod UpPos_Auto(n:int)
 comethod {:induction false} FivesUpPos(n:int)
   requires n > 0;
   ensures Pos(FivesUp(n));
-  decreases (n + 4) / 5 * 5 - n;
+  decreases 4 - (n-1) % 5;
 {
   if (n % 5 == 0) {
     FivesUpPos#[_k - 1](n + 1);
@@ -127,7 +127,7 @@ comethod {:induction false} FivesUpPos(n:int)
 comethod FivesUpPos_Auto(n:int)
   requires n > 0;
   ensures Pos(FivesUp(n));
-  decreases (n + 4) / 5 * 5 - n;
+  decreases 4 - (n-1) % 5;
 {
 }
 

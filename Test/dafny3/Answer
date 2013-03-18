@@ -42,3 +42,7 @@ Dafny program verifier finished with 13 verified, 0 errors
 -------------------- Paulson.dfy --------------------
 
 Dafny program verifier finished with 28 verified, 0 errors
+
+-------------------- Filter.dfy --------------------
+
+Dafny program verifier finished with 43 verified, 0 errors
