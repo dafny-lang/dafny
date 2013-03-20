@@ -3021,12 +3021,16 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Seq, options, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr index = etran.TrExpr(e.Index);
+        Bpl.Expr value = etran.TrExpr(e.Value);
         CheckWellformed(e.Index, options, locals, builder, etran);
         if (e.Seq.Type is SeqType) {
           builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range", options.AssertKv));
+        } else if (e.Seq.Type is MapType) {          
+          // updates to maps are always valid if the values are well formed
+        } else if (e.Seq.Type is MultiSetType) {
+          builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
         } else {
-          Contract.Assert(e.Seq.Type is MapType);
-          // updates add to maps, so are always valid if the values are well formed.
+          Contract.Assert(false);
         }
         CheckWellformed(e.Value, options, locals, builder, etran);
       } else if (expr is FunctionCallExpr) {
@@ -7564,13 +7568,20 @@ namespace Microsoft.Dafny {
             Bpl.Expr index = TrExpr(e.Index);
             Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
             return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
-          } else {
-            Contract.Assert(e.Seq.Type is MapType);
+          } else if (e.Seq.Type is MapType) {
             MapType mt = (MapType)e.Seq.Type;
             Bpl.Type maptype = predef.MapType(expr.tok, predef.BoxType, predef.BoxType);
             Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
             Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
             return translator.FunctionCall(expr.tok, "Map#Build", maptype, seq, index, val);
+          } else if (e.Seq.Type is MultiSetType) {
+            Type elmtType = cce.NonNull((MultiSetType)e.Seq.Type).Arg;
+            Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), elmtType);
+            Bpl.Expr val = TrExpr(e.Value);
+            return Bpl.Expr.StoreTok(expr.tok, seq, index, val);
+          } else {
+            Contract.Assert(false);
+            throw new cce.UnreachableException();
           }
         } else if (expr is MultiSelectExpr) {
           MultiSelectExpr e = (MultiSelectExpr)expr;

@@ -5130,6 +5130,17 @@ namespace Microsoft.Dafny
             Error(e.Value, "map update requires the value to have the range type {0} (got {1})", rangeType, e.Value.Type);
           }
           expr.Type = e.Seq.Type;
+        } else if (UnifyTypes(e.Seq.Type, new MultiSetType(elementType))) {
+          ResolveExpression(e.Index, twoState, codeContext);
+          if (!UnifyTypes(e.Index.Type, elementType)) {
+            Error(e.Index, "multiset update requires domain element to be of type {0} (got {1})", elementType, e.Index.Type);
+          }
+          ResolveExpression(e.Value, twoState, codeContext);
+          if (!UnifyTypes(e.Value.Type, Type.Int)) {
+            Error(e.Value, "multiset update requires integer value (got {0})", e.Value.Type);
+          }
+          expr.Type = e.Seq.Type;
+
         } else {
           Error(expr, "update requires a sequence or map (got {0})", e.Seq.Type);
         }

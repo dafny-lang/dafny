@@ -161,5 +161,18 @@ class BoxTests<G> {
     requires forall x :: x in a ==> x in b;
     ensures a <= b;  // error: this property does not hold for multisets
   {
-  }
+  }  
 }
+
+// ---------- indexing and updates ----------
+method test12(a: nat, b: nat, c: int)
+{
+  var m0, m1, m2: multiset<bool>;
+  m0 := multiset{false, true, true};
+  m1 := multiset{true}[false := a];
+  m2 := multiset{}[false := b];
+  assert (m0 + m1 + m2)[true] == 3;
+  assert (m1 * m2)[false] == if a <= b then a else b;
+  m2 := m2[true := c]; // error: c might be negative
+}
+
