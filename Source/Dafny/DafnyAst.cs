@@ -3049,7 +3049,141 @@ namespace Microsoft.Dafny {
 
   public class CalcStmt : Statement
   {
-    public readonly BinaryExpr.Opcode/*!*/ Op; // main operator of the calculation
+    abstract class CalcOp {
+      /// <summary>
+      /// Resulting operator x op z if x this y other z.
+      /// Returns null if neither of op1 or op2 subsumes the other.
+      /// </summary>
+      [Pure]
+      public abstract CalcOp ResultOp(CalcOp other);
+
+      public abstract Expression StepExpr(Expression line0, Expression line1);
+    }
+
+    class BinaryCalcOp : CalcOp {
+      public readonly BinaryExpr.Opcode/*!*/ Op;
+
+      [ContractInvariantMethod]
+      void ObjectInvariant()
+      {
+        Contract.Invariant(ValidOp(Op));
+      }
+
+      /// <summary>
+      /// Is op a valid calculation operator?
+      /// </summary>
+      [Pure]
+      public static bool ValidOp(BinaryExpr.Opcode op) {
+        return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
+          || op == BinaryExpr.Opcode.Neq
+          || LogicOp(op);
+      }
+
+      /// <summary>
+      /// Is op a valid operator only for Boolean lines?
+      /// </summary>
+      [Pure]
+      public static bool LogicOp(BinaryExpr.Opcode op) {
+        return op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp || op == BinaryExpr.Opcode.Exp;
+      }
+
+      public BinaryCalcOp(BinaryExpr.Opcode op) {
+        Contract.Requires(ValidOp(op));
+        Op = op;
+      }
+
+      private bool Subsumes(BinaryCalcOp other) {
+        Contract.Requires(other != null);
+        var op1 = Op;
+        var op2 = other.Op;
+        if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
+          return op2 == BinaryExpr.Opcode.Eq;
+        if (op1 == op2) 
+          return true;
+        if (LogicOp(op1) || LogicOp(op2))
+          return op2 == BinaryExpr.Opcode.Eq ||
+            (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
+            (op1 == BinaryExpr.Opcode.Exp && op2 == BinaryExpr.Opcode.Iff) ||
+            (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
+        return op2 == BinaryExpr.Opcode.Eq ||
+          (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
+          (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge);
+      }
+
+      public override CalcOp ResultOp(CalcOp other) {
+        Contract.Requires(other != null);
+        if (other is BinaryCalcOp) {
+          var o = (BinaryCalcOp) other;
+          if (this.Subsumes(o)) {
+            return this;
+          } else if (o.Subsumes(this)) {
+            return other;
+          }
+          return null;
+        } else if (other is TernaryCalcOp) {
+          return other.ResultOp(this);
+        } else {
+          Contract.Assert(false);
+          throw new cce.UnreachableException();
+        }
+      }
+
+      public override Expression StepExpr(Expression line0, Expression line1)
+      {
+        return new BinaryExpr(line0.tok, Op, line0, line1);
+      }
+
+      public override string ToString()
+      {
+        return Op.ToString();
+      }
+    }
+
+    class TernaryCalcOp : CalcOp {
+      public readonly Expression Index; // the only allowed ternary operator is ==#, so we only store the index
+      public readonly TernaryCalcOp Prev; // when non-null, this represents ==#[min(Index, Prev.Index)]
+
+      [ContractInvariantMethod]
+      void ObjectInvariant()
+      {
+        Contract.Invariant(Index != null);
+      }
+
+      public TernaryCalcOp(Expression idx) : this(idx, null) { }
+
+      private TernaryCalcOp(Expression idx, TernaryCalcOp prev) {
+        Contract.Requires(idx != null);
+        Index = idx;
+        Prev = prev;
+      }
+
+      public override CalcOp ResultOp(CalcOp other) {
+        Contract.Requires(other != null);
+        if (other is BinaryCalcOp) {
+          if (((BinaryCalcOp) other).Op == BinaryExpr.Opcode.Eq) {
+            return this;
+          }
+          return null;
+        } else if (other is TernaryCalcOp) {
+          return new TernaryCalcOp(Index, (TernaryCalcOp) other); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
+        } else {
+          Contract.Assert(false);
+          throw new cce.UnreachableException();
+        }
+      }
+
+      public override Expression StepExpr(Expression line0, Expression line1)
+      {
+        return new TernaryExpr(line0.tok, TernaryExpr.Opcode.PrefixEqOp, Index, line0, line1);
+      }
+
+      public override string ToString()
+      {
+        return TernaryExpr.Opcode.PrefixEqOp.ToString();
+      }
+    }
+
+    public readonly BinaryExpr.Opcode Op; // main operator of the calculation
     public readonly List<Expression/*!*/> Lines;
     public readonly List<BlockStmt/*!*/> Hints;  // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
     public readonly List<BinaryExpr.Opcode?> CustomOps; // CustomOps[i] comes after line i; null denotes the absence of a custom operator
