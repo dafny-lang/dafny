@@ -2968,6 +2968,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr inDomain = FunctionCall(expr.tok, BuiltinFunction.MapDomain, predef.MapType(e.tok, predef.BoxType, predef.BoxType), seq);
           inDomain = Bpl.Expr.Select(inDomain, etran.BoxIfNecessary(e.tok, e0, e.E0.Type));
           builder.Add(Assert(expr.tok, inDomain, "element may not be in domain", options.AssertKv));
+        } else if (e.Seq.Type is MultiSetType) {
+          // cool
           
         } else {
           if (e.E0 != null) {
@@ -7514,6 +7516,9 @@ namespace Microsoft.Dafny {
           } else if (e.Seq.Type is MapType) {
             domainType = ((MapType)e.Seq.Type).Domain;
             elmtType = ((MapType)e.Seq.Type).Range;
+          } else if (e.Seq.Type is MultiSetType) {
+            domainType = ((MultiSetType)e.Seq.Type).Arg;
+            elmtType = Type.Int;
           } else { Contract.Assert(false); }
           Bpl.Type elType = translator.TrType(elmtType);
           Bpl.Type dType = translator.TrType(domainType);
@@ -7530,8 +7535,10 @@ namespace Microsoft.Dafny {
             } else if (e.Seq.Type is MapType) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.MapElements, predef.MapType(e.tok, predef.BoxType, predef.BoxType), seq);
               x = Bpl.Expr.Select(x, BoxIfNecessary(e.tok, e0, domainType));
+            } else if (e.Seq.Type is MultiSetType) {
+              x = Bpl.Expr.SelectTok(expr.tok, TrExpr(e.Seq), BoxIfNecessary(expr.tok, e0, domainType));
             } else { Contract.Assert(false); x = null; }
-            if (!ModeledAsBoxType(elmtType)) {
+            if (!ModeledAsBoxType(elmtType) && !(e.Seq.Type is MultiSetType)) {
               x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, elType, x);
             }
             return x;

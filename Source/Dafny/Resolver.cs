@@ -3350,6 +3350,13 @@ namespace Microsoft.Dafny
           if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
             return false;
           }
+        } else if (t is MultiSetType) {
+          if (!UnifyTypes(iProxy.Arg, Type.Int)) {
+            return false;
+          }
+          if (!UnifyTypes(iProxy.Domain, ((MultiSetType)t).Arg)) {
+            return false;
+          }
         } else {
           return false;
         }
