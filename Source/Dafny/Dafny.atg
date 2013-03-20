@@ -1341,18 +1341,18 @@ ForallStmt<out Statement/*!*/ s>
 CalcStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      Token x;
-     BinaryExpr.Opcode op, calcOp = BinaryExpr.Opcode.Eq, resOp = BinaryExpr.Opcode.Eq;     
+     CalcStmt.CalcOp/*!*/ op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;     
      var lines = new List<Expression/*!*/>();
      var hints = new List<BlockStmt/*!*/>(); 
-     BinaryExpr.Opcode? customOp;
-     var customOps = new List<BinaryExpr.Opcode?>();
-     BinaryExpr.Opcode? maybeOp;
+     CalcStmt.CalcOp stepOp;
+     var stepOps = new List<CalcStmt.CalcOp>();
+     CalcStmt.CalcOp maybeOp;
      Expression/*!*/ e;
      BlockStmt/*!*/ h;
      IToken opTok;
   .)
   "calc"                                                  (. x = t; .)
-  [ CalcOp<out opTok, out calcOp>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(calcOp, calcOp); // guard against non-trasitive calcOp (like !=)
+  [ CalcOp<out opTok, out calcOp>                         (. maybeOp = calcOp.ResultOp(calcOp); // guard against non-trasitive calcOp (like !=)
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
                                                              }
@@ -1360,44 +1360,52 @@ CalcStmt<out Statement/*!*/ s>
                                                           .)
   ]
   "{"
-  [ Expression<out e>                                     (. lines.Add(e); customOp = null; .)
+  [ Expression<out e>                                     (. lines.Add(e); stepOp = calcOp; .)
     ";"
     {
-      [ CalcOp<out opTok, out op>                         (. maybeOp = Microsoft.Dafny.CalcStmt.ResultOp(resOp, op);
+      [ CalcOp<out opTok, out op>                         (. maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "this operator cannot continue this calculation");
                                                              } else {
-                                                               customOp = op;
-                                                               resOp = (BinaryExpr.Opcode)maybeOp;                                                              
+                                                               stepOp = op;
+                                                               resOp = maybeOp;                                                              
                                                              }
                                                           .)
-      ]                                                   (. customOps.Add(customOp); .)
+      ]                                                   (. stepOps.Add(stepOp); .)
       Hint<out h>                                         (. hints.Add(h); .)
-      Expression<out e>                                   (. lines.Add(e); customOp = null; .)
+      Expression<out e>                                   (. lines.Add(e); stepOp = calcOp; .)
       ";"
     }
   ]
   "}"
-  (. s = new CalcStmt(x, calcOp, lines, hints, customOps); .)
+  (. s = new CalcStmt(x, calcOp, lines, hints, stepOps, resOp); .)
   .
-CalcOp<out IToken x, out BinaryExpr.Opcode/*!*/ op>
-= (. Contract.Ensures(Microsoft.Dafny.CalcStmt.ValidOp(Contract.ValueAtReturn(out op)));
-     op = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator 
+CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
+= (. var binOp = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator
+     Expression k = null;
      x = null;
   .)
-  ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
-  | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
-  | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
-  | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
-  | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
-  | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
-  | EquivOp        (. x = t;  op = BinaryExpr.Opcode.Iff; .)
-  | ImpliesOp      (. x = t;  op = BinaryExpr.Opcode.Imp; .)
-  | ExpliesOp      (. x = t;  op = BinaryExpr.Opcode.Exp; .) 
+  ( "=="           (. x = t;  binOp = BinaryExpr.Opcode.Eq; .)
+    [ "#" "[" Expression<out k> "]" ]
+  | "<"            (. x = t;  binOp = BinaryExpr.Opcode.Lt; .)
+  | ">"            (. x = t;  binOp = BinaryExpr.Opcode.Gt; .)
+  | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
+  | ">="           (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
+  | "!="           (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
+  | '\u2260'       (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
+  | '\u2264'       (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
+  | '\u2265'       (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
+  | EquivOp        (. x = t;  binOp = BinaryExpr.Opcode.Iff; .)
+  | ImpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Imp; .)
+  | ExpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Exp; .) 
   )
+  (. 
+    if (k == null) {
+      op = new Microsoft.Dafny.CalcStmt.BinaryCalcOp(binOp);
+    } else {
+      op = new Microsoft.Dafny.CalcStmt.TernaryCalcOp(k);
+    }
+  .)
   .
 Hint<out BlockStmt s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); // returns an empty block statement if the hint is empty

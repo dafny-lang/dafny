@@ -3049,18 +3049,23 @@ namespace Microsoft.Dafny {
 
   public class CalcStmt : Statement
   {
-    abstract class CalcOp {
+    public abstract class CalcOp {
       /// <summary>
-      /// Resulting operator x op z if x this y other z.
-      /// Returns null if neither of op1 or op2 subsumes the other.
+      /// Resulting operator "x op z" if "x this y" and "y other z".
+      /// Returns null if this and other are incompatible.
       /// </summary>
       [Pure]
       public abstract CalcOp ResultOp(CalcOp other);
 
+      /// <summary>
+      /// Returns an expression "line0 this line1".
+      /// </summary>
+      [Pure]
       public abstract Expression StepExpr(Expression line0, Expression line1);
+
     }
 
-    class BinaryCalcOp : CalcOp {
+    public class BinaryCalcOp : CalcOp {
       public readonly BinaryExpr.Opcode/*!*/ Op;
 
       [ContractInvariantMethod]
@@ -3111,7 +3116,6 @@ namespace Microsoft.Dafny {
       }
 
       public override CalcOp ResultOp(CalcOp other) {
-        Contract.Requires(other != null);
         if (other is BinaryCalcOp) {
           var o = (BinaryCalcOp) other;
           if (this.Subsumes(o)) {
@@ -3135,13 +3139,13 @@ namespace Microsoft.Dafny {
 
       public override string ToString()
       {
-        return Op.ToString();
+        return BinaryExpr.OpcodeString(Op);
       }
+
     }
 
-    class TernaryCalcOp : CalcOp {
+    public class TernaryCalcOp : CalcOp {
       public readonly Expression Index; // the only allowed ternary operator is ==#, so we only store the index
-      public readonly TernaryCalcOp Prev; // when non-null, this represents ==#[min(Index, Prev.Index)]
 
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -3149,23 +3153,22 @@ namespace Microsoft.Dafny {
         Contract.Invariant(Index != null);
       }
 
-      public TernaryCalcOp(Expression idx) : this(idx, null) { }
-
-      private TernaryCalcOp(Expression idx, TernaryCalcOp prev) {
+      public TernaryCalcOp(Expression idx) {
         Contract.Requires(idx != null);
         Index = idx;
-        Prev = prev;
       }
 
       public override CalcOp ResultOp(CalcOp other) {
-        Contract.Requires(other != null);
         if (other is BinaryCalcOp) {
           if (((BinaryCalcOp) other).Op == BinaryExpr.Opcode.Eq) {
             return this;
           }
           return null;
         } else if (other is TernaryCalcOp) {
-          return new TernaryCalcOp(Index, (TernaryCalcOp) other); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
+          var a = Index;
+          var b = ((TernaryCalcOp) other).Index;
+          var minIndex = new ITEExpr(a.tok, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
+          return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
         } else {
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -3179,48 +3182,53 @@ namespace Microsoft.Dafny {
 
       public override string ToString()
       {
-        return TernaryExpr.Opcode.PrefixEqOp.ToString();
+        return "==#";
       }
+
     }
 
-    public readonly BinaryExpr.Opcode Op; // main operator of the calculation
+    public readonly CalcOp/*!*/ Op; // main operator of the calculation
     public readonly List<Expression/*!*/> Lines;
     public readonly List<BlockStmt/*!*/> Hints;  // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
-    public readonly List<BinaryExpr.Opcode?> CustomOps; // CustomOps[i] comes after line i; null denotes the absence of a custom operator
-    public readonly List<BinaryExpr/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution in order to get the correct op
-    public BinaryExpr Result; // expression l0 op ln, filled in during resolution in order to get the correct op
+    public readonly List<CalcOp/*!*/> StepOps; // StepOps[i] comes after line i
+    public readonly List<Expression/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution
+    public CalcOp/*!*/ ResultOp; // conclusion operator
+    public Expression Result; // expression l0 ResultOp ln, filled in during resolution
 
-    public static readonly BinaryExpr.Opcode/*!*/ DefaultOp = BinaryExpr.Opcode.Eq; 
+    public static readonly CalcOp/*!*/ DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq); 
 
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
-      Contract.Invariant(ValidOp(Op));
+      Contract.Invariant(Op != null);
       Contract.Invariant(Lines != null);
       Contract.Invariant(Hints != null);
-      Contract.Invariant(CustomOps != null);
+      Contract.Invariant(StepOps != null);
       Contract.Invariant(Steps != null);
       Contract.Invariant(Hints.Count == Math.Max(Lines.Count - 1, 0));
-      Contract.Invariant(CustomOps.Count == Hints.Count);
+      Contract.Invariant(StepOps.Count == Hints.Count);
     }
 
-    public CalcStmt(IToken tok, BinaryExpr.Opcode/*!*/ op, List<Expression/*!*/> lines, List<BlockStmt/*!*/> hints, List<BinaryExpr.Opcode?> customOps)
+    public CalcStmt(IToken tok, CalcOp op, List<Expression/*!*/> lines, List<BlockStmt/*!*/> hints, List<CalcOp> stepOps, CalcOp resultOp)
       : base(tok)
     {
       Contract.Requires(tok != null);
-      Contract.Requires(ValidOp(op));
+      Contract.Requires(op != null);
       Contract.Requires(lines != null);
       Contract.Requires(hints != null);
-      Contract.Requires(customOps != null);
+      Contract.Requires(stepOps != null);
+      Contract.Requires(resultOp != null); // ToDo: we should allow null and recalculate in that case
       Contract.Requires(cce.NonNullElements(lines));
       Contract.Requires(cce.NonNullElements(hints));
+      Contract.Requires(cce.NonNullElements(stepOps));
       Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
-      Contract.Requires(customOps.Count == hints.Count);
+      Contract.Requires(stepOps.Count == hints.Count);
       this.Op = op;
       this.Lines = lines;
       this.Hints = hints;
-      this.CustomOps = customOps;
-      this.Steps = new List<BinaryExpr>();  
+      this.StepOps = stepOps;
+      this.ResultOp = resultOp;
+      this.Steps = new List<Expression>();  
       this.Result = null;
     }
 
@@ -3241,74 +3249,24 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// The line whose well-formedness is independant from other lines.
-    /// (Last line in case of explies-calculation, first line otherwise).
-    /// </summary>
-    public Expression InitalLine() 
+    public static Expression Lhs(Expression step)
     {
-      Contract.Requires(Lines.Count > 0);
-      Contract.Requires(Result != null);  // Available after resolution
-      if (Result.Op == BinaryExpr.Opcode.Exp) {
-        return Lines.Last();
+      Contract.Requires(step is BinaryExpr || step is TernaryExpr);
+      if (step is BinaryExpr) {
+        return ((BinaryExpr) step).E0;
       } else {
-        return Lines.First();
+        return ((TernaryExpr) step).E1;
       }
     }
 
-    /// <summary>
-    /// Is op a valid calculation operator?
-    /// </summary>
-    [Pure]
-    public static bool ValidOp(BinaryExpr.Opcode op) {
-      return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
-        || op == BinaryExpr.Opcode.Neq
-        || LogicOp(op);
-    }
-
-    /// <summary>
-    /// Is op a valid operator only for Boolean lines?
-    /// </summary>
-    [Pure]
-    public static bool LogicOp(BinaryExpr.Opcode op) {
-      return op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp || op == BinaryExpr.Opcode.Exp;
-    }
-
-    /// <summary>
-    /// Does op1 subsume op2 (i.e. forall x, y, z :: (x op1 y op2 z) || (x op2 y op1 z) ==> x op1 z)?
-    /// </summary>
-    [Pure]    
-    private static bool Subsumes(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
-      Contract.Requires(ValidOp(op1) && ValidOp(op2));
-      if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
-        return op2 == BinaryExpr.Opcode.Eq;
-      if (op1 == op2) 
-        return true;
-      if (LogicOp(op1) || LogicOp(op2))
-        return op2 == BinaryExpr.Opcode.Eq ||
-          (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
-          (op1 == BinaryExpr.Opcode.Exp && op2 == BinaryExpr.Opcode.Iff) ||
-          (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
-      return op2 == BinaryExpr.Opcode.Eq ||
-        (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
-        (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge);
-    }
-
-    /// <summary>
-    /// Resulting operator x op z if x op1 y op2 z.
-    /// (Least upper bound in the Subsumes order).
-    /// Returns null if neither of op1 or op2 subsumes the other.
-    /// </summary>
-    [Pure]
-    public static BinaryExpr.Opcode? ResultOp(BinaryExpr.Opcode op1, BinaryExpr.Opcode op2) {
-      Contract.Requires(ValidOp(op1) && ValidOp(op2));
-      Contract.Ensures(Contract.Result<BinaryExpr.Opcode?>() == null || ValidOp((BinaryExpr.Opcode)Contract.Result<BinaryExpr.Opcode?>()));
-      if (Subsumes(op1, op2)) {
-        return op1;
-      } else if (Subsumes(op2, op1)) {
-        return op2;
+    public static Expression Rhs(Expression step)
+    {
+      Contract.Requires(step is BinaryExpr || step is TernaryExpr);
+      if (step is BinaryExpr) {
+        return ((BinaryExpr) step).E1;
+      } else {
+        return ((TernaryExpr) step).E2;
       }
-      return null;
     }
   }
 

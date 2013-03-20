@@ -4874,25 +4874,30 @@ namespace Microsoft.Dafny {
           for (int i = s.Steps.Count; 0 <= --i; ) {            
             b = new Bpl.StmtListBuilder();
             // assume wf[line<i>]:
-            AddComment(b, stmt, "assume wf[line" + i.ToString() + "]");
+            AddComment(b, stmt, "assume wf[lhs]");
             assertAsAssume = true;
-            TrStmt_CheckWellformed(s.Steps[i].E0, b, locals, etran, false);
+            TrStmt_CheckWellformed(CalcStmt.Lhs(s.Steps[i]), b, locals, etran, false);
             assertAsAssume = false;
-            if (s.Steps[i].ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+            if (s.Steps[i] is BinaryExpr && (((BinaryExpr)s.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
               // assume line<i>:
-              AddComment(b, stmt, "assume line" + i.ToString());
-              b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Steps[i].E0))); 
+              AddComment(b, stmt, "assume lhs");
+              b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(CalcStmt.Lhs(s.Steps[i])))); 
             }
             // hint:
             AddComment(b, stmt, "Hint" + i.ToString());
             TrStmt(s.Hints[i], b, locals, etran);
             // check well formedness of the goal line:
-            AddComment(b, stmt, "assert wf[line" + (i + 1).ToString() + "]");
-            TrStmt_CheckWellformed(s.Steps[i].E1, b, locals, etran, false);
+            AddComment(b, stmt, "assert wf[rhs]");
+            if (s.Steps[i] is TernaryExpr) {
+              // check the prefix-equality limit
+              var index = ((TernaryExpr) s.Steps[i]).E0;
+              b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
+            }
+            TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
             bool splitHappened;
             var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
             // assert step:
-            AddComment(b, stmt, "assert line" + i.ToString() + " " + s.Steps[i].ResolvedOp.ToString() + " line" + (i + 1).ToString());
+            AddComment(b, stmt, "assert line" + i.ToString() + " " + s.StepOps[i].ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
               b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
             } else {
@@ -4907,8 +4912,8 @@ namespace Microsoft.Dafny {
           }
           // check well formedness of the first line:
           b = new Bpl.StmtListBuilder();
-          AddComment(b, stmt, "assume wf[line0]");
-          TrStmt_CheckWellformed(s.InitalLine(), b, locals, etran, false);
+          AddComment(b, stmt, "assert wf[initial]");
+          TrStmt_CheckWellformed(CalcStmt.Lhs(s.Result), b, locals, etran, false);
           b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);

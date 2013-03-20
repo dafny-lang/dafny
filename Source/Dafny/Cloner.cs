@@ -454,7 +454,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          r = new CalcStmt(Tok(s.Tok), s.Op, s.Lines.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneBlockStmt), new List<Nullable<BinaryExpr.Opcode>>(s.CustomOps));
+          r = new CalcStmt(Tok(s.Tok), CloneCalcOp(s.Op), s.Lines.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneCalcOp(s.ResultOp));
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -482,6 +482,17 @@ namespace Microsoft.Dafny
       r.Attributes = CloneAttributes(stmt.Attributes);
 
       return r;
+    }
+
+    public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {
+      if (op is CalcStmt.BinaryCalcOp) {
+        return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp) op).Op);
+      } else if (op is CalcStmt.TernaryCalcOp) {
+        return new CalcStmt.TernaryCalcOp(CloneExpr(((CalcStmt.TernaryCalcOp) op).Index));
+      } else {
+        Contract.Assert(false);
+        throw new cce.UnreachableException();
+      }
     }
 
     public void AddStmtLabels(Statement s, LList<Label> node) {

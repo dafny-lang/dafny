@@ -35,21 +35,14 @@ comethod Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
   match M {
   case Nil =>
   case Cons(x, xs) =>
-    assert Lmap(After(f, g), M)
-        == Lmap(After(f, g), Cons(x, xs))
-        ==  // def. Lmap
-           Cons(Apply(After(f, g), x), Lmap(After(f, g), xs));
-    Definition_After(f, g, x);
-    assert Cons(Apply(After(f, g), x), Lmap(After(f, g), xs))
-        == Cons(Apply(f, Apply(g, x)), Lmap(After(f, g), xs));
-
-    // use co-induction hypothesis
-    assert
-      Cons(Apply(f, Apply(g, x)), Lmap(After(f, g), xs))
-      ==#[_k]
-      Cons(Apply(f, Apply(g, x)), Lmap(f, Lmap(g, xs)));
-
     calc {
+      Lmap(After(f, g), M);
+      Lmap(After(f, g), Cons(x, xs));
+      // def. Lmap
+      Cons(Apply(After(f, g), x), Lmap(After(f, g), xs));
+      { Definition_After(f, g, x); }
+      Cons(Apply(f, Apply(g, x)), Lmap(After(f, g), xs));
+    ==#[_k] // use co-induction hypothesis 
       Cons(Apply(f, Apply(g, x)), Lmap(f, Lmap(g, xs)));
       // def. Lmap
       Lmap(f, Cons(Apply(g, x), Lmap(g, xs)));
@@ -75,14 +68,12 @@ comethod Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
     Lmap(f, Iterates(f, M));
     Lmap(f, Cons(M, Iterates(f, Apply(f, M))));
     Cons(Apply(f, M), Lmap(f, Iterates(f, Apply(f, M))));
-  }
-
-  Eq24(f, Apply(f, M));  // co-induction hypothesis
-  assert Lmap(f, Iterates(f, Apply(f, M)))
-    ==#[_k-1]
-         Iterates(f, Apply(f, Apply(f, M)));
-
-  calc {
+  ==#[_k]
+      calc {
+        Lmap(f, Iterates(f, Apply(f, M)));
+      ==#[_k-1] { Eq24(f, Apply(f, M)); } // co-induction hypothesis
+        Iterates(f, Apply(f, Apply(f, M)));
+      }
     Cons(Apply(f, M), Iterates(f, Apply(f, Apply(f, M))));
     // def. Iterates
     Iterates(f, Apply(f, M));
@@ -139,13 +130,12 @@ comethod BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
     Cons(Iter(n, f, u), LmapIter(n, f, Lmap(f, h(f, u))));
     { Lemma26(n, f, h(f, u)); }
     Cons(Iter(n, f, u), LmapIter(n+1, f, h(f, u)));
-  }
-
-  assert LmapIter(n+1, f, h(f, u))
+  ==#[_k]
+    calc {
+      LmapIter(n+1, f, h(f, u));
     ==#[_k-1]
-         LmapIter(n+1, f, Iterates(f, u));
-
-  calc {
+      LmapIter(n+1, f, Iterates(f, u));    
+    }
     Cons(Iter(n, f, u), LmapIter(n+1, f, Iterates(f, u)));
     { Lemma26(n, f, Iterates(f, u)); }
     Cons(Iter(n, f, u), LmapIter(n, f, Lmap(f, Iterates(f, u))));

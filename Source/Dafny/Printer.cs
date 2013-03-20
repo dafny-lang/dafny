@@ -648,8 +648,8 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
         wr.Write("calc ");
-        if (s.Op != CalcStmt.DefaultOp) {
-          wr.Write(BinaryExpr.OpcodeString(s.Op));
+        if (!s.Op.Equals(CalcStmt.DefaultOp)) {
+          PrintCalcOp(s.Op);
           wr.Write(" ");
         }
         wr.WriteLine("{");
@@ -662,15 +662,15 @@ namespace Microsoft.Dafny {
         for (var i = 1; i < s.Lines.Count; i++){
           var e = s.Lines[i];
           var h = s.Hints[i - 1];
-          var op = s.CustomOps[i - 1];
+          var op = s.StepOps[i - 1];
           foreach (var st in h.Body) {
             Indent(lineInd);
             PrintStatement(st, lineInd);
             wr.WriteLine();
           }
           Indent(lineInd);
-          if (op != null && (BinaryExpr.Opcode)op != s.Op) {
-            wr.Write(BinaryExpr.OpcodeString((BinaryExpr.Opcode)op));
+          if (!s.Op.Equals(op)) {
+            PrintCalcOp(op);
             wr.Write(" ");
           }          
           PrintExpression(e, lineInd);
@@ -898,6 +898,16 @@ namespace Microsoft.Dafny {
         wr.Write("*");
       } else {
         PrintExpression(guard);
+      }
+    }
+
+    void PrintCalcOp(CalcStmt.CalcOp op) {
+      Contract.Requires(op != null);
+      wr.Write(op.ToString());
+      if (op is CalcStmt.TernaryCalcOp) {
+        wr.Write("[");
+        PrintExpression(((CalcStmt.TernaryCalcOp) op).Index);
+        wr.Write("]");
       }
     }
 

@@ -3863,7 +3863,6 @@ namespace Microsoft.Dafny
         var prevErrorCount = ErrorCount;
         CalcStmt s = (CalcStmt)stmt;
         s.IsGhost = true;
-        var resOp = s.Op;
         if (s.Lines.Count > 0) {
           var e0 = s.Lines.First();
           ResolveExpression(e0, true, codeContext);
@@ -3875,15 +3874,7 @@ namespace Microsoft.Dafny
             if (!UnifyTypes(e0.Type, e1.Type)) {
               Error(e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
             } else {
-              BinaryExpr step;
-              var op = s.CustomOps[i - 1];
-              if (op == null) {              
-                step = new BinaryExpr(e0.tok, s.Op, e0, e1); // Use calc-wide operator
-              } else {
-                step = new BinaryExpr(e0.tok, (BinaryExpr.Opcode)op, e0, e1); // Use custom line operator
-                Contract.Assert(CalcStmt.ResultOp(resOp, (BinaryExpr.Opcode)op) != null); // This was checked during parsing
-                resOp = (BinaryExpr.Opcode)CalcStmt.ResultOp(resOp, (BinaryExpr.Opcode)op);
-              }
+              var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator                
               ResolveExpression(step, true, codeContext);
               s.Steps.Add(step);            
             }
@@ -3903,11 +3894,11 @@ namespace Microsoft.Dafny
           loopStack = prevLoopStack;          
 
         }
-        if (prevErrorCount == ErrorCount && s.Lines.Count > 0 && s.Steps.Count > 0) {
+        if (prevErrorCount == ErrorCount && s.Lines.Count > 0) {
           // do not build Result from the lines if there were errors, as it might be ill-typed and produce unnecessary resolution errors
-          s.Result = new BinaryExpr(s.Tok, resOp, s.Lines.First(), s.Lines.Last());
+          s.Result = s.ResultOp.StepExpr(s.Lines.First(), s.Lines.Last());
         } else {
-          s.Result = new BinaryExpr(s.Tok, BinaryExpr.Opcode.Eq, CreateResolvedLiteral(s.Tok, 0), CreateResolvedLiteral(s.Tok, 0));
+          s.Result = CalcStmt.DefaultOp.StepExpr(CreateResolvedLiteral(s.Tok, 0), CreateResolvedLiteral(s.Tok, 0));
         }
         ResolveExpression(s.Result, true, codeContext);
         Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
