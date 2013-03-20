@@ -1689,8 +1689,13 @@ MultiSets.dfy(163,3): Error BP5003: A postcondition might not hold on this retur
 MultiSets.dfy(162,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+MultiSets.dfy(176,11): Error: new number of occurrences might be negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
 
-Dafny program verifier finished with 38 verified, 2 errors
+Dafny program verifier finished with 39 verified, 3 errors
 
 -------------------- PredExpr.dfy --------------------
 PredExpr.dfy(4,12): Error: condition in assert expression might not hold
