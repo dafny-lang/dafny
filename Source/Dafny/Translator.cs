@@ -4919,13 +4919,13 @@ namespace Microsoft.Dafny {
           // check well formedness of the first line:
           b = new Bpl.StmtListBuilder();
           AddComment(b, stmt, "assert wf[initial]");
+          Contract.Assert(s.Result != null); // established by the resolver
           TrStmt_CheckWellformed(CalcStmt.Lhs(s.Result), b, locals, etran, false);
           b.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
           // assume result:
-          if (s.Steps.Count > 0) {
-            Contract.Assert(s.Result != null); // established by the resolver
+          if (s.Steps.Count > 0) {            
             builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Result)));
           }
         }

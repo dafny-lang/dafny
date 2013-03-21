@@ -3062,11 +3062,10 @@ namespace Microsoft.Dafny {
       /// </summary>
       [Pure]
       public abstract Expression StepExpr(Expression line0, Expression line1);
-
     }
 
     public class BinaryCalcOp : CalcOp {
-      public readonly BinaryExpr.Opcode/*!*/ Op;
+      public readonly BinaryExpr.Opcode Op;
 
       [ContractInvariantMethod]
       void ObjectInvariant()
@@ -3097,6 +3096,9 @@ namespace Microsoft.Dafny {
         Op = op;
       }
 
+      /// <summary>
+      /// Does this subsume other (this . other == other . this == this)?
+      /// </summary>
       private bool Subsumes(BinaryCalcOp other) {
         Contract.Requires(other != null);
         var op1 = Op;
@@ -3187,24 +3189,29 @@ namespace Microsoft.Dafny {
 
     }
 
-    public readonly CalcOp/*!*/ Op; // main operator of the calculation
     public readonly List<Expression/*!*/> Lines;
-    public readonly List<BlockStmt/*!*/> Hints;  // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
-    public readonly List<CalcOp/*!*/> StepOps; // StepOps[i] comes after line i
-    public readonly List<Expression/*!*/> Steps; // expressions li op l<i + 1>, filled in during resolution
-    public CalcOp/*!*/ ResultOp; // conclusion operator
-    public Expression Result; // expression l0 ResultOp ln, filled in during resolution
+    public readonly List<BlockStmt/*!*/> Hints;   // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
+    public readonly CalcOp/*!*/ Op;               // main operator of the calculation
+    public readonly List<CalcOp/*!*/> StepOps;    // StepOps[i] comes after line i
+    public CalcOp/*!*/ ResultOp;                  // conclusion operator
+    public readonly List<Expression/*!*/> Steps;  // expressions li op l<i + 1>, filled in during resolution
+    public Expression Result;                     // expression l0 ResultOp ln, filled in during resolution
 
     public static readonly CalcOp/*!*/ DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq); 
 
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
-      Contract.Invariant(Op != null);
       Contract.Invariant(Lines != null);
+      Contract.Invariant(cce.NonNullElements(Lines));
       Contract.Invariant(Hints != null);
+      Contract.Invariant(cce.NonNullElements(Hints));
+      Contract.Invariant(Op != null);
       Contract.Invariant(StepOps != null);
+      Contract.Invariant(cce.NonNullElements(StepOps));
+      Contract.Invariant(ResultOp != null);
       Contract.Invariant(Steps != null);
+      Contract.Invariant(cce.NonNullElements(Steps));
       Contract.Invariant(Hints.Count == Math.Max(Lines.Count - 1, 0));
       Contract.Invariant(StepOps.Count == Hints.Count);
     }
@@ -3217,7 +3224,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(lines != null);
       Contract.Requires(hints != null);
       Contract.Requires(stepOps != null);
-      Contract.Requires(resultOp != null); // ToDo: we should allow null and recalculate in that case
       Contract.Requires(cce.NonNullElements(lines));
       Contract.Requires(cce.NonNullElements(hints));
       Contract.Requires(cce.NonNullElements(stepOps));
@@ -3227,7 +3233,11 @@ namespace Microsoft.Dafny {
       this.Lines = lines;
       this.Hints = hints;
       this.StepOps = stepOps;
-      this.ResultOp = resultOp;
+      if (resultOp == null) {
+        this.ResultOp = stepOps.Aggregate(DefaultOp, (op0, op1) => op0.ResultOp(op1));
+      } else {
+        this.ResultOp = resultOp;
+      }
       this.Steps = new List<Expression>();  
       this.Result = null;
     }
@@ -3249,6 +3259,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Left-hand side of a step expression.
+    /// Note that Lhs(op.StepExpr(line0, line1)) != line0 when op is <==.
+    /// </summary>
     public static Expression Lhs(Expression step)
     {
       Contract.Requires(step is BinaryExpr || step is TernaryExpr);
@@ -3259,6 +3273,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Right-hand side of a step expression.
+    /// Note that Rhs(op.StepExpr(line0, line1)) != line1 when op is <==.
+    /// </summary>
     public static Expression Rhs(Expression step)
     {
       Contract.Requires(step is BinaryExpr || step is TernaryExpr);

@@ -3908,8 +3908,8 @@ namespace Microsoft.Dafny
           s.Result = CalcStmt.DefaultOp.StepExpr(CreateResolvedLiteral(s.Tok, 0), CreateResolvedLiteral(s.Tok, 0));
         }
         ResolveExpression(s.Result, true, codeContext);
-        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
-        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == 0 || s.Result != null);
+        Contract.Assert(s.Result != null);        
+        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);        
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
