@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     set(Arg) or seq(Arg) or map(Arg, Range)
+  ///     set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, Range)
   /// </summary>
   public class CollectionTypeProxy : RestrictedTypeProxy {
     public readonly Type Arg;
@@ -765,7 +765,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     seq(Arg) or array(Arg) or map(Arg, Range)
+  ///     seq(Arg) or array(Arg) or multiset(Arg) map(Arg, Range)
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
     public readonly Type Arg, Domain;
