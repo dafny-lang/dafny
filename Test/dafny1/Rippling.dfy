@@ -204,7 +204,7 @@ function insort(n: Nat, xs: List): List
   case Cons(y, ys) =>
     if leq(n, y) == True
     then Cons(n, Cons(y, ys))
-    else Cons(y, ins(n, ys))
+    else Cons(y, insort(n, ys))
 }
 
 function ins(n: Nat, xs: List): List
@@ -397,11 +397,8 @@ ghost method P19()
 ghost method P20()
   ensures forall xs :: len(sort(xs)) == len(xs);
 {
-  P15();  // use the statement of problem 15 as a lemma
-  // ... and manually introduce a case distinction:
-  assert forall ys ::
-           sort(ys) == Nil ||
-           exists z, zs :: sort(ys) == Cons(z, zs);
+  // the proof of this theorem requires a lemma about "insort"
+  assert forall x, xs :: len(insort(x, xs)) == Suc(len(xs));
 }
 
 ghost method P21()
