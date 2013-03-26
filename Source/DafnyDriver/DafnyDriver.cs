@@ -225,10 +225,10 @@ namespace Microsoft.Dafny
         cp.GenerateExecutable = true;
         if (compiler.HasMain(dafnyProgram)) {
           cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
-          cp.CompilerOptions = "/debug";
+          cp.CompilerOptions = "/debug /nowarn:0164";  // warning CS0164 complains about unreferenced labels
         } else {
           cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
-          cp.CompilerOptions = "/debug /target:library";
+          cp.CompilerOptions = "/debug /nowarn:0164 /target:library";  // warning CS0164 complains about unreferenced labels
         }
         cp.GenerateInMemory = false;
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
