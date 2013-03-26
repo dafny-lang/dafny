@@ -23,7 +23,7 @@ class Queue<T> {
     reads this;
   { contents[0] }
   function Get(i: int): T
-    requires 0 <= i && i < |contents|;
+    requires 0 <= i < |contents|;
     reads this;
   { contents[i] }
 }
@@ -101,20 +101,14 @@ class Stream {
 
 
 class Client {
-  method Sort(q: Queue<int>) returns (r: Queue<int>, perm:seq<int>)
+  method Sort(q: Queue<int>) returns (r: Queue<int>)
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);
     ensures |r.contents| == |old(q.contents)|;
-    ensures (forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
-                r.Get(i) <= r.Get(j));
-    //perm is a permutation
-    ensures |perm| == |r.contents|; // ==|pperm|
-    ensures (forall i: int :: 0 <= i && i < |perm|==> 0 <= perm[i] && perm[i] < |perm| );
-    ensures (forall i, j: int :: 0 <= i && i < j && j < |perm| ==> perm[i] != perm[j]); 
+    ensures forall i, j :: 0 <= i < j < |r.contents| ==> r.Get(i) <= r.Get(j);
     // the final Queue is a permutation of the input Queue
-    ensures (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
-  
+    ensures multiset(r.contents) == multiset(old(q.contents));
   
   method Main()
   {
@@ -136,8 +130,7 @@ class Client {
     }
       
     rd.Close();
-    var perm;
-    q,perm := Sort(q);
+    q := Sort(q);
       
     var wr := new Stream;
     wr.Create();

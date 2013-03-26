@@ -2,18 +2,18 @@
 class Benchmark2 {
   method BinarySearch(a: array<int>, key: int) returns (result: int)
     requires a != null;
-    requires (forall i, j :: 0 <= i && i < j && j < a.Length ==> a[i] <= a[j]);
-    ensures -1 <= result && result < a.Length;
+    requires forall i, j :: 0 <= i < j < a.Length ==> a[i] <= a[j];
+    ensures -1 <= result < a.Length;
     ensures 0 <= result ==> a[result] == key;
-    ensures result == -1 ==> (forall i :: 0 <= i && i < a.Length ==> a[i] != key);
+    ensures result == -1 ==> forall i :: 0 <= i < a.Length ==> a[i] != key;
   {
     var low := 0;
     var high := a.Length;
 
     while (low < high)
-      invariant 0 <= low && low <= high && high <= a.Length;
-      invariant (forall i :: 0 <= i && i < low ==> a[i] < key);
-      invariant (forall i :: high <= i && i < a.Length ==> key < a[i]);
+      invariant 0 <= low <= high <= a.Length;
+      invariant forall i :: 0 <= i < low ==> a[i] < key;
+      invariant forall i :: high <= i < a.Length ==> key < a[i];
     {
       var mid := low + (high - low) / 2;
       var midVal := a[mid];
@@ -49,7 +49,7 @@ method Main() {
 
 method TestSearch(a: array<int>, key: int)
   requires a != null;
-  requires (forall i, j :: 0 <= i && i < j && j < a.Length ==> a[i] <= a[j]);
+  requires forall i, j :: 0 <= i < j < a.Length ==> a[i] <= a[j];
 {
   var b := new Benchmark2;
   var r := b.BinarySearch(a, key);

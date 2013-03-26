@@ -27,7 +27,7 @@ class Map<Key(==),Value> {
     this in Repr &&
     |Keys| == |Values| && |nodes| == |Keys| + 1 &&
     head == nodes[0] &&
-    (forall i :: 0 <= i && i < |Keys| ==>
+    (forall i :: 0 <= i < |Keys| ==>
         nodes[i] != null &&
         nodes[i] in Repr &&
         nodes[i].key == Keys[i] && nodes[i].key !in Keys[i+1..] &&
@@ -51,7 +51,7 @@ class Map<Key(==),Value> {
   method Find(key: Key) returns (present: bool, val: Value)
     requires Valid();
     ensures !present ==> key !in Keys;
-    ensures present ==> (exists i :: 0 <= i && i < |Keys| && Keys[i] == key && Values[i] == val);
+    ensures present ==> exists i :: 0 <= i < |Keys| && Keys[i] == key && Values[i] == val;
   {
     var p, n, prev := FindIndex(key);
     if (p == null) {
@@ -66,11 +66,11 @@ class Map<Key(==),Value> {
     requires Valid();
     modifies Repr;
     ensures Valid() && fresh(Repr - old(Repr));
-    ensures (forall i :: 0 <= i && i < |old(Keys)| && old(Keys)[i] == key ==>
+    ensures forall i :: 0 <= i < |old(Keys)| && old(Keys)[i] == key ==>
                 |Keys| == |old(Keys)| &&
                 Keys[i] == key && Values[i] == val &&
-                (forall j :: 0 <= j && j < |Values| && i != j ==>
-                    Keys[j] == old(Keys)[j] && Values[j] == old(Values)[j]));
+                (forall j :: 0 <= j < |Values| && i != j ==>
+                    Keys[j] == old(Keys)[j] && Values[j] == old(Values)[j]);
     ensures key !in old(Keys) ==> Keys == [key] + old(Keys) && Values == [val] + old(Values);
   {
     var p, n, prev := FindIndex(key);
@@ -100,7 +100,7 @@ class Map<Key(==),Value> {
     ensures key in old(Keys) ==>
             |Keys| == |old(Keys)| - 1 && key !in Keys &&
             (exists h ::
-              0 <= h && h < |old(Keys)| &&
+              0 <= h < |old(Keys)| &&
               Keys[..h] == old(Keys)[..h] &&
               Values[..h] == old(Values)[..h] &&
               Keys[h..] == old(Keys)[h+1..] &&

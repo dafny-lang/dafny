@@ -21,14 +21,14 @@ class Queue<T> {
     reads this;
   { contents[0] }
   function Get(i: int): T
-    requires 0 <= i && i < |contents|;
+    requires 0 <= i < |contents|;
     reads this;
   { contents[i] }
 }
 
 
 class Glossary {
-  method Sort(q: Queue<Word>) returns (r: Queue<Word>, perm:seq<int>)
+  method Sort(q: Queue<Word>) returns (r: Queue<Word>)
     requires q != null;
     modifies q;
     ensures r != null && fresh(r);
@@ -36,12 +36,8 @@ class Glossary {
     ensures (forall i, j :: 0 <= i && i < j && j < |r.contents| ==>
                 r.Get(i) != null &&
                 r.Get(i).AtMost(r.Get(j)));
-    //perm is a permutation
-    ensures |perm| == |r.contents|; // ==|pperm|
-    ensures (forall i: int :: 0 <= i && i < |perm|==> 0 <= perm[i] && perm[i] < |perm| );
-    ensures (forall i, j: int :: 0 <= i && i < j && j < |perm| ==> perm[i] != perm[j]); 
     // the final Queue is a permutation of the input Queue
-    ensures (forall i: int :: 0 <= i && i < |perm| ==> r.contents[i] == old(q.contents)[perm[i]]);
+    ensures multiset(r.contents) == multiset(old(q.contents));
 
   method Main()
   {
@@ -70,20 +66,21 @@ class Glossary {
         q.Enqueue(term);
       }
     }    
-    
+
     rs.Close();
-    var p;
-    q,p := Sort(q);
+    ghost var qc := q.contents;
+    q := Sort(q);
+    assert forall k :: k in q.contents ==> k in multiset(q.contents);
     var wr := new WriterStream;
     wr.Create();
-    
+
     while (0 < |q.contents|)
       invariant wr.Valid() && fresh(wr.footprint);
       invariant glossary.Valid();
       invariant glossary !in wr.footprint && null !in glossary.keys;
-      invariant (forall d :: d in glossary.values ==> null !in d);
+      invariant forall d :: d in glossary.values ==> null !in d;
       invariant q !in wr.footprint;
-      invariant (forall k :: k in q.contents ==> k in glossary.keys);
+      invariant forall k :: k in q.contents ==> k in glossary.keys;
     {
       var term := q.Dequeue();
       var present,definition := glossary.Find(term);
@@ -258,7 +255,7 @@ class Map<Key(==),Value> {
     reads this;
   {
     |keys| == |values| &&
-    (forall i, j :: 0 <= i && i < j && j < |keys| ==> keys[i] != keys[j])
+    (forall i, j :: 0 <= i < j < |keys| ==> keys[i] != keys[j])
   }
 
   method Init()
@@ -272,7 +269,7 @@ class Map<Key(==),Value> {
   method Find(key: Key) returns (present: bool, val: Value)
     requires Valid();
     ensures !present ==> key !in keys;
-    ensures present ==> (exists i :: 0 <= i && i < |keys| &&
+    ensures present ==> (exists i :: 0 <= i < |keys| &&
                                      keys[i] == key && values[i] == val);
   {
     var j := FindIndex(key);
@@ -288,10 +285,10 @@ class Map<Key(==),Value> {
     requires Valid();
     modifies this;
     ensures Valid();
-    ensures (forall i :: 0 <= i && i < |old(keys)| && old(keys)[i] == key ==>
+    ensures (forall i :: 0 <= i < |old(keys)| && old(keys)[i] == key ==>
               |keys| == |old(keys)| &&
               keys[i] == key && values[i] == val &&
-              (forall j :: 0 <= j && j < |values| && i != j ==> keys[j] == old(keys)[j] && values[j] == old(values)[j]));
+              (forall j :: 0 <= j < |values| && i != j ==> keys[j] == old(keys)[j] && values[j] == old(values)[j]));
     ensures key !in old(keys) ==> keys == old(keys) + [key] && values == old(values) + [val];
   {
     var j := FindIndex(key);
@@ -317,7 +314,7 @@ class Map<Key(==),Value> {
     ensures key in old(keys) ==>
             |keys| == |old(keys)| - 1 && key !in keys &&
             (exists h ::
-              0 <= h && h <= |keys| &&
+              0 <= h <= |keys| &&
               keys[..h] == old(keys)[..h] &&
               values[..h] == old(values)[..h] &&
               keys[h..] == old(keys)[h+1..] &&
