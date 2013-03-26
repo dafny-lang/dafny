@@ -381,7 +381,7 @@ ResolutionErrors.dfy(439,6): Error: when allocating an object of type 'Lucifer',
 ResolutionErrors.dfy(441,9): Error: class Lamb does not have a default constructor
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
-ResolutionErrors.dfy(23,12): Error: sequence/array/map selection requires a sequence, array or map (got array3<T>)
+ResolutionErrors.dfy(23,12): Error: sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got array3<T>)
 ResolutionErrors.dfy(24,11): Error: array selection requires an array4 (got array<T>)
 ResolutionErrors.dfy(54,14): Error: a field must be selected via an object, not just a class name
 ResolutionErrors.dfy(55,7): Error: unresolved identifier: F

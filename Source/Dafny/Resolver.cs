@@ -3327,34 +3327,38 @@ namespace Microsoft.Dafny
         }
 
       } else if (proxy is IndexableTypeProxy) {
-        IndexableTypeProxy iProxy = (IndexableTypeProxy)proxy;
+        var iProxy = (IndexableTypeProxy)proxy;
         if (t is SeqType) {
-          if (!UnifyTypes(iProxy.Arg, ((SeqType)t).Arg)) {
-            return false;
-          }
           if (!UnifyTypes(iProxy.Domain, Type.Int)) {
             return false;
+          } else if (!UnifyTypes(iProxy.Range, ((SeqType)t).Arg)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
+            return false;
           }
-        } else if (t.IsArrayType && (t.AsArrayType).Dims == 1) {
+        } else if (iProxy.AllowArray && t.IsArrayType && (t.AsArrayType).Dims == 1) {
           Type elType = UserDefinedType.ArrayElementType(t);
-          if (!UnifyTypes(iProxy.Arg, elType)) {
-            return false;
-          }
           if (!UnifyTypes(iProxy.Domain, Type.Int)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Range, elType)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Arg, iProxy.Range)) {
             return false;
           }
         } else if (t is MapType) {
-          if (!UnifyTypes(iProxy.Arg, ((MapType)t).Range)) {
-            return false;
-          }
           if (!UnifyTypes(iProxy.Domain, ((MapType)t).Domain)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Range, ((MapType)t).Range)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
             return false;
           }
         } else if (t is MultiSetType) {
-          if (!UnifyTypes(iProxy.Arg, Type.Int)) {
-            return false;
-          }
           if (!UnifyTypes(iProxy.Domain, ((MultiSetType)t).Arg)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Range, Type.Int)) {
+            return false;
+          } else if (!UnifyTypes(iProxy.Arg, iProxy.Domain)) {
             return false;
           }
         } else {
@@ -3396,11 +3400,12 @@ namespace Microsoft.Dafny
           // all is fine
           a.T = b;
           return true;
-        } else if (b is IndexableTypeProxy) {
+        } else if (b is IndexableTypeProxy && ((IndexableTypeProxy)b).AllowArray) {
+          var ib = (IndexableTypeProxy)b;
           // the intersection of ObjectTypeProxy and IndexableTypeProxy is an array type
-          a.T = builtIns.ArrayType(1, ((IndexableTypeProxy)b).Arg);
+          a.T = builtIns.ArrayType(1, ib.Arg);
           b.T = a.T;
-          return true;
+          return UnifyTypes(ib.Arg, ib.Range);
         } else {
           return false;
         }
@@ -3420,38 +3425,59 @@ namespace Microsoft.Dafny
           return true;
         } else if (b is IndexableTypeProxy) {
           CollectionTypeProxy pa = (CollectionTypeProxy)a;
-          IndexableTypeProxy pb = (IndexableTypeProxy)b;
-          // a and b could be a map or a sequence
-          return true;
+          var ib = (IndexableTypeProxy)b;
+          // pa is:
+          //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
+          // pb is:
+          //   seq(Arg) or multiset(Arg) or map(Domain, Arg), or
+          //   if AllowArray, array(Arg) 
+          // Their intersection is:
+          if (ib.AllowArray) {
+            var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false);
+            ib.T = c;
+            ib = c;
+          }
+          pa.T = ib;
+          return UnifyTypes(pa.Arg, ib.Arg);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
         }
 
       } else if (a is OperationTypeProxy) {
-        OperationTypeProxy pa = (OperationTypeProxy)a;
+        var pa = (OperationTypeProxy)a;
         if (b is OperationTypeProxy) {
-          if (!pa.AllowSeq || ((OperationTypeProxy)b).AllowSeq) {
-            b.T = a;
+          if (pa.AllowSeq) {
+            a.T = b;  // a has the weaker requirement
           } else {
-            a.T = b;  // b has the stronger requirement
+            b.T = a;  // a has the stronger requirement
           }
           return true;
         } else {
-          IndexableTypeProxy pb = (IndexableTypeProxy)b;  // cast justification:  lse we have unexpected restricted-proxy type
-          if (pa.AllowSeq) {
-            // strengthen a and b to a sequence type
-            b.T = new SeqType(pb.Arg);
+          var pb = (IndexableTypeProxy)b;  // cast justification:  else we have unexpected restricted-proxy type
+          // a is:  int or set or multiset or seq
+          // b is:  seq, multiset, map, or possibly array
+          if (!pa.AllowSeq) {
+            // strengthen a and b to a multiset type
+            b.T = new MultiSetType(pb.Arg);
             a.T = b.T;
             return true;
           } else {
-            return false;
+            // strengthen a and b to a sequence type
+            b.T = new SeqType(pb.Arg);  // TODO: the type is really *either* a seq or a multiset
+            a.T = b.T;
+            return true;
           }
         }
 
       } else if (a is IndexableTypeProxy) {
-        Contract.Assert(b is IndexableTypeProxy);  // else we have unexpected restricted-proxy type
-        a.T = b;
-        return UnifyTypes(((IndexableTypeProxy)a).Arg, ((IndexableTypeProxy)b).Arg);
+        var ia = (IndexableTypeProxy)a;
+        var ib = (IndexableTypeProxy)b;  // cast justification: else we have unexpected restricted-proxy type
+        if (ia.AllowArray) {
+          a.T = b;  // a has the weaker requirement
+        } else {
+          b.T = a;  // a has the strong requirement
+        }
+        return UnifyTypes(ia.Domain, ib.Domain) && UnifyTypes(ia.Range, ib.Range) && UnifyTypes(ia.Arg, ib.Arg);
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected restricted-proxy type
@@ -5198,7 +5224,6 @@ namespace Microsoft.Dafny
             expr.Type = elType;
             break;
           case UnaryExpr.Opcode.SeqLength:
-
             if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy()))) {
               Error(expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
             }
@@ -5315,7 +5340,7 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
             if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type))) {
-              Error(expr, "second argument to \"{0}\" must be a set, multiset or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+              Error(expr, "second argument to \"{0}\" must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             }
             expr.Type = Type.Bool;
             break;
@@ -6770,10 +6795,11 @@ namespace Microsoft.Dafny
       Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
       Type elementType = new InferredTypeProxy();
       Type domainType = new InferredTypeProxy();
+      Type argType = new InferredTypeProxy();
 
-      IndexableTypeProxy expectedType = new IndexableTypeProxy(elementType, domainType);
+      IndexableTypeProxy expectedType = new IndexableTypeProxy(domainType, elementType, argType, true);
       if (!UnifyTypes(e.Seq.Type, expectedType)) {
-        Error(e, "sequence/array/map selection requires a sequence, array or map (got {0})", e.Seq.Type);
+        Error(e, "sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got {0})", e.Seq.Type);
         seqErr = true;
       }
       if (!e.SelectOne)  // require sequence or array
@@ -6793,14 +6819,14 @@ namespace Microsoft.Dafny
         ResolveExpression(e.E0, twoState, codeContext);
         Contract.Assert(e.E0.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E0.Type, domainType)) {
-          Error(e.E0, "sequence/array/map selection requires {1} indices (got {0})", e.E0.Type, domainType);
+          Error(e.E0, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E0.Type, domainType);
         }
       }
       if (e.E1 != null) {
         ResolveExpression(e.E1, twoState, codeContext);
         Contract.Assert(e.E1.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(e.E1.Type, domainType)) {
-          Error(e.E1, "sequence/array/map selection requires {1} indices (got {0})", e.E1.Type, domainType);
+          Error(e.E1, "sequence/array/multiset/map selection requires {1} indices (got {0})", e.E1.Type, domainType);
         }
       }
       if (!seqErr) {

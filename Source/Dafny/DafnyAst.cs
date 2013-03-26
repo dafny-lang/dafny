@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for:
-  ///     set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, Range)
+  ///     set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
   /// </summary>
   public class CollectionTypeProxy : RestrictedTypeProxy {
     public readonly Type Arg;
@@ -764,20 +764,35 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// This proxy stands for:
-  ///     seq(Arg) or array(Arg) or multiset(Arg) map(Arg, Range)
+  /// Domain and Range refer to the types of the indexing operation.  That is, in A[i],
+  /// i is of type Domain and A[i] is of type Range.
+  /// Arg is either Domain or Range, depending on what type it is.  Arg is the type
+  /// one would use in an expression "x in C", whereas 
+  /// This proxy stands for one of:
+  ///   seq(T)       Domain,Range,Arg := int,T,T
+  ///   multiset(T)  Domain,Range,Arg := T,int,T
+  ///   map(T,U)     Domain,Range,Arg := T,U,T
+  ///   if AllowArray, may also be:
+  ///   array(T)     Domain,Range,Arg := int,T,T
   /// </summary>
   public class IndexableTypeProxy : RestrictedTypeProxy {
-    public readonly Type Arg, Domain;
+    public readonly bool AllowArray;
+    public readonly Type Domain, Range, Arg;
     [ContractInvariantMethod]
     void ObjectInvariant() {
+      Contract.Invariant(Domain != null);
+      Contract.Invariant(Range != null);
       Contract.Invariant(Arg != null);
     }
 
-    public IndexableTypeProxy(Type arg, Type domain) {
+    public IndexableTypeProxy(Type domain, Type range, Type arg, bool allowArray) {
+      Contract.Requires(domain != null);
+      Contract.Requires(range != null);
       Contract.Requires(arg != null);
-      Arg = arg;
       Domain = domain;
+      Range = range;
+      Arg = arg;
+      AllowArray = allowArray;
     }
     public override int OrderID {
       get {
