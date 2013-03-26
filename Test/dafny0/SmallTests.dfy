@@ -588,6 +588,25 @@ method AssignSuchThat7<T>(A: set<T>, x: T) {
   assert x in A ==> x in B;
 }
 
+method AssignSuchThat8(n: int) returns (x: int, y: Lindgren) {
+  x :| x in {1};
+  x :| x in {3, 7, 11};
+  x :| x in {n + 12};
+  y :| y in {HerrNilsson};
+  y :| y == y;
+  x :| x in multiset{3, 3, 2, 3};
+  x :| x in map[5 := 10, 6 := 12];
+  x :| x in [n, n, 2];
+  x :| x in [];  // error
+}
+
+codatatype QuiteFinite = QQA | QQB | QQC;
+
+method AssignSuchThat9() returns (q: QuiteFinite)
+{
+  q :| q != QQA && q != QQC;
+}
+
 // ----------- let-such-that expressions ------------------------
 
 function method LetSuchThat_P(x: int): bool
@@ -619,6 +638,18 @@ method LetSuchThat2(n: nat)
   } else {
     x := var k: nat :| k < n; k;  // error: there may not be such a k
   }
+}
+
+ghost method LetSuchThat3(n: int) returns (xx: int, yy: Lindgren) {
+  xx := var x :| x in {1}; x+10;
+  xx := var x :| x in {3, 7, 11}; x+10;
+  xx := var x :| x in {n + 12}; x+10;
+  yy := var y :| y in {HerrNilsson}; y;
+  yy := var y :| y == y; y;
+  xx := var x :| x in multiset{3, 3, 2, 3}; x+10;
+  xx := var x :| x in map[5 := 10, 6 := 12]; x+10;
+  xx := var x :| x in [n, n, 2]; x+10;
+  xx := var x :| x in map[]; x+10;  // error
 }
 
 // ------------- ghost loops only modify ghost fields

@@ -6315,13 +6315,15 @@ namespace Microsoft.Dafny
         if (bv.Type is BoolType) {
           // easy
           bounds.Add(new ComprehensionExpr.BoolBoundedPool());
-        } else if (bv.Type.IsIndDatatype && (bv.Type.AsIndDatatype).HasFinitePossibleValues) {
-          bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
         } else {
+          bool foundBoundsForBv = false;
+          if (bv.Type.IsIndDatatype && (bv.Type.AsIndDatatype).HasFinitePossibleValues) {
+            bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+            foundBoundsForBv = true;
+          }
           // Go through the conjuncts of the range expression to look for bounds.
           Expression lowerBound = bv.Type is NatType ? Resolver.CreateResolvedLiteral(bv.tok, 0) : null;
           Expression upperBound = null;
-          bool foundBoundsForBv = false;
           if (returnAllBounds && lowerBound != null) {
             bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
             lowerBound = null;

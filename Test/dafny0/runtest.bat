@@ -10,7 +10,7 @@ for %%f in (Simple.dfy) do (
   %DAFNY_EXE% %* /dprint:- /env:0 /noVerify %%f
 )
 
-for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
+for %%f in (TypeTests.dfy NatTypes.dfy Definedness.dfy
             FunctionSpecifications.dfy ResolutionErrors.dfy ParseErrors.dfy
             Array.dfy MultiDimArray.dfy NonGhostQuantifiers.dfy AdvancedLHS.dfy
             ModulesCycle.dfy Modules0.dfy Modules1.dfy Modules2.dfy BadFunction.dfy
@@ -22,7 +22,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy SmallTests.dfy Definedness.dfy
             TypeAntecedents.dfy NoTypeArgs.dfy EqualityTypes.dfy SplitExpr.dfy
             LoopModifies.dfy Refinement.dfy RefinementErrors.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
-            CallStmtTests.dfy MultiSets.dfy PredExpr.dfy LetExpr.dfy
+            CallStmtTests.dfy MultiSets.dfy PredExpr.dfy
             Predicates.dfy Skeletons.dfy Maps.dfy LiberalEquality.dfy
             RefinementModificationChecking.dfy TailCalls.dfy
             Calculations.dfy IteratorResolution.dfy Iterators.dfy) do (
@@ -40,7 +40,7 @@ for %%f in (Superposition.dfy) do (
 for %%f in (SmallTests.dfy LetExpr.dfy) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /compile:0 /dprint:out.tmp.dfy %* %%f
+  %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.tmp.dfy %* %%f
   %DAFNY_EXE% /compile:0 %* out.tmp.dfy
 )
 

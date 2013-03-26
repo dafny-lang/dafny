@@ -5066,7 +5066,6 @@ namespace Microsoft.Dafny {
     IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
       Contract.Requires(x != null);
       Contract.Requires(expr != null);
-      var lookForBounds = false;
       if (x.Type is BoolType) {
         var lit = new LiteralExpr(x.tok, false);
         lit.Type = Type.Bool;  // resolve here
@@ -5074,49 +5073,74 @@ namespace Microsoft.Dafny {
         lit = new LiteralExpr(x.tok, true);
         lit.Type = Type.Bool;  // resolve here
         yield return lit;
+        yield break;  // there are no more possible witnesses for booleans
       } else if (x.Type.IsRefType) {
-        var lit = new LiteralExpr(x.tok);
+        var lit = new LiteralExpr(x.tok);  // null
         lit.Type = x.Type;
         yield return lit;
-      } else if (x.Type.IsIndDatatype) {
-        var dt = x.Type.AsIndDatatype;
+      } else if (x.Type.IsDatatype) {
+        var dt = x.Type.AsDatatype;
         Expression zero = Zero(x.tok, x.Type);
         if (zero != null) {
           yield return zero;
+        }
+        foreach (var ctor in dt.Ctors) {
+          if (ctor.Formals.Count == 0) {
+            var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<Expression>());
+            v.Ctor = ctor;  // resolve here
+            v.Type = new UserDefinedType(x.tok, dt.Name, dt, new List<Type>());  // resolve here
+            yield return v;
+          }
         }
       } else if (x.Type is SetType) {
         var empty = new SetDisplayExpr(x.tok, new List<Expression>());
         empty.Type = x.Type;
         yield return empty;
-        lookForBounds = true;
       } else if (x.Type is MultiSetType) {
         var empty = new MultiSetDisplayExpr(x.tok, new List<Expression>());
         empty.Type = x.Type;
         yield return empty;
-        lookForBounds = true;
       } else if (x.Type is SeqType) {
         var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
         empty.Type = x.Type;
         yield return empty;
-        lookForBounds = true;
       } else if (x.Type is IntType) {
         var lit = new LiteralExpr(x.tok, 0);
         lit.Type = Type.Int;  // resolve here
         yield return lit;
-        lookForBounds = true;
       }
-      if (lookForBounds) {
-        var missingBounds = new List<BoundVar>();
-        var bounds = Resolver.DiscoverBounds(x.tok, new List<BoundVar>() { x }, expr, true, true, missingBounds);
-        if (missingBounds.Count == 0) {
-          foreach (var bound in bounds) {
-            if (bound is ComprehensionExpr.IntBoundedPool) {
-              var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-              if (bnd.LowerBound != null) yield return bnd.LowerBound;
-              if (bnd.UpperBound != null) yield return Resolver.Minus(bnd.UpperBound, 1);
-            } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
-              var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
-              yield return bnd.LowerBound;
+
+      var missingBounds = new List<BoundVar>();
+      var bounds = Resolver.DiscoverBounds(x.tok, new List<BoundVar>() { x }, expr, true, true, missingBounds);
+      if (missingBounds.Count == 0) {
+        foreach (var bound in bounds) {
+          if (bound is ComprehensionExpr.IntBoundedPool) {
+            var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+            if (bnd.LowerBound != null) yield return bnd.LowerBound;
+            if (bnd.UpperBound != null) yield return Resolver.Minus(bnd.UpperBound, 1);
+          } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
+            var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
+            yield return bnd.LowerBound;
+          } else if (bound is ComprehensionExpr.SetBoundedPool) {
+            var st = ((ComprehensionExpr.SetBoundedPool)bound).Set.Resolved;
+            if (st is DisplayExpression) {
+              var display = (DisplayExpression)st;
+              foreach (var el in display.Elements) {
+                yield return el;
+              }
+            } else if (st is MapDisplayExpr) {
+              var display = (MapDisplayExpr)st;
+              foreach (var maplet in display.Elements) {
+                yield return maplet.A;
+              }
+            }
+          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+            var sq = ((ComprehensionExpr.SeqBoundedPool)bound).Seq.Resolved;
+            var display = sq as DisplayExpression;
+            if (display != null) {
+              foreach (var el in display.Elements) {
+                yield return el;
+              }
             }
           }
         }
@@ -6442,28 +6466,28 @@ namespace Microsoft.Dafny {
         MapType mt = (MapType)type;
         Bpl.Type maptype = predef.MapType(tok, predef.BoxType, predef.BoxType);
         Bpl.Expr clause = null;
-        // (forall i: BoxType :: { Map#Domain(x)[i] }
-        //      Map#Domain(x)[i] ==> Unbox(i)-has-the-expected-type)
-        // (forall i: BoxType :: { Map#Elements(x)[i] }
-        //      Map#Domain(x)[i] ==> Unbox(Map#Elements(x)[i])-has-the-expected-type)
+        // (forall t: BoxType :: { Map#Domain(x)[t] }
+        //      Map#Domain(x)[t] ==> Unbox(t)-has-the-expected-type)
+        // (forall t: BoxType :: { Map#Elements(x)[t] }
+        //      Map#Domain(x)[t] ==> Unbox(Map#Elements(x)[t])-has-the-expected-type)
         Bpl.BoundVariable tVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$t#" + otherTmpVarCount, predef.BoxType));
         otherTmpVarCount++;
         Bpl.Expr t = new Bpl.IdentifierExpr(tok, tVar);
-        Bpl.Expr xSubT = Bpl.Expr.SelectTok(tok, FunctionCall(tok, BuiltinFunction.MapDomain, maptype, x), t);
-        Bpl.Expr xElemSubT = Bpl.Expr.SelectTok(tok, FunctionCall(tok, BuiltinFunction.MapElements, maptype, x), t);
+        Bpl.Expr inDomain = Bpl.Expr.SelectTok(tok, FunctionCall(tok, BuiltinFunction.MapDomain, maptype, x), t);
+        Bpl.Expr xAtT = Bpl.Expr.SelectTok(tok, FunctionCall(tok, BuiltinFunction.MapElements, maptype, x), t);
         Bpl.Expr unboxT = ExpressionTranslator.ModeledAsBoxType(mt.Domain) ? t : FunctionCall(tok, BuiltinFunction.Unbox, TrType(mt.Domain), t);
-        Bpl.Expr unboxElemT = ExpressionTranslator.ModeledAsBoxType(mt.Domain) ? xElemSubT : FunctionCall(tok, BuiltinFunction.Unbox, TrType(mt.Domain), xElemSubT);
+        Bpl.Expr unboxXAtT = ExpressionTranslator.ModeledAsBoxType(mt.Range) ? xAtT : FunctionCall(tok, BuiltinFunction.Unbox, TrType(mt.Range), xAtT);
 
         Bpl.Expr wh = GetWhereClause(tok, unboxT, mt.Domain, etran);
         if (wh != null) {
-          Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xSubT));
-          clause = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(xSubT, wh));
+          Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(inDomain));
+          clause = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(inDomain, wh));
         }
 
-        Bpl.Expr wh2 = GetWhereClause(tok, xElemSubT, mt.Range, etran);
-        if (wh2 != null) {
-          Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xElemSubT));
-          Bpl.Expr forall = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(xSubT, wh));
+        wh = GetWhereClause(tok, unboxXAtT, mt.Range, etran);
+        if (wh != null) {
+          Bpl.Trigger tr = new Bpl.Trigger(tok, true, new Bpl.ExprSeq(xAtT));
+          Bpl.Expr forall = new Bpl.ForallExpr(tok, new Bpl.VariableSeq(tVar), tr, Bpl.Expr.Imp(inDomain, wh));
           if (clause == null) {
             clause = forall;
           } else {
@@ -7490,7 +7514,7 @@ namespace Microsoft.Dafny {
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
           Bpl.Type maptype = predef.MapType(expr.tok, predef.BoxType, predef.BoxType);
-          Bpl.Expr s = translator.FunctionCall(expr.tok, "Map#Empty", maptype);
+          Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.MapEmpty, predef.BoxType);
           foreach (ExpressionPair p in e.Elements) {
             Bpl.Expr elt = BoxIfNecessary(expr.tok, TrExpr(p.A), cce.NonNull(p.A.Type));
             Bpl.Expr elt2 = BoxIfNecessary(expr.tok, TrExpr(p.B), cce.NonNull(p.B.Type));
@@ -8427,6 +8451,7 @@ namespace Microsoft.Dafny {
       SeqSameUntil,
       SeqFromArray,
 
+      MapEmpty,
       MapDomain,
       MapElements,
       MapEqual,
@@ -8615,6 +8640,12 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#FromArray", typeInstantiation, args);
 
+        case BuiltinFunction.MapEmpty: {
+            Contract.Assert(args.Length == 0);
+            Contract.Assert(typeInstantiation != null);
+            Bpl.Type resultType = predef.MapType(tok, typeInstantiation, typeInstantiation);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
+            return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Map#Empty", resultType, args), resultType);
+          }
         case BuiltinFunction.MapDomain:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "Map#Domain", typeInstantiation, args);

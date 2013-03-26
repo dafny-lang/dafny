@@ -1025,9 +1025,9 @@ namespace Microsoft.Dafny {
       } else if (expr is MapDisplayExpr) {
         MapDisplayExpr e = (MapDisplayExpr)expr;
         wr.Write("map");
-        wr.Write("{");
+        wr.Write("[");
         PrintExpressionPairList(e.Elements);
-        wr.Write("}");
+        wr.Write("]");
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
         // determine if parens are needed
