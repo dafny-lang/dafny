@@ -4180,11 +4180,15 @@ namespace Microsoft.Dafny
     private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(s != null);
 
+      var varLhss = new List<IVariable>();
       if (s.AssumeToken == null) {
         // to ease in the verification of the existence check, only allow local variables as LHSs
         foreach (var lhs in s.Lhss) {
-          if (!(lhs.Resolved is IdentifierExpr)) {
+          var ide = lhs.Resolved as IdentifierExpr;
+          if (ide == null) {
             Error(lhs, "the assign-such-that statement currently only supports local-variable LHSs");
+          } else {
+            varLhss.Add(ide.Var);
           }
         }
       }
@@ -4194,6 +4198,20 @@ namespace Microsoft.Dafny
       ResolveExpression(s.Expr, true, codeContext);
       if (ec == ErrorCount && !s.IsGhost && s.AssumeToken == null && !specContextOnly) {
         CheckIsNonGhost(s.Expr);
+
+        var missingBounds = new List<IVariable>();
+        var allBounds = DiscoverBoundsAux(s.Tok, varLhss, s.Expr, true, true, missingBounds);
+        if (missingBounds.Count != 0) {
+          s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
+        } else {
+          Contract.Assert(allBounds != null);
+          s.Bounds = new List<ComprehensionExpr.BoundedPool>();
+          foreach (var pair in allBounds) {
+            Contract.Assert(1 <= pair.Item2.Count);
+            // TODO: The following could be improved by picking the bound that is most likely to give rise to an efficient compiled program
+            s.Bounds.Add(pair.Item2[0]);
+          }
+        }
       }
     }
 
@@ -6305,6 +6323,22 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
+    /// For a description, see DiscoverBoundsAux.
+    /// </summary>
+    public static List<ComprehensionExpr.BoundedPool> DiscoverBounds<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, List<VT> missingBounds) where VT : IVariable {
+      var pairs = DiscoverBoundsAux(tok, bvars, expr, polarity, returnAllBounds, missingBounds);
+      if (pairs == null) {
+        return null;
+      }
+      var bounds = new List<ComprehensionExpr.BoundedPool>();
+      foreach (var pr in pairs) {
+        Contract.Assert(1 <= pr.Item2.Count);
+        bounds.AddRange(pr.Item2);
+      }
+      return bounds;
+    }
+
+    /// <summary>
     /// Tries to find a bounded pool for each of the bound variables "bvars" of "expr".  If this process
     /// fails, then "null" is returned and the bound variables for which the process fails are added to "missingBounds".
     /// If "returnAllBounds" is false, then:
@@ -6318,7 +6352,7 @@ namespace Microsoft.Dafny
     ///      variable only has lower bounds, no upper bounds)
     /// Requires "expr" to be successfully resolved.
     /// </summary>
-    public static List<ComprehensionExpr.BoundedPool> DiscoverBounds(IToken tok, List<BoundVar> bvars, Expression expr, bool polarity, bool returnAllBounds, List<BoundVar> missingBounds) {
+    public static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverBoundsAux<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, List<VT> missingBounds) where VT : IVariable {
       Contract.Requires(tok != null);
       Contract.Requires(bvars != null);
       Contract.Requires(missingBounds != null);
@@ -6334,10 +6368,11 @@ namespace Microsoft.Dafny
          Contract.Result<List<ComprehensionExpr.BoundedPool>>() == null &&
          Contract.OldValue(missingBounds.Count) < missingBounds.Count));
 
-      var bounds = new List<ComprehensionExpr.BoundedPool>();
+      var allBounds = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
       bool foundError = false;
       for (int j = 0; j < bvars.Count; j++) {
         var bv = bvars[j];
+        var bounds = new List<ComprehensionExpr.BoundedPool>();
         if (bv.Type is BoolType) {
           // easy
           bounds.Add(new ComprehensionExpr.BoolBoundedPool());
@@ -6348,7 +6383,7 @@ namespace Microsoft.Dafny
             foundBoundsForBv = true;
           }
           // Go through the conjuncts of the range expression to look for bounds.
-          Expression lowerBound = bv.Type is NatType ? Resolver.CreateResolvedLiteral(bv.tok, 0) : null;
+          Expression lowerBound = bv.Type is NatType ? Resolver.CreateResolvedLiteral(bv.Tok, 0) : null;
           Expression upperBound = null;
           if (returnAllBounds && lowerBound != null) {
             bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
@@ -6451,8 +6486,9 @@ namespace Microsoft.Dafny
           }
         }
       CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)
+      allBounds.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bv, bounds));
       }
-      return foundError ? null : bounds;
+      return foundError ? null : allBounds;
     }
 
     /// <summary>
@@ -6463,7 +6499,7 @@ namespace Microsoft.Dafny
     /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
     /// Ensures that the resulting "e0" and "e1" are not ConcreteSyntaxExpression's.
     /// </summary>
-    static int SanitizeForBoundDiscovery(List<BoundVar> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1) {
+    static int SanitizeForBoundDiscovery<VT>(List<VT> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, ref Expression e0, ref Expression e1) where VT : IVariable {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(boundVars != null);
@@ -6472,7 +6508,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(!(Contract.ValueAtReturn(out e0) is ConcreteSyntaxExpression));
       Contract.Ensures(!(Contract.ValueAtReturn(out e1) is ConcreteSyntaxExpression));
 
-      var bv = boundVars[bvi];
+      IVariable bv = boundVars[bvi];
       e0 = e0.Resolved;
       e1 = e1.Resolved;
 

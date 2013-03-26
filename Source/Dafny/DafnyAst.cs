@@ -1514,6 +1514,9 @@ namespace Microsoft.Dafny {
     bool IsGhost {
       get;
     }
+    IToken Tok {
+      get;
+    }
   }
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : IVariable {
@@ -1554,6 +1557,12 @@ namespace Microsoft.Dafny {
     }
     public bool IsGhost {
       get {
+        throw new NotImplementedException();
+      }
+    }
+    public IToken Tok {
+      get {
+        Contract.Ensures(Contract.Result<IToken>() != null);
         throw new NotImplementedException();
       }
     }
@@ -1644,6 +1653,11 @@ namespace Microsoft.Dafny {
       }
       set {
         isGhost = value;
+      }
+    }
+    public IToken Tok {
+      get {
+        return tok;
       }
     }
 
@@ -2507,6 +2521,12 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Expr;
     public readonly IToken AssumeToken;
+
+    public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver; null for a ghost statement
+    // invariant Bounds == null || Bounds.Count == BoundVars.Count;
+    public List<IVariable> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found
+    // invariant Bounds == null || MissingBounds == null;
+
     /// <summary>
     /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
     /// If "assumeToken" is non-null, then it should denote the "assume" keyword used in the statement.
@@ -2696,6 +2716,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void MakeGhost() {
       base.IsGhost = true;
+    }
+    IToken IVariable.Tok {
+      get {
+        return Tok;
+      }
     }
   }
 

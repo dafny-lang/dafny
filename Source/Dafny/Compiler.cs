@@ -1068,7 +1068,101 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        Error("compilation of assign-such-that statements is currently not supported (line {0})", stmt.Tok.line);
+        if (s.MissingBounds != null) {
+          foreach (var bv in s.MissingBounds) {
+            Error("this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}' (line {1})", bv.Name, bv.Tok.line);
+          }
+        } else {
+          Contract.Assume(s.Bounds != null);
+          SpillLetVariableDecls(s.Expr, indent);
+
+          // For "i,j,k,l :| R(i,j,k,l);", emit something like:
+          //
+          //   foreach (L l' in sq.Elements) { l = l';
+          //     foreach (K k' in st.Elements) { k = k';
+          //       j = Lo;
+          //       for (;; j++) {
+          //         foreach (bool i' in Helper.AllBooleans) { i = i';
+          //           if (R(i,j,k,l)) {
+          //             goto ASSIGN_SUCH_THAT_<id>;
+          //           }
+          //         }
+          //       }
+          //     }
+          //   }
+          //   throw new Exception("assign-such-that search produced no value"); // a verified program never gets here; however, we need this "throw" to please the C# compiler
+          //   ASSIGN_SUCH_THAT_<id>: ;
+          //
+          Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
+          var n = s.Lhss.Count;
+          Contract.Assert(s.Bounds.Count == n);
+          var doneLabel = "_ASSIGN_SUCH_THAT_" + tmpVarCount;
+          tmpVarCount++;
+          for (int i = 0; i < n; i++) {
+            var bound = s.Bounds[i];
+            var bv = ((IdentifierExpr)s.Lhss[i].Resolved).Var;  // the resolver allows only IdentifierExpr left-hand sides
+            var tmpVar = "_assign_such_that_" + tmpVarCount;
+            tmpVarCount++;
+            Indent(indent);
+            if (bound is ComprehensionExpr.BoolBoundedPool) {
+              wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
+            } else if (bound is ComprehensionExpr.IntBoundedPool) {
+              var b = (ComprehensionExpr.IntBoundedPool)bound;
+              // (tmpVar is not used in this case)
+              if (b.LowerBound != null) {
+                wr.Write("@{0} = ", bv.CompileName);
+                TrExpr(b.LowerBound);
+                wr.WriteLine(";");
+                Indent(indent);
+                wr.WriteLine("for (;; @{0}++) {{ ", bv.CompileName);
+              } else {
+                Contract.Assert(b.UpperBound != null);
+                wr.Write("@{0} = ", bv.CompileName);
+                TrExpr(b.UpperBound);
+                wr.WriteLine(";");
+                Indent(indent);
+                wr.WriteLine("for (;; @{0}--) {{ ", bv.CompileName);
+              }
+            } else if (bound is ComprehensionExpr.SetBoundedPool) {
+              var b = (ComprehensionExpr.SetBoundedPool)bound;
+              wr.Write("foreach (var {0} in (", tmpVar);
+              TrExpr(b.Set);
+              wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
+            } else if (bound is ComprehensionExpr.MapBoundedPool) {
+              var b = (ComprehensionExpr.MapBoundedPool)bound;
+              wr.Write("foreach (var {0} in (", tmpVar);
+              TrExpr(b.Map);
+              wr.WriteLine(").Domain) {{ @{0} = {1};", bv.CompileName, tmpVar);
+            } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+              var b = (ComprehensionExpr.SeqBoundedPool)bound;
+              wr.Write("foreach (var {0} in (", tmpVar);
+              TrExpr(b.Seq);
+              wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
+            } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+              var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
+              wr.WriteLine("foreach (var {0} in {1}.AllSingletonConstructors) {{ @{2} = {0};", tmpVar, TypeName(bv.Type), bv.CompileName);
+            } else {
+              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+            }
+          }
+          Indent(indent + IndentAmount);
+          wr.Write("if (");
+          TrExpr(s.Expr);
+          wr.WriteLine(") {");
+          Indent(indent + 2 * IndentAmount);
+          wr.WriteLine("goto {0};", doneLabel);
+          Indent(indent + IndentAmount);
+          wr.WriteLine("}");
+          Indent(indent);
+          for (int i = 0; i < n; i++) {
+            wr.Write(i == 0 ? "}" : " }");
+          }
+          wr.WriteLine();
+          Indent(indent);
+          wr.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", s.Tok.line);
+          Indent(indent);
+          wr.WriteLine("{0}: ;", doneLabel);
+        }
 
       } else if (stmt is VarDecl) {
         TrVarDecl((VarDecl)stmt, true, indent);
