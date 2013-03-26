@@ -3164,8 +3164,9 @@ namespace Microsoft.Dafny {
         if (e.Op == UnaryExpr.Opcode.SetChoose) {
           Bpl.Expr emptySet = FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
           builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E), emptySet), "choose is defined only on nonempty sets"));
-        } else if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
-          CheckNonNull(expr.tok, e.E, builder, etran, options.AssertKv);
+        // Nadia: why was this here? Is it supposed to work for arrays?
+        //} else if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
+        //  CheckNonNull(expr.tok, e.E, builder, etran, options.AssertKv);
         }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -7704,8 +7705,16 @@ namespace Microsoft.Dafny {
             case UnaryExpr.Opcode.SeqLength:
               if (e.E.Type is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
+              } else if (e.E.Type is SetType) {
+                return translator.FunctionCall(expr.tok, BuiltinFunction.SetCard, null, arg);
+              } else if (e.E.Type is MultiSetType) {
+                return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetCard, null, arg);
+              } else if (e.E.Type is MapType) {
+                return translator.FunctionCall(expr.tok, BuiltinFunction.MapCard, null, arg);
               } else {
-                return translator.ArrayLength(expr.tok, arg, 1, 0);
+                // Nadia: why was this here? Is it supposed to work for arrays?
+                //return translator.ArrayLength(expr.tok, arg, 1, 0);
+                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
               }
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -8416,6 +8425,7 @@ namespace Microsoft.Dafny {
 
     enum BuiltinFunction
     {
+      SetCard,
       SetEmpty,
       SetUnionOne,
       SetUnion,
@@ -8424,8 +8434,9 @@ namespace Microsoft.Dafny {
       SetEqual,
       SetSubset,
       SetDisjoint,
-      SetChoose,
+      SetChoose,      
 
+      MultiSetCard,
       MultiSetEmpty,
       MultiSetUnionOne,
       MultiSetUnion,
@@ -8435,7 +8446,7 @@ namespace Microsoft.Dafny {
       MultiSetSubset,
       MultiSetDisjoint,
       MultiSetFromSet,
-      MultiSetFromSeq,
+      MultiSetFromSeq,      
       IsGoodMultiSet,
 
       SeqLength,
@@ -8452,6 +8463,7 @@ namespace Microsoft.Dafny {
       SeqFromArray,
 
       MapEmpty,
+      MapCard,
       MapDomain,
       MapElements,
       MapEqual,
@@ -8497,6 +8509,10 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       switch (f) {
+        case BuiltinFunction.SetCard:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
         case BuiltinFunction.SetEmpty: {
           Contract.Assert(args.Length == 0);
           Contract.Assert(typeInstantiation != null);
@@ -8536,7 +8552,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Set#Choose", typeInstantiation, args);
 
-
+        case BuiltinFunction.MultiSetCard:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "MultiSet#Card", Bpl.Type.Int, args);
         case BuiltinFunction.MultiSetEmpty: {
             Contract.Assert(args.Length == 0);
             Contract.Assert(typeInstantiation != null);
@@ -8646,6 +8665,10 @@ namespace Microsoft.Dafny {
             Bpl.Type resultType = predef.MapType(tok, typeInstantiation, typeInstantiation);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Map#Empty", resultType, args), resultType);
           }
+        case BuiltinFunction.MapCard:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "Map#Card", Bpl.Type.Int, args);
         case BuiltinFunction.MapDomain:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "Map#Domain", typeInstantiation, args);

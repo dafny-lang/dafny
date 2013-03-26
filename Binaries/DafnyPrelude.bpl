@@ -20,12 +20,17 @@ const null: ref;
 
 type Set T = [T]bool;
 
+function Set#Card<T>(Set T): int;
+axiom (forall<T> s: Set T :: { Set#Card(s) } 0 <= Set#Card(s));
+
 function Set#Empty<T>(): Set T;
 axiom (forall<T> o: T :: { Set#Empty()[o] } !Set#Empty()[o]);
+axiom (forall<T> s: Set T :: { Set#Card(s) } Set#Card(s) == 0 <==> s == Set#Empty());
 
 function Set#Singleton<T>(T): Set T;
 axiom (forall<T> r: T :: { Set#Singleton(r) } Set#Singleton(r)[r]);
 axiom (forall<T> r: T, o: T :: { Set#Singleton(r)[o] } Set#Singleton(r)[o] <==> r == o);
+axiom (forall<T> r: T :: { Set#Card(Set#Singleton(r)) } Set#Card(Set#Singleton(r)) == 1);
 
 function Set#UnionOne<T>(Set T, T): Set T;
 axiom (forall<T> a: Set T, x: T, o: T :: { Set#UnionOne(a,x)[o] }
@@ -34,6 +39,10 @@ axiom (forall<T> a: Set T, x: T :: { Set#UnionOne(a, x) }
   Set#UnionOne(a, x)[x]);
 axiom (forall<T> a: Set T, x: T, y: T :: { Set#UnionOne(a, x), a[y] }
   a[y] ==> Set#UnionOne(a, x)[y]);
+axiom (forall<T> a: Set T, x: T :: { Set#Card(Set#UnionOne(a, x)) }
+  a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a));  
+axiom (forall<T> a: Set T, x: T :: { Set#Card(Set#UnionOne(a, x)) }
+  !a[x] ==> Set#Card(Set#UnionOne(a, x)) == Set#Card(a) + 1);    
 
 function Set#Union<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Union(a,b)[o] }
@@ -46,6 +55,9 @@ axiom (forall<T> a, b: Set T :: { Set#Union(a, b) }
   Set#Disjoint(a, b) ==>
     Set#Difference(Set#Union(a, b), a) == b &&
     Set#Difference(Set#Union(a, b), b) == a);
+axiom (forall<T> a, b: Set T :: { Set#Card(Set#Union(a, b)) }
+  Set#Disjoint(a, b) ==>
+    Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));
 
 function Set#Intersection<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
@@ -104,9 +116,15 @@ function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
 // ints are non-negative, used after havocing, and for conversion from sequences to multisets.
 axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) } 
      $IsGoodMultiSet(ms) <==> (forall o: T :: { ms[o] } 0 <= ms[o]));
+     
+function MultiSet#Card<T>(MultiSet T): int;
+axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));     
+axiom (forall<T> s: MultiSet T, x: T, n: int :: { MultiSet#Card(s[x := n]) }
+  0 <= n ==> MultiSet#Card(s[x := n]) == MultiSet#Card(s) - s[x] + n);
 
 function MultiSet#Empty<T>(): MultiSet T;
 axiom (forall<T> o: T :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
+axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) } MultiSet#Card(s) == 0 <==> s == MultiSet#Empty());
 
 function MultiSet#Singleton<T>(T): MultiSet T;
 axiom (forall<T> r: T, o: T :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton(r)[o] == 1 <==> r == o) &&
@@ -126,12 +144,17 @@ axiom (forall<T> a: MultiSet T, x: T, y: T :: { MultiSet#UnionOne(a, x), a[y] }
 // other elements unchanged
 axiom (forall<T> a: MultiSet T, x: T, y: T :: { MultiSet#UnionOne(a, x), a[y] }
   x != y ==> a[y] == MultiSet#UnionOne(a, x)[y]);
+axiom (forall<T> a: MultiSet T, x: T :: { MultiSet#Card(MultiSet#UnionOne(a, x)) }
+  MultiSet#Card(MultiSet#UnionOne(a, x)) == MultiSet#Card(a) + 1);    
+  
 
 function MultiSet#Union<T>(MultiSet T, MultiSet T): MultiSet T;
 // union-ing is the sum of the contents
 axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Union(a,b)[o] }
   MultiSet#Union(a,b)[o] == a[o] + b[o]);
-
+axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Card(MultiSet#Union(a,b)) }
+  MultiSet#Card(MultiSet#Union(a,b)) == MultiSet#Card(a) + MultiSet#Card(b));
+  
 // two containment axioms
 axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Union(a, b), a[y] }
   0 < a[y] ==> 0 < MultiSet#Union(a, b)[y]);
@@ -181,6 +204,8 @@ function MultiSet#FromSet<T>(Set T): MultiSet T;
 axiom (forall<T> s: Set T, a: T :: { MultiSet#FromSet(s)[a] }
   (MultiSet#FromSet(s)[a] == 0 <==> !s[a]) &&
   (MultiSet#FromSet(s)[a] == 1 <==> s[a]));
+axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
+  MultiSet#Card(MultiSet#FromSet(s)) == Set#Card(s));  
 
 // conversion to a multiset, from a sequence.
 function MultiSet#FromSeq<T>(Seq T): MultiSet T;
@@ -370,10 +395,14 @@ type Map U V;
 function Map#Domain<U, V>(Map U V): [U] bool;
 function Map#Elements<U, V>(Map U V): [U]V;
 
+function Map#Card<U, V>(Map U V): int;
+axiom (forall<U, V> m: Map U V :: { Map#Card(m) } 0 <= Map#Card(m));     
+
 function Map#Empty<U, V>(): Map U V;
 axiom (forall<U, V> u: U ::
   { Map#Domain(Map#Empty(): Map U V)[u] }
    !Map#Domain(Map#Empty(): Map U V)[u]);
+axiom (forall<U, V> m: Map U V :: { Map#Card(m) } Map#Card(m) == 0 <==> m == Map#Empty());
 
 function Map#Glue<U, V>([U] bool, [U]V): Map U V;
 axiom (forall<U, V> a: [U] bool, b:[U]V ::
@@ -396,6 +425,11 @@ axiom (forall<U, V> m: Map U V, u: U, u': U, v: V ::
                Map#Elements(Map#Build(m, u, v))[u'] == v) &&
   (u' != u ==> Map#Domain(Map#Build(m, u, v))[u'] == Map#Domain(m)[u'] &&
                Map#Elements(Map#Build(m, u, v))[u'] == Map#Elements(m)[u']));
+axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
+  Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m));  
+axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
+  !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);  
+               
 
 //equality for maps
 function Map#Equal<U, V>(Map U V, Map U V): bool;

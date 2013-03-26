@@ -5198,8 +5198,9 @@ namespace Microsoft.Dafny
             expr.Type = elType;
             break;
           case UnaryExpr.Opcode.SeqLength:
-            if (!UnifyTypes(e.E.Type, new SeqType(new InferredTypeProxy()))) {
-              Error(expr, "length operator expects a sequence argument (instead got {0})", e.E.Type);
+
+            if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy()))) {
+              Error(expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Int;
             break;
@@ -5314,7 +5315,7 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.In:
           case BinaryExpr.Opcode.NotIn:
             if (!UnifyTypes(e.E1.Type, new CollectionTypeProxy(e.E0.Type))) {
-              Error(expr, "second argument to \"{0}\" must be a set or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+              Error(expr, "second argument to \"{0}\" must be a set, multiset or sequence with elements of type {1}, or a map with domain {1} (instead got {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
             }
             expr.Type = Type.Bool;
             break;
