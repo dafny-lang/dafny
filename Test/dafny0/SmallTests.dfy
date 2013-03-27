@@ -584,8 +584,8 @@ method AssignSuchThat6()
 }
 
 method AssignSuchThat7<T>(A: set<T>, x: T) {
-  var B :| A <= B;
-  assert x in A ==> x in B;
+  var B :| B <= A;
+  assert x in B ==> x in A;
 }
 
 method AssignSuchThat8(n: int) returns (x: int, y: Lindgren) {
@@ -625,7 +625,7 @@ method LetSuchThat0(ghost g: int)
 
 method LetSuchThat1<T>(A: set<T>)
 {
-  ghost var C := var B :| A <= B; A - B;
+  ghost var C := var B :| B <= A; B - A;
   assert C == {};
 }
 

@@ -4362,6 +4362,9 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
 
     public abstract class BoundedPool { }
+    public class BoolBoundedPool : BoundedPool
+    {
+    }
     public class IntBoundedPool : BoundedPool
     {
       public readonly Expression LowerBound;
@@ -4376,10 +4379,10 @@ namespace Microsoft.Dafny {
       public readonly Expression Set;
       public SetBoundedPool(Expression set) { Set = set; }
     }
-    public class SuperSetBoundedPool : BoundedPool
+    public class SubSetBoundedPool : BoundedPool
     {
-      public readonly Expression LowerBound;
-      public SuperSetBoundedPool(Expression set) { LowerBound = set; }
+      public readonly Expression UpperBound;
+      public SubSetBoundedPool(Expression set) { UpperBound = set; }
     }
     public class MapBoundedPool : BoundedPool
     {
@@ -4390,9 +4393,6 @@ namespace Microsoft.Dafny {
     {
       public readonly Expression Seq;
       public SeqBoundedPool(Expression seq) { Seq = seq; }
-    }
-    public class BoolBoundedPool : BoundedPool
-    {
     }
     public class DatatypeBoundedPool : BoundedPool
     {

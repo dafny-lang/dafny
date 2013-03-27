@@ -1068,9 +1068,12 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        if (s.MissingBounds != null) {
+        if (s.AssumeToken != null) {
+          // Note, a non-ghost AssignSuchThatStmt may contain an assume
+          Error("an assume statement cannot be compiled (line {0})", s.AssumeToken.line);
+        } else  if (s.MissingBounds != null) {
           foreach (var bv in s.MissingBounds) {
-            Error("this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}' (line {1})", bv.Name, bv.Tok.line);
+            Error("this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}' (line {1})", bv.Name, s.Tok.line);
           }
         } else {
           Contract.Assume(s.Bounds != null);
@@ -1128,6 +1131,11 @@ namespace Microsoft.Dafny {
               wr.Write("foreach (var {0} in (", tmpVar);
               TrExpr(b.Set);
               wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
+            } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+              var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+              wr.Write("foreach (var {0} in (", tmpVar);
+              TrExpr(b.UpperBound);
+              wr.WriteLine(").AllSubsets) {{ @{0} = {1};", bv.CompileName, tmpVar);
             } else if (bound is ComprehensionExpr.MapBoundedPool) {
               var b = (ComprehensionExpr.MapBoundedPool)bound;
               wr.Write("foreach (var {0} in (", tmpVar);

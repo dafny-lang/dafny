@@ -6344,7 +6344,7 @@ namespace Microsoft.Dafny
     /// If "returnAllBounds" is false, then:
     ///   -- at most one BoundedPool per variable is returned
     ///   -- every IntBoundedPool returned has both a lower and an upper bound
-    ///   -- no SuperSetBoundedPool is returned
+    ///   -- no SubSetBoundedPool is returned
     /// If "returnAllBounds" is true, then:
     ///   -- a variable may give rise to several BoundedPool's
     ///   -- IntBoundedPool bounds may have just one component
@@ -6410,8 +6410,8 @@ namespace Microsoft.Dafny
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.Subset:
-                if (returnAllBounds && whereIsBv == 1) {
-                  bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(e0));
+                if (returnAllBounds && whereIsBv == 0) {
+                  bounds.Add(new ComprehensionExpr.SubSetBoundedPool(e1));
                   foundBoundsForBv = true;
                 }
                 break;
@@ -6444,7 +6444,7 @@ namespace Microsoft.Dafny
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 } else if (returnAllBounds && bv.Type is SetType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
-                  bounds.Add(new ComprehensionExpr.SuperSetBoundedPool(otherOperand));
+                  bounds.Add(new ComprehensionExpr.SubSetBoundedPool(otherOperand));
                   foundBoundsForBv = true;
                 }
                 break;

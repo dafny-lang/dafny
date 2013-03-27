@@ -7,7 +7,6 @@ namespace Dafny
   public class Set<T>
   {
     Dictionary<T, bool> dict;
-    public Set() { }
     Set(Dictionary<T, bool> d) {
       dict = d;
     }
@@ -34,6 +33,35 @@ namespace Dafny
         return dict.Keys;
       }
     }
+    /// <summary>
+    /// This is an inefficient iterator for producing all subsets of "this".  Each set returned is the same
+    /// Set<T> object (but this Set<T> object is fresh; in particular, it is not "this").
+    /// </summary>
+    public IEnumerable<Set<T>> AllSubsets {
+      get {
+        // Start by putting all set elements into a list
+        var elmts = new List<T>();
+        elmts.AddRange(dict.Keys);
+        var n = elmts.Count;
+        var which = new bool[n];
+        var s = new Set<T>(new Dictionary<T, bool>(0));
+        while (true) {
+          yield return s;
+          // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
+          int i = 0;
+          for (; i < n && which[i]; i++) {
+            which[i] = false;
+            s.dict.Remove(elmts[i]);
+          }
+          if (i == n) {
+            // we have cycled through all the subsets
+            break;
+          }
+          which[i] = true;
+          s.dict.Add(elmts[i], true);
+        }
+      }
+    }
     public bool Equals(Set<T> other) {
       return dict.Count == other.dict.Count && IsSubsetOf(other);
     }
@@ -42,6 +70,15 @@ namespace Dafny
     }
     public override int GetHashCode() {
       return dict.GetHashCode();
+    }
+    public override string ToString() {
+      var s = "{";
+      var sep = "";
+      foreach (var t in dict.Keys) {
+        s += sep + t.ToString();
+        sep = ", ";
+      }
+      return s + "}";
     }
     public bool IsProperSubsetOf(Set<T> other) {
       return dict.Count < other.dict.Count && IsSubsetOf(other);
@@ -136,7 +173,6 @@ namespace Dafny
   public class MultiSet<T>
   {
     Dictionary<T, int> dict;
-    public MultiSet() { }
     MultiSet(Dictionary<T, int> d) {
       dict = d;
     }
@@ -194,6 +230,18 @@ namespace Dafny
     }
     public override int GetHashCode() {
       return dict.GetHashCode();
+    }
+    public override string ToString() {
+      var s = "multiset{";
+      var sep = "";
+      foreach (var kv in dict) {
+        var t = kv.Key.ToString();
+        for (int i = 0; i < kv.Value; i++) {
+          s += sep + t.ToString();
+          sep = ", ";
+        }
+      }
+      return s + "}";
     }
     public bool IsProperSubsetOf(MultiSet<T> other) {
       return !Equals(other) && IsSubsetOf(other);
@@ -293,7 +341,6 @@ namespace Dafny
   public class Map<U, V>
   {
     Dictionary<U, V> dict;
-    public Map() { }
     Map(Dictionary<U, V> d) {
       dict = d;
     }
@@ -342,6 +389,15 @@ namespace Dafny
     public override int GetHashCode() {
       return dict.GetHashCode();
     }
+    public override string ToString() {
+      var s = "map[";
+      var sep = "";
+      foreach (var kv in dict) {
+        s += sep + kv.Key.ToString() + " := " + kv.Value.ToString();
+        sep = ", ";
+      }
+      return s + "]";
+    }
     public bool IsDisjointFrom(Map<U, V> other) {
       foreach (U u in dict.Keys) {
         if (other.dict.ContainsKey(u))
@@ -373,7 +429,6 @@ namespace Dafny
   public class Sequence<T>
   {
     T[] elmts;
-    public Sequence() { }
     public Sequence(T[] ee) {
       elmts = ee;
     }
@@ -416,6 +471,15 @@ namespace Dafny
     }
     public override int GetHashCode() {
       return elmts.GetHashCode();
+    }
+    public override string ToString() {
+      var s = "[";
+      var sep = "";
+      foreach (var t in elmts) {
+        s += sep + t.ToString();
+        sep = ", ";
+      }
+      return s + "]";
     }
     bool EqualUntil(Sequence<T> other, int n) {
       for (int i = 0; i < n; i++) {
