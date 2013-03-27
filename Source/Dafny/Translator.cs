@@ -3161,13 +3161,6 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
-        if (e.Op == UnaryExpr.Opcode.SetChoose) {
-          Bpl.Expr emptySet = FunctionCall(expr.tok, BuiltinFunction.SetEmpty, predef.BoxType);
-          builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E), emptySet), "choose is defined only on nonempty sets"));
-        // Nadia: why was this here? Is it supposed to work for arrays?
-        //} else if (e.Op == UnaryExpr.Opcode.SeqLength && !(e.E.Type is SeqType)) {
-        //  CheckNonNull(expr.tok, e.E, builder, etran, options.AssertKv);
-        }
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         CheckWellformed(e.E0, options, locals, builder, etran);
@@ -6899,11 +6892,6 @@ namespace Microsoft.Dafny {
 
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
         builder.Add(cmd);
-        var ch = e.Expr as UnaryExpr;
-        if (ch != null && ch.Op == UnaryExpr.Opcode.SetChoose) {
-          // havoc $Tick;
-          builder.Add(new Bpl.HavocCmd(ch.tok, new Bpl.IdentifierExprSeq(etran.Tick())));
-        }
 
       } else if (rhs is HavocRhs) {
         builder.Add(new Bpl.HavocCmd(tok, new Bpl.IdentifierExprSeq(bLhs)));
@@ -7696,12 +7684,6 @@ namespace Microsoft.Dafny {
           switch (e.Op) {
             case UnaryExpr.Opcode.Not:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
-            case UnaryExpr.Opcode.SetChoose:
-              var x = translator.FunctionCall(expr.tok, BuiltinFunction.SetChoose, predef.BoxType, arg, Tick());
-              if (!ModeledAsBoxType(e.Type)) {
-                x = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, translator.TrType(e.Type), x);
-              }
-              return x;
             case UnaryExpr.Opcode.SeqLength:
               if (e.E.Type is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
@@ -7712,8 +7694,6 @@ namespace Microsoft.Dafny {
               } else if (e.E.Type is MapType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.MapCard, null, arg);
               } else {
-                // Nadia: why was this here? Is it supposed to work for arrays?
-                //return translator.ArrayLength(expr.tok, arg, 1, 0);
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
               }
             default:
@@ -8434,7 +8414,6 @@ namespace Microsoft.Dafny {
       SetEqual,
       SetSubset,
       SetDisjoint,
-      SetChoose,      
 
       MultiSetCard,
       MultiSetEmpty,
@@ -8547,10 +8526,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
-        case BuiltinFunction.SetChoose:
-          Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Choose", typeInstantiation, args);
 
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
@@ -8602,11 +8577,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
-        // avoiding this for now
-        /*case BuiltinFunction.SetChoose:
-          Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Choose", typeInstantiation, args);*/
 
         case BuiltinFunction.SeqLength:
           Contract.Assert(args.Length == 1);

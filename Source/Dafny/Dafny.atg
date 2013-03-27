@@ -1012,9 +1012,6 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
          r = new TypeRhs(newToken, ty);
        }
     .)
-  /* One day, the choose expression should be treated just as a special case of a method call. */
-  | "choose"                           (. x = t; .)
-    Expression<out e>                  (. r = new ExprRhs(new UnaryExpr(x, UnaryExpr.Opcode.SetChoose, e)); .)
   | "*"                                (. r = new HavocRhs(t); .)
   | Expression<out e>                  (. r = new ExprRhs(e); .)
   )

@@ -1167,8 +1167,6 @@ namespace Microsoft.Dafny {
           string op;
           int opBindingStrength;
           switch (e.Op) {
-            case UnaryExpr.Opcode.SetChoose:
-              op = "choose ";  opBindingStrength = 0;  break;
             case UnaryExpr.Opcode.Not:
               op = "!";  opBindingStrength = 0x60;  break;
             default:

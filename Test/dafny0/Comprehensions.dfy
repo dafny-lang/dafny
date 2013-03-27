@@ -35,7 +35,7 @@ method PrintSet<T>(s: set<T>) {
   while (q != {})
     decreases q;
   {
-    var x := choose q;
+    var x :| x in q;
     print x, " ";
     q := q - {x};
   }

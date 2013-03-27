@@ -48,11 +48,6 @@ method M0(IS: set<int>)
     x := x + 1;  // cool
   }
 
-  var ia := new int[20];
-  forall (i | 0 <= i < 20) {
-    ia[i] := choose IS;  // error: set choose not allowed
-  }
-
   var ca := new C[20];
   forall (i | 0 <= i < 20) {
     ca[i] := new C;  // error: new allocation not allowed

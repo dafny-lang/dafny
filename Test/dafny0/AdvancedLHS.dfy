@@ -8,7 +8,6 @@ class C {
     x := new C;
     x := new C.Init();
     x := *;
-    x := choose S;
 
     // test evaluation order
     var c := x;

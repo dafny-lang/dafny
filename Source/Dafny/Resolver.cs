@@ -4472,11 +4472,6 @@ namespace Microsoft.Dafny
           } else {
             Error(rhs.Tok, "new allocation not allowed in ghost context");
           }
-        } else if (rhs is ExprRhs) {
-          var r = ((ExprRhs)rhs).Expr.Resolved;
-          if (kind == ForallStmt.ParBodyKind.Assign && r is UnaryExpr && ((UnaryExpr)r).Op == UnaryExpr.Opcode.SetChoose) {
-            Error(r, "set choose operator not supported inside the enclosing forall statement");
-          }
         }
       } else if (stmt is VarDecl) {
         // cool
@@ -5233,13 +5228,6 @@ namespace Microsoft.Dafny
               Error(expr, "logical negation expects a boolean argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Bool;
-            break;
-          case UnaryExpr.Opcode.SetChoose:
-            var elType = new InferredTypeProxy();
-            if (!UnifyTypes(e.E.Type, new SetType(elType))) {
-              Error(expr, "choose operator expects a set argument (instead got {0})", e.E.Type);
-            }
-            expr.Type = elType;
             break;
           case UnaryExpr.Opcode.SeqLength:
             if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy()))) {

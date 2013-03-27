@@ -92,11 +92,6 @@ function Set#Disjoint<T>(Set T, Set T): bool;
 axiom (forall<T> a: Set T, b: Set T :: { Set#Disjoint(a,b) }
   Set#Disjoint(a,b) <==> (forall o: T :: {a[o]} {b[o]} !a[o] || !b[o]));
 
-function Set#Choose<T>(Set T, TickType): T;
-axiom (forall<T> a: Set T, tick: TickType :: { Set#Choose(a, tick) }
-  a != Set#Empty() ==> a[Set#Choose(a, tick)]);
-
-
 // ---------------------------------------------------------------
 // -- Axiomatization of multisets --------------------------------
 // ---------------------------------------------------------------

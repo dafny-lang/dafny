@@ -80,7 +80,7 @@ class BreadthFirstSearch<Vertex(==)>
       decreases AllVertices - Processed;
     {
       // remove a vertex "v" from "C"
-      var v := choose C;
+      var v :| v in C;
       C, Processed := C - {v}, Processed + {v};
       ghost var pathToV := Find(source, v, paths);
     
@@ -264,7 +264,7 @@ class BreadthFirstSearch<Vertex(==)>
     if (vSuccs == {}) {
       newPaths := paths;
     } else {
-      var succ := choose vSuccs;
+      var succ :| succ in vSuccs;
       newPaths := Maplet(Domain(paths) + {succ}, succ, pathToV + [v], paths);
       newPaths := UpdatePaths(vSuccs - {succ}, source, newPaths, v, pathToV);
     }

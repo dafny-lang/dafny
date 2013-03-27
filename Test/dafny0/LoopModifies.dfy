@@ -307,7 +307,7 @@ method Testing12(a: Elem, b: Elem, c: Elem)
       modifies S;
       decreases S;
    {
-      var j := choose S;
+      var j :| j in S;
       // these still good, even though S shrinks to not include them.
       a.i := i;
       b.i := i;

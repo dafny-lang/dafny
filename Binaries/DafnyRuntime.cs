@@ -162,13 +162,6 @@ namespace Dafny
       }
       return new Set<T>(r);
     }
-    public T Choose() {
-      foreach (T t in dict.Keys) {
-        // return the first one
-        return t;
-      }
-      return default(T);
-    }
   }
   public class MultiSet<T>
   {
