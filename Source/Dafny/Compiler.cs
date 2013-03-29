@@ -1081,10 +1081,17 @@ namespace Microsoft.Dafny {
 
           // For "i,j,k,l :| R(i,j,k,l);", emit something like:
           //
+          // for (BigInteger iterLimit = 5; ; iterLimit *= 2) {
+          //   var il$0 = iterLimit;
           //   foreach (L l' in sq.Elements) { l = l';
+          //     il$0--;  if (il$0 == 0) { break; }
+          //     var il$1 = iterLimit;
           //     foreach (K k' in st.Elements) { k = k';
+          //       il$1--;  if (il$1 == 0) { break; }
+          //       var il$2 = iterLimit;
           //       j = Lo;
           //       for (;; j++) {
+          //         il$2--;  if (il$2 == 0) { break; }
           //         foreach (bool i' in Helper.AllBooleans) { i = i';
           //           if (R(i,j,k,l)) {
           //             goto ASSIGN_SUCH_THAT_<id>;
@@ -1093,20 +1100,38 @@ namespace Microsoft.Dafny {
           //       }
           //     }
           //   }
-          //   throw new Exception("assign-such-that search produced no value"); // a verified program never gets here; however, we need this "throw" to please the C# compiler
-          //   ASSIGN_SUCH_THAT_<id>: ;
+          // }
+          // throw new Exception("assign-such-that search produced no value"); // a verified program never gets here; however, we need this "throw" to please the C# compiler
+          // ASSIGN_SUCH_THAT_<id>: ;
+          //
+          // where the iterLimit loop can be omitted if s.Lhss.Count == 1 or if all bounds are finite.  Further optimizations could be done, but
+          // are omitted for now.
           //
           Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
           var n = s.Lhss.Count;
           Contract.Assert(s.Bounds.Count == n);
           var doneLabel = "_ASSIGN_SUCH_THAT_" + tmpVarCount;
+          var iterLimit = "_iterLimit_" + tmpVarCount;
           tmpVarCount++;
-          for (int i = 0; i < n; i++) {
+
+          int ind = indent;
+          bool needIterLimit = s.Lhss.Count != 1 && s.Bounds.Exists(bnd => !bnd.IsFinite);
+          if (needIterLimit) {
+            Indent(indent);
+            wr.WriteLine("for (var {0} = new BigInteger(5); ; {0} *= 2) {{", iterLimit);
+            ind += IndentAmount;
+          }
+
+          for (int i = 0; i < n; i++, ind += IndentAmount) {
             var bound = s.Bounds[i];
             var bv = ((IdentifierExpr)s.Lhss[i].Resolved).Var;  // the resolver allows only IdentifierExpr left-hand sides
+            if (needIterLimit) {
+              Indent(ind);
+              wr.WriteLine("var {0}_{1} = {0};", iterLimit, i);
+            }
             var tmpVar = "_assign_such_that_" + tmpVarCount;
             tmpVarCount++;
-            Indent(indent);
+            Indent(ind);
             if (bound is ComprehensionExpr.BoolBoundedPool) {
               wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ @{1} = {0};", tmpVar, bv.CompileName);
             } else if (bound is ComprehensionExpr.IntBoundedPool) {
@@ -1116,14 +1141,20 @@ namespace Microsoft.Dafny {
                 wr.Write("@{0} = ", bv.CompileName);
                 TrExpr(b.LowerBound);
                 wr.WriteLine(";");
-                Indent(indent);
-                wr.WriteLine("for (;; @{0}++) {{ ", bv.CompileName);
+                Indent(ind);
+                if (b.UpperBound != null) {
+                  wr.Write("for (; @{0} < ", bv.CompileName);
+                  TrExpr(b.UpperBound);
+                  wr.WriteLine("; @{0}++) {{ ", bv.CompileName);
+                } else {
+                  wr.WriteLine("for (;; @{0}++) {{ ", bv.CompileName);
+                }
               } else {
                 Contract.Assert(b.UpperBound != null);
                 wr.Write("@{0} = ", bv.CompileName);
                 TrExpr(b.UpperBound);
                 wr.WriteLine(";");
-                Indent(indent);
+                Indent(ind);
                 wr.WriteLine("for (;; @{0}--) {{ ", bv.CompileName);
               }
             } else if (bound is ComprehensionExpr.SetBoundedPool) {
@@ -1152,20 +1183,24 @@ namespace Microsoft.Dafny {
             } else {
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
             }
+            if (needIterLimit) {
+              Indent(ind + IndentAmount);
+              wr.WriteLine("{0}_{1}--;  if ({0}_{1} == 0) {{ break; }}", iterLimit, i);
+            }
           }
-          Indent(indent + IndentAmount);
+          Indent(ind);
           wr.Write("if (");
           TrExpr(s.Expr);
           wr.WriteLine(") {");
-          Indent(indent + 2 * IndentAmount);
+          Indent(ind + IndentAmount);
           wr.WriteLine("goto {0};", doneLabel);
-          Indent(indent + IndentAmount);
+          Indent(ind);
           wr.WriteLine("}");
           Indent(indent);
           for (int i = 0; i < n; i++) {
             wr.Write(i == 0 ? "}" : " }");
           }
-          wr.WriteLine();
+          wr.WriteLine(needIterLimit ? " }" : "");
           Indent(indent);
           wr.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", s.Tok.line);
           Indent(indent);
