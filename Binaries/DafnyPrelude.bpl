@@ -55,9 +55,10 @@ axiom (forall<T> a, b: Set T :: { Set#Union(a, b) }
   Set#Disjoint(a, b) ==>
     Set#Difference(Set#Union(a, b), a) == b &&
     Set#Difference(Set#Union(a, b), b) == a);
-axiom (forall<T> a, b: Set T :: { Set#Card(Set#Union(a, b)) }
-  Set#Disjoint(a, b) ==>
-    Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));
+// Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
+// axiom (forall<T> a, b: Set T :: { Set#Card(Set#Union(a, b)) }
+  // Set#Disjoint(a, b) ==>
+    // Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));    
 
 function Set#Intersection<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
@@ -71,6 +72,8 @@ axiom (forall<T> a, b: Set T :: { Set#Intersection(Set#Intersection(a, b), b) }
   Set#Intersection(Set#Intersection(a, b), b) == Set#Intersection(a, b));
 axiom (forall<T> a, b: Set T :: { Set#Intersection(a, Set#Intersection(a, b)) }
   Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
+axiom (forall<T> a, b: Set T :: { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
+  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));  
 
 function Set#Difference<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Difference(a,b)[o] }
@@ -81,6 +84,9 @@ axiom (forall<T> a, b: Set T, y: T :: { Set#Difference(a, b), b[y] }
 function Set#Subset<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
+axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
+  Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
+  
 
 function Set#Equal<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }
