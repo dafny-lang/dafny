@@ -6662,7 +6662,7 @@ namespace Microsoft.Dafny {
           for (int j = 0; j < i; j++) {
             var prev = lhss[j] as IdentifierExpr;
             if (prev != null && names[i] == names[j]) {
-              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.True, Bpl.Expr.Eq(rhs[i],rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must have the same value", j, i)));
+              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.True, Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
             }
           }
         } else if (lhs is FieldSelectExpr) {
@@ -6671,7 +6671,7 @@ namespace Microsoft.Dafny {
           for (int j = 0; j < i; j++) {
             var prev = lhss[j] as FieldSelectExpr;
             if (prev != null && prev.Field == fse.Field) {
-              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must have the same value", j, i)));
+              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
             }
           }
         } else if (lhs is SeqSelectExpr) {
@@ -6682,7 +6682,7 @@ namespace Microsoft.Dafny {
             if (prev != null) {
               builder.Add(Assert(tok,
                 Bpl.Expr.Imp(Bpl.Expr.And(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(fields[j], fields[i])), Bpl.Expr.Eq(rhs[i], rhs[j])),
-                string.Format("when left-hand sides {0} and {1} may refer to the same location, they must have the same value", j, i)));
+                string.Format("when left-hand sides {0} and {1} may refer to the same location, they must be assigned the same value", j, i)));
             }
           }
         } else {
@@ -6693,7 +6693,7 @@ namespace Microsoft.Dafny {
             if (prev != null) {
               builder.Add(Assert(tok,
                 Bpl.Expr.Imp(Bpl.Expr.And(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(fields[j], fields[i])), Bpl.Expr.Eq(rhs[i], rhs[j])),
-                string.Format("when left-hand sides {0} and {1} refer to the same location, they must have the same value", j, i)));
+                string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
             }
           }
           

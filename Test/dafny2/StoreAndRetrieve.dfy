@@ -1,6 +1,6 @@
 abstract module A {
   import L = Library;
-  class {:autocontracts} StoreAndRetrieve<Thing> {
+  class {:autocontracts} StoreAndRetrieve<Thing(==)> {
     ghost var Contents: set<Thing>;
     predicate Valid
     {
@@ -26,7 +26,7 @@ abstract module A {
 }
 
 module B refines A {
-  class StoreAndRetrieve<Thing> {
+  class StoreAndRetrieve<Thing(==)> {
     var arr: seq<Thing>;
     predicate Valid
     {
@@ -52,14 +52,14 @@ module B refines A {
       }
       var k := arr[i];
       ...;
-      var a :| assume Contents == set x | x in a;
+      var a: seq<Thing> :| assume Contents == set x | x in a;
       arr := a;
     }
   }
 }
 
 module C refines B {
-  class StoreAndRetrieve<Thing> {
+  class StoreAndRetrieve<Thing(==)> {
     method Retrieve...
     {
       ...;

@@ -103,13 +103,13 @@ method m7()
 }
 method m8()
 {
-   var a := map[];
+   var a: map<int,int> := map[];
    assert forall i :: i !in a; // check emptiness
    var i,n := 0, 100;
    while(i < n)
       invariant 0 <= i <= n;
       invariant forall i | i in a :: a[i] == i * i;
-	  invariant forall k :: 0 <= k < i <==> k in a;
+      invariant forall k :: 0 <= k < i <==> k in a;
    {
       a := a[i := i * i];
       i := i + 1;

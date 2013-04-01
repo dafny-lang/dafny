@@ -1178,6 +1178,22 @@ namespace Microsoft.Dafny
       }
 
       if (ErrorCount == prevErrorCount) {
+        // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
+        foreach (TopLevelDecl d in declarations) {
+          if (d is IteratorDecl) {
+            var iter = (IteratorDecl)d;
+            iter.Members.Iter(CheckTypeInference_Member);
+            if (iter.Body != null) {
+              CheckTypeInference(iter.Body);
+            }
+          } else if (d is ClassDecl) {
+            var cl = (ClassDecl)d;
+            cl.Members.Iter(CheckTypeInference_Member);
+          }
+        }
+      }
+
+      if (ErrorCount == prevErrorCount) {
         // fill in the postconditions and bodies of prefix methods
         foreach (var com in ModuleDefinition.AllCoMethods(declarations)) {
           var prefixMethod = com.PrefixMethod;
@@ -1211,58 +1227,7 @@ namespace Microsoft.Dafny
           ResolveMethod(prefixMethod);
           allTypeParameters.PopMarker();
           currentClass = null;
-        }
-
-        foreach (TopLevelDecl d in declarations) {
-          if (d is ClassDecl) {
-            foreach (var member in ((ClassDecl)d).Members) {
-              if (member is Method) {
-                var m = (Method)member;
-                m.Req.Iter(mfe => CheckTypeInference(mfe.E));
-                m.Ens.Iter(mfe => CheckTypeInference(mfe.E));
-                m.Mod.Expressions.Iter(fe => CheckTypeInference(fe.E));
-                m.Decreases.Expressions.Iter(CheckTypeInference);
-                if (m.Body != null) {
-                  CheckTypeInference(m.Body);
-                  bool tail = true;
-                  bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
-                  if (hasTailRecursionPreference && !tail) {
-                    // the user specifically requested no tail recursion, so do nothing else
-                  } else if (hasTailRecursionPreference && tail && m.IsGhost) {
-                    Error(m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
-                  } else {
-                    var module = m.EnclosingClass.Module;
-                    var sccSize = module.CallGraph.GetSCCSize(m);
-                    if (hasTailRecursionPreference && 2 <= sccSize) {
-                      Error(m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
-                    } else if (hasTailRecursionPreference || sccSize == 1) {
-                      CallStmt tailCall = null;
-                      var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
-                      if (status != TailRecursionStatus.NotTailRecursive) {
-                        m.IsTailRecursive = true;
-                      }
-                    }
-                  }
-                }
-                if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
-                  Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
-                }
-              } else if (member is Function) {
-                var f = (Function)member;
-                f.Req.Iter(CheckTypeInference);
-                f.Ens.Iter(CheckTypeInference);
-                f.Reads.Iter(fe => CheckTypeInference(fe.E));
-                f.Decreases.Expressions.Iter(CheckTypeInference);
-                if (f.Body != null) {
-                  CheckTypeInference(f.Body);
-                  bool tail = true;
-                  if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
-                    Error(f.tok, "sorry, tail-call functions are not supported");
-                  }
-                }
-              }
-            }
-          }
+          CheckTypeInference_Member(prefixMethod);
         }
       }
 
@@ -1492,6 +1457,54 @@ namespace Microsoft.Dafny
       }
     }
 
+    private void CheckTypeInference_Member(MemberDecl member) {
+      if (member is Method) {
+        var m = (Method)member;
+        m.Req.Iter(mfe => CheckTypeInference(mfe.E));
+        m.Ens.Iter(mfe => CheckTypeInference(mfe.E));
+        m.Mod.Expressions.Iter(fe => CheckTypeInference(fe.E));
+        m.Decreases.Expressions.Iter(CheckTypeInference);
+        if (m.Body != null) {
+          CheckTypeInference(m.Body);
+          bool tail = true;
+          bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
+          if (hasTailRecursionPreference && !tail) {
+            // the user specifically requested no tail recursion, so do nothing else
+          } else if (hasTailRecursionPreference && tail && m.IsGhost) {
+            Error(m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
+          } else {
+            var module = m.EnclosingClass.Module;
+            var sccSize = module.CallGraph.GetSCCSize(m);
+            if (hasTailRecursionPreference && 2 <= sccSize) {
+              Error(m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
+            } else if (hasTailRecursionPreference || sccSize == 1) {
+              CallStmt tailCall = null;
+              var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
+              if (status != TailRecursionStatus.NotTailRecursive) {
+                m.IsTailRecursive = true;
+              }
+            }
+          }
+        }
+        if (!m.IsTailRecursive && m.Body != null && Contract.Exists(m.Decreases.Expressions, e => e is WildcardExpr)) {
+          Error(m.Decreases.Expressions[0].tok, "'decreases *' is allowed only on tail-recursive methods");
+        }
+      } else if (member is Function) {
+        var f = (Function)member;
+        f.Req.Iter(CheckTypeInference);
+        f.Ens.Iter(CheckTypeInference);
+        f.Reads.Iter(fe => CheckTypeInference(fe.E));
+        f.Decreases.Expressions.Iter(CheckTypeInference);
+        if (f.Body != null) {
+          CheckTypeInference(f.Body);
+          bool tail = true;
+          if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
+            Error(f.tok, "sorry, tail-call functions are not supported");
+          }
+        }
+      }
+    }
+
     enum TailRecursionStatus
     {
       NotTailRecursive, // contains code that makes the enclosing method body not tail recursive (in way that is supported)
@@ -1649,6 +1662,9 @@ namespace Microsoft.Dafny
         }
         return status;
       } else if (stmt is AssignSuchThatStmt) {
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
@@ -1850,6 +1866,12 @@ namespace Microsoft.Dafny
         foreach (MatchCaseStmt mc in s.Cases) {
           mc.Body.Iter(CheckEqualityTypes_Stmt);
         }
+      } else if (stmt is AssignSuchThatStmt) {
+        var s = (AssignSuchThatStmt)stmt;
+        s.SubExpressions.Iter(CheckEqualityTypes);
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        s.ResolvedStatements.Iter(CheckEqualityTypes_Stmt);
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         s.ResolvedStatements.Iter(CheckEqualityTypes_Stmt);
@@ -1931,6 +1953,10 @@ namespace Microsoft.Dafny
           }
           i++;
         }
+      } else if (expr is CalcExpr) {
+        // a calc expression also contains statements
+        var e = (CalcExpr)expr;
+        CheckEqualityTypes_Stmt(e.Guard);
       }
 
       foreach (var ee in expr.SubExpressions) {
@@ -1992,101 +2018,51 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CheckTypeIsDetermined(IToken tok, Type t, string what) {
+    bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Requires(what != null);
       t = t.Normalize();
       if (t is TypeProxy && !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy)) {
         Error(tok, "the type of this {0} is underspecified, but it cannot be an arbitrary type.", what);
+        return false;
       }
+      return true;
     }
-    void CheckTypeInference(Expression e) {
-      if (e == null) return;
-      e.SubExpressions.Iter(CheckTypeInference);
-      var ce = e as ComprehensionExpr;
-      if (ce != null) {
-        foreach (var bv in ce.BoundVars) {
-          if (bv.Type.Normalize() is TypeProxy) {
-            Error(bv.tok, "type of bound variable '{0}' could not determined; please specify the type explicitly", bv.Name);
+    void CheckTypeInference(Expression expr) {
+      if (expr == null) return;
+      expr.SubExpressions.Iter(CheckTypeInference);
+      if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
+        if (e != null) {
+          foreach (var bv in e.BoundVars) {
+            if (bv.Type.Normalize() is TypeProxy) {
+              Error(bv.tok, "type of bound variable '{0}' could not determined; please specify the type explicitly", bv.Name);
+            }
           }
         }
+      } else if (expr is CalcExpr) {
+        // a calc expression also contains statements
+        var e = (CalcExpr)expr;
+        CheckTypeInference(e.Guard);
       }
-      CheckTypeIsDetermined(e.tok, e.Type, "expression");
+      if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
+        var bin = expr as BinaryExpr;
+        if (bin != null) {
+          bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
+        }
+      }
     }
     void CheckTypeInference(Statement stmt) {
       Contract.Requires(stmt != null);
-      if (stmt is PrintStmt) {
-        var s = (PrintStmt)stmt;
-        s.Args.Iter(arg => CheckTypeInference(arg.E));
-      } else if (stmt is BreakStmt) {
-      } else if (stmt is ProduceStmt) {
-        var s = (ProduceStmt)stmt;
-        if (s.rhss != null) {
-          s.rhss.Iter(rhs => rhs.SubExpressions.Iter(e => CheckTypeInference(e)));
-        }
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
-        CheckTypeInference(s.Lhs);
-        s.Rhs.SubExpressions.Iter(e => { CheckTypeInference(e); });
-      } else if (stmt is VarDecl) {
+      stmt.SubExpressions.Iter(CheckTypeInference);
+      stmt.SubStatements.Iter(CheckTypeInference);
+      if (stmt is VarDecl) {
         var s = (VarDecl)stmt;
-        s.SubStatements.Iter(CheckTypeInference);
         CheckTypeIsDetermined(s.Tok, s.Type, "local variable");
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        CheckTypeInference(s.Receiver);
-        s.Args.Iter(e => CheckTypeInference(e));
-        s.Lhs.Iter(e => CheckTypeInference(e));
-      } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        s.Body.Iter(CheckTypeInference);
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          CheckTypeInference(s.Guard);
-        }
-        s.SubStatements.Iter(CheckTypeInference);
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          CheckTypeInference(alt.Guard);
-          alt.Body.Iter(CheckTypeInference);
-        }
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
-        if (s.Guard != null) {
-          CheckTypeInference(s.Guard);
-        }
-        CheckTypeInference(s.Body);
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          CheckTypeInference(alt.Guard);
-          alt.Body.Iter(CheckTypeInference);
-        }
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        CheckTypeInference(s.Range);
-        CheckTypeInference(s.Body);
         s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-      } else if (stmt is CalcStmt) {
-        var s = (CalcStmt)stmt;
-        s.SubExpressions.Iter(e => CheckTypeInference(e));
-        s.SubStatements.Iter(CheckTypeInference);		
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        CheckTypeInference(s.Source);
-        foreach (MatchCaseStmt mc in s.Cases) {
-          mc.Body.Iter(CheckTypeInference);
-        }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        s.ResolvedStatements.Iter(CheckTypeInference);
-      } else if (stmt is PredicateStmt) {
-        CheckTypeInference(((PredicateStmt)stmt).Expr);
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
 
@@ -3587,7 +3563,7 @@ namespace Microsoft.Dafny
           s.hiddenUpdate = null;
         }
       } else if (stmt is ConcreteUpdateStatement) {
-        ResolveUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, codeContext);
+        ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var vd in s.Lhss) {
@@ -3842,6 +3818,7 @@ namespace Microsoft.Dafny
         bool bodyMustBeSpecOnly = specContextOnly || (prevErrorCount == ErrorCount && UsesSpecFeatures(s.Range));
         if (!bodyMustBeSpecOnly && prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
+          CheckTypeInference(s.Range);  // we need to resolve operators before the call to DiscoverBounds
           s.Bounds = DiscoverBounds(s.Tok, s.BoundVars, s.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             bodyMustBeSpecOnly = true;
@@ -4037,37 +4014,57 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     }
-    private void ResolveUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, ICodeContext codeContext) {
+    private void ResolveConcreteUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(codeContext != null);
 
-      int prevErrorCount = ErrorCount;
       // First, resolve all LHS's and expression-looking RHS's.
+      int errorCountBeforeCheckingLhs = ErrorCount;
       var update = s as UpdateStmt;
 
+      var lhsNameSet = new Dictionary<string, object>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
       foreach (var lhs in s.Lhss) {
         var ec = ErrorCount;
         ResolveExpression(lhs, true, codeContext);
-        if (update == null && ec == ErrorCount && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
-          Error(lhs, "cannot assign to non-ghost variable in a ghost context");
-        }
-        if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
-          Error(lhs, "cannot assign to a range of array elements (try the 'forall' statement)");
+        if (ec == ErrorCount) {
+          if (update == null && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
+            Error(lhs, "cannot assign to non-ghost variable in a ghost context");
+          }
+          if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
+            Error(lhs, "cannot assign to a range of array elements (try the 'forall' statement)");
+          }
+          var ie = lhs.Resolved as IdentifierExpr;
+          if (ie != null) {
+            if (lhsNameSet.ContainsKey(ie.Name)) {
+              Error(update, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
+            } else {
+              lhsNameSet.Add(ie.Name, null);
+            }
+          }
         }
       }
+
       // Resolve RHSs
       if (update == null) {
         var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
         ResolveAssignSuchThatStmt(suchThat, specContextOnly, codeContext);
-        return;
-      } 
-
+      } else {
+        ResolveUpdateStmt(update, specContextOnly, codeContext, errorCountBeforeCheckingLhs);
+      }
+    }
+    /// <summary>
+    /// Resolve the RHSs and entire UpdateStmt (LHSs should already have been checked by the caller).
+    /// errorCountBeforeCheckingLhs is passed in so that this method can determined if any resolution errors were found during
+    /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
+    /// </summary>
+    private void ResolveUpdateStmt(UpdateStmt update, bool specContextOnly, ICodeContext codeContext, int errorCountBeforeCheckingLhs) {
+      Contract.Requires(update != null);
       IToken firstEffectfulRhs = null;
       CallRhs callRhs = null;
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
         if (rhs is TypeRhs) {
           var tr = (TypeRhs)rhs;
-          ResolveTypeRhs(tr, s, specContextOnly, codeContext);
+          ResolveTypeRhs(tr, update, specContextOnly, codeContext);
           isEffectful = tr.InitCall != null;
         } else if (rhs is HavocRhs) {
           isEffectful = false;
@@ -4094,34 +4091,24 @@ namespace Microsoft.Dafny
           firstEffectfulRhs = rhs.Tok;
         }
       }
-      // syntactically disallow duplicate LHSs for call statements
-      if (callRhs != null) {
-        // check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
-        var lhsNameSet = new Dictionary<string, object>();
-        foreach (var lhs in s.Lhss) {
-          var ie = lhs.Resolved as IdentifierExpr;
-          if (ie != null) {
-            if (lhsNameSet.ContainsKey(ie.Name)) {
-              Error(s, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
-            } else {
-              lhsNameSet.Add(ie.Name, null);
-            }
-          }
-        }
+      var resolvedStatements = update.ResolvedStatements;
+      if (ErrorCount != errorCountBeforeCheckingLhs) {
+        // Errors occurs, so don't populate the real update.ResolvedStatements.  Instead, create a placebo.
+        resolvedStatements = new List<Statement>();
       }
 
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
-        if (s.Lhss.Count == 0) {
+        if (update.Lhss.Count == 0) {
           Contract.Assert(update.Rhss.Count == 1);  // guaranteed by the parser
-          Error(s, "expected method call, found expression");
-        } else if (s.Lhss.Count != update.Rhss.Count) {
-          Error(s, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, update.Rhss.Count);
-        } else if (ErrorCount == prevErrorCount) {
+          Error(update, "expected method call, found expression");
+        } else if (update.Lhss.Count != update.Rhss.Count) {
+          Error(update, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
+        } else {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
-          for (int i = 0; i < s.Lhss.Count; i++) {
-            var a = new AssignStmt(s.Tok, s.Lhss[i].Resolved, update.Rhss[i]);
-            s.ResolvedStatements.Add(a);
+          for (int i = 0; i < update.Lhss.Count; i++) {
+            var a = new AssignStmt(update.Tok, update.Lhss[i].Resolved, update.Rhss[i]);
+            resolvedStatements.Add(a);
           }
         }
 
@@ -4139,9 +4126,10 @@ namespace Microsoft.Dafny
             Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
             if (tr.CanAffectPreviouslyKnownExpressions) {
               Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
+            } else {
+              var a = new AssignStmt(update.Tok, update.Lhss[0].Resolved, tr);
+              resolvedStatements.Add(a);
             }
-            var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, tr);
-            s.ResolvedStatements.Add(a);
           }
         }
 
@@ -4151,30 +4139,28 @@ namespace Microsoft.Dafny
           Error(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
         } else if (callRhs == null) {
           // must be a single TypeRhs
-          if (s.Lhss.Count != 1) {
-            Contract.Assert(2 <= s.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-            Error(s.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", s.Lhss.Count, update.Rhss.Count);
-          } else if (ErrorCount == prevErrorCount) {
-            var a = new AssignStmt(s.Tok, s.Lhss[0].Resolved, update.Rhss[0]);
-            s.ResolvedStatements.Add(a);
+          if (update.Lhss.Count != 1) {
+            Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+            Error(update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
+          } else {
+            var a = new AssignStmt(update.Tok, update.Lhss[0].Resolved, update.Rhss[0]);
+            resolvedStatements.Add(a);
           }
         } else {
           // a call statement
-          if (ErrorCount == prevErrorCount) {
-            var resolvedLhss = new List<Expression>();
-            foreach (var ll in s.Lhss) {
-              resolvedLhss.Add(ll.Resolved);
-            }
-            var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
-            s.ResolvedStatements.Add(a);
+          var resolvedLhss = new List<Expression>();
+          foreach (var ll in update.Lhss) {
+            resolvedLhss.Add(ll.Resolved);
           }
+          var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+          resolvedStatements.Add(a);
         }
       }
 
-      foreach (var a in s.ResolvedStatements) {
+      foreach (var a in update.ResolvedStatements) {
         ResolveStatement(a, specContextOnly, codeContext);
       }
-      s.IsGhost = s.ResolvedStatements.TrueForAll(ss => ss.IsGhost);
+      update.IsGhost = update.ResolvedStatements.TrueForAll(ss => ss.IsGhost);
     }
 
     private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, bool specContextOnly, ICodeContext codeContext) {
@@ -4200,6 +4186,7 @@ namespace Microsoft.Dafny
         CheckIsNonGhost(s.Expr);
 
         var missingBounds = new List<IVariable>();
+        CheckTypeInference(s.Expr);  // we need to resolve operators before the call to DiscoverBoundsAux
         var allBounds = DiscoverBoundsAux(s.Tok, varLhss, s.Expr, true, true, missingBounds);
         if (missingBounds.Count != 0) {
           s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
@@ -4457,6 +4444,11 @@ namespace Microsoft.Dafny
         foreach (var lhs in s.Lhss) {
           CheckForallStatementBodyLhs(s.Tok, lhs.Resolved, kind);
         }
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        foreach (var ss in s.ResolvedStatements) {
+          CheckForallStatementBodyRestrictions(ss, kind);
+        }
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
         foreach (var ss in s.ResolvedStatements) {
@@ -4606,6 +4598,11 @@ namespace Microsoft.Dafny
         var s = (CallStmt)stmt;
         if (s.Method.Mod.Expressions.Count != 0) {
           Error(stmt, "calls to methods with side-effects are not allowed inside a hint");
+        }
+      } else if (stmt is UpdateStmt) {
+        var s = (UpdateStmt)stmt;
+        foreach (var ss in s.ResolvedStatements) {
+          CheckHintRestrictions(ss);
         }
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
@@ -5287,12 +5284,16 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Le:
           case BinaryExpr.Opcode.Add: {
               if (e.Op == BinaryExpr.Opcode.Lt && e.E0.Type.IsIndDatatype) {
-                if (!UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
+                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
+                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
+                } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
                 }
                 expr.Type = Type.Bool;
               } else if (e.Op == BinaryExpr.Opcode.Lt && e.E1.Type.IsIndDatatype) {
-                if (!UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
+                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
+                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankLt;
+                } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
                 }
                 expr.Type = Type.Bool;
@@ -5320,8 +5321,17 @@ namespace Microsoft.Dafny
           case BinaryExpr.Opcode.Gt:
           case BinaryExpr.Opcode.Ge: {
               if (e.Op == BinaryExpr.Opcode.Gt && e.E0.Type.IsIndDatatype) {
-                if (!UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
+                if (UnifyTypes(e.E1.Type, new DatatypeProxy(false))) {
+                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
+                } else {
                   Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E1.Type);
+                }
+                expr.Type = Type.Bool;
+              } else if (e.Op == BinaryExpr.Opcode.Gt && e.E1.Type.IsIndDatatype) {
+                if (UnifyTypes(e.E0.Type, new DatatypeProxy(false))) {
+                  e.ResolvedOp = BinaryExpr.ResolvedOpcode.RankGt;
+                } else {
+                  Error(expr, "arguments to rank comparison must be datatypes (instead of {0})", e.E0.Type);
                 }
                 expr.Type = Type.Bool;
               } else {
@@ -5365,7 +5375,8 @@ namespace Microsoft.Dafny
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
         }
-        e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
+        // We should also fill in e.ResolvedOp, but we may not have enough information for that yet.  So, instead, delay
+        // setting e.ResolvedOp until inside CheckTypeInference.
 
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
@@ -5471,6 +5482,7 @@ namespace Microsoft.Dafny
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
+          CheckTypeInference(e.LogicalBody());  // we need to resolve operators before the call to DiscoverBounds
           e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.LogicalBody(), e is ExistsExpr, false, missingBounds);
           if (missingBounds.Count != 0) {
             // Report errors here about quantifications that depend on the allocation state.
@@ -5515,6 +5527,7 @@ namespace Microsoft.Dafny
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
+          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
           e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
@@ -5551,6 +5564,7 @@ namespace Microsoft.Dafny
 
         if (prevErrorCount == ErrorCount) {
           var missingBounds = new List<BoundVar>();
+          CheckTypeInference(e.Range);  // we need to resolve operators before the call to DiscoverBounds
           e.Bounds = DiscoverBounds(e.tok, e.BoundVars, e.Range, true, false, missingBounds);
           if (missingBounds.Count != 0) {
             e.MissingBounds = missingBounds;
@@ -5883,7 +5897,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        switch (e.ResolvedOp) {
+        switch (e.ResolvedOp_PossiblyStillUndetermined) {
           case BinaryExpr.ResolvedOpcode.RankGt:
           case BinaryExpr.ResolvedOpcode.RankLt:
             Error(expr, "rank comparisons are allowed only in specification and ghost contexts");
@@ -6628,13 +6642,19 @@ namespace Microsoft.Dafny
       if (b != null) {
         bool breakDownFurther = false;
         bool p0 = polarity;
-        if (b.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          breakDownFurther = polarity;
-        } else if (b.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          breakDownFurther = !polarity;
-        } else if (b.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          breakDownFurther = !polarity;
-          p0 = !p0;
+        switch (b.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.And:
+            breakDownFurther = polarity;
+            break;
+          case BinaryExpr.ResolvedOpcode.Or:
+            breakDownFurther = !polarity;
+            break;
+          case BinaryExpr.ResolvedOpcode.Imp:
+            breakDownFurther = !polarity;
+            p0 = !p0;
+            break;
+          default:
+            break;
         }
         if (breakDownFurther) {
           foreach (var c in NormalizedConjuncts(b.E0, p0)) {
@@ -7058,10 +7078,13 @@ namespace Microsoft.Dafny
         return UsesSpecFeatures(e.E);
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
-        if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.RankLt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.RankGt) {
-          return true;
+        switch (e.ResolvedOp_PossiblyStillUndetermined) {
+          case BinaryExpr.ResolvedOpcode.RankGt:
+          case BinaryExpr.ResolvedOpcode.RankLt:
+            return true;
+          default:
+            return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
         }
-        return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         switch (e.Op) {

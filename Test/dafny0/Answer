@@ -357,6 +357,8 @@ ResolutionErrors.dfy(606,10): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(615,17): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(617,20): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(619,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(637,21): Error: the type of this expression is underspecified, but it cannot be an arbitrary type.
+ResolutionErrors.dfy(637,21): Error: the type of this expression is underspecified, but it cannot be an arbitrary type.
 ResolutionErrors.dfy(427,2): Error: More than one default constructor
 ResolutionErrors.dfy(48,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(109,9): Error: ghost variables are allowed only in specification contexts
@@ -429,7 +431,7 @@ ResolutionErrors.dfy(541,7): Error: let-such-that expressions are allowed only i
 ResolutionErrors.dfy(541,20): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(543,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(544,18): Error: unresolved identifier: w
-89 resolution/type errors detected in ResolutionErrors.dfy
+91 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -703,7 +705,7 @@ Basics.dfy(110,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-Basics.dfy(129,10): Error: when left-hand sides 0 and 1 may refer to the same location, they must have the same value
+Basics.dfy(129,10): Error: when left-hand sides 0 and 1 may refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
@@ -712,7 +714,7 @@ Execution trace:
     (0,0): anon6
     (0,0): anon12_Then
     (0,0): anon9
-Basics.dfy(143,10): Error: when left-hand sides 0 and 1 refer to the same location, they must have the same value
+Basics.dfy(143,10): Error: when left-hand sides 0 and 1 refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
 Basics.dfy(155,19): Error: assertion violation
@@ -743,7 +745,7 @@ Execution trace:
     (0,0): anon13_Then
     (0,0): anon8
     (0,0): anon14_Then
-Basics.dfy(236,10): Error: when left-hand sides 0 and 1 refer to the same location, they must have the same value
+Basics.dfy(235,10): Error: when left-hand sides 0 and 1 refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
 

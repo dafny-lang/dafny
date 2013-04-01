@@ -2506,7 +2506,7 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// Common superclass of UpdateStmt and AssignSuchThatStmt.
   /// </summary>
-  public abstract class ConcreteUpdateStatement : ConcreteSyntaxStatement
+  public abstract class ConcreteUpdateStatement : Statement
   {
     public readonly List<Expression> Lhss;
     public ConcreteUpdateStatement(IToken tok, List<Expression> lhss)
@@ -2556,6 +2556,12 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
+
+    public List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Lhss));
@@ -3060,6 +3066,13 @@ namespace Microsoft.Dafny {
           var block = s as BlockStmt;
           if (block != null && block.Body.Count == 1) {
             s = block.Body[0];
+          } else if (s is UpdateStmt) {
+            var update = (UpdateStmt)s;
+            if (update.ResolvedStatements.Count == 1) {
+              s = update.ResolvedStatements[0];
+            } else {
+              return s;
+            }
           } else {
             var conc = s as ConcreteSyntaxStatement;
             if (conc != null && conc.ResolvedStatements.Count == 1) {
@@ -3294,7 +3307,13 @@ namespace Microsoft.Dafny {
     {
       get {
         foreach (var l in Lines) {
-            yield return l;
+          yield return l;
+        }
+        foreach (var e in Steps) {
+          yield return e;
+        }
+        if (Result != null) {
+          yield return Result;
         }
       }
     }
@@ -3744,6 +3763,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(elements));
       Elements = elements;
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var ep in Elements) {
+          yield return ep.A;
+          yield return ep.B;
+        }
+      }
+    }
   }
   public class SeqDisplayExpr : DisplayExpression {
     public SeqDisplayExpr(IToken tok, List<Expression/*!*/>/*!*/ elements)
@@ -4027,6 +4054,8 @@ namespace Microsoft.Dafny {
     }
     public readonly Opcode Op;
     public enum ResolvedOpcode {
+      YetUndetermined,  // the value before resolution has determined the value; .ResolvedOp should never be read in this state
+
       // logical operators
       Iff,
       Imp,
@@ -4090,7 +4119,20 @@ namespace Microsoft.Dafny {
       RankLt,
       RankGt
     }
-    public ResolvedOpcode ResolvedOp;  // filled in by resolution
+    private ResolvedOpcode _theResolvedOp = ResolvedOpcode.YetUndetermined;
+    public ResolvedOpcode ResolvedOp {
+      set {
+        Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
+        _theResolvedOp = value;
+      }
+      get {
+        Contract.Assume(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
+        return _theResolvedOp;
+      }
+    }
+    public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!
+      get { return _theResolvedOp; }
+    }
 
     public static Opcode ResolvedOp2SyntacticOp(ResolvedOpcode rop) {
       switch (rop) {
@@ -4360,7 +4402,11 @@ namespace Microsoft.Dafny {
 
     public readonly Attributes Attributes;
 
-    public abstract class BoundedPool { }
+    public abstract class BoundedPool {
+      public virtual bool IsFinite {
+        get { return true; }  // most bounds are finite
+      }
+    }
     public class BoolBoundedPool : BoundedPool
     {
     }
@@ -4371,6 +4417,11 @@ namespace Microsoft.Dafny {
       public IntBoundedPool(Expression lowerBound, Expression upperBound) {
         LowerBound = lowerBound;
         UpperBound = upperBound;
+      }
+      public override bool IsFinite {
+        get {
+          return LowerBound != null && UpperBound != null;
+        }
       }
     }
     public class SetBoundedPool : BoundedPool
@@ -4581,10 +4632,8 @@ namespace Microsoft.Dafny {
     
     public override IEnumerable<Expression> SubExpressions {
       get {
-        // NadiaToDo: is this correct?
-        foreach (var e in Guard.SubExpressions) {
-            yield return e;
-        }
+        // Note:  A CalcExpr is unusual in that it contains a statement.  For now, callers
+        // of SubExpressions need to be aware of this and hand it specially.
         yield return Body;
       }
     }

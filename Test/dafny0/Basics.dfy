@@ -207,7 +207,6 @@ method m()
 {
   var i: int, j: int;
   i, j := 3, 6;
-  i, i := 3, 3;
 }
 
 method swap(a: array<int>, i: nat, j: nat)
