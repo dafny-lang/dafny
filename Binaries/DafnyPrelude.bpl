@@ -84,8 +84,9 @@ axiom (forall<T> a, b: Set T, y: T :: { Set#Difference(a, b), b[y] }
 function Set#Subset<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
-axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
-  Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
+//axiom(forall<T> a: Set T, b: Set T ::
+// { Set#Subset(a,b), Set#Card(a), Set#Card(b) }  // very restrictive trigger
+//  Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
   
 
 function Set#Equal<T>(Set T, Set T): bool;
