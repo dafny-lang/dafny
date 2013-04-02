@@ -1457,6 +1457,56 @@ namespace Microsoft.Dafny
       }
     }
 
+    // ------------------------------------------------------------------------------------------------------
+    // ----- Visitors ---------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region Visitors
+    class ResolverBottomUpVisitor : BottomUpVisitor
+    {
+      Resolver resolver;
+      public ResolverBottomUpVisitor(Resolver resolver) {
+        Contract.Requires(resolver != null);
+        this.resolver = resolver;
+      }
+      public void Error(IToken tok, string msg, params object[] args) {
+        Contract.Requires(tok != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(args != null);
+        resolver.Error(tok, msg, args);
+      }
+      public void Error(Expression expr, string msg, params object[] args) {
+        Contract.Requires(expr != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(args != null);
+        Error(expr.tok, msg, args);
+      }
+    }
+    class ResolverTopDownVisitor<T> : TopDownVisitor<T>
+    {
+      Resolver resolver;
+      public ResolverTopDownVisitor(Resolver resolver) {
+        Contract.Requires(resolver != null);
+        this.resolver = resolver;
+      }
+      public void Error(IToken tok, string msg, params object[] args) {
+        Contract.Requires(tok != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(args != null);
+        resolver.Error(tok, msg, args);
+      }
+      public void Error(Expression expr, string msg, params object[] args) {
+        Contract.Requires(expr != null);
+        Contract.Requires(msg != null);
+        Contract.Requires(args != null);
+        Error(expr.tok, msg, args);
+      }
+    }
+    #endregion Visitors
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CheckTypeInference -----------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is Method) {
         var m = (Method)member;
@@ -1504,7 +1554,67 @@ namespace Microsoft.Dafny
         }
       }
     }
+    void CheckTypeInference(Expression expr) {
+      Contract.Requires(expr != null);
+      var c = new CheckTypeInference_Visitor(this);
+      c.Visit(expr);
+    }
+    void CheckTypeInference(Statement stmt) {
+      Contract.Requires(stmt != null);
+      var c = new CheckTypeInference_Visitor(this);
+      c.Visit(stmt);
+    }
+    class CheckTypeInference_Visitor : ResolverBottomUpVisitor
+    {
+      public CheckTypeInference_Visitor(Resolver resolver)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+      }
+      protected override void VisitOneStmt(Statement stmt) {
+        if (stmt is VarDecl) {
+          var s = (VarDecl)stmt;
+          CheckTypeIsDetermined(s.Tok, s.Type, "local variable");
+        } else if (stmt is ForallStmt) {
+          var s = (ForallStmt)stmt;
+          s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+        }
+      }
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is ComprehensionExpr) {
+          var e = (ComprehensionExpr)expr;
+          if (e != null) {
+            foreach (var bv in e.BoundVars) {
+              if (bv.Type.Normalize() is TypeProxy) {
+                Error(bv.tok, "type of bound variable '{0}' could not determined; please specify the type explicitly", bv.Name);
+              }
+            }
+          }
+        }
+        if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
+          var bin = expr as BinaryExpr;
+          if (bin != null) {
+            bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
+          }
+        }
+      }
+      bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
+        Contract.Requires(tok != null);
+        Contract.Requires(t != null);
+        Contract.Requires(what != null);
+        t = t.Normalize();
+        if (t is TypeProxy && !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy)) {
+          Error(tok, "the type of this {0} is underspecified, but it cannot be an arbitrary type.", what);
+          return false;
+        }
+        return true;
+      }
+    }
+    #endregion CheckTypeInference
 
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CheckTailRecursive -----------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CheckTailRecursive
     enum TailRecursionStatus
     {
       NotTailRecursive, // contains code that makes the enclosing method body not tail recursive (in way that is supported)
@@ -1673,9 +1783,13 @@ namespace Microsoft.Dafny
       }
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
+    #endregion CheckTailRecursive
 
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CoPredicateChecks ------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CoPredicateChecks
     enum CallingPosition { Positive, Negative, Neither }
-
     static CallingPosition Invert(CallingPosition cp) {
       switch (cp) {
         case CallingPosition.Positive: return CallingPosition.Negative;
@@ -1684,396 +1798,347 @@ namespace Microsoft.Dafny
       }
     }
 
+    class CoPredicateChecks_Visitor : ResolverTopDownVisitor<CallingPosition>
+    {
+      public readonly CoPredicate context;
+      public CoPredicateChecks_Visitor(Resolver resolver, CoPredicate context)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(context != null);
+        this.context = context;
+      }
+
+      protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          var moduleCaller = context.EnclosingClass.Module;
+          var moduleCallee = e.Function.EnclosingClass.Module;
+          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
+            // we're looking at a recursive call
+            if (!(e.Function is CoPredicate)) {
+              Error(e, "a recursive call from a copredicate can go only to other copredicates");
+            } else if (cp != CallingPosition.Positive) {
+              var msg = "a recursive copredicate call can only be done in positive positions";
+              if (cp == CallingPosition.Neither) {
+                // this may be inside a 
+                msg += " and cannot sit inside an existential quantifier";
+              } else {
+                // the co-call is not inside an existential quantifier, so don't bother mentioning the part of existentials in the error message
+              }
+              Error(e, msg);
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+            }
+          }
+          // fall through to do the subexpressions (with cp := Neither)
+        } else if (expr is UnaryExpr) {
+          var e = (UnaryExpr)expr;
+          if (e.Op == UnaryExpr.Opcode.Not) {
+            // for the sub-parts, use Invert(cp)
+            cp = Invert(cp);
+            return true;
+          }
+        } else if (expr is BinaryExpr) {
+          var e = (BinaryExpr)expr;
+          switch (e.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.And:
+            case BinaryExpr.ResolvedOpcode.Or:
+              return true;  // do the sub-parts with the same "cp"
+            case BinaryExpr.ResolvedOpcode.Imp:
+              Visit(e.E0, Invert(cp));
+              Visit(e.E1, cp);
+              return false;  // don't recurse (again) on the sub-parts
+            default:
+              break;
+          }
+        } else if (expr is MatchExpr) {
+          var e = (MatchExpr)expr;
+          Visit(e.Source, CallingPosition.Neither);
+          var theCp = cp;
+          e.Cases.Iter(kase => Visit(kase.Body, theCp));
+          return false;
+        } else if (expr is ITEExpr) {
+          var e = (ITEExpr)expr;
+          Visit(e.Test, CallingPosition.Neither);
+          Visit(e.Thn, cp);
+          Visit(e.Els, cp);
+          return false;
+        } else if (expr is LetExpr) {
+          var e = (LetExpr)expr;
+          foreach (var rhs in e.RHSs) {
+            Visit(rhs, CallingPosition.Neither);
+          }
+          // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
+          Visit(e.Body, e.Exact ? cp : CallingPosition.Neither);
+          return false;
+        } else if (expr is QuantifierExpr) {
+          var e = (QuantifierExpr)expr;
+          if ((cp == CallingPosition.Positive && e is ExistsExpr) || (cp == CallingPosition.Negative && e is ForallExpr)) {
+            // Don't allow any co-recursive calls under an existential, because that can be unsound.
+            // (TODO: be more liberal here--also allow this if the range is finite)
+            cp = CallingPosition.Neither;
+          }
+          if (e.Range != null) {
+            Visit(e.Range, e is ExistsExpr ? Invert(cp) : cp);
+          }
+          Visit(e.Term, cp);
+          return false;
+        } else if (expr is ConcreteSyntaxExpression) {
+          // do the sub-parts with the same "cp"
+          return true;
+        }
+        // do the sub-parts with cp := Neither
+        cp = CallingPosition.Neither;
+        return true;
+      }
+    }
+
     void CoPredicateChecks(Expression expr, CoPredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
-      if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        CoPredicateChecks(e.Resolved, context, cp);
-        return;
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        var moduleCaller = context.EnclosingClass.Module;
-        var moduleCallee = e.Function.EnclosingClass.Module;
-        if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
-          // we're looking at a recursive call
-          if (!(e.Function is CoPredicate)) {
-            Error(e, "a recursive call from a copredicate can go only to other copredicates");
-          } else if (cp != CallingPosition.Positive) {
-            var msg = "a recursive copredicate call can only be done in positive positions";
-            if (cp == CallingPosition.Neither) {
-              // this may be inside a 
-              msg += " and cannot sit inside an existential quantifier";
-            } else {
-              // the co-call is not inside an existential quantifier, so don't bother mentioning the part of existentials in the error message
-            }
-            Error(e, msg);
+      var v = new CoPredicateChecks_Visitor(this, context);
+      v.Visit(expr, cp);
+    }
+    #endregion CoPredicateChecks
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CoMethodChecks ---------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CoMethodChecks
+    class CoMethodChecks_Visitor : ResolverBottomUpVisitor
+    {
+      CoMethod context;
+      public CoMethodChecks_Visitor(Resolver resolver, CoMethod context)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(context != null);
+        this.context = context;
+      }
+      protected override void VisitOneStmt(Statement stmt) {
+        if (stmt is CallStmt) {
+          var s = (CallStmt)stmt;
+          if (s.Method is CoMethod || s.Method is PrefixMethod) {
+            // all is cool
           } else {
-            e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+            // the call goes from a comethod context to a non-comethod callee
+            var moduleCaller = context.EnclosingClass.Module;
+            var moduleCallee = s.Method.EnclosingClass.Module;
+            if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+              // we're looking at a recursive call (to a non-comethod)
+              Error(s.Tok, "a recursive call from a comethod can go only to other comethods and prefix methods");
+            }
           }
         }
-        // fall through to do the subexpressions
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryExpr)expr;
-        if (e.Op == UnaryExpr.Opcode.Not) {
-          CoPredicateChecks(e.E, context, Invert(cp));
-          return;
-        }
-      } else if (expr is BinaryExpr) {
-        var e = (BinaryExpr)expr;
-        switch (e.ResolvedOp) {
-          case BinaryExpr.ResolvedOpcode.And:
-          case BinaryExpr.ResolvedOpcode.Or:
-            CoPredicateChecks(e.E0, context, cp);
-            CoPredicateChecks(e.E1, context, cp);
-            return;
-          case BinaryExpr.ResolvedOpcode.Imp:
-            CoPredicateChecks(e.E0, context, Invert(cp));
-            CoPredicateChecks(e.E1, context, cp);
-            return;
-          default:
-            break;
-        }
-      } else if (expr is MatchExpr) {
-        var e = (MatchExpr)expr;
-        CoPredicateChecks(e.Source, context, CallingPosition.Neither);
-        e.Cases.Iter(kase => CoPredicateChecks(kase.Body, context, cp));
-        return;
-      } else if (expr is ITEExpr) {
-        var e = (ITEExpr)expr;
-        CoPredicateChecks(e.Test, context, CallingPosition.Neither);
-        CoPredicateChecks(e.Thn, context, cp);
-        CoPredicateChecks(e.Els, context, cp);
-        return;
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        foreach (var rhs in e.RHSs) {
-          CoPredicateChecks(rhs, context, CallingPosition.Neither);
-        }
-        // note, a let-such-that expression introduces an existential that may depend on the _k in a copredicate, so we disallow recursive copredicate calls in the body of the let-such-that
-        CoPredicateChecks(e.Body, context, e.Exact ? cp : CallingPosition.Neither);
-        return;
-      } else if (expr is QuantifierExpr) {
-        var e = (QuantifierExpr)expr;
-        if ((cp == CallingPosition.Positive && e is ExistsExpr) || (cp == CallingPosition.Negative && e is ForallExpr)) {
-          // Don't allow any co-recursive calls under an existential, because that can be unsound.
-          // (Actually, I think we could be more liberal here--we could allow this if the range is finite.)
-          cp = CallingPosition.Neither;
-        }
-        if (e.Range != null) {
-          CoPredicateChecks(e.Range, context, e is ExistsExpr ? Invert(cp) : cp);
-        }
-        CoPredicateChecks(e.Term, context, cp);
-        return;
       }
-      expr.SubExpressions.Iter(ee => CoPredicateChecks(ee, context, CallingPosition.Neither));
     }
-
     void CoMethodChecks(Statement stmt, CoMethod context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
-      if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        if (s.Method is CoMethod || s.Method is PrefixMethod) {
-          // all is cool
-        } else {
-          // the call goes from a comethod context to a non-comethod callee
-          var moduleCaller = context.EnclosingClass.Module;
-          var moduleCallee = s.Method.EnclosingClass.Module;
-          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
-            // we're looking at a recursive call (to a non-comethod)
-            Error(s, "a recursive call from a comethod can go only to other comethods and prefix methods");
-          }
-        }
-      } else {
-        stmt.SubStatements.Iter(ss => CoMethodChecks(ss, context));
+      var v = new CoMethodChecks_Visitor(this, context);
+      v.Visit(stmt);
+    }
+    #endregion CoMethodChecks
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CheckEqualityTypes -----------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region CheckEqualityTypes
+    class CheckEqualityTypes_Visitor : ResolverTopDownVisitor<bool>
+    {
+      public CheckEqualityTypes_Visitor(Resolver resolver)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
       }
-    }
-
-    void CheckEqualityTypes_Stmt(Statement stmt) {
-      Contract.Requires(stmt != null);
-      if (stmt.IsGhost) {
-        return;
-      } else if (stmt is PrintStmt) {
-        var s = (PrintStmt)stmt;
-        foreach (var arg in s.Args) {
-          if (arg.E != null) {
-            CheckEqualityTypes(arg.E);
+      protected override bool VisitOneStmt(Statement stmt, ref bool unused) {
+        if (stmt.IsGhost) {
+          return false;  // no need to recurse to sub-parts, since all sub-parts must be ghost as well
+        } else if (stmt is WhileStmt) {
+          var s = (WhileStmt)stmt;
+          // don't recurse on the specification parts, which are ghost
+          if (s.Guard != null) {
+            Visit(s.Guard, unused);
           }
-        }
-      } else if (stmt is BreakStmt) {
-      } else if (stmt is ProduceStmt) {
-        var s = (ProduceStmt)stmt;
-        if (s.rhss != null) {
-          s.rhss.Iter(CheckEqualityTypes_Rhs);
-        }
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
-        CheckEqualityTypes(s.Lhs);
-        CheckEqualityTypes_Rhs(s.Rhs);
-      } else if (stmt is VarDecl) {
-        var s = (VarDecl)stmt;
-        s.SubStatements.Iter(CheckEqualityTypes_Stmt);
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        CheckEqualityTypes(s.Receiver);
-        s.Args.Iter(CheckEqualityTypes);
-        s.Lhs.Iter(CheckEqualityTypes);
-
-        Contract.Assert(s.Method.TypeArgs.Count <= s.TypeArgumentSubstitutions.Count);
-        var i = 0;
-        foreach (var formalTypeArg in s.Method.TypeArgs) {
-          var actualTypeArg = s.TypeArgumentSubstitutions[formalTypeArg];
-          if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
-            Error(s.Tok, "type parameter {0} ({1}) passed to method {2} must support equality (got {3}){4}", i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
-          }
-          i++;
-        }
-      } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        s.Body.Iter(CheckEqualityTypes_Stmt);
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          CheckEqualityTypes(s.Guard);
-        }
-        s.SubStatements.Iter(CheckEqualityTypes_Stmt);
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          CheckEqualityTypes(alt.Guard);
-          alt.Body.Iter(CheckEqualityTypes_Stmt);
-        }
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
-        if (s.Guard != null) {
-          CheckEqualityTypes(s.Guard);
-        }
-        CheckEqualityTypes_Stmt(s.Body);
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          CheckEqualityTypes(alt.Guard);
-          alt.Body.Iter(CheckEqualityTypes_Stmt);
-        }
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        CheckEqualityTypes(s.Range);
-        CheckEqualityTypes_Stmt(s.Body);
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        CheckEqualityTypes(s.Source);
-        foreach (MatchCaseStmt mc in s.Cases) {
-          mc.Body.Iter(CheckEqualityTypes_Stmt);
-        }
-      } else if (stmt is AssignSuchThatStmt) {
-        var s = (AssignSuchThatStmt)stmt;
-        s.SubExpressions.Iter(CheckEqualityTypes);
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        s.ResolvedStatements.Iter(CheckEqualityTypes_Stmt);
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        s.ResolvedStatements.Iter(CheckEqualityTypes_Stmt);
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
-      }
-    }
-
-    void CheckEqualityTypes_Rhs(AssignmentRhs rhs) {
-      Contract.Requires(rhs != null);
-      rhs.SubExpressions.Iter(CheckEqualityTypes);
-      rhs.SubStatements.Iter(CheckEqualityTypes_Stmt);
-    }
-
-    void CheckEqualityTypes(Expression expr) {
-      Contract.Requires(expr != null);
-      if (expr is BinaryExpr) {
-        var e = (BinaryExpr)expr;
-        var t0 = e.E0.Type.Normalize();
-        var t1 = e.E1.Type.Normalize();
-        switch (e.Op) {
-          case BinaryExpr.Opcode.Eq:
-          case BinaryExpr.Opcode.Neq:
-            // First, check a special case:  a datatype value (like Nil) that takes no parameters
-            var e0 = e.E0.Resolved as DatatypeValue;
-            var e1 = e.E1.Resolved as DatatypeValue;
-            if (e0 != null && e0.Arguments.Count == 0) {
-              // that's cool
-            } else if (e1 != null && e1.Arguments.Count == 0) {
-              // oh yeah!
-            } else if (!t0.SupportsEquality) {
-              Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
-            } else if (!t1.SupportsEquality) {
-              Error(e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+          Visit(s.Body, unused);
+          return false;
+        } else if (stmt is AlternativeLoopStmt) {
+          var s = (AlternativeLoopStmt)stmt;
+          // don't recurse on the specification parts, which are ghost
+          foreach (var alt in s.Alternatives) {
+            Visit(alt.Guard, unused);
+            foreach (var ss in alt.Body) {
+              Visit(ss, unused);
             }
-            break;
-          default:
-            switch (e.ResolvedOp) {
-              // Note, all operations on sets, multisets, and maps are guaranteed to work because of restrictions placed on how
-              // these types are instantiated.  (Except: This guarantee does not apply to equality on maps, because the Range type
-              // of maps is not restricted, only the Domain type.  However, the equality operator is checked above.)
-              case BinaryExpr.ResolvedOpcode.InSeq:
-              case BinaryExpr.ResolvedOpcode.NotInSeq:
-              case BinaryExpr.ResolvedOpcode.Prefix:
-              case BinaryExpr.ResolvedOpcode.ProperPrefix:
-                if (!t1.SupportsEquality) {
-                  Error(e.E1, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
-                } else if (!t0.SupportsEquality) {
-                  if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSeq) {
-                    Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
-                  } else {
-                    Error(e.E0, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
-                  }
-                }
-                break;
-              default:
-                break;
-            }
-            break;
-        }
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        foreach (var bv in e.BoundVars) {
-          CheckEqualityTypes_Type(bv.tok, bv.Type);
-        }
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        foreach (var bv in e.Vars) {
-          CheckEqualityTypes_Type(bv.tok, bv.Type);
-        }
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        Contract.Assert(e.Function.TypeArgs.Count <= e.TypeArgumentSubstitutions.Count);
-        var i = 0;
-        foreach (var formalTypeArg in e.Function.TypeArgs) {
-          var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
-          if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
-            Error(e.tok, "type parameter {0} ({1}) passed to function {2} must support equality (got {3}){4}", i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
           }
-          i++;
-        }
-      } else if (expr is CalcExpr) {
-        // a calc expression also contains statements
-        var e = (CalcExpr)expr;
-        CheckEqualityTypes_Stmt(e.Guard);
-      }
-
-      foreach (var ee in expr.SubExpressions) {
-        CheckEqualityTypes(ee);
-      }
-    }
-
-    void CheckEqualityTypes_Type(IToken tok, Type type) {
-      Contract.Requires(tok != null);
-      Contract.Requires(type != null);
-      type = type.Normalize();
-      if (type is BasicType) {
-        // fine
-      } else if (type is SetType) {
-        var argType = ((SetType)type).Arg;
-        if (!argType.SupportsEquality) {
-          Error(tok, "set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
-        }
-        CheckEqualityTypes_Type(tok, argType);
-
-      } else if (type is MultiSetType) {
-        var argType = ((MultiSetType)type).Arg;
-        if (!argType.SupportsEquality) {
-          Error(tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
-        }
-        CheckEqualityTypes_Type(tok, argType);
-
-      } else if (type is MapType) {
-        var mt = (MapType)type;
-        if (!mt.Domain.SupportsEquality) {
-          Error(tok, "map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain));
-        }
-        CheckEqualityTypes_Type(tok, mt.Domain);
-        CheckEqualityTypes_Type(tok, mt.Range);
-
-      } else if (type is SeqType) {
-        Type argType = ((SeqType)type).Arg;
-        CheckEqualityTypes_Type(tok, argType);
-
-      } else if (type is UserDefinedType) {
-        var udt = (UserDefinedType)type;
-        if (udt.ResolvedClass != null) {
-          Contract.Assert(udt.ResolvedClass.TypeArgs.Count == udt.TypeArgs.Count);
+          return false;
+        } else if (stmt is CallStmt) {
+          var s = (CallStmt)stmt;
+          Contract.Assert(s.Method.TypeArgs.Count <= s.TypeArgumentSubstitutions.Count);
           var i = 0;
-          foreach (var argType in udt.TypeArgs) {
-            var formalTypeArg = udt.ResolvedClass.TypeArgs[i];
-            if (formalTypeArg.MustSupportEquality && !argType.SupportsEquality) {
-              Error(tok, "type parameter {0} ({1}) passed to type {2} must support equality (got {3}){4}", i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
+          foreach (var formalTypeArg in s.Method.TypeArgs) {
+            var actualTypeArg = s.TypeArgumentSubstitutions[formalTypeArg];
+            if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
+              Error(s.Tok, "type parameter {0} ({1}) passed to method {2} must support equality (got {3}){4}", i, formalTypeArg.Name, s.Method.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
             }
-            CheckEqualityTypes_Type(tok, argType);
             i++;
           }
-        } else {
-          Contract.Assert(udt.TypeArgs.Count == 0);  // TypeParameters have no type arguments
         }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        return true;
       }
-    }
-
-    bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
-      Contract.Requires(tok != null);
-      Contract.Requires(t != null);
-      Contract.Requires(what != null);
-      t = t.Normalize();
-      if (t is TypeProxy && !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy)) {
-        Error(tok, "the type of this {0} is underspecified, but it cannot be an arbitrary type.", what);
-        return false;
-      }
-      return true;
-    }
-    void CheckTypeInference(Expression expr) {
-      if (expr == null) return;
-      expr.SubExpressions.Iter(CheckTypeInference);
-      if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        if (e != null) {
+      protected override bool VisitOneExpr(Expression expr, ref bool st) {
+        if (expr is BinaryExpr) {
+          var e = (BinaryExpr)expr;
+          var t0 = e.E0.Type.Normalize();
+          var t1 = e.E1.Type.Normalize();
+          switch (e.Op) {
+            case BinaryExpr.Opcode.Eq:
+            case BinaryExpr.Opcode.Neq:
+              // First, check a special case:  a datatype value (like Nil) that takes no parameters
+              var e0 = e.E0.Resolved as DatatypeValue;
+              var e1 = e.E1.Resolved as DatatypeValue;
+              if (e0 != null && e0.Arguments.Count == 0) {
+                // that's cool
+              } else if (e1 != null && e1.Arguments.Count == 0) {
+                // oh yeah!
+              } else if (!t0.SupportsEquality) {
+                Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+              } else if (!t1.SupportsEquality) {
+                Error(e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+              }
+              break;
+            default:
+              switch (e.ResolvedOp) {
+                // Note, all operations on sets, multisets, and maps are guaranteed to work because of restrictions placed on how
+                // these types are instantiated.  (Except: This guarantee does not apply to equality on maps, because the Range type
+                // of maps is not restricted, only the Domain type.  However, the equality operator is checked above.)
+                case BinaryExpr.ResolvedOpcode.InSeq:
+                case BinaryExpr.ResolvedOpcode.NotInSeq:
+                case BinaryExpr.ResolvedOpcode.Prefix:
+                case BinaryExpr.ResolvedOpcode.ProperPrefix:
+                  if (!t1.SupportsEquality) {
+                    Error(e.E1, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+                  } else if (!t0.SupportsEquality) {
+                    if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSeq) {
+                      Error(e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                    } else {
+                      Error(e.E0, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                    }
+                  }
+                  break;
+                default:
+                  break;
+              }
+              break;
+          }
+        } else if (expr is ComprehensionExpr) {
+          var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
-            if (bv.Type.Normalize() is TypeProxy) {
-              Error(bv.tok, "type of bound variable '{0}' could not determined; please specify the type explicitly", bv.Name);
+            CheckEqualityTypes_Type(bv.tok, bv.Type);
+          }
+        } else if (expr is LetExpr) {
+          var e = (LetExpr)expr;
+          foreach (var bv in e.Vars) {
+            CheckEqualityTypes_Type(bv.tok, bv.Type);
+          }
+        } else if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          Contract.Assert(e.Function.TypeArgs.Count <= e.TypeArgumentSubstitutions.Count);
+          var i = 0;
+          foreach (var formalTypeArg in e.Function.TypeArgs) {
+            var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
+            if (formalTypeArg.MustSupportEquality && !actualTypeArg.SupportsEquality) {
+              Error(e.tok, "type parameter {0} ({1}) passed to function {2} must support equality (got {3}){4}", i, formalTypeArg.Name, e.Function.Name, actualTypeArg, TypeEqualityErrorMessageHint(actualTypeArg));
             }
+            i++;
           }
         }
-      } else if (expr is CalcExpr) {
-        // a calc expression also contains statements
-        var e = (CalcExpr)expr;
-        CheckTypeInference(e.Guard);
+        return true;
       }
-      if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
-        var bin = expr as BinaryExpr;
-        if (bin != null) {
-          bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
+
+      public void CheckEqualityTypes_Type(IToken tok, Type type) {
+        Contract.Requires(tok != null);
+        Contract.Requires(type != null);
+        type = type.Normalize();
+        if (type is BasicType) {
+          // fine
+        } else if (type is SetType) {
+          var argType = ((SetType)type).Arg;
+          if (!argType.SupportsEquality) {
+            Error(tok, "set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+          }
+          CheckEqualityTypes_Type(tok, argType);
+
+        } else if (type is MultiSetType) {
+          var argType = ((MultiSetType)type).Arg;
+          if (!argType.SupportsEquality) {
+            Error(tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+          }
+          CheckEqualityTypes_Type(tok, argType);
+
+        } else if (type is MapType) {
+          var mt = (MapType)type;
+          if (!mt.Domain.SupportsEquality) {
+            Error(tok, "map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain));
+          }
+          CheckEqualityTypes_Type(tok, mt.Domain);
+          CheckEqualityTypes_Type(tok, mt.Range);
+
+        } else if (type is SeqType) {
+          Type argType = ((SeqType)type).Arg;
+          CheckEqualityTypes_Type(tok, argType);
+
+        } else if (type is UserDefinedType) {
+          var udt = (UserDefinedType)type;
+          if (udt.ResolvedClass != null) {
+            Contract.Assert(udt.ResolvedClass.TypeArgs.Count == udt.TypeArgs.Count);
+            var i = 0;
+            foreach (var argType in udt.TypeArgs) {
+              var formalTypeArg = udt.ResolvedClass.TypeArgs[i];
+              if (formalTypeArg.MustSupportEquality && !argType.SupportsEquality) {
+                Error(tok, "type parameter {0} ({1}) passed to type {2} must support equality (got {3}){4}", i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, TypeEqualityErrorMessageHint(argType));
+              }
+              CheckEqualityTypes_Type(tok, argType);
+              i++;
+            }
+          } else {
+            Contract.Assert(udt.TypeArgs.Count == 0);  // TypeParameters have no type arguments
+          }
+
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
         }
       }
-    }
-    void CheckTypeInference(Statement stmt) {
-      Contract.Requires(stmt != null);
-      stmt.SubExpressions.Iter(CheckTypeInference);
-      stmt.SubStatements.Iter(CheckTypeInference);
-      if (stmt is VarDecl) {
-        var s = (VarDecl)stmt;
-        CheckTypeIsDetermined(s.Tok, s.Type, "local variable");
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+
+      string TypeEqualityErrorMessageHint(Type argType) {
+        Contract.Requires(argType != null);
+        var tp = argType.AsTypeParameter;
+        if (tp != null) {
+          return string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line);
+        }
+        return "";
       }
+    }
+    void CheckEqualityTypes_Stmt(Statement stmt) {
+      Contract.Requires(stmt != null);
+      var v = new CheckEqualityTypes_Visitor(this);
+      v.Visit(stmt, false);
+    }
+    void CheckEqualityTypes(Expression expr) {
+      Contract.Requires(expr != null);
+      var v = new CheckEqualityTypes_Visitor(this);
+      v.Visit(expr, false);
+    }
+    public void CheckEqualityTypes_Type(IToken tok, Type type) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      var v = new CheckEqualityTypes_Visitor(this);
+      v.CheckEqualityTypes_Type(tok, type);
     }
 
-    string TypeEqualityErrorMessageHint(Type argType) {
-      Contract.Requires(argType != null);
-      var tp = argType.AsTypeParameter;
-      if (tp != null) {
-        return string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line);
-      }
-      return "";
-    }
+    #endregion CheckEqualityTypes
+
+    // ------------------------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
 
     bool InferRequiredEqualitySupport(TypeParameter tp, Type type) {
       Contract.Requires(tp != null);
@@ -4091,11 +4156,6 @@ namespace Microsoft.Dafny
           firstEffectfulRhs = rhs.Tok;
         }
       }
-      var resolvedStatements = update.ResolvedStatements;
-      if (ErrorCount != errorCountBeforeCheckingLhs) {
-        // Errors occurs, so don't populate the real update.ResolvedStatements.  Instead, create a placebo.
-        resolvedStatements = new List<Statement>();
-      }
 
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
@@ -4104,11 +4164,11 @@ namespace Microsoft.Dafny
           Error(update, "expected method call, found expression");
         } else if (update.Lhss.Count != update.Rhss.Count) {
           Error(update, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
-        } else {
+        } else if (ErrorCount == errorCountBeforeCheckingLhs) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
           for (int i = 0; i < update.Lhss.Count; i++) {
             var a = new AssignStmt(update.Tok, update.Lhss[i].Resolved, update.Rhss[i]);
-            resolvedStatements.Add(a);
+            update.ResolvedStatements.Add(a);
           }
         }
 
@@ -4126,9 +4186,9 @@ namespace Microsoft.Dafny
             Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
             if (tr.CanAffectPreviouslyKnownExpressions) {
               Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
-            } else {
+            } else if (ErrorCount == errorCountBeforeCheckingLhs) {
               var a = new AssignStmt(update.Tok, update.Lhss[0].Resolved, tr);
-              resolvedStatements.Add(a);
+              update.ResolvedStatements.Add(a);
             }
           }
         }
@@ -4142,18 +4202,18 @@ namespace Microsoft.Dafny
           if (update.Lhss.Count != 1) {
             Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
             Error(update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
-          } else {
+          } else if (ErrorCount == errorCountBeforeCheckingLhs) {
             var a = new AssignStmt(update.Tok, update.Lhss[0].Resolved, update.Rhss[0]);
-            resolvedStatements.Add(a);
+            update.ResolvedStatements.Add(a);
           }
-        } else {
+        } else if (ErrorCount == errorCountBeforeCheckingLhs) {
           // a call statement
           var resolvedLhss = new List<Expression>();
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
           var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
-          resolvedStatements.Add(a);
+          update.ResolvedStatements.Add(a);
         }
       }
 

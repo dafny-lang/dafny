@@ -2228,6 +2228,17 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (rhss != null) {
+          foreach (var rhs in rhss) {
+            foreach (var s in rhs.SubStatements) {
+              yield return s;
+            }
+          }
+        }
+      }
+    }
   }
 
   public class ReturnStmt : ProduceStmt
@@ -2609,9 +2620,8 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Statement> SubStatements {
       get {
-        var trhs = Rhs as TypeRhs;
-        if (trhs != null && trhs.InitCall != null) {
-          yield return trhs.InitCall;
+        foreach (var s in Rhs.SubStatements) {
+          yield return s;
         }
       }
     }
@@ -5017,6 +5027,77 @@ namespace Microsoft.Dafny {
     public FunctionCheck(Function a, Function b) {
       Refined = b;
       Refining = a;
+    }
+  }
+
+  public class BottomUpVisitor
+  {
+    public void Visit(Expression expr) {
+      Contract.Requires(expr != null);
+      // recursively visit all subexpressions and all substatements
+      expr.SubExpressions.Iter(Visit);
+      if (expr is CalcExpr) {
+        // a CalcExpr also has a sub-statement
+        var e = (CalcExpr)expr;
+        Visit(e.Guard);
+      }
+      VisitOneExpr(expr);
+    }
+    public void Visit(Statement stmt) {
+      Contract.Requires(stmt != null);
+      // recursively visit all subexpressions and all substatements
+      stmt.SubExpressions.Iter(Visit);
+      stmt.SubStatements.Iter(Visit);
+      VisitOneStmt(stmt);
+    }
+    protected virtual void VisitOneExpr(Expression expr) {
+      Contract.Requires(expr != null);
+      // by default, do nothing
+    }
+    protected virtual void VisitOneStmt(Statement stmt) {
+      Contract.Requires(stmt != null);
+      // by default, do nothing
+    }
+  }
+  public class TopDownVisitor<State>
+  {
+    public void Visit(Expression expr, State st) {
+      Contract.Requires(expr != null);
+      if (VisitOneExpr(expr, ref st)) {
+        // recursively visit all subexpressions and all substatements
+        expr.SubExpressions.Iter(e => Visit(e, st));
+        if (expr is CalcExpr) {
+          // a CalcExpr also has a sub-statement
+          var e = (CalcExpr)expr;
+          Visit(e.Guard, st);
+        }
+      }
+    }
+    public void Visit(Statement stmt, State st) {
+      Contract.Requires(stmt != null);
+      if (VisitOneStmt(stmt, ref st)) {
+        // recursively visit all subexpressions and all substatements
+        stmt.SubExpressions.Iter(e => Visit(e, st));
+        stmt.SubStatements.Iter(s => Visit(s, st));
+      }
+    }
+    /// <summary>
+    /// Visit one expression proper.  This method is invoked before it is invoked on the
+    /// sub-parts (sub-expressions and sub-statements).  A return value of "true" says to
+    /// continue invoking the method on sub-parts, whereas "false" says not to do so.
+    /// The on-return value of "st" is the value that is passed to sub-parts.
+    /// </summary>
+    protected virtual bool VisitOneExpr(Expression expr, ref State st) {
+      Contract.Requires(expr != null);
+      return true;  // by default, visit the sub-parts with the same "st"
+    }
+    /// <summary>
+    /// Visit one statement proper.  For the rest of the description of what this method
+    /// does, see VisitOneExpr.
+    /// </summary>
+    protected virtual bool VisitOneStmt(Statement stmt, ref State st) {
+      Contract.Requires(stmt != null);
+      return true;  // by default, visit the sub-parts with the same "st"
     }
   }
 }
