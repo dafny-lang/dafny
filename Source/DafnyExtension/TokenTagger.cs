@@ -276,7 +276,6 @@ namespace DafnyLanguage
                 case "reads":
                 case "refines":
                 case "requires":
-                case "result":
                 case "return":
                 case "returns":
                 case "seq":
