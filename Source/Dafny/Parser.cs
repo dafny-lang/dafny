@@ -414,8 +414,10 @@ bool IsLoopSpecOrAlternative() {
 			Get();
 			DatatypeMemberDecl(ctors);
 		}
-		while (!(la.kind == 0 || la.kind == 15)) {SynErr(125); Get();}
-		Expect(15);
+		if (la.kind == 15) {
+			while (!(la.kind == 0 || la.kind == 15)) {SynErr(125); Get();}
+			Get();
+		}
 		if (co) {
 		 dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
 		} else {

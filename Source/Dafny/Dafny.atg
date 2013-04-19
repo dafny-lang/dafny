@@ -290,7 +290,13 @@ DatatypeDecl<ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
   "="                                      (. bodyStart = t; .)
   DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
-  SYNC ";"
+  [ SYNC ";" 
+      // This semi-colon used to be required, but it seems silly to have it.
+      // To stage the transition toward not having it at all, let's make it optional for now.  Then,
+      // in a next big version of Dafny, including the following warning message:
+      //     (. errors.Warning(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+      // And in a version after that, don't allow the semi-colon at all.
+  ]
   (. if (co) {
        dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
      } else {
