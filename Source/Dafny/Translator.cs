@@ -2012,6 +2012,7 @@ namespace Microsoft.Dafny {
             }
             var recursiveCall = new CallStmt(m.tok, new List<Expression>(), recursiveCallReceiver, m.Name, recursiveCallArgs);
             recursiveCall.Method = m;  // resolve here
+            recursiveCall.IsGhost = m.IsGhost;  // resolve here
 
             Expression parRange = new LiteralExpr(m.tok, true);
             parRange.Type = Type.Bool;  // resolve here

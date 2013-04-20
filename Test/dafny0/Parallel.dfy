@@ -292,3 +292,24 @@ method Empty_Parallel2()
   assert exists k :: EmptyPar_P(k);  // yes
   assert EmptyPar_P(8);  // error: the forall statement's ensures clause does not promise this
 }
+
+// ---------------------------------------------------------------------
+// The following is an example that once didn't verify (because the forall statement that
+// induction inserts had caused the $Heap to be advanced, despite the fact that Th is a
+// ghost method).
+
+datatype Nat = Zero | Succ(tail: Nat)
+
+predicate ThProperty(step: nat, t: Nat, r: nat)
+{
+  match t
+  case Zero => true
+  case Succ(o) => step>0 && exists ro:nat :: ThProperty(step-1, o, ro)
+}
+
+ghost method Th(step: nat, t: Nat, r: nat)
+  requires t.Succ? && ThProperty(step, t, r);
+  // the next line follows from the precondition and the definition of ThProperty
+  ensures exists ro:nat :: ThProperty(step-1, t.tail, ro);
+{
+}
