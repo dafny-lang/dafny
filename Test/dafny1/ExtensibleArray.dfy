@@ -7,7 +7,7 @@ class ExtensibleArray<T> {
   var length: int;
   var M: int;  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
 
-  function Valid(): bool
+  predicate Valid()
     reads this, Repr;
   {
     // shape of data structure
@@ -17,21 +17,21 @@ class ExtensibleArray<T> {
         more in Repr && more.Repr <= Repr && this !in more.Repr && elements !in more.Repr &&
         more.Valid() &&
         |more.Contents| != 0 &&
-        forall j :: 0 <= j && j < |more.Contents| ==>
+        forall j :: 0 <= j < |more.Contents| ==>
             more.Contents[j] != null && more.Contents[j].Length == 256 &&
             more.Contents[j] in Repr && more.Contents[j] !in more.Repr &&
             more.Contents[j] != elements &&
-            forall k :: 0 <= k && k < |more.Contents| && k != j ==> more.Contents[j] != more.Contents[k]) &&
+            forall k :: 0 <= k < |more.Contents| && k != j ==> more.Contents[j] != more.Contents[k]) &&
 
     // length
     M == (if more == null then 0 else 256 * |more.Contents|) &&
-    0 <= length && length <= M + 256 &&
+    0 <= length <= M + 256 &&
     (more != null ==> M < length) &&
 
     // Contents
     length == |Contents| &&
-    (forall i :: 0 <= i && i < M ==> Contents[i] == more.Contents[i / 256][i % 256]) &&
-    (forall i :: M <= i && i < length ==> Contents[i] == elements[i - M])
+    (forall i :: 0 <= i < M ==> Contents[i] == more.Contents[i / 256][i % 256]) &&
+    (forall i :: M <= i < length ==> Contents[i] == elements[i - M])
   }
 
   constructor Init()
@@ -50,7 +50,7 @@ class ExtensibleArray<T> {
 
   method Get(i: int) returns (t: T)
     requires Valid();
-    requires 0 <= i && i < |Contents|;
+    requires 0 <= i < |Contents|;
     ensures t == Contents[i];
     decreases Repr;
   {
@@ -64,7 +64,7 @@ class ExtensibleArray<T> {
 
   method Set(i: int, t: T)
     requires Valid();
-    requires 0 <= i && i < |Contents|;
+    requires 0 <= i < |Contents|;
     modifies Repr;
     ensures Valid() && fresh(Repr - old(Repr));
     ensures Contents == old(Contents)[i := t];
