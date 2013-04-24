@@ -1097,37 +1097,53 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-TypeParameters.dfy(138,12): Error: assertion violation
-TypeParameters.dfy(138,28): Related location: Related location
+TypeParameters.dfy(153,12): Error: assertion violation
+TypeParameters.dfy(153,28): Related location: Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon14_Then
-    TypeParameters.dfy(138,32): anon15_Else
+    (0,0): anon20_Then
+    TypeParameters.dfy(153,32): anon21_Else
     (0,0): anon5
-TypeParameters.dfy(140,12): Error: assertion violation
-TypeParameters.dfy(140,33): Related location: Related location
+TypeParameters.dfy(155,12): Error: assertion violation
+TypeParameters.dfy(155,33): Related location: Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon17_Then
-    TypeParameters.dfy(140,37): anon18_Else
+    (0,0): anon23_Then
+    TypeParameters.dfy(155,37): anon24_Else
     (0,0): anon11
-TypeParameters.dfy(154,15): Error BP5005: This loop invariant might not be maintained by the loop.
-TypeParameters.dfy(154,38): Related location: Related location
+TypeParameters.dfy(157,12): Error: assertion violation
+TypeParameters.dfy(157,20): Related location: Related location
 Execution trace:
     (0,0): anon0
-    TypeParameters.dfy(147,3): anon17_LoopHead
+    (0,0): anon25_Then
+TypeParameters.dfy(159,12): Error: assertion violation
+TypeParameters.dfy(144,5): Related location: Related location
+TypeParameters.dfy(159,21): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+TypeParameters.dfy(161,12): Error: assertion violation
+TypeParameters.dfy(146,8): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+TypeParameters.dfy(175,15): Error BP5005: This loop invariant might not be maintained by the loop.
+TypeParameters.dfy(175,38): Related location: Related location
+Execution trace:
+    (0,0): anon0
+    TypeParameters.dfy(168,3): anon17_LoopHead
     (0,0): anon17_LoopBody
-    TypeParameters.dfy(147,3): anon18_Else
+    TypeParameters.dfy(168,3): anon18_Else
     (0,0): anon5
     (0,0): anon20_Then
     (0,0): anon8
-    TypeParameters.dfy(153,3): anon21_LoopHead
+    TypeParameters.dfy(174,3): anon21_LoopHead
     (0,0): anon21_LoopBody
-    TypeParameters.dfy(153,3): anon22_Else
+    TypeParameters.dfy(174,3): anon22_Else
     (0,0): anon13
-    TypeParameters.dfy(153,3): anon24_Else
+    TypeParameters.dfy(174,3): anon24_Else
 
-Dafny program verifier finished with 38 verified, 5 errors
+Dafny program verifier finished with 50 verified, 8 errors
 
 -------------------- Datatypes.dfy --------------------
 Datatypes.dfy(79,20): Error: assertion violation

@@ -1149,6 +1149,7 @@ namespace Microsoft.Dafny {
       var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
+      validCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();  // resolve here
       builder.Add(new Bpl.AssumeCmd(iter.tok, etran.TrExpr(validCall)));
 
       // check well-formedness of the user-defined part of the yield-requires
@@ -9024,21 +9025,9 @@ namespace Microsoft.Dafny {
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
           } else {
             // inline this body
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            Contract.Assert(fexp.Args.Count == f.Formals.Count);
-            for (int i = 0; i < f.Formals.Count; i++) {
-              Formal p = f.Formals[i];
-              Expression arg = fexp.Args[i];
-              arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), p.Type);
-              arg.Type = p.Type;  // resolve here
-              substMap.Add(p, arg);
-            }
-            var body = f.Body;
-            if (f is PrefixPredicate) {
-              var pp = (PrefixPredicate)f;
-              body = PrefixSubstitution(pp, body);
-            }
-            body = Substitute(body, fexp.Receiver, substMap);
+            var body = GetSubstitutedBody(fexp, f, false);
+            var typeSpecializedBody = GetSubstitutedBody(fexp, f, true);
+            var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.TypeArgumentSubstitutions);
 
             // Produce, for a "body" split into b0, b1, b2:
             //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
@@ -9051,6 +9040,7 @@ namespace Microsoft.Dafny {
             //     checked F#canCall(args) ==> F'(args) || b1''
             //     checked F#canCall(args) ==> F'(args) || b2''
             // where the primes indicate certificate translations.
+            // The checked conjuncts of the body make use of the type-specialized body.
 
             // F#canCall(args)
             Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullCompileName + "#canCall", Bpl.Type.Bool);
@@ -9069,13 +9059,13 @@ namespace Microsoft.Dafny {
 
             // recurse on body
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(body, ss, position, functionHeight, etran);
-            var needsTokenAdjust = TrSplitNeedsTokenAdjustment(body);
+            TrSplitExpr(typeSpecializedBody, ss, position, functionHeight, etran);
+            var needsTokenAdjust = TrSplitNeedsTokenAdjustment(typeSpecializedBody);
             foreach (var s in ss) {
               if (s.IsChecked) {
-                var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, f.ResultType, expr.Type);
+                var unboxedConjunct = etran.CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
                 var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
-                var tok = needsTokenAdjust ? (IToken)new ForceCheckToken(body.tok) : (IToken)new NestedToken(fexp.tok, s.E.tok);
+                var tok = needsTokenAdjust ? (IToken)new ForceCheckToken(typeSpecializedBody.tok) : (IToken)new NestedToken(fexp.tok, s.E.tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
               }
@@ -9209,6 +9199,28 @@ namespace Microsoft.Dafny {
       }
       splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
       return splitHappened;
+    }
+
+    private Expression GetSubstitutedBody(FunctionCallExpr fexp, Function f, bool specializeTypeParameters) {
+      Contract.Requires(fexp != null);
+      Contract.Requires(f != null);
+      var substMap = new Dictionary<IVariable, Expression>();
+      Contract.Assert(fexp.Args.Count == f.Formals.Count);
+      for (int i = 0; i < f.Formals.Count; i++) {
+        Formal p = f.Formals[i];
+        var formalType = specializeTypeParameters ? Resolver.SubstType(p.Type, fexp.TypeArgumentSubstitutions) : p.Type;
+        Expression arg = fexp.Args[i];
+        arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
+        arg.Type = formalType;  // resolve here
+        substMap.Add(p, arg);
+      }
+      var body = f.Body;
+      if (f is PrefixPredicate) {
+        var pp = (PrefixPredicate)f;
+        body = PrefixSubstitution(pp, body);
+      }
+      body = Substitute(body, fexp.Receiver, substMap, specializeTypeParameters ? fexp.TypeArgumentSubstitutions : null);
+      return body;
     }
 
     bool TrSplitNeedsTokenAdjustment(Expression expr) {
@@ -9629,11 +9641,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {
+    public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type>/*?*/ typeMap = null) {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new Substituter(receiverReplacement, substMap);
+      var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>());
       return s.Substitute(expr);
     }
 
@@ -9641,7 +9653,7 @@ namespace Microsoft.Dafny {
     {
       public readonly Function A, B;
       public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b)
-        : base(receiverReplacement, substMap) {
+        : base(receiverReplacement, substMap, new Dictionary<TypeParameter,Type>()) {
         A = a;
         B = b;
       }
@@ -9658,6 +9670,7 @@ namespace Microsoft.Dafny {
             newFce.Function = e.Function;
             newFce.Type = e.Type;
           }
+          newFce.TypeArgumentSubstitutions = e.TypeArgumentSubstitutions;  // resolve here
           return newFce;
         }
         return base.Substitute(expr);
@@ -9669,7 +9682,7 @@ namespace Microsoft.Dafny {
       readonly Expression coDepth;
       readonly ModuleDefinition module;
       public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, CoPredicate copred, Expression depth)
-        : base(receiverReplacement, substMap) {
+        : base(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>()) {
         Contract.Requires(copred != null);
         Contract.Requires(depth != null);
         coPred = copred;
@@ -9688,20 +9701,29 @@ namespace Microsoft.Dafny {
         return base.Substitute(expr);
       }
     }
+    /// <summary>
+    /// The substituter has methods to create an expression from an existing one, where the new one has the indicated
+    /// substitutions for "this" (receiverReplacement), variables (substMap), and types (typeMap).
+    /// CAUTION:  The result of the substitution is intended for use by TrExpr, not for well-formedness checks.  In
+    /// particular, the substituter does not copy parts of an expression that are used only for well-formedness checks.
+    /// </summary>
     public class Substituter
     {
       public readonly Expression receiverReplacement;
       public readonly Dictionary<IVariable, Expression/*!*/>/*!*/ substMap;
-      public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap) {
+      public readonly Dictionary<TypeParameter, Type/*!*/>/*!*/ typeMap;
+      public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap) {
         Contract.Requires(substMap != null);
+        Contract.Requires(typeMap != null);
         this.receiverReplacement = receiverReplacement;
         this.substMap = substMap;
+        this.typeMap = typeMap;
       }
       public virtual Expression Substitute(Expression expr) {
         Contract.Requires(expr != null);
         Contract.Ensures(Contract.Result<Expression>() != null);
 
-        Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, newExpr will be resolved at end
+        Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, the .Type of newExpr will be filled in at end
 
         if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
           // nothing to substitute
@@ -9731,7 +9753,7 @@ namespace Microsoft.Dafny {
           Expression substE = Substitute(fse.Obj);
           if (substE != fse.Obj) {
             FieldSelectExpr fseNew = new FieldSelectExpr(fse.tok, substE, fse.FieldName);
-            fseNew.Field = fse.Field;  // resolve on the fly (and fseExpr.Type is set at end of method)
+            fseNew.Field = fse.Field;  // resolve on the fly (and fseNew.Type is set at end of method)
             newExpr = fseNew;
           }
 
@@ -9765,10 +9787,12 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Expression receiver = Substitute(e.Receiver);
           List<Expression> newArgs = SubstituteExprList(e.Args);
-          if (receiver != e.Receiver || newArgs != e.Args) {
+          var newTypeInstantiation = SubstituteTypeMap(e.TypeArgumentSubstitutions);
+          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions) {
             FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
+            newFce.TypeArgumentSubstitutions = newTypeInstantiation;
             newExpr = newFce;
           }
 
@@ -9833,9 +9857,18 @@ namespace Microsoft.Dafny {
             }
             rhss.Add(r);
           }
+          var newBoundVars = CreateBoundVarSubstitutions(e.Vars);
+          if (newBoundVars != e.Vars) {
+            anythingChanged = true;
+          }
           var body = Substitute(e.Body);
+          // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
+          foreach (var bv in e.Vars) {
+            substMap.Remove(bv);
+          }
+          // Put things together
           if (anythingChanged || body != e.Body) {
-            newExpr = new LetExpr(e.tok, e.Vars, rhss, body, e.Exact);
+            newExpr = new LetExpr(e.tok, newBoundVars, rhss, body, e.Exact);
           }
 
         } else if (expr is NamedExpr) {
@@ -9845,28 +9878,22 @@ namespace Microsoft.Dafny {
           newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
+          var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars);
           Expression newRange = e.Range == null ? null : Substitute(e.Range);
           Expression newTerm = Substitute(e.Term);
           Attributes newAttrs = SubstAttributes(e.Attributes);
-          if (e is SetComprehension) {
-            if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
-              newExpr = new SetComprehension(expr.tok, e.BoundVars, newRange, newTerm);
+          if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
+            if (e is SetComprehension) {
+              newExpr = new SetComprehension(expr.tok, newBoundVars, newRange, newTerm);
+            } else if (e is MapComprehension) {
+              newExpr = new MapComprehension(expr.tok, newBoundVars, newRange, newTerm);
+            } else if (expr is ForallExpr) {
+              newExpr = new ForallExpr(expr.tok, newBoundVars, newRange, newTerm, newAttrs);
+            } else if (expr is ExistsExpr) {
+              newExpr = new ExistsExpr(expr.tok, newBoundVars, newRange, newTerm, newAttrs);
+            } else {
+              Contract.Assert(false);  // unexpected ComprehensionExpr
             }
-          } else if (e is MapComprehension) {
-            if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
-              newExpr = new MapComprehension(expr.tok, e.BoundVars, newRange, newTerm);
-            }
-          } else if (e is QuantifierExpr) {
-            var q = (QuantifierExpr)e;
-            if (newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
-              if (expr is ForallExpr) {
-                newExpr = new ForallExpr(expr.tok, e.BoundVars, newRange, newTerm, newAttrs);
-              } else {
-                newExpr = new ExistsExpr(expr.tok, e.BoundVars, newRange, newTerm, newAttrs);
-              }
-            }
-          } else {
-            Contract.Assert(false);  // unexpected ComprehensionExpr
           }
 
         } else if (expr is PredicateExpr) {
@@ -9883,13 +9910,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is CalcExpr) {
           var e = (CalcExpr)expr;
-          // Since this is only done after the well-formedness checks (is this true?) use the unsound version
-          // Note: if we ever have a statement substitutor, it can be used here
-          AssumeExpr e1 = (AssumeExpr)Substitute(e.AsAssumeExpr);
-          if (e1 != e.AsAssumeExpr) {
-            // We cannot just return e1: this violates the contract that the type of an expression can be only set once.
-            newExpr = new AssumeExpr(e.tok, e1.Guard, e1.Body);
-          }
+          // Since the Substituter is to be used only after the well-formedness checks, just use the conclusion of the calculation
+          // Note: if we ever have a statement substitutor (and we wanted to include the calculation itself), it could be used here
+          return Substitute(e.AsAssumeExpr);
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
@@ -9908,9 +9931,35 @@ namespace Microsoft.Dafny {
         if (newExpr == null) {
           return expr;
         } else {
-          newExpr.Type = expr.Type;  // resolve on the fly (any additional resolution must be done above)
+          newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
           return newExpr;
         }
+      }
+
+      /// <summary>
+      /// Return a list of bound variables, of the same length as vars but with possible substitutions.
+      /// For any change necessary, update 'substMap' to reflect the new substitution.
+      /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
+      /// </summary>
+      private List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars) {
+        bool anythingChanged = false;
+        var newBoundVars = new List<BoundVar>();
+        foreach (var bv in vars) {
+          var tt = Resolver.SubstType(bv.Type, typeMap);
+          if (tt == bv.Type) {
+            newBoundVars.Add(bv);
+          } else {
+            anythingChanged = true;
+            var newBv = new BoundVar(bv.tok, bv.Name, tt);
+            newBoundVars.Add(newBv);
+            // update substMap to reflect the new BoundVar substitutions
+            var ie = new IdentifierExpr(newBv.tok, newBv.Name);
+            ie.Var = newBv;  // resolve here
+            ie.Type = newBv.Type;  // resolve here
+            substMap.Add(bv, ie);
+          }
+        }
+        return anythingChanged ? newBoundVars : vars;
       }
 
       protected List<Expression/*!*/>/*!*/ SubstituteExprList(List<Expression/*!*/>/*!*/ elist) {
@@ -9936,6 +9985,31 @@ namespace Microsoft.Dafny {
           return elist;
         } else {
           return newElist;
+        }
+      }
+
+      protected Dictionary<TypeParameter, Type> SubstituteTypeMap(Dictionary<TypeParameter, Type> tmap) {
+        Contract.Requires(tmap != null);
+        Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+        if (typeMap.Count == 0) {  // optimization
+          return tmap;
+        }
+        bool anythingChanged = false;
+        var newTmap = new Dictionary<TypeParameter, Type>();
+        var i = 0;
+        foreach (var maplet in tmap) {
+          cce.LoopInvariant(newTmap == null || newTmap.Count == i);
+          var tt = Resolver.SubstType(maplet.Value, typeMap);
+          if (tt != maplet.Value) {
+            anythingChanged = true;
+          }
+          newTmap.Add(maplet.Key, tt);
+          i++;
+        }
+        if (anythingChanged) {
+          return newTmap;
+        } else {
+          return tmap;
         }
       }
 

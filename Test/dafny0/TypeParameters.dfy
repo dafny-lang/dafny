@@ -131,6 +131,21 @@ function Cool(b: bool): bool
   b
 }
 
+function Rockin'<G>(g: G): G
+{
+  var h := g;
+  h
+}
+
+function Groovy<G>(g: G, x: int): G
+{
+  var h := g;
+  if x == 80 then
+    RogerThat(h)
+  else
+    [h][0]
+}
+
 method IsRogerCool(n: int)
   requires RogerThat(true);  // once upon a time, this caused the translator to produce bad Boogie
 {
@@ -138,6 +153,12 @@ method IsRogerCool(n: int)
     assert Cool(2 < 3 && n < n && n < n+1);  // the error message here will peek into the argument of Cool
   } else if (*) {
     assert RogerThat(2 < 3 && n < n && n < n+1);  // same here; cool, huh?
+  } else if (*) {
+    assert Rockin'(false);  // error
+  } else if (*) {
+    assert Groovy(n < n, 80);  // error
+  } else if (*) {
+    assert Groovy(n + 1 <= n, 81);  // error
   }
 }
 
@@ -216,4 +237,33 @@ module TwoLayers
   {
     w.get
   }
+}
+
+// ---------------------------------------------------------------------
+
+datatype List<T> = Nil | Cons(T, List)
+predicate InList<T>(x: T, xs: List<T>)
+predicate Subset(xs: List, ys: List) 
+{
+  forall x :: InList(x, xs) ==> InList(x, ys)
+}
+ghost method ListLemma_T(xs: List, ys: List)
+  requires forall x :: InList(x, xs) ==> InList(x, ys);
+{
+  assert Subset(xs, ys);
+}
+ghost method ammeLtsiL_T(xs: List, ys: List)
+  requires Subset(xs, ys);
+{
+  assert forall x :: InList(x, xs) ==> InList(x, ys);
+}
+ghost method ListLemma_int(xs: List<int>, ys: List<int>)
+  requires forall x :: InList(x, xs) ==> InList(x, ys);
+{
+  assert Subset(xs, ys);
+}
+ghost method ammeLtsiL_int(xs: List<int>, ys: List<int>)
+  requires Subset(xs, ys);
+{
+  assert forall x :: InList(x, xs) ==> InList(x, ys);
 }

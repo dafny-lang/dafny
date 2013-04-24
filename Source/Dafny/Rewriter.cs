@@ -256,6 +256,7 @@ namespace Microsoft.Dafny
               var valid = new FunctionCallExpr(tok, "Valid", implicitSelf, tok, new List<Expression>());
               valid.Function = Valid;
               valid.Type = Type.Bool;
+              valid.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
               m.Ens.Insert(0, new MaybeFreeExpression(valid));
               // ensures fresh(Repr - old(Repr));
               var e0 = new OldExpr(tok, Repr);
