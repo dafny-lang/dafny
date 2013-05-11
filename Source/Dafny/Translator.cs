@@ -9850,16 +9850,36 @@ namespace Microsoft.Dafny {
           var e = (LetExpr)expr;
           var rhss = new List<Expression>();
           bool anythingChanged = false;
-          foreach (var rhs in e.RHSs) {
-            var r = Substitute(rhs);
-            if (r != rhs) {
+          List<BoundVar> newBoundVars;
+          if (e.Exact) {
+            foreach (var rhs in e.RHSs) {
+              var r = Substitute(rhs);
+              if (r != rhs) {
+                anythingChanged = true;
+              }
+              rhss.Add(r);
+            }
+            // Note, CreateBoundVarSubstitutions has the side effect of updating the substitution map.
+            // For an Exact let expression, this is something that needs to be done after substituting
+            // in the RHSs.
+            newBoundVars = CreateBoundVarSubstitutions(e.Vars);
+            if (newBoundVars != e.Vars) {
               anythingChanged = true;
             }
-            rhss.Add(r);
-          }
-          var newBoundVars = CreateBoundVarSubstitutions(e.Vars);
-          if (newBoundVars != e.Vars) {
-            anythingChanged = true;
+          } else {
+            // In contrast to the Exact case above, a let-such-that expression can have occurrences of the
+            // bound variables in the RHSs.  Therefore, we do the CreateBoundVarSubstitutions first.
+            newBoundVars = CreateBoundVarSubstitutions(e.Vars);
+            if (newBoundVars != e.Vars) {
+              anythingChanged = true;
+            }
+            foreach (var rhs in e.RHSs) {
+              var r = Substitute(rhs);
+              if (r != rhs) {
+                anythingChanged = true;
+              }
+              rhss.Add(r);
+            }
           }
           var body = Substitute(e.Body);
           // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
