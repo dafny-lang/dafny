@@ -213,16 +213,27 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
       "}"                                  (. module.BodyEndTok = t;
                                               module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
                                               submodule = new LiteralModuleDecl(module, parent); .)
-     | 
+  | 
     "import" ["opened" (.opened = true;.)]
-      ( NoUSIdent<out id> (   "=" QualifiedName<out idPath> ";"
-                                 (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
-                            | ";" 
-                                 (. idPath = new List<IToken>(); idPath.Add(id); submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
-                            | "as" QualifiedName<out idPath>  ["default" QualifiedName<out idAssignment> ] ";"
-                                 (.submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
-                          )
-      )
+    NoUSIdent<out id> 
+    [ "=" QualifiedName<out idPath>
+      (. submodule = new AliasModuleDecl(idPath, id, parent, opened); .)
+    | "as" QualifiedName<out idPath>  ["default" QualifiedName<out idAssignment> ]
+      (. submodule = new ModuleFacadeDecl(idPath, id, parent, idAssignment, opened); .)
+    ]
+    [ SYNC ";" 
+        // This semi-colon used to be required, but it seems silly to have it.
+        // To stage the transition toward not having it at all, let's make it optional for now.  Then,
+        // in a next big version of Dafny, including the following warning message:
+        //     (. errors.Warning(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+        // And in a version after that, don't allow the semi-colon at all.
+    ]
+    (. if (submodule == null) {
+         idPath = new List<IToken>();
+         idPath.Add(id);
+         submodule = new AliasModuleDecl(idPath, id, parent, opened);
+       }
+    .)
   )
 .
 
@@ -342,7 +353,13 @@ ArbitraryTypeDecl<ModuleDefinition/*!*/ module, out ArbitraryTypeDecl at>
   NoUSIdent<out id>
   [ "(" "==" ")"               (. eqSupport = TypeParameter.EqualitySupportValue.Required; .)
   ]                            (. at = new ArbitraryTypeDecl(id, id.val, module, eqSupport, attrs); .)
-  SYNC ";"
+  [ SYNC ";" 
+      // This semi-colon used to be required, but it seems silly to have it.
+      // To stage the transition toward not having it at all, let's make it optional for now.  Then,
+      // in a next big version of Dafny, including the following warning message:
+      //     (. errors.Warning(t, "the semi-colon that used to terminate an arbitrary-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
+      // And in a version after that, don't allow the semi-colon at all.
+  ]
   .
 GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost>
 /* isGhost always returns as false if allowGhostKeyword is false */

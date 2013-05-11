@@ -495,8 +495,8 @@ public class Scanner {
 			case "refines": t.kind = 11; break;
 			case "import": t.kind = 12; break;
 			case "opened": t.kind = 13; break;
-			case "as": t.kind = 16; break;
-			case "default": t.kind = 17; break;
+			case "as": t.kind = 15; break;
+			case "default": t.kind = 16; break;
 			case "class": t.kind = 19; break;
 			case "ghost": t.kind = 20; break;
 			case "static": t.kind = 21; break;
@@ -671,7 +671,7 @@ public class Scanner {
 				else if (ch >= '0' && ch <= '9') {AddCh(); goto case 21;}
 				else {t.kind = 3; break;}
 			case 22:
-				{t.kind = 15; break;}
+				{t.kind = 17; break;}
 			case 23:
 				{t.kind = 26; break;}
 			case 24:

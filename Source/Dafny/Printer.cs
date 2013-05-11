@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
           if (at.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
             wr.Write("(==)");
           }
-          wr.WriteLine(";");
+          wr.WriteLine();
         } else if (d is DatatypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
           PrintDatatype((DatatypeDecl)d, indent);
@@ -142,11 +142,11 @@ namespace Microsoft.Dafny {
           } else if (d is AliasModuleDecl) {
             wr.Write("import"); if (((AliasModuleDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((AliasModuleDecl)d).Name);
-            wr.WriteLine("= {0};", Util.Comma(".", ((AliasModuleDecl)d).Path, id => id.val));
+            wr.WriteLine("= {0}", Util.Comma(".", ((AliasModuleDecl)d).Path, id => id.val));
           } else if (d is ModuleFacadeDecl) {
             wr.Write("import"); if (((ModuleFacadeDecl)d).Opened) wr.Write(" opened");
             wr.Write(" {0} ", ((ModuleFacadeDecl)d).Name);
-            wr.WriteLine("as {0};", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
+            wr.WriteLine("as {0}", Util.Comma(".", ((ModuleFacadeDecl)d).Path, id => id.val));
           }
         } else {
           Contract.Assert(false);  // unexpected TopLevelDecl
@@ -240,7 +240,7 @@ namespace Microsoft.Dafny {
         }
         sep = " |";
       }
-      wr.WriteLine(";");
+      wr.WriteLine();
     }
 
     /// <summary>
