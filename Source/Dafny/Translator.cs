@@ -9747,7 +9747,21 @@ namespace Microsoft.Dafny {
               newExpr = new SeqDisplayExpr(expr.tok, newElements);
             }
           }
-
+        } else if (expr is MapDisplayExpr) {
+          var e = (MapDisplayExpr)expr;
+          var elmts = new List<ExpressionPair>();
+          var anyChanges = false;
+          foreach (var ep in e.Elements) {
+            var a = Substitute(ep.A);
+            var b = Substitute(ep.B);
+            elmts.Add(new ExpressionPair(a, b));
+            if (a != ep.A || b != ep.B) {
+              anyChanges = true;
+            }
+          }
+          if (anyChanges) {
+            newExpr = new MapDisplayExpr(expr.tok, elmts);
+          }
         } else if (expr is FieldSelectExpr) {
           FieldSelectExpr fse = (FieldSelectExpr)expr;
           Expression substE = Substitute(fse.Obj);
@@ -9820,6 +9834,18 @@ namespace Microsoft.Dafny {
           Expression se = Substitute(e.E);
           if (se != e.E) {
             newExpr = new FreshExpr(expr.tok, se);
+          }
+        } else if (expr is MultiSetFormingExpr) {
+          var e = (MultiSetFormingExpr)expr;
+          var se = Substitute(e.E);
+          if (se != e.E) {
+            newExpr = new MultiSetFormingExpr(expr.tok, se);
+          }
+        } else if (expr is BoxingCastExpr) {
+          var e = (BoxingCastExpr)expr;
+          var se = Substitute(e.E);
+          if (se != e.E) {
+            newExpr = new BoxingCastExpr(se, e.FromType, e.ToType);
           }
         } else if (expr is UnaryExpr) {
           UnaryExpr e = (UnaryExpr)expr;
@@ -9946,6 +9972,8 @@ namespace Microsoft.Dafny {
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
           return Substitute(e.ResolvedExpression);
+        } else {
+          Contract.Assume(false); // unexpected Expression
         }
 
         if (newExpr == null) {

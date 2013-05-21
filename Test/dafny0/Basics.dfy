@@ -249,3 +249,16 @@ method notQuiteSwap3(c: CC, d: CC)
   c.x, d.x := 4, c.y;
   c.x, c.y := 3, c.y;
 }
+
+// ---------------------------
+// regression tests of things that were once errors
+
+method InlineMultisetFormingExpr(s: seq<int>)
+  ensures MSFE(s);
+predicate MSFE(s: seq<int>)
+{
+  multiset(s) == multiset(s)
+}
+
+copredicate CoPredTypeCheck(n: int)
+  requires n != 0;
