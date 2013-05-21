@@ -1541,6 +1541,7 @@ namespace Microsoft.Dafny
         }
       } else if (member is Function) {
         var f = (Function)member;
+        var errorCount = ErrorCount;
         f.Req.Iter(CheckTypeInference);
         f.Ens.Iter(CheckTypeInference);
         f.Reads.Iter(fe => CheckTypeInference(fe.E));
@@ -1551,6 +1552,10 @@ namespace Microsoft.Dafny
           if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
             Error(f.tok, "sorry, tail-call functions are not supported");
           }
+        }
+        if (errorCount == ErrorCount && f is CoPredicate) {
+          var cop = (CoPredicate)f;
+          CheckTypeInference_Member(cop.PrefixPredicate);
         }
       }
     }
