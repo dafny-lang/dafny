@@ -93,7 +93,7 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\boogie\Source\Model\Model.csproj">
+    <ProjectReference Include="..\..\..\boogie\Source\Model\Model.csproj">
       <Name>Model</Name>
       <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
       <Private>True</Private>

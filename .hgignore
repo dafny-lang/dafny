@@ -1,0 +1,13 @@
+syntax: regexp
+^Source/.*\.(user|suo|cache|vs10x)$
+^Binaries/.*\.(dll|pdb|exe|manifest|config|smt2|vsix|vsixmanifest|bpl)$
+^Source/.*\.(smt2|bpl)$
+^.*(bin|obj)/([^/]*/)?(Debug|Release|Checked|Debug All|DEBUG ALL)/.*$
+Test/.*/Output
+Test/([^/]*)/([^/]*)\.sx
+syntax: glob
+*.exe
+*.pdb
+*.dll
+*.tmp
+*.tmp.dfy

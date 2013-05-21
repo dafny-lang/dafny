@@ -129,14 +129,14 @@
   <ItemGroup>
     <Reference Include="Basetypes, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\Basetypes.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\Basetypes.dll</HintPath>
     </Reference>
     <Reference Include="Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\Core.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
     </Reference>
     <Reference Include="ParserHelper">
-      <HintPath>..\..\Binaries\ParserHelper.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\ParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
