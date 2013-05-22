@@ -127,10 +127,6 @@
     <Reference Include="AbsInt">
       <HintPath>..\..\..\boogie\Binaries\AbsInt.dll</HintPath>
     </Reference>
-    <Reference Include="BVD, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\boogie\Binaries\BVD.exe</HintPath>
-    </Reference>
     <Reference Include="Core">
       <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
     </Reference>
