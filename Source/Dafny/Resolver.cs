@@ -1670,7 +1670,10 @@ namespace Microsoft.Dafny
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
     /// </summary>
     TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
-      Contract.Requires(stmt != null && !stmt.IsGhost);
+      Contract.Requires(stmt != null);
+      if (stmt.IsGhost) {
+        return TailRecursionStatus.NotTailRecursive;
+      }
       if (stmt is PrintStmt) {
       } else if (stmt is BreakStmt) {
       } else if (stmt is ReturnStmt) {
@@ -3644,6 +3647,9 @@ namespace Microsoft.Dafny
           ResolveStatement(s.Update, specContextOnly, codeContext);
           s.ResolvedStatements.Add(s.Update);
         }
+        if (!s.IsGhost) {
+          s.IsGhost = s.Lhss.All(v => v.IsGhost);
+        }
 
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
@@ -3764,8 +3770,12 @@ namespace Microsoft.Dafny
         ResolveCallStmt(s, specContextOnly, codeContext, null);
 
       } else if (stmt is BlockStmt) {
+        var s = (BlockStmt)stmt;
         scope.PushMarker();
-        ResolveBlockStatement((BlockStmt)stmt, specContextOnly, codeContext);
+        ResolveBlockStatement(s, specContextOnly, codeContext);
+        if (!s.IsGhost) {
+          s.IsGhost = s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
+        }
         scope.PopMarker();
 
       } else if (stmt is IfStmt) {
@@ -3788,10 +3798,17 @@ namespace Microsoft.Dafny
         if (s.Els != null) {
           ResolveStatement(s.Els, branchesAreSpecOnly, codeContext);
         }
+        if (!s.IsGhost && s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost)) {
+          // mark the entire 'if' statement as ghost if its branches are ghost
+          s.IsGhost = true;
+        }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         s.IsGhost = ResolveAlternatives(s.Alternatives, specContextOnly, null, codeContext);
+        if (!s.IsGhost) {
+          s.IsGhost = s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
+        }
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
@@ -4071,7 +4088,9 @@ namespace Microsoft.Dafny
           }
           Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
         }
-
+        if (!s.IsGhost) {
+          s.IsGhost = s.Cases.All(cs => cs.Body.All(ss => ss.IsGhost));
+        }
 
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;

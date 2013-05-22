@@ -998,6 +998,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
         CheckHasNoAssumes(stmt);
+        Indent(indent); wr.WriteLine("{ }");
         return;
       }
 

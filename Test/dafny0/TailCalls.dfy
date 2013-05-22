@@ -72,3 +72,29 @@ method {:tailrecursion} H1(q: int) returns (x: int)
   decreases *;  // fine, but no 'decreases' spec is needed at all here
 method H2(q: int) returns (x: int)
   decreases 5;  // fine, but no 'decreases' spec is needed at all here
+
+class {:autocontracts} MyAutoContractClass {
+  var left: MyAutoContractClass;
+
+  predicate Valid() { true }
+
+  method {:tailrecursion} VisitLeft(val: int)
+  {
+    if left != null {
+      left.VisitLeft(val);  // this is a tail call, because what :autocontracts appends is ghost
+    }
+  }
+}
+
+method {:tailrecursion} OtherTailCall(n: int) {
+  ghost var x := 12;
+  if n > 0 {
+    OtherTailCall(n-1);  // tail call
+  }
+  x := 14;
+  { x := 13; }
+  ghost var h := 15;
+  if n < h*30 { } // this is a ghost statement as well
+  if n < 230 { } // and this can be (and is) considered ghost as well
+  if (*) { x := x + 1; }  // this, too
+}
