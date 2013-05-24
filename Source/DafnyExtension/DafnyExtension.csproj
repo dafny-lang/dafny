@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -87,9 +87,6 @@
     <Reference Include="Basetypes, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\boogie\Binaries\Basetypes.dll</HintPath>
-    </Reference>
-    <Reference Include="BVD">
-      <HintPath>..\..\..\boogie\Binaries\BVD.exe</HintPath>
     </Reference>
     <Reference Include="CodeContractsExtender, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -197,6 +194,9 @@
     <Content Include="UnivBackPred2.smt2">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <Content Include="DafnyRuntime.cs">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
@@ -218,7 +218,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>copy /y $(SolutionDir)\..\..\boogie\Binaries\UnivBackPred2.smt2 $(ProjectDir)
-copy /y $(SolutionDir)\..\Binaries\DafnyPrelude.bpl $(ProjectDir)</PreBuildEvent>
+copy /y $(SolutionDir)\..\Binaries\DafnyPrelude.bpl $(ProjectDir)
+copy /y $(SolutionDir)\..\Binaries\DafnyRuntime.cs $(ProjectDir)</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

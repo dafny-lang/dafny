@@ -37,6 +37,8 @@ namespace DafnyLanguage
     ITagAggregator<DafnyTokenTag> _aggregator;
     IDictionary<DafnyTokenKinds, IClassificationType> _typeMap;
 
+    static bool DafnyMenuWasInitialized;
+
     internal DafnyClassifier(ITextBuffer buffer,
                              ITagAggregator<DafnyTokenTag> tagAggregator,
                              IClassificationTypeRegistryService typeService, Microsoft.VisualStudio.Language.StandardClassification.IStandardClassificationService standards) {
@@ -51,6 +53,19 @@ namespace DafnyLanguage
       _typeMap[DafnyTokenKinds.Comment] = standards.Comment;
       _typeMap[DafnyTokenKinds.VariableIdentifier] = standards.Identifier;
       _typeMap[DafnyTokenKinds.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
+
+      if (!DafnyMenuWasInitialized)
+      {
+        // Initialize the Dafny menu.
+        var shell = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(Microsoft.VisualStudio.Shell.Interop.SVsShell)) as Microsoft.VisualStudio.Shell.Interop.IVsShell;
+        if (shell != null)
+        {
+          Microsoft.VisualStudio.Shell.Interop.IVsPackage package = null;
+          Guid PackageToBeLoadedGuid = new Guid("e1baf989-88a6-4acf-8d97-e0dc243476aa");
+          shell.LoadPackage(ref PackageToBeLoadedGuid, out package);
+        }
+        DafnyMenuWasInitialized = true;
+      }
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;

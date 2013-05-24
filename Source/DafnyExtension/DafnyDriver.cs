@@ -16,7 +16,7 @@ using VC;
 
 namespace DafnyLanguage
 {
-  class DafnyDriver
+  public class DafnyDriver
   {
     readonly string _programText;
     readonly string _filename;
@@ -118,6 +118,12 @@ namespace DafnyLanguage
         default:
           return false;
       }
+    }
+
+    public static void Compile(Dafny.Program dafnyProgram)
+    {
+      Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
+      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name);
     }
 
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }

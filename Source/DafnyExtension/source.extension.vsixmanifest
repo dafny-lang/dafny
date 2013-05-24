@@ -19,6 +19,7 @@
   <References />
   <Content>
     <MefComponent>|%CurrentProject%|</MefComponent>
+    <VsPackage>DafnyMenu</VsPackage>
     <CustomExtension Type="Boogie">DafnyPrelude.bpl</CustomExtension>
     <CustomExtension Type="SMTLib 2">UnivBackPred2.smt2</CustomExtension>
   </Content>

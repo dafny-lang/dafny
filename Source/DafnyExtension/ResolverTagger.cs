@@ -6,6 +6,7 @@
 using EnvDTE;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.ComponentModel.Composition;
@@ -66,7 +67,7 @@ namespace DafnyLanguage
   /// <summary>
   /// Translate PkgDefTokenTags into ErrorTags and Error List items
   /// </summary>
-  internal sealed class ResolverTagger : ITagger<DafnyResolverTag>, IDisposable
+  public sealed class ResolverTagger : ITagger<DafnyResolverTag>, IDisposable
   {
     ITextBuffer _buffer;
     ITextDocument _document;
@@ -76,6 +77,8 @@ namespace DafnyLanguage
     List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
     List<DafnyError> _verificationErrors = new List<DafnyError>();
     ErrorListProvider _errorProvider;
+
+    public static IDictionary<string, Dafny.Program> Programs = new ConcurrentDictionary<string, Dafny.Program>();
 
     internal ResolverTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITextDocumentFactoryService textDocumentFactory) {
       _buffer = buffer;
@@ -178,6 +181,16 @@ namespace DafnyLanguage
         _snapshot = snapshot;
         _program = program;
       }
+
+      if (program != null && _document != null)
+      {
+        Programs[_document.FilePath] = program;
+      }
+      else if (_document != null)
+      {
+        Programs.Remove(_document.FilePath);
+      }
+
       PopulateErrorList(newErrors, false, snapshot);
     }
 
@@ -287,7 +300,7 @@ namespace DafnyLanguage
     ProcessError, ParseWarning, ParseError, ResolveError, VerificationError, AuxInformation, InternalError
   }
 
-  internal class DafnyError
+  public class DafnyError
   {
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based

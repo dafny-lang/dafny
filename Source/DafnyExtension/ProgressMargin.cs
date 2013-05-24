@@ -79,7 +79,7 @@ namespace DafnyLanguage
     }
   }
 
-  internal class ProgressTagger : ITagger<ProgressGlyphTag>
+  internal class ProgressTagger : ITagger<ProgressGlyphTag>, IDisposable
   {
     ErrorListProvider _errorProvider;
     ITextBuffer _buffer;
@@ -100,6 +100,7 @@ namespace DafnyLanguage
     }
 
     public void Dispose() {
+      _errorProvider.Dispose();
     }
 
     // The following fields and the contents of the following two lists are protected by the lock "this".
