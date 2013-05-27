@@ -110,8 +110,28 @@ namespace DafnyLanguage
       bufferChangesPostVerificationStart.Add(new SnapshotSpan(buffer.CurrentSnapshot, 0, buffer.CurrentSnapshot.Length));
     }
 
-    public void Dispose() {
-      _errorProvider.Dispose();
+    public void Dispose()
+    {
+      Dispose(true);
+      GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+      if (!m_disposed)
+      {
+        if (disposing)
+        {
+          _buffer.Changed -= buffer_Changed;
+          _errorProvider.Dispose();
+          if (resolver != null)
+          {
+            resolver.Dispose();
+          }
+        }
+
+        m_disposed = true;
+      }
     }
 
     // The following fields and the contents of the following two lists are protected by the lock "this".
@@ -280,6 +300,7 @@ namespace DafnyLanguage
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
+    private bool m_disposed;
     IEnumerable<ITagSpan<ProgressGlyphTag>> ITagger<ProgressGlyphTag>.GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
       var targetSnapshot = spans[0].Snapshot;

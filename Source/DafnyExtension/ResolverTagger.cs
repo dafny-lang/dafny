@@ -90,16 +90,35 @@ namespace DafnyLanguage
       BufferIdleEventUtil.AddBufferIdleEventListener(_buffer, ResolveBuffer);
     }
 
-    public void Dispose() {
-      if (_errorProvider != null) {
-        try {
-          _errorProvider.Tasks.Clear();
-        } catch (InvalidOperationException) {
-          // this may occur if the SVsServiceProvider somehow has been uninstalled before our Dispose method is called
+    public void Dispose()
+    {
+      Dispose(true);
+      GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+      if (!m_disposed)
+      {
+        if (disposing)
+        {
+          if (_errorProvider != null)
+          {
+            try
+            {
+              _errorProvider.Tasks.Clear();
+            }
+            catch (InvalidOperationException)
+            {
+              // this may occur if the SVsServiceProvider somehow has been uninstalled before our Dispose method is called
+            }
+            _errorProvider.Dispose();
+          }
+          BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
         }
-        _errorProvider.Dispose();
+
+        m_disposed = true;
       }
-      BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
     }
 
     public IEnumerable<DafnyError> AllErrors() {
@@ -155,6 +174,7 @@ namespace DafnyLanguage
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
+    private bool m_disposed;
 
     /// <summary>
     /// Calls the Dafny parser/resolver/type checker on the contents of the buffer, updates the Error List accordingly.
