@@ -90,7 +90,6 @@ namespace DafnyLanguage.DafnyMenu
         menuCommand = new OleMenuCommand(new EventHandler((sender, e) => { }), menuCommandID);
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
         menuCommand.Enabled = true;
-        var s = menuCommand.OleStatus;
         mcs.AddCommand(menuCommand);
       }
     }
@@ -120,7 +119,7 @@ namespace DafnyLanguage.DafnyMenu
     void menuCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
-      var isActive = dte.ActiveDocument.FullName.EndsWith(".dfy");
+      var isActive = dte.ActiveDocument.FullName.EndsWith(".dfy", StringComparison.OrdinalIgnoreCase);
       menuCommand.Visible = isActive;
       menuCommand.Enabled = isActive;
     }
