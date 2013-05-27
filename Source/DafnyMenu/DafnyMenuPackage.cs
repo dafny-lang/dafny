@@ -36,6 +36,8 @@ namespace DafnyLanguage.DafnyMenu
 
     private OleMenuCommand compileCommand;
     private OleMenuCommand menuCommand;
+    private OleMenuCommand runVerifierCommand;
+    private OleMenuCommand stopVerifierCommand;
 
     /// <summary>
     /// Default constructor of the package.
@@ -72,6 +74,18 @@ namespace DafnyLanguage.DafnyMenu
         compileCommand.BeforeQueryStatus += compileCommand_BeforeQueryStatus;
         mcs.AddCommand(compileCommand);
 
+        var runVerifierCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidRunVerifier);
+        runVerifierCommand = new OleMenuCommand(RunVerifierCallback, runVerifierCommandID);
+        runVerifierCommand.Enabled = true;
+        runVerifierCommand.BeforeQueryStatus += runVerifierCommand_BeforeQueryStatus;
+        mcs.AddCommand(runVerifierCommand);
+
+        var stopVerifierCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidStopVerifier);
+        stopVerifierCommand = new OleMenuCommand(StopVerifierCallback, stopVerifierCommandID);
+        stopVerifierCommand.Enabled = true;
+        stopVerifierCommand.BeforeQueryStatus += stopVerifierCommand_BeforeQueryStatus;
+        mcs.AddCommand(stopVerifierCommand);
+
         var menuCommandID = new CommandID(GuidList.guidDafnyMenuPkgSet, (int)PkgCmdIDList.cmdidMenu);
         menuCommand = new OleMenuCommand(new EventHandler((sender, e) => { }), menuCommandID);
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
@@ -81,12 +95,52 @@ namespace DafnyLanguage.DafnyMenu
       }
     }
 
+    private void StopVerifierCallback(object sender, EventArgs e)
+    {
+      var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+      DafnyLanguage.ProgressTagger tagger;
+      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);
+      if (tagger != null)
+      {
+        tagger.StopVerification();
+      }
+    }
+
+    private void RunVerifierCallback(object sender, EventArgs e)
+    {
+      var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+      DafnyLanguage.ProgressTagger tagger;
+      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);
+      if (tagger != null)
+      {
+        tagger.StartVerification();
+      }
+    }
+
     void menuCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
       var isActive = dte.ActiveDocument.FullName.EndsWith(".dfy");
       menuCommand.Visible = isActive;
       menuCommand.Enabled = isActive;
+    }
+
+    void runVerifierCommand_BeforeQueryStatus(object sender, EventArgs e)
+    {
+      var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+      DafnyLanguage.ProgressTagger tagger;
+      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);  
+      runVerifierCommand.Visible = tagger != null && tagger.VerificationDisabled;
+      runVerifierCommand.Enabled = tagger != null && tagger.VerificationDisabled;
+    }
+
+    void stopVerifierCommand_BeforeQueryStatus(object sender, EventArgs e)
+    {
+      var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+      DafnyLanguage.ProgressTagger tagger;
+      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);  
+      stopVerifierCommand.Visible = !(tagger != null && tagger.VerificationDisabled);
+      stopVerifierCommand.Enabled = !(tagger != null && tagger.VerificationDisabled);
     }
 
     void compileCommand_BeforeQueryStatus(object sender, EventArgs e)

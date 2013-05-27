@@ -77,6 +77,24 @@
         </Strings>
       </Button>
 
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidRunVerifier" priority="0x0101" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Run verifier</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidStopVerifier" priority="0x0102" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Stop verifier</ButtonText>
+        </Strings>
+      </Button>
+
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -104,6 +122,8 @@
     <GuidSymbol name="guidDafnyMenuCmdSet" value="{393ad46d-e125-41ce-84ee-b4d552d5ba16}">
       <IDSymbol name="DafnyMenuGroup" value="0x1020" />
       <IDSymbol name="cmdidCompile" value="0x0100" />
+      <IDSymbol name="cmdidRunVerifier" value="0x0101" />
+      <IDSymbol name="cmdidStopVerifier" value="0x0102" />
     </GuidSymbol>
 
     <!--

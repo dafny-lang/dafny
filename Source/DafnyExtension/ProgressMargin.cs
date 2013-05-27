@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Windows.Threading;
 using System.Windows;
@@ -71,23 +72,33 @@ namespace DafnyLanguage
     [Import(typeof(Microsoft.VisualStudio.Shell.SVsServiceProvider))]
     internal IServiceProvider _serviceProvider = null;
 
+    [Import]
+    ITextDocumentFactoryService _textDocumentFactory = null;
+
     public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag {
       ITagAggregator<DafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<DafnyResolverTag>(buffer);
       // create a single tagger for each buffer.
-      Func<ITagger<T>> sc = delegate() { return new ProgressTagger(buffer, _serviceProvider, tagAggregator) as ITagger<T>; };
+      Func<ITagger<T>> sc = delegate() { return new ProgressTagger(buffer, _serviceProvider, tagAggregator, _textDocumentFactory) as ITagger<T>; };
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
     }
   }
 
-  internal class ProgressTagger : ITagger<ProgressGlyphTag>, IDisposable
+  public class ProgressTagger : ITagger<ProgressGlyphTag>, IDisposable
   {
     ErrorListProvider _errorProvider;
     ITextBuffer _buffer;
+    ITextDocument _document;
 
     readonly DispatcherTimer timer;
 
-    public ProgressTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITagAggregator<DafnyResolverTag> tagAggregator) {
+    public ProgressTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITagAggregator<DafnyResolverTag> tagAggregator, ITextDocumentFactoryService textDocumentFactory) {
       _buffer = buffer;
+
+      if (!textDocumentFactory.TryGetTextDocument(_buffer, out _document))
+      {
+        _document = null;
+      }
+
       _errorProvider = new ErrorListProvider(serviceProvider);
 
       timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle);
@@ -132,6 +143,16 @@ namespace DafnyLanguage
     }
 
     bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
+    Thread verificationWorker;
+    bool verificationDisabled;
+
+    public bool VerificationDisabled
+    {
+      get { return verificationDisabled; }
+    }
+
+    public static IDictionary<string, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<string, ProgressTagger>();
+    
     /// <summary>
     /// This method is invoked when the user has been idle for a little while.
     /// Note, "sender" and "args" are allowed to be passed in as null--they are not used by this method.
@@ -139,7 +160,6 @@ namespace DafnyLanguage
     public void UponIdle(object sender, EventArgs args) {
       Dafny.Program prog;
       ITextSnapshot snap;
-      ResolverTagger r;
       lock (this) {
         if (verificationInProgress) {
           // This UponIdle message came at an inopportune time--we've already kicked off a verification.
@@ -152,9 +172,7 @@ namespace DafnyLanguage
           prog = resolver._program;
           snap = resolver._snapshot;
         }
-        r = resolver;
-        resolver = null;
-        if (prog == null) return;
+        if (prog == null || verificationDisabled) return;
         // We have a successfully resolved program to verify
 
         var resolvedVersion = snap.Version.VersionNumber;
@@ -176,14 +194,53 @@ namespace DafnyLanguage
         bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
         bufferChangesPostVerificationStart = empty;
         // Notify to-whom-it-may-concern about the changes we just made
-        var chng = TagsChanged;
-        if (chng != null) {
-          chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snap, 0, snap.Length)));
-        }
+        NotifyAboutChangedTags(snap);
 
+        verificationWorker = new Thread(() => VerificationWorker(prog, snap, resolver));
+        verificationWorker.IsBackground = true;
+        if (_document != null)
+        {
+          ProgressTaggers[_document.FilePath] = this;
+        }
       }
-      new Thread(() => VerificationWorker(prog, snap, r)).Start();
+      verificationWorker.Start();
     }
+
+    private void NotifyAboutChangedTags(ITextSnapshot snap)
+    {
+      var chng = TagsChanged;
+      if (chng != null)
+      {
+        chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snap, 0, snap.Length)));
+      }
+    }
+
+    public void StopVerification()
+    {
+      verificationWorker.Abort();  // TODO(wuestholz): Make sure this kills the corresponding Z3 process.
+      lock (this)
+      {
+        bufferChangesPreVerificationStart.Clear();
+        bufferChangesPostVerificationStart.Clear();
+        bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
+        verificationDisabled = true;
+        verificationInProgress = false;
+        NotifyAboutChangedTags(_buffer.CurrentSnapshot);
+      }
+    }
+
+    public void StartVerification()
+    {
+      lock (this)
+      {
+        bufferChangesPreVerificationStart.Clear();
+        bufferChangesPostVerificationStart.Clear();
+        bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
+        verificationDisabled = false;
+        NotifyAboutChangedTags(_buffer.CurrentSnapshot);
+      }
+    }
+
 
     /// <summary>
     /// Thread entry point.
@@ -209,16 +266,13 @@ namespace DafnyLanguage
         newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message));
       }
       errorListHolder.PopulateErrorList(newErrors, true, snapshot);
-
+      
       lock (this) {
         bufferChangesPreVerificationStart.Clear();
         verificationInProgress = false;
       }
       // Notify to-whom-it-may-concern about the cleared pre-verification changes
-      var chng = TagsChanged;
-      if (chng != null) {
-        chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
-      }
+      NotifyAboutChangedTags(snapshot);
 
       // If new changes took place since we started the verification, we may need to kick off another verification
       // immediately.
