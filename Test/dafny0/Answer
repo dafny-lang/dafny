@@ -721,11 +721,11 @@ Basics.dfy(155,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
-Basics.dfy(157,10): Error: assignment may update an object not in the enclosing context's modifies clause
+Basics.dfy(157,10): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3
-Basics.dfy(157,10): Error: target object may be null
+Basics.dfy(157,10): Error: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3
