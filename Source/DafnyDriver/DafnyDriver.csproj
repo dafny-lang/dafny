@@ -125,27 +125,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AbsInt">
-      <HintPath>..\..\Binaries\AbsInt.dll</HintPath>
-    </Reference>
-    <Reference Include="BVD, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\boogie\Binaries\BVD.exe</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\AbsInt.dll</HintPath>
     </Reference>
     <Reference Include="Core">
-      <HintPath>..\..\Binaries\Core.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
     </Reference>
     <Reference Include="Provers.SMTLib">
-      <HintPath>..\..\Binaries\Provers.SMTLib.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
     <Reference Include="ParserHelper, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Binaries\ParserHelper.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\ParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="VCGeneration">
-      <HintPath>..\..\Binaries\VCGeneration.dll</HintPath>
+      <HintPath>..\..\..\boogie\Binaries\VCGeneration.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -180,7 +176,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>copy ..\..\boogie\Binaries\UnivBackPred2.smt2 $(TargetDir)</PreBuildEvent>
+    <PreBuildEvent>copy /y "$(SolutionDir)"..\..\boogie\Binaries\UnivBackPred2.smt2 "$(TargetDir)"</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.

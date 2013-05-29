@@ -1,5 +1,5 @@
 /*
-	This test works with Z3 3.2 and Z3 4.1 (on Win7 x64). Other versions ... who knows.
+	This test works with Z3 4.3 (on Win8 x64). Other versions ... who knows.
 */
 
 // Note: We are using the built-in equality to compare keys.
@@ -117,6 +117,8 @@ class Map<Key(==),Value> {
       } else {
         prev.next := p.next;
       }
+      assert Keys[..n] == old(Keys)[..n];
+      assert Values[..n] == old(Values)[..n];
       assert Keys[n..] == old(Keys)[n+1..];
       assert Values[n..] == old(Values)[n+1..];
     }

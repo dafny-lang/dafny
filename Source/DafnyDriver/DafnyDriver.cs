@@ -191,7 +191,7 @@ namespace Microsoft.Dafny
       return exitValue;
     }
 
-    private static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
+    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
     {
       Contract.Requires(dafnyProgram != null);
       // Compile the Dafny program into a string that contains the C# program
