@@ -218,9 +218,9 @@
     </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>copy /y $(SolutionDir)\..\..\boogie\Binaries\UnivBackPred2.smt2 $(ProjectDir)
-copy /y $(SolutionDir)\..\Binaries\DafnyPrelude.bpl $(ProjectDir)
-copy /y $(SolutionDir)\..\Binaries\DafnyRuntime.cs $(ProjectDir)</PreBuildEvent>
+    <PreBuildEvent>copy /y $(SolutionDir)..\..\boogie\Binaries\UnivBackPred2.smt2 $(ProjectDir)
+copy /y $(SolutionDir)..\Binaries\DafnyPrelude.bpl $(ProjectDir)
+copy /y $(SolutionDir)..\Binaries\DafnyRuntime.cs $(ProjectDir)</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
