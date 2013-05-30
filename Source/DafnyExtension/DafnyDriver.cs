@@ -291,6 +291,7 @@ namespace DafnyLanguage
             case VCGen.Outcome.Correct:
               break;
             case VCGen.Outcome.TimedOut:
+              // TODO(wuestholz): Display the trace and the time it took (see the Boogie/Dafny driver).
               er(new DafnyErrorInformation(impl.tok, "Verification timed out (" + impl.Name + ")"));
               break;
             case VCGen.Outcome.OutOfMemory:

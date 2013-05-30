@@ -657,111 +657,129 @@ namespace Microsoft.Dafny
                     break;
                 case VCGen.Outcome.Errors:
                     Contract.Assert(errors != null);  // guaranteed by postcondition of VerifyImplementation
-                    // BP1xxx: Parsing errors
-                    // BP2xxx: Name resolution errors
-                    // BP3xxx: Typechecking errors
-                    // BP4xxx: Abstract interpretation errors (Is there such a thing?)
-                    // BP5xxx: Verification errors
-
-                    errors.Sort(new CounterexampleComparer());
-                    foreach (Counterexample error in errors)
-                    {
-                        if (error is CallCounterexample)
-                        {
-                            CallCounterexample err = (CallCounterexample)error;
-                            ReportBplError(err.FailingCall.tok, (err.FailingCall.ErrorData as string) ?? "Error BP5002: A precondition for this call might not hold.", true);
-                            ReportBplError(err.FailingRequires.tok, (err.FailingRequires.ErrorData as string) ?? "Related location: This is the precondition that might not hold.", false);
-                            if (CommandLineOptions.Clo.XmlSink != null)
-                            {
-                                CommandLineOptions.Clo.XmlSink.WriteError("precondition violation", err.FailingCall.tok, err.FailingRequires.tok, error.Trace);
-                            }
-                        }
-                        else if (error is ReturnCounterexample)
-                        {
-                            ReturnCounterexample err = (ReturnCounterexample)error;
-                            ReportBplError(err.FailingReturn.tok, "Error BP5003: A postcondition might not hold on this return path.", true);
-                            ReportBplError(err.FailingEnsures.tok, (err.FailingEnsures.ErrorData as string) ?? "Related location: This is the postcondition that might not hold.", false);
-                            ReportAllBplErrors(err.FailingEnsures.Attributes);
-                            if (CommandLineOptions.Clo.XmlSink != null)
-                            {
-                                CommandLineOptions.Clo.XmlSink.WriteError("postcondition violation", err.FailingReturn.tok, err.FailingEnsures.tok, error.Trace);
-                            }
-                        }
-                        else // error is AssertCounterexample
-                        {
-                            AssertCounterexample err = (AssertCounterexample)error;
-                            if (err.FailingAssert is LoopInitAssertCmd)
-                            {
-                                ReportBplError(err.FailingAssert.tok, "Error BP5004: This loop invariant might not hold on entry.", true);
-                                if (CommandLineOptions.Clo.XmlSink != null)
-                                {
-                                    CommandLineOptions.Clo.XmlSink.WriteError("loop invariant entry violation", err.FailingAssert.tok, null, error.Trace);
-                                }
-                            }
-                            else if (err.FailingAssert is LoopInvMaintainedAssertCmd)
-                            {
-                                // this assertion is a loop invariant which is not maintained
-                                ReportBplError(err.FailingAssert.tok, "Error BP5005: This loop invariant might not be maintained by the loop.", true);
-                                if (CommandLineOptions.Clo.XmlSink != null)
-                                {
-                                    CommandLineOptions.Clo.XmlSink.WriteError("loop invariant maintenance violation", err.FailingAssert.tok, null, error.Trace);
-                                }
-                            }
-                            else
-                            {
-                                string msg = err.FailingAssert.ErrorData as string;
-                                if (msg == null)
-                                {
-                                    msg = "Error BP5001: This assertion might not hold.";
-                                }
-                                ReportBplError(err.FailingAssert.tok, msg, true);
-                                var attr = err.FailingAssert.Attributes;
-                                ReportAllBplErrors(attr);
-                                if (CommandLineOptions.Clo.XmlSink != null)
-                                {
-                                    CommandLineOptions.Clo.XmlSink.WriteError("assertion violation", err.FailingAssert.tok, null, error.Trace);
-                                }
-                            }
-                        }
-                        if (CommandLineOptions.Clo.EnhancedErrorMessages == 1)
-                        {
-                            foreach (string info in error.relatedInformation)
-                            {
-                                Contract.Assert(info != null);
-                                Console.WriteLine("       " + info);
-                            }
-                        }
-                        if (CommandLineOptions.Clo.ErrorTrace > 0)
-                        {
-                            Console.WriteLine("Execution trace:");
-                            foreach (Block b in error.Trace)
-                            {
-                                Contract.Assert(b != null);
-                                if (b.tok == null)
-                                {
-                                    Console.WriteLine("    <intermediate block>");
-                                }
-                                else
-                                {
-                                    // for ErrorTrace == 1 restrict the output;
-                                    // do not print tokens with -17:-4 as their location because they have been
-                                    // introduced in the translation and do not give any useful feedback to the user
-                                    if (!(CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4))
-                                    {
-                                        Console.WriteLine("    {0}({1},{2}): {3}", b.tok.filename, b.tok.line, b.tok.col, b.Label);
-                                    }
-                                }
-                            }
-                        }
-                        if (CommandLineOptions.Clo.ModelViewFile != null)
-                        {
-                            error.PrintModel();
-                        }
-                        errorCount++;
-                    }
-
-                    Inform(String.Format("{0}error{1}", timeIndication, errors.Count == 1 ? "" : "s"));
                     break;
+            }
+            if (errors != null)
+            {
+              // BP1xxx: Parsing errors
+              // BP2xxx: Name resolution errors
+              // BP3xxx: Typechecking errors
+              // BP4xxx: Abstract interpretation errors (Is there such a thing?)
+              // BP5xxx: Verification errors
+
+              var cause = "Error";
+              if (outcome == VCGen.Outcome.TimedOut)
+              {
+                cause = "Timed out on";
+              }
+              else if (outcome == VCGen.Outcome.OutOfMemory)
+              {
+                cause = "Out of memory on";
+              }
+
+              errors.Sort(new CounterexampleComparer());
+              foreach (Counterexample error in errors)
+              {
+                if (error is CallCounterexample)
+                {
+                  CallCounterexample err = (CallCounterexample)error;
+                  ReportBplError(err.FailingCall.tok, (err.FailingCall.ErrorData as string) ?? cause + " BP5002: A precondition for this call might not hold.", true);
+                  ReportBplError(err.FailingRequires.tok, (err.FailingRequires.ErrorData as string) ?? "Related location: This is the precondition that might not hold.", false);
+                  if (CommandLineOptions.Clo.XmlSink != null)
+                  {
+                    CommandLineOptions.Clo.XmlSink.WriteError("precondition violation", err.FailingCall.tok, err.FailingRequires.tok, error.Trace);
+                  }
+                }
+                else if (error is ReturnCounterexample)
+                {
+                  ReturnCounterexample err = (ReturnCounterexample)error;
+                  ReportBplError(err.FailingReturn.tok, cause + " BP5003: A postcondition might not hold on this return path.", true);
+                  ReportBplError(err.FailingEnsures.tok, (err.FailingEnsures.ErrorData as string) ?? "Related location: This is the postcondition that might not hold.", false);
+                  ReportAllBplErrors(err.FailingEnsures.Attributes);
+                  if (CommandLineOptions.Clo.XmlSink != null)
+                  {
+                    CommandLineOptions.Clo.XmlSink.WriteError("postcondition violation", err.FailingReturn.tok, err.FailingEnsures.tok, error.Trace);
+                  }
+                }
+                else // error is AssertCounterexample
+                {
+                  AssertCounterexample err = (AssertCounterexample)error;
+                  if (err.FailingAssert is LoopInitAssertCmd)
+                  {
+                    ReportBplError(err.FailingAssert.tok, cause + " BP5004: This loop invariant might not hold on entry.", true);
+                    if (CommandLineOptions.Clo.XmlSink != null)
+                    {
+                      CommandLineOptions.Clo.XmlSink.WriteError("loop invariant entry violation", err.FailingAssert.tok, null, error.Trace);
+                    }
+                  }
+                  else if (err.FailingAssert is LoopInvMaintainedAssertCmd)
+                  {
+                    // this assertion is a loop invariant which is not maintained
+                    ReportBplError(err.FailingAssert.tok, cause + " BP5005: This loop invariant might not be maintained by the loop.", true);
+                    if (CommandLineOptions.Clo.XmlSink != null)
+                    {
+                      CommandLineOptions.Clo.XmlSink.WriteError("loop invariant maintenance violation", err.FailingAssert.tok, null, error.Trace);
+                    }
+                  }
+                  else
+                  {
+                    string msg = err.FailingAssert.ErrorData as string;
+                    if (msg == null)
+                    {
+                      msg = cause + " BP5001: This assertion might not hold.";
+                    }
+                    ReportBplError(err.FailingAssert.tok, msg, true);
+                    var attr = err.FailingAssert.Attributes;
+                    ReportAllBplErrors(attr);
+                    if (CommandLineOptions.Clo.XmlSink != null)
+                    {
+                      CommandLineOptions.Clo.XmlSink.WriteError("assertion violation", err.FailingAssert.tok, null, error.Trace);
+                    }
+                  }
+                }
+                if (CommandLineOptions.Clo.EnhancedErrorMessages == 1)
+                {
+                  foreach (string info in error.relatedInformation)
+                  {
+                    Contract.Assert(info != null);
+                    Console.WriteLine("       " + info);
+                  }
+                }
+                if (CommandLineOptions.Clo.ErrorTrace > 0)
+                {
+                  Console.WriteLine("Execution trace:");
+                  foreach (Block b in error.Trace)
+                  {
+                    Contract.Assert(b != null);
+                    if (b.tok == null)
+                    {
+                      Console.WriteLine("    <intermediate block>");
+                    }
+                    else
+                    {
+                      // for ErrorTrace == 1 restrict the output;
+                      // do not print tokens with -17:-4 as their location because they have been
+                      // introduced in the translation and do not give any useful feedback to the user
+                      if (!(CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4))
+                      {
+                        Console.WriteLine("    {0}({1},{2}): {3}", b.tok.filename, b.tok.line, b.tok.col, b.Label);
+                      }
+                    }
+                  }
+                }
+                if (CommandLineOptions.Clo.ModelViewFile != null)
+                {
+                  error.PrintModel();
+                }
+                if (cause == "Error")
+                {
+                  errorCount++;
+                }
+              }
+              if (cause == "Error")
+              {
+                Inform(String.Format("{0}error{1}", timeIndication, errors.Count == 1 ? "" : "s"));
+              }
             }
 
             if (CommandLineOptions.Clo.XmlSink != null)
