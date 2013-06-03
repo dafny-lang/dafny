@@ -146,28 +146,6 @@ namespace Microsoft.Dafny
 
 
     // TODO(wuestholz): Use the definition in the Boogie driver.
-    static void PrintBplFile(string filename, Bpl.Program program, bool allowPrintDesugaring)
-    {
-      Contract.Requires(filename != null);
-      Contract.Requires(program != null);
-        bool oldPrintDesugaring = CommandLineOptions.Clo.PrintDesugarings;
-        if (!allowPrintDesugaring) {
-          CommandLineOptions.Clo.PrintDesugarings = false;
-        }
-        using (TokenTextWriter writer = filename == "-" ?
-                                        new TokenTextWriter("<console>", Console.Out, false) :
-                                        new TokenTextWriter(filename, false))
-        {
-            writer.WriteLine("// " + CommandLineOptions.Clo.Version);
-            writer.WriteLine("// " + CommandLineOptions.Clo.Environment);
-            writer.WriteLine();
-            program.Emit(writer);
-        }
-        CommandLineOptions.Clo.PrintDesugarings = oldPrintDesugaring;
-    }
-
-
-    // TODO(wuestholz): Use the definition in the Boogie driver.
     /// <summary>
     /// Parse the given files into one Boogie program.  If an I/O or parse error occurs, an error will be printed
     /// and null will be returned.  On success, a non-null program is returned.
