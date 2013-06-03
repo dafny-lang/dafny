@@ -21,6 +21,7 @@ namespace DafnyLanguage
     readonly string _programText;
     readonly string _filename;
     Dafny.Program _program;
+
     List<DafnyError> _errors = new List<DafnyError>();
     public List<DafnyError> Errors { get { return _errors; } }
 
@@ -219,56 +220,6 @@ namespace DafnyLanguage
       return oc;
     }
 
-    static void EliminateDeadVariablesAndInline(Bpl.Program program) {
-      Contract.Requires(program != null);
-      // Eliminate dead variables
-      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
-
-      // Collect mod sets
-      if (Bpl.CommandLineOptions.Clo.DoModSetAnalysis) {
-        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
-      }
-
-      // Coalesce blocks
-      if (Bpl.CommandLineOptions.Clo.CoalesceBlocks) {
-        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
-      }
-
-      // Inline
-      var TopLevelDeclarations = program.TopLevelDeclarations;
-
-      if (Bpl.CommandLineOptions.Clo.ProcedureInlining != Bpl.CommandLineOptions.Inlining.None) {
-        bool inline = false;
-        foreach (var d in TopLevelDeclarations) {
-          if (d.FindExprAttribute("inline") != null) {
-            inline = true;
-          }
-        }
-        if (inline && Bpl.CommandLineOptions.Clo.StratifiedInlining == 0) {
-          foreach (var d in TopLevelDeclarations) {
-            var impl = d as Bpl.Implementation;
-            if (impl != null) {
-              impl.OriginalBlocks = impl.Blocks;
-              impl.OriginalLocVars = impl.LocVars;
-            }
-          }
-          foreach (var d in TopLevelDeclarations) {
-            var impl = d as Bpl.Implementation;
-            if (impl != null && !impl.SkipVerification) {
-              Bpl.Inliner.ProcessImplementation(program, impl);
-            }
-          }
-          foreach (var d in TopLevelDeclarations) {
-            var impl = d as Bpl.Implementation;
-            if (impl != null) {
-              impl.OriginalBlocks = null;
-              impl.OriginalLocVars = null;
-            }
-          }
-        }
-      }
-    }
-
     /// <summary>
     /// Resolves and type checks the given Boogie program.
     /// Returns:
@@ -292,6 +243,69 @@ namespace DafnyLanguage
       }
 
       return PipelineOutcome.ResolvedAndTypeChecked;
+    }
+
+    static void EliminateDeadVariablesAndInline(Bpl.Program program)
+    {
+      Contract.Requires(program != null);
+      // Eliminate dead variables
+      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
+
+      // Collect mod sets
+      if (Bpl.CommandLineOptions.Clo.DoModSetAnalysis)
+      {
+        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
+      }
+
+      // Coalesce blocks
+      if (Bpl.CommandLineOptions.Clo.CoalesceBlocks)
+      {
+        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
+      }
+
+      // Inline
+      var TopLevelDeclarations = program.TopLevelDeclarations;
+
+      if (Bpl.CommandLineOptions.Clo.ProcedureInlining != Bpl.CommandLineOptions.Inlining.None)
+      {
+        bool inline = false;
+        foreach (var d in TopLevelDeclarations)
+        {
+          if (d.FindExprAttribute("inline") != null)
+          {
+            inline = true;
+          }
+        }
+        if (inline && Bpl.CommandLineOptions.Clo.StratifiedInlining == 0)
+        {
+          foreach (var d in TopLevelDeclarations)
+          {
+            var impl = d as Bpl.Implementation;
+            if (impl != null)
+            {
+              impl.OriginalBlocks = impl.Blocks;
+              impl.OriginalLocVars = impl.LocVars;
+            }
+          }
+          foreach (var d in TopLevelDeclarations)
+          {
+            var impl = d as Bpl.Implementation;
+            if (impl != null && !impl.SkipVerification)
+            {
+              Bpl.Inliner.ProcessImplementation(program, impl);
+            }
+          }
+          foreach (var d in TopLevelDeclarations)
+          {
+            var impl = d as Bpl.Implementation;
+            if (impl != null)
+            {
+              impl.OriginalBlocks = null;
+              impl.OriginalLocVars = null;
+            }
+          }
+        }
+      }
     }
 
     /// <summary>

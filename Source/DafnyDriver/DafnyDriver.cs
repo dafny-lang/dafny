@@ -25,8 +25,8 @@ namespace Microsoft.Dafny
 
   public class DafnyDriver
   {
-    // ------------------------------------------------------------------------
-    // Main
+
+    enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
 
     public static int Main(string[] args)
     {
@@ -95,47 +95,6 @@ namespace Microsoft.Dafny
         return (int)exitValue;
     }
 
-    static void ErrorWriteLine(string s) {Contract.Requires(s != null);
-      if (!s.Contains("Error: ") && !s.Contains("Error BP")) {
-        Console.WriteLine(s);
-        return;
-      }
-
-      // split the string up into its first line and the remaining lines
-      string remaining = null;
-      int i = s.IndexOf('\r');
-      if (0 <= i) {
-        remaining = s.Substring(i+1);
-        if (remaining.StartsWith("\n")) {
-          remaining = remaining.Substring(1);
-        }
-        s = s.Substring(0, i);
-      }
-
-      ConsoleColor col = Console.ForegroundColor;
-      Console.ForegroundColor = ConsoleColor.Red;
-      Console.WriteLine(s);
-      Console.ForegroundColor = col;
-
-      if (remaining != null) {
-        Console.WriteLine(remaining);
-      }
-    }
-
-    static void ErrorWriteLine(string format, params object[] args) {
-      Contract.Requires(format != null);
-      Contract.Requires(args != null);
-      string s = string.Format(format, args);
-      ErrorWriteLine(s);
-    }
-
-    static void AdvisoryWriteLine(string format, params object[] args) {
-      Contract.Requires(format != null);
-      ConsoleColor col = Console.ForegroundColor;
-      Console.ForegroundColor = ConsoleColor.Yellow;
-      Console.WriteLine(format, args);
-      Console.ForegroundColor = col;
-    }
 
     static ExitValue ProcessFiles (List<string/*!*/>/*!*/ fileNames)
     {
@@ -189,60 +148,6 @@ namespace Microsoft.Dafny
       return exitValue;
     }
 
-    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
-    {
-      Contract.Requires(dafnyProgram != null);
-      // Compile the Dafny program into a string that contains the C# program
-      StringWriter sw = new StringWriter();
-      Dafny.Compiler compiler = new Dafny.Compiler(sw);
-      compiler.Compile(dafnyProgram);
-      var csharpProgram = sw.ToString();
-      bool completeProgram = compiler.ErrorCount == 0;
-
-      // blurt out the code to a file
-      if (DafnyOptions.O.SpillTargetCode) {
-        string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
-        using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
-          target.Write(csharpProgram);
-          if (completeProgram) {
-            Console.WriteLine("Compiled program written to {0}", targetFilename);
-          } else {
-            Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
-          }
-        }
-      }
-
-      // compile the program into an assembly
-      if (!completeProgram) {
-        // don't compile
-      } else if (!CodeDomProvider.IsDefinedLanguage("CSharp")) {
-        Console.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
-      } else {
-        var provider = CodeDomProvider.CreateProvider("CSharp");
-        var cp = new System.CodeDom.Compiler.CompilerParameters();
-        cp.GenerateExecutable = true;
-        if (compiler.HasMain(dafnyProgram)) {
-          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
-          cp.CompilerOptions = "/debug /nowarn:0164";  // warning CS0164 complains about unreferenced labels
-        } else {
-          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
-          cp.CompilerOptions = "/debug /nowarn:0164 /target:library";  // warning CS0164 complains about unreferenced labels
-        }
-        cp.GenerateInMemory = false;
-        cp.ReferencedAssemblies.Add("System.Numerics.dll");
-
-        var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
-        if (cr.Errors.Count == 0) {
-          Console.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
-        } else {
-          Console.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
-          foreach (var ce in cr.Errors) {
-            Console.WriteLine(ce.ToString());
-            Console.WriteLine();
-          }
-        }
-      }
-    }
 
     static void PrintBplFile (string filename, Bpl.Program program, bool allowPrintDesugaring)
     {
@@ -264,54 +169,6 @@ namespace Microsoft.Dafny
         CommandLineOptions.Clo.PrintDesugarings = oldPrintDesugaring;
     }
 
-
-    /// <summary>
-    /// Inform the user about something and proceed with translation normally.
-    /// Print newline after the message.
-    /// </summary>
-    static void Inform(string s) {
-      if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.TraceProofObligations) {
-        Console.WriteLine(s);
-      }
-    }
-
-    static void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories){
-      Contract.Requires(0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories);
-      Console.WriteLine();
-      Console.Write("{0} finished with {1} verified, {2} error{3}", CommandLineOptions.Clo.DescriptiveToolName, verified, errors, errors == 1 ? "" : "s");
-      if (inconclusives != 0) {
-        Console.Write(", {0} inconclusive{1}", inconclusives, inconclusives == 1 ? "" : "s");
-      }
-      if (timeOuts != 0) {
-        Console.Write(", {0} time out{1}", timeOuts, timeOuts == 1 ? "" : "s");
-      }
-      if (outOfMemories != 0) {
-        Console.Write(", {0} out of memory", outOfMemories);
-      }
-      Console.WriteLine();
-      Console.Out.Flush();
-    }
-
-
-    static void ReportBplError(IToken tok, string message, bool error)
-    {
-      Contract.Requires(message != null);
-      string s;
-      if (tok == null) {
-        s = message;
-      } else {
-        s = string.Format("{0}({1},{2}): {3}", tok.filename, tok.line, tok.col, message);
-      }
-      if (error) {
-        ErrorWriteLine(s);
-      } else {
-        Console.WriteLine(s);
-      }
-      if (tok is Dafny.NestedToken) {
-        var nt = (Dafny.NestedToken)tok;
-        ReportBplError(nt.Inner, "Related location: Related location", false);
-      }
-    }
 
     /// <summary>
     /// Parse the given files into one Boogie program.  If an I/O or parse error occurs, an error will be printed
@@ -409,58 +266,9 @@ namespace Microsoft.Dafny
       }
     }
 
-    static void EliminateDeadVariablesAndInline(Bpl.Program program) {
-      Contract.Requires(program != null);
-      // Eliminate dead variables
-      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
-
-      // Collect mod sets
-      if (CommandLineOptions.Clo.DoModSetAnalysis) {
-        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
-      }
-
-      // Coalesce blocks
-      if (CommandLineOptions.Clo.CoalesceBlocks) {
-        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
-      }
-
-      // Inline
-      var TopLevelDeclarations = program.TopLevelDeclarations;
-
-      if (CommandLineOptions.Clo.ProcedureInlining != CommandLineOptions.Inlining.None) {
-        bool inline = false;
-        foreach (var d in TopLevelDeclarations) {
-          if (d.FindExprAttribute("inline") != null) {
-            inline = true;
-          }
-        }
-        if (inline && CommandLineOptions.Clo.StratifiedInlining == 0) {
-          foreach (var d in TopLevelDeclarations) {
-            var impl = d as Implementation;
-            if (impl != null) {
-              impl.OriginalBlocks = impl.Blocks;
-              impl.OriginalLocVars = impl.LocVars;
-            }
-          }
-          foreach (var d in TopLevelDeclarations) {
-            var impl = d as Implementation;
-            if (impl != null && !impl.SkipVerification) {
-              Inliner.ProcessImplementation(program, impl);
-            }
-          }
-          foreach (var d in TopLevelDeclarations) {
-            var impl = d as Implementation;
-            if (impl != null) {
-              impl.OriginalBlocks = null;
-              impl.OriginalLocVars = null;
-            }
-          }
-        }
-      }
-    }
 
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
-    enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
+
 
     /// <summary>
     /// Resolves and type checks the given Boogie program.  Any errors are reported to the
@@ -502,6 +310,71 @@ namespace Microsoft.Dafny
 
       return PipelineOutcome.ResolvedAndTypeChecked;
     }
+
+
+    static void EliminateDeadVariablesAndInline(Bpl.Program program)
+    {
+      Contract.Requires(program != null);
+      // Eliminate dead variables
+      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
+
+      // Collect mod sets
+      if (CommandLineOptions.Clo.DoModSetAnalysis)
+      {
+        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
+      }
+
+      // Coalesce blocks
+      if (CommandLineOptions.Clo.CoalesceBlocks)
+      {
+        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
+      }
+
+      // Inline
+      var TopLevelDeclarations = program.TopLevelDeclarations;
+
+      if (CommandLineOptions.Clo.ProcedureInlining != CommandLineOptions.Inlining.None)
+      {
+        bool inline = false;
+        foreach (var d in TopLevelDeclarations)
+        {
+          if (d.FindExprAttribute("inline") != null)
+          {
+            inline = true;
+          }
+        }
+        if (inline && CommandLineOptions.Clo.StratifiedInlining == 0)
+        {
+          foreach (var d in TopLevelDeclarations)
+          {
+            var impl = d as Implementation;
+            if (impl != null)
+            {
+              impl.OriginalBlocks = impl.Blocks;
+              impl.OriginalLocVars = impl.LocVars;
+            }
+          }
+          foreach (var d in TopLevelDeclarations)
+          {
+            var impl = d as Implementation;
+            if (impl != null && !impl.SkipVerification)
+            {
+              Inliner.ProcessImplementation(program, impl);
+            }
+          }
+          foreach (var d in TopLevelDeclarations)
+          {
+            var impl = d as Implementation;
+            if (impl != null)
+            {
+              impl.OriginalBlocks = null;
+              impl.OriginalLocVars = null;
+            }
+          }
+        }
+      }
+    }
+
 
     /// <summary>
     /// Given a resolved and type checked Boogie program, infers invariants for the program
@@ -788,17 +661,218 @@ namespace Microsoft.Dafny
       return PipelineOutcome.VerificationCompleted;
     }
 
-    static void ReportAllBplErrors(QKeyValue attr) {
-      while (attr != null) {
-        if (attr.Key == "msg" && attr.Params.Count == 1) {
+
+    #region Output
+
+    static void ErrorWriteLine(string s)
+    {
+      Contract.Requires(s != null);
+      if (!s.Contains("Error: ") && !s.Contains("Error BP"))
+      {
+        Console.WriteLine(s);
+        return;
+      }
+
+      // split the string up into its first line and the remaining lines
+      string remaining = null;
+      int i = s.IndexOf('\r');
+      if (0 <= i)
+      {
+        remaining = s.Substring(i + 1);
+        if (remaining.StartsWith("\n"))
+        {
+          remaining = remaining.Substring(1);
+        }
+        s = s.Substring(0, i);
+      }
+
+      ConsoleColor col = Console.ForegroundColor;
+      Console.ForegroundColor = ConsoleColor.Red;
+      Console.WriteLine(s);
+      Console.ForegroundColor = col;
+
+      if (remaining != null)
+      {
+        Console.WriteLine(remaining);
+      }
+    }
+
+
+    static void ErrorWriteLine(string format, params object[] args)
+    {
+      Contract.Requires(format != null);
+      Contract.Requires(args != null);
+      string s = string.Format(format, args);
+      ErrorWriteLine(s);
+    }
+
+
+    static void AdvisoryWriteLine(string format, params object[] args)
+    {
+      Contract.Requires(format != null);
+      ConsoleColor col = Console.ForegroundColor;
+      Console.ForegroundColor = ConsoleColor.Yellow;
+      Console.WriteLine(format, args);
+      Console.ForegroundColor = col;
+    }
+
+
+    /// <summary>
+    /// Inform the user about something and proceed with translation normally.
+    /// Print newline after the message.
+    /// </summary>
+    static void Inform(string s)
+    {
+      if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.TraceProofObligations)
+      {
+        Console.WriteLine(s);
+      }
+    }
+
+
+    static void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories)
+    {
+      Contract.Requires(0 <= errors && 0 <= inconclusives && 0 <= timeOuts && 0 <= outOfMemories);
+      Console.WriteLine();
+      Console.Write("{0} finished with {1} verified, {2} error{3}", CommandLineOptions.Clo.DescriptiveToolName, verified, errors, errors == 1 ? "" : "s");
+      if (inconclusives != 0)
+      {
+        Console.Write(", {0} inconclusive{1}", inconclusives, inconclusives == 1 ? "" : "s");
+      }
+      if (timeOuts != 0)
+      {
+        Console.Write(", {0} time out{1}", timeOuts, timeOuts == 1 ? "" : "s");
+      }
+      if (outOfMemories != 0)
+      {
+        Console.Write(", {0} out of memory", outOfMemories);
+      }
+      Console.WriteLine();
+      Console.Out.Flush();
+    }
+
+
+    static void ReportAllBplErrors(QKeyValue attr)
+    {
+      while (attr != null)
+      {
+        if (attr.Key == "msg" && attr.Params.Count == 1)
+        {
           var str = attr.Params[0] as string;
-          if (str != null) {
-            ReportBplError(attr.tok, "Error: "+str, false);
+          if (str != null)
+          {
+            ReportBplError(attr.tok, "Error: " + str, false);
           }
         }
         attr = attr.Next;
       }
     }
+
+
+    static void ReportBplError(IToken tok, string message, bool error)
+    {
+      Contract.Requires(message != null);
+      string s;
+      if (tok == null)
+      {
+        s = message;
+      }
+      else
+      {
+        s = string.Format("{0}({1},{2}): {3}", tok.filename, tok.line, tok.col, message);
+      }
+      if (error)
+      {
+        ErrorWriteLine(s);
+      }
+      else
+      {
+        Console.WriteLine(s);
+      }
+      if (tok is Dafny.NestedToken)
+      {
+        var nt = (Dafny.NestedToken)tok;
+        ReportBplError(nt.Inner, "Related location: Related location", false);
+      }
+    }
+    #endregion
+
+
+    #region Compilation
+
+    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
+    {
+      Contract.Requires(dafnyProgram != null);
+      // Compile the Dafny program into a string that contains the C# program
+      StringWriter sw = new StringWriter();
+      Dafny.Compiler compiler = new Dafny.Compiler(sw);
+      compiler.Compile(dafnyProgram);
+      var csharpProgram = sw.ToString();
+      bool completeProgram = compiler.ErrorCount == 0;
+
+      // blurt out the code to a file
+      if (DafnyOptions.O.SpillTargetCode)
+      {
+        string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
+        using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create)))
+        {
+          target.Write(csharpProgram);
+          if (completeProgram)
+          {
+            Console.WriteLine("Compiled program written to {0}", targetFilename);
+          }
+          else
+          {
+            Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
+          }
+        }
+      }
+
+      // compile the program into an assembly
+      if (!completeProgram)
+      {
+        // don't compile
+      }
+      else if (!CodeDomProvider.IsDefinedLanguage("CSharp"))
+      {
+        Console.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
+      }
+      else
+      {
+        var provider = CodeDomProvider.CreateProvider("CSharp");
+        var cp = new System.CodeDom.Compiler.CompilerParameters();
+        cp.GenerateExecutable = true;
+        if (compiler.HasMain(dafnyProgram))
+        {
+          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
+          cp.CompilerOptions = "/debug /nowarn:0164";  // warning CS0164 complains about unreferenced labels
+        }
+        else
+        {
+          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
+          cp.CompilerOptions = "/debug /nowarn:0164 /target:library";  // warning CS0164 complains about unreferenced labels
+        }
+        cp.GenerateInMemory = false;
+        cp.ReferencedAssemblies.Add("System.Numerics.dll");
+
+        var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
+        if (cr.Errors.Count == 0)
+        {
+          Console.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
+        }
+        else
+        {
+          Console.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
+          foreach (var ce in cr.Errors)
+          {
+            Console.WriteLine(ce.ToString());
+            Console.WriteLine();
+          }
+        }
+      }
+    }
+
+    #endregion
 
   }
 }
