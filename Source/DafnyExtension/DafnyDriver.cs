@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using Microsoft.Boogie;
+using VC;
 // Here come the Dafny/Boogie specific imports
 //using PureCollections;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
-using Microsoft.Boogie.AbstractInterpretation;
-using VC;
-using Core;
 // using AI = Microsoft.AbstractInterpretationFramework;
 
 
