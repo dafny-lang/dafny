@@ -272,10 +272,6 @@ namespace Microsoft.Dafny
 
 
     // TODO(wuestholz): Use the definition in the Boogie driver.
-    enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
-
-
-    // TODO(wuestholz): Use the definition in the Boogie driver.
     /// <summary>
     /// Resolves and type checks the given Boogie program.  Any errors are reported to the
     /// console.  Returns:
