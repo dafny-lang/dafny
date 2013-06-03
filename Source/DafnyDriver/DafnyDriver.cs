@@ -11,18 +11,13 @@
 namespace Microsoft.Dafny
 {
   using System;
-  using System.IO;
-  using System.Collections;
+  using System.CodeDom.Compiler;
   using System.Collections.Generic;
   using System.Diagnostics.Contracts;
-  using PureCollections;
+  using System.IO;
   using Microsoft.Boogie;
-  using Bpl = Microsoft.Boogie;
-  using Microsoft.Boogie.AbstractInterpretation;
-  using System.Diagnostics;
   using VC;
-  using System.CodeDom.Compiler;
-  using Core;
+  using Bpl = Microsoft.Boogie;
 
   public class DafnyDriver
   {
@@ -113,7 +108,7 @@ namespace Microsoft.Dafny
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
           {
-            PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false);
+            ExecutionEngine.PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false, false);
           }
 
           string bplFilename;
@@ -247,7 +242,7 @@ namespace Microsoft.Dafny
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
           {
-            PrintBplFile(bplFileName, program, false);
+            ExecutionEngine.PrintBplFile(bplFileName, program, false, false);
             Console.WriteLine();
             Console.WriteLine("*** Encountered internal translation error - re-running Boogie to get better debug information");
             Console.WriteLine();
@@ -307,7 +302,7 @@ namespace Microsoft.Dafny
       if (CommandLineOptions.Clo.PrintFile != null && CommandLineOptions.Clo.PrintDesugarings)
       {
         // if PrintDesugaring option is engaged, print the file here, after resolution and type checking
-        PrintBplFile(CommandLineOptions.Clo.PrintFile, program, true);
+        ExecutionEngine.PrintBplFile(CommandLineOptions.Clo.PrintFile, program, true, false);
       }
 
       return PipelineOutcome.ResolvedAndTypeChecked;
@@ -418,7 +413,6 @@ namespace Microsoft.Dafny
 
       if (CommandLineOptions.Clo.ExpandLambdas) {
         LambdaHelper.ExpandLambdas(program);
-        //PrintBplFile ("-", program, true);
       }
 
       // ---------- Verify ------------------------------------------------------------

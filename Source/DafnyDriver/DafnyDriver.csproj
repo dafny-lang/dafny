@@ -130,6 +130,9 @@
     <Reference Include="Core">
       <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
     </Reference>
+    <Reference Include="ExecutionEngine">
+      <HintPath>..\..\..\boogie\Binaries\ExecutionEngine.dll</HintPath>
+    </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
