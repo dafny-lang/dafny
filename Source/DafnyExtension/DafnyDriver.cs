@@ -104,6 +104,80 @@ namespace DafnyLanguage
       }
     }
 
+    public delegate void ErrorReporterDelegate(DafnyErrorInformation errInfo);
+
+    public class DafnyErrorInformation
+    {
+      public readonly Bpl.IToken Tok;
+      public readonly string Msg;
+      public readonly List<DafnyErrorAuxInfo> Aux = new List<DafnyErrorAuxInfo>();
+
+      public class DafnyErrorAuxInfo
+      {
+        public readonly Bpl.IToken Tok;
+        public readonly string Msg;
+        public DafnyErrorAuxInfo(Bpl.IToken tok, string msg)
+        {
+          Tok = tok;
+          Msg = CleanUp(msg);
+        }
+      }
+
+      public DafnyErrorInformation(Bpl.IToken tok, string msg)
+      {
+        Contract.Requires(tok != null);
+        Contract.Requires(1 <= tok.line && 1 <= tok.col);
+        Contract.Requires(msg != null);
+        Tok = tok;
+        Msg = CleanUp(msg);
+        AddNestingsAsAux(tok);
+      }
+      public void AddAuxInfo(Bpl.IToken tok, string msg)
+      {
+        Contract.Requires(tok != null);
+        Contract.Requires(1 <= tok.line && 1 <= tok.col);
+        Contract.Requires(msg != null);
+        Aux.Add(new DafnyErrorAuxInfo(tok, msg));
+        AddNestingsAsAux(tok);
+      }
+      void AddNestingsAsAux(Bpl.IToken tok)
+      {
+        while (tok is Dafny.NestedToken)
+        {
+          var nt = (Dafny.NestedToken)tok;
+          tok = nt.Inner;
+          Aux.Add(new DafnyErrorAuxInfo(tok, "Related location"));
+        }
+      }
+      public void AddAuxInfo(Bpl.QKeyValue attr)
+      {
+        while (attr != null)
+        {
+          if (attr.Key == "msg" && attr.Params.Count == 1 && attr.tok.line != 0 && attr.tok.col != 0)
+          {
+            var str = attr.Params[0] as string;
+            if (str != null)
+            {
+              AddAuxInfo(attr.tok, str);
+            }
+          }
+          attr = attr.Next;
+        }
+      }
+
+      public static string CleanUp(string msg)
+      {
+        if (msg.ToLower().StartsWith("error: "))
+        {
+          return msg.Substring(7);
+        }
+        else
+        {
+          return msg;
+        }
+      }
+    }
+
     public static bool Verify(Dafny.Program dafnyProgram, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
@@ -362,65 +436,5 @@ namespace DafnyLanguage
       return PipelineOutcome.VerificationCompleted;
     }
 
-    public delegate void ErrorReporterDelegate(DafnyErrorInformation errInfo);
-
-    public class DafnyErrorInformation
-    {
-      public readonly Bpl.IToken Tok;
-      public readonly string Msg;
-      public readonly List<DafnyErrorAuxInfo> Aux = new List<DafnyErrorAuxInfo>();
-
-      public class DafnyErrorAuxInfo
-      {
-        public readonly Bpl.IToken Tok;
-        public readonly string Msg;
-        public DafnyErrorAuxInfo(Bpl.IToken tok, string msg) {
-          Tok = tok;
-          Msg = CleanUp(msg);
-        }
-      }
-
-      public DafnyErrorInformation(Bpl.IToken tok, string msg) {
-        Contract.Requires(tok != null);
-        Contract.Requires(1 <= tok.line && 1 <= tok.col);
-        Contract.Requires(msg != null);
-        Tok = tok;
-        Msg = CleanUp(msg);
-        AddNestingsAsAux(tok);
-      }
-      public void AddAuxInfo(Bpl.IToken tok, string msg) {
-        Contract.Requires(tok != null);
-        Contract.Requires(1 <= tok.line && 1 <= tok.col);
-        Contract.Requires(msg != null);
-        Aux.Add(new DafnyErrorAuxInfo(tok, msg));
-        AddNestingsAsAux(tok);
-      }
-      void AddNestingsAsAux(Bpl.IToken tok) {
-        while (tok is Dafny.NestedToken) {
-          var nt = (Dafny.NestedToken)tok;
-          tok = nt.Inner;
-          Aux.Add(new DafnyErrorAuxInfo(tok, "Related location"));
-        }
-      }
-      public void AddAuxInfo(Bpl.QKeyValue attr) {
-        while (attr != null) {
-          if (attr.Key == "msg" && attr.Params.Count == 1 && attr.tok.line != 0 && attr.tok.col != 0) {
-            var str = attr.Params[0] as string;
-            if (str != null) {
-              AddAuxInfo(attr.tok, str);
-            }
-          }
-          attr = attr.Next;
-        }
-      }
-
-      public static string CleanUp(string msg) {
-        if (msg.ToLower().StartsWith("error: ")) {
-          return msg.Substring(7);
-        } else {
-          return msg;
-        }
-      }
-    }
   }
 }

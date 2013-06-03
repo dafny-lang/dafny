@@ -293,7 +293,6 @@ namespace Microsoft.Dafny
     }
 
 
-
     static void ReportBplError(IToken tok, string message, bool error)
     {
       Contract.Requires(message != null);
