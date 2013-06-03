@@ -95,7 +95,7 @@ namespace Microsoft.Dafny
         return (int)exitValue;
     }
 
-    public static void ErrorWriteLine(string s) {Contract.Requires(s != null);
+    static void ErrorWriteLine(string s) {Contract.Requires(s != null);
       if (!s.Contains("Error: ") && !s.Contains("Error BP")) {
         Console.WriteLine(s);
         return;
@@ -122,22 +122,20 @@ namespace Microsoft.Dafny
       }
     }
 
-    public static void ErrorWriteLine(string format, params object[] args) {
+    static void ErrorWriteLine(string format, params object[] args) {
       Contract.Requires(format != null);
       Contract.Requires(args != null);
       string s = string.Format(format, args);
       ErrorWriteLine(s);
     }
 
-    public static void AdvisoryWriteLine(string format, params object[] args) {
+    static void AdvisoryWriteLine(string format, params object[] args) {
       Contract.Requires(format != null);
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Yellow;
       Console.WriteLine(format, args);
       Console.ForegroundColor = col;
     }
-
-    enum FileType { Unknown, Cil, Bpl, Dafny };
 
     static ExitValue ProcessFiles (List<string/*!*/>/*!*/ fileNames)
     {
@@ -267,20 +265,11 @@ namespace Microsoft.Dafny
     }
 
 
-    static bool ProgramHasDebugInfo (Bpl.Program program)
-    {
-      Contract.Requires(program != null);
-        // We inspect the last declaration because the first comes from the prelude and therefore always has source context.
-        return program.TopLevelDeclarations.Count > 0 &&
-            cce.NonNull(program.TopLevelDeclarations[program.TopLevelDeclarations.Count - 1]).tok.IsValid;
-    }
-
-
     /// <summary>
     /// Inform the user about something and proceed with translation normally.
     /// Print newline after the message.
     /// </summary>
-    public static void Inform(string s) {
+    static void Inform(string s) {
       if (CommandLineOptions.Clo.Trace || CommandLineOptions.Clo.TraceProofObligations) {
         Console.WriteLine(s);
       }
@@ -800,7 +789,7 @@ namespace Microsoft.Dafny
       return PipelineOutcome.VerificationCompleted;
     }
 
-    private static void ReportAllBplErrors(QKeyValue attr) {
+    static void ReportAllBplErrors(QKeyValue attr) {
       while (attr != null) {
         if (attr.Key == "msg" && attr.Params.Count == 1) {
           var str = attr.Params[0] as string;
