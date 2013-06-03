@@ -96,7 +96,7 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles (List<string/*!*/>/*!*/ fileNames)
+    static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
       ExitValue exitValue = ExitValue.VERIFIED;
@@ -149,7 +149,8 @@ namespace Microsoft.Dafny
     }
 
 
-    static void PrintBplFile (string filename, Bpl.Program program, bool allowPrintDesugaring)
+    // TODO(wuestholz): Use the definition in the Boogie driver.
+    static void PrintBplFile(string filename, Bpl.Program program, bool allowPrintDesugaring)
     {
       Contract.Requires(filename != null);
       Contract.Requires(program != null);
@@ -170,6 +171,7 @@ namespace Microsoft.Dafny
     }
 
 
+    // TODO(wuestholz): Use the definition in the Boogie driver.
     /// <summary>
     /// Parse the given files into one Boogie program.  If an I/O or parse error occurs, an error will be printed
     /// and null will be returned.  On success, a non-null program is returned.
@@ -219,6 +221,7 @@ namespace Microsoft.Dafny
       }
     }
 
+
     /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
     /// The intention is that this Boogie program has been produced by translation from something
@@ -227,7 +230,7 @@ namespace Microsoft.Dafny
     /// The method prints errors for resolution and type checking errors, but still returns
     /// their error code.
     /// </summary>
-    static PipelineOutcome BoogiePipelineWithRerun (Bpl.Program/*!*/ program, string/*!*/ bplFileName,
+    static PipelineOutcome BoogiePipelineWithRerun(Bpl.Program/*!*/ program, string/*!*/ bplFileName,
         out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {
       Contract.Requires(program != null);
@@ -267,9 +270,11 @@ namespace Microsoft.Dafny
     }
 
 
+    // TODO(wuestholz): Use the definition in the Boogie driver.
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
 
 
+    // TODO(wuestholz): Use the definition in the Boogie driver.
     /// <summary>
     /// Resolves and type checks the given Boogie program.  Any errors are reported to the
     /// console.  Returns:
@@ -278,7 +283,7 @@ namespace Microsoft.Dafny
     ///  - TypeCheckingError if a type checking error occurred
     ///  - ResolvedAndTypeChecked if both resolution and type checking succeeded
     /// </summary>
-    static PipelineOutcome ResolveAndTypecheck (Bpl.Program program, string bplFileName)
+    static PipelineOutcome ResolveAndTypecheck(Bpl.Program program, string bplFileName)
     {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
@@ -312,6 +317,7 @@ namespace Microsoft.Dafny
     }
 
 
+    // TODO(wuestholz): Use the definition in the Boogie driver.
     static void EliminateDeadVariablesAndInline(Bpl.Program program)
     {
       Contract.Requires(program != null);
@@ -384,8 +390,8 @@ namespace Microsoft.Dafny
     ///  - VerificationCompleted if inference and verification completed, in which the out
     ///    parameters contain meaningful values
     /// </summary>
-    static PipelineOutcome InferAndVerify (Bpl.Program program,
-                                           out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
+    static PipelineOutcome InferAndVerify(Bpl.Program program,
+                                          out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
     {
       Contract.Requires(program != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
@@ -664,6 +670,8 @@ namespace Microsoft.Dafny
 
     #region Output
 
+    // TODO(wuestholz): Use the following methods from the Boogie driver instead: ErrorWriteLine, AdvisoryWriteLine, Inform, WriteTrailer.
+
     static void ErrorWriteLine(string s)
     {
       Contract.Requires(s != null);
@@ -751,6 +759,7 @@ namespace Microsoft.Dafny
       Console.Out.Flush();
     }
 
+    #region Dafny output
 
     static void ReportAllBplErrors(QKeyValue attr)
     {
@@ -795,6 +804,9 @@ namespace Microsoft.Dafny
         ReportBplError(nt.Inner, "Related location: Related location", false);
       }
     }
+
+    #endregion
+
     #endregion
 
 

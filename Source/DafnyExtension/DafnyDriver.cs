@@ -179,6 +179,18 @@ namespace DafnyLanguage
       }
     }
 
+    #region Compilation
+
+    public static void Compile(Dafny.Program dafnyProgram)
+    {
+      Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
+      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name);
+    }
+
+    #endregion
+
+    #region Boogie interaction
+
     public static bool Verify(Dafny.Program dafnyProgram, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
@@ -193,12 +205,6 @@ namespace DafnyLanguage
         default:
           return false;
       }
-    }
-
-    public static void Compile(Dafny.Program dafnyProgram)
-    {
-      Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
-      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name);
     }
 
     enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
@@ -450,5 +456,6 @@ namespace DafnyLanguage
       return PipelineOutcome.VerificationCompleted;
     }
 
+    #endregion
   }
 }
