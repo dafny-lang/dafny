@@ -11,6 +11,7 @@ using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
 using Microsoft.Boogie.AbstractInterpretation;
 using VC;
+using Core;
 // using AI = Microsoft.AbstractInterpretationFramework;
 
 
@@ -206,8 +207,6 @@ namespace DafnyLanguage
           return false;
       }
     }
-
-    enum PipelineOutcome { Done, ResolutionError, TypeCheckingError, ResolvedAndTypeChecked, FatalError, VerificationCompleted }
 
     /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
