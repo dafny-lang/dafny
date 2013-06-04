@@ -16,13 +16,13 @@ namespace Microsoft.Dafny
   using System.Diagnostics.Contracts;
   using System.IO;
   using Microsoft.Boogie;
-  using VC;
   using Bpl = Microsoft.Boogie;
 
   public class DafnyDriver
   {
 
     enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, NOT_VERIFIED }
+
 
     public static int Main(string[] args)
     {
@@ -33,7 +33,6 @@ namespace Microsoft.Dafny
 
       DafnyOptions.Install(new DafnyOptions());
 
-      //assert forall{int i in (0:args.Length); args[i] != null};
       ExitValue exitValue = ExitValue.VERIFIED;
       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
       if (!CommandLineOptions.Clo.Parse(args)) {

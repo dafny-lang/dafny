@@ -38,6 +38,8 @@ namespace DafnyLanguage
         options.ErrorTrace = 0;
         Dafny.DafnyOptions.Install(options);
         options.ApplyDefaultOptions();
+
+        ExecutionEngine.printer = new ConsolePrinter();
       }
     }
 
@@ -98,76 +100,35 @@ namespace DafnyLanguage
       }
     }
 
-    public delegate void ErrorReporterDelegate(DafnyErrorInformation errInfo);
-
-    public class DafnyErrorInformation
+    class DafnyErrorInformationFactory : ErrorInformationFactory
     {
-      public readonly Bpl.IToken Tok;
-      public readonly string Msg;
-      public readonly List<DafnyErrorAuxInfo> Aux = new List<DafnyErrorAuxInfo>();
-
-      public class DafnyErrorAuxInfo
+      public override ErrorInformation CreateErrorInformation(IToken tok, string msg)
       {
-        public readonly Bpl.IToken Tok;
-        public readonly string Msg;
-        public DafnyErrorAuxInfo(Bpl.IToken tok, string msg)
-        {
-          Tok = tok;
-          Msg = CleanUp(msg);
-        }
+        return new DafnyErrorInformation(tok, msg);
       }
-
-      public DafnyErrorInformation(Bpl.IToken tok, string msg)
+    }
+    
+    class DafnyErrorInformation : ErrorInformation
+    {
+      public DafnyErrorInformation(IToken tok, string msg)
+        : base(tok, msg)
       {
-        Contract.Requires(tok != null);
-        Contract.Requires(1 <= tok.line && 1 <= tok.col);
-        Contract.Requires(msg != null);
-        Tok = tok;
-        Msg = CleanUp(msg);
         AddNestingsAsAux(tok);
       }
-      public void AddAuxInfo(Bpl.IToken tok, string msg)
+
+      public override void AddAuxInfo(IToken tok, string msg)
       {
-        Contract.Requires(tok != null);
-        Contract.Requires(1 <= tok.line && 1 <= tok.col);
-        Contract.Requires(msg != null);
-        Aux.Add(new DafnyErrorAuxInfo(tok, msg));
+        base.AddAuxInfo(tok, msg);
         AddNestingsAsAux(tok);
       }
-      void AddNestingsAsAux(Bpl.IToken tok)
+
+      void AddNestingsAsAux(IToken tok)
       {
-        while (tok is Dafny.NestedToken)
+        while (tok != null && tok is Dafny.NestedToken)
         {
           var nt = (Dafny.NestedToken)tok;
           tok = nt.Inner;
-          Aux.Add(new DafnyErrorAuxInfo(tok, "Related location"));
-        }
-      }
-      public void AddAuxInfo(Bpl.QKeyValue attr)
-      {
-        while (attr != null)
-        {
-          if (attr.Key == "msg" && attr.Params.Count == 1 && attr.tok.line != 0 && attr.tok.col != 0)
-          {
-            var str = attr.Params[0] as string;
-            if (str != null)
-            {
-              AddAuxInfo(attr.tok, str);
-            }
-          }
-          attr = attr.Next;
-        }
-      }
-
-      public static string CleanUp(string msg)
-      {
-        if (msg.ToLower().StartsWith("error: "))
-        {
-          return msg.Substring(7);
-        }
-        else
-        {
-          return msg;
+          Aux.Add(new AuxErrorInfo(tok, "Related location"));
         }
       }
     }
@@ -212,7 +173,9 @@ namespace DafnyLanguage
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
         ExecutionEngine.EliminateDeadVariablesAndInline(program);
-        return BoogieInferAndVerify(program, er);
+        ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
+        int errorCount, verified, inconclusives, timeOuts, outOfMemories;
+        return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories, er);
       }
       return oc;
     }
@@ -240,148 +203,6 @@ namespace DafnyLanguage
       }
 
       return PipelineOutcome.ResolvedAndTypeChecked;
-    }
-    
-    /// <summary>
-    /// Given a resolved and type checked Boogie program, infers invariants for the program
-    /// and then attempts to verify it.  Returns:
-    ///  - Done if command line specified no verification
-    ///  - FatalError if a fatal error occurred
-    ///  - VerificationCompleted if inference and verification completed, in which the out
-    ///    parameters contain meaningful values
-    /// </summary>
-    static PipelineOutcome BoogieInferAndVerify(Bpl.Program program, ErrorReporterDelegate er) {
-      Contract.Requires(program != null);
-
-      // ---------- Infer invariants --------------------------------------------------------
-
-      // Abstract interpretation -> Always use (at least) intervals, if not specified otherwise (e.g. with the "/noinfer" switch)
-      if (Bpl.CommandLineOptions.Clo.UseAbstractInterpretation) {
-        if (Bpl.CommandLineOptions.Clo.Ai.J_Intervals || Bpl.CommandLineOptions.Clo.Ai.J_Trivial) {
-          Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
-        } else {
-          // use /infer:j as the default
-          Bpl.CommandLineOptions.Clo.Ai.J_Intervals = true;
-          Microsoft.Boogie.AbstractInterpretation.NativeAbstractInterpretation.RunAbstractInterpretation(program);
-        }
-      }
-
-      if (Bpl.CommandLineOptions.Clo.LoopUnrollCount != -1) {
-        program.UnrollLoops(Bpl.CommandLineOptions.Clo.LoopUnrollCount, Bpl.CommandLineOptions.Clo.SoundLoopUnrolling);
-      }
-
-      if (Bpl.CommandLineOptions.Clo.ExpandLambdas) {
-        Bpl.LambdaHelper.ExpandLambdas(program);
-        //PrintBplFile ("-", program, true);
-      }
-
-      // ---------- Verify ------------------------------------------------------------
-
-      if (!Bpl.CommandLineOptions.Clo.Verify) { return PipelineOutcome.Done; }
-
-      #region Verify each implementation
-
-      ConditionGeneration vcgen = null;
-      try {
-        vcgen = new VCGen(program, Bpl.CommandLineOptions.Clo.SimplifyLogFilePath, Bpl.CommandLineOptions.Clo.SimplifyLogFileAppend);
-      } catch (Bpl.ProverException) {
-        return PipelineOutcome.FatalError;
-      }
-
-      var decls = program.TopLevelDeclarations.ToArray();
-      foreach (var decl in decls) {
-        Contract.Assert(decl != null);
-        Bpl.Implementation impl = decl as Bpl.Implementation;
-        if (impl != null && Bpl.CommandLineOptions.Clo.UserWantsToCheckRoutine(impl.Name) && !impl.SkipVerification) {
-          List<Bpl.Counterexample>/*?*/ errors;
-
-          ConditionGeneration.Outcome outcome;
-          int prevAssertionCount = vcgen.CumulativeAssertionCount;
-          try {
-            outcome = vcgen.VerifyImplementation(impl, out errors);
-          } catch (VCGenException) {
-            errors = null;
-            outcome = VCGen.Outcome.Inconclusive;
-          } catch (Bpl.UnexpectedProverOutputException) {
-            errors = null;
-            outcome = VCGen.Outcome.Inconclusive;
-          }
-
-          switch (outcome) {
-            default:
-              Contract.Assert(false); throw new Exception();  // unexpected outcome
-            case VCGen.Outcome.Correct:
-              break;
-            case VCGen.Outcome.TimedOut:
-              // TODO(wuestholz): Display the trace and the time it took (see the Boogie/Dafny driver).
-              er(new DafnyErrorInformation(impl.tok, "Verification timed out (" + impl.Name + ")"));
-              break;
-            case VCGen.Outcome.OutOfMemory:
-              er(new DafnyErrorInformation(impl.tok, "Verification out of memory (" + impl.Name + ")"));
-              break;
-            case VCGen.Outcome.Inconclusive:
-              er(new DafnyErrorInformation(impl.tok, "Verification inconclusive (" + impl.Name + ")"));
-              break;
-            case VCGen.Outcome.Errors:
-              Contract.Assert(errors != null);  // guaranteed by postcondition of VerifyImplementation
-
-              errors.Sort(new Bpl.CounterexampleComparer());
-              foreach (var error in errors) {
-                DafnyErrorInformation errorInfo;
-
-                if (error is Bpl.CallCounterexample) {
-                  var err = (Bpl.CallCounterexample)error;
-                  errorInfo = new DafnyErrorInformation(err.FailingCall.tok, err.FailingCall.ErrorData as string ?? "A precondition for this call might not hold.");
-                  errorInfo.AddAuxInfo(err.FailingRequires.tok, err.FailingRequires.ErrorData as string ?? "Related location: This is the precondition that might not hold.");
-
-                } else if (error is Bpl.ReturnCounterexample) {
-                  var err = (Bpl.ReturnCounterexample)error;
-                  errorInfo = new DafnyErrorInformation(err.FailingReturn.tok, "A postcondition might not hold on this return path.");
-                  errorInfo.AddAuxInfo(err.FailingEnsures.tok, err.FailingEnsures.ErrorData as string ?? "Related location: This is the postcondition that might not hold.");
-                  errorInfo.AddAuxInfo(err.FailingEnsures.Attributes);
-
-                } else { // error is AssertCounterexample
-                  var err = (Bpl.AssertCounterexample)error;
-                  if (err.FailingAssert is Bpl.LoopInitAssertCmd) {
-                    errorInfo = new DafnyErrorInformation(err.FailingAssert.tok, "This loop invariant might not hold on entry.");
-                  } else if (err.FailingAssert is Bpl.LoopInvMaintainedAssertCmd) {
-                    // this assertion is a loop invariant which is not maintained
-                    errorInfo = new DafnyErrorInformation(err.FailingAssert.tok, "This loop invariant might not be maintained by the loop.");
-                  } else {
-                    string msg = err.FailingAssert.ErrorData as string;
-                    if (msg == null) {
-                      msg = "This assertion might not hold.";
-                    }
-                    errorInfo = new DafnyErrorInformation(err.FailingAssert.tok, msg);
-                    errorInfo.AddAuxInfo(err.FailingAssert.Attributes);
-                  }
-                }
-                if (Bpl.CommandLineOptions.Clo.ErrorTrace > 0) {
-                  foreach (Bpl.Block b in error.Trace) {
-                    // for ErrorTrace == 1 restrict the output;
-                    // do not print tokens with -17:-4 as their location because they have been
-                    // introduced in the translation and do not give any useful feedback to the user
-                    if (!(Bpl.CommandLineOptions.Clo.ErrorTrace == 1 && b.tok.line == -17 && b.tok.col == -4) &&
-                        b.tok.line != 0 && b.tok.col != 0) {
-                      errorInfo.AddAuxInfo(b.tok, "Execution trace: " + b.Label);
-                    }
-                  }
-                }
-                // if (Bpl.CommandLineOptions.Clo.ModelViewFile != null) {
-                //   error.PrintModel();
-                // }
-                er(errorInfo);
-              }
-              break;
-          }
-        }
-      }
-      vcgen.Close();
-      Bpl.CommandLineOptions.Clo.TheProverFactory.Close();
-
-      #endregion
-
-      return PipelineOutcome.VerificationCompleted;
     }
 
     #endregion
