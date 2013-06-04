@@ -98,9 +98,7 @@ Execution trace:
     NatTypes.dfy(19,3): anon10_LoopHead
     (0,0): anon10_LoopBody
     NatTypes.dfy(19,3): anon11_Else
-    (0,0): anon3
     (0,0): anon12_Then
-    (0,0): anon9
 NatTypes.dfy(38,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -206,7 +204,6 @@ Execution trace:
     Definedness.dfy(105,5): anon8_LoopHead
     (0,0): anon8_LoopBody
     Definedness.dfy(105,5): anon9_Else
-    (0,0): anon3
 Definedness.dfy(114,23): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
@@ -219,9 +216,7 @@ Execution trace:
     Definedness.dfy(113,5): anon13_LoopHead
     (0,0): anon13_LoopBody
     Definedness.dfy(113,5): anon14_Else
-    (0,0): anon3
     (0,0): anon15_Then
-    (0,0): anon6
     Definedness.dfy(119,5): anon16_LoopHead
     (0,0): anon16_LoopBody
     (0,0): anon17_Then
@@ -246,22 +241,18 @@ Execution trace:
     Definedness.dfy(140,5): anon9_LoopHead
     (0,0): anon9_LoopBody
     Definedness.dfy(140,5): anon10_Else
-    (0,0): anon3
 Definedness.dfy(159,15): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     Definedness.dfy(153,5): anon17_LoopHead
     (0,0): anon17_LoopBody
     Definedness.dfy(153,5): anon18_Else
-    (0,0): anon3
     (0,0): anon19_Then
     (0,0): anon5
     (0,0): anon20_Then
-    (0,0): anon8
     Definedness.dfy(159,5): anon21_LoopHead
     (0,0): anon21_LoopBody
     Definedness.dfy(159,5): anon22_Else
-    (0,0): anon11
 Definedness.dfy(172,28): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
@@ -271,9 +262,7 @@ Execution trace:
     Definedness.dfy(170,5): anon19_LoopHead
     (0,0): anon19_LoopBody
     Definedness.dfy(170,5): anon20_Else
-    (0,0): anon3
     (0,0): anon21_Then
-    (0,0): anon6
     Definedness.dfy(177,5): anon22_LoopHead
     (0,0): anon22_LoopBody
     (0,0): anon23_Then
@@ -794,45 +783,37 @@ Execution trace:
     ControlStructures.dfy(194,3): anon62_LoopHead
     (0,0): anon62_LoopBody
     ControlStructures.dfy(194,3): anon63_Else
-    (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
-    (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
     (0,0): anon71_Then
     ControlStructures.dfy(210,9): anon72_LoopHead
     (0,0): anon72_LoopBody
     ControlStructures.dfy(210,9): anon73_Else
-    (0,0): anon20
     (0,0): anon74_Then
-    (0,0): anon29
 ControlStructures.dfy(232,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
     ControlStructures.dfy(194,3): anon62_LoopHead
     (0,0): anon62_LoopBody
     ControlStructures.dfy(194,3): anon63_Else
-    (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
-    (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
     (0,0): anon71_Then
     ControlStructures.dfy(210,9): anon72_LoopHead
     (0,0): anon72_LoopBody
     ControlStructures.dfy(210,9): anon73_Else
-    (0,0): anon20
     ControlStructures.dfy(210,9): anon74_Else
     (0,0): anon75_Then
     (0,0): after_4
     ControlStructures.dfy(221,7): anon77_LoopHead
     (0,0): anon77_LoopBody
     ControlStructures.dfy(221,7): anon78_Else
-    (0,0): anon33
     ControlStructures.dfy(221,7): anon79_Else
     (0,0): anon81_Then
     (0,0): anon38
@@ -845,12 +826,10 @@ Execution trace:
     ControlStructures.dfy(194,3): anon62_LoopHead
     (0,0): anon62_LoopBody
     ControlStructures.dfy(194,3): anon63_Else
-    (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
-    (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
     (0,0): anon68_Then
     (0,0): after_5
@@ -863,25 +842,21 @@ Execution trace:
     ControlStructures.dfy(194,3): anon62_LoopHead
     (0,0): anon62_LoopBody
     ControlStructures.dfy(194,3): anon63_Else
-    (0,0): anon3
     ControlStructures.dfy(194,3): anon64_Else
     ControlStructures.dfy(198,5): anon65_LoopHead
     (0,0): anon65_LoopBody
     ControlStructures.dfy(198,5): anon66_Else
-    (0,0): anon8
     ControlStructures.dfy(198,5): anon67_Else
     (0,0): anon71_Then
     ControlStructures.dfy(210,9): anon72_LoopHead
     (0,0): anon72_LoopBody
     ControlStructures.dfy(210,9): anon73_Else
-    (0,0): anon20
     ControlStructures.dfy(210,9): anon74_Else
     (0,0): anon75_Then
     (0,0): after_4
     ControlStructures.dfy(221,7): anon77_LoopHead
     (0,0): anon77_LoopBody
     ControlStructures.dfy(221,7): anon78_Else
-    (0,0): anon33
     ControlStructures.dfy(221,7): anon79_Else
     (0,0): anon82_Then
     (0,0): anon85_Then
@@ -904,7 +879,6 @@ Execution trace:
     Termination.dfy(105,3): anon7_LoopHead
     (0,0): anon7_LoopBody
     Termination.dfy(105,3): anon8_Else
-    (0,0): anon3
     Termination.dfy(105,3): anon9_Else
 Termination.dfy(113,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
@@ -940,7 +914,6 @@ Execution trace:
     (0,0): anon8_Then
 Termination.dfy(291,3): Error: decreases expression might not decrease
 Execution trace:
-    (0,0): anon0
     Termination.dfy(291,3): anon10_LoopHead
     (0,0): anon10_LoopBody
     Termination.dfy(291,3): anon11_Else
@@ -1008,9 +981,7 @@ Parallel.dfy(57,14): Related location: This is the precondition that might not h
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon32_Else
-    (0,0): anon10
     (0,0): anon33_Then
     (0,0): anon34_Then
     (0,0): anon35_Then
@@ -1019,11 +990,8 @@ Parallel.dfy(35,5): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon32_Else
-    (0,0): anon10
     (0,0): anon33_Else
-    (0,0): anon16
     (0,0): anon36_Then
     (0,0): anon37_Then
     (0,0): anon38_Then
@@ -1032,13 +1000,9 @@ Parallel.dfy(39,18): Error: possible violation of postcondition of forall statem
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon32_Else
-    (0,0): anon10
     (0,0): anon33_Else
-    (0,0): anon16
     (0,0): anon36_Else
-    (0,0): anon22
     (0,0): anon39_Then
     (0,0): anon40_Then
     (0,0): anon26
@@ -1046,26 +1010,20 @@ Parallel.dfy(44,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon32_Else
-    (0,0): anon10
     (0,0): anon33_Else
-    (0,0): anon16
     (0,0): anon36_Else
-    (0,0): anon22
     (0,0): anon39_Then
     (0,0): anon40_Then
 Parallel.dfy(90,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    (0,0): anon3
     (0,0): anon11_Then
 Parallel.dfy(96,20): Error: possible violation of postcondition of forall statement
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    (0,0): anon3
     (0,0): anon11_Then
     (0,0): anon12_Then
 Parallel.dfy(119,12): Error: value assigned to a nat must be non-negative
@@ -1084,7 +1042,6 @@ Parallel.dfy(293,10): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-    (0,0): anon3
 
 Dafny program verifier finished with 43 verified, 9 errors
 
@@ -1134,13 +1091,10 @@ Execution trace:
     TypeParameters.dfy(168,3): anon17_LoopHead
     (0,0): anon17_LoopBody
     TypeParameters.dfy(168,3): anon18_Else
-    (0,0): anon5
     (0,0): anon20_Then
-    (0,0): anon8
     TypeParameters.dfy(174,3): anon21_LoopHead
     (0,0): anon21_LoopBody
     TypeParameters.dfy(174,3): anon22_Else
-    (0,0): anon13
     TypeParameters.dfy(174,3): anon24_Else
 
 Dafny program verifier finished with 50 verified, 8 errors
@@ -1330,9 +1284,7 @@ Execution trace:
     (0,0): anon28_Then
     (0,0): anon8
     (0,0): anon29_Else
-    (0,0): anon13
     (0,0): anon31_Else
-    (0,0): anon18
     (0,0): anon33_Then
     (0,0): anon20
     (0,0): anon34_Then
@@ -1376,7 +1328,6 @@ Execution trace:
     LoopModifies.dfy(14,4): anon9_LoopHead
     (0,0): anon9_LoopBody
     LoopModifies.dfy(14,4): anon10_Else
-    (0,0): anon5
     LoopModifies.dfy(14,4): anon12_Else
 LoopModifies.dfy(46,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
@@ -1384,7 +1335,6 @@ Execution trace:
     LoopModifies.dfy(42,4): anon9_LoopHead
     (0,0): anon9_LoopBody
     LoopModifies.dfy(42,4): anon10_Else
-    (0,0): anon5
     LoopModifies.dfy(42,4): anon12_Else
 LoopModifies.dfy(61,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
@@ -1392,7 +1342,6 @@ Execution trace:
     LoopModifies.dfy(57,4): anon9_LoopHead
     (0,0): anon9_LoopBody
     LoopModifies.dfy(57,4): anon10_Else
-    (0,0): anon5
     LoopModifies.dfy(57,4): anon12_Else
 LoopModifies.dfy(74,4): Error: loop modifies clause may violate context's modifies clause
 Execution trace:
@@ -1403,7 +1352,6 @@ Execution trace:
     LoopModifies.dfy(90,4): anon9_LoopHead
     (0,0): anon9_LoopBody
     LoopModifies.dfy(90,4): anon10_Else
-    (0,0): anon5
     LoopModifies.dfy(90,4): anon12_Else
 LoopModifies.dfy(146,11): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
@@ -1411,12 +1359,10 @@ Execution trace:
     LoopModifies.dfy(134,4): anon17_LoopHead
     (0,0): anon17_LoopBody
     LoopModifies.dfy(134,4): anon18_Else
-    (0,0): anon5
     LoopModifies.dfy(134,4): anon20_Else
     LoopModifies.dfy(139,7): anon21_LoopHead
     (0,0): anon21_LoopBody
     LoopModifies.dfy(139,7): anon22_Else
-    (0,0): anon12
     LoopModifies.dfy(139,7): anon24_Else
 LoopModifies.dfy(197,10): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
@@ -1424,7 +1370,6 @@ Execution trace:
     LoopModifies.dfy(193,4): anon9_LoopHead
     (0,0): anon9_LoopBody
     LoopModifies.dfy(193,4): anon10_Else
-    (0,0): anon5
     LoopModifies.dfy(193,4): anon12_Else
 LoopModifies.dfy(285,13): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
@@ -1432,12 +1377,10 @@ Execution trace:
     LoopModifies.dfy(273,4): anon17_LoopHead
     (0,0): anon17_LoopBody
     LoopModifies.dfy(273,4): anon18_Else
-    (0,0): anon5
     LoopModifies.dfy(273,4): anon20_Else
     LoopModifies.dfy(281,7): anon21_LoopHead
     (0,0): anon21_LoopBody
     LoopModifies.dfy(281,7): anon22_Else
-    (0,0): anon12
     LoopModifies.dfy(281,7): anon24_Else
 
 Dafny program verifier finished with 23 verified, 9 errors
@@ -1592,7 +1535,7 @@ Execution trace:
     Skeletons.dfy[C0](29,5): anon12_LoopHead
     (0,0): anon12_LoopBody
     Skeletons.dfy[C0](29,5): anon13_Else
-    (0,0): anon9
+    (0,0): anon14_Then
     Skeletons.dfy[C0](34,19): anon16_Else
     (0,0): anon11
 
@@ -1681,7 +1624,6 @@ Execution trace:
     Iterators.dfy(194,3): anon17_LoopHead
     (0,0): anon17_LoopBody
     Iterators.dfy(194,3): anon18_Else
-    (0,0): anon5
     Iterators.dfy(194,3): anon20_Else
     (0,0): anon21_Then
 Iterators.dfy(209,21): Error: assertion violation
@@ -1690,7 +1632,6 @@ Execution trace:
     Iterators.dfy(194,3): anon17_LoopHead
     (0,0): anon17_LoopBody
     Iterators.dfy(194,3): anon18_Else
-    (0,0): anon5
     Iterators.dfy(194,3): anon20_Else
     (0,0): anon22_Then
 Iterators.dfy(37,14): Error BP5002: A precondition for this call might not hold.
@@ -1725,7 +1666,6 @@ Execution trace:
     Iterators.dfy(222,3): anon15_LoopHead
     (0,0): anon15_LoopBody
     Iterators.dfy(222,3): anon16_Else
-    (0,0): anon8
     Iterators.dfy(222,3): anon19_Else
     (0,0): anon20_Else
 
@@ -1820,11 +1760,9 @@ SmallTests.dfy(171,9): Error: assignment may update an object field not in the e
 Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
-    (0,0): anon5
     (0,0): anon24_Else
     (0,0): anon11
     (0,0): anon26_Else
-    (0,0): anon16
     (0,0): anon28_Then
     (0,0): anon29_Then
     (0,0): anon19
@@ -1865,9 +1803,7 @@ Execution trace:
     SmallTests.dfy(666,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     SmallTests.dfy(666,5): anon8_Else
-    (0,0): anon3
     (0,0): anon9_Then
-    (0,0): anon6
 SmallTests.dfy(690,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -2004,11 +1940,9 @@ out.tmp.dfy(177,9): Error: assignment may update an object field not in the encl
 Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
-    (0,0): anon5
     (0,0): anon24_Else
     (0,0): anon11
     (0,0): anon26_Else
-    (0,0): anon16
     (0,0): anon28_Then
     (0,0): anon29_Then
     (0,0): anon19
@@ -2049,9 +1983,7 @@ Execution trace:
     out.tmp.dfy(384,5): anon7_LoopHead
     (0,0): anon7_LoopBody
     out.tmp.dfy(384,5): anon8_Else
-    (0,0): anon3
     (0,0): anon9_Then
-    (0,0): anon6
 out.tmp.dfy(414,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
