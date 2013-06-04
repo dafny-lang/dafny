@@ -145,57 +145,6 @@ namespace Microsoft.Dafny
     }
 
 
-    // TODO(wuestholz): Use the definition in the Boogie driver.
-    /// <summary>
-    /// Parse the given files into one Boogie program.  If an I/O or parse error occurs, an error will be printed
-    /// and null will be returned.  On success, a non-null program is returned.
-    /// </summary>
-    static Bpl.Program ParseBoogieProgram(List<string/*!*/>/*!*/ fileNames, bool suppressTraceOutput)
-    {
-      Contract.Requires(cce.NonNullElements(fileNames));
-      //BoogiePL.Errors.count = 0;
-      Bpl.Program program = null;
-      bool okay = true;
-      foreach (string bplFileName in fileNames) {
-        if (!suppressTraceOutput) {
-          if (CommandLineOptions.Clo.XmlSink != null) {
-            CommandLineOptions.Clo.XmlSink.WriteFileFragment(bplFileName);
-          }
-          if (CommandLineOptions.Clo.Trace) {
-            Console.WriteLine("Parsing " + bplFileName);
-          }
-        }
-
-        Bpl.Program programSnippet;
-        int errorCount;
-        try {
-          errorCount = Microsoft.Boogie.Parser.Parse(bplFileName, (List<string>)null, out programSnippet);
-          if (programSnippet == null || errorCount != 0) {
-            Console.WriteLine("{0} parse errors detected in {1}", errorCount, bplFileName);
-            okay = false;
-            continue;
-          }
-        } catch (IOException e) {
-          printer.ErrorWriteLine("Error opening file \"{0}\": {1}", bplFileName, e.Message);
-          okay = false;
-          continue;
-        }
-        if (program == null) {
-          program = programSnippet;
-        } else if (programSnippet != null) {
-          program.TopLevelDeclarations.AddRange(programSnippet.TopLevelDeclarations);
-        }
-      }
-      if (!okay) {
-        return null;
-      } else if (program == null) {
-        return new Bpl.Program();
-      } else {
-        return program;
-      }
-    }
-
-
     /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
     /// The intention is that this Boogie program has been produced by translation from something
@@ -227,7 +176,7 @@ namespace Microsoft.Dafny
 
             List<string/*!*/>/*!*/ fileNames = new List<string/*!*/>();
             fileNames.Add(bplFileName);
-            Bpl.Program reparsedProgram = ParseBoogieProgram(fileNames, true);
+            Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
               ResolveAndTypecheck(reparsedProgram, bplFileName);
             }
