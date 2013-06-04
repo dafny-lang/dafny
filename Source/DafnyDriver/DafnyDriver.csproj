@@ -133,12 +133,12 @@
     <Reference Include="ExecutionEngine">
       <HintPath>..\..\..\boogie\Binaries\ExecutionEngine.dll</HintPath>
     </Reference>
-    <Reference Include="Provers.SMTLib">
-      <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
-    </Reference>
     <Reference Include="ParserHelper, Version=2.2.30705.1126, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\boogie\Binaries\ParserHelper.dll</HintPath>
+    </Reference>
+    <Reference Include="Provers.SMTLib">
+      <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
