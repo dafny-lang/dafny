@@ -211,7 +211,7 @@ namespace DafnyLanguage
 
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
-        EliminateDeadVariablesAndInline(program);
+        ExecutionEngine.EliminateDeadVariablesAndInline(program);
         return BoogieInferAndVerify(program, er);
       }
       return oc;
@@ -241,70 +241,7 @@ namespace DafnyLanguage
 
       return PipelineOutcome.ResolvedAndTypeChecked;
     }
-
-    static void EliminateDeadVariablesAndInline(Bpl.Program program)
-    {
-      Contract.Requires(program != null);
-      // Eliminate dead variables
-      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
-
-      // Collect mod sets
-      if (Bpl.CommandLineOptions.Clo.DoModSetAnalysis)
-      {
-        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
-      }
-
-      // Coalesce blocks
-      if (Bpl.CommandLineOptions.Clo.CoalesceBlocks)
-      {
-        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
-      }
-
-      // Inline
-      var TopLevelDeclarations = program.TopLevelDeclarations;
-
-      if (Bpl.CommandLineOptions.Clo.ProcedureInlining != Bpl.CommandLineOptions.Inlining.None)
-      {
-        bool inline = false;
-        foreach (var d in TopLevelDeclarations)
-        {
-          if (d.FindExprAttribute("inline") != null)
-          {
-            inline = true;
-          }
-        }
-        if (inline && Bpl.CommandLineOptions.Clo.StratifiedInlining == 0)
-        {
-          foreach (var d in TopLevelDeclarations)
-          {
-            var impl = d as Bpl.Implementation;
-            if (impl != null)
-            {
-              impl.OriginalBlocks = impl.Blocks;
-              impl.OriginalLocVars = impl.LocVars;
-            }
-          }
-          foreach (var d in TopLevelDeclarations)
-          {
-            var impl = d as Bpl.Implementation;
-            if (impl != null && !impl.SkipVerification)
-            {
-              Bpl.Inliner.ProcessImplementation(program, impl);
-            }
-          }
-          foreach (var d in TopLevelDeclarations)
-          {
-            var impl = d as Bpl.Implementation;
-            if (impl != null)
-            {
-              impl.OriginalBlocks = null;
-              impl.OriginalLocVars = null;
-            }
-          }
-        }
-      }
-    }
-
+    
     /// <summary>
     /// Given a resolved and type checked Boogie program, infers invariants for the program
     /// and then attempts to verify it.  Returns:

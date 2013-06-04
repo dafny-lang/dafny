@@ -184,7 +184,7 @@ namespace Microsoft.Dafny
           return oc;
 
         case PipelineOutcome.ResolvedAndTypeChecked:
-          EliminateDeadVariablesAndInline(program);
+          ExecutionEngine.EliminateDeadVariablesAndInline(program);
           return InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
 
         default:
@@ -233,71 +233,6 @@ namespace Microsoft.Dafny
       }
 
       return PipelineOutcome.ResolvedAndTypeChecked;
-    }
-
-
-    // TODO(wuestholz): Use the definition in the Boogie driver.
-    static void EliminateDeadVariablesAndInline(Bpl.Program program)
-    {
-      Contract.Requires(program != null);
-      // Eliminate dead variables
-      Microsoft.Boogie.UnusedVarEliminator.Eliminate(program);
-
-      // Collect mod sets
-      if (CommandLineOptions.Clo.DoModSetAnalysis)
-      {
-        Microsoft.Boogie.ModSetCollector.DoModSetAnalysis(program);
-      }
-
-      // Coalesce blocks
-      if (CommandLineOptions.Clo.CoalesceBlocks)
-      {
-        Microsoft.Boogie.BlockCoalescer.CoalesceBlocks(program);
-      }
-
-      // Inline
-      var TopLevelDeclarations = program.TopLevelDeclarations;
-
-      if (CommandLineOptions.Clo.ProcedureInlining != CommandLineOptions.Inlining.None)
-      {
-        bool inline = false;
-        foreach (var d in TopLevelDeclarations)
-        {
-          if (d.FindExprAttribute("inline") != null)
-          {
-            inline = true;
-          }
-        }
-        if (inline && CommandLineOptions.Clo.StratifiedInlining == 0)
-        {
-          foreach (var d in TopLevelDeclarations)
-          {
-            var impl = d as Implementation;
-            if (impl != null)
-            {
-              impl.OriginalBlocks = impl.Blocks;
-              impl.OriginalLocVars = impl.LocVars;
-            }
-          }
-          foreach (var d in TopLevelDeclarations)
-          {
-            var impl = d as Implementation;
-            if (impl != null && !impl.SkipVerification)
-            {
-              Inliner.ProcessImplementation(program, impl);
-            }
-          }
-          foreach (var d in TopLevelDeclarations)
-          {
-            var impl = d as Implementation;
-            if (impl != null)
-            {
-              impl.OriginalBlocks = null;
-              impl.OriginalLocVars = null;
-            }
-          }
-        }
-      }
     }
 
 
