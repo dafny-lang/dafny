@@ -161,7 +161,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
 
       errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
-      PipelineOutcome oc = ResolveAndTypecheck(program, bplFileName);
+      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
@@ -178,7 +178,7 @@ namespace Microsoft.Dafny
             fileNames.Add(bplFileName);
             Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
-              ResolveAndTypecheck(reparsedProgram, bplFileName);
+              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName);
             }
           }
           return oc;
@@ -190,49 +190,6 @@ namespace Microsoft.Dafny
         default:
           Contract.Assert(false);throw new cce.UnreachableException();  // unexpected outcome
       }
-    }
-
-
-    // TODO(wuestholz): Use the definition in the Boogie driver.
-    /// <summary>
-    /// Resolves and type checks the given Boogie program.  Any errors are reported to the
-    /// console.  Returns:
-    ///  - Done if no errors occurred, and command line specified no resolution or no type checking.
-    ///  - ResolutionError if a resolution error occurred
-    ///  - TypeCheckingError if a type checking error occurred
-    ///  - ResolvedAndTypeChecked if both resolution and type checking succeeded
-    /// </summary>
-    static PipelineOutcome ResolveAndTypecheck(Bpl.Program program, string bplFileName)
-    {
-      Contract.Requires(program != null);
-      Contract.Requires(bplFileName != null);
-      // ---------- Resolve ------------------------------------------------------------
-
-      if (CommandLineOptions.Clo.NoResolve) { return PipelineOutcome.Done; }
-
-      int errorCount = program.Resolve();
-      if (errorCount != 0) {
-        Console.WriteLine("{0} name resolution errors detected in {1}", errorCount, bplFileName);
-        return PipelineOutcome.ResolutionError;
-      }
-
-      // ---------- Type check ------------------------------------------------------------
-
-      if (CommandLineOptions.Clo.NoTypecheck) { return PipelineOutcome.Done; }
-
-      errorCount = program.Typecheck();
-      if (errorCount != 0) {
-        Console.WriteLine("{0} type checking errors detected in {1}", errorCount, bplFileName);
-        return PipelineOutcome.TypeCheckingError;
-      }
-
-      if (CommandLineOptions.Clo.PrintFile != null && CommandLineOptions.Clo.PrintDesugarings)
-      {
-        // if PrintDesugaring option is engaged, print the file here, after resolution and type checking
-        ExecutionEngine.PrintBplFile(CommandLineOptions.Clo.PrintFile, program, true, false);
-      }
-
-      return PipelineOutcome.ResolvedAndTypeChecked;
     }
 
 
