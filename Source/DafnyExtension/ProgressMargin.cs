@@ -257,6 +257,8 @@ namespace DafnyLanguage
         bufferChangesPostVerificationStart.Clear();
         bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
         verificationDisabled = false;
+        // TODO(wuestholz): Only drop verification results from this buffer.
+        Microsoft.Boogie.ExecutionEngine.EmptyCache();
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
     }

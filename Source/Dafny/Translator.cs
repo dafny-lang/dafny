@@ -42,6 +42,8 @@ namespace Microsoft.Dafny {
     readonly Bpl.Program sink;
     readonly PredefinedDecls predef;
 
+    public bool InsertChecksums { get; set; }
+
     internal class PredefinedDecls {
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
@@ -365,6 +367,22 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      foreach (var decl in sink.TopLevelDeclarations)
+      {
+        var impl = decl as Implementation;
+        if (impl != null && impl.FindStringAttribute("checksum") == null)
+        {
+          impl.AddAttribute("checksum", "dummy");
+        }
+
+        var func = decl as Bpl.Function;
+        if (func != null && func.FindStringAttribute("checksum") == null)
+        {
+          func.AddAttribute("checksum", "dummy");
+        }
+      }
+
       return sink;
     }
 
@@ -1941,7 +1959,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
       Bpl.VariableSeq localVariables = new Bpl.VariableSeq();
       GenerateImplPrelude(m, inParams, outParams, builder, localVariables);
-
+      
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
         if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is CoMethod)) {
@@ -2115,11 +2133,58 @@ namespace Microsoft.Dafny {
         localVariables, stmts, kv);
       sink.TopLevelDeclarations.Add(impl);
 
+      if (InsertChecksums)
+      {
+        InsertChecksum(m, impl);
+      }
+
       currentModule = null;
       codeContext = null;
       loopHeapVarCount = 0;
       otherTmpVarCount = 0;
       _tmpIEs.Clear();
+    }
+
+    private static void InsertChecksum(Method m, Bpl.Declaration decl, bool specificationOnly = false)
+    {
+      var md5 = System.Security.Cryptography.MD5.Create();
+      using (var writer = new System.IO.StringWriter())
+      {
+        var printer = new Printer(writer);
+        printer.PrintAttributes(m.Attributes);
+        printer.PrintSpec("", m.Req, 0);
+        printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
+        printer.PrintSpec("", m.Ens, 0);
+        printer.PrintDecreasesSpec(m.Decreases, 0);
+        if (!specificationOnly && m.Body != null)
+        {
+          printer.PrintStatement(m.Body, 0);
+        }
+        md5.ComputeHash(Encoding.UTF8.GetBytes(writer.ToString()));
+      }
+      var checksum = string.Join("", md5.Hash);
+      decl.AddAttribute("checksum", checksum);
+    }
+
+    private static void InsertChecksum(Function f, Bpl.Declaration decl, bool specificationOnly = false)
+    {
+      var md5 = System.Security.Cryptography.MD5.Create();
+      using (var writer = new System.IO.StringWriter())
+      {
+        var printer = new Printer(writer);
+        printer.PrintAttributes(f.Attributes);
+        printer.PrintSpec("", f.Req, 0);
+        printer.PrintFrameSpecLine("", f.Reads, 0, null);
+        printer.PrintSpec("", f.Ens, 0);
+        printer.PrintDecreasesSpec(f.Decreases, 0);
+        if (!specificationOnly && f.Body != null)
+        {
+          printer.PrintExtendedExpr(f.Body, 0, false, false);
+        }
+        md5.ComputeHash(Encoding.UTF8.GetBytes(writer.ToString()));
+      }
+      var checksum = string.Join("", md5.Hash);
+      decl.AddAttribute("checksum", checksum);
     }
 
     void CheckFrameWellFormed(List<FrameExpression> fes, VariableSeq locals, StmtListBuilder builder, ExpressionTranslator etran) {
@@ -2442,6 +2507,11 @@ namespace Microsoft.Dafny {
         req, new Bpl.IdentifierExprSeq(), ens, etran.TrAttributes(f.Attributes, null));
       sink.TopLevelDeclarations.Add(proc);
 
+      if (InsertChecksums)
+      {
+        InsertChecksum(f, proc, true);
+      }
+
       VariableSeq implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       Bpl.VariableSeq locals = new Bpl.VariableSeq();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
@@ -2518,6 +2588,11 @@ namespace Microsoft.Dafny {
         typeParams, implInParams, new Bpl.VariableSeq(),
         locals, builder.Collect(f.tok));
       sink.TopLevelDeclarations.Add(impl);
+
+      if (InsertChecksums)
+      {
+        InsertChecksum(f, impl);
+      }
 
       Contract.Assert(currentModule == f.EnclosingClass.Module);
       currentModule = null;
@@ -3762,6 +3837,12 @@ namespace Microsoft.Dafny {
       }
       Bpl.Formal res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
       Bpl.Function func = new Bpl.Function(f.tok, f.FullCompileName, typeParams, args, res);
+
+      if (InsertChecksums)
+      {
+        InsertChecksum(f, func);
+      }
+
       sink.TopLevelDeclarations.Add(func);
 
       if (f.IsRecursive) {
@@ -3771,6 +3852,12 @@ namespace Microsoft.Dafny {
 
       res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       Bpl.Function canCallF = new Bpl.Function(f.tok, f.FullCompileName + "#canCall", args, res);
+
+      if (InsertChecksums)
+      {
+        InsertChecksum(f, canCallF);
+      }
+
       sink.TopLevelDeclarations.Add(canCallF);
     }
 
@@ -3884,6 +3971,11 @@ namespace Microsoft.Dafny {
       var typeParams = TrTypeParamDecls(m.TypeArgs);
       var name = MethodName(m, kind);
       var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
+
+      if (InsertChecksums)
+      {
+        InsertChecksum(m, proc, true);
+      }
 
       currentModule = null;
       codeContext = null;

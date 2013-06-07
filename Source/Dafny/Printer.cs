@@ -419,7 +419,7 @@ namespace Microsoft.Dafny {
       PrintType(f.Type);
     }
 
-    void PrintSpec(string kind, List<Expression> ee, int indent) {
+    internal void PrintSpec(string kind, List<Expression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       foreach (Expression e in ee) {
@@ -431,7 +431,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
+    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
         Indent(indent);
@@ -446,7 +446,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs) {
+    internal void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
       if (ee != null && ee.Count != 0) {
@@ -461,7 +461,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent) {
+    internal void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       foreach (MaybeFreeExpression e in ee)

@@ -40,6 +40,8 @@ namespace DafnyLanguage
         options.ApplyDefaultOptions();
 
         ExecutionEngine.printer = new ConsolePrinter();
+        // TODO(wuestholz): Turn this on as soon as the error locations are updated properly.
+        // Dafny.DafnyOptions.Clo.VerifySnapshots = true;
       }
     }
 
@@ -147,6 +149,7 @@ namespace DafnyLanguage
 
     public static bool Verify(Dafny.Program dafnyProgram, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
+      translator.InsertChecksums = true;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
       PipelineOutcome oc = BoogiePipeline(boogieProgram, er);
