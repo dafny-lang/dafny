@@ -368,18 +368,21 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var decl in sink.TopLevelDeclarations)
+      if (InsertChecksums)
       {
-        var impl = decl as Implementation;
-        if (impl != null && impl.FindStringAttribute("checksum") == null)
+        foreach (var decl in sink.TopLevelDeclarations)
         {
-          impl.AddAttribute("checksum", "dummy");
-        }
+          var impl = decl as Implementation;
+          if (impl != null && impl.FindStringAttribute("checksum") == null)
+          {
+            impl.AddAttribute("checksum", "dummy");
+          }
 
-        var func = decl as Bpl.Function;
-        if (func != null && func.FindStringAttribute("checksum") == null)
-        {
-          func.AddAttribute("checksum", "dummy");
+          var func = decl as Bpl.Function;
+          if (func != null && func.FindStringAttribute("checksum") == null)
+          {
+            func.AddAttribute("checksum", "dummy");
+          }
         }
       }
 
