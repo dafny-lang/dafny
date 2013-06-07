@@ -1,23 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Windows.Threading;
-using System.Windows;
-using System.Windows.Shapes;
-using System.Windows.Media;
-using System.Windows.Controls;
+using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Threading;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Formatting;
 using Microsoft.VisualStudio.Text.Tagging;
-using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Utilities;
-using System.Diagnostics.Contracts;
 using Dafny = Microsoft.Dafny;
-using Bpl = Microsoft.Boogie;
 
 
 namespace DafnyLanguage
@@ -315,23 +313,13 @@ namespace DafnyLanguage
       }
 
       // If the requested snapshot isn't the same as the one our words are on, translate our spans to the expected snapshot
-      NormalizedSnapshotSpanCollection chs;
-      chs = new NormalizedSnapshotSpanCollection(Map(pre, span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
+      var chs = new NormalizedSnapshotSpanCollection(pre.Select(span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));      
       foreach (SnapshotSpan span in NormalizedSnapshotSpanCollection.Overlap(spans, chs)) {
         yield return new TagSpan<ProgressGlyphTag>(span, new ProgressGlyphTag(0));
       }
-      chs = new NormalizedSnapshotSpanCollection(Map(post, span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
+      chs = new NormalizedSnapshotSpanCollection(post.Select(span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
       foreach (SnapshotSpan span in NormalizedSnapshotSpanCollection.Overlap(spans, chs)) {
         yield return new TagSpan<ProgressGlyphTag>(span, new ProgressGlyphTag(1));
-      }
-    }
-
-    /// <summary>
-    /// (Why the firetruck isn't an extension method like this already in the standard library?)
-    /// </summary>
-    public static IEnumerable<TOut> Map<TIn, TOut>(IEnumerable<TIn> coll, System.Func<TIn, TOut> fn) {
-      foreach (var e in coll) {
-        yield return fn(e);
       }
     }
   }
