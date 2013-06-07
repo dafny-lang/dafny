@@ -7,9 +7,6 @@
     <Description xml:space="preserve">This is a language mode for using the Dafny language inside Visual Studio.</Description>
     <Locale>1033</Locale>
     <SupportedProducts>
-      <VisualStudio Version="10.0">
-        <Edition>Pro</Edition>
-      </VisualStudio>
       <VisualStudio Version="11.0">
         <Edition>Pro</Edition>
       </VisualStudio>
