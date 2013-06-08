@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
+using Microsoft.VisualStudio.Text;
 using VC;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
@@ -104,17 +106,18 @@ namespace DafnyLanguage
 
     class DafnyErrorInformationFactory : ErrorInformationFactory
     {
-      public override ErrorInformation CreateErrorInformation(IToken tok, string msg)
+      public override ErrorInformation CreateErrorInformation(IToken tok, string msg, string requestId)
       {
-        return new DafnyErrorInformation(tok, msg);
+        return new DafnyErrorInformation(tok, msg, requestId);
       }
     }
     
     class DafnyErrorInformation : ErrorInformation
     {
-      public DafnyErrorInformation(IToken tok, string msg)
+      public DafnyErrorInformation(IToken tok, string msg, string requestId)
         : base(tok, msg)
       {
+        RequestId = requestId;
         AddNestingsAsAux(tok);
       }
 
@@ -147,12 +150,14 @@ namespace DafnyLanguage
 
     #region Boogie interaction
 
-    public static bool Verify(Dafny.Program dafnyProgram, ErrorReporterDelegate er) {
+    public static ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
+
+    public static bool Verify(Dafny.Program dafnyProgram, ITextSnapshot snapshot, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
       translator.InsertChecksums = true;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, er);
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, snapshot, er);
       switch (oc) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
@@ -170,7 +175,7 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ErrorReporterDelegate er) {
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ITextSnapshot snapshot, ErrorReporterDelegate er) {
       Contract.Requires(program != null);
 
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
@@ -178,7 +183,9 @@ namespace DafnyLanguage
         ExecutionEngine.EliminateDeadVariablesAndInline(program);
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
         int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-        return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories, er);
+        var requestId = (RequestIdToSnapshot.Count + 1).ToString();
+        RequestIdToSnapshot[requestId] = snapshot;
+        return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories, er, requestId);
       }
       return oc;
     }

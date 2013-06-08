@@ -273,10 +273,16 @@ namespace DafnyLanguage
       // Run the verifier
       var newErrors = new List<DafnyError>();
       try {
-        bool success = DafnyDriver.Verify(program, errorInfo => {
-          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg));
+        bool success = DafnyDriver.Verify(program, snapshot, errorInfo =>
+        {
+          ITextSnapshot ss = null;
+          if (errorInfo.RequestId != null)
+          {
+            ss = DafnyDriver.RequestIdToSnapshot[errorInfo.RequestId];
+          }
+          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, ss));
           foreach (var aux in errorInfo.Aux) {
-            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg));
+            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg, ss));
           }
         });
         if (!success) {

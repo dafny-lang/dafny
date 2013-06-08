@@ -217,7 +217,10 @@ namespace DafnyLanguage
     public void PopulateErrorList(List<DafnyError> newErrors, bool verificationErrors, ITextSnapshot snapshot) {
       Contract.Requires(newErrors != null);
       foreach (var err in newErrors) {
-        err.FillInSnapshot(snapshot);
+        if (err.Snapshot == null)
+        {
+          err.FillInSnapshot(snapshot);
+        }
       }
       if (verificationErrors) {
         _verificationErrors = newErrors;
@@ -228,12 +231,16 @@ namespace DafnyLanguage
       _errorProvider.SuspendRefresh();  // reduce flickering
       _errorProvider.Tasks.Clear();
       foreach (var err in AllErrors()) {
+        var l = err.Snapshot.GetLineFromLineNumber(err.Line);
+        var c = l.Start.Add(err.Column);
+        c = c.TranslateTo(_buffer.CurrentSnapshot, PointTrackingMode.Negative);
+        l = c.GetContainingLine();
         ErrorTask task = new ErrorTask() {
           Category = TaskCategory.BuildCompile,
           ErrorCategory = CategoryConversion(err.Category),
           Text = err.Message,
-          Line = err.Line,
-          Column = err.Column
+          Line = l.LineNumber,
+          Column = l.Start.Difference(c)
         };
         if (_document != null) {
           task.Document = _document.FilePath;
@@ -324,19 +331,20 @@ namespace DafnyLanguage
   {
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based
-    ITextSnapshot Snapshot;  // filled in during the FillInSnapshot call
+    public ITextSnapshot Snapshot;  // filled in during the FillInSnapshot call
     public readonly ErrorCategory Category;
     public readonly string Message;
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
-    public DafnyError(int line, int col, ErrorCategory cat, string msg) {
+    public DafnyError(int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot = null) {
       Contract.Requires(0 <= line);
       Contract.Requires(0 <= col);
       Line = line;
       Column = col;
       Category = cat;
       Message = msg;
+      Snapshot = snapshot;
     }
 
     public void FillInSnapshot(ITextSnapshot snapshot) {
