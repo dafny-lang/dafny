@@ -3,25 +3,21 @@
 // This code released under the terms of the 
 // Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
 //***************************************************************************
-using EnvDTE;
+
 using System;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Linq;
-using System.Text;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.Windows.Threading;
+using System.Diagnostics.Contracts;
+using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
-using Microsoft.VisualStudio.Text.Projection;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
-using System.Diagnostics.Contracts;
 using Dafny = Microsoft.Dafny;
 
 namespace DafnyLanguage
@@ -69,16 +65,50 @@ namespace DafnyLanguage
   /// </summary>
   public sealed class ResolverTagger : ITagger<DafnyResolverTag>, IDisposable
   {
-    ITextBuffer _buffer;
-    ITextDocument _document;
+    readonly ITextBuffer _buffer;
+    readonly ITextDocument _document;
+    readonly ErrorListProvider _errorProvider;
+
     // The _snapshot and _program fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot _snapshot;  // may be null
     public Dafny.Program _program;  // non-null only if the snapshot contains a Dafny program that type checks
-    List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
-    List<DafnyError> _verificationErrors = new List<DafnyError>();
-    ErrorListProvider _errorProvider;
 
-    public static IDictionary<string, Dafny.Program> Programs = new ConcurrentDictionary<string, Dafny.Program>();
+    List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
+    
+    List<DafnyError> _verificationErrors = new List<DafnyError>();
+    public List<DafnyError> VerificationErrors
+    {
+      get
+      {
+        return _verificationErrors;
+      }
+      set
+      {
+        Contract.Requires(value != null);
+
+        _verificationErrors = value;
+      }
+    }
+
+    public IEnumerable<DafnyError> AllErrors
+    {
+      get
+      {
+        lock (this)
+        {
+          if (_resolutionErrors != null && _resolutionErrors.Any())
+          {
+            return _resolutionErrors;
+          }
+          else
+          {
+            return VerificationErrors;
+          }
+        }
+      }
+    }
+
+    public static readonly IDictionary<string, Dafny.Program> Programs = new ConcurrentDictionary<string, Dafny.Program>();
 
     internal ResolverTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITextDocumentFactoryService textDocumentFactory) {
       _buffer = buffer;
@@ -121,26 +151,13 @@ namespace DafnyLanguage
       }
     }
 
-    public IEnumerable<DafnyError> AllErrors() {
-      foreach (var err in _resolutionErrors) {
-        yield return err;
-      }
-      if (_resolutionErrors.Count != 0) {
-        // we're done
-        yield break;
-      }
-      foreach (var err in _verificationErrors) {
-        yield return err;
-      }
-    }
-
     /// <summary>
     /// Find the Error tokens in the set of all tokens and create an ErrorTag for each
     /// </summary>
     public IEnumerable<ITagSpan<DafnyResolverTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
       var currentSnapshot = spans[0].Snapshot;
-      foreach (var err in AllErrors()) {
+      foreach (var err in AllErrors) {
         if (err.Category != ErrorCategory.ProcessError) {
           var span = err.Span.TranslateTo(currentSnapshot, SpanTrackingMode.EdgeExclusive);
           string ty;  // the COLORs below indicate what I see on my machine
@@ -183,7 +200,6 @@ namespace DafnyLanguage
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
       if (snapshot == _snapshot)
         return;  // we've already done this snapshot
-      NormalizedSnapshotSpanCollection spans = new NormalizedSnapshotSpanCollection(new SnapshotSpan(snapshot, 0, snapshot.Length));
 
       var driver = new DafnyDriver(snapshot, _document != null ? _document.FilePath : "<program>");
       List<DafnyError> newErrors;
@@ -210,21 +226,14 @@ namespace DafnyLanguage
         Programs.Remove(_document.FilePath);
       }
 
-      PopulateErrorList(newErrors, false, snapshot);
+      _resolutionErrors = newErrors;
+      UpdateErrorList(snapshot);
     }
 
-    public void PopulateErrorList(List<DafnyError> newErrors, bool verificationErrors, ITextSnapshot snapshot) {
-      Contract.Requires(newErrors != null);
-
-       if (verificationErrors) {
-        _verificationErrors = newErrors;
-      } else {
-        _resolutionErrors = newErrors;
-      }
-
+    public void UpdateErrorList(ITextSnapshot snapshot) {
       _errorProvider.SuspendRefresh();  // reduce flickering
       _errorProvider.Tasks.Clear();
-      foreach (var err in AllErrors()) {
+      foreach (var err in AllErrors) {
         var span = err.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive);
         var lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
         var line = snapshot.GetLineFromPosition(span.Start.Position);

@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 using Microsoft.VisualStudio.Text;
-using VC;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
 
@@ -150,7 +148,7 @@ namespace DafnyLanguage
 
     #region Boogie interaction
 
-    public static ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
+    public static readonly ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
 
     public static bool Verify(Dafny.Program dafnyProgram, ITextSnapshot snapshot, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();

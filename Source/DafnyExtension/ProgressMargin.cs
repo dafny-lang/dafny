@@ -292,7 +292,9 @@ namespace DafnyLanguage
       } catch (Exception e) {
         newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message, snapshot));
       }
-      errorListHolder.PopulateErrorList(newErrors, true, snapshot);
+
+      errorListHolder.VerificationErrors = newErrors;
+      errorListHolder.UpdateErrorList(snapshot);
       
       lock (this) {
         bufferChangesPreVerificationStart.Clear();
