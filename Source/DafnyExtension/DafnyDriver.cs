@@ -13,20 +13,20 @@ namespace DafnyLanguage
 {
   public class DafnyDriver
   {
-    readonly string _programText;
     readonly string _filename;
+    readonly ITextSnapshot _snapshot;
     Dafny.Program _program;
 
     List<DafnyError> _errors = new List<DafnyError>();
     public List<DafnyError> Errors { get { return _errors; } }
 
-    public DafnyDriver(string programText, string filename) {
-      _programText = programText;
+    public DafnyDriver(ITextSnapshot snapshot, string filename) {
+      _snapshot = snapshot;
       _filename = filename;
     }
 
     void RecordError(int line, int col, ErrorCategory cat, string msg) {
-      _errors.Add(new DafnyError(line, col, cat, msg));
+      _errors.Add(new DafnyError(line, col, cat, msg, _snapshot));
     }
 
     static DafnyDriver() {
@@ -42,7 +42,7 @@ namespace DafnyLanguage
         options.ApplyDefaultOptions();
 
         ExecutionEngine.printer = new ConsolePrinter();
-        // TODO(wuestholz): Turn this on as soon as the error locations are updated properly.
+        // TODO(wuestholz): Turn this on as soon as the snapshot verification in Boogie works reliably.
         // Dafny.DafnyOptions.Clo.VerifySnapshots = true;
       }
     }
@@ -57,7 +57,7 @@ namespace DafnyLanguage
     bool ParseAndTypeCheck() {
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      int errorCount = Dafny.Parser.Parse(_programText, _filename, module, builtIns, new VSErrors(this));
+      int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, module, builtIns, new VSErrors(this));
       if (errorCount != 0)
         return false;
       Dafny.Program program = new Dafny.Program(_filename, module, builtIns);
@@ -183,8 +183,12 @@ namespace DafnyLanguage
         ExecutionEngine.EliminateDeadVariablesAndInline(program);
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
         int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-        var requestId = (RequestIdToSnapshot.Count + 1).ToString();
-        RequestIdToSnapshot[requestId] = snapshot;
+        string requestId = null;
+        lock (RequestIdToSnapshot)
+        {
+          requestId = (RequestIdToSnapshot.Count + 1).ToString();
+          RequestIdToSnapshot[requestId] = snapshot;
+        }
         return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories, er, requestId);
       }
       return oc;

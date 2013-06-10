@@ -275,21 +275,22 @@ namespace DafnyLanguage
       try {
         bool success = DafnyDriver.Verify(program, snapshot, errorInfo =>
         {
-          ITextSnapshot ss = null;
+          ITextSnapshot s = snapshot;
           if (errorInfo.RequestId != null)
           {
-            ss = DafnyDriver.RequestIdToSnapshot[errorInfo.RequestId];
+            Contract.Assert(DafnyDriver.RequestIdToSnapshot.ContainsKey(errorInfo.RequestId));
+            s = DafnyDriver.RequestIdToSnapshot[errorInfo.RequestId];
           }
-          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, ss));
+          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, s));
           foreach (var aux in errorInfo.Aux) {
-            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg, ss));
+            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg, s));
           }
         });
         if (!success) {
-          newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error"));
+          newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error", snapshot));
         }
       } catch (Exception e) {
-        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message));
+        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message, snapshot));
       }
       errorListHolder.PopulateErrorList(newErrors, true, snapshot);
       

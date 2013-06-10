@@ -142,7 +142,7 @@ namespace DafnyLanguage
       var currentSnapshot = spans[0].Snapshot;
       foreach (var err in AllErrors()) {
         if (err.Category != ErrorCategory.ProcessError) {
-          var span = err.Span().TranslateTo(currentSnapshot, SpanTrackingMode.EdgeExclusive);
+          var span = err.Span.TranslateTo(currentSnapshot, SpanTrackingMode.EdgeExclusive);
           string ty;  // the COLORs below indicate what I see on my machine
           switch (err.Category) {
             default:  // unexpected category
@@ -185,15 +185,14 @@ namespace DafnyLanguage
         return;  // we've already done this snapshot
       NormalizedSnapshotSpanCollection spans = new NormalizedSnapshotSpanCollection(new SnapshotSpan(snapshot, 0, snapshot.Length));
 
-      var driver = new DafnyDriver(snapshot.GetText(), _document != null ? _document.FilePath : "<program>");
+      var driver = new DafnyDriver(snapshot, _document != null ? _document.FilePath : "<program>");
       List<DafnyError> newErrors;
       Dafny.Program program;
       try {
         program = driver.ProcessResolution();
         newErrors = driver.Errors;
       } catch (Exception e) {
-        newErrors = new List<DafnyError>();
-        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message));
+        newErrors = new List<DafnyError> { new DafnyError(0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message, snapshot) };
         program = null;
       }
 
@@ -216,13 +215,8 @@ namespace DafnyLanguage
 
     public void PopulateErrorList(List<DafnyError> newErrors, bool verificationErrors, ITextSnapshot snapshot) {
       Contract.Requires(newErrors != null);
-      foreach (var err in newErrors) {
-        if (err.Snapshot == null)
-        {
-          err.FillInSnapshot(snapshot);
-        }
-      }
-      if (verificationErrors) {
+
+       if (verificationErrors) {
         _verificationErrors = newErrors;
       } else {
         _resolutionErrors = newErrors;
@@ -231,16 +225,16 @@ namespace DafnyLanguage
       _errorProvider.SuspendRefresh();  // reduce flickering
       _errorProvider.Tasks.Clear();
       foreach (var err in AllErrors()) {
-        var l = err.Snapshot.GetLineFromLineNumber(err.Line);
-        var c = l.Start.Add(err.Column);
-        c = c.TranslateTo(_buffer.CurrentSnapshot, PointTrackingMode.Negative);
-        l = c.GetContainingLine();
+        var span = err.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive);
+        var lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
+        var line = snapshot.GetLineFromPosition(span.Start.Position);
+        var columnNum = span.Start - line.Start;
         ErrorTask task = new ErrorTask() {
           Category = TaskCategory.BuildCompile,
           ErrorCategory = CategoryConversion(err.Category),
           Text = err.Message,
-          Line = l.LineNumber,
-          Column = l.Start.Difference(c)
+          Line = lineNum,
+          Column = columnNum
         };
         if (_document != null) {
           task.Document = _document.FilePath;
@@ -331,13 +325,14 @@ namespace DafnyLanguage
   {
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based
-    public ITextSnapshot Snapshot;  // filled in during the FillInSnapshot call
+    public readonly ITextSnapshot Snapshot;
     public readonly ErrorCategory Category;
     public readonly string Message;
+    public readonly SnapshotSpan Span;
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
-    public DafnyError(int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot = null) {
+    public DafnyError(int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot) {
       Contract.Requires(0 <= line);
       Contract.Requires(0 <= col);
       Line = line;
@@ -345,18 +340,10 @@ namespace DafnyLanguage
       Category = cat;
       Message = msg;
       Snapshot = snapshot;
-    }
-
-    public void FillInSnapshot(ITextSnapshot snapshot) {
-      Contract.Requires(snapshot != null);
-      Snapshot = snapshot;
-    }
-    public SnapshotSpan Span() {
-      Contract.Assume(Snapshot != null);  // requires that Snapshot has been filled in
-      var line = Snapshot.GetLineFromLineNumber(Line);
-      Contract.Assume(Column <= line.Length);  // this is really a precondition of the constructor + FillInSnapshot
-      var length = Math.Min(line.Length - Column, 5);
-      return new SnapshotSpan(line.Start + Column, length);
+      var sLine = Snapshot.GetLineFromLineNumber(line);
+      Contract.Assert(Column <= sLine.Length);
+      var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
+      Span = new SnapshotSpan(sLine.Start + Column, sLength);
     }
   }
 }
