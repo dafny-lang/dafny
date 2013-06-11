@@ -277,7 +277,7 @@ namespace DafnyLanguage
         verificationDisabled = false;
         if (_document != null)
         {
-          Microsoft.Boogie.ExecutionEngine.RemoveMatchingKeysFromCache(new Regex(string.Format(@"^{0}", Regex.Escape(_document.FilePath))));
+          Microsoft.Boogie.ExecutionEngine.Cache.RemoveMatchingKeys(new Regex(string.Format(@"^{0}", Regex.Escape(_document.FilePath))));
         }
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
