@@ -2167,6 +2167,8 @@ namespace Microsoft.Dafny {
       }
       var checksum = string.Join("", md5.Hash);
       decl.AddAttribute("checksum", checksum);
+
+      InsertUniqueIdForImplementation(decl);
     }
 
     private static void InsertChecksum(Function f, Bpl.Declaration decl, bool specificationOnly = false)
@@ -2188,6 +2190,17 @@ namespace Microsoft.Dafny {
       }
       var checksum = string.Join("", md5.Hash);
       decl.AddAttribute("checksum", checksum);
+
+      InsertUniqueIdForImplementation(decl);
+    }
+
+    public static void InsertUniqueIdForImplementation(Bpl.Declaration decl)
+    {
+      var impl = decl as Bpl.Implementation;
+      if (impl != null && !string.IsNullOrEmpty(impl.tok.filename))
+      {
+        decl.AddAttribute("id", impl.tok.filename + ":" + impl.Id);
+      }
     }
 
     void CheckFrameWellFormed(List<FrameExpression> fes, VariableSeq locals, StmtListBuilder builder, ExpressionTranslator etran) {

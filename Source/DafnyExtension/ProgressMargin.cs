@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
@@ -255,8 +256,10 @@ namespace DafnyLanguage
         bufferChangesPostVerificationStart.Clear();
         bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
         verificationDisabled = false;
-        // TODO(wuestholz): Only drop verification results from this buffer.
-        Microsoft.Boogie.ExecutionEngine.EmptyCache();
+        if (_document != null)
+        {
+          Microsoft.Boogie.ExecutionEngine.RemoveMatchingKeysFromCache(new Regex(string.Format(@"^{0}", Regex.Escape(_document.FilePath))));
+        }
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
     }
