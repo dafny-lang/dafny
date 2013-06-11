@@ -2150,7 +2150,7 @@ namespace Microsoft.Dafny {
 
     private static void InsertChecksum(Method m, Bpl.Declaration decl, bool specificationOnly = false)
     {
-      var md5 = System.Security.Cryptography.MD5.Create();
+      byte[] data;
       using (var writer = new System.IO.StringWriter())
       {
         var printer = new Printer(writer);
@@ -2163,17 +2163,15 @@ namespace Microsoft.Dafny {
         {
           printer.PrintStatement(m.Body, 0);
         }
-        md5.ComputeHash(Encoding.UTF8.GetBytes(writer.ToString()));
+        data = Encoding.UTF8.GetBytes(writer.ToString());
       }
-      var checksum = string.Join("", md5.Hash);
-      decl.AddAttribute("checksum", checksum);
 
-      InsertUniqueIdForImplementation(decl);
+      InsertChecksum(decl, data);
     }
 
     private static void InsertChecksum(Function f, Bpl.Declaration decl, bool specificationOnly = false)
     {
-      var md5 = System.Security.Cryptography.MD5.Create();
+      byte[] data;
       using (var writer = new System.IO.StringWriter())
       {
         var printer = new Printer(writer);
@@ -2186,9 +2184,18 @@ namespace Microsoft.Dafny {
         {
           printer.PrintExtendedExpr(f.Body, 0, false, false);
         }
-        md5.ComputeHash(Encoding.UTF8.GetBytes(writer.ToString()));
+        data = Encoding.UTF8.GetBytes(writer.ToString());
       }
-      var checksum = string.Join("", md5.Hash);
+
+      InsertChecksum(decl, data);
+    }
+
+    private static void InsertChecksum(Bpl.Declaration decl, byte[] data)
+    {
+      var md5 = System.Security.Cryptography.MD5.Create();
+      var hashedData = md5.ComputeHash(data);
+      var checksum = BitConverter.ToString(hashedData);
+
       decl.AddAttribute("checksum", checksum);
 
       InsertUniqueIdForImplementation(decl);
