@@ -148,14 +148,12 @@ namespace DafnyLanguage
 
     #region Boogie interaction
 
-    public static readonly ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
-
-    public static bool Verify(Dafny.Program dafnyProgram, ITextSnapshot snapshot, ErrorReporterDelegate er) {
+    public static bool Verify(Dafny.Program dafnyProgram, ITextSnapshot snapshot, string requestId, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
       translator.InsertChecksums = true;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, snapshot, er);
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, snapshot, requestId, er);
       switch (oc) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
@@ -173,7 +171,8 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ITextSnapshot snapshot, ErrorReporterDelegate er) {
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ITextSnapshot snapshot, string requestId, ErrorReporterDelegate er)
+    {
       Contract.Requires(program != null);
 
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
@@ -181,12 +180,6 @@ namespace DafnyLanguage
         ExecutionEngine.EliminateDeadVariablesAndInline(program);
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
         int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-        string requestId = null;
-        lock (RequestIdToSnapshot)
-        {
-          requestId = (RequestIdToSnapshot.Count + 1).ToString();
-          RequestIdToSnapshot[requestId] = snapshot;
-        }
         return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories, er, requestId);
       }
       return oc;

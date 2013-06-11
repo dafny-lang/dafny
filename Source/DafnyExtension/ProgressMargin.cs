@@ -171,7 +171,9 @@ namespace DafnyLanguage
     }
 
     public static IDictionary<string, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<string, ProgressTagger>();
-    
+
+    public readonly ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
+
     /// <summary>
     /// This method is invoked when the user has been idle for a little while.
     /// Note, "sender" and "args" are allowed to be passed in as null--they are not used by this method.
@@ -212,10 +214,18 @@ namespace DafnyLanguage
         var empty = bufferChangesPreVerificationStart;
         bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
         bufferChangesPostVerificationStart = empty;
+
         // Notify to-whom-it-may-concern about the changes we just made
         NotifyAboutChangedTags(snap);
 
-        verificationWorker = new Thread(() => VerificationWorker(prog, snap, resolver));
+        string requestId = null;
+        lock (RequestIdToSnapshot)
+        {
+          requestId = (RequestIdToSnapshot.Count + 1).ToString();
+          RequestIdToSnapshot[requestId] = snap;
+        }
+
+        verificationWorker = new Thread(() => VerificationWorker(prog, snap, requestId, resolver));
         verificationWorker.IsBackground = true;
         if (_document != null)
         {
@@ -268,21 +278,22 @@ namespace DafnyLanguage
     /// <summary>
     /// Thread entry point.
     /// </summary>
-    void VerificationWorker(Dafny.Program program, ITextSnapshot snapshot, ResolverTagger errorListHolder) {
+    void VerificationWorker(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder) {
       Contract.Requires(program != null);
       Contract.Requires(snapshot != null);
+      Contract.Requires(requestId != null);
       Contract.Requires(errorListHolder != null);
 
       // Run the verifier
       var newErrors = new List<DafnyError>();
       try {
-        bool success = DafnyDriver.Verify(program, snapshot, errorInfo =>
+        bool success = DafnyDriver.Verify(program, snapshot, requestId, errorInfo =>
         {
           ITextSnapshot s = snapshot;
           if (errorInfo.RequestId != null)
           {
-            Contract.Assert(DafnyDriver.RequestIdToSnapshot.ContainsKey(errorInfo.RequestId));
-            s = DafnyDriver.RequestIdToSnapshot[errorInfo.RequestId];
+            Contract.Assert(RequestIdToSnapshot.ContainsKey(errorInfo.RequestId));
+            s = RequestIdToSnapshot[errorInfo.RequestId];
           }
           newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, s));
           foreach (var aux in errorInfo.Aux) {
