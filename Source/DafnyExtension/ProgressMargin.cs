@@ -21,6 +21,7 @@ using Dafny = Microsoft.Dafny;
 
 namespace DafnyLanguage
 {
+
   #region UI stuff
   internal class ProgressMarginGlyphFactory : IGlyphFactory
   {
@@ -60,6 +61,9 @@ namespace DafnyLanguage
   }
   #endregion
 
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(ProgressGlyphTag))]
@@ -81,6 +85,11 @@ namespace DafnyLanguage
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
     }
   }
+
+  #endregion
+
+
+  #region Tagger
 
   public class ProgressTagger : ITagger<ProgressGlyphTag>, IDisposable
   {
@@ -170,7 +179,7 @@ namespace DafnyLanguage
       get { return verificationDisabled; }
     }
 
-    public static IDictionary<string, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<string, ProgressTagger>();
+    public static readonly IDictionary<string, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<string, ProgressTagger>();
 
     public readonly ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
 
@@ -287,7 +296,7 @@ namespace DafnyLanguage
       // Run the verifier
       var newErrors = new List<DafnyError>();
       try {
-        bool success = DafnyDriver.Verify(program, snapshot, requestId, errorInfo =>
+        bool success = DafnyDriver.Verify(program, requestId, errorInfo =>
         {
           ITextSnapshot s = snapshot;
           if (errorInfo.RequestId != null)
@@ -309,7 +318,7 @@ namespace DafnyLanguage
 
       errorListHolder.VerificationErrors = newErrors;
       errorListHolder.UpdateErrorList(snapshot);
-      
+
       lock (this) {
         bufferChangesPreVerificationStart.Clear();
         verificationInProgress = false;
@@ -336,7 +345,7 @@ namespace DafnyLanguage
       }
 
       // If the requested snapshot isn't the same as the one our words are on, translate our spans to the expected snapshot
-      var chs = new NormalizedSnapshotSpanCollection(pre.Select(span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));      
+      var chs = new NormalizedSnapshotSpanCollection(pre.Select(span => span.TranslateTo(targetSnapshot, SpanTrackingMode.EdgeExclusive)));
       foreach (SnapshotSpan span in NormalizedSnapshotSpanCollection.Overlap(spans, chs)) {
         yield return new TagSpan<ProgressGlyphTag>(span, new ProgressGlyphTag(0));
       }
@@ -346,4 +355,7 @@ namespace DafnyLanguage
       }
     }
   }
+
+  #endregion
+
 }

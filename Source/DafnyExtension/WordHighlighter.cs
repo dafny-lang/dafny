@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
-using System.Threading;
 using System.Windows.Media;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
@@ -11,10 +10,14 @@ using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
+
 namespace DafnyLanguage
 {
+
 #if LATER_MAYBE
-  #region // (the current annoying) word highligher
+
+  #region (the current annoying) word highligher
+
   internal class HighlightWordTagger : ITagger<HighlightWordTag>
   {
     ITextView View { get; set; }
@@ -82,7 +85,7 @@ namespace DafnyLanguage
              || char.IsWhiteSpace((currentRequest - 1).GetChar())) {
           foundWord = false;
         } else {
-          // Try again, one character previous. 
+          // Try again, one character previous.
           //If the caret is at the end of a word, pick up the word.
           word = TextStructureNavigator.GetExtentOfWord(currentRequest - 1);
 
@@ -206,6 +209,9 @@ namespace DafnyLanguage
       return new HighlightWordTagger(textView, buffer, TextSearchService, textStructureNavigator) as ITagger<T>;
     }
   }
-#endregion
+
+  #endregion
+
 #endif
+
 }

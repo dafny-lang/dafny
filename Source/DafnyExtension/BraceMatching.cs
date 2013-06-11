@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Text;
@@ -7,8 +6,12 @@ using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
+
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(IViewTaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(TextMarkerTag))]
@@ -30,6 +33,11 @@ namespace DafnyLanguage
     }
   }
 
+  #endregion
+
+
+  #region Tagger
+
   internal abstract class TokenBasedTagger
   {
     ITagAggregator<DafnyTokenTag> _aggregator;
@@ -42,8 +50,8 @@ namespace DafnyLanguage
       SnapshotSpan span = new SnapshotSpan(pt, 1);
       foreach (var tagSpan in this._aggregator.GetTags(span)) {
         switch (tagSpan.Tag.Kind) {
-          case DafnyTokenKinds.Comment:
-          case DafnyTokenKinds.String:
+          case DafnyTokenKind.Comment:
+          case DafnyTokenKind.String:
             foreach (var s in tagSpan.Span.GetSpans(pt.Snapshot)) {
               if (s.Contains(span))
                 return true;
@@ -56,6 +64,7 @@ namespace DafnyLanguage
       return false;
     }
   }
+
 
   internal class BraceMatchingTagger : TokenBasedTagger, ITagger<TextMarkerTag>
   {
@@ -250,4 +259,7 @@ namespace DafnyLanguage
       return false;
     }
   }
+
+  #endregion
+
 }

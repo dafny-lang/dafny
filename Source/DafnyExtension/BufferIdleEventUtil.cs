@@ -1,17 +1,19 @@
 ﻿//***************************************************************************
 // Copyright © 2010 Microsoft Corporation.  All Rights Reserved.
-// This code released under the terms of the 
+// This code released under the terms of the
 // Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
 //***************************************************************************
+
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.VisualStudio.Text;
 using System.Windows.Threading;
+using Microsoft.VisualStudio.Text;
+
 
 namespace DafnyLanguage
 {
+
     /// <summary>
     /// Handy reusable utility to listen for change events on the associated buffer, but
     /// only pass these along to a set of listeners when the user stops typing for a half second
@@ -152,4 +154,5 @@ namespace DafnyLanguage
 
         #endregion
     }
+
 }

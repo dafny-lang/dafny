@@ -4,13 +4,15 @@ using System.ComponentModel.Composition;
 using System.Windows.Media;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
 
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(ClassificationTag))]
@@ -31,11 +33,15 @@ namespace DafnyLanguage
     }
   }
 
+  #endregion
+
+  #region Tagger
+
   internal sealed class DafnyClassifier : ITagger<ClassificationTag>
   {
     ITextBuffer _buffer;
     ITagAggregator<DafnyTokenTag> _aggregator;
-    IDictionary<DafnyTokenKinds, IClassificationType> _typeMap;
+    IDictionary<DafnyTokenKind, IClassificationType> _typeMap;
 
     static bool DafnyMenuWasInitialized;
 
@@ -45,14 +51,15 @@ namespace DafnyLanguage
       _buffer = buffer;
       _aggregator = tagAggregator;
       _aggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
+
       // use built-in classification types:
-      _typeMap = new Dictionary<DafnyTokenKinds, IClassificationType>();
-      _typeMap[DafnyTokenKinds.Keyword] = standards.Keyword;
-      _typeMap[DafnyTokenKinds.Number] = standards.NumberLiteral;
-      _typeMap[DafnyTokenKinds.String] = standards.StringLiteral;
-      _typeMap[DafnyTokenKinds.Comment] = standards.Comment;
-      _typeMap[DafnyTokenKinds.VariableIdentifier] = standards.Identifier;
-      _typeMap[DafnyTokenKinds.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
+      _typeMap = new Dictionary<DafnyTokenKind, IClassificationType>();
+      _typeMap[DafnyTokenKind.Keyword] = standards.Keyword;
+      _typeMap[DafnyTokenKind.Number] = standards.NumberLiteral;
+      _typeMap[DafnyTokenKind.String] = standards.StringLiteral;
+      _typeMap[DafnyTokenKind.Comment] = standards.Comment;
+      _typeMap[DafnyTokenKind.VariableIdentifier] = standards.Identifier;
+      _typeMap[DafnyTokenKind.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
 
       if (!DafnyMenuWasInitialized)
       {
@@ -119,4 +126,7 @@ namespace DafnyLanguage
     [Name("Dafny identifier")]
     internal static ClassificationTypeDefinition UserType = null;
   }
+
+  #endregion
+
 }

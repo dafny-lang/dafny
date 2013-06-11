@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.ComponentModel.Composition;
+using System.Linq;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
-using Dafny = Microsoft.Dafny;
+
 
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(DafnyTokenTag))]
@@ -21,7 +22,12 @@ namespace DafnyLanguage
     }
   }
 
-  public enum DafnyTokenKinds
+  #endregion
+
+
+  #region Tagger
+
+  public enum DafnyTokenKind
   {
     Keyword, Number, String, Comment,
     VariableIdentifier, VariableIdentifierDefinition
@@ -29,14 +35,14 @@ namespace DafnyLanguage
 
   public class DafnyTokenTag : ITag
   {
-    public DafnyTokenKinds Kind { get; private set; }
+    public DafnyTokenKind Kind { get; private set; }
     public string HoverText { get; private set; }
 
-    public DafnyTokenTag(DafnyTokenKinds kind) {
+    public DafnyTokenTag(DafnyTokenKind kind) {
       this.Kind = kind;
     }
 
-    public DafnyTokenTag(DafnyTokenKinds kind, string hoverText) {
+    public DafnyTokenTag(DafnyTokenKind kind, string hoverText) {
       this.Kind = kind;
       this.HoverText = hoverText;
     }
@@ -46,7 +52,7 @@ namespace DafnyLanguage
   {
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;
-    List<DRegion> _regions;
+    List<TokenRegion> _regions;
 
     internal DafnyTokenTagger(ITextBuffer buffer) {
       _buffer = buffer;
@@ -57,17 +63,17 @@ namespace DafnyLanguage
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
-    
+
     public IEnumerable<ITagSpan<DafnyTokenTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0)
         yield break;
 
-      List<DRegion> currentRegions = _regions;
+      List<TokenRegion> currentRegions = _regions;
       ITextSnapshot currentSnapshot = _snapshot;
 
       // create a new SnapshotSpan for the entire region encompassed by the span collection
       SnapshotSpan entire = new SnapshotSpan(spans[0].Start, spans[spans.Count - 1].End).TranslateTo(currentSnapshot, SpanTrackingMode.EdgeExclusive);
-      
+
       // return tags for any regions that fall within that span
       // BUGBUG: depending on how GetTags gets called (e.g., once for each line in the buffer), this may produce quadratic behavior
       foreach (var region in currentRegions) {
@@ -85,9 +91,9 @@ namespace DafnyLanguage
       ITextSnapshot snapshot = _buffer.CurrentSnapshot;
       if (snapshot == _snapshot)
         return;  // we've already computed the regions for this snapshot
-       
+
       // get all of the outline regions in the snapshot
-      List<DRegion> newRegions = Rescan(snapshot);
+      List<TokenRegion> newRegions = Rescan(snapshot);
 
       // determine the changed span, and send a changed event with the new spans
       List<SnapshotSpan> oldSpans = new List<SnapshotSpan>(_regions.Select(r =>
@@ -112,26 +118,26 @@ namespace DafnyLanguage
       }
     }
 
-    NormalizedSnapshotSpanCollection SymmetricDifference(NormalizedSnapshotSpanCollection first, NormalizedSnapshotSpanCollection second) {
+    static NormalizedSnapshotSpanCollection SymmetricDifference(NormalizedSnapshotSpanCollection first, NormalizedSnapshotSpanCollection second) {
       return NormalizedSnapshotSpanCollection.Union(
           NormalizedSnapshotSpanCollection.Difference(first, second),
           NormalizedSnapshotSpanCollection.Difference(second, first));
     }
 
-    private static List<DRegion> Rescan(ITextSnapshot newSnapshot) {
-      List<DRegion> newRegions = new List<DRegion>();
+    private static List<TokenRegion> Rescan(ITextSnapshot newSnapshot) {
+      List<TokenRegion> newRegions = new List<TokenRegion>();
 
       bool stillScanningLongComment = false;
       SnapshotPoint commentStart = new SnapshotPoint();  // used only when stillScanningLongComment
       SnapshotPoint commentEndAsWeKnowIt = new SnapshotPoint();  // used only when stillScanningLongComment
       foreach (ITextSnapshotLine line in newSnapshot.Lines) {
         string txt = line.GetText();  // the current line (without linebreak characters)
-        int N = txt.Length;  // length of the current line 
+        int N = txt.Length;  // length of the current line
         int cur = 0;  // offset into the current line
 
         if (stillScanningLongComment) {
           if (ScanForEndOfComment(txt, ref cur)) {
-            newRegions.Add(new DRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + cur), DafnyTokenKinds.Comment));
+            newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + cur), DafnyTokenKind.Comment));
             stillScanningLongComment = false;
           } else {
             commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, line.Start + cur);
@@ -142,7 +148,7 @@ namespace DafnyLanguage
         int end;  // offset into the current line
         for (; ; cur = end) {
           // advance to the first character of a keyword or token
-          DafnyTokenKinds ty = DafnyTokenKinds.Keyword;
+          DafnyTokenKind ty = DafnyTokenKind.Keyword;
           for (; ; cur++) {
             if (N <= cur) {
               // we've looked at everything in this line
@@ -151,22 +157,22 @@ namespace DafnyLanguage
             char ch = txt[cur];
             if ('a' <= ch && ch <= 'z') break;
             if ('A' <= ch && ch <= 'Z') break;
-            if ('0' <= ch && ch <= '9') { ty = DafnyTokenKinds.Number; break; }
-            if (ch == '"') { ty = DafnyTokenKinds.String; break; }
-            if (ch == '/') { ty = DafnyTokenKinds.Comment; break; }
+            if ('0' <= ch && ch <= '9') { ty = DafnyTokenKind.Number; break; }
+            if (ch == '"') { ty = DafnyTokenKind.String; break; }
+            if (ch == '/') { ty = DafnyTokenKind.Comment; break; }
             if (ch == '\'' || ch == '_' || ch == '?' || ch == '\\') break;  // parts of identifiers
           }
 
           // advance to the end of the token
           end = cur + 1;  // offset into the current line
-          if (ty == DafnyTokenKinds.Number) {
+          if (ty == DafnyTokenKind.Number) {
             // scan the rest of this number
             for (; end < N; end++) {
               char ch = txt[end];
               if ('0' <= ch && ch <= '9') {
               } else break;
             }
-          } else if (ty == DafnyTokenKinds.String) {
+          } else if (ty == DafnyTokenKind.String) {
             // scan the rest of this string, but not past the end-of-line
             for (; end < N; end++) {
               char ch = txt[end];
@@ -183,7 +189,7 @@ namespace DafnyLanguage
                 }
               }
             }
-          } else if (ty == DafnyTokenKinds.Comment) {
+          } else if (ty == DafnyTokenKind.Comment) {
             if (end == N) continue;  // this was not the start of a comment
             char ch = txt[end];
             if (ch == '/') {
@@ -194,7 +200,7 @@ namespace DafnyLanguage
               end++;
               commentStart = new SnapshotPoint(newSnapshot, line.Start + cur);
               if (ScanForEndOfComment(txt, ref end)) {
-                newRegions.Add(new DRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + end), DafnyTokenKinds.Comment));
+                newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + end), DafnyTokenKind.Comment));
               } else {
                 stillScanningLongComment = true;
                 commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, line.Start + end);
@@ -297,13 +303,13 @@ namespace DafnyLanguage
             }
           }
 
-          newRegions.Add(new DRegion(new SnapshotPoint(newSnapshot, line.Start + cur), new SnapshotPoint(newSnapshot, line.Start + end), ty));
+          newRegions.Add(new TokenRegion(new SnapshotPoint(newSnapshot, line.Start + cur), new SnapshotPoint(newSnapshot, line.Start + end), ty));
         }
       OUTER_CONTINUE: ;
       }
 
       if (stillScanningLongComment) {
-        newRegions.Add(new DRegion(commentStart, commentEndAsWeKnowIt, DafnyTokenKinds.Comment));
+        newRegions.Add(new TokenRegion(commentStart, commentEndAsWeKnowIt, DafnyTokenKind.Comment));
       }
 
       return newRegions;
@@ -325,19 +331,22 @@ namespace DafnyLanguage
     }
   }
 
-  internal class DRegion
+  internal class TokenRegion
   {
     public SnapshotPoint Start { get; private set; }
     public SnapshotPoint End { get; private set; }
     public SnapshotSpan Span {
       get { return new SnapshotSpan(Start, End); }
     }
-    public DafnyTokenKinds Kind { get; private set; }
+    public DafnyTokenKind Kind { get; private set; }
 
-    public DRegion(SnapshotPoint start, SnapshotPoint end, DafnyTokenKinds kind) {
+    public TokenRegion(SnapshotPoint start, SnapshotPoint end, DafnyTokenKind kind) {
       Start = start;
       End = end;
       Kind = kind;
     }
   }
+
+  #endregion
+
 }

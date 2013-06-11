@@ -1,29 +1,26 @@
 ﻿//***************************************************************************
 // Copyright © 2010 Microsoft Corporation.  All Rights Reserved.
-// This code released under the terms of the 
+// This code released under the terms of the
 // Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
 //***************************************************************************
-using EnvDTE;
+
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.ComponentModel.Composition;
-using System.Windows.Threading;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Tagging;
-using Microsoft.VisualStudio.Text.Projection;
-using Microsoft.VisualStudio.Utilities;
 using System.Diagnostics.Contracts;
-using Bpl = Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Tagging;
+using Microsoft.VisualStudio.Utilities;
+using Bpl = Microsoft.Boogie;
+
 
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(DafnyTokenTag))]
@@ -39,6 +36,11 @@ namespace DafnyLanguage
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
     }
   }
+
+  #endregion
+
+
+  #region Tagger
 
   /// <summary>
   /// Translate DafnyResolverTag's into IOutliningRegionTag's
@@ -77,14 +79,14 @@ namespace DafnyLanguage
       int end = entire.End;
       foreach (var r in _regions) {
         if (0 <= r.Length && r.Start <= end && start <= r.Start + r.Length) {
-          DafnyTokenKinds kind;
+          DafnyTokenKind kind;
           switch (r.Kind) {
             case IdRegion.OccurrenceKind.Use:
-              kind = DafnyTokenKinds.VariableIdentifier; break;
+              kind = DafnyTokenKind.VariableIdentifier; break;
             case IdRegion.OccurrenceKind.Definition:
-              kind = DafnyTokenKinds.VariableIdentifierDefinition; break;
+              kind = DafnyTokenKind.VariableIdentifierDefinition; break;
             case IdRegion.OccurrenceKind.WildDefinition:
-              kind = DafnyTokenKinds.Keyword; break;
+              kind = DafnyTokenKind.Keyword; break;
             default:
               Contract.Assert(false);  // unexpected OccurrenceKind
               goto case IdRegion.OccurrenceKind.Use;  // to please compiler
@@ -385,5 +387,7 @@ namespace DafnyLanguage
       }
     }
   }
+
+  #endregion
 
 }

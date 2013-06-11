@@ -1,29 +1,26 @@
 ﻿//***************************************************************************
 // Copyright © 2010 Microsoft Corporation.  All Rights Reserved.
-// This code released under the terms of the 
+// This code released under the terms of the
 // Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
 //***************************************************************************
-using EnvDTE;
+
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.ComponentModel.Composition;
-using System.Windows.Threading;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Tagging;
-using Microsoft.VisualStudio.Text.Projection;
-using Microsoft.VisualStudio.Utilities;
 using System.Diagnostics.Contracts;
+using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Tagging;
+using Microsoft.VisualStudio.Utilities;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
 
+
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(IOutliningRegionTag))]
@@ -40,6 +37,11 @@ namespace DafnyLanguage
     }
   }
 
+  #endregion
+
+
+  #region Tagger
+
   /// <summary>
   /// Translate DafnyResolverTag's into IOutliningRegionTag's
   /// </summary>
@@ -48,7 +50,7 @@ namespace DafnyLanguage
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;  // the most recent snapshot of _buffer that we have been informed about
     Dafny.Program _program;  // the program parsed from _snapshot
-    List<ORegion> _regions = new List<ORegion>();  // the regions generated from _program
+    List<OutliningRegion> _regions = new List<OutliningRegion>();  // the regions generated from _program
     ITagAggregator<DafnyResolverTag> _aggregator;
 
     internal OutliningTagger(ITextBuffer buffer, ITagAggregator<DafnyResolverTag> tagAggregator) {
@@ -120,7 +122,7 @@ namespace DafnyLanguage
       if (program == _program)
         return false;  // no new regions
 
-      List<ORegion> newRegions = new List<ORegion>();
+      List<OutliningRegion> newRegions = new List<OutliningRegion>();
 
       foreach (var module in program.Modules) {
         if (!module.IsDefaultModule) {
@@ -128,18 +130,18 @@ namespace DafnyLanguage
           if (module.IsAbstract) {
             nm = "abstract " + nm;
           }
-          newRegions.Add(new ORegion(module, nm));
+          newRegions.Add(new OutliningRegion(module, nm));
         }
         foreach (Dafny.TopLevelDecl d in module.TopLevelDecls) {
           if (!HasBodyTokens(d) && !(d is Dafny.ClassDecl)) {
             continue;
           }
           if (d is Dafny.ArbitraryTypeDecl) {
-            newRegions.Add(new ORegion(d, "type"));
+            newRegions.Add(new OutliningRegion(d, "type"));
           } else if (d is Dafny.CoDatatypeDecl) {
-            newRegions.Add(new ORegion(d, "codatatype"));
+            newRegions.Add(new OutliningRegion(d, "codatatype"));
           } else if (d is Dafny.DatatypeDecl) {
-            newRegions.Add(new ORegion(d, "datatype"));
+            newRegions.Add(new OutliningRegion(d, "datatype"));
           } else if (d is Dafny.ModuleDecl) {
             // do nothing here, since the outer loop handles modules
           } else {
@@ -147,9 +149,9 @@ namespace DafnyLanguage
             if (cl.IsDefaultClass) {
               // do nothing
             } else if (cl is Dafny.IteratorDecl) {
-              newRegions.Add(new ORegion(cl, "iterator"));
+              newRegions.Add(new OutliningRegion(cl, "iterator"));
             } else {
-              newRegions.Add(new ORegion(cl, "class"));
+              newRegions.Add(new OutliningRegion(cl, "class"));
             }
             // do the class members (in particular, functions and methods)
             foreach (Dafny.MemberDecl m in cl.Members) {
@@ -165,7 +167,7 @@ namespace DafnyLanguage
                 if (!m.IsGhost) {
                   nm += " method";
                 }
-                newRegions.Add(new ORegion(m, nm));
+                newRegions.Add(new OutliningRegion(m, nm));
               } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
                 var nm =
                   m is Dafny.Constructor ? "constructor" :
@@ -175,7 +177,7 @@ namespace DafnyLanguage
                 if (m.IsGhost && !(m is Dafny.CoMethod)) {
                   nm = "ghost " + nm;
                 }
-                newRegions.Add(new ORegion(m, nm));
+                newRegions.Add(new OutliningRegion(m, nm));
               }
             }
           }
@@ -187,17 +189,17 @@ namespace DafnyLanguage
       return true;
     }
 
-    bool HasBodyTokens(Dafny.Declaration decl) {
+    static bool HasBodyTokens(Dafny.Declaration decl) {
       Contract.Requires(decl != null);
       return decl.BodyStartTok != Bpl.Token.NoToken && decl.BodyEndTok != Bpl.Token.NoToken;
     }
 
-    class ORegion
+    class OutliningRegion
     {
       public readonly int Start;
       public readonly int Length;
       public readonly string HoverText;
-      public ORegion(Dafny.Declaration decl, string kind) {
+      public OutliningRegion(Dafny.Declaration decl, string kind) {
         int startPosition = decl.BodyStartTok.pos + 1;  // skip the open-curly brace itself
         int length = decl.BodyEndTok.pos - startPosition;
         Start = startPosition;
@@ -206,4 +208,7 @@ namespace DafnyLanguage
       }
     }
   }
+
+  #endregion
+
 }

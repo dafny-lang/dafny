@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Utilities;
 
+
 namespace DafnyLanguage
 {
   class DafnyContentType

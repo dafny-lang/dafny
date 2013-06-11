@@ -1,24 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Linq;
-using System.Text;
-using System.Windows.Input;
 using Microsoft.VisualStudio.Language.Intellisense;
-using System.Collections.ObjectModel;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
-using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Utilities;
-using System.Diagnostics.Contracts;
 
 
 namespace DafnyLanguage
 {
+
+  #region Source Provider
+
   [Export(typeof(IQuickInfoSourceProvider))]
   [ContentType("dafny")]
   [Name("Dafny QuickInfo")]
-  class OokQuickInfoSourceProvider : IQuickInfoSourceProvider
+  class DafnyQuickInfoSourceProvider : IQuickInfoSourceProvider
   {
     [Import]
     IBufferTagAggregatorFactoryService aggService = null;
@@ -33,31 +31,40 @@ namespace DafnyLanguage
     private ITagAggregator<DafnyTokenTag> _aggregator;
     private ITextBuffer _buffer;
 
-    public DafnyQuickInfoSource(ITextBuffer buffer, ITagAggregator<DafnyTokenTag> aggregator) {
+    public DafnyQuickInfoSource(ITextBuffer buffer, ITagAggregator<DafnyTokenTag> aggregator)
+    {
       _aggregator = aggregator;
       _buffer = buffer;
     }
 
-    public void AugmentQuickInfoSession(IQuickInfoSession session, IList<object> quickInfoContent, out ITrackingSpan applicableToSpan) {
+    public void AugmentQuickInfoSession(IQuickInfoSession session, IList<object> quickInfoContent, out ITrackingSpan applicableToSpan)
+    {
       applicableToSpan = null;
 
       var triggerPoint = (SnapshotPoint)session.GetTriggerPoint(_buffer.CurrentSnapshot);
       if (triggerPoint == null)
         return;
 
-      foreach (IMappingTagSpan<DafnyTokenTag> curTag in _aggregator.GetTags(new SnapshotSpan(triggerPoint, triggerPoint))) {
+      foreach (IMappingTagSpan<DafnyTokenTag> curTag in _aggregator.GetTags(new SnapshotSpan(triggerPoint, triggerPoint)))
+      {
         var s = curTag.Tag.HoverText;
-        if (s != null) {
+        if (s != null)
+        {
           var tagSpan = curTag.Span.GetSpans(_buffer).First();
           applicableToSpan = _buffer.CurrentSnapshot.CreateTrackingSpan(tagSpan, SpanTrackingMode.EdgeExclusive);
           quickInfoContent.Add(s);
         }
       }
     }
-    public void Dispose() {
+    public void Dispose()
+    {
     }
   }
-  // --------------------------------- QuickInfo controller ------------------------------------------
+
+  #endregion
+
+
+  #region Controller Provider
 
   [Export(typeof(IIntellisenseControllerProvider))]
   [Name("Dafny QuickInfo controller")]
@@ -71,6 +78,11 @@ namespace DafnyLanguage
       return new DafnyQuickInfoController(textView, subjectBuffers, this);
     }
   }
+
+  #endregion
+
+
+  #region Controller
 
   class DafnyQuickInfoController : IIntellisenseController
   {
@@ -123,4 +135,7 @@ namespace DafnyLanguage
         PositionAffinity.Predecessor);
     }
   }
+
+  #endregion
+
 }

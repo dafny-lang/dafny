@@ -1,26 +1,23 @@
 ﻿//***************************************************************************
 // Copyright © 2010 Microsoft Corporation.  All Rights Reserved.
-// This code released under the terms of the 
+// This code released under the terms of the
 // Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
 //***************************************************************************
-using EnvDTE;
+
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.ComponentModel.Composition;
-using System.Windows.Threading;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
-using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
-using Microsoft.VisualStudio.Text.Projection;
 using Microsoft.VisualStudio.Utilities;
+
 
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(ErrorTag))]
@@ -36,6 +33,11 @@ namespace DafnyLanguage
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
     }
   }
+
+  #endregion
+
+
+  #region Tagger
 
   /// <summary>
   /// Translate PkgDefTokenTags into ErrorTags and Error List items
@@ -82,4 +84,7 @@ namespace DafnyLanguage
       }
     }
   }
+
+  #endregion
+
 }

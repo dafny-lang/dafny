@@ -1,15 +1,16 @@
 ﻿//***************************************************************************
 // Copyright © 2010 Microsoft Corporation.  All Rights Reserved.
-// This code released under the terms of the 
+// This code released under the terms of the
 // Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
 //***************************************************************************
 
+
 using System;
-using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -20,8 +21,12 @@ using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
 using Dafny = Microsoft.Dafny;
 
+
 namespace DafnyLanguage
 {
+
+  #region Provider
+
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
   [TagType(typeof(DafnyResolverTag))]
@@ -40,9 +45,17 @@ namespace DafnyLanguage
     }
   }
 
+  #endregion
+
+
+  #region Tagger
+
+  #region Tags
+
   public abstract class DafnyResolverTag : ITag
   {
   }
+
   public class DafnyErrorResolverTag : DafnyResolverTag
   {
     public readonly string Typ;
@@ -52,6 +65,7 @@ namespace DafnyLanguage
       Msg = msg;
     }
   }
+
   public class DafnySuccessResolverTag : DafnyResolverTag
   {
     public readonly Dafny.Program Program;
@@ -59,6 +73,9 @@ namespace DafnyLanguage
       Program = program;
     }
   }
+
+  #endregion
+
 
   /// <summary>
   /// Translate PkgDefTokenTags into ErrorTags and Error List items
@@ -74,7 +91,7 @@ namespace DafnyLanguage
     public Dafny.Program _program;  // non-null only if the snapshot contains a Dafny program that type checks
 
     List<DafnyError> _resolutionErrors = new List<DafnyError>();  // if nonempty, then _snapshot is the snapshot from which the errors were produced
-    
+
     List<DafnyError> _verificationErrors = new List<DafnyError>();
     public List<DafnyError> VerificationErrors
     {
@@ -259,7 +276,7 @@ namespace DafnyLanguage
         chng(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
     }
 
-    TaskErrorCategory CategoryConversion(ErrorCategory cat) {
+    static TaskErrorCategory CategoryConversion(ErrorCategory cat) {
       switch (cat) {
         case ErrorCategory.ParseError:
         case ErrorCategory.ResolveError:
@@ -325,6 +342,9 @@ namespace DafnyLanguage
 
   }
 
+
+  #region Errors
+
   public enum ErrorCategory
   {
     ProcessError, ParseWarning, ParseError, ResolveError, VerificationError, AuxInformation, InternalError
@@ -355,4 +375,9 @@ namespace DafnyLanguage
       Span = new SnapshotSpan(sLine.Start + Column, sLength);
     }
   }
+
+  #endregion
+
+  #endregion
+
 }

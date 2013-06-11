@@ -9,6 +9,7 @@ using Dafny = Microsoft.Dafny;
 
 namespace DafnyLanguage
 {
+
   public class DafnyDriver
   {
     readonly string _filename;
@@ -21,10 +22,6 @@ namespace DafnyLanguage
     public DafnyDriver(ITextSnapshot snapshot, string filename) {
       _snapshot = snapshot;
       _filename = filename;
-    }
-
-    void RecordError(int line, int col, ErrorCategory cat, string msg) {
-      _errors.Add(new DafnyError(line, col, cat, msg, _snapshot));
     }
 
     static DafnyDriver() {
@@ -44,6 +41,8 @@ namespace DafnyLanguage
         // Dafny.DafnyOptions.Clo.VerifySnapshots = true;
       }
     }
+
+    #region Parsing and type checking
 
     internal Dafny.Program ProcessResolution() {
       if (!ParseAndTypeCheck()) {
@@ -67,6 +66,11 @@ namespace DafnyLanguage
 
       _program = program;
       return true;  // success
+    }
+
+    void RecordError(int line, int col, ErrorCategory cat, string msg)
+    {
+      _errors.Add(new DafnyError(line, col, cat, msg, _snapshot));
     }
 
     class VSErrors : Dafny.Errors
@@ -102,6 +106,20 @@ namespace DafnyLanguage
       }
     }
 
+    #endregion
+
+    #region Compilation
+
+    public static void Compile(Dafny.Program dafnyProgram)
+    {
+      Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
+      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name);
+    }
+
+    #endregion
+
+    #region Boogie interaction
+
     class DafnyErrorInformationFactory : ErrorInformationFactory
     {
       public override ErrorInformation CreateErrorInformation(IToken tok, string msg, string requestId)
@@ -109,7 +127,7 @@ namespace DafnyLanguage
         return new DafnyErrorInformation(tok, msg, requestId);
       }
     }
-    
+
     class DafnyErrorInformation : ErrorInformation
     {
       public DafnyErrorInformation(IToken tok, string msg, string requestId)
@@ -136,24 +154,12 @@ namespace DafnyLanguage
       }
     }
 
-    #region Compilation
-
-    public static void Compile(Dafny.Program dafnyProgram)
-    {
-      Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
-      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name);
-    }
-
-    #endregion
-
-    #region Boogie interaction
-
-    public static bool Verify(Dafny.Program dafnyProgram, ITextSnapshot snapshot, string requestId, ErrorReporterDelegate er) {
+    public static bool Verify(Dafny.Program dafnyProgram, string requestId, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
       translator.InsertChecksums = true;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
 
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, snapshot, requestId, er);
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, requestId, er);
       switch (oc) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
@@ -171,7 +177,7 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, ITextSnapshot snapshot, string requestId, ErrorReporterDelegate er)
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string requestId, ErrorReporterDelegate er)
     {
       Contract.Requires(program != null);
 
@@ -212,4 +218,5 @@ namespace DafnyLanguage
 
     #endregion
   }
+
 }
