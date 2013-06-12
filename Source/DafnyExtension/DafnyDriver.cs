@@ -38,8 +38,6 @@ namespace DafnyLanguage
         options.ApplyDefaultOptions();
 
         ExecutionEngine.printer = new ConsolePrinter();
-        // TODO(wuestholz): Turn this on as soon as the snapshot verification in Boogie works reliably.
-        // Dafny.DafnyOptions.Clo.VerifySnapshots = true;
       }
     }
 
@@ -153,6 +151,12 @@ namespace DafnyLanguage
           Aux.Add(new AuxErrorInfo(tok, "Related location"));
         }
       }
+    }
+
+    public static bool ToggleIncrementalVerification()
+    {
+      Dafny.DafnyOptions.Clo.VerifySnapshots = !Dafny.DafnyOptions.Clo.VerifySnapshots;
+      return Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
     public static bool Verify(Dafny.Program dafnyProgram, string requestId, ErrorReporterDelegate er) {

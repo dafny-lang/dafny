@@ -95,6 +95,14 @@
         </Strings>
       </Button>
 
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleSnapshotVerification" priority="0x0103" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Enable on-demand re-verification</ButtonText>
+        </Strings>
+      </Button>
+
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -124,6 +132,7 @@
       <IDSymbol name="cmdidCompile" value="0x0100" />
       <IDSymbol name="cmdidRunVerifier" value="0x0101" />
       <IDSymbol name="cmdidStopVerifier" value="0x0102" />
+      <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
     </GuidSymbol>
 
     <!--

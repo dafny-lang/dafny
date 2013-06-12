@@ -38,6 +38,7 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand menuCommand;
     private OleMenuCommand runVerifierCommand;
     private OleMenuCommand stopVerifierCommand;
+    private OleMenuCommand toggleSnapshotVerificationCommand;
 
     /// <summary>
     /// Default constructor of the package.
@@ -86,12 +87,22 @@ namespace DafnyLanguage.DafnyMenu
         stopVerifierCommand.BeforeQueryStatus += stopVerifierCommand_BeforeQueryStatus;
         mcs.AddCommand(stopVerifierCommand);
 
+        var toggleSnapshotVerificationCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleSnapshotVerification);
+        toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
+        mcs.AddCommand(toggleSnapshotVerificationCommand);
+
         var menuCommandID = new CommandID(GuidList.guidDafnyMenuPkgSet, (int)PkgCmdIDList.cmdidMenu);
         menuCommand = new OleMenuCommand(new EventHandler((sender, e) => { }), menuCommandID);
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
         menuCommand.Enabled = true;
         mcs.AddCommand(menuCommand);
       }
+    }
+
+    private void ToggleSnapshotVerificationCallback(object sender, EventArgs e)
+    {
+      var on = DafnyDriver.ToggleIncrementalVerification();
+      toggleSnapshotVerificationCommand.Text = (on ? "Disable" : "Enable") + " on-demand re-verification";
     }
 
     private void StopVerifierCallback(object sender, EventArgs e)
