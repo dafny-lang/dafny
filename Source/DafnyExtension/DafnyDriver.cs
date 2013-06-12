@@ -25,6 +25,7 @@ namespace DafnyLanguage
     }
 
     static DafnyDriver() {
+      // TODO(wuestholz): Do we really need to initialze this here?
       Initialize();
     }
 
