@@ -37,9 +37,41 @@ namespace DafnyLanguage
         Dafny.DafnyOptions.Install(options);
         options.ApplyDefaultOptions();
 
-        ExecutionEngine.printer = new ConsolePrinter();
+        ExecutionEngine.printer = new DummyPrinter();
       }
     }
+
+
+    #region Output
+
+    class DummyPrinter : OutputPrinter
+    {
+      public void AdvisoryWriteLine(string format, params object[] args)
+      {
+      }
+
+      public void ErrorWriteLine(string format, params object[] args)
+      {
+      }
+
+      public void ErrorWriteLine(string s)
+      {
+      }
+
+      public void Inform(string s)
+      {
+      }
+
+      public void ReportBplError(IToken tok, string message, bool error, bool showBplLocation)
+      {
+      }
+
+      public void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories)
+      {
+      }
+    }
+
+    #endregion
 
     #region Parsing and type checking
 
