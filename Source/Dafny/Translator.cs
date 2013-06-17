@@ -43,6 +43,7 @@ namespace Microsoft.Dafny {
     readonly PredefinedDecls predef;
 
     public bool InsertChecksums { get; set; }
+    public string UniqueIdPrefix { get; set; }
 
     internal class PredefinedDecls {
       public readonly Bpl.Type RefType;
@@ -2148,7 +2149,7 @@ namespace Microsoft.Dafny {
       _tmpIEs.Clear();
     }
 
-    private static void InsertChecksum(Method m, Bpl.Declaration decl, bool specificationOnly = false)
+    private void InsertChecksum(Method m, Bpl.Declaration decl, bool specificationOnly = false)
     {
       byte[] data;
       using (var writer = new System.IO.StringWriter())
@@ -2169,7 +2170,7 @@ namespace Microsoft.Dafny {
       InsertChecksum(decl, data);
     }
 
-    private static void InsertChecksum(Function f, Bpl.Declaration decl, bool specificationOnly = false)
+    private void InsertChecksum(Function f, Bpl.Declaration decl, bool specificationOnly = false)
     {
       byte[] data;
       using (var writer = new System.IO.StringWriter())
@@ -2190,7 +2191,7 @@ namespace Microsoft.Dafny {
       InsertChecksum(decl, data);
     }
 
-    private static void InsertChecksum(Bpl.Declaration decl, byte[] data)
+    private void InsertChecksum(Bpl.Declaration decl, byte[] data)
     {
       var md5 = System.Security.Cryptography.MD5.Create();
       var hashedData = md5.ComputeHash(data);
@@ -2201,12 +2202,13 @@ namespace Microsoft.Dafny {
       InsertUniqueIdForImplementation(decl);
     }
 
-    public static void InsertUniqueIdForImplementation(Bpl.Declaration decl)
+    public void InsertUniqueIdForImplementation(Bpl.Declaration decl)
     {
       var impl = decl as Bpl.Implementation;
-      if (impl != null && !string.IsNullOrEmpty(impl.tok.filename))
+      var prefix = UniqueIdPrefix ?? impl.tok.filename;
+      if (impl != null && !string.IsNullOrEmpty(prefix))
       {
-        decl.AddAttribute("id", impl.tok.filename + ":" + impl.Id);
+        decl.AddAttribute("id", prefix + ":" + impl.Id);
       }
     }
 
@@ -10204,6 +10206,5 @@ namespace Microsoft.Dafny {
         return attrs;
       }
     }
-
   }
 }

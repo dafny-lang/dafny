@@ -230,7 +230,10 @@ namespace DafnyLanguage
         string requestId = null;
         lock (RequestIdToSnapshot)
         {
-          requestId = (RequestIdToSnapshot.Count + 1).ToString();
+          do
+          {
+            requestId = DateTime.UtcNow.Ticks.ToString();
+          } while (RequestIdToSnapshot.ContainsKey(requestId));
           RequestIdToSnapshot[requestId] = snap;
         }
 
@@ -277,7 +280,7 @@ namespace DafnyLanguage
         verificationDisabled = false;
         if (_document != null)
         {
-          Microsoft.Boogie.ExecutionEngine.Cache.RemoveMatchingKeys(new Regex(string.Format(@"^{0}", Regex.Escape(_document.FilePath))));
+          Microsoft.Boogie.ExecutionEngine.Cache.RemoveMatchingKeys(new Regex(string.Format(@"^{0}", Regex.Escape(GetHashCode().ToString()))));
         }
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
@@ -295,24 +298,27 @@ namespace DafnyLanguage
 
       // Run the verifier
       var newErrors = new List<DafnyError>();
-      try {
-        bool success = DafnyDriver.Verify(program, requestId, errorInfo =>
+      try
+      {
+        bool success = DafnyDriver.Verify(program, GetHashCode().ToString(), requestId, errorInfo =>
         {
-          ITextSnapshot s = snapshot;
-          if (errorInfo.RequestId != null)
+          if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
           {
-            Contract.Assert(RequestIdToSnapshot.ContainsKey(errorInfo.RequestId));
-            s = RequestIdToSnapshot[errorInfo.RequestId];
-          }
-          newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, s));
-          foreach (var aux in errorInfo.Aux) {
-            newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg, s));
+            var s = RequestIdToSnapshot[errorInfo.RequestId];
+            newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, s));
+            foreach (var aux in errorInfo.Aux)
+            {
+              newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg, s));
+            }
           }
         });
-        if (!success) {
+        if (!success)
+        {
           newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error", snapshot));
         }
-      } catch (Exception e) {
+      }
+      catch (Exception e)
+      {
         newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message, snapshot));
       }
 
