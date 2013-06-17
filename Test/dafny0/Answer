@@ -1683,18 +1683,18 @@ Verifying CheckWellformed$$_0_M0.C.P ...
   [4 proof obligations]  verified
 
 Verifying CheckWellformed$$_0_M0.C.Q ...
+  [3 proof obligations]  error
 Superposition.dfy(24,15): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy(25,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon5_Else
-  [3 proof obligations]  error
 
 Verifying CheckWellformed$$_0_M0.C.R ...
+  [3 proof obligations]  error
 Superposition.dfy(30,15): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy(31,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon5_Else
-  [3 proof obligations]  error
 
 Verifying CheckWellformed$$_1_M1.C.M ...
   [0 proof obligations]  verified
@@ -1703,13 +1703,13 @@ Verifying Impl$$_1_M1.C.M ...
   [1 proof obligation]  verified
 
 Verifying CheckWellformed$$_1_M1.C.P ...
+  [1 proof obligation]  error
 Superposition.dfy(47,15): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy[M1](19,26): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon7_Else
     (0,0): anon9_Then
     (0,0): anon6
-  [1 proof obligation]  error
 
 Verifying CheckWellformed$$_1_M1.C.Q ...
   [0 proof obligations]  verified
