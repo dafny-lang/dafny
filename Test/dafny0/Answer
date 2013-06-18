@@ -930,16 +930,16 @@ DTypes.dfy(53,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
 DTypes.dfy(117,13): Error: assertion violation
-DTypes.dfy(89,30): Related location: Related location
+DTypes.dfy(89,30): Related location
 Execution trace:
     (0,0): anon0
 DTypes.dfy(123,13): Error: assertion violation
-DTypes.dfy(89,20): Related location: Related location
+DTypes.dfy(89,20): Related location
 Execution trace:
     (0,0): anon0
 DTypes.dfy(133,12): Error: assertion violation
-DTypes.dfy(128,6): Related location: Related location
-DTypes.dfy(89,20): Related location: Related location
+DTypes.dfy(128,6): Related location
+DTypes.dfy(89,20): Related location
 Execution trace:
     (0,0): anon0
 DTypes.dfy(154,12): Error: assertion violation
@@ -1055,37 +1055,37 @@ Execution trace:
     (0,0): anon3_Then
     (0,0): anon2
 TypeParameters.dfy(153,12): Error: assertion violation
-TypeParameters.dfy(153,28): Related location: Related location
+TypeParameters.dfy(153,28): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
     TypeParameters.dfy(153,32): anon21_Else
     (0,0): anon5
 TypeParameters.dfy(155,12): Error: assertion violation
-TypeParameters.dfy(155,33): Related location: Related location
+TypeParameters.dfy(155,33): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon23_Then
     TypeParameters.dfy(155,37): anon24_Else
     (0,0): anon11
 TypeParameters.dfy(157,12): Error: assertion violation
-TypeParameters.dfy(157,20): Related location: Related location
+TypeParameters.dfy(157,20): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon25_Then
 TypeParameters.dfy(159,12): Error: assertion violation
-TypeParameters.dfy(144,5): Related location: Related location
-TypeParameters.dfy(159,21): Related location: Related location
+TypeParameters.dfy(144,5): Related location
+TypeParameters.dfy(159,21): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon26_Then
 TypeParameters.dfy(161,12): Error: assertion violation
-TypeParameters.dfy(146,8): Related location: Related location
+TypeParameters.dfy(146,8): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon27_Then
 TypeParameters.dfy(175,15): Error BP5005: This loop invariant might not be maintained by the loop.
-TypeParameters.dfy(175,38): Related location: Related location
+TypeParameters.dfy(175,38): Related location
 Execution trace:
     (0,0): anon0
     TypeParameters.dfy(168,3): anon17_LoopHead
@@ -1196,7 +1196,7 @@ Execution trace:
     (0,0): anon9_Then
 CoPrefix.dfy(111,1): Error BP5003: A postcondition might not hold on this return path.
 CoPrefix.dfy(110,11): Related location: This is the postcondition that might not hold.
-CoPrefix.dfy(98,17): Related location: Related location
+CoPrefix.dfy(98,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -1206,7 +1206,7 @@ Execution trace:
     (0,0): anon9_Then
     (0,0): anon10_Then
 CoPrefix.dfy(139,25): Error: assertion violation
-CoPrefix.dfy(114,23): Related location: Related location
+CoPrefix.dfy(114,23): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
@@ -1221,50 +1221,50 @@ Dafny program verifier finished with 41 verified, 9 errors
 
 -------------------- CoinductiveProofs.dfy --------------------
 CoinductiveProofs.dfy(26,12): Error: assertion violation
-CoinductiveProofs.dfy(10,17): Related location: Related location
+CoinductiveProofs.dfy(10,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
 CoinductiveProofs.dfy(56,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(55,11): Related location: This is the postcondition that might not hold.
-CoinductiveProofs.dfy(51,3): Related location: Related location
+CoinductiveProofs.dfy(51,3): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 CoinductiveProofs.dfy(71,12): Error: assertion violation
-CoinductiveProofs.dfy(51,3): Related location: Related location
+CoinductiveProofs.dfy(51,3): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
 CoinductiveProofs.dfy(88,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(87,11): Related location: This is the postcondition that might not hold.
-CoinductiveProofs.dfy(77,3): Related location: Related location
+CoinductiveProofs.dfy(77,3): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 CoinductiveProofs.dfy(97,12): Error: assertion violation
-CoinductiveProofs.dfy(77,3): Related location: Related location
+CoinductiveProofs.dfy(77,3): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
 CoinductiveProofs.dfy(108,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(107,11): Related location: This is the postcondition that might not hold.
-CoinductiveProofs.dfy(103,3): Related location: Related location
+CoinductiveProofs.dfy(103,3): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 CoinductiveProofs.dfy(147,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(146,22): Related location: This is the postcondition that might not hold.
-CoinductiveProofs.dfy(1,24): Related location: Related location
+CoinductiveProofs.dfy(1,24): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
 CoinductiveProofs.dfy(153,1): Error BP5003: A postcondition might not hold on this return path.
 CoinductiveProofs.dfy(152,22): Related location: This is the postcondition that might not hold.
-CoinductiveProofs.dfy(1,24): Related location: Related location
+CoinductiveProofs.dfy(1,24): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -1410,18 +1410,18 @@ Execution trace:
     (0,0): anon0
 Refinement.dfy(180,5): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy[IncorrectConcrete](112,15): Related location: This is the postcondition that might not hold.
-Refinement.dfy(177,9): Related location: Related location
+Refinement.dfy(177,9): Related location
 Execution trace:
     (0,0): anon0
 Refinement.dfy(184,5): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy[IncorrectConcrete](120,15): Related location: This is the postcondition that might not hold.
-Refinement.dfy(177,9): Related location: Related location
+Refinement.dfy(177,9): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
 Refinement.dfy(190,7): Error: assertion violation
-Refinement.dfy[IncorrectConcrete](128,24): Related location: Related location
+Refinement.dfy[IncorrectConcrete](128,24): Related location
 Execution trace:
     (0,0): anon0
 
@@ -1501,7 +1501,7 @@ Dafny program verifier finished with 11 verified, 4 errors
 -------------------- Predicates.dfy --------------------
 Predicates.dfy[B](18,5): Error BP5003: A postcondition might not hold on this return path.
 Predicates.dfy[B](17,15): Related location: This is the postcondition that might not hold.
-Predicates.dfy(28,9): Related location: Related location
+Predicates.dfy(28,9): Related location
 Execution trace:
     (0,0): anon0
 Predicates.dfy(85,16): Error: assertion violation
@@ -1512,8 +1512,8 @@ Execution trace:
     (0,0): anon0
 Predicates.dfy[Tricky_Full](123,5): Error BP5003: A postcondition might not hold on this return path.
 Predicates.dfy[Tricky_Full](122,15): Related location: This is the postcondition that might not hold.
-Predicates.dfy(133,7): Related location: Related location
-Predicates.dfy[Tricky_Full](113,9): Related location: Related location
+Predicates.dfy(133,7): Related location
+Predicates.dfy[Tricky_Full](113,9): Related location
 Execution trace:
     (0,0): anon0
 Predicates.dfy(161,5): Error BP5003: A postcondition might not hold on this return path.

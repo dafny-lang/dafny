@@ -202,14 +202,14 @@ namespace Microsoft.Dafny
 
     class DafnyConsolePrinter : ConsolePrinter
     {
-      public override void ReportBplError(IToken tok, string message, bool error, bool showBplLocation)
+      public override void ReportBplError(IToken tok, string message, bool error, bool showBplLocation, string category = null)
       {
-        base.ReportBplError(tok, message, error, showBplLocation);
+        base.ReportBplError(tok, message, error, showBplLocation, category);
 
         if (tok is Dafny.NestedToken)
         {
           var nt = (Dafny.NestedToken)tok;
-          ReportBplError(nt.Inner, "Related location: Related location", false, showBplLocation);
+          ReportBplError(nt.Inner, "Related location", false, showBplLocation);
         }
       }
     }

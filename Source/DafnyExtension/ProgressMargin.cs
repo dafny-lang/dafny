@@ -305,21 +305,21 @@ namespace DafnyLanguage
           if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
           {
             var s = RequestIdToSnapshot[errorInfo.RequestId];
-            newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.Msg, s));
+            newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s));
             foreach (var aux in errorInfo.Aux)
             {
-              newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.Msg, s));
+              newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s));
             }
           }
         });
         if (!success)
         {
-          newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error", snapshot));
+          newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error", snapshot));
         }
       }
       catch (Exception e)
       {
-        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "verification process error: " + e.Message, snapshot));
+        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot));
       }
 
       errorListHolder.VerificationErrors = newErrors;

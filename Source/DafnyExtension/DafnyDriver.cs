@@ -62,7 +62,7 @@ namespace DafnyLanguage
       {
       }
 
-      public void ReportBplError(IToken tok, string message, bool error, bool showBplLocation)
+      public void ReportBplError(IToken tok, string message, bool error, bool showBplLocation, string category = null)
       {
       }
 
@@ -153,24 +153,25 @@ namespace DafnyLanguage
 
     class DafnyErrorInformationFactory : ErrorInformationFactory
     {
-      public override ErrorInformation CreateErrorInformation(IToken tok, string msg, string requestId)
+      public override ErrorInformation CreateErrorInformation(IToken tok, string msg, string requestId, string category = null)
       {
-        return new DafnyErrorInformation(tok, msg, requestId);
+        return new DafnyErrorInformation(tok, msg, requestId, category);
       }
     }
 
     class DafnyErrorInformation : ErrorInformation
     {
-      public DafnyErrorInformation(IToken tok, string msg, string requestId)
+      public DafnyErrorInformation(IToken tok, string msg, string requestId, string category = null)
         : base(tok, msg)
       {
         RequestId = requestId;
+        Category = category;
         AddNestingsAsAux(tok);
       }
 
-      public override void AddAuxInfo(IToken tok, string msg)
+      public override void AddAuxInfo(IToken tok, string msg, string category = null)
       {
-        base.AddAuxInfo(tok, msg);
+        base.AddAuxInfo(tok, msg, category);
         AddNestingsAsAux(tok);
       }
 
