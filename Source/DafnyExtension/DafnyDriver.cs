@@ -69,6 +69,10 @@ namespace DafnyLanguage
       public void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories)
       {
       }
+
+      public void WriteErrorInformation(ErrorInformation errorInfo, bool isError, bool showBplLocation)
+      {
+      }
     }
 
     #endregion
