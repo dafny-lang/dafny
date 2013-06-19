@@ -70,7 +70,7 @@ namespace DafnyLanguage
       {
       }
 
-      public void WriteErrorInformation(ErrorInformation errorInfo, bool isError, bool showBplLocation)
+      public void WriteErrorInformation(ErrorInformation errorInfo, bool showBplLocation)
       {
       }
     }
