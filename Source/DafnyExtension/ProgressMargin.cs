@@ -302,6 +302,7 @@ namespace DafnyLanguage
       {
         bool success = DafnyDriver.Verify(program, GetHashCode().ToString(), requestId, errorInfo =>
         {
+          errorInfo.BoogieErrorCode = null;
           if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
           {
             var s = RequestIdToSnapshot[errorInfo.RequestId];

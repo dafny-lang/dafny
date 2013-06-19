@@ -62,7 +62,7 @@ namespace DafnyLanguage
       {
       }
 
-      public void ReportBplError(IToken tok, string message, bool error, bool showBplLocation, string category = null)
+      public void ReportBplError(IToken tok, string message, bool error, string category = null)
       {
       }
 
@@ -70,7 +70,7 @@ namespace DafnyLanguage
       {
       }
 
-      public void WriteErrorInformation(ErrorInformation errorInfo, bool showBplLocation)
+      public void WriteErrorInformation(ErrorInformation errorInfo)
       {
       }
     }
