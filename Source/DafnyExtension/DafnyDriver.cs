@@ -66,7 +66,7 @@ namespace DafnyLanguage
       {
       }
 
-      public void WriteTrailer(int verified, int errors, int inconclusives, int timeOuts, int outOfMemories)
+      public void WriteTrailer(PipelineStatistics stats)
       {
       }
 
@@ -228,8 +228,7 @@ namespace DafnyLanguage
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
         ExecutionEngine.EliminateDeadVariablesAndInline(program);
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
-        int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-        return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories, er, requestId);
+        return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), er, requestId);
       }
       return oc;
     }

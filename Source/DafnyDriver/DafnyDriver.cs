@@ -122,17 +122,17 @@ namespace Microsoft.Dafny
             bplFilename = Path.Combine(Path.GetTempPath(), baseName);
           }
 
-          int errorCount, verified, inconclusives, timeOuts, outOfMemories;
-          PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
-          bool allOk = errorCount == 0 && inconclusives == 0 && timeOuts == 0 && outOfMemories == 0;
+          PipelineStatistics stats = null;
+          PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats);
+          var allOk = stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
-              printer.WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
+              printer.WriteTrailer(stats);
               if ((DafnyOptions.O.Compile && allOk && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
                 CompileDafnyProgram(dafnyProgram, fileNames[0]);
               break;
             case PipelineOutcome.Done:
-              printer.WriteTrailer(verified, errorCount, inconclusives, timeOuts, outOfMemories);
+              printer.WriteTrailer(stats);
               if (DafnyOptions.O.ForceCompile)
                 CompileDafnyProgram(dafnyProgram, fileNames[0]);
               break;
@@ -156,13 +156,13 @@ namespace Microsoft.Dafny
     /// their error code.
     /// </summary>
     static PipelineOutcome BoogiePipelineWithRerun(Bpl.Program/*!*/ program, string/*!*/ bplFileName,
-        out int errorCount, out int verified, out int inconclusives, out int timeOuts, out int outOfMemories)
+        out PipelineStatistics stats)
     {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
-      Contract.Ensures(0 <= Contract.ValueAtReturn(out inconclusives) && 0 <= Contract.ValueAtReturn(out timeOuts));
+      Contract.Ensures(0 <= Contract.ValueAtReturn(out stats.InconclusiveCount) && 0 <= Contract.ValueAtReturn(out stats.TimeoutCount));
 
-      errorCount = verified = inconclusives = timeOuts = outOfMemories = 0;
+      stats = new PipelineStatistics();
       PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName);
       switch (oc) {
         case PipelineOutcome.Done:
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny
 
         case PipelineOutcome.ResolvedAndTypeChecked:
           ExecutionEngine.EliminateDeadVariablesAndInline(program);
-          return ExecutionEngine.InferAndVerify(program, out errorCount, out verified, out inconclusives, out timeOuts, out outOfMemories);
+          return ExecutionEngine.InferAndVerify(program, stats);
 
         default:
           Contract.Assert(false);throw new cce.UnreachableException();  // unexpected outcome
