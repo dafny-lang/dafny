@@ -1473,7 +1473,7 @@ namespace Microsoft.Dafny {
       //       { f(args) }
       //       f#canCall(args) ||
       //       ( (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext) &&         // (c)
-      //         $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
+      //         $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       //         Pre($Heap,args))
       //       ==>
       //       body-can-make-its-calls &&                         // generated only for layerOffset==0
@@ -1508,7 +1508,7 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       formals.Add(bv);
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
-      // ante:  $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
+      // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       Bpl.Expr ante = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
 
       if (!f.IsStatic) {
@@ -1758,7 +1758,7 @@ namespace Microsoft.Dafny {
       bvs.Add(bv);
       coArgs.Add(new Bpl.IdentifierExpr(tok, bv));
       prefixArgs.Add(new Bpl.IdentifierExpr(tok, bv));
-      // ante:  $IsHeap($Heap) && this != null && formals-have-the-expected-types &&
+      // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       Bpl.Expr ante = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
 
       if (!pp.IsStatic) {
@@ -4745,6 +4745,8 @@ namespace Microsoft.Dafny {
         var incYieldCount = Bpl.Cmd.SimpleAssign(s.Tok, yc, Bpl.Expr.Binary(s.Tok, Bpl.BinaryOperator.Opcode.Add, yc, Bpl.Expr.Literal(1)));
         builder.Add(incYieldCount);
         builder.Add(new Bpl.AssumeCmd(s.Tok, YieldCountAssumption(iter, etran)));
+        // assume $IsGoodHeap($Heap);
+        builder.Add(AssumeGoodHeap(s.Tok, etran));
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
         var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType));
         foreach (var p in iter.YieldEnsures) {
