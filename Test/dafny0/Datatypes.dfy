@@ -246,9 +246,24 @@ function FwdBugFunction(f: Fwd): bool
   // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
 }
 
-datatype Fwd = FwdNil | FwdCons(int, Fwd);
+datatype Fwd = FwdNil | FwdCons(int, w: Fwd);
 
 method TestAllCases(f: Fwd)
 {
   assert f.FwdNil? || f.FwdCons?;
+}
+
+method TestAllCases_Inside(f: Fwd)
+{
+  if f.FwdCons? {
+    assert f.w.FwdNil? || f.w.FwdCons?;
+  }
+}
+
+class ContainsFwd {
+  var fwd: Fwd;
+  method TestCases()
+  {
+    assert fwd.FwdNil? || fwd.FwdCons?;
+  }
 }

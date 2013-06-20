@@ -588,6 +588,32 @@ namespace Microsoft.Dafny {
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
       }
 
+      // The axiom above ($IsA#Dt(d) <==> Dt.Ctor0?(d) || Dt.Ctor1?(d)) gets triggered only with $IsA#Dt(d).  The $IsA#Dt(d)
+      // predicate is generated only where the translation inserts it; in other words, the user cannot write any assertion
+      // that causes the $IsA#Dt(d) predicate to be emitted.  This is what we want, because making the RHS disjunction be
+      // available too often makes performance go down.  However, we do want to allow the disjunction to be introduced if the
+      // user explicitly talks about one of its disjuncts.  To make this useful, we introduce the following axiom.  Note that
+      // the DtType(d) information is available everywhere.
+      // axiom (forall d: DatatypeType ::
+      //         { Dt.Ctor0?(d) }
+      //         { Dt.Ctor1?(d) }
+      //         DtType(d) == D ==> Dt.Ctor0?(d) || Dt.Ctor1?(d) || ...);
+      {
+        var dVar = new Bpl.BoundVariable(dt.tok, new Bpl.TypedIdent(dt.tok, "d", predef.DatatypeType));
+        var d = new Bpl.IdentifierExpr(dt.tok, dVar);
+        var lhs = Bpl.Expr.Eq(FunctionCall(dt.tok, BuiltinFunction.DtType, null, d), new Bpl.IdentifierExpr(dt.tok, GetClass(dt)));
+        Bpl.Expr cases_body = Bpl.Expr.False;
+        Bpl.Trigger tr = null;
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          var disj = FunctionCall(ctor.tok, ctor.QueryField.FullCompileName, Bpl.Type.Bool, d);
+          cases_body = BplOr(cases_body, disj);
+          tr = new Bpl.Trigger(ctor.tok, true, new ExprSeq(disj), tr);
+        }
+        var body = Bpl.Expr.Imp(lhs, cases_body);
+        var ax = new Bpl.ForallExpr(dt.tok, new VariableSeq(dVar), tr, body);
+        sink.TopLevelDeclarations.Add(new Bpl.Axiom(dt.tok, ax));
+      }
+
       if (dt is CoDatatypeDecl) {
         var codecl = (CoDatatypeDecl)dt;
         // Add:
