@@ -246,7 +246,7 @@ function FwdBugFunction(f: Fwd): bool
   // There was once a bug in Dafny, where this had caused an ill-defined Boogie program.
 }
 
-datatype Fwd = FwdNil | FwdCons(int, w: Fwd);
+datatype Fwd = FwdNil | FwdCons(k: int, w: Fwd);
 
 method TestAllCases(f: Fwd)
 {
@@ -266,4 +266,9 @@ class ContainsFwd {
   {
     assert fwd.FwdNil? || fwd.FwdCons?;
   }
+}
+
+function foo(f: Fwd): int
+{
+  if f.FwdNil? then 0 else f.k
 }

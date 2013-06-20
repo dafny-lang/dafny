@@ -1131,7 +1131,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
 
-Dafny program verifier finished with 38 verified, 6 errors
+Dafny program verifier finished with 39 verified, 6 errors
 
 -------------------- Coinductive.dfy --------------------
 Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
