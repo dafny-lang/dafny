@@ -160,7 +160,7 @@ namespace Microsoft.Dafny
     {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
-      Contract.Ensures(0 <= Contract.ValueAtReturn(out stats.InconclusiveCount) && 0 <= Contract.ValueAtReturn(out stats.TimeoutCount));
+      Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
       PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName);
