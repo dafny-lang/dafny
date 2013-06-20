@@ -864,7 +864,7 @@ Execution trace:
     (0,0): anon89_Then
     (0,0): anon61
 
-Dafny program verifier finished with 20 verified, 10 errors
+Dafny program verifier finished with 22 verified, 10 errors
 
 -------------------- Termination.dfy --------------------
 Termination.dfy(356,47): Error: failure to decrease termination measure

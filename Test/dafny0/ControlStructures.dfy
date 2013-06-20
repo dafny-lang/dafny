@@ -238,28 +238,50 @@ method TheBreaker_SomeBad(M: int, N: int, O: int)
   assert M <= i || b == 12;  // error: e == 37
 }
 
+method BreakStatements(d: D, n: nat)
+{
+  var i := 0;
+  while i < n {
+    if i % 7 == 3 { break; }
+    match d {
+      case Green =>
+      case Blue =>
+        var j := 63;
+        while j < 3000
+        {
+          if j % n == 0 { break; }  // in a previous version, this was translated into a malformed Boogie program
+          if j % (n+1) == 0 { break break; }
+          j := j + 1;
+        }
+      case Red =>
+      case Purple =>
+    }
+    i := i + 1;
+  }
+}
+
 // --------------- paren-free syntax ---------------
 
 method PF1(d: D)
   requires d == D.Green;
 {
-  if d != D.Green { 		// guards can be written without parens
+  if d != D.Green {     // guards can be written without parens
     match d {
     }
   }
   if { case false => assert false; case true => assert true; }
   if {1, 2, 3} <= {1, 2} {  // conflict between display set as guard and alternative statement is resolved
-  	assert false;
+    assert false;
   }  
   while d != D.Green {
-  	assert false;
+    assert false;
   }
   while d != D.Green
-  	decreases 1;
+    decreases 1;
   {
-  	assert false;
+    assert false;
   }
   while {1, 2, 3} <= {1, 2} {
-  	assert false;
+    assert false;
   }  
 }

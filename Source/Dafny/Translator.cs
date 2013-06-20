@@ -4883,12 +4883,8 @@ namespace Microsoft.Dafny {
         TrCallStmt((CallStmt)stmt, builder, locals, etran, null);
 
       } else if (stmt is BlockStmt) {
-        foreach (Statement ss in ((BlockStmt)stmt).Body) {
-          TrStmt(ss, builder, locals, etran);
-          if (ss.Labels != null) {
-            builder.AddLabelCmd("after_" + ss.Labels.Data.UniqueId);
-          }
-        }
+        var s = (BlockStmt)stmt;
+        TrStmtList(s.Body, builder, locals, etran);
       } else if (stmt is IfStmt) {
         AddComment(builder, stmt, "if statement");
         IfStmt s = (IfStmt)stmt;
@@ -5115,9 +5111,7 @@ namespace Microsoft.Dafny {
           }
 
           // translate the body into b
-          foreach (Statement ss in mc.Body) {
-            TrStmt(ss, b, locals, etran);
-          }
+          TrStmtList(mc.Body, b, locals, etran);
 
           Bpl.Expr guard = Bpl.Expr.Eq(source, r);
           ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
@@ -5128,12 +5122,23 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          TrStmt(ss, builder, locals, etran);
-        }
+        TrStmtList(s.ResolvedStatements, builder, locals, etran);
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    void TrStmtList(List<Statement> stmts, Bpl.StmtListBuilder builder, Bpl.VariableSeq locals, ExpressionTranslator etran) {
+      Contract.Requires(stmts != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+      foreach (Statement ss in stmts) {
+        TrStmt(ss, builder, locals, etran);
+        if (ss.Labels != null) {
+          builder.AddLabelCmd("after_" + ss.Labels.Data.UniqueId);
+        }
       }
     }
 
@@ -5600,6 +5605,8 @@ namespace Microsoft.Dafny {
       // $Heap[this, _new] := $iter_newUpdate;
       cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, ExpressionTranslator.UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
       builder.Add(cmd);
+      // assume $IsGoodHeap($Heap)
+      builder.Add(AssumeGoodHeap(tok, etran));
     }
 
     void TrForallProof(ForallStmt s, Bpl.StmtListBuilder definedness, Bpl.StmtListBuilder exporter, Bpl.VariableSeq locals, ExpressionTranslator etran) {
