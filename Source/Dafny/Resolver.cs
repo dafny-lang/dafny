@@ -4930,6 +4930,9 @@ namespace Microsoft.Dafny
       return subst;
     }
 
+    /// <summary>
+    /// If the substitution has no effect, the return value is pointer-equal to 'type'
+    /// </summary>
     public static Type SubstType(Type type, Dictionary<TypeParameter/*!*/, Type/*!*/>/*!*/ subst) {
       Contract.Requires(type != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(subst));
@@ -4938,11 +4941,17 @@ namespace Microsoft.Dafny
       if (type is BasicType) {
         return type;
       } else if (type is MapType) {
-        MapType t = (MapType)type;
-        return new MapType(SubstType(t.Domain, subst), SubstType(t.Range, subst));
+        var t = (MapType)type;
+        var dom = SubstType(t.Domain, subst);
+        var ran = SubstType(t.Range, subst);
+        if (dom == t.Domain && ran == t.Range) {
+          return type;
+        } else {
+          return new MapType(dom, ran);
+        }
       } else if (type is CollectionType) {
-        CollectionType t = (CollectionType)type;
-        Type arg = SubstType(t.Arg, subst);
+        var t = (CollectionType)type;
+        var arg = SubstType(t.Arg, subst);
         if (arg == t.Arg) {
           return type;
         } else if (type is SetType) {
@@ -4955,7 +4964,7 @@ namespace Microsoft.Dafny
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected collection type
         }
       } else if (type is UserDefinedType) {
-        UserDefinedType t = (UserDefinedType)type;
+        var t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
           Contract.Assert(t.TypeArgs.Count == 0);
           Type s;
@@ -4995,10 +5004,9 @@ namespace Microsoft.Dafny
         TypeProxy t = (TypeProxy)type;
         if (t.T == null) {
           return type;
-        } else {
-          // bypass the proxy
-          return SubstType(t.T, subst);
         }
+        var s = SubstType(t.T, subst);
+        return s == t.T ? type : s;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

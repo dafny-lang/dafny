@@ -10111,6 +10111,10 @@ namespace Microsoft.Dafny {
               Contract.Assert(false);  // unexpected ComprehensionExpr
             }
           }
+          // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
+          foreach (var bv in e.BoundVars) {
+            substMap.Remove(bv);
+          }
 
         } else if (expr is PredicateExpr) {
           var e = (PredicateExpr)expr;
@@ -10156,7 +10160,8 @@ namespace Microsoft.Dafny {
 
       /// <summary>
       /// Return a list of bound variables, of the same length as vars but with possible substitutions.
-      /// For any change necessary, update 'substMap' to reflect the new substitution.
+      /// For any change necessary, update 'substMap' to reflect the new substitution; the caller is responsible for
+      /// undoing these changes once the updated 'substMap' has been used.
       /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
       /// </summary>
       private List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars) {

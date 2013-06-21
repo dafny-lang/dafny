@@ -272,3 +272,12 @@ function foo(f: Fwd): int
 {
   if f.FwdNil? then 0 else f.k
 }
+
+// -- regression test --
+
+predicate F(xs: List, vs: map<int,int>)
+{
+  match xs
+  case Nil => true
+  case Cons(_, tail) => forall vsi :: F(tail, vsi)
+}
