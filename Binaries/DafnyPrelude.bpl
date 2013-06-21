@@ -25,7 +25,9 @@ axiom (forall<T> s: Set T :: { Set#Card(s) } 0 <= Set#Card(s));
 
 function Set#Empty<T>(): Set T;
 axiom (forall<T> o: T :: { Set#Empty()[o] } !Set#Empty()[o]);
-axiom (forall<T> s: Set T :: { Set#Card(s) } Set#Card(s) == 0 <==> s == Set#Empty());
+axiom (forall<T> s: Set T :: { Set#Card(s) }
+  (Set#Card(s) == 0 <==> s == Set#Empty()) &&
+  (Set#Card(s) != 0 ==> (exists x: T :: s[x])));
 
 function Set#Singleton<T>(T): Set T;
 axiom (forall<T> r: T :: { Set#Singleton(r) } Set#Singleton(r)[r]);
@@ -117,8 +119,8 @@ type MultiSet T = [T]int;
 function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
 // ints are non-negative, used after havocing, and for conversion from sequences to multisets.
 axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) } 
-     $IsGoodMultiSet(ms) <==> (forall o: T :: { ms[o] } 0 <= ms[o]));
-     
+  $IsGoodMultiSet(ms) <==> (forall bx: T :: { ms[bx] } 0 <= ms[bx]));
+
 function MultiSet#Card<T>(MultiSet T): int;
 axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));     
 axiom (forall<T> s: MultiSet T, x: T, n: int :: { MultiSet#Card(s[x := n]) }
@@ -126,7 +128,9 @@ axiom (forall<T> s: MultiSet T, x: T, n: int :: { MultiSet#Card(s[x := n]) }
 
 function MultiSet#Empty<T>(): MultiSet T;
 axiom (forall<T> o: T :: { MultiSet#Empty()[o] } MultiSet#Empty()[o] == 0);
-axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) } MultiSet#Card(s) == 0 <==> s == MultiSet#Empty());
+axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) }
+  (MultiSet#Card(s) == 0 <==> s == MultiSet#Empty()) &&
+  (MultiSet#Card(s) != 0 ==> (exists x: T :: 0 < s[x])));
 
 function MultiSet#Singleton<T>(T): MultiSet T;
 axiom (forall<T> r: T, o: T :: { MultiSet#Singleton(r)[o] } (MultiSet#Singleton(r)[o] == 1 <==> r == o) &&
@@ -470,14 +474,18 @@ function $IsCanonicalBoolBox(BoxType): bool;
 axiom $IsCanonicalBoolBox($Box(false)) && $IsCanonicalBoolBox($Box(true));
 axiom (forall b: BoxType :: { $Unbox(b): bool } $IsCanonicalBoolBox(b) ==> $Box($Unbox(b): bool) == b);
 
-// The following function and axiom are used to obtain a $Box($Unbox(_)) wrapper around
-// certain expressions.  Note that it assumes any booleans contained in the set are canonical
-// (which is the case for any set that occurs in an execution of a Dafny program).
+// The following functions and axioms are used to obtain a $Box($Unbox(_)) wrapper around
+// certain expressions.  Note that it assumes any booleans (or, indeed, values of any type) contained
+// in the (multi)set are canonical (which is the case for any (multi)set that occurs in an execution of
+// a Dafny program).
 // The role of the parameter 'dummy' in the following is (an unfortunately clumsy construction
 // whose only purpose is) simply to tell Boogie how to instantiate the type parameter 'T'.
-function $IsGoodSet<T>(s: Set BoxType, dummy: T): bool;
-axiom (forall<T> ss: Set BoxType, dummy: T, bx: BoxType :: { $IsGoodSet(ss, dummy), ss[bx] }
-  $IsGoodSet(ss, dummy) ==> ss[bx] ==> bx == $Box($Unbox(bx):T));
+function $IsGoodSet_Extended<T>(s: Set BoxType, dummy: T): bool;
+axiom (forall<T> ss: Set BoxType, dummy: T, bx: BoxType :: { $IsGoodSet_Extended(ss, dummy), ss[bx] }
+  $IsGoodSet_Extended(ss, dummy) ==> ss[bx] ==> bx == $Box($Unbox(bx): T));
+function $IsGoodMultiSet_Extended<T>(ms: MultiSet BoxType, dummy: T): bool;
+axiom (forall<T> ms: MultiSet BoxType, dummy: T, bx: BoxType :: { $IsGoodMultiSet_Extended(ms, dummy), ms[bx] } 
+  $IsGoodMultiSet_Extended(ms, dummy) ==> 0 < ms[bx] ==> bx == $Box($Unbox(bx): T));
 
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------

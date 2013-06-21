@@ -262,3 +262,78 @@ predicate MSFE(s: seq<int>)
 
 copredicate CoPredTypeCheck(n: int)
   requires n != 0;
+
+// -------------------- set cardinality ----------------------------------
+
+module SetCardinality {
+  method A(s: set<int>)
+    requires s != {};
+  {
+    if {
+      case true =>  assert s != {};
+      case true =>  assert |s| != 0;
+      case true =>  assert exists x :: x in s;
+      case true =>  var y :| y in s;
+    }
+  }
+
+  method B(s: set<int>)
+    requires |s| != 0;
+  {
+    if {
+      case true =>  assert s != {};
+      case true =>  assert |s| != 0;
+      case true =>  assert exists x :: x in s;
+      case true =>  var y :| y in s;
+    }
+  }
+
+  method C(s: set<int>)
+    requires exists x :: x in s;
+  {
+    if {
+      case true =>  assert s != {};
+      case true =>  assert |s| != 0;
+      case true =>  assert exists x :: x in s;
+      case true =>  var y :| y in s;
+    }
+  }
+
+  method A'(s: set<int>)
+    requires s == {};
+  {
+    if {
+      case true =>  assert s == {};
+      case true =>  assert |s| == 0;
+      case true =>  assert !exists x :: x in s;
+      case true =>  var y :| y !in s;
+    }
+  }
+
+  method B'(s: set<int>)
+    requires |s| == 0;
+  {
+    if {
+      case true =>  assert s == {};
+      case true =>  assert |s| == 0;
+      case true =>  assert !exists x :: x in s;
+      case true =>  var y :| y !in s;
+    }
+  }
+
+  method C'(s: set<int>)
+    requires forall x :: x !in s;
+  {
+    if {
+      case true =>  assert s == {};
+      case true =>  assert |s| == 0;
+      case true =>  assert !exists x :: x in s;
+      case true =>  var y :| y !in s;
+    }
+  }
+
+  method LetSuchThatExpression(s: set<int>)
+    ensures |s| != 0 ==> var x :| x in s; true;
+  {
+  }
+}

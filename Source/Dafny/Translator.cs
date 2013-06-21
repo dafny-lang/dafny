@@ -6504,10 +6504,18 @@ namespace Microsoft.Dafny {
       type = type.Normalize();
       if (type is SetType) {
         var t = (SetType)type;
-        // $IsGoodSet(x, V), where V is a value whose type is the same as the element type of the set.
+        // $IsGoodSet_Extended(x, V), where V is a value whose type is the same as the element type of the set.
         var ex = ExemplaryBoxValue(t.Arg);
         if (ex != null) {
-          var p = FunctionCall(tok, "$IsGoodSet", Bpl.Type.Bool, x, ex);
+          var p = FunctionCall(tok, BuiltinFunction.IsGoodSet_Extended, null, x, ex);
+          r = r == null ? p : BplAnd(r, p);
+        }
+      } else  if (type is MultiSetType) {
+        var t = (MultiSetType)type;
+        // $IsGoodMultiSet_Extended(x, V), where V is a value whose type is the same as the element type of the set.
+        var ex = ExemplaryBoxValue(t.Arg);
+        if (ex != null) {
+          var p = FunctionCall(tok, BuiltinFunction.IsGoodMultiSet_Extended, null, x, ex);
           r = r == null ? p : BplAnd(r, p);
         }
       } else if (type.IsDatatype) {
@@ -8559,6 +8567,7 @@ namespace Microsoft.Dafny {
       SetEqual,
       SetSubset,
       SetDisjoint,
+      IsGoodSet_Extended,
 
       MultiSetCard,
       MultiSetEmpty,
@@ -8572,6 +8581,7 @@ namespace Microsoft.Dafny {
       MultiSetFromSet,
       MultiSetFromSeq,      
       IsGoodMultiSet,
+      IsGoodMultiSet_Extended,
 
       SeqLength,
       SeqEmpty,
@@ -8671,6 +8681,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
+        case BuiltinFunction.IsGoodSet_Extended:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$IsGoodSet_Extended", Bpl.Type.Bool, args);
 
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
@@ -8722,6 +8736,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
+        case BuiltinFunction.IsGoodMultiSet_Extended:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$IsGoodMultiSet_Extended", Bpl.Type.Bool, args);
 
         case BuiltinFunction.SeqLength:
           Contract.Assert(args.Length == 1);
