@@ -176,3 +176,75 @@ method test12(a: nat, b: nat, c: int)
   m2 := m2[true := c]; // error: c might be negative
 }
 
+
+// ---------- cardinality ----------
+method MultisetCardinalityA(s: multiset<int>)
+  requires s != multiset{};
+{
+  if {
+    case true =>  assert s != multiset{};
+    case true =>  assert |s| != 0;
+    case true =>  assert exists x :: x in s;
+    case true =>  var y :| y in s;
+  }
+}
+
+method MultisetCardinalityB(s: multiset<int>)
+  requires |s| != 0;
+{
+  if {
+    case true =>  assert s != multiset{};
+    case true =>  assert |s| != 0;
+    case true =>  assert exists x :: x in s;
+    case true =>  var y :| y in s;
+  }
+}
+
+method MultisetCardinalityC(s: multiset<int>)
+  requires exists x :: x in s;
+{
+  if {
+    case true =>  assert s != multiset{};
+    case true =>  assert |s| != 0;
+    case true =>  assert exists x :: x in s;
+    case true =>  var y :| y in s;
+  }
+}
+
+method MultisetCardinalityA'(s: multiset<int>)
+  requires s == multiset{};
+{
+  if {
+    case true =>  assert s == multiset{};
+    case true =>  assert |s| == 0;
+    case true =>  assert !exists x :: x in s;
+    case true =>  var y :| y !in s;
+  }
+}
+
+method MultisetCardinalityB'(s: multiset<int>)
+  requires |s| == 0;
+{
+  if {
+    case true =>  assert s == multiset{};
+    case true =>  assert |s| == 0;
+    case true =>  assert !exists x :: x in s;
+    case true =>  var y :| y !in s;
+  }
+}
+
+method MultisetCardinalityC'(s: multiset<int>)
+  requires forall x :: x !in s;
+{
+  if {
+    case true =>  assert s == multiset{};
+    case true =>  assert |s| == 0;
+    case true =>  assert !exists x :: x in s;
+    case true =>  var y :| y !in s;
+  }
+}
+
+method LetSuchThatExpression(s: multiset<int>)
+  ensures |s| != 0 ==> var x :| x in s; true;
+{
+}
