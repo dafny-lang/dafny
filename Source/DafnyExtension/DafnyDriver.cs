@@ -196,11 +196,13 @@ namespace DafnyLanguage
       return Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
-    public static bool Verify(Dafny.Program dafnyProgram, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
+    public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
       Dafny.Translator translator = new Dafny.Translator();
       translator.InsertChecksums = true;
       translator.UniqueIdPrefix = uniqueIdPrefix;
       Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
+
+      resolver.ReInitializeVerificationErrors(requestId, boogieProgram.TopLevelDeclarations);
 
       PipelineOutcome oc = BoogiePipeline(boogieProgram, requestId, er);
       switch (oc) {

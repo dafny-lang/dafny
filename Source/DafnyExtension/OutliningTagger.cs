@@ -97,8 +97,8 @@ namespace DafnyLanguage
         ITextSnapshot snap;
         Microsoft.Dafny.Program prog;
         lock (this) {
-          snap = r._snapshot;
-          prog = r._program;
+          snap = r.Snapshot;
+          prog = r.Program;
         }
         if (prog != null) {
           if (!ComputeOutliningRegions(prog, snap))

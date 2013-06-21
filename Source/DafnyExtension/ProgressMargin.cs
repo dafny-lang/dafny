@@ -188,19 +188,26 @@ namespace DafnyLanguage
     /// Note, "sender" and "args" are allowed to be passed in as null--they are not used by this method.
     /// </summary>
     public void UponIdle(object sender, EventArgs args) {
-      Dafny.Program prog;
-      ITextSnapshot snap;
+      if (resolver != null)
+      {
+        resolver.UpdateErrorList(resolver.Snapshot);
+      }
+
       lock (this) {
         if (verificationInProgress) {
           // This UponIdle message came at an inopportune time--we've already kicked off a verification.
           // Just back off.
+          
           return;
         }
 
         if (resolver == null) return;
+        
+        Dafny.Program prog;
+        ITextSnapshot snap;
         lock (resolver) {
-          prog = resolver._program;
-          snap = resolver._snapshot;
+          prog = resolver.Program;
+          snap = resolver.Snapshot;
         }
         if (prog == null || verificationDisabled) return;
         // We have a successfully resolved program to verify
@@ -286,7 +293,6 @@ namespace DafnyLanguage
       }
     }
 
-
     /// <summary>
     /// Thread entry point.
     /// </summary>
@@ -297,34 +303,31 @@ namespace DafnyLanguage
       Contract.Requires(errorListHolder != null);
 
       // Run the verifier
-      var newErrors = new List<DafnyError>();
       try
       {
-        bool success = DafnyDriver.Verify(program, GetHashCode().ToString(), requestId, errorInfo =>
+        bool success = DafnyDriver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
         {
           errorInfo.BoogieErrorCode = null;
           if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
           {
             var s = RequestIdToSnapshot[errorInfo.RequestId];
-            newErrors.Add(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s));
+            errorListHolder.AddError(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s), errorInfo.ImplementationName, requestId);
             foreach (var aux in errorInfo.Aux)
             {
-              newErrors.Add(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s));
+              errorListHolder.AddError(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s), errorInfo.ImplementationName, requestId);
             }
           }
+          // errorListHolder.UpdateErrorList(snapshot);
         });
         if (!success)
         {
-          newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error", snapshot));
+          errorListHolder.AddError(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error", snapshot), "$$program$$", requestId);
         }
       }
       catch (Exception e)
       {
-        newErrors.Add(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot));
+        errorListHolder.AddError(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot), "$$program$$", requestId);
       }
-
-      errorListHolder.VerificationErrors = newErrors;
-      errorListHolder.UpdateErrorList(snapshot);
 
       lock (this) {
         bufferChangesPreVerificationStart.Clear();
