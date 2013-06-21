@@ -317,7 +317,6 @@ namespace DafnyLanguage
               errorListHolder.AddError(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s), errorInfo.ImplementationName, requestId);
             }
           }
-          // errorListHolder.UpdateErrorList(snapshot);
         });
         if (!success)
         {
@@ -333,6 +332,7 @@ namespace DafnyLanguage
         bufferChangesPreVerificationStart.Clear();
         verificationInProgress = false;
       }
+
       // Notify to-whom-it-may-concern about the cleared pre-verification changes
       NotifyAboutChangedTags(snapshot);
 

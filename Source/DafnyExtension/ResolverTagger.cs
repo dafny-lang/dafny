@@ -148,7 +148,7 @@ namespace DafnyLanguage
     {
       get
       {
-        return _verificationErrors.Values.Where(ec => ec.RequestId == MostRecentRequestId).SelectMany(ec => ec.Errors);
+        return _verificationErrors.Values.Where(ec => ec.RequestId == MostRecentRequestId).SelectMany(ec => ec.Errors.Reverse());
       }
     }
 
@@ -225,7 +225,6 @@ namespace DafnyLanguage
       {
         if (err.Category != ErrorCategory.ProcessError)
         {
-          var span = err.Span.TranslateTo(currentSnapshot, SpanTrackingMode.EdgeExclusive);
           string ty;  // the COLORs below indicate what I see on my machine
           switch (err.Category)
           {
@@ -242,7 +241,7 @@ namespace DafnyLanguage
             case ErrorCategory.InternalError:
               ty = "error"; break;  // COLOR: red
           }
-          yield return new TagSpan<DafnyResolverTag>(span, new DafnyErrorResolverTag(ty, err.Message));
+          yield return new TagSpan<DafnyResolverTag>(err.Span.GetSpan(currentSnapshot), new DafnyErrorResolverTag(ty, err.Message));
         }
       }
 
@@ -311,7 +310,7 @@ namespace DafnyLanguage
       _errorProvider.Tasks.Clear();
       foreach (var err in AllErrors)
       {
-        var span = err.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeInclusive);
+        var span = err.Span.GetSpan(snapshot);
         var lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
         var line = snapshot.GetLineFromPosition(span.Start.Position);
         var columnNum = span.Start - line.Start;
@@ -421,10 +420,9 @@ namespace DafnyLanguage
   {
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based
-    public readonly ITextSnapshot Snapshot;
     public readonly ErrorCategory Category;
     public readonly string Message;
-    public readonly SnapshotSpan Span;
+    public readonly ITrackingSpan Span;
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
@@ -434,11 +432,10 @@ namespace DafnyLanguage
       Column = Math.Max(0, col);
       Category = cat;
       Message = msg;
-      Snapshot = snapshot;
-      var sLine = Snapshot.GetLineFromLineNumber(line);
+      var sLine = snapshot.GetLineFromLineNumber(line);
       Contract.Assert(Column <= sLine.Length);
       var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
-      Span = new SnapshotSpan(sLine.Start + Column, sLength);
+      Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
     }
   }
 
