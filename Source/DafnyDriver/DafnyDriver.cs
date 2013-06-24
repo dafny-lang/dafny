@@ -41,14 +41,14 @@ namespace Microsoft.Dafny
       }
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
-        printer.ErrorWriteLine("*** Error: No input files were specified.");
+        printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
         exitValue = ExitValue.PREPROCESSING_ERROR;
         goto END;
       }
       if (CommandLineOptions.Clo.XmlSink != null) {
         string errMsg = CommandLineOptions.Clo.XmlSink.Open();
         if (errMsg != null) {
-          printer.ErrorWriteLine("*** Error: " + errMsg);
+          printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
           exitValue = ExitValue.PREPROCESSING_ERROR;
           goto END;
         }
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny
         if (extension != null) { extension = extension.ToLower(); }
         if (extension != ".dfy")
         {
-            printer.ErrorWriteLine("*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy).", file,
+            printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy).", file,
                 extension == null ? "" : extension);
             exitValue = ExitValue.PREPROCESSING_ERROR;
             goto END;
@@ -104,7 +104,7 @@ namespace Microsoft.Dafny
         string err = Dafny.Main.ParseCheck(fileNames, programName, out dafnyProgram);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
-          printer.ErrorWriteLine(err);
+          printer.ErrorWriteLine(Console.Out, err);
         } else if (dafnyProgram != null && !CommandLineOptions.Clo.NoResolve && !CommandLineOptions.Clo.NoTypecheck) {
           Dafny.Translator translator = new Dafny.Translator();
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
@@ -202,14 +202,14 @@ namespace Microsoft.Dafny
 
     class DafnyConsolePrinter : ConsolePrinter
     {
-      public override void ReportBplError(IToken tok, string message, bool error, string category = null)
+      public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null)
       {
-        base.ReportBplError(tok, message, error, category);
+        base.ReportBplError(tok, message, error, tw, category);
 
         if (tok is Dafny.NestedToken)
         {
           var nt = (Dafny.NestedToken)tok;
-          ReportBplError(nt.Inner, "Related location", false);
+          ReportBplError(nt.Inner, "Related location", false, tw);
         }
       }
     }
