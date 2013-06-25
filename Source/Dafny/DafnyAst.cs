@@ -481,7 +481,7 @@ namespace Microsoft.Dafny {
     public string FullCompileName {
       get {
         if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
-          return ResolvedClass.Module.CompileName + "." + CompileName;
+          return ResolvedClass.Module.CompileName + ".@" + CompileName;
         } else {
           return CompileName;
         }
@@ -1070,6 +1070,11 @@ namespace Microsoft.Dafny {
         return Module.Name + "." + Name;
       }
     }
+    public string FullSanitizedName {
+      get {
+        return Module.CompileName + "." + CompileName;
+      }
+    }
     public string FullNameInContext(ModuleDefinition context) {
       if (Module == context) {
         return Name;
@@ -1079,7 +1084,7 @@ namespace Microsoft.Dafny {
     }
     public string FullCompileName {
       get {
-        return Module.CompileName + "." + CompileName;
+        return Module.CompileName + ".@" + CompileName;
       }
     }
   }
@@ -1244,7 +1249,7 @@ namespace Microsoft.Dafny {
     Specification<Expression> Decreases { get; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
-    string FullCompileName { get; }
+    string FullSanitizedName { get; }
   }
 
   /// <summary>
@@ -1266,7 +1271,7 @@ namespace Microsoft.Dafny {
     Specification<Expression> ICodeContext.Decreases { get { return new Specification<Expression>(null, null); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
-    public string FullCompileName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }  
+    public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }  
   }
 
   public class IteratorDecl : ClassDecl, ICodeContext
@@ -1372,6 +1377,14 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullName + "." + Name;
       }
     }
+    public string FullSanitizedName {
+      get {
+        Contract.Requires(EnclosingClass != null);
+        Contract.Ensures(Contract.Result<string>() != null);
+
+        return EnclosingClass.FullSanitizedName + "." + CompileName;
+      }
+    }
     public string FullNameInContext(ModuleDefinition context) {
       Contract.Requires(EnclosingClass != null);
       Contract.Ensures(Contract.Result<string>() != null);
@@ -1392,7 +1405,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.FullCompileName + "." + CompileName;
+        return EnclosingClass.FullCompileName + ".@" + CompileName;
       }
     }
   }

@@ -109,3 +109,21 @@ module A1 {
      x.m();
    }
 }
+
+// ----- keyword escapes (once buggy) -----
+
+module M {
+  datatype fixed = A | B
+  function method F(): fixed
+  {
+    A
+  }
+  class public {
+    var private: int;
+  }
+}
+
+method Caller() {
+  var p := new M.public;
+  var x := p.private;
+}
