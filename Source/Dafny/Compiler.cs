@@ -1976,7 +1976,7 @@ namespace Microsoft.Dafny {
         if (sf != null) {
           wr.Write(sf.PreString);
           TrParenExpr(e.Obj);
-          wr.Write(".{0}", sf.CompiledName);
+          wr.Write(".@{0}", sf.CompiledName);
           wr.Write(sf.PostString);
         } else {
           TrParenExpr(e.Obj);
@@ -2307,7 +2307,7 @@ namespace Microsoft.Dafny {
         } else if (callString != null) {
           wr.Write(preOpString);
           TrParenExpr(e.E0);
-          wr.Write(".{0}(", callString);
+          wr.Write(".@{0}(", callString);
           TrExpr(e.E1);
           wr.Write(")");
         }

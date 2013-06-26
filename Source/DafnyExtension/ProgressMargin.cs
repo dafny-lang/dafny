@@ -135,6 +135,7 @@ namespace DafnyLanguage
           if (resolver != null)
           {
             resolver.Dispose();
+            resolver = null;
           }
         }
 

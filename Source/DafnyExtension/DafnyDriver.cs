@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using Microsoft.Boogie;
 using Microsoft.VisualStudio.Text;
 using Bpl = Microsoft.Boogie;
@@ -50,19 +51,19 @@ namespace DafnyLanguage
       {
       }
 
-      public void ErrorWriteLine(string format, params object[] args)
+      public void ErrorWriteLine(TextWriter tw, string format, params object[] args)
       {
       }
 
-      public void ErrorWriteLine(string s)
+      public void ErrorWriteLine(TextWriter tw, string s)
       {
       }
 
-      public void Inform(string s)
+      public void Inform(string s, TextWriter tw)
       {
       }
 
-      public void ReportBplError(IToken tok, string message, bool error, string category = null)
+      public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null)
       {
       }
 
@@ -70,7 +71,7 @@ namespace DafnyLanguage
       {
       }
 
-      public void WriteErrorInformation(ErrorInformation errorInfo)
+      public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true)
       {
       }
     }
