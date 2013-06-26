@@ -6455,11 +6455,11 @@ namespace Microsoft.Dafny
       Contract.Ensures(
         (returnAllBounds && Contract.OldValue(missingBounds.Count) <= missingBounds.Count) ||
         (!returnAllBounds &&
-         Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null &&
-         Contract.Result<List<ComprehensionExpr.BoundedPool>>().Count == bvars.Count &&
+         Contract.Result<List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>>() != null &&
+         Contract.Result<List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>>().Count == bvars.Count &&
          Contract.OldValue(missingBounds.Count) == missingBounds.Count) ||
         (!returnAllBounds &&
-         Contract.Result<List<ComprehensionExpr.BoundedPool>>() == null &&
+         Contract.Result<List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>>() == null &&
          Contract.OldValue(missingBounds.Count) < missingBounds.Count));
 
       var allBounds = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
