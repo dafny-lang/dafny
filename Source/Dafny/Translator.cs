@@ -404,6 +404,10 @@ namespace Microsoft.Dafny {
         }
         Bpl.Variable resType = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false);
         Bpl.Function fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType);
+        if (InsertChecksums)
+        {
+          InsertChecksum(dt, fn);
+        }
         sink.TopLevelDeclarations.Add(fn);
 
         // Add:  axiom (forall params :: #dt.ctor(params)-has-the-expected-type);
@@ -571,6 +575,12 @@ namespace Microsoft.Dafny {
       var cases_dBv = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d", predef.DatatypeType), true);
       var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
       var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullSanitizedName, new Bpl.VariableSeq(cases_dBv), cases_resType);
+
+      if (InsertChecksums)
+      {
+        InsertChecksum(dt, cases_fn);
+      }
+      
       sink.TopLevelDeclarations.Add(cases_fn);
       // and here comes the actual axiom:
       {
@@ -650,6 +660,12 @@ namespace Microsoft.Dafny {
           var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
           var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var fn = new Bpl.Function(dt.tok, "$Eq#" + dt.FullSanitizedName, new Bpl.VariableSeq(d0Var, d1Var), resType);
+
+          if (InsertChecksums)
+          {
+            InsertChecksum(dt, fn);
+          }
+          
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall d0, d1: DatatypeType :: { $Eq#Dt(d0, d1) } $Eq#Dt(d0, d1) <==>
@@ -760,6 +776,12 @@ namespace Microsoft.Dafny {
           var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
           var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var fn = new Bpl.Function(dt.tok, CoPrefixName(codecl, 1), new Bpl.VariableSeq(kVar, d0Var, d1Var), resType);
+
+          if (InsertChecksums)
+          {
+            InsertChecksum(dt, fn);
+          }
+          
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall k: int, d0, d1: DatatypeType :: { $PrefixEqual#Dt(k, d0, d1) } $PrefixEqual#Dt(k, d0, d1) <==>
@@ -805,6 +827,12 @@ namespace Microsoft.Dafny {
           var d1Var = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, "d1", predef.DatatypeType), true);
           var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var fn = new Bpl.Function(dt.tok, CoPrefixName(codecl, 0), new Bpl.VariableSeq(kVar, d0Var, d1Var), resType);
+
+          if (InsertChecksums)
+          {
+            InsertChecksum(dt, fn);
+          }
+          
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall k: int, d0: DatatypeType, d1: DatatypeType  :: { $PrefixEqual#Dt(k,d0,d1) }
@@ -2190,6 +2218,32 @@ namespace Microsoft.Dafny {
         {
           printer.PrintStatement(m.Body, 0);
         }
+        data = Encoding.UTF8.GetBytes(writer.ToString());
+      }
+
+      InsertChecksum(decl, data);
+    }
+
+    private void InsertChecksum(DatatypeDecl d, Bpl.Declaration decl)
+    {
+      byte[] data;
+      using (var writer = new System.IO.StringWriter())
+      {
+        var printer = new Printer(writer);
+        printer.PrintDatatype(d, 0);
+        data = Encoding.UTF8.GetBytes(writer.ToString());
+      }
+
+      InsertChecksum(decl, data);
+    }
+
+    private void InsertChecksum(Expression e, Bpl.Declaration decl)
+    {
+      byte[] data;
+      using (var writer = new System.IO.StringWriter())
+      {
+        var printer = new Printer(writer);
+        printer.PrintExtendedExpr(e, 0, false, false);
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
 
@@ -3846,6 +3900,17 @@ namespace Microsoft.Dafny {
         args.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", receiverType), true));
         Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, ty), false);
         ff = new Bpl.Function(f.tok, f.FullSanitizedName, args, result);
+
+        if (InsertChecksums)
+        {
+          var dt = f.EnclosingClass as DatatypeDecl;
+          if (dt != null)
+          {
+            InsertChecksum(dt, ff);
+          }
+          // TODO(wuestholz): Do we need to handle more cases?
+        }
+
         fieldFunctions.Add(f, ff);
         // treat certain fields specially
         if (f.EnclosingClass is ArrayClassDecl) {
@@ -3897,8 +3962,18 @@ namespace Microsoft.Dafny {
       sink.TopLevelDeclarations.Add(func);
 
       if (f.IsRecursive) {
-        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 0), args, res));
-        sink.TopLevelDeclarations.Add(new Bpl.Function(f.tok, FunctionName(f, 2), args, res));
+        var f0 = new Bpl.Function(f.tok, FunctionName(f, 0), args, res);
+        if (InsertChecksums)
+        {
+          InsertChecksum(f, f0);
+        }
+        sink.TopLevelDeclarations.Add(f0);
+        var f2 = new Bpl.Function(f.tok, FunctionName(f, 2), args, res);
+        if (InsertChecksums)
+        {
+          InsertChecksum(f, f2);
+        }
+        sink.TopLevelDeclarations.Add(f2);
       }
 
       res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
@@ -7229,6 +7304,12 @@ namespace Microsoft.Dafny {
         Bpl.Expr ante;
         Bpl.VariableSeq formals = info.GAsVars(this, true, out ante, null);
         var fn = new Bpl.Function(bv.tok, info.SkolemFunctionName(bv), formals, resType);
+
+        if (InsertChecksums)
+        {
+          InsertChecksum(e.Body, fn);
+        }
+
         sink.TopLevelDeclarations.Add(fn);
       }
       // add canCall function
@@ -7237,6 +7318,12 @@ namespace Microsoft.Dafny {
         Bpl.Expr ante;
         Bpl.VariableSeq formals = info.GAsVars(this, true, out ante, null);
         var fn = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
+
+        if (InsertChecksums)
+        {
+          InsertChecksum(e.Body, fn);
+        }
+
         sink.TopLevelDeclarations.Add(fn);
       }
 
