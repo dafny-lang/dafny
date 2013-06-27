@@ -1671,6 +1671,30 @@ Execution trace:
 
 Dafny program verifier finished with 38 verified, 11 errors
 
+-------------------- RankPos.dfy --------------------
+
+Dafny program verifier finished with 11 verified, 0 errors
+
+-------------------- RankNeg.dfy --------------------
+RankNeg.dfy(7,26): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon5_Else
+    (0,0): anon6_Then
+RankNeg.dfy(12,28): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon5_Else
+    (0,0): anon6_Then
+RankNeg.dfy(19,31): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon5_Else
+    (0,0): anon6_Then
+RankNeg.dfy(29,25): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon5_Else
+    (0,0): anon6_Then
+
+Dafny program verifier finished with 1 verified, 4 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...

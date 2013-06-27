@@ -83,7 +83,7 @@ class ExtensibleArray<T> {
     modifies Repr;
     ensures Valid() && fresh(Repr - old(Repr));
     ensures Contents == old(Contents) + [t];
-    decreases Contents;
+    decreases |Contents|;
   {
     if (length == 0 || length % 256 != 0) {
       // there is room in "elements"

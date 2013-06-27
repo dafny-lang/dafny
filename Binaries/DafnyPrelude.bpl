@@ -388,6 +388,20 @@ axiom (forall<T> s: Seq T, v: T, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }
     0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
 
+function Seq#Rank<T>(Seq T): int;
+axiom (forall s: Seq BoxType, i: int ::
+  { DtRank($Unbox(Seq#Index(s, i)): DatatypeType) }
+  0 <= i && i < Seq#Length(s) ==> DtRank($Unbox(Seq#Index(s, i)): DatatypeType) < Seq#Rank(s) );
+axiom (forall<T> s: Seq T, i: int ::
+  { Seq#Rank(Seq#Drop(s, i)) }
+  0 < i && i <= Seq#Length(s) ==> Seq#Rank(Seq#Drop(s, i)) < Seq#Rank(s) );
+axiom (forall<T> s: Seq T, i: int ::
+  { Seq#Rank(Seq#Take(s, i)) }
+  0 <= i && i < Seq#Length(s) ==> Seq#Rank(Seq#Take(s, i)) < Seq#Rank(s) );
+axiom (forall<T> s: Seq T, i: int, j: int ::
+  { Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) }
+  0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
+
 // Additional axioms about common things
 axiom Seq#Take(Seq#Empty(): Seq BoxType, 0) == Seq#Empty();  // [][..0] == []
 axiom Seq#Drop(Seq#Empty(): Seq BoxType, 0) == Seq#Empty();  // [][0..] == []

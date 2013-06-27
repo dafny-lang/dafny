@@ -534,6 +534,13 @@ namespace Microsoft.Dafny {
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
               sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+              // axiom (forall params, SeqRank(arg) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              lhs = FunctionCall(ctor.tok, BuiltinFunction.SeqRank, null, args[i]);
+              rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));              
             } else if (arg.Type is SetType) {
               // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
@@ -2122,7 +2129,7 @@ namespace Microsoft.Dafny {
                 es = Substitute(es, null, decrSubstMap);
                 decrCallee.Add(exprTran.TrExpr(es));
               }
-              return DecreasesCheck(decrToks, decrTypes, decrCallee, decrCaller, null, null, false, true);
+              return DecreasesCheck(decrToks, decrTypes, decrTypes, decrCallee, decrCaller, null, null, false, true);
             };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
@@ -5904,7 +5911,7 @@ namespace Microsoft.Dafny {
           types.Add(cce.NonNull(e.Type));
           decrs.Add(etran.TrExpr(e));
         }
-        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, initDecr, null, null, true, false);
+        Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, initDecr, null, null, true, false);
         invariants.Add(new Bpl.AssumeCmd(s.Tok, decrCheck));
       }
 
@@ -5940,7 +5947,7 @@ namespace Microsoft.Dafny {
           types.Add(cce.NonNull(e.Type));
           decrs.Add(etran.TrExpr(e));
         }
-        Bpl.Expr decrCheck = DecreasesCheck(toks, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
+        Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
         string msg;
         if (inferredDecreases) {
           msg = "cannot prove termination; try supplying a decreases clause for the loop";
@@ -6371,7 +6378,8 @@ namespace Microsoft.Dafny {
 
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
       List<IToken> toks = new List<IToken>();
-      List<Type> types = new List<Type>();
+      List<Type> types0 = new List<Type>();
+      List<Type> types1 = new List<Type>();
       List<Bpl.Expr> callee = new List<Bpl.Expr>();
       List<Bpl.Expr> caller = new List<Bpl.Expr>();
       for (int i = 0; i < N; i++) {
@@ -6382,12 +6390,13 @@ namespace Microsoft.Dafny {
           break;
         }
         toks.Add(tok);
-        types.Add(e0.Type);
+        types0.Add(e0.Type);
+        types1.Add(e1.Type);
         callee.Add(etranCurrent.TrExpr(e0));
         caller.Add(etranInitial.TrExpr(e1));
       }
       bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
-      Bpl.Expr decrExpr = DecreasesCheck(toks, types, callee, caller, builder, "", endsWithWinningTopComparison, false);
+      Bpl.Expr decrExpr = DecreasesCheck(toks, types0, types1, callee, caller, builder, "", endsWithWinningTopComparison, false);
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
@@ -6404,26 +6413,27 @@ namespace Microsoft.Dafny {
     /// ee0 represents the new values and ee1 represents old values.
     /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
     /// </summary>
-    Bpl.Expr DecreasesCheck(List<IToken/*!*/>/*!*/ toks, List<Type/*!*/>/*!*/ types, List<Bpl.Expr/*!*/>/*!*/ ee0, List<Bpl.Expr/*!*/>/*!*/ ee1,
+    Bpl.Expr DecreasesCheck(List<IToken/*!*/>/*!*/ toks, List<Type/*!*/>/*!*/ types0, List<Type/*!*/>/*!*/ types1, List<Bpl.Expr/*!*/>/*!*/ ee0, List<Bpl.Expr/*!*/>/*!*/ ee1,
                             Bpl.StmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound)
     {
       Contract.Requires(cce.NonNullElements(toks));
-      Contract.Requires(cce.NonNullElements(types));
+      Contract.Requires(cce.NonNullElements(types0));
+      Contract.Requires(cce.NonNullElements(types1));
       Contract.Requires(cce.NonNullElements(ee0));
       Contract.Requires(cce.NonNullElements(ee1));
       Contract.Requires(predef != null);
-      Contract.Requires(types.Count == ee0.Count && ee0.Count == ee1.Count);
+      Contract.Requires(types0.Count == types1.Count && types0.Count == ee0.Count && ee0.Count == ee1.Count);
       Contract.Requires(builder == null || suffixMsg != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      int N = types.Count;
+      int N = types0.Count;
 
       // compute eq and less for each component of the lexicographic pair
       List<Bpl.Expr> Eq = new List<Bpl.Expr>(N);
       List<Bpl.Expr> Less = new List<Bpl.Expr>(N);
       for (int i = 0; i < N; i++) {
         Bpl.Expr less, atmost, eq;
-        ComputeLessEq(toks[i], types[i], ee0[i], ee1[i], out less, out atmost, out eq, includeLowerBound);
+        ComputeLessEq(toks[i], types0[i], types1[i], ee0[i], ee1[i], out less, out atmost, out eq, includeLowerBound);
         Eq.Add(eq);
         Less.Add(allowNoChange ? atmost : less);
       }
@@ -6437,7 +6447,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < k; i++) {
             prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
           }
-          if (types[k] is IntType) {
+          if (types0[k] is IntType) {
             Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), ee1[k]);
             for (int i = 0; i < k; i++) {
               bounded = Bpl.Expr.Or(bounded, Less[i]);
@@ -6474,9 +6484,9 @@ namespace Microsoft.Dafny {
       } else if (t is SetType) {
         return u is SetType;
       } else if (t is SeqType) {
-        return u is SeqType;
+        return u is SeqType || u.IsIndDatatype;
       } else if (t.IsDatatype) {
-        return u.IsDatatype;
+        return u.IsDatatype || (t.IsIndDatatype && u is SeqType);
       } else if (t.IsRefType) {
         return u.IsRefType;
       } else if (t is MultiSetType) {
@@ -6489,10 +6499,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq, bool includeLowerBound)
+    Nullable<BuiltinFunction> RankFunction(Type/*!*/ ty)
+    {
+      Contract.Ensures(ty != null);
+      if (ty is SeqType)      return BuiltinFunction.SeqRank;
+      else if (ty.IsDatatype) return BuiltinFunction.DtRank;
+      else return null;
+    }
+
+    void ComputeLessEq(IToken/*!*/ tok, Type/*!*/ ty0, Type/*!*/ ty1, Bpl.Expr/*!*/ e0, Bpl.Expr/*!*/ e1, out Bpl.Expr/*!*/ less, out Bpl.Expr/*!*/ atmost, out Bpl.Expr/*!*/ eq, bool includeLowerBound)
      {
       Contract.Requires(tok != null);
-      Contract.Requires(ty != null);
+      Contract.Requires(ty0 != null);
+      Contract.Requires(ty1 != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(predef != null);
@@ -6500,20 +6519,29 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out atmost)!=null);
       Contract.Ensures(Contract.ValueAtReturn(out eq)!=null);
 
-      if (ty is BoolType) {
+      Nullable<BuiltinFunction> rk0 = RankFunction(ty0);
+      Nullable<BuiltinFunction> rk1 = RankFunction(ty1);
+      if (rk0 != null && rk1 != null && rk0 != rk1)
+      {
+        eq = Bpl.Expr.False;
+        Bpl.Expr b0 = FunctionCall(tok, rk0.Value, null, e0);
+        Bpl.Expr b1 = FunctionCall(tok, rk1.Value, null, e1);
+        less = Bpl.Expr.Lt(b0, b1);
+        atmost = Bpl.Expr.Le(b0, b1);
+      }
+      else if (ty0 is BoolType) {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
         atmost = Bpl.Expr.Imp(e0, e1);
-
-      } else if (ty is IntType || ty is SeqType || ty.IsDatatype) {
+      } else if (ty0 is IntType || ty0 is SeqType || ty0.IsDatatype) {
         Bpl.Expr b0, b1;
-        if (ty is IntType) {
+        if (ty0 is IntType) {
           b0 = e0;
           b1 = e1;
-        } else if (ty is SeqType) {
-          b0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
-          b1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
-        } else if (ty.IsDatatype) {
+        } else if (ty0 is SeqType) {
+          b0 = FunctionCall(tok, BuiltinFunction.SeqRank, null, e0);
+          b1 = FunctionCall(tok, BuiltinFunction.SeqRank, null, e1);
+        } else if (ty0.IsDatatype) {
           b0 = FunctionCall(tok, BuiltinFunction.DtRank, null, e0);
           b1 = FunctionCall(tok, BuiltinFunction.DtRank, null, e1);
         } else {
@@ -6522,22 +6550,22 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(b0, b1);
         less = Bpl.Expr.Lt(b0, b1);
         atmost = Bpl.Expr.Le(b0, b1);
-        if (ty is IntType && includeLowerBound) {
+        if (ty0 is IntType && includeLowerBound) {
           less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
           atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
         }
 
-      } else if (ty is EverIncreasingType) {
+      } else if (ty0 is EverIncreasingType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Gt(e0, e1);
         atmost = Bpl.Expr.Ge(e0, e1);
 
-      } else if (ty is SetType || ty is MapType) {
+      } else if (ty0 is SetType || ty0 is MapType) {
         Bpl.Expr b0, b1;
-        if (ty is SetType) {
+        if (ty0 is SetType) {
           b0 = e0;
           b1 = e1;
-        } else if (ty is MapType) {
+        } else if (ty0 is MapType) {
           // for maps, compare their domains as sets
           b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, predef.BoxType, predef.BoxType), e0);
           b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, predef.BoxType, predef.BoxType), e1);
@@ -6548,14 +6576,14 @@ namespace Microsoft.Dafny {
         less = ProperSubset(tok, b0, b1);
         atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
 
-      } else if (ty is MultiSetType) {
+      } else if (ty0 is MultiSetType) {
         eq = FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
         less = ProperMultiset(tok, e0, e1);
         atmost = FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
 
       } else {
         // reference type
-        Contract.Assert(ty.IsRefType);  // otherwise, unexpected type
+        Contract.Assert(ty0.IsRefType);  // otherwise, unexpected type
         var b0 = Bpl.Expr.Neq(e0, predef.Null);
         var b1 = Bpl.Expr.Neq(e1, predef.Null);
         eq = Bpl.Expr.Iff(b0, b1);
@@ -8691,6 +8719,7 @@ namespace Microsoft.Dafny {
       SeqEqual,
       SeqSameUntil,
       SeqFromArray,
+      SeqRank,
 
       MapEmpty,
       MapCard,
@@ -8887,6 +8916,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#FromArray", typeInstantiation, args);
+        case BuiltinFunction.SeqRank:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "Seq#Rank", Bpl.Type.Int, args);
 
         case BuiltinFunction.MapEmpty: {
             Contract.Assert(args.Length == 0);
@@ -9366,7 +9399,7 @@ namespace Microsoft.Dafny {
           }
           Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
 
-          Bpl.Expr less = DecreasesCheck(toks, types, kk, nn, null, null, false, true);
+          Bpl.Expr less = DecreasesCheck(toks, types, types, kk, nn, null, null, false, true);
 
           Bpl.Expr ihBody = etran.TrExpr(bodyK);
           if (!position) {
