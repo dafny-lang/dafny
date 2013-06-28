@@ -50,3 +50,26 @@ module CoRecursionNotUsed {
     Diverge(n)  // error: cannot prove termination
   }
 }
+
+// --------------------------------------------------
+
+module EqualityIsSuperDestructive {
+  codatatype Stream<T> = Cons(head: T, tail: Stream)
+
+  function F(s: Stream<int>): Stream<int>
+  {
+    // Co-recursive calls are not allowed in arguments of equality, so the following call to
+    // F(s) is a recursive call.
+    if Cons(1, F(s)) == Cons(1, Cons(1, s))  // error: cannot prove termination
+    then Cons(2, s) else Cons(1, s)
+  }
+
+  ghost method lemma(s: Stream<int>)
+  {
+    // The following three assertions follow from the definition of F, so F had better
+    // generate some error (which it does -- the recursive call to F in F does not terminate).
+    assert F(s) == Cons(1, s);
+    assert F(s) == Cons(2, s);
+    assert false;
+  }
+}

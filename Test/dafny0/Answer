@@ -1151,8 +1151,11 @@ Execution trace:
 Corecursion.dfy(50,5): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon3_Else
+Corecursion.dfy(63,16): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
+Execution trace:
+    (0,0): anon5_Else
 
-Dafny program verifier finished with 5 verified, 2 errors
+Dafny program verifier finished with 7 verified, 3 errors
 
 -------------------- CoResolution.dfy --------------------
 CoResolution.dfy(14,9): Error: member Undeclared# does not exist in class _default

@@ -7382,6 +7382,19 @@ namespace Microsoft.Dafny
           }
           return candidates;
         }
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) {
+          if (e.E0.Type.IsCoDatatype) {
+            // Co-datatype equality (and disequality) are as destructive as can be--in essence, they destruct the values indefinitely--so don't allow
+            // any co-recursive calls in the operands.
+            var r = CheckCoCalls(e.E0, false, null);
+            Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
+            r = CheckCoCalls(e.E1, false, null);
+            Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
+            return candidates;
+          }
+        }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         var r = CheckCoCalls(e.Source, false, null);
@@ -7435,13 +7448,6 @@ namespace Microsoft.Dafny
           Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
         }
         return CheckCoCalls(e.Body, allowCallsWithinRecursiveCluster, null);
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        foreach (var ee in e.SubExpressions) {
-          var r = CheckCoCalls(ee, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
-        }
-        return candidates;
       }
 
       // Default handling:
