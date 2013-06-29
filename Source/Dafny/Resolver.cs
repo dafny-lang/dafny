@@ -7425,6 +7425,18 @@ namespace Microsoft.Dafny
             } else {
               e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
             }
+          } else if (e.Function.Ens.Count != 0) {
+            // this call is disqualified from being a co-call, because it has a postcondition
+            // (a postcondition could be allowed, as long as it does not get to be used with
+            // co-recursive calls, because that could be unsound; for example, consider
+            // "ensures false;")
+            if (!dealsWithCodatatypes) {
+              e.CoCall = FunctionCallExpr.CoCallResolution.No;
+            } else if (coContext != null) {
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition;
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
+            }
           } else if (!allowCallsWithinRecursiveCluster) {
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;

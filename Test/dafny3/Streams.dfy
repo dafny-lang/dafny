@@ -235,22 +235,40 @@ function PrependThenFlattenNonEmpties(prefix: Stream, M: Stream<Stream>): Stream
 // of a given stream of streams.
 
 function Prepend<T>(x: T, M: Stream<Stream>): Stream<Stream>
-  ensures StreamOfNonEmpties(Prepend(x, M));
 {
   match M
   case Nil => Nil
   case Cons(s, N) => Cons(Cons(x, s), Prepend(x, N))
 }
 
-ghost method Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
-  ensures FlattenStartMarker(M, startMarker) == FlattenNonEmpties(Prepend(startMarker, M));
+comethod Prepend_Lemma<T>(x: T, M: Stream<Stream>)
+  ensures StreamOfNonEmpties(Prepend(x, M));
 {
+  match M {
+    case Nil =>
+    case Cons(s, N) =>  Prepend_Lemma(x, N);
+  }
+}
+
+ghost method Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
+  ensures
+    StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
+                                          // but until (co-)method can be called from functions,
+                                          // this condition is used as an antecedent here
+    FlattenStartMarker(M, startMarker) == FlattenNonEmpties(Prepend(startMarker, M));
+{
+  Prepend_Lemma(startMarker, M);
   Lemma_Flatten(Nil, M, startMarker);
 }
 
 comethod Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
-  ensures PrependThenFlattenStartMarker(prefix, M, startMarker) == PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
+  ensures
+    StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
+                                          // but until (co-)method can be called from functions,
+                                          // this condition is used as an antecedent here
+    PrependThenFlattenStartMarker(prefix, M, startMarker) == PrependThenFlattenNonEmpties(prefix, Prepend(startMarker, M));
 {
+  Prepend_Lemma(startMarker, M);
   match (prefix) {
     case Cons(hd, tl) =>
     Lemma_Flatten(tl, M, startMarker);

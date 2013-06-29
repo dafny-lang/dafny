@@ -15,6 +15,12 @@ module CoRecursion {
     More(n, AscendingChainAndRead(n+1))  // error: cannot prove termination
   }
 
+  function AscendingChainAndPostcondition(n: nat): Stream<int>
+    ensures false;  // with an ensures clause, this function is not a co-recusvie function
+  {
+    More(n, AscendingChainAndPostcondition(n+1))  // error: cannot prove termination
+  }
+
   datatype List<T> = Nil | Cons(T, List);
 
   function Prefix(n: nat, s: Stream): List

@@ -1145,17 +1145,20 @@ Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in 
 8 resolution/type errors detected in Coinductive.dfy
 
 -------------------- Corecursion.dfy --------------------
-Corecursion.dfy(15,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can called co-recursively)
+Corecursion.dfy(15,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can be called co-recursively)
 Execution trace:
     (0,0): anon3_Else
-Corecursion.dfy(50,5): Error: cannot prove termination; try supplying a decreases clause
+Corecursion.dfy(21,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without any ensures clause can be called co-recursively)
 Execution trace:
     (0,0): anon3_Else
-Corecursion.dfy(63,16): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
+Corecursion.dfy(56,5): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon3_Else
+Corecursion.dfy(69,16): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
 Execution trace:
     (0,0): anon5_Else
 
-Dafny program verifier finished with 7 verified, 3 errors
+Dafny program verifier finished with 7 verified, 4 errors
 
 -------------------- CoResolution.dfy --------------------
 CoResolution.dfy(14,9): Error: member Undeclared# does not exist in class _default

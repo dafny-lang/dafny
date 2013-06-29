@@ -3303,7 +3303,10 @@ namespace Microsoft.Dafny {
                 string hint;
                 switch (e.CoCall) {
                   case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                    hint = "note that only functions without side effects can called co-recursively";
+                    hint = "note that only functions without side effects can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                    hint = "note that only functions without any ensures clause can be called co-recursively";
                     break;
                   case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
                     hint = "note that the call is not sufficiently guarded to be used co-recursively";
