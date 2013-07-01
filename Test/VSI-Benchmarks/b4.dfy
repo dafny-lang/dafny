@@ -117,10 +117,6 @@ class Map<Key(==),Value> {
       } else {
         prev.next := p.next;
       }
-      assert Keys[..n] == old(Keys)[..n];
-      assert Values[..n] == old(Values)[..n];
-      assert Keys[n..] == old(Keys)[n+1..];
-      assert Values[n..] == old(Values)[n+1..];
     }
   }
 
