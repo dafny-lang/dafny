@@ -1233,7 +1233,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingDatatype != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return "#" + EnclosingDatatype.FullCompileName + "." + Name;
+        return "#" + EnclosingDatatype.FullName + "." + Name;
       }
     }
   }
