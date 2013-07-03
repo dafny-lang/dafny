@@ -99,7 +99,7 @@
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>Enable on-demand re-verification</ButtonText>
+          <ButtonText>Disable on-demand re-verification</ButtonText>
         </Strings>
       </Button>
 

@@ -132,6 +132,7 @@ namespace DafnyLanguage
         {
           _buffer.Changed -= buffer_Changed;
           _errorProvider.Dispose();
+          ClearCachedVerificationResults();
           if (resolver != null)
           {
             resolver.Dispose();
@@ -286,11 +287,16 @@ namespace DafnyLanguage
         bufferChangesPostVerificationStart.Clear();
         bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
         verificationDisabled = false;
-        if (_document != null)
-        {
-          Microsoft.Boogie.ExecutionEngine.Cache.RemoveMatchingKeys(new Regex(string.Format(@"^{0}", Regex.Escape(GetHashCode().ToString()))));
-        }
+        ClearCachedVerificationResults();
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
+      }
+    }
+
+    private void ClearCachedVerificationResults()
+    {
+      if (_document != null)
+      {
+        Microsoft.Boogie.ExecutionEngine.Cache.RemoveMatchingKeys(new Regex(string.Format(@"^{0}:", Regex.Escape(GetHashCode().ToString()))));
       }
     }
 

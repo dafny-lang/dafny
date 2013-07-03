@@ -88,6 +88,7 @@ namespace DafnyLanguage.DafnyMenu
         mcs.AddCommand(stopVerifierCommand);
 
         var toggleSnapshotVerificationCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleSnapshotVerification);
+        DafnyDriver.ToggleIncrementalVerification();
         toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
         mcs.AddCommand(toggleSnapshotVerificationCommand);
 
