@@ -147,3 +147,72 @@ function Theorem3(n: int): int
     var y := Theorem3(n-1);
     5
 }
+
+// ----- tricky substitution issues in the implementation -----
+
+class TrickySubstitution {
+  function F0(x: int): int
+    ensures F0(x) == x;
+  {
+    var g :| x == g;
+    g
+  }
+
+  function F1(x: int): int
+    ensures F1(x) == x;
+  {
+    var f := x;
+    var g :| f == g;
+    g
+  }
+
+  function F2(x: int): int
+    ensures F2(x) == x;
+  {
+    var f, g :| f == x && f == g;
+    g
+  }
+
+  function F3(x: int): int
+    ensures F3(x) == x;
+  {
+    var f :| f == x;
+    var g :| f == g;
+    g
+  }
+
+  var v: int;
+  var w: int;
+
+  function F4(x: int): int
+    requires this.v + x == 3 && this.w == 2;
+    reads this;
+    ensures F4(x) == 5;
+  {
+    var f := this.v + x;  // 3
+    var g :| f + this.w == g;  // 5
+    g
+  }
+
+  method M(x: int)
+    requires this.v + x == 3 && this.w == 2;
+    modifies this;
+  {
+    this.v := this.v + 1;
+    this.w := this.w + 10;
+    assert 6 ==
+      var f := this.v + x;  // 4
+      var g :| old(f + this.w) == g;  // 6
+      g;
+  }
+
+  method N() returns (ghost r: int, ghost s: int)
+    requires w == 12;
+    modifies this;
+    ensures r == 12 == s && w == 13;
+  {
+    w := w + 1;
+    r := var y :| y == old(w); y;
+    s := old(var y :| y == w; y);
+  }
+}

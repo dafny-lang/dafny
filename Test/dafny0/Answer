@@ -2120,16 +2120,16 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 19 verified, 2 errors
-out.tmp.dfy(10,12): Error: assertion violation
+Dafny program verifier finished with 28 verified, 2 errors
+out.tmp.dfy(66,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
-out.tmp.dfy(101,21): Error: assertion violation
+out.tmp.dfy(157,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 19 verified, 2 errors
+Dafny program verifier finished with 28 verified, 2 errors
 
 Dafny program verifier finished with 26 verified, 0 errors
 Compiled assembly into Compilation.exe

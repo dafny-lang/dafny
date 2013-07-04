@@ -4366,6 +4366,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
+    public Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
     public LetExpr(IToken tok, List<BoundVar> vars, List<Expression> rhss, Expression body, bool exact)
       : base(tok) {
       Vars = vars;
