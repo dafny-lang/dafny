@@ -489,6 +489,24 @@ namespace Microsoft.Dafny {
         q = new Bpl.ForallExpr(ctor.tok, bvs, trg, Bpl.Expr.Imp(isGoodHeap, Bpl.Expr.Iff(lhs, pt)));
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
 
+        if (dt is IndDatatypeDecl) {
+          // Add Lit axiom:
+          // axiom (forall p0, ..., pn :: #dt.ctor(Lit(p0), ..., Lit(pn)) == Lit(#dt.ctor(p0, .., pn)));
+          CreateBoundVariables(ctor.Formals, out bvs, out args);
+          List<Bpl.Expr> litargs = new List<Bpl.Expr>();
+          foreach (Bpl.Expr arg in args) {
+            litargs.Add(Lit(arg));
+          }
+          lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);
+          Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
+          q = Bpl.Expr.Eq(lhs, rhs);
+          if (bvs.Count() > 0) {
+            Bpl.Trigger tr = new Bpl.Trigger(ctor.tok, true, new Bpl.ExprSeq(lhs));
+            q = new Bpl.ForallExpr(ctor.tok, bvs, tr, q);
+          }
+          sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
+        }
+
         // Add injectivity axioms:
         Contract.Assert(ctor.Formals.Count == ctor.Destructors.Count);  // even nameless destructors are included in ctor.Destructors
         i = 0;
@@ -1475,23 +1493,47 @@ namespace Microsoft.Dafny {
     }
 
     void AddFunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
+      var vs = new List<FunctionAxiomVisibility>();
       if (f is Predicate || f is CoPredicate) {
-        var ax = FunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, body, ens, specialization, layerOffset);
-        sink.TopLevelDeclarations.Add(ax);
-        ax = FunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, body, ens, specialization, layerOffset);
-        sink.TopLevelDeclarations.Add(ax);
-        if (f is CoPredicate) {
-          AddPrefixPredicateAxioms(((CoPredicate)f).PrefixPredicate);
-        }
+        vs.Add(FunctionAxiomVisibility.IntraModuleOnly);
+        vs.Add(FunctionAxiomVisibility.ForeignModuleOnly);
       } else {
-        var ax = FunctionAxiom(f, FunctionAxiomVisibility.All, body, ens, specialization, layerOffset);
+        vs.Add(FunctionAxiomVisibility.All);
+      }
+      foreach (var v in vs) {
+        var ax = FunctionAxiom(f, v, body, ens, specialization, layerOffset, null);
         sink.TopLevelDeclarations.Add(ax);
+        // TODO(namin) Is checking f.Reads.Count()==0 excluding Valid() of BinaryTree in the right way?
+        //             I don't see how this in the decreasing clause would help there.
+        if (!(f is CoPredicate) && f.Reads.Count() == 0 && layerOffset == 0) {
+          var decs = new List<Formal>();
+          foreach (var e in f.Decreases.Expressions) {
+            foreach (var se in e.SubExpressions) {
+              if (se is IdentifierExpr) {
+                var id = (IdentifierExpr)se;
+                if (id.Var is Formal) {
+                  decs.Add((Formal)id.Var);
+                }
+              }
+            }
+          }
+          Contract.Assert(decs.Count() <= f.Formals.Count());
+          if (0 < decs.Count() && decs.Count() < f.Formals.Count()) {
+            ax = FunctionAxiom(f, v, body, ens, specialization, layerOffset, decs);
+            sink.TopLevelDeclarations.Add(ax);
+          }
+          ax = FunctionAxiom(f, v, body, ens, specialization, layerOffset, f.Formals);
+          sink.TopLevelDeclarations.Add(ax);
+        }
+      }
+      if (f is CoPredicate) {
+        AddPrefixPredicateAxioms(((CoPredicate)f).PrefixPredicate);
       }
     }
 
     enum FunctionAxiomVisibility { All, IntraModuleOnly, ForeignModuleOnly }
 
-    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, FunctionAxiomVisibility visibility, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
+    Bpl.Axiom/*!*/ FunctionAxiom(Function/*!*/ f, FunctionAxiomVisibility visibility, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset, ICollection<Formal> lits) {
       Contract.Requires(f != null);
       Contract.Requires(ens != null);
       Contract.Requires(layerOffset == 0 || (layerOffset == 1 && f.IsRecursive));
@@ -1586,16 +1628,33 @@ namespace Microsoft.Dafny {
       } else {
         specializationFormals = specialization.Formals;
       }
+      var substMap = new Dictionary<IVariable, Expression>();
+      if (specialization != null)
+      {
+        substMap = specialization.SubstMap;
+      }
+
       foreach (Formal p in f.Formals) {
         int i = specializationFormals == null ? -1 : specializationFormals.FindIndex(val => val == p);
         if (i == -1) {
           bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.UniqueName, TrType(p.Type)));
           formals.Add(bv);
           Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
-          args.Add(formal);
-          // add well-typedness conjunct to antecedent
-          Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
-          if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
+          if (lits!=null && lits.Contains(p) && !substMap.ContainsKey(p)) {
+            args.Add(Lit(formal));
+            IdentifierExpr ie = new IdentifierExpr(p.tok, p.UniqueName);
+            ie.Var = p; ie.Type = ie.Var.Type;
+            UnaryExpr l = new UnaryExpr(p.tok, UnaryExpr.Opcode.Lit, ie);
+            l.Type = ie.Var.Type;
+            substMap.Add(p, l);
+          } else {
+            args.Add(formal);
+          }
+          if (lits==null) {
+            // add well-typedness conjunct to antecedent
+            Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
+            if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
+          }
         } else {
           args.Add(etran.TrExpr(specialization.ReplacementExprs[i]));
           // note, well-typedness conjuncts for the replacement formals has already been done above
@@ -1615,10 +1674,6 @@ namespace Microsoft.Dafny {
         visibility == FunctionAxiomVisibility.All ? Bpl.Expr.Or(activateForeign, activateIntra) :
         visibility == FunctionAxiomVisibility.IntraModuleOnly ? activateIntra : activateForeign;
 
-      var substMap = new Dictionary<IVariable, Expression>();
-      if (specialization != null) {
-        substMap = specialization.SubstMap;
-      }
       Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, FunctionName(f, 1+layerOffset), TrType(f.ResultType));
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), args);
 
@@ -1644,6 +1699,10 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new Bpl.ExprSeq(funcAppl));
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       Bpl.Expr meat;
+      var etranLimited = etran.LimitedFunctions(f);
+      if (lits!=null) {
+        etranLimited = etran;
+      }
       if (body == null) {
         meat = Bpl.Expr.True;
       } else {
@@ -1656,24 +1715,31 @@ namespace Microsoft.Dafny {
           meat = Bpl.Expr.And(
             CanCallAssumption(bodyWithSubst, etran),
             visibility == FunctionAxiomVisibility.ForeignModuleOnly && (f is Predicate || f is CoPredicate) ?
-              Bpl.Expr.Imp(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)) :
-              Bpl.Expr.Eq(funcAppl, etran.LimitedFunctions(f).TrExpr(bodyWithSubst)));
+              Bpl.Expr.Imp(funcAppl, etranLimited.TrExpr(bodyWithSubst)) :
+              Bpl.Expr.Eq(funcAppl, etranLimited.TrExpr(bodyWithSubst)));
         } else {
           meat = visibility == FunctionAxiomVisibility.ForeignModuleOnly && (f is Predicate || f is CoPredicate) ?
             Bpl.Expr.Imp(funcAppl, etran.TrExpr(bodyWithSubst)) :
             Bpl.Expr.Eq(funcAppl, etran.TrExpr(bodyWithSubst));
         }
       }
-      if (layerOffset == 0) {
+      if (layerOffset == 0 && lits==null) {
         foreach (Expression p in ens) {
-          Bpl.Expr q = etran.LimitedFunctions(f).TrExpr(Substitute(p, null, substMap));
+          Bpl.Expr q = etranLimited.TrExpr(Substitute(p, null, substMap));
           meat = BplAnd(meat, q);
         }
         Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran);
         if (whr != null) { meat = Bpl.Expr.And(meat, whr); }
       }
-      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, meat));
+      QKeyValue kv = null;
+      if (lits != null) {
+        kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(10) }, null);
+      }
+      Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, meat));
       string comment = "definition axiom for " + FunctionName(f, 1+layerOffset);
+      if (lits!=null) {
+        comment += " for literals";
+      }
       if (visibility == FunctionAxiomVisibility.IntraModuleOnly) {
         comment += " (intra-module)";
       } else if (visibility == FunctionAxiomVisibility.ForeignModuleOnly) {
@@ -7155,6 +7221,8 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
 
         Bpl.Expr bRhs = etran.TrExpr(e.Expr);
+        // TODO(namin): Once Boogie knows about Lit, this is not needed.
+        bRhs = RemoveLit(bRhs);
         CheckSubrange(tok, bRhs, checkSubrangeType, builder);
         bRhs = etran.CondApplyBox(tok, bRhs, e.Expr.Type, lhsType);
 
@@ -7735,9 +7803,9 @@ namespace Microsoft.Dafny {
           if (e.Value == null) {
             return predef.Null;
           } else if (e.Value is bool) {
-            return new Bpl.LiteralExpr(e.tok, (bool)e.Value);
+            return translator.Lit(new Bpl.LiteralExpr(e.tok, (bool)e.Value));
           } else if (e.Value is BigInteger) {
-            return Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value));
+            return translator.Lit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
           }
@@ -7962,6 +8030,8 @@ namespace Microsoft.Dafny {
           UnaryExpr e = (UnaryExpr)expr;
           Bpl.Expr arg = TrExpr(e.E);
           switch (e.Op) {
+            case UnaryExpr.Opcode.Lit:
+              return translator.Lit(arg);
             case UnaryExpr.Opcode.Not:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
             case UnaryExpr.Opcode.SeqLength:
@@ -7996,14 +8066,29 @@ namespace Microsoft.Dafny {
           }
           Bpl.Expr e1 = TrExpr(e.E1);
           BinaryOperator.Opcode bOpcode;
+          Bpl.Type typ;
+          var lit0 = translator.GetLit(e0);
+          var lit1 = translator.GetLit(e1);
+          // TODO(namin): Once Boogie knows about Lit, we can keep the Lit when not lifting.
+          bool liftLit = lit0 != null && lit1 != null;
+          if (lit0 != null) {
+            e0 = lit0;
+          }
+          if (lit1 != null) {
+            e1 = lit1;
+          }
           switch (e.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Iff:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Iff; break;
             case BinaryExpr.ResolvedOpcode.Imp:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Imp; break;
             case BinaryExpr.ResolvedOpcode.And:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.And; break;
             case BinaryExpr.ResolvedOpcode.Or:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Or; break;
 
             case BinaryExpr.ResolvedOpcode.EqCommon:
@@ -8011,6 +8096,7 @@ namespace Microsoft.Dafny {
                 var cot = e.E0.Type.AsCoDatatype;
                 return translator.FunctionCall(expr.tok, "$Eq#" + cot.FullSanitizedName, Bpl.Type.Bool, e0, e1);
               }
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Eq; break;
             case BinaryExpr.ResolvedOpcode.NeqCommon:
               if (e.E0.Type.IsCoDatatype) {
@@ -8018,25 +8104,35 @@ namespace Microsoft.Dafny {
                 var x = translator.FunctionCall(expr.tok, "$Eq#" + cot.FullSanitizedName, Bpl.Type.Bool, e0, e1);
                 return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, x);
               }
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Neq; break;
 
             case BinaryExpr.ResolvedOpcode.Lt:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Lt; break;
             case BinaryExpr.ResolvedOpcode.Le:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Le; break;
             case BinaryExpr.ResolvedOpcode.Ge:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Ge; break;
             case BinaryExpr.ResolvedOpcode.Gt:
+              typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Gt; break;
             case BinaryExpr.ResolvedOpcode.Add:
+              typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Add; break;
             case BinaryExpr.ResolvedOpcode.Sub:
+              typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Sub; break;
             case BinaryExpr.ResolvedOpcode.Mul:
+              typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mul; break;
             case BinaryExpr.ResolvedOpcode.Div:
+              typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Div; break;
             case BinaryExpr.ResolvedOpcode.Mod:
+              typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mod; break;
 
             case BinaryExpr.ResolvedOpcode.SetEq:
@@ -8137,8 +8233,12 @@ namespace Microsoft.Dafny {
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
           }
-          return Bpl.Expr.Binary(expr.tok, bOpcode, e0, e1);
 
+          Bpl.Expr re = Bpl.Expr.Binary(expr.tok, bOpcode, e0, e1);
+          if (liftLit) {
+            re = translator.Lit(re, typ);
+          }
+          return re;
         } else if (expr is TernaryExpr) {
           var e = (TernaryExpr)expr;
           var e0 = TrExpr(e.E0);
@@ -8569,7 +8669,9 @@ namespace Microsoft.Dafny {
           List<object> parms = new List<object>();
           foreach (Attributes.Argument arg in attrs.Args) {
             if (arg.E != null) {
-              parms.Add(TrExpr(arg.E));
+              var e = TrExpr(arg.E);
+              e = translator.RemoveLit(e);
+              parms.Add(e);
             } else {
               parms.Add(cce.NonNull(arg.S));
             }
@@ -8685,6 +8787,8 @@ namespace Microsoft.Dafny {
 
     enum BuiltinFunction
     {
+      Lit,
+
       SetCard,
       SetEmpty,
       SetUnionOne,
@@ -8762,6 +8866,32 @@ namespace Microsoft.Dafny {
       GenericAlloc,
     }
 
+    Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
+      return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
+    }
+
+    Bpl.Expr Lit(Bpl.Expr expr) {
+      return Lit(expr, expr.Type);
+    }
+
+    Bpl.Expr GetLit(Bpl.Expr expr) {
+      if (expr is NAryExpr) {
+        NAryExpr app = (NAryExpr)expr;
+        if (app.Fun.FunctionName == "Lit") {
+          return app.Args[0];
+        }
+      }
+      return null;
+    }
+
+    Bpl.Expr RemoveLit(Bpl.Expr expr) {
+      var e = GetLit(expr);
+      if (e == null) {
+        e = expr; 
+      }
+      return e;
+    }
+
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.
     Bpl.NAryExpr FunctionCall(IToken tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[] args)
     {
@@ -8771,6 +8901,11 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       switch (f) {
+        case BuiltinFunction.Lit:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "Lit", typeInstantiation, args);
+
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);

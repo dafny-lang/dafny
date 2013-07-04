@@ -4036,6 +4036,7 @@ namespace Microsoft.Dafny {
   public class UnaryExpr : Expression
   {
     public enum Opcode {
+      Lit,
       Not,
       SeqLength
     }
