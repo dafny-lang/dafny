@@ -4371,8 +4371,9 @@ namespace Microsoft.Dafny
       int j = 0;
       foreach (Expression e in s.Args) {
         bool allowGhost = s.IsGhost || callee == null || callee.Ins.Count <= j || callee.Ins[j].IsGhost;
+        var ec = ErrorCount;
         ResolveExpression(e, true, codeContext);
-        if (!allowGhost) {
+        if (ec == ErrorCount && !allowGhost) {
           CheckIsNonGhost(e);
         }
         j++;
@@ -7328,7 +7329,7 @@ namespace Microsoft.Dafny
       public CoCallInfo(int guardCount, FunctionCallExpr candidateCall, DatatypeValue enclosingCoConstructor) {
         Contract.Requires(0 <= guardCount);
         Contract.Requires(candidateCall != null);
-
+        Contract.Requires(enclosingCoConstructor != null);
         GuardCount = guardCount;
         CandidateCall = candidateCall;
         EnclosingCoConstructor = enclosingCoConstructor;
@@ -7385,15 +7386,13 @@ namespace Microsoft.Dafny
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
         if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) {
-          if (e.E0.Type.IsCoDatatype) {
-            // Co-datatype equality (and disequality) are as destructive as can be--in essence, they destruct the values indefinitely--so don't allow
-            // any co-recursive calls in the operands.
-            var r = CheckCoCalls(e.E0, false, null);
-            Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-            r = CheckCoCalls(e.E1, false, null);
-            Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-            return candidates;
-          }
+          // Equality and disequality (for any type that may contain a co-datatype) are as destructive as can be--in essence,
+          // they destruct the values indefinitely--so don't allow any co-recursive calls in the operands.
+          var r = CheckCoCalls(e.E0, false, null);
+          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
+          r = CheckCoCalls(e.E1, false, null);
+          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
+          return candidates;
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
@@ -7442,6 +7441,12 @@ namespace Microsoft.Dafny
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
             } else {
               e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext;
+            }
+          } else if (coContext == null) {
+            if (!dealsWithCodatatypes) {
+              e.CoCall = FunctionCallExpr.CoCallResolution.No;
+            } else {
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
             }
           } else {
             // e.CoCall is not filled in here, but will be filled in when the list of candidates are processed
