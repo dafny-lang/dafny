@@ -1701,6 +1701,25 @@ Execution trace:
 
 Dafny program verifier finished with 1 verified, 4 errors
 
+-------------------- Computations.dfy --------------------
+
+Dafny program verifier finished with 46 verified, 0 errors
+
+-------------------- ComputationsNeg.dfy --------------------
+ComputationsNeg.dfy(4,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon3_Else
+ComputationsNeg.dfy(8,1): Error BP5003: A postcondition might not hold on this return path.
+ComputationsNeg.dfy(7,17): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+ComputationsNeg.dfy(20,1): Error BP5003: A postcondition might not hold on this return path.
+ComputationsNeg.dfy(19,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 3 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...
