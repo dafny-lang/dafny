@@ -7253,8 +7253,6 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
 
         Bpl.Expr bRhs = etran.TrExpr(e.Expr);
-        // TODO(namin): Once Boogie knows about Lit, this is not needed.
-        bRhs = RemoveLit(bRhs);
         CheckSubrange(tok, bRhs, checkSubrangeType, builder);
         bRhs = etran.CondApplyBox(tok, bRhs, e.Expr.Type, lhsType);
 
@@ -8170,7 +8168,7 @@ namespace Microsoft.Dafny {
           Bpl.Type typ;
           var lit0 = translator.GetLit(e0);
           var lit1 = translator.GetLit(e1);
-          // TODO(namin): Once Boogie knows about Lit, we can keep the Lit when not lifting.
+          // TODO(namin): Since Boogie knows about Lit, can we keep the Lit when not lifting?
           bool liftLit = lit0 != null && lit1 != null;
           if (lit0 != null) {
             e0 = lit0;
