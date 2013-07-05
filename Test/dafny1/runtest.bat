@@ -11,26 +11,14 @@ for %%f in (Queue.dfy PriorityQueue.dfy
             SeparationLogicList.dfy
             ListCopy.dfy ListReverse.dfy ListContents.dfy
             MatrixFun.dfy pow2.dfy
-            ) do (
-  echo.
-  echo -------------------- %%f --------------------
-  %DAFNY_EXE% /compile:0 /vcsMaxKeepGoingSplits:2 /dprint:out.dfy.tmp %* %%f
-)
-
-REM ShorrWaite takes a lot longer with /vcsMaxKeepGoingSplits:2, so run it without
-for %%f in (SchorrWaite.dfy) do (
-  echo.
-  echo -------------------- %%f --------------------
-  %DAFNY_EXE% /compile:0 /dprint:out.dfy.tmp %* %%f
-)
-
-for %%f in (SchorrWaite-stages.dfy
+            SchorrWaite.dfy SchorrWaite-stages.dfy
             Cubes.dfy SumOfCubes.dfy FindZero.dfy
             TerminationDemos.dfy Substitution.dfy TreeDatatype.dfy KatzManna.dfy
             Induction.dfy Rippling.dfy MoreInduction.dfy
             Celebrity.dfy BDD.dfy
-            UltraFilter.dfy) do (
+            UltraFilter.dfy
+            ) do (
   echo.
   echo -------------------- %%f --------------------
-  %DAFNY_EXE% /compile:0 /vcsMaxKeepGoingSplits:2 /dprint:out.dfy.tmp %* %%f
+  %DAFNY_EXE% /compile:0 /dprint:out.dfy.tmp %* %%f
 )
