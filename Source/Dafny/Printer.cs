@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintFormals(List<Formal> ff, string name = null) {
+    internal void PrintFormals(List<Formal> ff, string name = null) {
       Contract.Requires(ff != null);
       if (name != null && name.EndsWith("#")) {
         wr.Write("[");

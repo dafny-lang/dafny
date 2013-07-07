@@ -2294,6 +2294,12 @@ namespace Microsoft.Dafny {
       {
         var printer = new Printer(writer);
         printer.PrintAttributes(m.Attributes);
+        printer.PrintFormals(m.Ins);
+        if (m.Outs.Any())
+        {
+          writer.Write("returns ");
+          printer.PrintFormals(m.Outs);
+        }
         printer.PrintSpec("", m.Req, 0);
         printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
         printer.PrintSpec("", m.Ens, 0);
@@ -2341,6 +2347,11 @@ namespace Microsoft.Dafny {
       {
         var printer = new Printer(writer);
         printer.PrintAttributes(f.Attributes);
+        if (f.OpenParen != null) {
+          printer.PrintFormals(f.Formals);
+        }
+        writer.Write(": ");
+        printer.PrintType(f.ResultType);
         printer.PrintSpec("", f.Req, 0);
         printer.PrintFrameSpecLine("", f.Reads, 0, null);
         printer.PrintSpec("", f.Ens, 0);
@@ -2369,7 +2380,7 @@ namespace Microsoft.Dafny {
     public void InsertUniqueIdForImplementation(Bpl.Declaration decl)
     {
       var impl = decl as Bpl.Implementation;
-      var prefix = UniqueIdPrefix ?? impl.tok.filename;
+      var prefix = UniqueIdPrefix ?? decl.tok.filename;
       if (impl != null && !string.IsNullOrEmpty(prefix))
       {
         decl.AddAttribute("id", prefix + ":" + impl.Id);
