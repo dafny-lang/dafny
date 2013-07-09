@@ -3960,9 +3960,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        if (!Function.IsStatic) {
-          yield return Receiver;
-        }
+        yield return Receiver;
         foreach (var e in Args) {
           yield return e;
         }

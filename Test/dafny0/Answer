@@ -1318,7 +1318,10 @@ EqualityTypes.dfy(42,11): Error: datatype 'X' is used to refine an arbitrary typ
 EqualityTypes.dfy(43,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
 EqualityTypes.dfy(63,7): Error: == can only be applied to expressions of types that support equality (got Dt<T>)
 EqualityTypes.dfy(82,8): Error: type parameter 0 (T) passed to method M must support equality (got _T0)
-8 resolution/type errors detected in EqualityTypes.dfy
+EqualityTypes.dfy(106,7): Error: == can only be applied to expressions of types that support equality (got D)
+EqualityTypes.dfy(111,13): Error: == can only be applied to expressions of types that support equality (got D)
+EqualityTypes.dfy(115,16): Error: == can only be applied to expressions of types that support equality (got D)
+11 resolution/type errors detected in EqualityTypes.dfy
 
 -------------------- SplitExpr.dfy --------------------
 

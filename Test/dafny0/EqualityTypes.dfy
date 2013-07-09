@@ -87,3 +87,48 @@ module H {
      Caller1(d);  // case in point for the error in Caller1
   }
 }
+
+// ----------------------------
+
+module Gh {
+  datatype D = Nil | Cons(head: int, tail: D, ghost x: int)
+
+  method M(n: nat, b: bool, d: D, e: D, ghost g: bool)
+    ensures b ==> d == e;  // fine, this is a ghost declaration
+  {
+    ghost var g := 0;
+    var h := 0;
+    if d == e {  // fine, this is a ghost statement
+      g := g + 1;
+    } else {
+      assert !b;
+    }
+    if d == e {  // error: not allowed to compare D's in a non-ghost context
+      h := h + 1;
+    }
+    if n != 0 {
+      M(n-1, b, d, e, d==e);  // fine
+      M(n-1, d==e, d, e, false);  // error, cannot pass in d==e like we do
+    }
+    GM(d==e, d, e);  // fine -- we're calling a ghost method
+    var y0 := F(b, d==e);
+    var y1 := F(d==e, false);  // error
+  }
+
+  function method F(b: bool, ghost g: bool): int { 6 }
+
+  ghost method GM(b: bool, d: D, e: D)  // all equalities are fine in a ghost method
+    ensures b ==> d == e;
+  {
+    ghost var g := 0;
+    var h := 0;
+    if d == e {
+      g := g + 1;
+    } else {
+      assert !b;
+    }
+    if d == e {
+      h := h + 1;
+    }
+  }
+}

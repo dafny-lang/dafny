@@ -1957,24 +1957,24 @@ namespace Microsoft.Dafny
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
-      protected override bool VisitOneStmt(Statement stmt, ref bool unused) {
+      protected override bool VisitOneStmt(Statement stmt, ref bool st) {
         if (stmt.IsGhost) {
           return false;  // no need to recurse to sub-parts, since all sub-parts must be ghost as well
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           // don't recurse on the specification parts, which are ghost
           if (s.Guard != null) {
-            Visit(s.Guard, unused);
+            Visit(s.Guard, st);
           }
-          Visit(s.Body, unused);
+          Visit(s.Body, st);
           return false;
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
           // don't recurse on the specification parts, which are ghost
           foreach (var alt in s.Alternatives) {
-            Visit(alt.Guard, unused);
+            Visit(alt.Guard, st);
             foreach (var ss in alt.Body) {
-              Visit(ss, unused);
+              Visit(ss, st);
             }
           }
           return false;
@@ -1989,6 +1989,25 @@ namespace Microsoft.Dafny
             }
             i++;
           }
+          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
+          Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
+          i = 0;
+          foreach (var ee in s.Lhs) {
+            if (!s.Method.Outs[i].IsGhost) {
+              Visit(ee, st);
+            }
+            i++;
+          }
+          Visit(s.Receiver, st);
+          Contract.Assert(s.Args.Count == s.Method.Ins.Count);
+          i = 0;
+          foreach (var ee in s.Args) {
+            if (!s.Method.Ins[i].IsGhost) {
+              Visit(ee, st);
+            }
+            i++;
+          }
+          return false;  // we've done what there is to be done
         }
         return true;
       }
@@ -2058,6 +2077,17 @@ namespace Microsoft.Dafny
             }
             i++;
           }
+          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
+          Visit(e.Receiver, st);
+          Contract.Assert(e.Args.Count == e.Function.Formals.Count);
+          i = 0;
+          foreach (var ee in e.Args) {
+            if (!e.Function.Formals[i].IsGhost) {
+              Visit(ee, st);
+            }
+            i++;
+          }
+          return false;  // we've done what there is to be done
         }
         return true;
       }
@@ -2456,13 +2486,14 @@ namespace Microsoft.Dafny
 
       var scc = dependencies.GetSCC(startingPoint);
       // First, the simple case:  If any parameter of any inductive datatype in the SCC is of a codatatype type, then
-      // the whole SCC is incapable of providing the equality operation.
+      // the whole SCC is incapable of providing the equality operation.  Also, if any parameter of any inductive datatype
+      // is a ghost, then the whole SCC is incapable of providing the equality operation.
       foreach (var dt in scc) {
         Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
         foreach (var ctor in dt.Ctors) {
           foreach (var arg in ctor.Formals) {
             var anotherIndDt = arg.Type.AsIndDatatype;
-            if ((anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) || arg.Type.IsCoDatatype) {
+            if (arg.IsGhost || (anotherIndDt != null && anotherIndDt.EqualitySupport == IndDatatypeDecl.ES.Never) || arg.Type.IsCoDatatype) {
               // arg.Type is known never to support equality
               // So, go around the entire SCC and record what we learnt
               foreach (var ddtt in scc) {
