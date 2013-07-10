@@ -195,16 +195,11 @@ namespace DafnyLanguage
     /// Note, "sender" and "args" are allowed to be passed in as null--they are not used by this method.
     /// </summary>
     public void UponIdle(object sender, EventArgs args) {
-      if (resolver != null)
-      {
-        resolver.UpdateErrorList(resolver.Snapshot);
-      }
-
       lock (this) {
         if (verificationInProgress) {
           // This UponIdle message came at an inopportune time--we've already kicked off a verification.
           // Just back off.
-          
+          resolver.UpdateErrorList(resolver.Snapshot);
           return;
         }
 
