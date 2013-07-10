@@ -130,6 +130,10 @@ namespace DafnyLanguage
       {
         if (disposing)
         {
+          if (lastRequestId != null)
+          {
+            Microsoft.Boogie.ExecutionEngine.CancelRequest(lastRequestId);
+          }
           _buffer.Changed -= buffer_Changed;
           _errorProvider.Dispose();
           ClearCachedVerificationResults();
@@ -175,6 +179,7 @@ namespace DafnyLanguage
     bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
     Thread verificationWorker;
     bool verificationDisabled;
+    string lastRequestId;
 
     public bool VerificationDisabled
     {
@@ -236,17 +241,17 @@ namespace DafnyLanguage
         // Notify to-whom-it-may-concern about the changes we just made
         NotifyAboutChangedTags(snap);
 
-        string requestId = null;
+        lastRequestId = null;
         lock (RequestIdToSnapshot)
         {
           do
           {
-            requestId = DateTime.UtcNow.Ticks.ToString();
-          } while (RequestIdToSnapshot.ContainsKey(requestId));
-          RequestIdToSnapshot[requestId] = snap;
+            lastRequestId = DateTime.UtcNow.Ticks.ToString();
+          } while (RequestIdToSnapshot.ContainsKey(lastRequestId));
+          RequestIdToSnapshot[lastRequestId] = snap;
         }
 
-        verificationWorker = new Thread(() => VerificationWorker(prog, snap, requestId, resolver));
+        verificationWorker = new Thread(() => VerificationWorker(prog, snap, lastRequestId, resolver));
         verificationWorker.IsBackground = true;
         if (_document != null)
         {
@@ -267,7 +272,7 @@ namespace DafnyLanguage
 
     public void StopVerification()
     {
-      verificationWorker.Abort();  // TODO(wuestholz): Make sure this kills the corresponding Z3 process.
+      Microsoft.Boogie.ExecutionEngine.CancelRequest(lastRequestId);
       lock (this)
       {
         bufferChangesPreVerificationStart.Clear();

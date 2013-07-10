@@ -2383,7 +2383,7 @@ namespace Microsoft.Dafny {
       var prefix = UniqueIdPrefix ?? decl.tok.filename;
       if (impl != null && !string.IsNullOrEmpty(prefix))
       {
-        decl.AddAttribute("id", prefix + ":" + impl.Id);
+        decl.AddAttribute("id", prefix + ":" + impl.Name + ":0");
       }
     }
 
