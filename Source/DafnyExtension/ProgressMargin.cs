@@ -134,8 +134,14 @@ namespace DafnyLanguage
           {
             Microsoft.Boogie.ExecutionEngine.CancelRequest(lastRequestId);
           }
+          if (_document.FilePath != null)
+          {
+            ProgressTaggers.Remove(_document.FilePath);
+          }
           _buffer.Changed -= buffer_Changed;
+          timer.Tick -= UponIdle;
           _errorProvider.Dispose();
+          _errorProvider = null;
           ClearCachedVerificationResults();
           if (resolver != null)
           {

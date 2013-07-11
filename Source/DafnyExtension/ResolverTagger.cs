@@ -87,7 +87,7 @@ namespace DafnyLanguage
   {
     readonly ITextBuffer _buffer;
     readonly ITextDocument _document;
-    readonly ErrorListProvider _errorProvider;
+    ErrorListProvider _errorProvider;
 
     // The 'Snapshot' and 'Program' fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot Snapshot;  // may be null
@@ -207,6 +207,7 @@ namespace DafnyLanguage
               // this may occur if the SVsServiceProvider somehow has been uninstalled before our Dispose method is called
             }
             _errorProvider.Dispose();
+            _errorProvider = null;
           }
           BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
         }
@@ -307,35 +308,38 @@ namespace DafnyLanguage
 
     public void UpdateErrorList(ITextSnapshot snapshot)
     {
-      lock (this)
+      lock (this) 
       {
-        _errorProvider.SuspendRefresh();  // reduce flickering
-        _errorProvider.Tasks.Clear();
-        foreach (var err in AllErrors)
+        if (_errorProvider != null)
         {
-          var span = err.Span.GetSpan(snapshot);
-          var lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
-          var line = snapshot.GetLineFromPosition(span.Start.Position);
-          var columnNum = span.Start - line.Start;
-          ErrorTask task = new ErrorTask()
+          _errorProvider.SuspendRefresh();  // reduce flickering
+          _errorProvider.Tasks.Clear();
+          foreach (var err in AllErrors)
           {
-            Category = TaskCategory.BuildCompile,
-            ErrorCategory = CategoryConversion(err.Category),
-            Text = err.Message,
-            Line = lineNum,
-            Column = columnNum
-          };
-          if (_document != null)
-          {
-            task.Document = _document.FilePath;
+            var span = err.Span.GetSpan(snapshot);
+            var lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
+            var line = snapshot.GetLineFromPosition(span.Start.Position);
+            var columnNum = span.Start - line.Start;
+            ErrorTask task = new ErrorTask()
+            {
+              Category = TaskCategory.BuildCompile,
+              ErrorCategory = CategoryConversion(err.Category),
+              Text = err.Message,
+              Line = lineNum,
+              Column = columnNum
+            };
+            if (_document != null)
+            {
+              task.Document = _document.FilePath;
+            }
+            if (err.Category != ErrorCategory.ProcessError && err.Category != ErrorCategory.InternalError)
+            {
+              task.Navigate += new EventHandler(NavigateHandler);
+            }
+            _errorProvider.Tasks.Add(task);
           }
-          if (err.Category != ErrorCategory.ProcessError && err.Category != ErrorCategory.InternalError)
-          {
-            task.Navigate += new EventHandler(NavigateHandler);
-          }
-          _errorProvider.Tasks.Add(task);
+          _errorProvider.ResumeRefresh();
         }
-        _errorProvider.ResumeRefresh();
       }
       var chng = TagsChanged;
       if (chng != null)
