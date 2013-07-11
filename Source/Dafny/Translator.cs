@@ -6398,6 +6398,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr.Type is BoolType);
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
+      // strip off parens
+      while (true) {
+        var pr = expr as ParensExpression;
+        if (pr == null) {
+          break;
+        } else {
+          expr = pr.E;
+        }
+      }
+
       var bin = expr as BinaryExpr;
       if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
         foreach (Expression e in Conjuncts(bin.E0)) {
