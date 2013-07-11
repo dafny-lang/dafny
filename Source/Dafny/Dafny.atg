@@ -111,6 +111,11 @@ bool IsLoopSpecOrAlternative() {
   Token x = scanner.Peek();
   return IsLoopSpec() || (la.kind == _lbrace && x.val == "case");
 }
+
+bool IsParenStar() {
+  Token x = scanner.Peek();
+  return la.kind == _openparen && x.kind == _star;
+}
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -148,6 +153,8 @@ TOKENS
   colon = ':'.
   lbrace = '{'.
   rbrace = '}'.
+  openparen = '('.
+  star = '*'.
   notIn = "!in" CONTEXT (nonidchar).
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
@@ -1228,18 +1235,9 @@ DecreasesList<.List<Expression/*!*/> decreases, bool allowWildcard.>
   .
 Guard<out Expression e>   /* null represents demonic-choice */
 = (. Expression/*!*/ ee;  e = null; .)
-  (
-    "("
-    BareGuard<out ee>       (. e = ee; .)
-    ")"
-  |
-    BareGuard<out ee>       (. e = ee; .)
-  )
-  .
-BareGuard<out Expression e>   /* null represents demonic-choice */
-= (. Expression/*!*/ ee;  e = null; .)
-  ( "*"                      (. e = null; .)
-  | Expression<out ee>       (. e = ee; .)
+  ( "*"                             (. e = null; .)
+  | IF(IsParenStar())  "(" "*" ")"  (. e = null; .)
+  | Expression<out ee>              (. e = ee; .)
   )
   .
 MatchStmt<out Statement/*!*/ s>
