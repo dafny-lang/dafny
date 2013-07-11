@@ -136,6 +136,7 @@ bool IsLoopSpecOrAlternative() {
 }
 
 bool IsParenStar() {
+  scanner.ResetPeek();
   Token x = scanner.Peek();
   return la.kind == _openparen && x.kind == _star;
 }
