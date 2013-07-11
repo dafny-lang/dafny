@@ -46,3 +46,7 @@ Dafny program verifier finished with 28 verified, 0 errors
 -------------------- Filter.dfy --------------------
 
 Dafny program verifier finished with 43 verified, 0 errors
+
+-------------------- WideTrees.dfy --------------------
+
+Dafny program verifier finished with 10 verified, 0 errors
