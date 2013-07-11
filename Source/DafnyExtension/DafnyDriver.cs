@@ -40,6 +40,7 @@ namespace DafnyLanguage
         options.ApplyDefaultOptions();
 
         ExecutionEngine.printer = new DummyPrinter();
+        ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
       }
     }
 
@@ -230,8 +231,7 @@ namespace DafnyLanguage
 
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
-        ExecutionEngine.EliminateDeadVariablesAndInline(program);
-        ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
+        ExecutionEngine.EliminateDeadVariablesAndInline(program);        
         return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), er, requestId);
       }
       return oc;

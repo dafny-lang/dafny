@@ -163,7 +163,8 @@ namespace Microsoft.Dafny
       Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName);
+      LinearTypechecker ltc;
+      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
@@ -180,7 +181,7 @@ namespace Microsoft.Dafny
             fileNames.Add(bplFileName);
             Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName);
+              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ltc);
             }
           }
           return oc;
@@ -190,7 +191,7 @@ namespace Microsoft.Dafny
           return ExecutionEngine.InferAndVerify(program, stats);
 
         default:
-          Contract.Assert(false);throw new cce.UnreachableException();  // unexpected outcome
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
       }
     }
 
