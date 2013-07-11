@@ -672,9 +672,9 @@ namespace Microsoft.Dafny {
           if (!s.Op.Equals(op)) {
             PrintCalcOp(op);
             wr.Write(" ");
-          }          
+          }
           PrintExpression(e, lineInd);
-          wr.WriteLine(";");          
+          wr.WriteLine(";");
         }
         Indent(indent);
         wr.Write("}");
@@ -990,7 +990,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(-1 <= indent);
       Contract.Requires(expr != null);
 
-      if (expr is LiteralExpr) {
+      if (expr is StaticReceiverExpr) {
+        StaticReceiverExpr e = (StaticReceiverExpr)expr;
+        wr.Write(e.Type);
+      } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         if (e.Value == null) {
           wr.Write("null");
@@ -1354,7 +1357,7 @@ namespace Microsoft.Dafny {
         var e = (NamedExpr)expr;
         wr.Write("expr {0}: ", e.Name);
         PrintExpression(e.Body);
- 
+
        } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
         bool parensNeeded = !isRightmost;
