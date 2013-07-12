@@ -36,6 +36,7 @@ namespace DafnyLanguage
         options.ProverKillTime = 10;
         options.ErrorTrace = 0;
         options.VcsCores = System.Environment.ProcessorCount;
+        options.ModelViewFile = "-";
         Dafny.DafnyOptions.Install(options);
         options.ApplyDefaultOptions();
 

@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using EnvDTE;
 using Microsoft.VisualStudio;
@@ -431,10 +432,12 @@ namespace DafnyLanguage
     public readonly ErrorCategory Category;
     public readonly string Message;
     public readonly ITrackingSpan Span;
+    public readonly string Model;
+
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
-    public DafnyError(int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot)
+    public DafnyError(int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot, string model = null)
     {
       Line = Math.Max(0, line);
       Column = Math.Max(0, col);
@@ -444,6 +447,7 @@ namespace DafnyLanguage
       Contract.Assert(Column <= sLine.Length);
       var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
       Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
+      Model = model;
     }
   }
 

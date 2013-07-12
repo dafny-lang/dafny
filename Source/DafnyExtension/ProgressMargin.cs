@@ -324,7 +324,7 @@ namespace DafnyLanguage
           if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
           {
             var s = RequestIdToSnapshot[errorInfo.RequestId];
-            errorListHolder.AddError(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s), errorInfo.ImplementationName, requestId);
+            errorListHolder.AddError(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, errorInfo.Model.ToString()), errorInfo.ImplementationName, requestId);
             foreach (var aux in errorInfo.Aux)
             {
               errorListHolder.AddError(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s), errorInfo.ImplementationName, requestId);
