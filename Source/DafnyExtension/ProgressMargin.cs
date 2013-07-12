@@ -346,6 +346,8 @@ namespace DafnyLanguage
         verificationInProgress = false;
       }
 
+      errorListHolder.UpdateErrorList(snapshot);
+
       // Notify to-whom-it-may-concern about the cleared pre-verification changes
       NotifyAboutChangedTags(snapshot);
 
