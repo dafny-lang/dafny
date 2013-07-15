@@ -5,7 +5,7 @@ using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -187,14 +187,9 @@ namespace DafnyLanguage
     }
 
     bool verificationInProgress;  // this field is protected by "this".  Invariant:  !verificationInProgress ==> bufferChangesPreVerificationStart.Count == 0
-    Thread verificationWorker;
-    bool verificationDisabled;
+    System.Threading.Tasks.Task verificationTask;
+    public bool VerificationDisabled { get; private set; }
     string lastRequestId;
-
-    public bool VerificationDisabled
-    {
-      get { return verificationDisabled; }
-    }
 
     public static readonly IDictionary<string, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<string, ProgressTagger>();
 
@@ -221,7 +216,7 @@ namespace DafnyLanguage
           prog = resolver.Program;
           snap = resolver.Snapshot;
         }
-        if (prog == null || verificationDisabled) return;
+        if (prog == null || VerificationDisabled) return;
         // We have a successfully resolved program to verify
 
         var resolvedVersion = snap.Version.VersionNumber;
@@ -235,17 +230,6 @@ namespace DafnyLanguage
         }
 
         // at this time, we're committed to running the verifier
-        verificationInProgress = true;
-
-        // Change orange progress markers into yellow ones
-        Contract.Assert(bufferChangesPreVerificationStart.Count == 0);  // follows from monitor invariant
-        var empty = bufferChangesPreVerificationStart;
-        bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
-        bufferChangesPostVerificationStart = empty;
-
-        // Notify to-whom-it-may-concern about the changes we just made
-        NotifyAboutChangedTags(snap);
-
         lastRequestId = null;
         lock (RequestIdToSnapshot)
         {
@@ -256,14 +240,26 @@ namespace DafnyLanguage
           RequestIdToSnapshot[lastRequestId] = snap;
         }
 
-        verificationWorker = new Thread(() => VerificationWorker(prog, snap, lastRequestId, resolver));
-        verificationWorker.IsBackground = true;
         if (_document != null)
         {
           ProgressTaggers[_document.FilePath] = this;
         }
+
+        verificationTask = System.Threading.Tasks.Task.Factory.StartNew(
+          () => RunVerifier(prog, snap, lastRequestId, resolver),
+          TaskCreationOptions.LongRunning);
+
+        verificationInProgress = true;
+
+        // Change orange progress markers into yellow ones
+        Contract.Assert(bufferChangesPreVerificationStart.Count == 0);  // follows from monitor invariant
+        var empty = bufferChangesPreVerificationStart;
+        bufferChangesPreVerificationStart = bufferChangesPostVerificationStart;
+        bufferChangesPostVerificationStart = empty;
+
+        // Notify to-whom-it-may-concern about the changes we just made
+        NotifyAboutChangedTags(snap);
       }
-      verificationWorker.Start();
     }
 
     private void NotifyAboutChangedTags(ITextSnapshot snap)
@@ -283,7 +279,7 @@ namespace DafnyLanguage
         bufferChangesPreVerificationStart.Clear();
         bufferChangesPostVerificationStart.Clear();
         bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
-        verificationDisabled = true;
+        VerificationDisabled = true;
         verificationInProgress = false;
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
@@ -296,7 +292,7 @@ namespace DafnyLanguage
         bufferChangesPreVerificationStart.Clear();
         bufferChangesPostVerificationStart.Clear();
         bufferChangesPostVerificationStart.Add(new SnapshotSpan(_buffer.CurrentSnapshot, 0, _buffer.CurrentSnapshot.Length));
-        verificationDisabled = false;
+        VerificationDisabled = false;
         ClearCachedVerificationResults();
         NotifyAboutChangedTags(_buffer.CurrentSnapshot);
       }
@@ -310,16 +306,12 @@ namespace DafnyLanguage
       }
     }
 
-    /// <summary>
-    /// Thread entry point.
-    /// </summary>
-    void VerificationWorker(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder) {
+    void RunVerifier(Dafny.Program program, ITextSnapshot snapshot, string requestId, ResolverTagger errorListHolder) {
       Contract.Requires(program != null);
       Contract.Requires(snapshot != null);
       Contract.Requires(requestId != null);
       Contract.Requires(errorListHolder != null);
 
-      // Run the verifier
       try
       {
         bool success = DafnyDriver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
