@@ -96,6 +96,7 @@ namespace DafnyLanguage
     ErrorListProvider _errorProvider;
     ITextBuffer _buffer;
     ITextDocument _document;
+    private bool m_disposed;
 
     readonly DispatcherTimer timer;
 
@@ -126,31 +127,34 @@ namespace DafnyLanguage
 
     private void Dispose(bool disposing)
     {
-      if (!m_disposed)
+      lock (this)
       {
-        if (disposing)
+        if (!m_disposed)
         {
-          if (lastRequestId != null)
+          if (disposing)
           {
-            Microsoft.Boogie.ExecutionEngine.CancelRequest(lastRequestId);
+            if (lastRequestId != null)
+            {
+              Microsoft.Boogie.ExecutionEngine.CancelRequest(lastRequestId);
+            }
+            if (_document.FilePath != null)
+            {
+              ProgressTaggers.Remove(_document.FilePath);
+            }
+            _buffer.Changed -= buffer_Changed;
+            timer.Tick -= UponIdle;
+            _errorProvider.Dispose();
+            _errorProvider = null;
+            ClearCachedVerificationResults();
+            if (resolver != null)
+            {
+              resolver.Dispose();
+              resolver = null;
+            }
           }
-          if (_document.FilePath != null)
-          {
-            ProgressTaggers.Remove(_document.FilePath);
-          }
-          _buffer.Changed -= buffer_Changed;
-          timer.Tick -= UponIdle;
-          _errorProvider.Dispose();
-          _errorProvider = null;
-          ClearCachedVerificationResults();
-          if (resolver != null)
-          {
-            resolver.Dispose();
-            resolver = null;
-          }
-        }
 
-        m_disposed = true;
+          m_disposed = true;
+        }
       }
     }
 
@@ -320,14 +324,17 @@ namespace DafnyLanguage
       {
         bool success = DafnyDriver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
         {
-          errorInfo.BoogieErrorCode = null;
-          if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
+          if (!m_disposed)
           {
-            var s = RequestIdToSnapshot[errorInfo.RequestId];
-            errorListHolder.AddError(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, errorInfo.Model.ToString()), errorInfo.ImplementationName, requestId);
-            foreach (var aux in errorInfo.Aux)
+            errorInfo.BoogieErrorCode = null;
+            if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
             {
-              errorListHolder.AddError(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s), errorInfo.ImplementationName, requestId);
+              var s = RequestIdToSnapshot[errorInfo.RequestId];
+              errorListHolder.AddError(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, errorInfo.Model.ToString()), errorInfo.ImplementationName, requestId);
+              foreach (var aux in errorInfo.Aux)
+              {
+                errorListHolder.AddError(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s), errorInfo.ImplementationName, requestId);
+              }
             }
           }
         });
@@ -357,7 +364,7 @@ namespace DafnyLanguage
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
-    private bool m_disposed;
+
     IEnumerable<ITagSpan<ProgressGlyphTag>> ITagger<ProgressGlyphTag>.GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
       var targetSnapshot = spans[0].Snapshot;

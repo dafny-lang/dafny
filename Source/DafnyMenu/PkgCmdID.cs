@@ -10,6 +10,7 @@ namespace DafnyLanguage.DafnyMenu
     public const uint cmdidRunVerifier = 0x101;
     public const uint cmdidStopVerifier = 0x102;
     public const uint cmdidMenu = 0x1021;
-    public static int cmdidToggleSnapshotVerification = 0x103;
+    public static uint cmdidToggleSnapshotVerification = 0x103;
+    public const uint cmdidShowErrorModel = 0x104;
   };
 }

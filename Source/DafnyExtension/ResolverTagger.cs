@@ -89,6 +89,7 @@ namespace DafnyLanguage
     readonly ITextBuffer _buffer;
     readonly ITextDocument _document;
     ErrorListProvider _errorProvider;
+    private bool m_disposed;
 
     // The 'Snapshot' and 'Program' fields should be updated and read together, so they are protected by "this"
     public ITextSnapshot Snapshot;  // may be null
@@ -172,7 +173,7 @@ namespace DafnyLanguage
       }
     }
 
-    public static readonly IDictionary<string, Dafny.Program> Programs = new ConcurrentDictionary<string, Dafny.Program>();
+    public static readonly IDictionary<string, ResolverTagger> ResolverTaggers = new ConcurrentDictionary<string, ResolverTagger>();
 
     internal ResolverTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITextDocumentFactoryService textDocumentFactory)
     {
@@ -193,27 +194,34 @@ namespace DafnyLanguage
 
     private void Dispose(bool disposing)
     {
-      if (!m_disposed)
+      lock (this)
       {
-        if (disposing)
+        if (!m_disposed)
         {
-          if (_errorProvider != null)
+          if (disposing)
           {
-            try
+            if (_errorProvider != null)
             {
-              _errorProvider.Tasks.Clear();
+              try
+              {
+                _errorProvider.Tasks.Clear();
+              }
+              catch (InvalidOperationException)
+              {
+                // this may occur if the SVsServiceProvider somehow has been uninstalled before our Dispose method is called
+              }
+              _errorProvider.Dispose();
+              _errorProvider = null;
             }
-            catch (InvalidOperationException)
+            BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
+            if (_document != null)
             {
-              // this may occur if the SVsServiceProvider somehow has been uninstalled before our Dispose method is called
+              ResolverTaggers.Remove(_document.FilePath);
             }
-            _errorProvider.Dispose();
-            _errorProvider = null;
           }
-          BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
-        }
 
-        m_disposed = true;
+          m_disposed = true;
+        }
       }
     }
 
@@ -262,7 +270,6 @@ namespace DafnyLanguage
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
-    private bool m_disposed;
 
     /// <summary>
     /// Calls the Dafny parser/resolver/type checker on the contents of the buffer, updates the Error List accordingly.
@@ -295,11 +302,11 @@ namespace DafnyLanguage
 
       if (program != null && _document != null)
       {
-        Programs[_document.FilePath] = program;
+        ResolverTaggers[_document.FilePath] = this;
       }
       else if (_document != null)
       {
-        Programs.Remove(_document.FilePath);
+        ResolverTaggers.Remove(_document.FilePath);
       }
 
       _resolutionErrors = newErrors;
@@ -311,7 +318,7 @@ namespace DafnyLanguage
     {
       lock (this) 
       {
-        if (_errorProvider != null)
+        if (_errorProvider != null && !m_disposed)
         {
           _errorProvider.SuspendRefresh();  // reduce flickering
           _errorProvider.Tasks.Clear();

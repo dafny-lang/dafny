@@ -103,6 +103,15 @@
         </Strings>
       </Button>
 
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidShowErrorModel" priority="0x010a" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <Strings>
+          <ButtonText>Show error model</ButtonText>
+        </Strings>
+      </Button>
+
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -133,6 +142,7 @@
       <IDSymbol name="cmdidRunVerifier" value="0x0101" />
       <IDSymbol name="cmdidStopVerifier" value="0x0102" />
       <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
+      <IDSymbol name="cmdidShowErrorModel" value="0x0104" />
     </GuidSymbol>
 
     <!--

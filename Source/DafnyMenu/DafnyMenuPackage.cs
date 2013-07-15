@@ -1,13 +1,12 @@
 ﻿using System;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
-using System.ComponentModel.Design;
-using Microsoft.Win32;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+
 
 namespace DafnyLanguage.DafnyMenu
 {
@@ -26,10 +25,12 @@ namespace DafnyLanguage.DafnyMenu
   [PackageRegistration(UseManagedResourcesOnly = true)]
   // This attribute is used to register the information needed to show this package
   // in the Help/About dialog of Visual Studio.
-  [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
+  [InstalledProductRegistration("#110", "#112", "1.0")]
   // This attribute is needed to let the shell know that this package exposes some menus.
   [ProvideMenuResource("Menus.ctmenu", 1)]
   [ProvideAutoLoad("{6c7ed99a-206a-4937-9e08-b389de175f68}")]
+  [ProvideToolWindow(typeof(BvdToolWindow), Transient = true)]
+  [ProvideToolWindowVisibility(typeof(BvdToolWindow), GuidList.guidDafnyMenuCmdSetString)]
   [Guid(GuidList.guidDafnyMenuPkgString)]
   public sealed class DafnyMenuPackage : Package
   {
@@ -39,6 +40,7 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand runVerifierCommand;
     private OleMenuCommand stopVerifierCommand;
     private OleMenuCommand toggleSnapshotVerificationCommand;
+    private OleMenuCommand showErrorModelCommand;
 
     /// <summary>
     /// Default constructor of the package.
@@ -92,6 +94,12 @@ namespace DafnyLanguage.DafnyMenu
         toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
         mcs.AddCommand(toggleSnapshotVerificationCommand);
 
+        var showErrorModelCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidShowErrorModel);
+        showErrorModelCommand = new OleMenuCommand(ShowErrorModelCallback, showErrorModelCommandID);
+        showErrorModelCommand.Enabled = true;
+        showErrorModelCommand.BeforeQueryStatus += showErrorModelCommand_BeforeQueryStatus;
+        mcs.AddCommand(showErrorModelCommand);
+
         var menuCommandID = new CommandID(GuidList.guidDafnyMenuPkgSet, (int)PkgCmdIDList.cmdidMenu);
         menuCommand = new OleMenuCommand(new EventHandler((sender, e) => { }), menuCommandID);
         menuCommand.BeforeQueryStatus += menuCommand_BeforeQueryStatus;
@@ -110,8 +118,7 @@ namespace DafnyLanguage.DafnyMenu
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
       DafnyLanguage.ProgressTagger tagger;
-      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);
-      if (tagger != null)
+      if (dte.ActiveDocument != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger))
       {
         tagger.StopVerification();
       }
@@ -121,8 +128,7 @@ namespace DafnyLanguage.DafnyMenu
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
       DafnyLanguage.ProgressTagger tagger;
-      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);
-      if (tagger != null)
+      if (dte.ActiveDocument != null && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger))
       {
         tagger.StartVerification();
       }
@@ -131,7 +137,8 @@ namespace DafnyLanguage.DafnyMenu
     void menuCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
-      var isActive = dte.ActiveDocument.FullName.EndsWith(".dfy", StringComparison.OrdinalIgnoreCase);
+      var isActive = dte.ActiveDocument != null
+                     && dte.ActiveDocument.FullName.EndsWith(".dfy", StringComparison.OrdinalIgnoreCase);
       menuCommand.Visible = isActive;
       menuCommand.Enabled = isActive;
     }
@@ -140,26 +147,32 @@ namespace DafnyLanguage.DafnyMenu
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
       DafnyLanguage.ProgressTagger tagger;
-      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);
-      runVerifierCommand.Visible = tagger != null && tagger.VerificationDisabled;
-      runVerifierCommand.Enabled = tagger != null && tagger.VerificationDisabled;
+      var enabled = dte.ActiveDocument != null
+                 && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger)
+                 && tagger != null && tagger.VerificationDisabled;
+      runVerifierCommand.Visible = enabled;
+      runVerifierCommand.Enabled = enabled;
     }
 
     void stopVerifierCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
       DafnyLanguage.ProgressTagger tagger;
-      DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger);
-      stopVerifierCommand.Visible = !(tagger != null && tagger.VerificationDisabled);
-      stopVerifierCommand.Enabled = !(tagger != null && tagger.VerificationDisabled);
+      var disabled = dte.ActiveDocument != null
+                    && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(dte.ActiveDocument.FullName, out tagger)
+                    && tagger != null && tagger.VerificationDisabled;
+      stopVerifierCommand.Visible = !disabled;
+      stopVerifierCommand.Enabled = !disabled;
     }
 
     void compileCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
-      Microsoft.Dafny.Program program;
-      DafnyLanguage.ResolverTagger.Programs.TryGetValue(dte.ActiveDocument.FullName, out program);
-      compileCommand.Enabled = (program != null);
+      ResolverTagger resolver;
+      var enabled = dte.ActiveDocument != null
+                    && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(dte.ActiveDocument.FullName, out resolver)
+                    && resolver.Program != null;
+      compileCommand.Enabled = enabled;
     }
 
     #endregion
@@ -173,18 +186,63 @@ namespace DafnyLanguage.DafnyMenu
     private void CompileCallback(object sender, EventArgs e)
     {
       var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
-      Microsoft.Dafny.Program program;
-      DafnyLanguage.ResolverTagger.Programs.TryGetValue(dte.ActiveDocument.FullName, out program);
+      ResolverTagger resolver;
 
-      if (program != null)
+      if (dte.ActiveDocument != null
+          && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(dte.ActiveDocument.FullName, out resolver)
+          && resolver.Program != null)
       {
         IVsStatusbar statusBar = (IVsStatusbar)GetGlobalService(typeof(SVsStatusbar));
         uint cookie = 0;
         statusBar.Progress(ref cookie, 1, "Compiling...", 0, 0);
 
-        DafnyDriver.Compile(program);
+        DafnyDriver.Compile(resolver.Program);
 
         statusBar.Progress(ref cookie, 0, "", 0, 0);
+      }
+    }
+
+    /// <summary>
+    /// Show error model.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    void showErrorModelCommand_BeforeQueryStatus(object sender, EventArgs e)
+    {
+      var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+      ResolverTagger resolver;
+      var visible = dte.ActiveDocument != null
+                    && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(dte.ActiveDocument.FullName, out resolver)
+                    && resolver.Program != null
+                    && resolver.VerificationErrors.Any(err => !string.IsNullOrEmpty(err.Model));
+      showErrorModelCommand.Visible = false; // TODO(wuestholz): Enable this.
+    }
+
+    private void ShowErrorModelCallback(object sender, EventArgs e)
+    {
+      var dte = GetGlobalService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+      ResolverTagger resolver = null;
+      var show = dte.ActiveDocument != null
+                 && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(dte.ActiveDocument.FullName, out resolver)
+                 && resolver.Program != null
+                 && resolver.VerificationErrors.Any(err => !string.IsNullOrEmpty(err.Model));
+      if (show)
+      {
+        var window = this.FindToolWindow(typeof(BvdToolWindow), 0, true);
+        if ((window == null) || (window.Frame == null))
+        {
+          throw new NotSupportedException("Can not create BvdToolWindow.");
+        }
+
+        var models = resolver.VerificationErrors.Select(err => err.Model).Where(m => !string.IsNullOrEmpty(m)).ToArray();
+
+        for (int i = 0; i < models.Length; i++)
+        {
+          BvdToolWindow.BVD.ReadModel(models[i], i);
+        }
+
+        IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
+        Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
       }
     }
   }
