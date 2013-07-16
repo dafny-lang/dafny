@@ -108,7 +108,7 @@
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>DefaultInvisible</CommandFlag>
         <Strings>
-          <ButtonText>Show error model</ButtonText>
+          <ButtonText>Show model for selected error in BVD</ButtonText>
         </Strings>
       </Button>
 

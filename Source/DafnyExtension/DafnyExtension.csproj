@@ -187,9 +187,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferIdleEventUtil.cs" />
+    <Compile Include="ErrorModelTagger.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HoverText.cs" />
     <Compile Include="IdentifierTagger.cs" />
+    <Compile Include="IntraTextAdornmentTagger.cs" />
     <Compile Include="ProgressMargin.cs" />
     <Compile Include="OutliningTagger.cs" />
     <Compile Include="ResolverTagger.cs" />

@@ -23,20 +23,21 @@ namespace DafnyLanguage
 {
 
   #region UI stuff
+
   internal class ProgressMarginGlyphFactory : IGlyphFactory
   {
     public UIElement GenerateGlyph(IWpfTextViewLine line, IGlyphTag tag) {
-      var dtag = tag as ProgressGlyphTag;
-      if (dtag == null) {
+      var pgt = tag as ProgressGlyphTag;
+      if (pgt == null) {
         return null;
       }
 
-      System.Windows.Shapes.Rectangle sh = new Rectangle() {
-        Fill = dtag.Val == 0 ? Brushes.Violet : Brushes.DarkOrange,
+      return new Rectangle()
+      {
+        Fill = pgt.Val == 0 ? Brushes.Violet : Brushes.DarkOrange,
         Height = 18.0,
         Width = 3.0
       };
-      return sh;
     }
   }
 
@@ -59,6 +60,7 @@ namespace DafnyLanguage
       Val = val;
     }
   }
+
   #endregion
 
 
@@ -79,7 +81,7 @@ namespace DafnyLanguage
     ITextDocumentFactoryService _textDocumentFactory = null;
 
     public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag {
-      ITagAggregator<DafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<DafnyResolverTag>(buffer);
+      ITagAggregator<IDafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<IDafnyResolverTag>(buffer);
       // create a single tagger for each buffer.
       Func<ITagger<T>> sc = delegate() { return new ProgressTagger(buffer, _serviceProvider, tagAggregator, _textDocumentFactory) as ITagger<T>; };
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
@@ -100,7 +102,7 @@ namespace DafnyLanguage
 
     readonly DispatcherTimer timer;
 
-    public ProgressTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITagAggregator<DafnyResolverTag> tagAggregator, ITextDocumentFactoryService textDocumentFactory) {
+    public ProgressTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITagAggregator<IDafnyResolverTag> tagAggregator, ITextDocumentFactoryService textDocumentFactory) {
       _buffer = buffer;
 
       if (!textDocumentFactory.TryGetTextDocument(_buffer, out _document))
@@ -357,7 +359,8 @@ namespace DafnyLanguage
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
-    IEnumerable<ITagSpan<ProgressGlyphTag>> ITagger<ProgressGlyphTag>.GetTags(NormalizedSnapshotSpanCollection spans) {
+    IEnumerable<ITagSpan<ProgressGlyphTag>> ITagger<ProgressGlyphTag>.GetTags(NormalizedSnapshotSpanCollection spans)
+    {
       if (spans.Count == 0) yield break;
       var targetSnapshot = spans[0].Snapshot;
 

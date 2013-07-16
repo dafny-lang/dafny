@@ -30,7 +30,7 @@ namespace DafnyLanguage
     internal IBufferTagAggregatorFactoryService AggregatorFactory = null;
 
     public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag {
-      ITagAggregator<DafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<DafnyResolverTag>(buffer);
+      ITagAggregator<IDafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<IDafnyResolverTag>(buffer);
       // create a single tagger for each buffer.
       Func<ITagger<T>> sc = delegate() { return new OutliningTagger(buffer, tagAggregator) as ITagger<T>; };
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
@@ -51,9 +51,9 @@ namespace DafnyLanguage
     ITextSnapshot _snapshot;  // the most recent snapshot of _buffer that we have been informed about
     Dafny.Program _program;  // the program parsed from _snapshot
     List<OutliningRegion> _regions = new List<OutliningRegion>();  // the regions generated from _program
-    ITagAggregator<DafnyResolverTag> _aggregator;
+    ITagAggregator<IDafnyResolverTag> _aggregator;
 
-    internal OutliningTagger(ITextBuffer buffer, ITagAggregator<DafnyResolverTag> tagAggregator) {
+    internal OutliningTagger(ITextBuffer buffer, ITagAggregator<IDafnyResolverTag> tagAggregator) {
       _buffer = buffer;
       _snapshot = _buffer.CurrentSnapshot;
       _aggregator = tagAggregator;

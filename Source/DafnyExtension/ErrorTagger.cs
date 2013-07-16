@@ -19,15 +19,16 @@ namespace DafnyLanguage
   #region Provider
 
   [Export(typeof(ITaggerProvider))]
+  [Name("ErrorTagger")]
   [ContentType("dafny")]
-  [TagType(typeof(ErrorTag))]
+  [TagType(typeof(IErrorTag))]
   internal sealed class ErrorTaggerProvider : ITaggerProvider
   {
     [Import]
     internal IBufferTagAggregatorFactoryService AggregatorFactory = null;
 
     public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag {
-      ITagAggregator<DafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<DafnyResolverTag>(buffer);
+      ITagAggregator<IDafnyResolverTag> tagAggregator = AggregatorFactory.CreateTagAggregator<IDafnyResolverTag>(buffer);
       // create a single tagger for each buffer.
       Func<ITagger<T>> sc = delegate() { return new ErrorTagger(buffer, tagAggregator) as ITagger<T>; };
       return buffer.Properties.GetOrCreateSingletonProperty<ITagger<T>>(sc);
@@ -42,12 +43,12 @@ namespace DafnyLanguage
   /// <summary>
   /// Translate PkgDefTokenTags into ErrorTags and Error List items
   /// </summary>
-  internal sealed class ErrorTagger : ITagger<ErrorTag>
+  internal sealed class ErrorTagger : ITagger<IErrorTag>
   {
     ITextBuffer _buffer;
-    ITagAggregator<DafnyResolverTag> _aggregator;
+    ITagAggregator<IDafnyResolverTag> _aggregator;
 
-    internal ErrorTagger(ITextBuffer buffer, ITagAggregator<DafnyResolverTag> tagAggregator) {
+    internal ErrorTagger(ITextBuffer buffer, ITagAggregator<IDafnyResolverTag> tagAggregator) {
       _buffer = buffer;
       _aggregator = tagAggregator;
       _aggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
@@ -56,15 +57,14 @@ namespace DafnyLanguage
     /// <summary>
     /// Find the Error tokens in the set of all tokens and create an ErrorTag for each
     /// </summary>
-    public IEnumerable<ITagSpan<ErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
+    public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
       var snapshot = spans[0].Snapshot;
       foreach (var tagSpan in this._aggregator.GetTags(spans)) {
-        DafnyResolverTag t = tagSpan.Tag;
-        DafnyErrorResolverTag et = t as DafnyErrorResolverTag;
+        var et = tagSpan.Tag as IErrorTag;
         if (et != null) {
           foreach (SnapshotSpan s in tagSpan.Span.GetSpans(snapshot)) {
-            yield return new TagSpan<ErrorTag>(s, new ErrorTag(et.Typ, et.Msg));
+            yield return new TagSpan<IErrorTag>(s, et);
           }
         }
       }

@@ -10,9 +10,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
-using System.IO;
 using System.Linq;
-using EnvDTE;
+using System.Windows.Shapes;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -30,7 +29,7 @@ namespace DafnyLanguage
 
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
-  [TagType(typeof(DafnyResolverTag))]
+  [TagType(typeof(IDafnyResolverTag))]
   internal sealed class ResolverTaggerProvider : ITaggerProvider
   {
     [Import(typeof(Microsoft.VisualStudio.Shell.SVsServiceProvider))]
@@ -54,22 +53,43 @@ namespace DafnyLanguage
 
   #region Tags
 
-  public abstract class DafnyResolverTag : ITag
+  public interface IDafnyResolverTag : ITag
   {
   }
 
-  public class DafnyErrorResolverTag : DafnyResolverTag
+  public class DafnyErrorResolverTag : ErrorTag, IDafnyResolverTag
   {
-    public readonly string Typ;
-    public readonly string Msg;
-    public DafnyErrorResolverTag(string typ, string msg)
+    public DafnyError Error { get; private set; }
+
+    public DafnyErrorResolverTag(DafnyError error)
+      : base(ErrorType(error), error.Message)
     {
-      Typ = typ;
-      Msg = msg;
+      Error = error;
+    }
+    
+    private static string ErrorType(DafnyError err)
+    {
+      string ty;  // the COLORs below indicate what I see on my machine
+      switch (err.Category)
+      {
+        default:  // unexpected category
+        case ErrorCategory.ParseError:
+        case ErrorCategory.ParseWarning:
+          ty = "syntax error"; break;  // COLOR: red
+        case ErrorCategory.ResolveError:
+          ty = "compiler error"; break;  // COLOR: blue
+        case ErrorCategory.VerificationError:
+          ty = "error"; break;  // COLOR: red
+        case ErrorCategory.AuxInformation:
+          ty = "other error"; break;  // COLOR: purple red
+        case ErrorCategory.InternalError:
+          ty = "error"; break;  // COLOR: red
+      }
+      return ty;
     }
   }
 
-  public class DafnySuccessResolverTag : DafnyResolverTag
+  public class DafnySuccessResolverTag : IDafnyResolverTag
   {
     public readonly Dafny.Program Program;
     public DafnySuccessResolverTag(Dafny.Program program)
@@ -84,7 +104,7 @@ namespace DafnyLanguage
   /// <summary>
   /// Translate PkgDefTokenTags into ErrorTags and Error List items
   /// </summary>
-  public sealed class ResolverTagger : ITagger<DafnyResolverTag>, IDisposable
+  public sealed class ResolverTagger : ITagger<IDafnyResolverTag>, IDisposable
   {
     readonly ITextBuffer _buffer;
     readonly ITextDocument _document;
@@ -228,7 +248,7 @@ namespace DafnyLanguage
     /// <summary>
     /// Find the Error tokens in the set of all tokens and create an ErrorTag for each
     /// </summary>
-    public IEnumerable<ITagSpan<DafnyResolverTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+    public IEnumerable<ITagSpan<IDafnyResolverTag>> GetTags(NormalizedSnapshotSpanCollection spans)
     {
       if (spans.Count == 0) yield break;
       var currentSnapshot = spans[0].Snapshot;
@@ -236,23 +256,7 @@ namespace DafnyLanguage
       {
         if (err.Category != ErrorCategory.ProcessError)
         {
-          string ty;  // the COLORs below indicate what I see on my machine
-          switch (err.Category)
-          {
-            default:  // unexpected category
-            case ErrorCategory.ParseError:
-            case ErrorCategory.ParseWarning:
-              ty = "syntax error"; break;  // COLOR: red
-            case ErrorCategory.ResolveError:
-              ty = "compiler error"; break;  // COLOR: blue
-            case ErrorCategory.VerificationError:
-              ty = "error"; break;  // COLOR: red
-            case ErrorCategory.AuxInformation:
-              ty = "other error"; break;  // COLOR: purple red
-            case ErrorCategory.InternalError:
-              ty = "error"; break;  // COLOR: red
-          }
-          yield return new TagSpan<DafnyResolverTag>(err.Span.GetSpan(currentSnapshot), new DafnyErrorResolverTag(ty, err.Message));
+          yield return new TagSpan<IDafnyResolverTag>(err.Span.GetSpan(currentSnapshot), new DafnyErrorResolverTag(err));
         }
       }
 
@@ -265,7 +269,7 @@ namespace DafnyLanguage
       }
       if (prog != null)
       {
-        yield return new TagSpan<DafnyResolverTag>(new SnapshotSpan(snap, 0, snap.Length), new DafnySuccessResolverTag(prog));
+        yield return new TagSpan<IDafnyResolverTag>(new SnapshotSpan(snap, 0, snap.Length), new DafnySuccessResolverTag(prog));
       }
     }
 
@@ -345,6 +349,11 @@ namespace DafnyLanguage
               task.Navigate += new EventHandler(NavigateHandler);
             }
             _errorProvider.Tasks.Add(task);
+
+            if (err.Model != null)
+            {
+
+            }
           }
           _errorProvider.ResumeRefresh();
         }
@@ -440,6 +449,18 @@ namespace DafnyLanguage
     public readonly string Message;
     public readonly ITrackingSpan Span;
     public readonly string Model;
+    public bool IsSelected { get { return SelectedError == this; } }
+    private readonly ErrorSelection _errorSelection;
+    public DafnyError SelectedError { get { return _errorSelection.Error; } set { _errorSelection.Error = value; } }
+    public Shape Adornment;
+
+    internal class ErrorSelection
+    {
+      internal DafnyError Error = null;
+    }
+
+    internal static readonly ErrorSelection _errorSelectionSingleton = new ErrorSelection();
+
 
     /// <summary>
     /// "line" and "col" are expected to be 0-based
@@ -455,6 +476,7 @@ namespace DafnyLanguage
       var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
       Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
       Model = model;
+      _errorSelection = _errorSelectionSingleton;
     }
   }
 

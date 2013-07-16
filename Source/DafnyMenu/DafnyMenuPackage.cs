@@ -215,7 +215,7 @@ namespace DafnyLanguage.DafnyMenu
                     && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(dte.ActiveDocument.FullName, out resolver)
                     && resolver.Program != null
                     && resolver.VerificationErrors.Any(err => !string.IsNullOrEmpty(err.Model));
-      showErrorModelCommand.Visible = false; // TODO(wuestholz): Enable this.
+      showErrorModelCommand.Visible = visible;
     }
 
     private void ShowErrorModelCallback(object sender, EventArgs e)
@@ -225,7 +225,7 @@ namespace DafnyLanguage.DafnyMenu
       var show = dte.ActiveDocument != null
                  && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(dte.ActiveDocument.FullName, out resolver)
                  && resolver.Program != null
-                 && resolver.VerificationErrors.Any(err => !string.IsNullOrEmpty(err.Model));
+                 && resolver.VerificationErrors.Any(err => err.IsSelected && !string.IsNullOrEmpty(err.Model));
       if (show)
       {
         var window = this.FindToolWindow(typeof(BvdToolWindow), 0, true);
@@ -234,11 +234,10 @@ namespace DafnyLanguage.DafnyMenu
           throw new NotSupportedException("Can not create BvdToolWindow.");
         }
 
-        var models = resolver.VerificationErrors.Select(err => err.Model).Where(m => !string.IsNullOrEmpty(m)).ToArray();
-
-        for (int i = 0; i < models.Length; i++)
+        var selectedError = resolver.VerificationErrors.FirstOrDefault(err => err.IsSelected && !string.IsNullOrEmpty(err.Model));
+        if (selectedError != null)
         {
-          BvdToolWindow.BVD.ReadModel(models[i], i);
+          BvdToolWindow.BVD.ReadModel(selectedError.Model);
         }
 
         IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
