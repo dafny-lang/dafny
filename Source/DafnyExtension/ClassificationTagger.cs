@@ -59,6 +59,7 @@ namespace DafnyLanguage
       _typeMap[DafnyTokenKind.String] = standards.StringLiteral;
       _typeMap[DafnyTokenKind.Comment] = standards.Comment;
       _typeMap[DafnyTokenKind.VariableIdentifier] = standards.Identifier;
+      _typeMap[DafnyTokenKind.AdditionalInformation] = standards.Other;
       _typeMap[DafnyTokenKind.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
 
       if (!DafnyMenuWasInitialized)

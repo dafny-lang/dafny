@@ -62,6 +62,13 @@ namespace Microsoft.Dafny
     }
   }
 
+  public struct AdditionalInformation
+  {
+    public IToken Token;
+    public string Text;
+    public int Length;
+  }
+
   public class Resolver : ResolutionErrorReporter
   {
     readonly BuiltIns builtIns;
@@ -69,6 +76,16 @@ namespace Microsoft.Dafny
     //Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes;  // can map to AmbiguousTopLevelDecl
     //Dictionary<string, ModuleDecl> importedNames; // the imported modules, as a map.
     ModuleSignature moduleInfo = null;
+
+    public Action<AdditionalInformation> AdditionalInformationReporter;
+
+    internal void ReportAddionalInformation(IToken token, string text, int length)
+    {
+      if (AdditionalInformationReporter != null)
+      {
+        AdditionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = length });
+      }
+    }
 
     class AmbiguousTopLevelDecl : TopLevelDecl  // only used with "classes"
     {
@@ -1532,6 +1549,7 @@ namespace Microsoft.Dafny
               var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
               if (status != TailRecursionStatus.NotTailRecursive) {
                 m.IsTailRecursive = true;
+                ReportAddionalInformation(m.tok, "is tail recursive", m.Name.Length);
               }
             }
           }

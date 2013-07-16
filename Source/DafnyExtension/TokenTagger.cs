@@ -30,7 +30,8 @@ namespace DafnyLanguage
   public enum DafnyTokenKind
   {
     Keyword, Number, String, Comment,
-    VariableIdentifier, VariableIdentifierDefinition
+    VariableIdentifier, VariableIdentifierDefinition,
+    AdditionalInformation
   }
 
   public class DafnyTokenTag : ITag

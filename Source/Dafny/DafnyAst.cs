@@ -25,7 +25,9 @@ namespace Microsoft.Dafny {
                                                      // purposes of translation and compilation.
     public List<ModuleDefinition> CompileModules; // filled in during resolution.
                                                   // Contains the definitions to be used for compilation.
-                                    
+
+    List<AdditionalInformation> _additionalInformation = new List<AdditionalInformation>();
+    public List<AdditionalInformation> AdditionalInformation { get { return _additionalInformation; } }
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;

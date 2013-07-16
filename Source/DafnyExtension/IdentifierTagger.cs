@@ -87,6 +87,8 @@ namespace DafnyLanguage
               kind = DafnyTokenKind.VariableIdentifierDefinition; break;
             case IdRegion.OccurrenceKind.WildDefinition:
               kind = DafnyTokenKind.Keyword; break;
+            case IdRegion.OccurrenceKind.AdditionalInformation:
+              kind = DafnyTokenKind.AdditionalInformation; break;
             default:
               Contract.Assert(false);  // unexpected OccurrenceKind
               goto case IdRegion.OccurrenceKind.Use;  // to please compiler
@@ -133,6 +135,11 @@ namespace DafnyLanguage
         return false;  // no new regions
 
       List<IdRegion> newRegions = new List<IdRegion>();
+
+      foreach (var addInfo in program.AdditionalInformation)
+      {
+        IdRegion.Add(newRegions, addInfo.Token, addInfo.Text, addInfo.Length);
+      }
 
       foreach (var module in program.Modules) {
         if (module.IsFacade) {
@@ -316,7 +323,7 @@ namespace DafnyLanguage
       public readonly int Start;
       public readonly int Length;
       public readonly string HoverText;
-      public enum OccurrenceKind { Use, Definition, WildDefinition }
+      public enum OccurrenceKind { Use, Definition, WildDefinition, AdditionalInformation }
       public readonly OccurrenceKind Kind;
 
       static bool SurfaceSyntaxToken(Bpl.IToken tok) {
@@ -345,6 +352,15 @@ namespace DafnyLanguage
         Contract.Requires(kind != null);
         if (SurfaceSyntaxToken(tok)) {
           regions.Add(new IdRegion(tok, decl, showType, kind, isDefinition, context));
+        }
+      }
+
+      public static void Add(List<IdRegion> regions, Bpl.IToken tok, string text, int length) {
+        Contract.Requires(regions != null);
+        Contract.Requires(tok != null);
+        Contract.Requires(text != null);
+        if (SurfaceSyntaxToken(tok)) {
+          regions.Add(new IdRegion(tok, OccurrenceKind.AdditionalInformation, text, length));
         }
       }
 
@@ -384,6 +400,14 @@ namespace DafnyLanguage
           kind,
           decl.IsUserMutable || decl is DatatypeDestructor ? "" : decl.IsMutable ? " non-assignable " : "immutable ");
         Kind = !isDefinition ? OccurrenceKind.Use : OccurrenceKind.Definition;
+      }
+
+      private IdRegion(Bpl.IToken tok, OccurrenceKind occurrenceKind, string info, int length)
+      {
+        this.Start = tok.pos;
+        this.Length = length;
+        this.Kind = occurrenceKind;
+        this.HoverText = info;
       }
     }
   }

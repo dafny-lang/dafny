@@ -1,8 +1,11 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
 using Microsoft.VisualStudio.Text;
 using Bpl = Microsoft.Boogie;
 using Dafny = Microsoft.Dafny;
@@ -98,11 +101,12 @@ namespace DafnyLanguage
         return false;
       Dafny.Program program = new Dafny.Program(_filename, module, builtIns);
 
-      Dafny.Resolver r = new VSResolver(program, this);
+      var r = new VSResolver(program, this);
       r.ResolveProgram(program);
       if (r.ErrorCount != 0)
         return false;
 
+      program.AdditionalInformation.AddRange(r.AdditionalInformation);
       _program = program;
       return true;  // success
     }
@@ -134,10 +138,24 @@ namespace DafnyLanguage
     class VSResolver : Dafny.Resolver
     {
       DafnyDriver dd;
+      Dictionary<IToken, HashSet<AdditionalInformation>> _additionalInformation = new Dictionary<IToken, HashSet<AdditionalInformation>>();
+      public List<AdditionalInformation> AdditionalInformation { get { return _additionalInformation.Values.SelectMany(i => i).ToList(); } }
+
       public VSResolver(Dafny.Program program, DafnyDriver dd)
         : base(program) {
         this.dd = dd;
+
+        AdditionalInformationReporter =
+          (addinfo)
+            =>
+            {
+              if (!_additionalInformation.ContainsKey(addinfo.Token)) {
+                _additionalInformation.Add(addinfo.Token, new HashSet<AdditionalInformation>());
+              }
+              _additionalInformation[addinfo.Token].Add(addinfo);
+            };
       }
+
       public override void Error(Bpl.IToken tok, string msg, params object[] args) {
         string s = string.Format(msg, args);
         dd.RecordError(tok.line - 1, tok.col - 1, ErrorCategory.ResolveError, s);
