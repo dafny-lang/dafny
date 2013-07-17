@@ -150,7 +150,7 @@ ghost method Example7<A>(f: FunctionHandle<LList<A>>)
   // Given the definition of h, prove h(f, _) == Iterates(f, _):
   ensures forall M :: h(f, M) == Iterates(f, M);
 {
-  forall (M) {
+  forall M {
     BisimulationLemma(0, f, M);
   }
 }

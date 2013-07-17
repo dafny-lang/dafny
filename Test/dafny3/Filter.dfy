@@ -164,7 +164,7 @@ ghost method Theorem_Filter<T>(s: Stream<T>, h: PredicateHandle)
   requires AlwaysAnother(s, h);
   ensures forall x :: In(x, Filter(s, h)) <==> In(x, s) && P(x, h);
 {
-  forall (x)
+  forall x
     ensures In(x, Filter(s, h)) <==> In(x, s) && P(x, h);
   {
     if In(x, Filter(s, h)) {
