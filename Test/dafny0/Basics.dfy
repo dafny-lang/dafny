@@ -336,4 +336,43 @@ module SetCardinality {
     ensures |s| != 0 ==> var x :| x in s; true;
   {
   }
+
+  method G<T>(s: set<T>, t: set<T>)
+    requires s <= t;
+    ensures |s| <= |t|;  // it doesn't get this immediately, but the method body offers different proofs
+  {
+    if {
+      case true =>  assert |t - s| + |t * s| == |t|;
+      case true =>  calc {
+                      |s| <= |t|;
+                    <==
+                      |s - s| <= |t - s|;
+                    }
+      case true =>  assert 0 <= |t - s|;
+    }
+  }
+
+  method H(s: multiset<int>, t: multiset<int>)
+    requires s <= t;
+    ensures |s| <= |t|;  // it doesn't get this immediately, but the method body offers different proofs
+  {
+    if {
+      case true =>  assert |t - s| + |t * s| == |t|;
+      case true =>  calc {
+                      |s| <= |t|;
+                    <==
+                      |s - s| <= |t - s|;
+                    }
+      case true =>  assert 0 <= |t - s|;
+    }
+  }
+
+  method K<T>(s: multiset<T>, t: multiset<T>)
+  {
+    assert |s * t|    +    |t * s|
+                      +
+              |s - t| + |t - s|
+                     ==
+                   |s + t|;
+  }
 }

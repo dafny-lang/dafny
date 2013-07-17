@@ -65,8 +65,8 @@ axiom (forall<T> a, b: Set T :: { Set#Union(a, b) }
     Set#Difference(Set#Union(a, b), b) == a);
 // Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
 // axiom (forall<T> a, b: Set T :: { Set#Card(Set#Union(a, b)) }
-  // Set#Disjoint(a, b) ==>
-    // Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));    
+//   Set#Disjoint(a, b) ==>
+//     Set#Card(Set#Union(a, b)) == Set#Card(a) + Set#Card(b));
 
 function Set#Intersection<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Intersection(a,b)[o] }
@@ -81,20 +81,26 @@ axiom (forall<T> a, b: Set T :: { Set#Intersection(Set#Intersection(a, b), b) }
 axiom (forall<T> a, b: Set T :: { Set#Intersection(a, Set#Intersection(a, b)) }
   Set#Intersection(a, Set#Intersection(a, b)) == Set#Intersection(a, b));
 axiom (forall<T> a, b: Set T :: { Set#Card(Set#Union(a, b)) }{ Set#Card(Set#Intersection(a, b)) }
-  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));  
+  Set#Card(Set#Union(a, b)) + Set#Card(Set#Intersection(a, b)) == Set#Card(a) + Set#Card(b));
 
 function Set#Difference<T>(Set T, Set T): Set T;
 axiom (forall<T> a: Set T, b: Set T, o: T :: { Set#Difference(a,b)[o] }
   Set#Difference(a,b)[o] <==> a[o] && !b[o]);
 axiom (forall<T> a, b: Set T, y: T :: { Set#Difference(a, b), b[y] }
   b[y] ==> !Set#Difference(a, b)[y] );
+axiom (forall<T> a, b: Set T ::
+  { Set#Card(Set#Difference(a, b)) }
+  Set#Card(Set#Difference(a, b)) + Set#Card(Set#Difference(b, a)) 
+  + Set#Card(Set#Intersection(a, b))
+    == Set#Card(Set#Union(a, b)) &&
+  Set#Card(Set#Difference(a, b)) == Set#Card(a) - Set#Card(Set#Intersection(a, b)));
 
 function Set#Subset<T>(Set T, Set T): bool;
 axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
-//axiom(forall<T> a: Set T, b: Set T ::
-// { Set#Subset(a,b), Set#Card(a), Set#Card(b) }  // very restrictive trigger
-//  Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
+// axiom(forall<T> a: Set T, b: Set T ::
+//   { Set#Subset(a,b), Set#Card(a), Set#Card(b) }  // very restrictive trigger
+//   Set#Subset(a,b) ==> Set#Card(a) <= Set#Card(b));
   
 
 function Set#Equal<T>(Set T, Set T): bool;
@@ -167,17 +173,6 @@ axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Union(a,b)[o] 
 axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Card(MultiSet#Union(a,b)) }
   MultiSet#Card(MultiSet#Union(a,b)) == MultiSet#Card(a) + MultiSet#Card(b));
   
-// two containment axioms
-axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Union(a, b), a[y] }
-  0 < a[y] ==> 0 < MultiSet#Union(a, b)[y]);
-axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Union(a, b), b[y] }
-  0 < b[y] ==> 0 < MultiSet#Union(a, b)[y]);
-
-// symmetry axiom
-axiom (forall<T> a, b: MultiSet T :: { MultiSet#Union(a, b) }
-  MultiSet#Difference(MultiSet#Union(a, b), a) == b &&
-  MultiSet#Difference(MultiSet#Union(a, b), b) == a);
-
 function MultiSet#Intersection<T>(MultiSet T, MultiSet T): MultiSet T;
 axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Intersection(a,b)[o] }
   MultiSet#Intersection(a,b)[o] == Math#min(a[o],  b[o]));
@@ -194,6 +189,12 @@ axiom (forall<T> a: MultiSet T, b: MultiSet T, o: T :: { MultiSet#Difference(a,b
   MultiSet#Difference(a,b)[o] == Math#clip(a[o] - b[o]));
 axiom (forall<T> a, b: MultiSet T, y: T :: { MultiSet#Difference(a, b), b[y], a[y] }
   a[y] <= b[y] ==> MultiSet#Difference(a, b)[y] == 0 );
+axiom (forall<T> a, b: MultiSet T ::
+  { MultiSet#Card(MultiSet#Difference(a, b)) }
+  MultiSet#Card(MultiSet#Difference(a, b)) + MultiSet#Card(MultiSet#Difference(b, a)) 
+  + 2 * MultiSet#Card(MultiSet#Intersection(a, b))
+    == MultiSet#Card(MultiSet#Union(a, b)) &&
+  MultiSet#Card(MultiSet#Difference(a, b)) == MultiSet#Card(a) - MultiSet#Card(MultiSet#Intersection(a, b)));
 
 // multiset subset means a must have at most as many of each element as b
 function MultiSet#Subset<T>(MultiSet T, MultiSet T): bool;
@@ -464,7 +465,7 @@ axiom (forall<U, V> m: Map U V, m': Map U V::
     Map#Equal(m, m') <==> (forall u : U :: Map#Domain(m)[u] == Map#Domain(m')[u]) &&
                           (forall u : U :: Map#Domain(m)[u] ==> Map#Elements(m)[u] == Map#Elements(m')[u]));
 // extensionality
-axiom  (forall<U, V> m: Map U V, m': Map U V::
+axiom (forall<U, V> m: Map U V, m': Map U V::
   { Map#Equal(m, m') }
     Map#Equal(m, m') ==> m == m');
 

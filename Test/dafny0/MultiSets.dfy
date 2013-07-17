@@ -248,3 +248,22 @@ method LetSuchThatExpression(s: multiset<int>)
   ensures |s| != 0 ==> var x :| x in s; true;
 {
 }
+
+// ----------- things that at one point were axioms -------------
+
+method MultiSetProperty0(s: multiset<object>, t: multiset<object>, p: object)
+{
+  if 0 < s[p] {
+    assert 0 < (s + t)[p];
+  }
+  if 0 < t[p] {
+    assert 0 < (s + t)[p];
+  }
+  if * {
+    assert s + t - s == t;
+  } else if * {
+    assert s + t - t == s;
+  } else {
+    assert s + (t - s) == t;  // error
+  }
+}
