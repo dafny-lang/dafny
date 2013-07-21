@@ -68,6 +68,7 @@ namespace DafnyLanguage
 
   [Export(typeof(ITaggerProvider))]
   [ContentType("dafny")]
+  [Name("ProgressTagger")]
   [TagType(typeof(ProgressGlyphTag))]
   class ProgressTaggerProvider : ITaggerProvider
   {

@@ -60,7 +60,7 @@ namespace DafnyLanguage
     public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans) {
       if (spans.Count == 0) yield break;
       var snapshot = spans[0].Snapshot;
-      foreach (var tagSpan in this._aggregator.GetTags(spans)) {
+      foreach (var tagSpan in _aggregator.GetTags(spans)) {
         var et = tagSpan.Tag as IErrorTag;
         if (et != null) {
           foreach (SnapshotSpan s in tagSpan.Span.GetSpans(snapshot)) {

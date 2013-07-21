@@ -238,6 +238,7 @@ namespace DafnyLanguage.DafnyMenu
         if (selectedError != null)
         {
           BvdToolWindow.BVD.ReadModel(selectedError.Model);
+          BvdToolWindow.BVD.SetState(selectedError.SelectedStateId, true);
         }
 
         IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;

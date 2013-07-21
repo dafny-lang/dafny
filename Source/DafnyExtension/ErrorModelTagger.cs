@@ -1,15 +1,8 @@
-﻿//***************************************************************************
-// Copyright © 2010 Microsoft Corporation.  All Rights Reserved.
-// This code released under the terms of the
-// Microsoft Public License (MS-PL, http://opensource.org/licenses/ms-pl.html.)
-//***************************************************************************
-
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.Diagnostics.Contracts;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -27,7 +20,7 @@ namespace DafnyLanguage
   [Export(typeof(IViewTaggerProvider))]
   [ContentType("dafny")]
   [Name("ErrorModelTagger")]
-  [Order(After = "ErrorTagger")]
+  [Order(After = "ProgressTagger")]
   [TextViewRole(PredefinedTextViewRoles.Document)]
   [TagType(typeof(IntraTextAdornmentTag))]
   internal sealed class ErrorModelTaggerProvider : IViewTaggerProvider
@@ -59,7 +52,7 @@ namespace DafnyLanguage
 
   #region Tagger
 
-  internal sealed class ErrorModelTagger : IntraTextAdornmentTagger<IDafnyResolverTag, Ellipse>, IDisposable
+  internal sealed class ErrorModelTagger : ITagger<IntraTextAdornmentTag>, IDisposable
   {
     IWpfTextView _view;
     ITagAggregator<IDafnyResolverTag> _aggregator;
@@ -71,7 +64,6 @@ namespace DafnyLanguage
     }
 
     private ErrorModelTagger(IWpfTextView view, ITagAggregator<IDafnyResolverTag> aggregator)
-      : base(view)
     {
       _view = view;
       _aggregator = aggregator;
@@ -80,61 +72,150 @@ namespace DafnyLanguage
 
     public void Dispose()
     {
-      this._aggregator.Dispose();
-
-      base.view.Properties.RemoveProperty(typeof(ErrorModelTagger));
+      _aggregator.Dispose();
+      _view.Properties.RemoveProperty(typeof(ErrorModelTagger));
     }
 
-    // To produce adornments that don't obscure the text, the adornment tags
-    // should have zero length spans. Overriding this method allows control
-    // over the tag spans.
-    protected override IEnumerable<Tuple<SnapshotSpan, PositionAffinity?, IDafnyResolverTag>> GetAdornmentData(NormalizedSnapshotSpanCollection spans)
+    public IEnumerable<ITagSpan<IntraTextAdornmentTag>> GetTags(NormalizedSnapshotSpanCollection spans)
     {
-      if (spans.Count == 0)
-        yield break;
+      if (spans.Count == 0) yield break;
+      var snapshot = spans[0].Snapshot;
 
-      ITextSnapshot snapshot = spans[0].Snapshot;
-
-      var tags = this._aggregator.GetTags(spans);
-
-      foreach (IMappingTagSpan<IDafnyResolverTag> tag in tags)
+      var adornmentsPerSnapshot = new Dictionary<SnapshotSpan, List<Ellipse>>();
+      foreach (var tag in _aggregator.GetTags(spans))
       {
         var ertag = tag.Tag as DafnyErrorResolverTag;
         if (ertag != null && ertag.Error.Model != null)
         {
           NormalizedSnapshotSpanCollection normSpans = tag.Span.GetSpans(snapshot);
 
-          // Ignore data tags that are split by projection.
-          // This is theoretically possible but unlikely in current scenarios.
           if (normSpans.Count != 1)
             continue;
 
-          yield return Tuple.Create(new SnapshotSpan(normSpans[0].Start, 0), (PositionAffinity?)PositionAffinity.Successor, tag.Tag);
+          var adornment = _view.VisualElement.Dispatcher.Invoke(() => CreateErrorAdornment(ertag));
+          var span = new SnapshotSpan(normSpans[0].Start, 0);
+          List<Ellipse> adornments;
+          if (adornmentsPerSnapshot.TryGetValue(span, out adornments))
+          {
+            adornments.Add(adornment);
+          }
+          else
+          {
+            adornmentsPerSnapshot.Add(span, new List<Ellipse> { adornment });
+          }
         }
+
+        var esrtag = tag.Tag as DafnyErrorStateResolverTag;
+        if (esrtag != null)
+        {
+          var adornment = _view.VisualElement.Dispatcher.Invoke(() => CreateErrorStateAdornment(esrtag));
+          var span = esrtag.Span.GetSpan(snapshot);
+          List<Ellipse> adornments;
+          if (adornmentsPerSnapshot.TryGetValue(span, out adornments))
+          {
+            adornments.Add(adornment);
+          }
+          else
+          {
+            adornmentsPerSnapshot.Add(span, new List<Ellipse> { adornment });
+          }
+        }
+      }
+
+      foreach (var adornments in adornmentsPerSnapshot)
+      {
+        var panel = _view.VisualElement.Dispatcher.Invoke(() =>
+          {
+            var p = new StackPanel
+            {
+              Orientation = Orientation.Horizontal,
+              Width = 12.0 * adornments.Value.Count,
+              Height = 12.0,
+            };
+            foreach (var adornment in adornments.Value)
+            {
+              p.Children.Add(adornment);
+            }
+            p.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            return p;
+          });
+
+        yield return new TagSpan<IntraTextAdornmentTag>(adornments.Key, new IntraTextAdornmentTag(panel, null, PositionAffinity.Successor));
       }
     }
 
-    protected override Ellipse CreateAdornment(IDafnyResolverTag data, SnapshotSpan span)
+    private static Ellipse CreateErrorStateAdornment(DafnyErrorStateResolverTag esrtag)
     {
-      var ertag = data as DafnyErrorResolverTag;
-      Contract.Assert(ertag != null);
-
       var result = new Ellipse
-        {
-          Fill = Brushes.Red,
-          Height = 12.0, Width = 12.0,
-          ToolTip = "select error",
-          StrokeThickness = 3.0,
-          Stroke = Brushes.Red,
-          Cursor = Cursors.Arrow,
-          
-        };
+      {
+        Fill = Brushes.Blue,
+        Height = 12.0,
+        Width = 12.0,
+        ToolTip = "select state",
+        StrokeThickness = 3.0,
+        Stroke = Brushes.Blue,
+        Cursor = Cursors.Arrow,
+        Visibility = System.Windows.Visibility.Collapsed
+      };
+
+      esrtag.Error.StateChangeEvent += new DafnyError.StateChangeEventHandler((o) =>
+      {
+        result.Visibility = esrtag.Error.IsSelected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+      });
+
       result.MouseDown += new MouseButtonEventHandler((s, e) =>
       {
-        if (ertag.Error.SelectedError == ertag.Error)
+        if (!esrtag.Error.IsSelected) { return; }
+        if (esrtag.Error.SelectedStateAdornment == result)
         {
           // unselect it
+          esrtag.Error.SelectedStateAdornment = null;
+          esrtag.Error.SelectedStateId = 0;
+          result.Stroke = Brushes.Blue;
+          result.ToolTip = "select state";
+        }
+        else
+        {
+          // unselect the old one
+          if (esrtag.Error.SelectedStateAdornment != null)
+          {
+            esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Blue;
+            esrtag.Error.SelectedStateAdornment.ToolTip = "select state";
+            esrtag.Error.SelectedStateAdornment = null;
+            esrtag.Error.SelectedStateId = 0;
+          }
+
+          // select the new one
+          esrtag.Error.SelectedStateAdornment = result;
+          esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Black;
+          esrtag.Error.SelectedStateAdornment.ToolTip = "unselect state";
+          esrtag.Error.SelectedStateId = esrtag.Id;
+        }
+      });
+      return result;
+    }
+
+    private static Ellipse CreateErrorAdornment(DafnyErrorResolverTag ertag)
+    {
+      var result = new Ellipse
+      {
+        Fill = Brushes.Red,
+        Height = 12.0,
+        Width = 12.0,
+        ToolTip = "select error",
+        StrokeThickness = 3.0,
+        Stroke = Brushes.Red,
+        Cursor = Cursors.Arrow,
+      };
+      result.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+      result.MouseDown += new MouseButtonEventHandler((s, e) =>
+      {
+        if (ertag.Error.IsSelected)
+        {
+          // unselect it
+          var selErr = ertag.Error.SelectedError;
           ertag.Error.SelectedError = null;
+          selErr.Notify();
           result.Stroke = Brushes.Red;
           result.ToolTip = "select error";
         }
@@ -143,14 +224,17 @@ namespace DafnyLanguage
           // unselect the old one
           if (ertag.Error.SelectedError != null)
           {
-            ertag.Error.SelectedError.Adornment.Stroke = Brushes.Red;
-            ertag.Error.SelectedError.Adornment.ToolTip = "select error";
+            var selErr = ertag.Error.SelectedError;
+            selErr.Adornment.Stroke = Brushes.Red;
+            selErr.Adornment.ToolTip = "select error";
             ertag.Error.SelectedError = null;
+            selErr.Notify();
           }
 
           // select the new one
           ertag.Error.SelectedError = ertag.Error;
-          ertag.Error.Adornment = result;          
+          ertag.Error.SelectedError.Notify();
+          ertag.Error.Adornment = result;
           ertag.Error.Adornment.Stroke = Brushes.Black;
           ertag.Error.Adornment.ToolTip = "unselect error";
         }
@@ -158,18 +242,19 @@ namespace DafnyLanguage
       return result;
     }
 
-    protected override bool UpdateAdornment(Ellipse adornment, IDafnyResolverTag data)
-    {
-      return false;
-    }
+    public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
     void _aggregator_TagsChanged(object sender, TagsChangedEventArgs e)
-    {      
-      NormalizedSnapshotSpanCollection spans = e.Span.GetSpans(_view.TextBuffer.CurrentSnapshot);
-      if (spans.Count > 0)
+    {
+      var chng = TagsChanged;
+      if (chng != null)
       {
-        var span = new SnapshotSpan(spans[0].Start, spans[spans.Count - 1].End);
-        InvalidateSpans(new List<SnapshotSpan> { span });
+        NormalizedSnapshotSpanCollection spans = e.Span.GetSpans(_view.TextBuffer.CurrentSnapshot);
+        if (spans.Count > 0)
+        {
+          SnapshotSpan span = new SnapshotSpan(spans[0].Start, spans[spans.Count - 1].End);
+          chng(this, new SnapshotSpanEventArgs(span));
+        }
       }
     }
   }

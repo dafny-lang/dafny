@@ -10,7 +10,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Shapes;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -86,6 +88,19 @@ namespace DafnyLanguage
           ty = "error"; break;  // COLOR: red
       }
       return ty;
+    }
+  }
+
+  public class DafnyErrorStateResolverTag : IDafnyResolverTag
+  {
+    public readonly DafnyError Error;
+    public readonly ITrackingSpan Span;
+    public readonly int Id;
+    public DafnyErrorStateResolverTag(DafnyError error, ITrackingSpan span, int id)
+    {
+      Error = error;
+      Span = span;
+      Id = id;
     }
   }
 
@@ -257,6 +272,18 @@ namespace DafnyLanguage
         if (err.Category != ErrorCategory.ProcessError)
         {
           yield return new TagSpan<IDafnyResolverTag>(err.Span.GetSpan(currentSnapshot), new DafnyErrorResolverTag(err));
+
+          if (err.StateSpans != null)
+          {
+            for (int i = 0; i < err.StateSpans.Length; i++)
+            {
+              var span = err.StateSpans[i];
+              if (span != null)
+              {
+                yield return new TagSpan<IDafnyResolverTag>(span.GetSpan(currentSnapshot), new DafnyErrorStateResolverTag(err, span, i));
+              }
+            }
+          }
         }
       }
 
@@ -447,12 +474,75 @@ namespace DafnyLanguage
     public readonly int Column;  // 0 based
     public readonly ErrorCategory Category;
     public readonly string Message;
+    protected readonly ITextSnapshot Snapshot;
     public readonly ITrackingSpan Span;
     public readonly string Model;
+    private ITrackingSpan[] _stateSpans;
+    public ITrackingSpan[] StateSpans
+    {
+      get
+      {
+        if (Model != null)
+        {
+          if (_stateSpans != null) { return _stateSpans; }
+          var locRegex = new Regex(@"\((\d+),(\d+)\)");
+          using (var rd = new StringReader(Model))
+          {
+            var model = Microsoft.Boogie.Model.ParseModels(rd).ToArray();
+            Contract.Assert(model.Length == 1);
+            _stateSpans = model[0].States.Select(
+              cs =>
+              {
+                var match = locRegex.Match(cs.Name);
+                if (!match.Success)
+                {
+                  return null;
+                }
+                else
+                {
+                  var line = Math.Max(0, int.Parse(match.Groups[1].Value) - 1);
+                  var column = Math.Max(0, int.Parse(match.Groups[2].Value) - 1);
+                  var sLine = Snapshot.GetLineFromLineNumber(line);
+                  Contract.Assert(column <= sLine.Length);
+                  var sLength = Math.Max(0, Math.Min(sLine.Length - column, 0));
+                  return Snapshot.CreateTrackingSpan(sLine.Start + column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
+                }
+              }
+            ).ToArray();
+            return _stateSpans;
+          }
+        }
+        else
+        {
+          return null;
+        }
+      }
+    }
+    public int SelectedStateId { get; set; }
+    public Shape SelectedStateAdornment { get; set; }
     public bool IsSelected { get { return SelectedError == this; } }
     private readonly ErrorSelection _errorSelection;
     public DafnyError SelectedError { get { return _errorSelection.Error; } set { _errorSelection.Error = value; } }
     public Shape Adornment;
+    public delegate void StateChangeEventHandler(object sender);
+    public event StateChangeEventHandler StateChangeEvent;
+    public void Notify()
+    {
+      if (StateChangeEvent != null)
+      {
+        StateChangeEvent(this);
+      }
+    }
+    public void UnsubscribeAll()
+    {
+      if (StateChangeEvent != null)
+      {
+        foreach (var d in StateChangeEvent.GetInvocationList())
+        {
+          StateChangeEvent -= (StateChangeEventHandler)d;
+        }
+      }
+    }
 
     internal class ErrorSelection
     {
@@ -471,6 +561,7 @@ namespace DafnyLanguage
       Column = Math.Max(0, col);
       Category = cat;
       Message = msg;
+      Snapshot = snapshot;
       var sLine = snapshot.GetLineFromLineNumber(line);
       Contract.Assert(Column <= sLine.Length);
       var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
