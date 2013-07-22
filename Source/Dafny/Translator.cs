@@ -2251,6 +2251,7 @@ namespace Microsoft.Dafny {
 
         // also play havoc with the out parameters
         if (outParams.Count != 0) {  // don't create an empty havoc statement
+        {  // don't create an empty havoc statement
           Bpl.IdentifierExprSeq outH = new Bpl.IdentifierExprSeq();
           foreach (Bpl.Variable b in outParams) {
             Contract.Assert(b != null);
@@ -3631,6 +3632,7 @@ namespace Microsoft.Dafny {
           locals.AddRange(newLocals);
 
           if (newLocals.Count != 0) {
+          {
             Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -5278,6 +5280,7 @@ namespace Microsoft.Dafny {
           locals.AddRange(newLocals);
 
           if (newLocals.Count != 0) {
+          {
             Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -5299,6 +5302,7 @@ namespace Microsoft.Dafny {
           locals.AddRange(newLocals);
 
           if (newLocals.Count != 0) {
+          {
             Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -10095,6 +10099,7 @@ namespace Microsoft.Dafny {
           // (exists args :: args-have-the-expected-types && ct(args) == expr)
           Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
           if (bvs.Count != 0) {
+          {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
             foreach (Formal arg in ctor.Formals) {
