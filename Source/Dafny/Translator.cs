@@ -424,7 +424,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         List<Type> tpArgs = new List<Type>();  // we use an empty list of type arguments, because we don't want Good_Datatype to produce any DtTypeParams predicates anyway
         Bpl.Expr wh = new ExpressionTranslator(this, predef, ctor.tok).Good_Datatype(ctor.tok, ct, dt, tpArgs);
-        if (bvs.Length != 0) {
+        if (bvs.Count != 0) {
           wh = new Bpl.ForallExpr(ctor.tok, bvs, wh);
         }
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, wh));
@@ -438,7 +438,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, lhs);
         Bpl.Expr q = Bpl.Expr.Eq(lhs, new Bpl.IdentifierExpr(ctor.tok, cid));
-        if (bvs.Length != 0) {
+        if (bvs.Count != 0) {
           q = new Bpl.ForallExpr(ctor.tok, bvs, q);
         }
         sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
@@ -448,7 +448,7 @@ namespace Microsoft.Dafny {
         var dBv = new Bpl.BoundVariable(ctor.tok, new Bpl.TypedIdent(ctor.tok, "d", predef.DatatypeType));
         var dId = new Bpl.IdentifierExpr(ctor.tok, dBv.Name, predef.DatatypeType);
         q = Bpl.Expr.Eq(dId, lhs);
-        if (bvs.Length != 0) {
+        if (bvs.Count != 0) {
           q = new Bpl.ExistsExpr(ctor.tok, bvs, q);
         }
         q = Bpl.Expr.Imp(FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId), q);
@@ -1010,7 +1010,7 @@ namespace Microsoft.Dafny {
     void CreateBoundVariables(List<Formal/*!*/>/*!*/ formals, out Bpl.VariableSeq/*!*/ bvs, out List<Bpl.Expr/*!*/>/*!*/ args)
     {
       Contract.Requires(formals != null);
-      Contract.Ensures(Contract.ValueAtReturn(out bvs).Length == Contract.ValueAtReturn(out args).Count);
+      Contract.Ensures(Contract.ValueAtReturn(out bvs).Count == Contract.ValueAtReturn(out args).Count);
       Contract.Ensures(Contract.ValueAtReturn(out bvs) != null);
       Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out args)));
 
@@ -1018,7 +1018,7 @@ namespace Microsoft.Dafny {
       args = new List<Bpl.Expr>();
       foreach (Formal arg in formals) {
         Contract.Assert(arg != null);
-        var nm = string.Format("a{0}#{1}", bvs.Length, otherTmpVarCount);
+        var nm = string.Format("a{0}#{1}", bvs.Count, otherTmpVarCount);
         otherTmpVarCount++;
         Bpl.Variable bv = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         bvs.Add(bv);
@@ -1214,8 +1214,8 @@ namespace Microsoft.Dafny {
 
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(iter.TypeArgs);
       Bpl.VariableSeq inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
-      Contract.Assert(1 <= inParams.Length);  // there should at least be a receiver parameter
-      Contract.Assert(proc.OutParams.Length == 0);
+      Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
+      Contract.Assert(proc.OutParams.Count == 0);
 
       var builder = new Bpl.StmtListBuilder();
       var etran = new ExpressionTranslator(this, predef, iter.tok);
@@ -1353,8 +1353,8 @@ namespace Microsoft.Dafny {
 
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(iter.TypeArgs);
       Bpl.VariableSeq inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
-      Contract.Assert(1 <= inParams.Length);  // there should at least be a receiver parameter
-      Contract.Assert(proc.OutParams.Length == 0);
+      Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
+      Contract.Assert(proc.OutParams.Count == 0);
 
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
@@ -2250,7 +2250,7 @@ namespace Microsoft.Dafny {
         }
 
         // also play havoc with the out parameters
-        if (outParams.Length != 0) {  // don't create an empty havoc statement
+        if (outParams.Count != 0) {  // don't create an empty havoc statement
           Bpl.IdentifierExprSeq outH = new Bpl.IdentifierExprSeq();
           foreach (Bpl.Variable b in outParams) {
             Contract.Assert(b != null);
@@ -2835,7 +2835,7 @@ namespace Microsoft.Dafny {
       var args = new ExprSeq();
       foreach (Formal arg in ctor.Formals) {
         Contract.Assert(arg != null);
-        var nm = string.Format("a{0}#{1}", args.Length, otherTmpVarCount);
+        var nm = string.Format("a{0}#{1}", args.Count, otherTmpVarCount);
         otherTmpVarCount++;
         Bpl.Variable bv = new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
         locals.Add(bv);
@@ -3630,7 +3630,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
           locals.AddRange(newLocals);
 
-          if (newLocals.Length != 0) {
+          if (newLocals.Count != 0) {
             Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -5103,7 +5103,7 @@ namespace Microsoft.Dafny {
           els = TrStmt2StmtList(b, s.Els, locals, etran);
           if (els.BigBlocks.Count == 1) {
             Bpl.BigBlock bb = els.BigBlocks[0];
-            if (bb.LabelName == null && bb.simpleCmds.Length == 0 && bb.ec is Bpl.IfCmd) {
+            if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
               elsIf = (Bpl.IfCmd)bb.ec;
               els = null;
             }
@@ -5277,7 +5277,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr r = CtorInvocation(s.Tok, missingCtor, etran, newLocals, b);
           locals.AddRange(newLocals);
 
-          if (newLocals.Length != 0) {
+          if (newLocals.Count != 0) {
             Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -5298,7 +5298,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr r = CtorInvocation(mc, etran, newLocals, b);
           locals.AddRange(newLocals);
 
-          if (newLocals.Length != 0) {
+          if (newLocals.Count != 0) {
             Bpl.IdentifierExprSeq havocIds = new Bpl.IdentifierExprSeq();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -5892,7 +5892,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr qq = Bpl.Expr.Imp(ante, post);
-      if (bvars.Length != 0) {
+      if (bvars.Count != 0) {
         qq = new Bpl.ForallExpr(s.Tok, bvars, qq);
       }
       exporter.Add(new Bpl.AssumeCmd(s.Tok, qq));
@@ -7509,7 +7509,7 @@ namespace Microsoft.Dafny {
           var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
           var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
           Bpl.Expr ax = Bpl.Expr.Imp(canCall, etranCC.TrExpr(p));
-          if (gg.Length != 0) {
+          if (gg.Count != 0) {
             ax = new Bpl.ForallExpr(e.tok, gg, tr, ax);
           }
           sink.TopLevelDeclarations.Add(new Bpl.Axiom(e.tok, ax));
@@ -10094,7 +10094,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
           // (exists args :: args-have-the-expected-types && ct(args) == expr)
           Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
-          if (bvs.Length != 0) {
+          if (bvs.Count != 0) {
             int i = 0;
             Bpl.Expr typeAntecedent = Bpl.Expr.True;
             foreach (Formal arg in ctor.Formals) {
