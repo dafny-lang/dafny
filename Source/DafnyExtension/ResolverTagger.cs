@@ -488,7 +488,7 @@ namespace DafnyLanguage
           var locRegex = new Regex(@"\((\d+),(\d+)\)");
           using (var rd = new StringReader(Model))
           {
-            var model = Microsoft.Boogie.Model.ParseModels(rd).ToArray();
+            var model = Microsoft.Boogie.Model.ParseModels(rd, null).ToArray();
             Contract.Assert(model.Length == 1);
             _stateSpans = model[0].States.Select(
               cs =>

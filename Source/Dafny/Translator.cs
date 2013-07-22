@@ -1144,9 +1144,9 @@ namespace Microsoft.Dafny {
       Bpl.VariableSeq inParams, outParams;
       GenerateMethodParametersChoose(iter.tok, iter, kind, true, true, false, etran, out inParams, out outParams);
 
-      var req = new Bpl.RequiresSeq();
+      var req = new List<Bpl.Requires>();
       var mod = new Bpl.IdentifierExprSeq();
-      var ens = new Bpl.EnsuresSeq();
+      var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && InMethodContext;
@@ -2684,7 +2684,7 @@ namespace Microsoft.Dafny {
       }
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       // the procedure itself
-      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
       ModuleDefinition mod = f.EnclosingClass.Module;
       Bpl.Expr context = Bpl.Expr.And(
@@ -2692,7 +2692,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       req.Add(Requires(f.tok, true, context, null, null));
       // check that postconditions hold
-      var ens = new Bpl.EnsuresSeq();
+      var ens = new List<Bpl.Ensures>();
       foreach (Expression p in f.Ens) {
         var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
         var splits = new List<SplitExprInfo>();
@@ -4157,9 +4157,9 @@ namespace Microsoft.Dafny {
       Bpl.VariableSeq inParams, outParams;
       GenerateMethodParameters(m.tok, m, kind, etran, out inParams, out outParams);
 
-      var req = new Bpl.RequiresSeq();
+      var req = new List<Bpl.Requires>();
       var mod = new Bpl.IdentifierExprSeq();
-      var ens = new Bpl.EnsuresSeq();
+      var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && InMethodContext;
@@ -4261,9 +4261,9 @@ namespace Microsoft.Dafny {
       Bpl.VariableSeq inParams, outParams;
       GenerateMethodParameters(m.tok, m, MethodTranslationKind.Implementation, etran, out inParams, out outParams);
 
-      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      var req = new List<Bpl.Requires>();
       Bpl.IdentifierExprSeq mod = new Bpl.IdentifierExprSeq();
-      Bpl.EnsuresSeq ens = new Bpl.EnsuresSeq();
+      var ens = new List<Bpl.Ensures>();
       
       Bpl.Expr context = Bpl.Expr.And(
         Bpl.Expr.Eq(Bpl.Expr.Literal(m.EnclosingClass.Module.Height), etran.ModuleContextHeight()),
@@ -4296,7 +4296,7 @@ namespace Microsoft.Dafny {
       // Generate procedure, and then add it to the sink
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(m.TypeArgs);
       string name = "CheckRefinement$$" + m.FullSanitizedName + "$" + methodCheck.Refining.FullSanitizedName;
-      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new Bpl.EnsuresSeq());
+      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new List<Bpl.Ensures>());
 
       sink.TopLevelDeclarations.Add(proc);
 
@@ -4434,7 +4434,7 @@ namespace Microsoft.Dafny {
       }
       Bpl.TypeVariableSeq typeParams = TrTypeParamDecls(f.TypeArgs);
       // the procedure itself
-      Bpl.RequiresSeq req = new Bpl.RequiresSeq();
+      var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
       ModuleDefinition mod = function.EnclosingClass.Module;
       Bpl.Expr context = Bpl.Expr.And(
@@ -4447,7 +4447,7 @@ namespace Microsoft.Dafny {
       }
       
       // check that postconditions hold
-      var ens = new Bpl.EnsuresSeq();
+      var ens = new List<Bpl.Ensures>();
       foreach (Expression p in f.Ens) {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(p, etran, out splitHappened)) {
