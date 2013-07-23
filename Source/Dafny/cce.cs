@@ -23,10 +23,6 @@ public static class cce {
     return collection != null && NonNullElements(collection.Values);
   }
   [Pure]
-  public static bool NonNullElements(VariableSeq collection) {
-    return collection != null && Contract.ForAll(0, collection.Count, i => collection[i] != null);
-  }
-  [Pure]
   public static bool NonNullElements<T>(Microsoft.Dafny.Graph<T> collection) where T : class {
     return collection != null && cce.NonNullElements(collection.TopologicallySortedComponents());
   }
