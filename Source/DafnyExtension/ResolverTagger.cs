@@ -482,7 +482,7 @@ namespace DafnyLanguage
     {
       get
       {
-        if (Model != null)
+        if (!string.IsNullOrEmpty(Model))
         {
           if (_stateSpans != null) { return _stateSpans; }
           var locRegex = new Regex(@"\((\d+),(\d+)\)");
