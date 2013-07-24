@@ -127,3 +127,24 @@ method Caller() {
   var p := new M.public;
   var x := p.private;
 }
+
+// ----- digits-identifiers for destructors -----
+
+datatype Tuple<T,U> = Pair(0: T, 1: U, r: int, s': int)
+
+method DigitsIdents(t: Tuple<int, Tuple<int, bool>>)
+{
+  var x: int := t.0;
+  var y: bool := t.1.1;
+  var z: int := t.r + t.1.r + t.1.s';
+}
+
+class DigitsClass {
+  var 7: bool;
+  method M(c: DigitsClass)
+    requires c != null;
+  {
+    var x: int := if this.7 then 7 else if c.7 then 8 else 9;
+  }
+}
+

@@ -1612,6 +1612,10 @@ namespace Microsoft.Dafny {
     }
     static char[] specialChars = new char[] { '\'', '_', '?', '\\' };
     public static string CompilerizeName(string nm) {
+      if ('0' <= nm[0] && nm[0] <= '9') {
+        // the identifier is one that consists of just digits
+        return "_" + nm;
+      }
       string name = null;
       int i = 0;
       while (true) {

@@ -248,7 +248,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
 QualifiedName<.out List<IToken> ids.>
 = (. IToken id; ids = new List<IToken>(); .)
   Ident<out id>                            (. ids.Add(id); .)
-  { "." Ident<out id>                      (. ids.Add(id); .)
+  { "." IdentOrDigits<out id>              (. ids.Add(id); .)
   }
   .
 
@@ -346,8 +346,8 @@ FieldDecl<.MemberModifiers mmod, List<MemberDecl/*!*/>/*!*/ mm.>
   (. if (mmod.IsStatic) { SemErr(t, "fields cannot be declared 'static'"); }
   .)
   { Attribute<ref attrs> }
-  IdentType<out id, out ty, false>                         (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
-  { "," IdentType<out id, out ty, false>                   (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
+  FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
+  { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, mmod.IsGhost, ty, attrs)); .)
   }
   SYNC ";"
   .
@@ -378,6 +378,16 @@ GIdentType<bool allowGhostKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out boo
   ]
   IdentType<out id, out ty, true>
   .
+FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
+= (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
+    id = Token.NoToken;
+  .)
+  ( WildIdent<out id, false>
+  | digits         (. id = t; .)
+  )
+  ":"
+  Type<out ty>
+  .
 IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
   WildIdent<out id, allowWildcardId>
@@ -407,18 +417,22 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      string name = null;  isGhost = false; .)
   [ "ghost"                            (. isGhost = true; .)
   ]
-  TypeAndToken<out id, out ty>
-  [ ":"
-    (. /* try to convert ty to an identifier */
-       UserDefinedType udt = ty as UserDefinedType;
-       if (udt != null && udt.TypeArgs.Count == 0) {
-         name = udt.Name;
-       } else {
-         SemErr(id, "invalid formal-parameter name in datatype constructor");
-       }
-    .)
+  ( TypeAndToken<out id, out ty>
+    [ ":"
+      (. /* try to convert ty to an identifier */
+         UserDefinedType udt = ty as UserDefinedType;
+         if (udt != null && udt.TypeArgs.Count == 0) {
+           name = udt.Name;
+         } else {
+           SemErr(id, "invalid formal-parameter name in datatype constructor");
+         }
+      .)
+      Type<out ty>
+    ]
+  | digits         (. id = t; name = id.val;.)
+    ":"
     Type<out ty>
-  ]
+  )
   (. if (name != null) {
        identName = name;
      } else {
@@ -1868,7 +1882,7 @@ DottedIdentifiersAndFunction<out Expression e>
   .)
   Ident<out id>                        (. idents.Add(id); .)
   { "."
-    Ident<out id>                      (. idents.Add(id); .)
+    IdentOrDigits<out id>              (. idents.Add(id); .)
   }
   [                                    (. args = new List<Expression>(); .)
     [ "#"                              (. id.val = id.val + "#";  Expression k; .)
@@ -1887,7 +1901,7 @@ Suffix<ref Expression/*!*/ e>
      bool func = false;
   .)
   ( "."
-    Ident<out id>
+    IdentOrDigits<out id>
     [                                          (. args = new List<Expression/*!*/>();  func = true; .)
       [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
         "[" Expression<out k> "]"              (. args.Add(k); .)
@@ -2039,6 +2053,13 @@ AttributeArg<out Attributes.Argument/*!*/ arg>
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   ident            (. x = t; .)
+  .
+// Identifier or sequence of digits
+IdentOrDigits<out IToken/*!*/ x>
+= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken; .)
+  ( ident            (. x = t; .)
+  | digits         (. x = t; .)
+  )
   .
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>

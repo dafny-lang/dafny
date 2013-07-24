@@ -772,7 +772,7 @@ namespace Microsoft.Dafny
                 Error(ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
                 nameError = true;
               }
-              var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.Name, "", "", formal.IsGhost, formal.Type, null);
+              var dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, "", "", formal.IsGhost, formal.Type, null);
               dtor.EnclosingClass = dt;  // resolve here
               if (!nameError && formal.HasName) {
                 members.Add(formal.Name, dtor);
