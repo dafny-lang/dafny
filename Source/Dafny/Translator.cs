@@ -2472,6 +2472,10 @@ namespace Microsoft.Dafny {
                                            Bpl.Expr.Imp(ante, consequent));
 
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
+      if (name == null) {
+        // put a CaptureState here, so that there will be at least one CaptureState for the procedure
+        builder.Add(CaptureState(tok, "initial state"));
+      }
     }
 
     void CheckFrameSubset(IToken tok, List<FrameExpression/*!*/>/*!*/ calleeFrame,
