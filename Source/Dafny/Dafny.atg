@@ -414,7 +414,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     string name = null;  isGhost = false; .)
+     string name = null; id = Token.NoToken; ty = null; isGhost = false; .)
   [ "ghost"                            (. isGhost = true; .)
   ]
   ( TypeAndToken<out id, out ty>
