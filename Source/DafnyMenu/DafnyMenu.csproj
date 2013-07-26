@@ -48,6 +48,9 @@
     <Reference Include="DafnyPipeline">
       <HintPath>..\..\Binaries\DafnyPipeline.dll</HintPath>
     </Reference>
+    <Reference Include="Model">
+      <HintPath>..\..\..\boogie\Binaries\Model.dll</HintPath>
+    </Reference>
     <Reference Include="ModelViewer">
       <HintPath>..\..\..\boogie\Binaries\ModelViewer.dll</HintPath>
     </Reference>
