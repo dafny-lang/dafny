@@ -64,12 +64,12 @@ namespace DafnyLanguage
     public DafnyError Error { get; private set; }
 
     public DafnyErrorResolverTag(DafnyError error)
-      : base(ErrorType(error), error.Message)
+      : base(ConvertToErrorType(error), error.Message)
     {
       Error = error;
     }
     
-    private static string ErrorType(DafnyError err)
+    private static string ConvertToErrorType(DafnyError err)
     {
       string ty;  // the COLORs below indicate what I see on my machine
       switch (err.Category)
