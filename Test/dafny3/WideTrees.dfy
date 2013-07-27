@@ -13,7 +13,7 @@ function BigTrees(): Stream<Tree>
 }
 
 // say whether a tree has finite height
-predicate IsFiniteHeight(t: Tree)
+predicate HasBoundedHeight(t: Tree)
 {
   exists n :: 0 <= n && LowerThan(t.children, n)
 }
@@ -37,7 +37,7 @@ function SmallTrees(n: nat): Stream<Tree>
 }
 // prove that the tree returned by SmallTree is finite
 ghost method Theorem(n: nat)
-  ensures IsFiniteHeight(SmallTree(n));
+  ensures HasBoundedHeight(SmallTree(n));
 {
   Lemma(n);
 }
