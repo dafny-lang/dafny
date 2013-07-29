@@ -6246,7 +6246,7 @@ namespace Microsoft.Dafny {
         // an explicit call to a prefix method is allowed only inside the SCC of the corresponding comethod,
         // so we consider this to be a co-call
         kind = MethodTranslationKind.CoCall;
-      } else if (RefinementToken.IsInherited(method.tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      } else if (module == currentModule) {
         kind = MethodTranslationKind.IntraModuleCall;
       } else {
         kind = MethodTranslationKind.InterModuleCall;
@@ -6330,12 +6330,12 @@ namespace Microsoft.Dafny {
 
       // Make the call
       Bpl.CallCmd call = new Bpl.CallCmd(tok, MethodName(callee, kind), ins, outs);
-      if (module != currentModule && tok is RefinementToken && (codeContext == null || !codeContext.MustReverify)) {
-        // we're calling a method defined in a different module and the call statement is inherited; this means that the precondition
-        // of the call has already been checked in the refined module, and the precondition has not changed (if the precondition
-        // involves a predicate, the predicate would have been treated as opaque in the inherited call, so the inherited module would
-        // have had to have checked the call precondition for all possible definitions of the predicate).  Hence, we don't need to
-        // re-check the precondition of the call here.
+      if (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+        // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
+        // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
+        // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
+        // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
+        // of the predicate.
         call.IsFree = true;
       }
       builder.Add(call);
