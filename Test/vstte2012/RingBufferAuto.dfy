@@ -59,7 +59,7 @@ class {:autocontracts} RingBuffer<T>
     ensures Valid() && fresh(Repr - old(Repr));
     ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N);
   {
-    x := data[start];
+    x := data[start];  assert x == Contents[0];
     start, len := if start + 1 == data.Length then 0 else start + 1, len - 1;
     Contents := Contents[1..];
   }
