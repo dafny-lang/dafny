@@ -23,7 +23,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy Definedness.dfy
             LoopModifies.dfy Refinement.dfy RefinementErrors.dfy
             ReturnErrors.dfy ReturnTests.dfy ChainingDisjointTests.dfy
             CallStmtTests.dfy MultiSets.dfy PredExpr.dfy
-            Predicates.dfy Skeletons.dfy Maps.dfy LiberalEquality.dfy
+            Predicates.dfy Skeletons.dfy OpaqueFunctions.dfy
+            Maps.dfy LiberalEquality.dfy
             RefinementModificationChecking.dfy TailCalls.dfy
             Calculations.dfy IteratorResolution.dfy Iterators.dfy
             RankPos.dfy RankNeg.dfy

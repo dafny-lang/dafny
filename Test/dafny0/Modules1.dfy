@@ -64,6 +64,7 @@ method Botch1(x: int)
 module A_Visibility {
   class C {
     static predicate P(x: int)
+      ensures P(x) ==> -10 <= x;
     {
       0 <= x
     }
@@ -84,8 +85,8 @@ module B_Visibility {
   method Main() {
     var y;
     if (A.C.P(y)) {
-      assert 0 <= y;  // this much is known of C.P
-      assert 2 <= y;  // error
+      assert -10 <= y;  // this much is known of C.P
+      assert 0 <= y;  // error
     } else {
       assert A.C.P(8);  // error: C.P cannot be established outside the declaring module
     }

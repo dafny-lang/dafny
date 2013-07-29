@@ -1164,34 +1164,36 @@ namespace Microsoft.Dafny {
         foreach (var p in iter.Requires) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            comment = null;
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, kind == MethodTranslationKind.InterModuleCall ? 0 : int.MaxValue, out splitHappened)) {
               if (kind == MethodTranslationKind.IntraModuleCall && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+                comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
             }
           }
-          comment = null;
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            comment = null;
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, kind == MethodTranslationKind.InterModuleCall ? 0 : int.MaxValue, out splitHappened)) {
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else {
-                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, null));
+                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+                comment = null;
               }
             }
           }
-          comment = null;
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
@@ -1505,7 +1507,7 @@ namespace Microsoft.Dafny {
 
     void AddFunctionAxiom(Function/*!*/ f, Expression body, List<Expression/*!*/>/*!*/ ens, Specialization specialization, int layerOffset) {
       var vs = new List<FunctionAxiomVisibility>();
-      if (f is Predicate || f is CoPredicate) {
+      if (f is Function || f is Predicate || f is CoPredicate) {
         vs.Add(FunctionAxiomVisibility.IntraModuleOnly);
         vs.Add(FunctionAxiomVisibility.ForeignModuleOnly);
       } else {
@@ -1564,8 +1566,8 @@ namespace Microsoft.Dafny {
       //         $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       //         Pre($Heap,args))
       //       ==>
-      //       body-can-make-its-calls &&                         // generated only for layerOffset==0
-      //       f(args) == body &&                                                                         // (d)
+      //       body-can-make-its-calls &&                         // generated only for layerOffset==0    // (d)
+      //       f(args) == body &&                                                                         // (e)
       //       ens &&                                             // generated only for layerOffset==0
       //       f(args)-has-the-expected-type);                    // generated only for layerOffset==0
       //
@@ -1583,8 +1585,8 @@ namespace Microsoft.Dafny {
       //
       // Visibility:  The above description is for visibility==All.  If visibility==IntraModuleOnly, then
       // disjunct (a) is dropped (which also has a simplifying effect on (c)).  Finally, if visibility==ForeignModuleOnly,
-      // then disjunct (b) is dropped (which also has a simplify effect on(c)); furthermore, if f is a Predicate,
-      // then the equality in (d) is replaced by an implication.
+      // then disjunct (b) is dropped (which also has a simplify effect on(c)); also, if the definition is not
+      // publicly exported (which is a feature that is not currently supported in dafny), then (d) and (e) are dropped.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
@@ -1716,6 +1718,8 @@ namespace Microsoft.Dafny {
       }
       if (body == null) {
         meat = Bpl.Expr.True;
+      } else if (visibility == FunctionAxiomVisibility.ForeignModuleOnly /* TODO: add 'public' feature and add: && !IsPublic(f) */) {
+        meat = Bpl.Expr.True;
       } else {
         var bodyWithSubst = Substitute(body, null, substMap);
         if (f is PrefixPredicate) {
@@ -1723,15 +1727,10 @@ namespace Microsoft.Dafny {
           bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
         }
         if (layerOffset == 0) {
-          meat = Bpl.Expr.And(
-            CanCallAssumption(bodyWithSubst, etran),
-            visibility == FunctionAxiomVisibility.ForeignModuleOnly && (f is Predicate || f is CoPredicate) ?
-              Bpl.Expr.Imp(funcAppl, etranLimited.TrExpr(bodyWithSubst)) :
-              Bpl.Expr.Eq(funcAppl, etranLimited.TrExpr(bodyWithSubst)));
+          meat = BplAnd(CanCallAssumption(bodyWithSubst, etran),
+            Bpl.Expr.Eq(funcAppl, etranLimited.TrExpr(bodyWithSubst)));
         } else {
-          meat = visibility == FunctionAxiomVisibility.ForeignModuleOnly && (f is Predicate || f is CoPredicate) ?
-            Bpl.Expr.Imp(funcAppl, etran.TrExpr(bodyWithSubst)) :
-            Bpl.Expr.Eq(funcAppl, etran.TrExpr(bodyWithSubst));
+          meat = Bpl.Expr.Eq(funcAppl, etran.TrExpr(bodyWithSubst));
         }
       }
       if (layerOffset == 0 && lits==null) {
@@ -4185,36 +4184,37 @@ namespace Microsoft.Dafny {
         foreach (var p in m.Req) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            comment = null;
           } else {
             bool splitHappened;  // we actually don't care
-            foreach (var s in TrSplitExpr(p.E, etran, out splitHappened)) {
+            foreach (var s in TrSplitExpr(p.E, etran, kind == MethodTranslationKind.InterModuleCall ? 0 : int.MaxValue, out splitHappened)) {
               if ((kind == MethodTranslationKind.IntraModuleCall || kind == MethodTranslationKind.CoCall) && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, null));
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+                comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
             }
           }
-          comment = null;
         }
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
+            comment = null;
           } else {
-            var ss = new List<SplitExprInfo>();
-            var splitHappened/*we actually don't care*/ = TrSplitExpr(p.E, ss, true, int.MaxValue, etran);
-            foreach (var s in ss) {
+            bool splitHappened;  // we actually don't care
+            foreach (var s in TrSplitExpr(p.E, etran, kind == MethodTranslationKind.InterModuleCall ? 0 : int.MaxValue, out splitHappened)) {
               var post = s.E;
               if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
                 post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "$_reverifyPost", Bpl.Type.Bool), post);
               }
-              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, post, null, null));
+              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, post, null, comment));
+              comment = null;
             }
           }
-          comment = null;
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
@@ -6330,6 +6330,14 @@ namespace Microsoft.Dafny {
 
       // Make the call
       Bpl.CallCmd call = new Bpl.CallCmd(tok, MethodName(callee, kind), ins, outs);
+      if (module != currentModule && tok is RefinementToken && (codeContext == null || !codeContext.MustReverify)) {
+        // we're calling a method defined in a different module and the call statement is inherited; this means that the precondition
+        // of the call has already been checked in the refined module, and the precondition has not changed (if the precondition
+        // involves a predicate, the predicate would have been treated as opaque in the inherited call, so the inherited module would
+        // have had to have checked the call precondition for all possible definitions of the predicate).  Hence, we don't need to
+        // re-check the precondition of the call here.
+        call.IsFree = true;
+      }
       builder.Add(call);
 
       // Unbox results as needed
@@ -9407,10 +9415,22 @@ namespace Microsoft.Dafny {
       return splits;
     }
 
+    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, int heightLimit, out bool splitHappened)
+    {
+      Contract.Requires(expr != null);
+      Contract.Requires(etran != null);
+      Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
+
+      var splits = new List<SplitExprInfo>();
+      splitHappened = TrSplitExpr(expr, splits, true, heightLimit, etran);
+      return splits;
+    }
+
     /// <summary>
     /// Tries to split the expression into tactical conjuncts (if "position") or disjuncts (if "!position").
     /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function if
-    /// if it declared in the current module and its height is less than "heightLimit".
+    /// if it declared in the current module and its height is less than "heightLimit" (if "heightLimit" is
+    /// passed in as 0, then no functions will be inlined).
     /// </summary>
     bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, ExpressionTranslator etran) {
       Contract.Requires(expr != null);

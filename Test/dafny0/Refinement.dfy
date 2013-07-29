@@ -101,7 +101,7 @@ module Abstract {
   class MyNumber {
     ghost var N: int;
     ghost var Repr: set<object>;
-    predicate Valid
+    predicate Valid()
       reads this, Repr;
     {
       this in Repr && null !in Repr
@@ -109,20 +109,20 @@ module Abstract {
     constructor Init()
       modifies this;
       ensures N == 0;
-      ensures Valid && fresh(Repr - {this});
+      ensures Valid() && fresh(Repr - {this});
     {
       N, Repr := 0, {this};
     }
     method Inc()
-      requires Valid;
+      requires Valid();
       modifies Repr;
       ensures N == old(N) + 1;
-      ensures Valid && fresh(Repr - old(Repr));
+      ensures Valid() && fresh(Repr - old(Repr));
     {
       N := N + 1;
     }
     method Get() returns (n: int)
-      requires Valid;
+      requires Valid();
       ensures n == N;
     {
       var k;  assume k == N;
@@ -135,7 +135,7 @@ module Concrete refines Abstract {
   class MyNumber {
     var a: int;
     var b: int;
-    predicate Valid
+    predicate Valid()
     {
       N == a - b
     }
@@ -172,7 +172,7 @@ module IncorrectConcrete refines Abstract {
   class MyNumber {
     var a: int;
     var b: int;
-    predicate Valid
+    predicate Valid()
     {
       N == 2*a - b
     }
@@ -191,3 +191,6 @@ module IncorrectConcrete refines Abstract {
     }
   }
 }
+
+// ------------- visibility checks -------------------------------
+

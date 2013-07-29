@@ -624,15 +624,15 @@ Modules0.dfy(97,14): Error: Undeclared top-level type or type parameter: MyClass
 28 resolution/type errors detected in Modules0.dfy
 
 -------------------- Modules1.dfy --------------------
-Modules1.dfy(75,16): Error: assertion violation
+Modules1.dfy(76,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Modules1.dfy(88,16): Error: assertion violation
+Modules1.dfy(89,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Modules1.dfy(90,14): Error: assertion violation
+Modules1.dfy(91,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -1556,6 +1556,80 @@ Execution trace:
     (0,0): anon11
 
 Dafny program verifier finished with 9 verified, 1 error
+
+-------------------- OpaqueFunctions.dfy --------------------
+OpaqueFunctions.dfy(24,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+OpaqueFunctions.dfy(49,7): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy(21,16): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+OpaqueFunctions.dfy(55,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+OpaqueFunctions.dfy(57,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+OpaqueFunctions.dfy(60,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+OpaqueFunctions.dfy(63,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+OpaqueFunctions.dfy(74,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+OpaqueFunctions.dfy(76,9): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy[A'](21,16): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+OpaqueFunctions.dfy(83,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+OpaqueFunctions.dfy(85,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+OpaqueFunctions.dfy(88,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+OpaqueFunctions.dfy(91,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+OpaqueFunctions.dfy(102,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+OpaqueFunctions.dfy(104,9): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy[A'](21,16): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+OpaqueFunctions.dfy(111,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+OpaqueFunctions.dfy(113,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+OpaqueFunctions.dfy(116,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+OpaqueFunctions.dfy(119,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+
+Dafny program verifier finished with 32 verified, 18 errors
 
 -------------------- Maps.dfy --------------------
 Maps.dfy(76,8): Error: element may not be in domain

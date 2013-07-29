@@ -130,7 +130,7 @@ module Tricky_Full refines Tricky_Base {
   class Tree {
     predicate Valid()
     {
-      Constrained  // this causes an error to be generated for the inherited Init
+      Constrained()  // this causes an error to be generated for the inherited Init
     }
   }
 }
