@@ -298,6 +298,8 @@ namespace DafnyLanguage.DafnyMenu
         throw new NotSupportedException("Can not create BvdToolWindow.");
       }
 
+      BvdToolWindow.BVD.HideMenuStrip();
+      BvdToolWindow.BVD.HideStateList();
       BvdToolWindow.BVD.ReadModel(model);
       BvdToolWindow.BVD.SetState(id, true);
 
