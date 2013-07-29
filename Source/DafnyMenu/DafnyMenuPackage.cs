@@ -77,7 +77,10 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand runVerifierCommand;
     private OleMenuCommand stopVerifierCommand;
     private OleMenuCommand toggleSnapshotVerificationCommand;
-    private OleMenuCommand showErrorModelCommand;
+    private OleMenuCommand toggleBVDCommand;
+
+    bool BVDDisabled;
+
     public IMenuProxy MenuProxy { get; set; }
 
 
@@ -132,11 +135,11 @@ namespace DafnyLanguage.DafnyMenu
         toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
         mcs.AddCommand(toggleSnapshotVerificationCommand);
 
-        var showErrorModelCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidShowErrorModel);
-        showErrorModelCommand = new OleMenuCommand(ShowErrorModelCallback, showErrorModelCommandID);
-        showErrorModelCommand.Enabled = true;
-        showErrorModelCommand.BeforeQueryStatus += showErrorModelCommand_BeforeQueryStatus;
-        mcs.AddCommand(showErrorModelCommand);
+        var showErrorModelCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleBVD);
+        toggleBVDCommand = new OleMenuCommand(ToggleBVDCallback, showErrorModelCommandID);
+        toggleBVDCommand.Enabled = true;
+        toggleBVDCommand.BeforeQueryStatus += showErrorModelCommand_BeforeQueryStatus;
+        mcs.AddCommand(toggleBVDCommand);
 
         var menuCommandID = new CommandID(GuidList.guidDafnyMenuPkgSet, (int)PkgCmdIDList.cmdidMenu);
         menuCommand = new OleMenuCommand(new EventHandler((sender, e) => { }), menuCommandID);
@@ -179,7 +182,7 @@ namespace DafnyLanguage.DafnyMenu
         return null;
       }
     }
-    
+
     void ToggleSnapshotVerificationCallback(object sender, EventArgs e)
     {
       var atv = ActiveTextView;
@@ -266,17 +269,14 @@ namespace DafnyLanguage.DafnyMenu
       if (MenuProxy != null && atv != null)
       {
         var visible = MenuProxy.ShowErrorModelCommandEnabled(atv);
-        showErrorModelCommand.Visible = visible;
+        toggleBVDCommand.Visible = visible;
       }
     }
 
-    void ShowErrorModelCallback(object sender, EventArgs e)
+    void ToggleBVDCallback(object sender, EventArgs e)
     {
-      var atv = ActiveTextView;
-      if (MenuProxy != null && atv != null)
-      {
-        MenuProxy.ShowErrorModel(atv);
-      }
+      BVDDisabled = !BVDDisabled;
+      toggleBVDCommand.Text = (BVDDisabled ? "Enable" : "Disable") + " BVD";
     }
 
     public void ExecuteAsCompiling(Action action)
@@ -290,21 +290,24 @@ namespace DafnyLanguage.DafnyMenu
       statusBar.Progress(ref cookie, 0, "", 0, 0);
     }
 
-    public void ShowErrorModel(string model, int id)
+    public void ShowErrorModelInBVD(string model, int id)
     {
-      var window = this.FindToolWindow(typeof(BvdToolWindow), 0, true);
-      if ((window == null) || (window.Frame == null))
+      if (!BVDDisabled)
       {
-        throw new NotSupportedException("Can not create BvdToolWindow.");
+        var window = this.FindToolWindow(typeof(BvdToolWindow), 0, true);
+        if ((window == null) || (window.Frame == null))
+        {
+          throw new NotSupportedException("Can not create BvdToolWindow.");
+        }
+
+        BvdToolWindow.BVD.HideMenuStrip();
+        BvdToolWindow.BVD.HideStateList();
+        BvdToolWindow.BVD.ReadModel(model);
+        BvdToolWindow.BVD.SetState(id, true);
+
+        IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
+        Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
       }
-
-      BvdToolWindow.BVD.HideMenuStrip();
-      BvdToolWindow.BVD.HideStateList();
-      BvdToolWindow.BVD.ReadModel(model);
-      BvdToolWindow.BVD.SetState(id, true);
-
-      IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
-      Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
     }
 
     #endregion

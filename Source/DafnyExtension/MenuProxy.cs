@@ -101,7 +101,7 @@ namespace DafnyLanguage
 
         if (selectedError != null)
         {
-          DafnyMenuPackage.ShowErrorModel(selectedError.Model, selectedError.SelectedStateId);
+          DafnyMenuPackage.ShowErrorModelInBVD(selectedError.Model, selectedError.SelectedStateId);
         }
       }
     }

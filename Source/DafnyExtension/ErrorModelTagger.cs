@@ -195,7 +195,7 @@ namespace DafnyLanguage
           esrtag.Error.SelectedStateId = esrtag.Id;
           if (!string.IsNullOrEmpty(esrtag.Error.Model))
           {
-            DafnyClassifier.DafnyMenuPackage.ShowErrorModel(esrtag.Error.Model, esrtag.Id);
+            DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(esrtag.Error.Model, esrtag.Id);
           }
         }
       });
