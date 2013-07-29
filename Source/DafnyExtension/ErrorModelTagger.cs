@@ -190,6 +190,10 @@ namespace DafnyLanguage
           esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Black;
           esrtag.Error.SelectedStateAdornment.ToolTip = "unselect state";
           esrtag.Error.SelectedStateId = esrtag.Id;
+          if (!string.IsNullOrEmpty(esrtag.Error.Model))
+          {
+            DafnyClassifier.DafnyMenuPackage.ShowErrorModel(esrtag.Error.Model, esrtag.Id);
+          }
         }
       });
       return result;
