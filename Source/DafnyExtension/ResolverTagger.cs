@@ -64,12 +64,12 @@ namespace DafnyLanguage
     public DafnyError Error { get; private set; }
 
     public DafnyErrorResolverTag(DafnyError error)
-      : base(ErrorType(error), error.Message)
+      : base(ConvertToErrorType(error), error.Message)
     {
       Error = error;
     }
     
-    private static string ErrorType(DafnyError err)
+    private static string ConvertToErrorType(DafnyError err)
     {
       string ty;  // the COLORs below indicate what I see on my machine
       switch (err.Category)
@@ -208,7 +208,7 @@ namespace DafnyLanguage
       }
     }
 
-    public static readonly IDictionary<string, ResolverTagger> ResolverTaggers = new ConcurrentDictionary<string, ResolverTagger>();
+    public static readonly IDictionary<ITextBuffer, ResolverTagger> ResolverTaggers = new ConcurrentDictionary<ITextBuffer, ResolverTagger>();
 
     internal ResolverTagger(ITextBuffer buffer, IServiceProvider serviceProvider, ITextDocumentFactoryService textDocumentFactory)
     {
@@ -249,9 +249,9 @@ namespace DafnyLanguage
               _errorProvider = null;
             }
             BufferIdleEventUtil.RemoveBufferIdleEventListener(_buffer, ResolveBuffer);
-            if (_document != null)
+            if (_document != null && _document.TextBuffer != null)
             {
-              ResolverTaggers.Remove(_document.FilePath);
+              ResolverTaggers.Remove(_document.TextBuffer);
             }
           }
 
@@ -333,11 +333,11 @@ namespace DafnyLanguage
 
       if (program != null && _document != null)
       {
-        ResolverTaggers[_document.FilePath] = this;
+        ResolverTaggers[_document.TextBuffer] = this;
       }
       else if (_document != null)
       {
-        ResolverTaggers.Remove(_document.FilePath);
+        ResolverTaggers.Remove(_document.TextBuffer);
       }
 
       _resolutionErrors = newErrors;

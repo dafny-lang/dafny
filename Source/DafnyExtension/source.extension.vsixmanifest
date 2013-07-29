@@ -1,23 +1,20 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Vsix xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Version="1.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2010">
-  <Identifier Id="DafnyLanguageMode.Microsoft.6c7ed99a-206a-4937-9e08-b389de175f68">
-    <Name>DafnyLanguageMode</Name>
-    <Author>Microsoft Research</Author>
-    <Version>1.0</Version>
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="6c7ed99a-206a-4937-9e08-b389de175f68" Version="1.0" Language="en-US" Publisher="Microsoft Research" />
+    <DisplayName>DafnyLanguageMode</DisplayName>
     <Description xml:space="preserve">This is a language mode for using the Dafny language inside Visual Studio.</Description>
-    <Locale>1033</Locale>
-    <SupportedProducts>
-      <VisualStudio Version="11.0">
-        <Edition>Pro</Edition>
-      </VisualStudio>
-    </SupportedProducts>
-    <SupportedFrameworkRuntimeEdition MinVersion="4.0" MaxVersion="4.0" />
-  </Identifier>
-  <References />
-  <Content>
-    <MefComponent>|%CurrentProject%|</MefComponent>
-    <VsPackage>DafnyMenu</VsPackage>
-    <CustomExtension Type="Boogie">DafnyPrelude.bpl</CustomExtension>
-    <CustomExtension Type="SMTLib 2">UnivBackPred2.smt2</CustomExtension>
-  </Content>
-</Vsix>
+  </Metadata>
+  <Installation InstalledByMsi="false">
+    <InstallationTarget Version="[11.0,12.0)" Id="Microsoft.VisualStudio.Pro" />
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="4.5" />
+    <Dependency Id="Microsoft.VisualStudio.MPF.11.0" DisplayName="Visual Studio MPF 11.0" d:Source="Installed" Version="11.0" />
+  </Dependencies>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="DafnyMenu" Path="|DafnyMenu;PkgdefProjectOutputGroup|" />
+  </Assets>
+</PackageManifest>

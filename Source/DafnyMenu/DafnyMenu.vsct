@@ -103,12 +103,13 @@
         </Strings>
       </Button>
 
-      <Button guid="guidDafnyMenuCmdSet" id="cmdidShowErrorModel" priority="0x010a" type="Button">
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleBVD" priority="0x010a" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>Show model for selected error in BVD</ButtonText>
+          <ButtonText>Disable BVD</ButtonText>
         </Strings>
       </Button>
 
@@ -142,7 +143,7 @@
       <IDSymbol name="cmdidRunVerifier" value="0x0101" />
       <IDSymbol name="cmdidStopVerifier" value="0x0102" />
       <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
-      <IDSymbol name="cmdidShowErrorModel" value="0x0104" />
+      <IDSymbol name="cmdidToggleBVD" value="0x0104" />
     </GuidSymbol>
 
     <!--

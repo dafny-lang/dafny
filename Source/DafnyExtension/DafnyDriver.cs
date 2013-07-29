@@ -45,6 +45,7 @@ namespace DafnyLanguage
 
         ExecutionEngine.printer = new DummyPrinter();
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
+        ToggleIncrementalVerification();
       }
     }
 

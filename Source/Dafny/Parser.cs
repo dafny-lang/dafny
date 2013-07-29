@@ -984,7 +984,7 @@ bool IsParenStar() {
 		Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
 		Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
 		Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-		string name = null;  isGhost = false; 
+		string name = null; id = Token.NoToken; ty = null; isGhost = false; 
 		if (la.kind == 22) {
 			Get();
 			isGhost = true; 

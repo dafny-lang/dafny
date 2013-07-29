@@ -140,9 +140,9 @@ namespace DafnyLanguage
             {
               Microsoft.Boogie.ExecutionEngine.CancelRequest(lastRequestId);
             }
-            if (_document.FilePath != null)
+            if (_document != null && _document.TextBuffer != null)
             {
-              ProgressTaggers.Remove(_document.FilePath);
+              ProgressTaggers.Remove(_document.TextBuffer);
             }
             _buffer.Changed -= buffer_Changed;
             timer.Tick -= UponIdle;
@@ -194,7 +194,7 @@ namespace DafnyLanguage
     public bool VerificationDisabled { get; private set; }
     string lastRequestId;
 
-    public static readonly IDictionary<string, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<string, ProgressTagger>();
+    public static readonly IDictionary<ITextBuffer, ProgressTagger> ProgressTaggers = new ConcurrentDictionary<ITextBuffer, ProgressTagger>();
 
     public readonly ConcurrentDictionary<string, ITextSnapshot> RequestIdToSnapshot = new ConcurrentDictionary<string, ITextSnapshot>();
 
@@ -245,7 +245,7 @@ namespace DafnyLanguage
 
         if (_document != null)
         {
-          ProgressTaggers[_document.FilePath] = this;
+          ProgressTaggers[_document.TextBuffer] = this;
         }
 
         verificationTask = System.Threading.Tasks.Task.Factory.StartNew(

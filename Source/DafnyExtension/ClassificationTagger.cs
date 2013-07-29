@@ -43,7 +43,7 @@ namespace DafnyLanguage
     ITagAggregator<DafnyTokenTag> _aggregator;
     IDictionary<DafnyTokenKind, IClassificationType> _typeMap;
 
-    static bool DafnyMenuWasInitialized;
+    internal static DafnyMenu.DafnyMenuPackage DafnyMenuPackage;
 
     internal DafnyClassifier(ITextBuffer buffer,
                              ITagAggregator<DafnyTokenTag> tagAggregator,
@@ -62,7 +62,7 @@ namespace DafnyLanguage
       _typeMap[DafnyTokenKind.AdditionalInformation] = standards.Other;
       _typeMap[DafnyTokenKind.VariableIdentifierDefinition] = typeService.GetClassificationType("Dafny identifier");
 
-      if (!DafnyMenuWasInitialized)
+      if (DafnyMenuPackage == null)
       {
         // Initialize the Dafny menu.
         var shell = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(Microsoft.VisualStudio.Shell.Interop.SVsShell)) as Microsoft.VisualStudio.Shell.Interop.IVsShell;
@@ -70,9 +70,12 @@ namespace DafnyLanguage
         {
           Microsoft.VisualStudio.Shell.Interop.IVsPackage package = null;
           Guid PackageToBeLoadedGuid = new Guid("e1baf989-88a6-4acf-8d97-e0dc243476aa");
-          shell.LoadPackage(ref PackageToBeLoadedGuid, out package);
+          if (shell.LoadPackage(ref PackageToBeLoadedGuid, out package) == Microsoft.VisualStudio.VSConstants.S_OK)
+          {
+            DafnyMenuPackage = (DafnyMenu.DafnyMenuPackage)package;
+            DafnyMenuPackage.MenuProxy = new MenuProxy(DafnyMenuPackage);
+          }
         }
-        DafnyMenuWasInitialized = true;
       }
     }
 

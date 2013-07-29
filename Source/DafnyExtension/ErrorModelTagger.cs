@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -125,20 +126,22 @@ namespace DafnyLanguage
       foreach (var adornments in adornmentsPerSnapshot)
       {
         var panel = _view.VisualElement.Dispatcher.Invoke(() =>
+        {
+          var maxConcurrentAdornments = adornments.Value.Where(a => a.Fill == Brushes.Crimson).Count()    // number of error adornments
+                                        + (adornments.Value.Any(a => a.Fill != Brushes.Crimson) ? 1 : 0); // number of error state adornments
+          var p = new StackPanel
           {
-            var p = new StackPanel
-            {
-              Orientation = Orientation.Horizontal,
-              Width = 12.0 * adornments.Value.Count,
-              Height = 12.0,
-            };
-            foreach (var adornment in adornments.Value)
-            {
-              p.Children.Add(adornment);
-            }
-            p.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            return p;
-          });
+            Orientation = Orientation.Horizontal,
+            Width = 12.0 * maxConcurrentAdornments,
+            Height = 12.0,
+          };
+          foreach (var adornment in adornments.Value)
+          {
+            p.Children.Add(adornment);
+          }
+          p.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+          return p;
+        });
 
         yield return new TagSpan<IntraTextAdornmentTag>(adornments.Key, new IntraTextAdornmentTag(panel, null, PositionAffinity.Successor));
       }
@@ -148,12 +151,12 @@ namespace DafnyLanguage
     {
       var result = new Ellipse
       {
-        Fill = Brushes.Blue,
+        Fill = Brushes.DodgerBlue,
         Height = 12.0,
         Width = 12.0,
         ToolTip = "select state",
         StrokeThickness = 3.0,
-        Stroke = Brushes.Blue,
+        Stroke = Brushes.DodgerBlue,
         Cursor = Cursors.Arrow,
         Visibility = System.Windows.Visibility.Collapsed
       };
@@ -171,7 +174,7 @@ namespace DafnyLanguage
           // unselect it
           esrtag.Error.SelectedStateAdornment = null;
           esrtag.Error.SelectedStateId = 0;
-          result.Stroke = Brushes.Blue;
+          result.Stroke = Brushes.DodgerBlue;
           result.ToolTip = "select state";
         }
         else
@@ -179,7 +182,7 @@ namespace DafnyLanguage
           // unselect the old one
           if (esrtag.Error.SelectedStateAdornment != null)
           {
-            esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Blue;
+            esrtag.Error.SelectedStateAdornment.Stroke = Brushes.DodgerBlue;
             esrtag.Error.SelectedStateAdornment.ToolTip = "select state";
             esrtag.Error.SelectedStateAdornment = null;
             esrtag.Error.SelectedStateId = 0;
@@ -190,6 +193,10 @@ namespace DafnyLanguage
           esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Black;
           esrtag.Error.SelectedStateAdornment.ToolTip = "unselect state";
           esrtag.Error.SelectedStateId = esrtag.Id;
+          if (!string.IsNullOrEmpty(esrtag.Error.Model))
+          {
+            DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(esrtag.Error.Model, esrtag.Id);
+          }
         }
       });
       return result;
@@ -199,12 +206,12 @@ namespace DafnyLanguage
     {
       var result = new Ellipse
       {
-        Fill = Brushes.Red,
+        Fill = Brushes.Crimson,
         Height = 12.0,
         Width = 12.0,
         ToolTip = "select error",
         StrokeThickness = 3.0,
-        Stroke = Brushes.Red,
+        Stroke = Brushes.Crimson,
         Cursor = Cursors.Arrow,
       };
       result.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -216,7 +223,7 @@ namespace DafnyLanguage
           var selErr = ertag.Error.SelectedError;
           ertag.Error.SelectedError = null;
           selErr.Notify();
-          result.Stroke = Brushes.Red;
+          result.Stroke = Brushes.Crimson;
           result.ToolTip = "select error";
         }
         else
@@ -225,7 +232,7 @@ namespace DafnyLanguage
           if (ertag.Error.SelectedError != null)
           {
             var selErr = ertag.Error.SelectedError;
-            selErr.Adornment.Stroke = Brushes.Red;
+            selErr.Adornment.Stroke = Brushes.Crimson;
             selErr.Adornment.ToolTip = "select error";
             ertag.Error.SelectedError = null;
             selErr.Notify();
