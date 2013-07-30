@@ -1293,6 +1293,7 @@ namespace Microsoft.Dafny
                 }
               } else {
                 foreach (var c in coCandidates) {
+                  c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
                   c.EnclosingCoConstructor.IsCoCall = true;
                 }
               }
@@ -7388,123 +7389,97 @@ namespace Microsoft.Dafny
     /// </summary>
     public void CheckCoCalls(Expression expr) {
       Contract.Requires(expr != null);
-      var candidates = CheckCoCalls(expr, 0, true, null);
-      ProcessCoCallInfo(candidates);
+      CheckCoCalls(expr, 0, null, FinalCandidates);
     }
 
     public struct CoCallInfo
     {
-      public int GuardCount;
-      public FunctionCallExpr CandidateCall;
-      public DatatypeValue EnclosingCoConstructor;
-      public CoCallInfo(int guardCount, FunctionCallExpr candidateCall, DatatypeValue enclosingCoConstructor) {
-        Contract.Requires(0 <= guardCount);
+      public readonly FunctionCallExpr CandidateCall;
+      public readonly DatatypeValue EnclosingCoConstructor;
+      public CoCallInfo(FunctionCallExpr candidateCall, DatatypeValue enclosingCoConstructor) {
         Contract.Requires(candidateCall != null);
         Contract.Requires(enclosingCoConstructor != null);
-        GuardCount = guardCount;
         CandidateCall = candidateCall;
         EnclosingCoConstructor = enclosingCoConstructor;
       }
-
-      public void AdjustGuardCount(int p) {
-        GuardCount += p;
-      }
     }
-
-    const int InfiniteDestruction = 1000000000;  // assume co-constructor and co-destructor calls are never nested deeper than 1 billion levels
 
     /// <summary>
     /// Recursively goes through the entire "expr".  Every call within the same recursive cluster is a potential
-    /// co-call.  All such calls will get their .CoCall field filled in, indicating whether or not the call
-    /// is a co-call.  If the situation deals with co-datatypes, then one of the NoBecause... values is chosen (rather
+    /// co-call.  If the call is determined not to be a co-recursive call, then its .CoCall field is filled in;
+    /// if the situation deals with co-datatypes, then one of the NoBecause... values is chosen (rather
     /// than just No), so that any error message that may later be produced when trying to prove termination of the
     /// recursive call can include a note pointing out that the call was not selected to be a co-call.
-    /// "allowCallsWithinRecursiveCluster" is passed in as "false" if the enclosing context has no easy way of
-    /// controlling the uses of "expr" (for example, if the enclosing context passes "expr" to a function or binds
-    /// "expr" to a variable).
+    /// If the call looks like it is guarded, then it is added to the list "coCandicates", so that a later analysis
+    /// can either set all of those .CoCall fields to Yes or to NoBecauseRecursiveCallsInDestructiveContext, depending
+    /// on other intra-cluster calls.
+    /// The "destructionLevel" indicates how many pending co-destructors the context has.  It may be infinity (int.MaxValue)
+    /// if the enclosing context has no easy way of controlling the uses of "expr" (for example, if the enclosing context
+    /// passes "expr" to a function or binds "expr" to a variable).  It is never negative -- excess co-constructors are
+    /// not considered an asset, and any immediately enclosing co-constructor is passed in as a non-null "coContext" anyway.
+    /// "coContext" is non-null if the immediate context is a co-constructor.
     /// </summary>
-    List<CoCallInfo> CheckCoCalls(Expression expr, int destructionLevel, bool allowCallsWithinRecursiveCluster, DatatypeValue coContext) {
+    void CheckCoCalls(Expression expr, int destructionLevel, DatatypeValue coContext, List<CoCallInfo> coCandidates) {
       Contract.Requires(expr != null);
-      Contract.Ensures(allowCallsWithinRecursiveCluster || Contract.Result<List<CoCallInfo>>().Count == 0);
+      Contract.Requires(0 <= destructionLevel);
+      Contract.Requires(coCandidates != null);
 
-      var candidates = new List<CoCallInfo>();
       expr = expr.Resolved;
       if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
         if (e.Ctor.EnclosingDatatype is CoDatatypeDecl) {
+          int dl = destructionLevel == int.MaxValue ? int.MaxValue : destructionLevel == 0 ? 0 : destructionLevel - 1;
           foreach (var arg in e.Arguments) {
-            foreach (var c in CheckCoCalls(arg, destructionLevel - 1, allowCallsWithinRecursiveCluster, e)) {
-              c.AdjustGuardCount(1);
-              candidates.Add(c);
-            }
+            CheckCoCalls(arg, dl, e, coCandidates);
           }
-          return candidates;
+          return;
         }
       } else if (expr is FieldSelectExpr) {
         var e = (FieldSelectExpr)expr;
         if (e.Field.EnclosingClass is CoDatatypeDecl) {
-          foreach (var c in CheckCoCalls(e.Obj, destructionLevel + 1, allowCallsWithinRecursiveCluster, null)) {
-            if (c.GuardCount <= 1) {
-              // This call was not guarded (c.GuardedCount == 0) or the guard for this candidate co-call is
-              // being removed (c.GuardedCount == 1), so this call is not allowed as a co-call.
-              // (So, don't include "res" among "results".)
-              c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
-            } else {
-              c.AdjustGuardCount(-1);
-              candidates.Add(c);
-            }
-          }
-          return candidates;
+          int dl = destructionLevel == int.MaxValue ? int.MaxValue : destructionLevel + 1;
+          CheckCoCalls(e.Obj, dl, null, coCandidates);
+          return;
         }
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
         if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) {
           // Equality and disequality (for any type that may contain a co-datatype) are as destructive as can be--in essence,
           // they destruct the values indefinitely--so don't allow any co-recursive calls in the operands.
-          var r = CheckCoCalls(e.E0, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-          r = CheckCoCalls(e.E1, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-          return candidates;
+          CheckCoCalls(e.E0, int.MaxValue, null, coCandidates);
+          CheckCoCalls(e.E1, int.MaxValue, null, coCandidates);
+          return;
         }
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         if (e.Op == TernaryExpr.Opcode.PrefixEqOp || e.Op == TernaryExpr.Opcode.PrefixNeqOp) {
           // Prefix equality and disequality (for any type that may contain a co-datatype) are destructive.
-          var r = CheckCoCalls(e.E0, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-          r = CheckCoCalls(e.E1, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-          r = CheckCoCalls(e.E2, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls, given that we pass in allowCallsWithinRecursiveCluster==false
-          return candidates;
+          CheckCoCalls(e.E0, int.MaxValue, null, coCandidates);
+          CheckCoCalls(e.E1, int.MaxValue, null, coCandidates);
+          CheckCoCalls(e.E2, int.MaxValue, null, coCandidates);
+          return;
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
-        var r = CheckCoCalls(e.Source, InfiniteDestruction, false, null);
-        Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+        CheckCoCalls(e.Source, int.MaxValue, null, coCandidates);
         foreach (var kase in e.Cases) {
-          r = CheckCoCalls(kase.Body, destructionLevel, allowCallsWithinRecursiveCluster, null);
-          candidates.AddRange(r);
+          CheckCoCalls(kase.Body, destructionLevel, null, coCandidates);
         }
-        return candidates;
+        return;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         // First, consider the arguments of the call, making sure that they do not include calls within the recursive cluster.
         // (Note, if functions could have a "destruction level" declaration that promised to only destruct its arguments by
         // so much, then some recursive calls within the cluster could be allowed.)
         foreach (var arg in e.Args) {
-          var r = CheckCoCalls(arg, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+          CheckCoCalls(arg, int.MaxValue, null, coCandidates);
         }
         // Second, investigate the possibility that this call itself may be a candidate co-call
         if (currentModule.CallGraph.GetSCCRepresentative(currentFunction) == currentModule.CallGraph.GetSCCRepresentative(e.Function)) {
           // This call goes to another function in the same recursive cluster
-          if (0 < destructionLevel) {
-            HasIntraClusterCallsInDestructiveContexts = true;
-          }
-          if (!allowCallsWithinRecursiveCluster) {
+          if (destructionLevel > 0) {
             // a potentially destructive context
+            HasIntraClusterCallsInDestructiveContexts = true;  // this says we found an intra-cluster call unsuitable for recursion, if there were any co-recursive calls
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
             } else {
@@ -7521,10 +7496,8 @@ namespace Microsoft.Dafny
             // this call is disqualified from being a co-call, because of side effects
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
-            } else if (coContext != null) {
-              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects;
             } else {
-              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects;
             }
           } else if (e.Function.Ens.Count != 0) {
             // this call is disqualified from being a co-call, because it has a postcondition
@@ -7533,53 +7506,32 @@ namespace Microsoft.Dafny
             // "ensures false;")
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
-            } else if (coContext != null) {
-              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition;
             } else {
-              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
+              e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition;
             }
           } else {
             // e.CoCall is not filled in here, but will be filled in when the list of candidates are processed
-            candidates.Add(new CoCallInfo(0, e, coContext));
+            coCandidates.Add(new CoCallInfo(e, coContext));
           }
         }
-        return candidates;
+        return;
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         // here, "coContext" is passed along (the use of "old" says this must be ghost code, so the compiler does not need to handle this case)
-        return CheckCoCalls(e.E, destructionLevel, allowCallsWithinRecursiveCluster, coContext);
+        CheckCoCalls(e.E, destructionLevel, coContext, coCandidates);
+        return;
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         foreach (var rhs in e.RHSs) {
-          var r = CheckCoCalls(rhs, InfiniteDestruction, false, null);
-          Contract.Assert(r.Count == 0);  // follows from postcondition of CheckCoCalls
+          CheckCoCalls(rhs, int.MaxValue, null, coCandidates);
         }
-        return CheckCoCalls(e.Body, destructionLevel, allowCallsWithinRecursiveCluster, null);
+        CheckCoCalls(e.Body, destructionLevel, null, coCandidates);
+        return;
       }
 
       // Default handling:
       foreach (var ee in expr.SubExpressions) {
-        var r = CheckCoCalls(ee, destructionLevel, allowCallsWithinRecursiveCluster, null);
-        candidates.AddRange(r);
-      }
-      if (expr.Type is BasicType) {
-        // nothing can escape this expression, so process the results now
-        ProcessCoCallInfo(candidates);
-        candidates.Clear();
-      }
-      return candidates;
-    }
-
-    void ProcessCoCallInfo(List<CoCallInfo> coCandidates) {
-      foreach (var c in coCandidates) {
-        if (c.GuardCount != 0) {
-          FinalCandidates.Add(c);
-          c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;  // this tentative decision may be reverted if there are intra-cluster calls in destructive contexts
-        } else if (dealsWithCodatatypes) {
-          c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded;
-        } else {
-          c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.No;
-        }
+        CheckCoCalls(ee, destructionLevel, null, coCandidates);
       }
     }
   }
