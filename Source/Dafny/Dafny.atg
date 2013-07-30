@@ -122,6 +122,7 @@ CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
   digit = "0123456789".
   posDigit = "123456789".
+  hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?\\".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
@@ -149,6 +150,7 @@ TOKENS
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}.
   digits = digit {digit}.
+  hexdigits = '0' 'x' hexdigit {hexdigit}.
   arrayToken = 'a' 'r' 'r' 'a' 'y' [posDigit {digit}].
   string = quote {nonquote} quote.
   colon = ':'.
@@ -2086,14 +2088,24 @@ WildIdent<out IToken/*!*/ x, bool allowWildcardId>
   .
 
 Nat<out BigInteger n>
-=
-  digits
-  (. try {
-       n = BigInteger.Parse(t.val);
-     } catch (System.FormatException) {
-       SemErr("incorrectly formatted number");
-       n = BigInteger.Zero;
-     }
-  .)
+= (. n = BigInteger.Zero; .)
+  (digits
+    (. try {
+         n = BigInteger.Parse(t.val);
+       } catch (System.FormatException) {
+         SemErr("incorrectly formatted number");
+         n = BigInteger.Zero;
+       }
+    .)
+   |hexdigits 
+    (. try {
+         // note: leading 0 required when parsing positive hex numbers
+         n = BigInteger.Parse("0" + t.val.Substring(2), System.Globalization.NumberStyles.HexNumber);
+       } catch (System.FormatException) {
+         SemErr("incorrectly formatted number");
+         n = BigInteger.Zero;
+       }
+    .)
+   )
   .
 END Dafny.

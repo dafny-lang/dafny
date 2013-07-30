@@ -738,7 +738,7 @@ Basics.dfy(235,10): Error: when left-hand sides 0 and 1 refer to the same locati
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 57 verified, 11 errors
+Dafny program verifier finished with 59 verified, 11 errors
 
 -------------------- ControlStructures.dfy --------------------
 ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
