@@ -3441,6 +3441,9 @@ namespace Microsoft.Dafny {
                   case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
                     hint = "note that calls cannot be co-recursive in this context";
                     break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                    hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                    break;
                   case FunctionCallExpr.CoCallResolution.No:
                     hint = null;
                     break;

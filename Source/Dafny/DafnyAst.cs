@@ -3933,7 +3933,8 @@ namespace Microsoft.Dafny {
       NoBecauseFunctionHasSideEffects,
       NoBecauseFunctionHasPostcondition,
       NoBecauseRecursiveCallsAreNotAllowedInThisContext,
-      NoBecauseIsNotGuarded
+      NoBecauseIsNotGuarded,
+      NoBecauseRecursiveCallsInDestructiveContext
     }
     public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call; filled in by resolution
 

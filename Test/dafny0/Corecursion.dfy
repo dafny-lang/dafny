@@ -79,3 +79,48 @@ module EqualityIsSuperDestructive {
     assert false;
   }
 }
+
+// --------------------------------------------------
+
+module MixRecursiveAndCorecursive {
+  codatatype Stream<T> = Cons(head: T, tail: Stream)
+  
+  function F(n: nat): Stream<int>
+  {
+    if n == 0 then
+      Cons(0, F(5))  // error: cannot prove termination -- by itself, this would look like a properly guarded co-recursive call...
+    else
+      F(n - 1).tail  // but the fact that this recursive call is not tail recursive means that call in the 'then' branch is not
+                     // allowed to be a co-recursive
+  }
+
+  // same thing but with some mutual recursion going on
+  function G(n: nat): Stream<int>
+  {
+    if n == 0 then
+      Cons(0, H(5))  // error: cannot prove termination
+    else
+      H(n)
+  }
+  function H(n: nat): Stream<int>
+    requires n != 0;
+    decreases n, 0;
+  {
+    G(n-1).tail
+  }
+
+  // but if all the recursive calls are tail recursive, then all is cool
+  function X(n: nat): Stream<int>
+  {
+    if n == 0 then
+      Cons(0, Y(5))  // error: cannot prove termination
+    else
+      Y(n)
+  }
+  function Y(n: nat): Stream<int>
+    requires n != 0;
+    decreases n, 0;
+  {
+    X(n-1)
+  }
+}
