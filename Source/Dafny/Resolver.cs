@@ -1295,6 +1295,7 @@ namespace Microsoft.Dafny
                 foreach (var c in coCandidates) {
                   c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
                   c.EnclosingCoConstructor.IsCoCall = true;
+                  ReportAddionalInformation(c.CandidateCall.tok, "co-recursive call", c.CandidateCall.Name.Length);
                 }
               }
             }
