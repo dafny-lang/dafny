@@ -668,6 +668,12 @@ namespace Microsoft.Dafny {
           var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var fn = new Bpl.Function(dt.tok, "$Eq#2#" + dt.FullSanitizedName, new List<Variable> { d0Var, d1Var }, resType,
             "equality for codatatype " + dt.FullName);
+
+          if (InsertChecksums)
+          {
+            InsertChecksum(dt, fn);
+          }
+
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall d0, d1: DatatypeType :: { $Eq#2#Dt(d0, d1) } $Eq#2#Dt(d0, d1) <==>
@@ -737,6 +743,12 @@ namespace Microsoft.Dafny {
           var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var fn = new Bpl.Function(dt.tok, "$Eq#0#" + dt.FullSanitizedName, new List<Variable> { d0Var, d1Var }, resType,
             "equality (limited version) for codatatype " + dt.FullName);
+
+          if (InsertChecksums)
+          {
+            InsertChecksum(dt, fn);
+          }
+
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall d0: DatatypeType, d1: DatatypeType :: { $Eq#Dt(d0,d1) }
@@ -778,6 +790,12 @@ namespace Microsoft.Dafny {
           var resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var fn = new Bpl.Function(dt.tok, CoPrefixName(codecl, 2), new List<Variable> { kVar, d0Var, d1Var }, resType,
             "prefix equality for codatatype " + dt.FullName);
+
+          if (InsertChecksums)
+          {
+            InsertChecksum(dt, fn);
+          }
+
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall k: int, d0, d1: DatatypeType :: { $PrefixEqual#2#Dt(k, d0, d1) } $PrefixEqual#2#Dt(k, d0, d1) <==>
