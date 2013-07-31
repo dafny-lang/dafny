@@ -36,16 +36,35 @@ namespace DafnyLanguage
 
   public class DafnyTokenTag : ITag
   {
+    string FixedHoverText;
+    private Microsoft.Dafny.IVariable Variable;
     public DafnyTokenKind Kind { get; private set; }
-    public string HoverText { get; private set; }
+    public string HoverText
+    {
+      get
+      {
+        string text = FixedHoverText;
+        if (Variable != null)
+        {
+          var value = DafnyClassifier.DafnyMenuPackage.TryToLookupValueInCurrentModel(Variable.UniqueName);
+          if (value != null)
+          {
+            text = string.Format("{0} (value = {1})", text == null ? "" : text, value);
+          }
+        }
+        return text;
+      }
+    }
 
     public DafnyTokenTag(DafnyTokenKind kind) {
       this.Kind = kind;
     }
 
-    public DafnyTokenTag(DafnyTokenKind kind, string hoverText) {
+    public DafnyTokenTag(DafnyTokenKind kind, string fixedHoverText, Microsoft.Dafny.IVariable variable = null)
+    {
       this.Kind = kind;
-      this.HoverText = hoverText;
+      this.FixedHoverText = fixedHoverText;
+      this.Variable = variable;
     }
   }
 
