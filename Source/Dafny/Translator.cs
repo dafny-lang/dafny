@@ -5236,8 +5236,10 @@ namespace Microsoft.Dafny {
         if (s.Lines.Count > 0) {          
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtListBuilder b;
+          // if the dangling hint is empty, do not generate anything for the dummy step
+          var stepCount = s.Hints.Last().Body.Count == 0 ? s.Steps.Count - 1 : s.Steps.Count; 
           // check steps:
-          for (int i = s.Steps.Count; 0 <= --i; ) {            
+          for (int i = stepCount; 0 <= --i; ) {            
             b = new Bpl.StmtListBuilder();
             // assume wf[line<i>]:
             AddComment(b, stmt, "assume wf[lhs]");
@@ -5252,24 +5254,26 @@ namespace Microsoft.Dafny {
             // hint:
             AddComment(b, stmt, "Hint" + i.ToString());
             TrStmt(s.Hints[i], b, locals, etran);
-            // check well formedness of the goal line:
-            AddComment(b, stmt, "assert wf[rhs]");
-            if (s.Steps[i] is TernaryExpr) {
-              // check the prefix-equality limit
-              var index = ((TernaryExpr) s.Steps[i]).E0;
-              b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
-            }
-            TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
-            bool splitHappened;
-            var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
-            // assert step:
-            AddComment(b, stmt, "assert line" + i.ToString() + " " + s.StepOps[i].ToString() + " line" + (i + 1).ToString());
-            if (!splitHappened) {
-              b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
-            } else {
-              foreach (var split in ss) {
-                if (split.IsChecked) {
-                  b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
+            if (i < s.Steps.Count - 1) { // non-dummy step
+              // check well formedness of the goal line:
+              AddComment(b, stmt, "assert wf[rhs]");
+              if (s.Steps[i] is TernaryExpr) {
+                // check the prefix-equality limit
+                var index = ((TernaryExpr) s.Steps[i]).E0;
+                b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
+              }
+              TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
+              bool splitHappened;
+              var ss = TrSplitExpr(s.Steps[i], etran, out splitHappened);
+              // assert step:
+              AddComment(b, stmt, "assert line" + i.ToString() + " " + s.StepOps[i].ToString() + " line" + (i + 1).ToString());
+              if (!splitHappened) {
+                b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
+              } else {
+                foreach (var split in ss) {
+                  if (split.IsChecked) {
+                    b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
+                  }
                 }
               }
             }
@@ -5285,7 +5289,7 @@ namespace Microsoft.Dafny {
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
           // assume result:
-          if (s.Steps.Count > 0) {            
+          if (s.Steps.Count > 1) {            
             builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Result)));
           }
         }

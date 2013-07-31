@@ -4035,17 +4035,19 @@ namespace Microsoft.Dafny
           ResolveExpression(e0, true, codeContext);
           Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
           for (int i = 1; i < s.Lines.Count; i++) {
-            var e1 = s.Lines[i];
-            ResolveExpression(e1, true, codeContext);
-            Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
-            if (!UnifyTypes(e0.Type, e1.Type)) {
-              Error(e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
-            } else {
-              var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator                
-              ResolveExpression(step, true, codeContext);
-              s.Steps.Add(step);            
+            if (i < s.Lines.Count - 1 || prevErrorCount == ErrorCount) { // do not resolve the dummy step if there were errors, it might generate more errors
+              var e1 = s.Lines[i];
+              ResolveExpression(e1, true, codeContext);
+              Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
+              if (!UnifyTypes(e0.Type, e1.Type)) {
+                Error(e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
+              } else {
+                var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator                
+                ResolveExpression(step, true, codeContext);
+                s.Steps.Add(step);            
+              }
+              e0 = e1;
             }
-            e0 = e1;
           }
                   
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement

@@ -3271,12 +3271,12 @@ namespace Microsoft.Dafny {
 
     }
 
-    public readonly List<Expression/*!*/> Lines;
+    public readonly List<Expression/*!*/> Lines;  // Last line is dummy, in order to form a proper step with the dangling hint
     public readonly List<BlockStmt/*!*/> Hints;   // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
     public readonly CalcOp/*!*/ Op;               // main operator of the calculation
     public readonly List<CalcOp/*!*/> StepOps;    // StepOps[i] comes after line i
     public CalcOp/*!*/ ResultOp;                  // conclusion operator
-    public readonly List<Expression/*!*/> Steps;  // expressions li op l<i + 1>, filled in during resolution
+    public readonly List<Expression/*!*/> Steps;  // expressions li op l<i + 1>, filled in during resolution (last step is dummy)
     public Expression Result;                     // expression l0 ResultOp ln, filled in during resolution
 
     public static readonly CalcOp/*!*/ DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq); 

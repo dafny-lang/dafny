@@ -1393,10 +1393,9 @@ CalcStmt<out Statement/*!*/ s>
                                                           .)
   ]
   "{"
-  [ Expression<out e>                                     (. lines.Add(e); stepOp = calcOp; .)
+  { Expression<out e>                                     (. lines.Add(e); stepOp = calcOp; .)
     ";"
-    {
-      [ CalcOp<out opTok, out op>                         (. maybeOp = resOp.ResultOp(op);
+    [ CalcOp<out opTok, out op>                           (. maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "this operator cannot continue this calculation");
                                                              } else {
@@ -1404,14 +1403,17 @@ CalcStmt<out Statement/*!*/ s>
                                                                resOp = maybeOp;                                                              
                                                              }
                                                           .)
-      ]                                                   (. stepOps.Add(stepOp); .)
-      Hint<out h>                                         (. hints.Add(h); .)
-      Expression<out e>                                   (. lines.Add(e); stepOp = calcOp; .)
-      ";"
-    }
-  ]
+    ]                                                   (. stepOps.Add(stepOp); .)
+    Hint<out h>                                         (. hints.Add(h); .)
+  }
   "}"
-  (. s = new CalcStmt(x, calcOp, lines, hints, stepOps, resOp); .)
+  (.
+    if (lines.Count > 0) {
+	  // Repeat the last line to create a dummy line for the dangling hint
+	  lines.Add(lines[lines.Count - 1]);
+    }  
+	s = new CalcStmt(x, calcOp, lines, hints, stepOps, resOp); 
+  .)
   .
 CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
 = (. var binOp = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator

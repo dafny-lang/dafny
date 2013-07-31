@@ -1685,8 +1685,16 @@ Calculations.dfy(52,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     Calculations.dfy(47,2): anon5_Else
+Calculations.dfy(75,13): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+Calculations.dfy(75,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
 
-Dafny program verifier finished with 5 verified, 4 errors
+Dafny program verifier finished with 6 verified, 6 errors
 
 -------------------- IteratorResolution.dfy --------------------
 IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field

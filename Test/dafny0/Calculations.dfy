@@ -61,3 +61,22 @@ function CalcTest3(s: seq<int>): int {
 	}
 	s[0]
 }
+
+// dangling hints:
+method CalcTest4(s: seq<int>) 
+	requires forall n | n in s :: n > 0;
+{
+	calc {
+		1 + 1;
+		{ assert 1 + 1 == 2; }
+	}
+	calc {
+		2;
+		{ assert s[0] > 0; } // error: ill-formed hint
+	}
+	calc {
+		|s| > 0;
+	==> { assert s[0] > 0; } // okay
+	}
+	
+}
