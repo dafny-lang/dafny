@@ -180,7 +180,7 @@ namespace DafnyLanguage
         {
           // unselect it
           esrtag.Error.SelectedStateAdornment = null;
-          esrtag.Error.SelectedStateId = 0;
+          esrtag.Error.SelectedStateId = -1;
           result.Stroke = Brushes.DodgerBlue;
           result.ToolTip = "select state";
         }
@@ -192,7 +192,7 @@ namespace DafnyLanguage
             esrtag.Error.SelectedStateAdornment.Stroke = Brushes.DodgerBlue;
             esrtag.Error.SelectedStateAdornment.ToolTip = "select state";
             esrtag.Error.SelectedStateAdornment = null;
-            esrtag.Error.SelectedStateId = 0;
+            esrtag.Error.SelectedStateId = -1;
           }
 
           // select the new one

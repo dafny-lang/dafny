@@ -563,6 +563,7 @@ namespace DafnyLanguage
       Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
       Model = model;
       _errorSelection = _errorSelectionSingleton;
+      SelectedStateId = -1;
     }
   }
 
