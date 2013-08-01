@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -305,6 +306,7 @@ namespace DafnyLanguage.DafnyMenu
         BvdToolWindow.BVD.HideStateList();
         BvdToolWindow.BVD.ReadModel(model);
         BvdToolWindow.BVD.SetState(id, true);
+        BvdToolWindow.BVD.SetFont(new Font(SystemFonts.DefaultFont.FontFamily, 1.3f * SystemFonts.DefaultFont.Size, SystemFonts.DefaultFont.Style));
 
         IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
         Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
