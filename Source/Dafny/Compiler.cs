@@ -26,6 +26,16 @@ namespace Microsoft.Dafny {
 
     TextWriter wr;
     Method enclosingMethod;  // non-null when a method body is being translated
+    internal static IUniqueNameGenerator UniqueNameGeneratorSingleton = new UniqueNameGenerator();
+
+    class UniqueNameGenerator : IUniqueNameGenerator
+    {
+      int nameCount;
+      public int GenerateId(string name)
+      {
+        return nameCount++;
+      }
+    }
 
     public int ErrorCount;
     void Error(string msg, params object[] args) {

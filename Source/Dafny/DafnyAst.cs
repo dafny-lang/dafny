@@ -805,7 +805,7 @@ namespace Microsoft.Dafny {
 
   // ------------------------------------------------------------------------------------------------------
 
-  public abstract class Declaration {
+  public abstract class Declaration : IUniqueNameGenerator {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -839,6 +839,15 @@ namespace Microsoft.Dafny {
     public override string ToString() {
       Contract.Ensures(Contract.Result<string>() != null);
       return Name;
+    }
+
+    int nameCount;
+
+    public int GenerateId(string name)
+    {
+      Contract.Requires(name != null);
+
+      return nameCount++;
     }
   }
 
@@ -1240,6 +1249,11 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public interface IUniqueNameGenerator
+  {
+    int GenerateId(string name);
+  }
+
   public interface ICodeContext : ICallable
   {
     bool IsGhost { get; }
@@ -1273,7 +1287,7 @@ namespace Microsoft.Dafny {
     Specification<Expression> ICodeContext.Decreases { get { return new Specification<Expression>(null, null); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
-    public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }  
+    public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   }
 
   public class IteratorDecl : ClassDecl, ICodeContext
@@ -1517,6 +1531,7 @@ namespace Microsoft.Dafny {
     string/*!*/ UniqueName {
       get;
     }
+    string AssignUniqueName(IUniqueNameGenerator generator);
     string/*!*/ CompileName {
       get;
     }
@@ -1581,6 +1596,11 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
     }
+    public string AssignUniqueName(IUniqueNameGenerator generator)
+    {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      throw new NotImplementedException();
+    }
   }
 
   public abstract class NonglobalVariable : IVariable {
@@ -1603,12 +1623,22 @@ namespace Microsoft.Dafny {
     public string/*!*/ DisplayName {
       get { return VarDecl.DisplayNameHelper(this); }
     }
-    readonly int varId = varIdCount++;
+    private string uniqueName;
     public string UniqueName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return name + "#" + varId;
+        return uniqueName;
       }
+    }
+    public string AssignUniqueName(IUniqueNameGenerator generator)
+    {
+      if (uniqueName == null)
+      {
+        var uniqueId = generator.GenerateId(Name);
+        uniqueName = string.Format("{0}#{1}", Name, uniqueId);
+        compileName = string.Format("_{0}_{1}", uniqueId, CompilerizeName(name));
+      }
+      return UniqueName;
     }
     static char[] specialChars = new char[] { '\'', '_', '?', '\\' };
     public static string CompilerizeName(string nm) {
@@ -1648,8 +1678,9 @@ namespace Microsoft.Dafny {
     protected string compileName;
     public virtual string CompileName {
       get {
-        if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", varId, CompilerizeName(name));
+        if (compileName == null)
+        {
+          compileName = string.Format("_{0}_{1}", Compiler.UniqueNameGeneratorSingleton.GenerateId(Name), CompilerizeName(name));
         }
         return compileName;
       }
@@ -1689,8 +1720,6 @@ namespace Microsoft.Dafny {
       this.type = type;
       this.isGhost = isGhost;
     }
-
-    internal static int varIdCount;  // this varIdCount is used for both NonglobalVariable's and VarDecl's.
   }
 
   public class Formal : NonglobalVariable {
@@ -2709,18 +2738,29 @@ namespace Microsoft.Dafny {
     public string/*!*/ DisplayName {
       get { return DisplayNameHelper(this); }
     }
-    readonly int varId = NonglobalVariable.varIdCount++;
+    private string uniqueName;
     public string/*!*/ UniqueName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return name + "#" + varId;
+        return uniqueName;
       }
+    }
+    public string AssignUniqueName(IUniqueNameGenerator generator)
+    {
+      if (uniqueName == null)
+      {
+        var uniqueId = generator.GenerateId(Name);
+        uniqueName = string.Format("{0}#{1}", Name, uniqueId);
+        compileName = string.Format("_{0}_{1}", uniqueId, NonglobalVariable.CompilerizeName(name));
+      }
+      return UniqueName;
     }
     string compileName;
     public string CompileName {
       get {
-        if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", varId, NonglobalVariable.CompilerizeName(name));
+        if (compileName == null)
+        {
+          compileName = string.Format("_{0}_{1}", Compiler.UniqueNameGeneratorSingleton.GenerateId(Name), NonglobalVariable.CompilerizeName(name));
         }
         return compileName;
       }
