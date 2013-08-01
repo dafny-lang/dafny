@@ -845,8 +845,6 @@ namespace Microsoft.Dafny {
 
     public int GenerateId(string name)
     {
-      Contract.Requires(name != null);
-
       return nameCount++;
     }
   }
@@ -1249,9 +1247,18 @@ namespace Microsoft.Dafny {
     }
   }
 
+  [ContractClass(typeof(UniqueNameGeneratorContracts))]
   public interface IUniqueNameGenerator
   {
     int GenerateId(string name);
+  }
+  [ContractClassFor(typeof(IUniqueNameGenerator))]
+  public abstract class UniqueNameGeneratorContracts : IUniqueNameGenerator
+  {
+    public int GenerateId(string name) {
+      Contract.Requires(name != null);
+      throw new NotImplementedException();
+    }
   }
 
   public interface ICodeContext : ICallable
@@ -1598,7 +1605,7 @@ namespace Microsoft.Dafny {
     }
     public string AssignUniqueName(IUniqueNameGenerator generator)
     {
-      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();
     }
   }
