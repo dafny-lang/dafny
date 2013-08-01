@@ -321,9 +321,9 @@ namespace DafnyLanguage.DafnyMenu
         var m = BvdToolWindow.BVD.LangModel as Microsoft.Boogie.ModelViewer.Dafny.DafnyModel;
         var s = m.states[BvdToolWindow.BVD.CurrentState];
         var v = s.Vars.FirstOrDefault(var => var.Name == name);
-        if (v != null && v.Element.Kind != Microsoft.Boogie.Model.ElementKind.Uninterpreted)
+        if (v != null)
         {
-          result = v.Element.ToString();
+          result = m.CanonicalName(v.Element);
         }
       }
       return result;
