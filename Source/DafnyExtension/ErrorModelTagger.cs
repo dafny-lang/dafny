@@ -164,6 +164,13 @@ namespace DafnyLanguage
       esrtag.Error.StateChangeEvent += new DafnyError.StateChangeEventHandler((o) =>
       {
         result.Visibility = esrtag.Error.IsSelected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        var isSelected = esrtag.Error.IsSelected && esrtag.Error.SelectedStateId == esrtag.Id;
+        result.Stroke = isSelected ? Brushes.Black : Brushes.DodgerBlue;
+        result.ToolTip = isSelected ? "unselect state" : "select state";
+        if (isSelected)
+        {
+          esrtag.Error.SelectedStateAdornment = result;
+        }
       });
 
       result.MouseDown += new MouseButtonEventHandler((s, e) =>
@@ -240,10 +247,16 @@ namespace DafnyLanguage
 
           // select the new one
           ertag.Error.SelectedError = ertag.Error;
-          ertag.Error.SelectedError.Notify();
           ertag.Error.Adornment = result;
           ertag.Error.Adornment.Stroke = Brushes.Black;
           ertag.Error.Adornment.ToolTip = "unselect error";
+          if (!string.IsNullOrEmpty(ertag.Error.Model))
+          {
+            // select the last error state
+            ertag.Error.SelectedStateId = ertag.Error.StateSpans.Count() - 1;
+            DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(ertag.Error.Model, ertag.Error.SelectedStateId);
+          }
+          ertag.Error.SelectedError.Notify();
         }
       });
       return result;

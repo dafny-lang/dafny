@@ -376,11 +376,6 @@ namespace DafnyLanguage
               task.Navigate += new EventHandler(NavigateHandler);
             }
             _errorProvider.Tasks.Add(task);
-
-            if (err.Model != null)
-            {
-
-            }
           }
           _errorProvider.ResumeRefresh();
         }
