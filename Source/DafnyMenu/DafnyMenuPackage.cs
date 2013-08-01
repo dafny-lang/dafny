@@ -313,9 +313,10 @@ namespace DafnyLanguage.DafnyMenu
       }
     }
 
-    public string TryToLookupValueInCurrentModel(string name)
+    public string TryToLookupValueInCurrentModel(string name, out bool wasUpdated)
     {
       string result = null;
+      wasUpdated = false;
       if (!BVDDisabled && BvdToolWindow.BVD.LangModel != null)
       {
         var m = BvdToolWindow.BVD.LangModel as Microsoft.Boogie.ModelViewer.Dafny.DafnyModel;
@@ -323,6 +324,7 @@ namespace DafnyLanguage.DafnyMenu
         var v = s.Vars.FirstOrDefault(var => var.Name == name);
         if (v != null)
         {
+          wasUpdated = v.updatedHere;
           result = m.CanonicalName(v.Element);
         }
       }

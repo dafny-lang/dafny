@@ -46,10 +46,11 @@ namespace DafnyLanguage
         string text = FixedHoverText;
         if (Variable != null)
         {
-          var value = DafnyClassifier.DafnyMenuPackage.TryToLookupValueInCurrentModel(Variable.UniqueName);
+          bool wasUpdated;
+          var value = DafnyClassifier.DafnyMenuPackage.TryToLookupValueInCurrentModel(Variable.UniqueName, out wasUpdated);
           if (value != null)
           {
-            text = string.Format("{0} (value = {1})", text == null ? "" : text, value);
+            text = string.Format("{0} ({1}value = {2})", text == null ? "" : text, wasUpdated ? "new " : "", value);
           }
         }
         return text;
