@@ -229,6 +229,7 @@ namespace DafnyLanguage
           // unselect it
           var selErr = ertag.Error.SelectedError;
           ertag.Error.SelectedError = null;
+          ertag.Error.SelectedStateId = -1;
           selErr.Notify();
           result.Stroke = Brushes.Crimson;
           result.ToolTip = "select error";
@@ -241,6 +242,7 @@ namespace DafnyLanguage
             var selErr = ertag.Error.SelectedError;
             selErr.Adornment.Stroke = Brushes.Crimson;
             selErr.Adornment.ToolTip = "select error";
+            ertag.Error.SelectedStateId = -1;
             ertag.Error.SelectedError = null;
             selErr.Notify();
           }
