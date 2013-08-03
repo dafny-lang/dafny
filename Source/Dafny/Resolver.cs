@@ -938,6 +938,9 @@ namespace Microsoft.Dafny
       } else if (m is CoMethod) {
         return new CoMethod(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, null, null, false);
+      } else if (m is Lemma) {
+        return new Lemma(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, ens, decreases, null, null, false);
       } else {
         return new Method(m.tok, m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, null, null, false);
@@ -2808,7 +2811,9 @@ namespace Microsoft.Dafny
       }
       foreach (FrameExpression fe in m.Mod.Expressions) {
         ResolveFrameExpression(fe, "modifies");
-        if (m is CoMethod) {
+        if (m is Lemma) {
+          Error(fe.tok, "lemmas are not allowed to have modifies clauses");
+        } else if (m is CoMethod) {
           Error(fe.tok, "comethods are not allowed to have modifies clauses");
         }
       }

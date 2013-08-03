@@ -2001,6 +2001,21 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { return this.MustReverify; } }
   }
 
+  public class Lemma : Method
+  {
+    public Lemma(IToken tok, string name,
+                 bool isStatic,
+                 [Captured] List<TypeParameter/*!*/>/*!*/ typeArgs,
+                 [Captured] List<Formal/*!*/>/*!*/ ins, [Captured] List<Formal/*!*/>/*!*/ outs,
+                 [Captured] List<MaybeFreeExpression/*!*/>/*!*/ req, [Captured] Specification<FrameExpression>/*!*/ mod,
+                 [Captured] List<MaybeFreeExpression/*!*/>/*!*/ ens,
+                 [Captured] Specification<Expression>/*!*/ decreases,
+                 [Captured] BlockStmt body,
+                 Attributes attributes, bool signatureOmitted)
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureOmitted) {
+    }
+  }
+
   public class Constructor : Method
   {
     public Constructor(IToken tok, string name,

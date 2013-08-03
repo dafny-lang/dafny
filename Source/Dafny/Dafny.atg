@@ -527,6 +527,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      BlockStmt body = null;
+     bool isLemma = false;
      bool isConstructor = false;
      bool isCoMethod = false;
      bool signatureOmitted = false;
@@ -535,7 +536,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   .)
   SYNC
   ( "method"
+  | "lemma"                         (. isLemma = true; .)
   | "comethod"                      (. isCoMethod = true; .)
+  | "colemma"                       (. isCoMethod = true; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -543,7 +546,11 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
                                        }
                                     .)
   )                                 (. keywordToken = t; .)
-  (. if (isConstructor) {
+  (. if (isLemma) {
+       if (mmod.IsGhost) {
+         SemErr(t, "lemmas cannot be declared 'ghost' (they are automatically 'ghost')");
+       }
+     } else if (isConstructor) {
        if (mmod.IsGhost) {
          SemErr(t, "constructors cannot be declared 'ghost'");
        }
@@ -552,7 +559,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
        }
      } else if (isCoMethod) {
        if (mmod.IsGhost) {
-         SemErr(t, "comethods cannot be declared 'ghost'");
+         SemErr(t, "comethods cannot be declared 'ghost' (they are automatically 'ghost')");
        }
      }
   .)
@@ -583,6 +590,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      } else if (isCoMethod) {
        m = new CoMethod(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+     } else if (isLemma) {
+       m = new Lemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
+                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
      } else {
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);

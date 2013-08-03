@@ -264,6 +264,7 @@ namespace DafnyLanguage
                 case "choose":
                 case "class":
                 case "codatatype":
+                case "colemma":
                 case "comethod":
                 case "constructor":
                 case "copredicate":
@@ -286,6 +287,7 @@ namespace DafnyLanguage
                 case "invariant":
                 case "iterator":
                 case "label":
+                case "lemma":
                 case "map":
                 case "match":
                 case "method":

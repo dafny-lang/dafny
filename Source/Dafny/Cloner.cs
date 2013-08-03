@@ -549,6 +549,9 @@ namespace Microsoft.Dafny
       } else if (m is CoMethod) {
         return new CoMethod(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
+      } else if (m is Lemma) {
+        return new Lemma(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
       } else {
         return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);

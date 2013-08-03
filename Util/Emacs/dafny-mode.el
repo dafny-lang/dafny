@@ -32,7 +32,7 @@
    `(,(dafny-regexp-opt '(
         "class" "datatype" "codatatype" "type" "iterator"
         "function" "predicate" "copredicate"
-        "ghost" "var" "method" "constructor" "comethod"
+        "ghost" "var" "method" "lemma" "constructor" "comethod" "colemma"
         "abstract" "module" "import" "default" "as" "opened" "static" "refines"
         "returns" "yields" "requires" "ensures" "modifies" "reads" "free"
         "invariant" "decreases"

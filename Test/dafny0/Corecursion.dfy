@@ -70,7 +70,7 @@ module EqualityIsSuperDestructive {
     then Cons(2, s) else Cons(1, s)
   }
 
-  ghost method lemma(s: Stream<int>)
+  lemma Lemma(s: Stream<int>)
   {
     // The following three assertions follow from the definition of F, so F had better
     // generate some error (which it does -- the recursive call to F in F does not terminate).

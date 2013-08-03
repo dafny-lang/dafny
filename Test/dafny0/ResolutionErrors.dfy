@@ -642,3 +642,14 @@ module UnderspecifiedTypes {
     var T4 :| T4 <= S;
   }
 }
+
+// ------------------------- lemmas ------------------------------
+
+// a lemma is allowed to have out-parameters, but not a modifies clause
+lemma MyLemma(x: int) returns (y: int)
+  requires 0 <= x;
+  modifies this;
+  ensures 0 <= y;
+{
+  y := x;
+}

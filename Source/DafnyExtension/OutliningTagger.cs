@@ -172,6 +172,7 @@ namespace DafnyLanguage
                 var nm =
                   m is Dafny.Constructor ? "constructor" :
                   m is Dafny.CoMethod ? "comethod" :
+                  m is Dafny.Lemma ? "lemma" :
                   // m is Dafny.PrefixMethod ? "prefix method" :  // this won't ever occur here
                   "method";
                 if (m.IsGhost && !(m is Dafny.CoMethod)) {

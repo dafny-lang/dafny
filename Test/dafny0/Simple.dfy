@@ -50,3 +50,13 @@ class C {
   var w: WildData;
   var list: List<bool>;
 }
+
+lemma M(x: int)
+  ensures x < 8;
+{
+  // proof would go here
+}
+colemma M'(x': int)
+  ensures true;
+{
+}

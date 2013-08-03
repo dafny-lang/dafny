@@ -351,9 +351,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(method != null);
 
       Indent(indent);
-      string k = method is Constructor ? "constructor" : method is CoMethod ? "comethod" : "method";
+      string k = method is Constructor ? "constructor" : method is CoMethod ? "comethod" : method is Lemma ? "lemma" : "method";
       if (method.IsStatic) { k = "static " + k; }
-      if (method.IsGhost && !(method is CoMethod)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is CoMethod)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
