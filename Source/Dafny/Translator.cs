@@ -2452,6 +2452,11 @@ namespace Microsoft.Dafny {
           }
           builder.Add(new Bpl.HavocCmd(m.tok, outH));
         }
+        // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
+        // omit the CaptureState if there's no ensures clause)
+        if (m.Ens.Count != 0) {
+          builder.Add(CaptureState(m.Ens[0].E.tok, "post-state"));
+        }
 
         // check wellformedness of postconditions
         foreach (MaybeFreeExpression p in m.Ens) {
@@ -2605,6 +2610,7 @@ namespace Microsoft.Dafny {
 
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
+      builder.Add(CaptureState(m.tok, "initial state"));
     }
 
     void GenerateIteratorImplPrelude(IteratorDecl iter, List<Variable> inParams, List<Variable> outParams,
@@ -2623,6 +2629,7 @@ namespace Microsoft.Dafny {
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
+      builder.Add(CaptureState(iter.tok, "initial state"));
     }
 
     Bpl.Cmd CaptureState(IToken tok, string/*?*/ additionalInfo) {
@@ -2648,7 +2655,7 @@ namespace Microsoft.Dafny {
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, tok);
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type of the $_Frame variable
+      Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       Contract.Assert(theFrame.Type != null);  // follows from the postcondition of TheFrame
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? theFrame.Name, theFrame.Type));
       localVariables.Add(frame);
@@ -2664,10 +2671,6 @@ namespace Microsoft.Dafny {
                                            Bpl.Expr.Imp(ante, consequent));
 
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
-      if (name == null) {
-        // put a CaptureState here, so that there will be at least one CaptureState for the procedure
-        builder.Add(CaptureState(tok, "initial state"));
-      }
     }
 
     void CheckFrameSubset(IToken tok, List<FrameExpression/*!*/>/*!*/ calleeFrame,
@@ -2994,9 +2997,10 @@ namespace Microsoft.Dafny {
         InsertChecksum(f, proc, true);
       }
 
-      List<Variable> implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
-      List<Variable> locals = new List<Variable>();
-      Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
+      var implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
+      var locals = new List<Variable>();
+      var builder = new Bpl.StmtListBuilder();
+      builder.Add(CaptureState(f.tok, "initial state"));
 
       // check well-formedness of the preconditions (including termination, but no reads checks), and then
       // assume each one of them
@@ -3798,9 +3802,10 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < e.Vars.Count; i++) {
             var vr = e.Vars[i];
             var tp = TrType(vr.Type);
-            var v = new Bpl.LocalVariable(vr.tok, new Bpl.TypedIdent(vr.tok, vr.AssignUniqueName(currentDeclaration), tp));
+            var nm = vr.AssignUniqueName(currentDeclaration);
+            var v = new Bpl.LocalVariable(vr.tok, new Bpl.TypedIdent(vr.tok, nm, tp));
             locals.Add(v);
-            var lhs = new Bpl.IdentifierExpr(vr.tok, vr.AssignUniqueName(currentDeclaration), tp);
+            var lhs = new Bpl.IdentifierExpr(vr.tok, nm, tp);
 
             CheckWellformedWithResult(e.RHSs[i], options, lhs, vr.Type, locals, builder, etran);
             substMap.Add(vr, new BoogieWrapper(lhs, vr.Type));
@@ -6321,6 +6326,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
+      loopBodyBuilder.Add(CaptureState(s.Tok, "after some loop iterations"));
       // as the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
@@ -6334,7 +6340,6 @@ namespace Microsoft.Dafny {
       guardBreak.Add(new Bpl.BreakCmd(s.Tok, null));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
 
-      loopBodyBuilder.Add(CaptureState(s.Tok, "loop entered"));
       // termination checking
       if (Contract.Exists(theDecreases, e => e is WildcardExpr)) {
         // omit termination checking for this loop
@@ -6372,7 +6377,6 @@ namespace Microsoft.Dafny {
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
 
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
-      builder.Add(CaptureState(s.Tok, "loop exit"));
     }
 
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,

@@ -122,11 +122,13 @@ Execution trace:
     (0,0): anon3_Then
 NatTypes.dfy(104,45): Error: value assigned to a nat must be non-negative
 Execution trace:
+    (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
 NatTypes.dfy(127,21): Error: value assigned to a nat must be non-negative
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Then
 
 Dafny program verifier finished with 15 verified, 9 errors
@@ -134,6 +136,7 @@ Dafny program verifier finished with 15 verified, 9 errors
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 Definedness.dfy(15,16): Error: possible division by zero
 Execution trace:
@@ -201,88 +204,88 @@ Execution trace:
     (0,0): anon0
 Definedness.dfy(105,15): Error: possible division by zero
 Execution trace:
-    Definedness.dfy(105,5): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Definedness.dfy(105,5): anon9_Else
+    Definedness.dfy(105,5): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    Definedness.dfy(105,5): anon8_Else
 Definedness.dfy(114,23): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(113,5): anon13_LoopHead
-    (0,0): anon13_LoopBody
-    (0,0): anon14_Then
+    Definedness.dfy(113,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    (0,0): anon13_Then
 Definedness.dfy(120,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(113,5): anon13_LoopHead
-    (0,0): anon13_LoopBody
-    Definedness.dfy(113,5): anon14_Else
-    (0,0): anon15_Then
-    Definedness.dfy(119,5): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    (0,0): anon17_Then
+    Definedness.dfy(113,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    Definedness.dfy(113,5): anon13_Else
+    (0,0): anon14_Then
+    Definedness.dfy(119,5): anon15_LoopHead
+    (0,0): anon15_LoopBody
+    (0,0): anon16_Then
 Definedness.dfy(130,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(129,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    (0,0): anon8_Then
+    Definedness.dfy(129,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    (0,0): anon7_Then
 Definedness.dfy(130,22): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
 Definedness.dfy(131,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(129,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    (0,0): anon8_Then
+    Definedness.dfy(129,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    (0,0): anon7_Then
 Definedness.dfy(140,15): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(140,5): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    Definedness.dfy(140,5): anon10_Else
+    Definedness.dfy(140,5): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Definedness.dfy(140,5): anon9_Else
 Definedness.dfy(159,15): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(153,5): anon17_LoopHead
-    (0,0): anon17_LoopBody
-    Definedness.dfy(153,5): anon18_Else
-    (0,0): anon19_Then
+    Definedness.dfy(153,5): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    Definedness.dfy(153,5): anon17_Else
+    (0,0): anon18_Then
     (0,0): anon5
-    (0,0): anon20_Then
-    Definedness.dfy(159,5): anon21_LoopHead
-    (0,0): anon21_LoopBody
-    Definedness.dfy(159,5): anon22_Else
+    (0,0): anon19_Then
+    Definedness.dfy(159,5): anon20_LoopHead
+    (0,0): anon20_LoopBody
+    Definedness.dfy(159,5): anon21_Else
 Definedness.dfy(172,28): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
 Definedness.dfy(178,17): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(170,5): anon19_LoopHead
-    (0,0): anon19_LoopBody
-    Definedness.dfy(170,5): anon20_Else
-    (0,0): anon21_Then
-    Definedness.dfy(177,5): anon22_LoopHead
-    (0,0): anon22_LoopBody
+    Definedness.dfy(170,5): anon18_LoopHead
+    (0,0): anon18_LoopBody
+    Definedness.dfy(170,5): anon19_Else
+    (0,0): anon20_Then
+    Definedness.dfy(177,5): anon21_LoopHead
+    (0,0): anon21_LoopBody
+    (0,0): anon22_Then
     (0,0): anon23_Then
-    (0,0): anon24_Then
     (0,0): anon11
 Definedness.dfy(193,19): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(191,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    (0,0): anon8_Then
+    Definedness.dfy(191,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    (0,0): anon7_Then
 Definedness.dfy(193,23): Error BP5004: This loop invariant might not hold on entry.
 Execution trace:
     (0,0): anon0
 Definedness.dfy(193,28): Error: possible division by zero
 Execution trace:
     (0,0): anon0
-    Definedness.dfy(191,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    (0,0): anon8_Then
+    Definedness.dfy(191,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    (0,0): anon7_Then
 Definedness.dfy(212,10): Error BP5003: A postcondition might not hold on this return path.
 Definedness.dfy(214,46): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -290,12 +293,14 @@ Execution trace:
     (0,0): anon5_Else
 Definedness.dfy(221,22): Error: target object may be null
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
 Definedness.dfy(234,10): Error BP5003: A postcondition might not hold on this return path.
 Definedness.dfy(237,24): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon2
     (0,0): anon8_Else
@@ -306,6 +311,7 @@ Dafny program verifier finished with 21 verified, 37 errors
 FunctionSpecifications.dfy(32,25): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(28,13): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Then
@@ -313,6 +319,7 @@ Execution trace:
 FunctionSpecifications.dfy(42,3): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(37,24): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon11_Else
     (0,0): anon14_Else
     (0,0): anon15_Then
@@ -324,6 +331,7 @@ Execution trace:
 FunctionSpecifications.dfy(56,10): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(57,22): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
 
 Dafny program verifier finished with 8 verified, 4 errors
@@ -477,35 +485,41 @@ Execution trace:
     (0,0): anon11
 Array.dfy(117,8): Error: insufficient reads clause to read the indicated range of array elements
 Execution trace:
+    (0,0): anon0
     (0,0): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Then
     (0,0): anon12_Then
 Array.dfy(119,8): Error: insufficient reads clause to read the indicated range of array elements
 Execution trace:
+    (0,0): anon0
     (0,0): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Then
     (0,0): anon12_Else
 Array.dfy(120,8): Error: insufficient reads clause to read the indicated range of array elements
 Execution trace:
+    (0,0): anon0
     (0,0): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Then
     (0,0): anon12_Else
 Array.dfy(121,8): Error: insufficient reads clause to read the indicated range of array elements
 Execution trace:
+    (0,0): anon0
     (0,0): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Then
     (0,0): anon12_Else
 Array.dfy(147,6): Error: insufficient reads clause to read array element
 Execution trace:
+    (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
 Array.dfy(155,6): Error: insufficient reads clause to read array element
 Execution trace:
+    (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
@@ -656,6 +670,7 @@ Modules2.dfy(50,11): Error: The name f ambiguously refers to a static member in 
 -------------------- BadFunction.dfy --------------------
 BadFunction.dfy(6,3): Error: failure to decrease termination measure
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 
 Dafny program verifier finished with 2 verified, 1 error
@@ -768,6 +783,7 @@ Execution trace:
     (0,0): anon10_Then
 ControlStructures.dfy(51,3): Error: missing case in case statement: Red
 Execution trace:
+    (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Else
@@ -780,89 +796,89 @@ Execution trace:
 ControlStructures.dfy(215,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ControlStructures.dfy(194,3): anon62_LoopHead
+    ControlStructures.dfy(194,3): anon59_LoopHead
+    (0,0): anon59_LoopBody
+    ControlStructures.dfy(194,3): anon60_Else
+    ControlStructures.dfy(194,3): anon61_Else
+    ControlStructures.dfy(198,5): anon62_LoopHead
     (0,0): anon62_LoopBody
-    ControlStructures.dfy(194,3): anon63_Else
-    ControlStructures.dfy(194,3): anon64_Else
-    ControlStructures.dfy(198,5): anon65_LoopHead
-    (0,0): anon65_LoopBody
-    ControlStructures.dfy(198,5): anon66_Else
-    ControlStructures.dfy(198,5): anon67_Else
+    ControlStructures.dfy(198,5): anon63_Else
+    ControlStructures.dfy(198,5): anon64_Else
+    (0,0): anon68_Then
+    ControlStructures.dfy(210,9): anon69_LoopHead
+    (0,0): anon69_LoopBody
+    ControlStructures.dfy(210,9): anon70_Else
     (0,0): anon71_Then
-    ControlStructures.dfy(210,9): anon72_LoopHead
-    (0,0): anon72_LoopBody
-    ControlStructures.dfy(210,9): anon73_Else
-    (0,0): anon74_Then
 ControlStructures.dfy(232,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ControlStructures.dfy(194,3): anon62_LoopHead
+    ControlStructures.dfy(194,3): anon59_LoopHead
+    (0,0): anon59_LoopBody
+    ControlStructures.dfy(194,3): anon60_Else
+    ControlStructures.dfy(194,3): anon61_Else
+    ControlStructures.dfy(198,5): anon62_LoopHead
     (0,0): anon62_LoopBody
-    ControlStructures.dfy(194,3): anon63_Else
-    ControlStructures.dfy(194,3): anon64_Else
-    ControlStructures.dfy(198,5): anon65_LoopHead
-    (0,0): anon65_LoopBody
-    ControlStructures.dfy(198,5): anon66_Else
-    ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon71_Then
-    ControlStructures.dfy(210,9): anon72_LoopHead
-    (0,0): anon72_LoopBody
-    ControlStructures.dfy(210,9): anon73_Else
-    ControlStructures.dfy(210,9): anon74_Else
-    (0,0): anon75_Then
+    ControlStructures.dfy(198,5): anon63_Else
+    ControlStructures.dfy(198,5): anon64_Else
+    (0,0): anon68_Then
+    ControlStructures.dfy(210,9): anon69_LoopHead
+    (0,0): anon69_LoopBody
+    ControlStructures.dfy(210,9): anon70_Else
+    ControlStructures.dfy(210,9): anon71_Else
+    (0,0): anon72_Then
     (0,0): after_4
-    ControlStructures.dfy(221,7): anon77_LoopHead
-    (0,0): anon77_LoopBody
-    ControlStructures.dfy(221,7): anon78_Else
-    ControlStructures.dfy(221,7): anon79_Else
-    (0,0): anon81_Then
+    ControlStructures.dfy(221,7): anon74_LoopHead
+    (0,0): anon74_LoopBody
+    ControlStructures.dfy(221,7): anon75_Else
+    ControlStructures.dfy(221,7): anon76_Else
+    (0,0): anon78_Then
     (0,0): anon38
     (0,0): after_9
-    (0,0): anon86_Then
-    (0,0): anon53
+    (0,0): anon83_Then
+    (0,0): anon52
 ControlStructures.dfy(235,30): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ControlStructures.dfy(194,3): anon62_LoopHead
+    ControlStructures.dfy(194,3): anon59_LoopHead
+    (0,0): anon59_LoopBody
+    ControlStructures.dfy(194,3): anon60_Else
+    ControlStructures.dfy(194,3): anon61_Else
+    ControlStructures.dfy(198,5): anon62_LoopHead
     (0,0): anon62_LoopBody
-    ControlStructures.dfy(194,3): anon63_Else
-    ControlStructures.dfy(194,3): anon64_Else
-    ControlStructures.dfy(198,5): anon65_LoopHead
-    (0,0): anon65_LoopBody
-    ControlStructures.dfy(198,5): anon66_Else
-    ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon68_Then
+    ControlStructures.dfy(198,5): anon63_Else
+    ControlStructures.dfy(198,5): anon64_Else
+    (0,0): anon65_Then
     (0,0): after_5
-    (0,0): anon87_Then
-    (0,0): anon88_Then
-    (0,0): anon58
+    (0,0): anon84_Then
+    (0,0): anon85_Then
+    (0,0): anon56
 ControlStructures.dfy(238,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ControlStructures.dfy(194,3): anon62_LoopHead
+    ControlStructures.dfy(194,3): anon59_LoopHead
+    (0,0): anon59_LoopBody
+    ControlStructures.dfy(194,3): anon60_Else
+    ControlStructures.dfy(194,3): anon61_Else
+    ControlStructures.dfy(198,5): anon62_LoopHead
     (0,0): anon62_LoopBody
-    ControlStructures.dfy(194,3): anon63_Else
-    ControlStructures.dfy(194,3): anon64_Else
-    ControlStructures.dfy(198,5): anon65_LoopHead
-    (0,0): anon65_LoopBody
-    ControlStructures.dfy(198,5): anon66_Else
-    ControlStructures.dfy(198,5): anon67_Else
-    (0,0): anon71_Then
-    ControlStructures.dfy(210,9): anon72_LoopHead
-    (0,0): anon72_LoopBody
-    ControlStructures.dfy(210,9): anon73_Else
-    ControlStructures.dfy(210,9): anon74_Else
-    (0,0): anon75_Then
+    ControlStructures.dfy(198,5): anon63_Else
+    ControlStructures.dfy(198,5): anon64_Else
+    (0,0): anon68_Then
+    ControlStructures.dfy(210,9): anon69_LoopHead
+    (0,0): anon69_LoopBody
+    ControlStructures.dfy(210,9): anon70_Else
+    ControlStructures.dfy(210,9): anon71_Else
+    (0,0): anon72_Then
     (0,0): after_4
-    ControlStructures.dfy(221,7): anon77_LoopHead
-    (0,0): anon77_LoopBody
-    ControlStructures.dfy(221,7): anon78_Else
-    ControlStructures.dfy(221,7): anon79_Else
+    ControlStructures.dfy(221,7): anon74_LoopHead
+    (0,0): anon74_LoopBody
+    ControlStructures.dfy(221,7): anon75_Else
+    ControlStructures.dfy(221,7): anon76_Else
+    (0,0): anon79_Then
     (0,0): anon82_Then
-    (0,0): anon85_Then
     (0,0): after_8
-    (0,0): anon89_Then
-    (0,0): anon61
+    (0,0): anon86_Then
+    (0,0): anon58
 
 Dafny program verifier finished with 22 verified, 10 errors
 
@@ -876,49 +892,50 @@ Execution trace:
 Termination.dfy(105,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(105,3): anon7_LoopHead
-    (0,0): anon7_LoopBody
+    Termination.dfy(105,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(105,3): anon7_Else
     Termination.dfy(105,3): anon8_Else
-    Termination.dfy(105,3): anon9_Else
 Termination.dfy(113,3): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
-    Termination.dfy(113,3): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    Termination.dfy(113,3): anon10_Else
-    (0,0): anon11_Then
+    Termination.dfy(113,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(113,3): anon9_Else
+    (0,0): anon10_Then
     (0,0): anon5
-    Termination.dfy(113,3): anon12_Else
+    Termination.dfy(113,3): anon11_Else
 Termination.dfy(122,3): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
-    Termination.dfy(122,3): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    Termination.dfy(122,3): anon10_Else
-    (0,0): anon11_Then
+    Termination.dfy(122,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(122,3): anon9_Else
+    (0,0): anon10_Then
     (0,0): anon5
-    Termination.dfy(122,3): anon12_Else
+    Termination.dfy(122,3): anon11_Else
 Termination.dfy(123,17): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Execution trace:
     (0,0): anon0
-    Termination.dfy(122,3): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    Termination.dfy(122,3): anon10_Else
-    (0,0): anon11_Then
+    Termination.dfy(122,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(122,3): anon9_Else
+    (0,0): anon10_Then
     (0,0): anon5
-    Termination.dfy(122,3): anon12_Else
+    Termination.dfy(122,3): anon11_Else
 Termination.dfy(251,35): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
 Termination.dfy(291,3): Error: decreases expression might not decrease
 Execution trace:
-    Termination.dfy(291,3): anon10_LoopHead
-    (0,0): anon10_LoopBody
+    Termination.dfy(291,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    Termination.dfy(291,3): anon10_Else
     Termination.dfy(291,3): anon11_Else
-    Termination.dfy(291,3): anon12_Else
-    (0,0): anon13_Else
+    (0,0): anon12_Else
 
 Dafny program verifier finished with 59 verified, 7 errors
 
@@ -1088,14 +1105,14 @@ TypeParameters.dfy(175,15): Error BP5005: This loop invariant might not be maint
 TypeParameters.dfy(175,38): Related location
 Execution trace:
     (0,0): anon0
-    TypeParameters.dfy(168,3): anon17_LoopHead
-    (0,0): anon17_LoopBody
-    TypeParameters.dfy(168,3): anon18_Else
-    (0,0): anon20_Then
-    TypeParameters.dfy(174,3): anon21_LoopHead
-    (0,0): anon21_LoopBody
-    TypeParameters.dfy(174,3): anon22_Else
-    TypeParameters.dfy(174,3): anon24_Else
+    TypeParameters.dfy(168,3): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    TypeParameters.dfy(168,3): anon17_Else
+    (0,0): anon19_Then
+    TypeParameters.dfy(174,3): anon20_LoopHead
+    (0,0): anon20_LoopBody
+    TypeParameters.dfy(174,3): anon21_Else
+    TypeParameters.dfy(174,3): anon23_Else
 
 Dafny program verifier finished with 50 verified, 8 errors
 
@@ -1147,22 +1164,28 @@ Coinductive.dfy(92,21): Error: a recursive copredicate call can only be done in 
 -------------------- Corecursion.dfy --------------------
 Corecursion.dfy(15,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can be called co-recursively)
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 Corecursion.dfy(21,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without any ensures clause can be called co-recursively)
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 Corecursion.dfy(56,5): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 Corecursion.dfy(69,16): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
 Corecursion.dfy(91,15): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
 Corecursion.dfy(101,15): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
 
@@ -1342,17 +1365,17 @@ Execution trace:
 LoopModifies.dfy(17,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-    LoopModifies.dfy(14,4): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    LoopModifies.dfy(14,4): anon10_Else
-    LoopModifies.dfy(14,4): anon12_Else
+    LoopModifies.dfy(14,4): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    LoopModifies.dfy(14,4): anon9_Else
+    LoopModifies.dfy(14,4): anon11_Else
 LoopModifies.dfy(46,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-    LoopModifies.dfy(42,4): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    LoopModifies.dfy(42,4): anon10_Else
-    LoopModifies.dfy(42,4): anon12_Else
+    LoopModifies.dfy(42,4): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    LoopModifies.dfy(42,4): anon9_Else
+    LoopModifies.dfy(42,4): anon11_Else
 LoopModifies.dfy(61,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1366,10 +1389,10 @@ Execution trace:
 LoopModifies.dfy(98,8): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-    LoopModifies.dfy(90,4): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    LoopModifies.dfy(90,4): anon10_Else
-    LoopModifies.dfy(90,4): anon12_Else
+    LoopModifies.dfy(90,4): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    LoopModifies.dfy(90,4): anon9_Else
+    LoopModifies.dfy(90,4): anon11_Else
 LoopModifies.dfy(146,11): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1384,21 +1407,21 @@ Execution trace:
 LoopModifies.dfy(197,10): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-    LoopModifies.dfy(193,4): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    LoopModifies.dfy(193,4): anon10_Else
-    LoopModifies.dfy(193,4): anon12_Else
+    LoopModifies.dfy(193,4): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    LoopModifies.dfy(193,4): anon9_Else
+    LoopModifies.dfy(193,4): anon11_Else
 LoopModifies.dfy(285,13): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-    LoopModifies.dfy(273,4): anon17_LoopHead
-    (0,0): anon17_LoopBody
-    LoopModifies.dfy(273,4): anon18_Else
-    LoopModifies.dfy(273,4): anon20_Else
-    LoopModifies.dfy(281,7): anon21_LoopHead
-    (0,0): anon21_LoopBody
-    LoopModifies.dfy(281,7): anon22_Else
-    LoopModifies.dfy(281,7): anon24_Else
+    LoopModifies.dfy(273,4): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    LoopModifies.dfy(273,4): anon17_Else
+    LoopModifies.dfy(273,4): anon19_Else
+    LoopModifies.dfy(281,7): anon20_LoopHead
+    (0,0): anon20_LoopBody
+    LoopModifies.dfy(281,7): anon21_Else
+    LoopModifies.dfy(281,7): anon23_Else
 
 Dafny program verifier finished with 23 verified, 9 errors
 
@@ -1420,6 +1443,7 @@ Execution trace:
 Refinement.dfy(90,12): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy(69,15): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 Refinement.dfy(93,3): Error BP5003: A postcondition might not hold on this return path.
 Refinement.dfy(74,15): Related location: This is the postcondition that might not hold.
@@ -1504,9 +1528,11 @@ Dafny program verifier finished with 54 verified, 4 errors
 -------------------- PredExpr.dfy --------------------
 PredExpr.dfy(4,12): Error: condition in assert expression might not hold
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 PredExpr.dfy(36,15): Error: value assigned to a nat must be non-negative
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Else
 PredExpr.dfy(49,17): Error: condition in assert expression might not hold
@@ -1556,12 +1582,12 @@ Skeletons.dfy(42,3): Error BP5003: A postcondition might not hold on this return
 Skeletons.dfy(41,15): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    Skeletons.dfy[C0](29,5): anon12_LoopHead
-    (0,0): anon12_LoopBody
-    Skeletons.dfy[C0](29,5): anon13_Else
-    (0,0): anon14_Then
-    Skeletons.dfy[C0](34,19): anon16_Else
-    (0,0): anon11
+    Skeletons.dfy[C0](29,5): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    Skeletons.dfy[C0](29,5): anon12_Else
+    (0,0): anon13_Then
+    Skeletons.dfy[C0](34,19): anon15_Else
+    (0,0): anon10
 
 Dafny program verifier finished with 9 verified, 1 error
 
@@ -1727,28 +1753,28 @@ Execution trace:
 Iterators.dfy(205,7): Error: an assignment to _new is only allowed to shrink the set
 Execution trace:
     (0,0): anon0
-    Iterators.dfy(194,3): anon17_LoopHead
-    (0,0): anon17_LoopBody
-    Iterators.dfy(194,3): anon18_Else
-    Iterators.dfy(194,3): anon20_Else
-    (0,0): anon21_Then
+    Iterators.dfy(194,3): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    Iterators.dfy(194,3): anon17_Else
+    Iterators.dfy(194,3): anon19_Else
+    (0,0): anon20_Then
 Iterators.dfy(209,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Iterators.dfy(194,3): anon17_LoopHead
-    (0,0): anon17_LoopBody
-    Iterators.dfy(194,3): anon18_Else
-    Iterators.dfy(194,3): anon20_Else
-    (0,0): anon22_Then
+    Iterators.dfy(194,3): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    Iterators.dfy(194,3): anon17_Else
+    Iterators.dfy(194,3): anon19_Else
+    (0,0): anon21_Then
 Iterators.dfy(37,14): Error BP5002: A precondition for this call might not hold.
 Iterators.dfy(1,10): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon37_Then
+    (0,0): anon35_Then
     (0,0): anon2
-    (0,0): anon38_Then
+    (0,0): anon36_Then
     (0,0): anon5
-    (0,0): anon39_Then
+    (0,0): anon37_Then
 Iterators.dfy(86,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -1769,11 +1795,11 @@ Execution trace:
 Iterators.dfy(231,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Iterators.dfy(222,3): anon15_LoopHead
-    (0,0): anon15_LoopBody
-    Iterators.dfy(222,3): anon16_Else
-    Iterators.dfy(222,3): anon19_Else
-    (0,0): anon20_Else
+    Iterators.dfy(222,3): anon14_LoopHead
+    (0,0): anon14_LoopBody
+    Iterators.dfy(222,3): anon15_Else
+    Iterators.dfy(222,3): anon18_Else
+    (0,0): anon19_Else
 
 Dafny program verifier finished with 38 verified, 11 errors
 
@@ -1784,18 +1810,22 @@ Dafny program verifier finished with 11 verified, 0 errors
 -------------------- RankNeg.dfy --------------------
 RankNeg.dfy(7,26): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
 RankNeg.dfy(12,28): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
 RankNeg.dfy(19,31): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
 RankNeg.dfy(29,25): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
 
@@ -1808,6 +1838,7 @@ Dafny program verifier finished with 46 verified, 0 errors
 -------------------- ComputationsNeg.dfy --------------------
 ComputationsNeg.dfy(4,3): Error: failure to decrease termination measure
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 ComputationsNeg.dfy(8,1): Error BP5003: A postcondition might not hold on this return path.
 ComputationsNeg.dfy(7,17): Related location: This is the postcondition that might not hold.
@@ -1836,6 +1867,7 @@ Verifying CheckWellformed$$_0_M0.C.Q ...
 Superposition.dfy(24,15): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy(25,26): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
 
 Verifying CheckWellformed$$_0_M0.C.R ...
@@ -1843,6 +1875,7 @@ Verifying CheckWellformed$$_0_M0.C.R ...
 Superposition.dfy(30,15): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy(31,26): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon5_Else
 
 Verifying CheckWellformed$$_1_M1.C.M ...
@@ -1856,6 +1889,7 @@ Verifying CheckWellformed$$_1_M1.C.P ...
 Superposition.dfy(47,15): Error BP5003: A postcondition might not hold on this return path.
 Superposition.dfy[M1](19,26): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon9_Then
     (0,0): anon6
@@ -1874,14 +1908,17 @@ Execution trace:
     (0,0): anon0
 SmallTests.dfy(61,36): Error: possible division by zero
 Execution trace:
+    (0,0): anon0
     (0,0): anon12_Then
 SmallTests.dfy(62,51): Error: possible division by zero
 Execution trace:
+    (0,0): anon0
     (0,0): anon12_Else
     (0,0): anon3
     (0,0): anon13_Else
 SmallTests.dfy(63,22): Error: target object may be null
 Execution trace:
+    (0,0): anon0
     (0,0): anon12_Then
     (0,0): anon3
     (0,0): anon13_Then
@@ -1889,9 +1926,9 @@ Execution trace:
 SmallTests.dfy(82,24): Error: target object may be null
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(81,5): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    (0,0): anon10_Then
+    SmallTests.dfy(81,5): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    (0,0): anon9_Then
 SmallTests.dfy(116,5): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -1945,6 +1982,7 @@ Execution trace:
     (0,0): anon0
 SmallTests.dfy(375,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 SmallTests.dfy(669,14): Error: assertion violation
 Execution trace:
@@ -1979,10 +2017,12 @@ Execution trace:
     (0,0): anon0
 SmallTests.dfy(343,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 SmallTests.dfy(387,10): Error BP5003: A postcondition might not hold on this return path.
 SmallTests.dfy(390,41): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon6_Else
 SmallTests.dfy(540,12): Error: assertion violation
 Execution trace:
@@ -2054,14 +2094,17 @@ Execution trace:
     (0,0): anon0
 out.tmp.dfy(69,37): Error: possible division by zero
 Execution trace:
+    (0,0): anon0
     (0,0): anon12_Then
 out.tmp.dfy(70,52): Error: possible division by zero
 Execution trace:
+    (0,0): anon0
     (0,0): anon12_Else
     (0,0): anon3
     (0,0): anon13_Else
 out.tmp.dfy(71,22): Error: target object may be null
 Execution trace:
+    (0,0): anon0
     (0,0): anon12_Then
     (0,0): anon3
     (0,0): anon13_Then
@@ -2069,9 +2112,9 @@ Execution trace:
 out.tmp.dfy(88,24): Error: target object may be null
 Execution trace:
     (0,0): anon0
-    out.tmp.dfy(87,5): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    (0,0): anon10_Then
+    out.tmp.dfy(87,5): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    (0,0): anon9_Then
 out.tmp.dfy(122,5): Error: call may violate context's modifies clause
 Execution trace:
     (0,0): anon0
@@ -2125,6 +2168,7 @@ Execution trace:
     (0,0): anon0
 out.tmp.dfy(285,6): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 out.tmp.dfy(388,14): Error: assertion violation
 Execution trace:
@@ -2159,10 +2203,12 @@ Execution trace:
     (0,0): anon0
 out.tmp.dfy(490,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
+    (0,0): anon0
     (0,0): anon3_Else
 out.tmp.dfy(498,10): Error BP5003: A postcondition might not hold on this return path.
 out.tmp.dfy(499,41): Related location: This is the postcondition that might not hold.
 Execution trace:
+    (0,0): anon0
     (0,0): anon6_Else
 out.tmp.dfy(536,12): Error: assertion violation
 Execution trace:
