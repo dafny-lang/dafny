@@ -1,7 +1,9 @@
 ﻿using System;
 using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
@@ -304,10 +306,29 @@ namespace DafnyLanguage.DafnyMenu
         BvdToolWindow.BVD.HideStateList();
         BvdToolWindow.BVD.ReadModel(model);
         BvdToolWindow.BVD.SetState(id, true);
+        BvdToolWindow.BVD.SetFont(new Font(SystemFonts.DefaultFont.FontFamily, 1.3f * SystemFonts.DefaultFont.Size, SystemFonts.DefaultFont.Style));
 
         IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
         Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
       }
+    }
+
+    public string TryToLookupValueInCurrentModel(string name, out bool wasUpdated)
+    {
+      string result = null;
+      wasUpdated = false;
+      if (!BVDDisabled && BvdToolWindow.BVD.LangModel != null)
+      {
+        var m = BvdToolWindow.BVD.LangModel as Microsoft.Boogie.ModelViewer.Dafny.DafnyModel;
+        var s = m.states[BvdToolWindow.BVD.CurrentState];
+        var v = s.Vars.FirstOrDefault(var => var.Name == name);
+        if (v != null)
+        {
+          wasUpdated = v.updatedHere;
+          result = m.CanonicalName(v.Element);
+        }
+      }
+      return result;
     }
 
     #endregion

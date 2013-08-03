@@ -376,11 +376,6 @@ namespace DafnyLanguage
               task.Navigate += new EventHandler(NavigateHandler);
             }
             _errorProvider.Tasks.Add(task);
-
-            if (err.Model != null)
-            {
-
-            }
           }
           _errorProvider.ResumeRefresh();
         }
@@ -568,6 +563,7 @@ namespace DafnyLanguage
       Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
       Model = model;
       _errorSelection = _errorSelectionSingleton;
+      SelectedStateId = -1;
     }
   }
 

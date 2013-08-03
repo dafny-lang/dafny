@@ -95,7 +95,7 @@ namespace DafnyLanguage
           }
           yield return new TagSpan<DafnyTokenTag>(
             new SnapshotSpan(_snapshot, r.Start, r.Length),
-            new DafnyTokenTag(kind, r.HoverText));
+            new DafnyTokenTag(kind, r.HoverText, r.Variable));
         }
       }
     }
@@ -325,6 +325,7 @@ namespace DafnyLanguage
       public readonly string HoverText;
       public enum OccurrenceKind { Use, Definition, WildDefinition, AdditionalInformation }
       public readonly OccurrenceKind Kind;
+      public readonly IVariable Variable;
 
       static bool SurfaceSyntaxToken(Bpl.IToken tok) {
         Contract.Requires(tok != null);
@@ -383,6 +384,7 @@ namespace DafnyLanguage
             }
           }
         }
+        Variable = v;
         HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
         Kind = !isDefinition ? OccurrenceKind.Use : VarDecl.HasWildcardName(v) ? OccurrenceKind.WildDefinition : OccurrenceKind.Definition;
       }
