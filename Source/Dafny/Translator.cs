@@ -1644,17 +1644,6 @@ namespace Microsoft.Dafny {
         if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
       }
 
-      // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
-      ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr activateForeignModule = Bpl.Expr.Lt(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight());
-      Bpl.Expr activateIntraModule =
-          Bpl.Expr.And(
-            Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-            Bpl.Expr.Or(
-              Bpl.Expr.Le(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
-              etran.InMethodContext()));
-      Bpl.Expr activate = Bpl.Expr.Or(activateForeignModule, activateIntraModule);
-
       Bpl.Expr funcAppl;
       {
         var funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
@@ -1672,6 +1661,7 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext)
+      var mod = f.EnclosingClass.Module;
       Bpl.Expr useViaContext =
         Bpl.Expr.Or(Bpl.Expr.Or(
           Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
@@ -1695,8 +1685,32 @@ namespace Microsoft.Dafny {
       if (whr != null) { meat = Bpl.Expr.And(meat, whr); }
 
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, null, tr, Bpl.Expr.Imp(ante, meat));
+      var activate = AxiomActivation(f, true, true, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+    }
+
+    Bpl.Expr AxiomActivation(Function f, bool interModule, bool intraModule, ExpressionTranslator etran) {
+      Contract.Requires(f != null);
+      Contract.Requires(interModule || intraModule);
+      Contract.Requires(etran != null);
+      var module = f.EnclosingClass.Module;
+      // mh < ModuleContextHeight
+      var activateForeignModule = Bpl.Expr.Lt(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight());
+      // mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext)
+      var activateIntraModule =
+          Bpl.Expr.And(
+            Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight()),
+            Bpl.Expr.Or(
+              Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
+              etran.InMethodContext()));
+      if (interModule && !intraModule) {
+        return activateForeignModule;
+      } else if (!interModule && intraModule) {
+        return activateIntraModule;
+      } else {
+        return Bpl.Expr.Or(activateForeignModule, activateIntraModule);
+      }
     }
 
     Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, Specialization specialization, ICollection<Formal> lits) {
@@ -1848,17 +1862,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // mh < ModuleContextHeight || (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
-      ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr activateForeignModule = Bpl.Expr.Lt(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight());
-      Bpl.Expr activateIntraModule =
-          Bpl.Expr.And(
-            Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-            Bpl.Expr.Or(
-              Bpl.Expr.Le(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
-              etran.InMethodContext()));
-      Bpl.Expr activate = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? activateForeignModule : activateIntraModule;
-
       Bpl.Expr funcAppl;
       {
         var funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
@@ -1880,6 +1883,7 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext)
+      ModuleDefinition mod = f.EnclosingClass.Module;
       Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? Bpl.Expr.True :
         Bpl.Expr.Or(Bpl.Expr.Or(
           visibility == FunctionAxiomVisibility.IntraModuleOnly ?
@@ -1914,6 +1918,7 @@ namespace Microsoft.Dafny {
         kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(10) }, null);
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, meat));
+      var activate = AxiomActivation(f, visibility == FunctionAxiomVisibility.ForeignModuleOnly, visibility == FunctionAxiomVisibility.IntraModuleOnly, etran);
       string comment;
       comment = "definition axiom for " + f.FullSanitizedName;
       if (lits != null) {
@@ -2031,9 +2036,15 @@ namespace Microsoft.Dafny {
     ///   forall args :: (forall k: nat :: P#[k](args)) ==> P(args)
     ///   forall args,k :: k == 0 ==> P#[k](args)
     /// where "args" is "heap, formals".  In more details:
-    ///   forall args :: { P(args) } args-have-appropriate-values && P(args) ==> forall k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
-    ///   forall args :: { P(args) } args-have-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
-    ///   forall args,k :: args-have-appropriate-values && k == 0 ==> P#0#[k](args)
+    ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && P(args) ==> forall k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
+    ///   AXIOM_ACTIVATION ==> forall args :: { P(args) } args-have-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
+    ///   AXIOM_ACTIVATION ==> forall args,k :: args-have-appropriate-values && k == 0 ==> P#0#[k](args)
+    /// where
+    /// AXIOM_ACTIVATION
+    /// means:
+    ///   mh LESS ModuleContextHeight ||
+    ///   (mh == ModuleContextHeight && (fh ATMOST FunctionContextHeight || InMethodContext))
+
     /// </summary>
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
       Contract.Requires(pp != null);
@@ -2102,16 +2113,18 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgs);
 
+      var activation = AxiomActivation(pp, true, true, etran);
+
       // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> forall k { P#[k](args) } :: 0 ATMOST k ==> P#[k](args)
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixAppl });
       var allK = new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, BplImp(kWhere, prefixAppl));
       tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { coAppl });
       var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), allK));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, allS, "co-predicate / prefix predicate axioms for " + pp.FullSanitizedName));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS), "co-predicate / prefix predicate axioms for " + pp.FullSanitizedName));
 
       // forall args :: { P(args) } args-have-appropriate-values && (forall k :: 0 ATMOST k ==> P#[k](args)) ==> P(args)
       allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, allK), coAppl));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, allS));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS)));
 
       // forall args,k :: args-have-appropriate-values && k == 0 ==> P#0#[k](args)
       var moreBvs = new List<Variable>();
@@ -2121,7 +2134,7 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixLimited = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, BplImp(BplAnd(ante, z), prefixLimited));
-      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, trueAtZero));
+      sink.TopLevelDeclarations.Add(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero)));
     }
 
     /// <summary>
