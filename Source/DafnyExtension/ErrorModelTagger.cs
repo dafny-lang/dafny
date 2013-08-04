@@ -152,7 +152,7 @@ namespace DafnyLanguage
       return string.Format("{0}{1}", isSelected ? "unselect state" : "select state", !string.IsNullOrEmpty(description) ? " [" + description + "]" : "");
     }
 
-    private static Ellipse CreateErrorStateAdornment(DafnyErrorStateResolverTag esrtag)
+    private Ellipse CreateErrorStateAdornment(DafnyErrorStateResolverTag esrtag)
     {
       var result = new Ellipse
       {
@@ -168,53 +168,59 @@ namespace DafnyLanguage
 
       esrtag.Error.StateChangeEvent += new DafnyError.StateChangeEventHandler((o) =>
       {
-        result.Visibility = esrtag.Error.IsSelected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
-        var isSelected = esrtag.Error.IsSelected && esrtag.Error.SelectedStateId == esrtag.Id;
-        result.Stroke = isSelected ? Brushes.Black : Brushes.DodgerBlue;
-        if (isSelected)
-        {
-          result.ToolTip = ErrorStateToolTip(isSelected, esrtag.Description);
-          esrtag.Error.SelectedStateAdornment = result;
-        }
+        _view.VisualElement.Dispatcher.Invoke(() =>
+          {
+            result.Visibility = esrtag.Error.IsSelected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+            var isSelected = esrtag.Error.IsSelected && esrtag.Error.SelectedStateId == esrtag.Id;
+            result.Stroke = isSelected ? Brushes.Black : Brushes.DodgerBlue;
+            if (isSelected)
+            {
+              result.ToolTip = ErrorStateToolTip(isSelected, esrtag.Description);
+              esrtag.Error.SelectedStateAdornment = result;
+            }
+          });
       });
 
       result.MouseDown += new MouseButtonEventHandler((s, e) =>
       {
-        if (!esrtag.Error.IsSelected) { return; }
-        if (esrtag.Error.SelectedStateAdornment == result)
-        {
-          // unselect it
-          esrtag.Error.SelectedStateAdornment = null;
-          esrtag.Error.SelectedStateId = -1;
-          result.Stroke = Brushes.DodgerBlue;
-          result.ToolTip = result.ToolTip.ToString().Replace("unselect", "select");
-        }
-        else
-        {
-          // unselect the old one
-          if (esrtag.Error.SelectedStateAdornment != null)
+        _view.VisualElement.Dispatcher.Invoke(() =>
           {
-            esrtag.Error.SelectedStateAdornment.Stroke = Brushes.DodgerBlue;
-            esrtag.Error.SelectedStateAdornment.ToolTip = esrtag.Error.SelectedStateAdornment.ToolTip.ToString().Replace("unselect", "select");
-            esrtag.Error.SelectedStateAdornment = null;
-            esrtag.Error.SelectedStateId = -1;
-          }
+            if (!esrtag.Error.IsSelected) { return; }
+            if (esrtag.Error.SelectedStateAdornment == result)
+            {
+              // unselect it
+              esrtag.Error.SelectedStateAdornment = null;
+              esrtag.Error.SelectedStateId = -1;
+              result.Stroke = Brushes.DodgerBlue;
+              result.ToolTip = result.ToolTip.ToString().Replace("unselect", "select");
+            }
+            else
+            {
+              // unselect the old one
+              if (esrtag.Error.SelectedStateAdornment != null)
+              {
+                esrtag.Error.SelectedStateAdornment.Stroke = Brushes.DodgerBlue;
+                esrtag.Error.SelectedStateAdornment.ToolTip = esrtag.Error.SelectedStateAdornment.ToolTip.ToString().Replace("unselect", "select");
+                esrtag.Error.SelectedStateAdornment = null;
+                esrtag.Error.SelectedStateId = -1;
+              }
 
-          // select the new one
-          esrtag.Error.SelectedStateAdornment = result;
-          esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Black;
-          esrtag.Error.SelectedStateAdornment.ToolTip = ErrorStateToolTip(true, esrtag.Description);
-          esrtag.Error.SelectedStateId = esrtag.Id;
-          if (!string.IsNullOrEmpty(esrtag.Error.ModelText))
-          {
-            DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(esrtag.Error.ModelText, esrtag.Id);
-          }
-        }
+              // select the new one
+              esrtag.Error.SelectedStateAdornment = result;
+              esrtag.Error.SelectedStateAdornment.Stroke = Brushes.Black;
+              esrtag.Error.SelectedStateAdornment.ToolTip = ErrorStateToolTip(true, esrtag.Description);
+              esrtag.Error.SelectedStateId = esrtag.Id;
+              if (!string.IsNullOrEmpty(esrtag.Error.ModelText))
+              {
+                DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(esrtag.Error.ModelText, esrtag.Id);
+              }
+            }
+          });
       });
       return result;
     }
 
-    private static Ellipse CreateErrorAdornment(DafnyErrorResolverTag ertag)
+    private Ellipse CreateErrorAdornment(DafnyErrorResolverTag ertag)
     {
       var result = new Ellipse
       {
@@ -230,45 +236,48 @@ namespace DafnyLanguage
       result.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
       result.MouseDown += new MouseButtonEventHandler((s, e) =>
       {
-        if (ertag.Error.IsSelected)
-        {
-          // unselect it
-          var selErr = ertag.Error.SelectedError;          
-          selErr.SelectedStateId = -1;
-          selErr.SelectedStateAdornment = null;          
-          ertag.Error.SelectedError = null;          
-          result.Stroke = Brushes.Crimson;
-          result.ToolTip = "select error";
-          selErr.Notify();
-        }
-        else
-        {
-          // unselect the old one
-          if (ertag.Error.SelectedError != null)
+        _view.VisualElement.Dispatcher.Invoke(() =>
           {
-            var selErr = ertag.Error.SelectedError;
-            selErr.SelectedStateId = -1;
-            selErr.SelectedStateAdornment = null;
-            selErr.Adornment.Stroke = Brushes.Crimson;
-            selErr.Adornment.ToolTip = "select error";
-            ertag.Error.SelectedError = null;
-            selErr.Notify();
-          }
+            if (ertag.Error.IsSelected)
+            {
+              // unselect it
+              var selErr = ertag.Error.SelectedError;
+              selErr.SelectedStateId = -1;
+              selErr.SelectedStateAdornment = null;
+              ertag.Error.SelectedError = null;
+              result.Stroke = Brushes.Crimson;
+              result.ToolTip = "select error";
+              selErr.Notify();
+            }
+            else
+            {
+              // unselect the old one
+              if (ertag.Error.SelectedError != null)
+              {
+                var selErr = ertag.Error.SelectedError;
+                selErr.SelectedStateId = -1;
+                selErr.SelectedStateAdornment = null;
+                selErr.Adornment.Stroke = Brushes.Crimson;
+                selErr.Adornment.ToolTip = "select error";
+                ertag.Error.SelectedError = null;
+                selErr.Notify();
+              }
 
-          // select the new one
-          ertag.Error.SelectedError = ertag.Error;
-          ertag.Error.Adornment = result;
-          ertag.Error.Adornment.Stroke = Brushes.Black;
-          ertag.Error.Adornment.ToolTip = "unselect error";
-          if (!string.IsNullOrEmpty(ertag.Error.ModelText))
-          {
-            // select the last error state
-            ertag.Error.SelectedStateId = ertag.Error.Model.States.Count() - 1;
-            ertag.Error.SelectedStateAdornment = null;
-            DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(ertag.Error.ModelText, ertag.Error.SelectedStateId);
-          }
-          ertag.Error.SelectedError.Notify();
-        }
+              // select the new one
+              ertag.Error.SelectedError = ertag.Error;
+              ertag.Error.Adornment = result;
+              ertag.Error.Adornment.Stroke = Brushes.Black;
+              ertag.Error.Adornment.ToolTip = "unselect error";
+              if (!string.IsNullOrEmpty(ertag.Error.ModelText))
+              {
+                // select the last error state
+                ertag.Error.SelectedStateId = ertag.Error.Model.States.Count() - 1;
+                ertag.Error.SelectedStateAdornment = null;
+                DafnyClassifier.DafnyMenuPackage.ShowErrorModelInBVD(ertag.Error.ModelText, ertag.Error.SelectedStateId);
+              }
+              ertag.Error.SelectedError.Notify();
+            }
+          });
       });
       return result;
     }
@@ -284,7 +293,10 @@ namespace DafnyLanguage
         if (spans.Count > 0)
         {
           SnapshotSpan span = new SnapshotSpan(spans[0].Start, spans[spans.Count - 1].End);
-          chng(this, new SnapshotSpanEventArgs(span));
+          _view.VisualElement.Dispatcher.Invoke(() =>
+            {
+              chng(this, new SnapshotSpanEventArgs(span));
+            });
         }
       }
     }
