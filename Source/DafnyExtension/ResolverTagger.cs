@@ -96,11 +96,13 @@ namespace DafnyLanguage
     public readonly DafnyError Error;
     public readonly ITrackingSpan Span;
     public readonly int Id;
-    public DafnyErrorStateResolverTag(DafnyError error, ITrackingSpan span, int id)
+    public readonly string Description;
+    public DafnyErrorStateResolverTag(DafnyError error, ITrackingSpan span, int id, string description)
     {
       Error = error;
       Span = span;
       Id = id;
+      Description = description;
     }
   }
 
@@ -278,9 +280,12 @@ namespace DafnyLanguage
             for (int i = 0; i < err.StateSpans.Length; i++)
             {
               var span = err.StateSpans[i];
+              var name = err.Model.States.ToArray()[i].Name;
+              var descStart = name.LastIndexOf(": ") + 2;
+              var description = 1 < descStart ? name.Substring(descStart) : "";
               if (span != null)
               {
-                yield return new TagSpan<IDafnyResolverTag>(span.GetSpan(currentSnapshot), new DafnyErrorStateResolverTag(err, span, i));
+                yield return new TagSpan<IDafnyResolverTag>(span.GetSpan(currentSnapshot), new DafnyErrorStateResolverTag(err, span, i, description));
               }
             }
           }
@@ -471,46 +476,53 @@ namespace DafnyLanguage
     public readonly string Message;
     protected readonly ITextSnapshot Snapshot;
     public readonly ITrackingSpan Span;
-    public readonly string Model;
+    public readonly string ModelText;
+    public Microsoft.Boogie.Model _model;
+    public Microsoft.Boogie.Model Model
+    {
+      get
+      {
+        if (_model == null && !string.IsNullOrEmpty(ModelText))
+        {
+          using (var rd = new StringReader(ModelText))
+          {
+            var models = Microsoft.Boogie.Model.ParseModels(rd, null).ToArray();
+            Contract.Assert(models.Length == 1);
+            _model = models[0];
+          }
+        }
+        return _model;
+      }
+    }
     private ITrackingSpan[] _stateSpans;
     public ITrackingSpan[] StateSpans
     {
       get
       {
-        if (!string.IsNullOrEmpty(Model))
-        {
-          if (_stateSpans != null) { return _stateSpans; }
+        if (_stateSpans == null && Model != null)
+        {          
+          var model = Model;
           var locRegex = new Regex(@"\((\d+),(\d+)\)");
-          using (var rd = new StringReader(Model))
-          {
-            var model = Microsoft.Boogie.Model.ParseModels(rd, null).ToArray();
-            Contract.Assert(model.Length == 1);
-            _stateSpans = model[0].States.Select(
-              cs =>
-              {
-                var match = locRegex.Match(cs.Name);
-                if (!match.Success)
-                {
-                  return null;
-                }
-                else
-                {
-                  var line = Math.Max(0, int.Parse(match.Groups[1].Value) - 1);
-                  var column = Math.Max(0, int.Parse(match.Groups[2].Value) - 1);
-                  var sLine = Snapshot.GetLineFromLineNumber(line);
-                  Contract.Assert(column <= sLine.Length);
-                  var sLength = Math.Max(0, Math.Min(sLine.Length - column, 0));
-                  return Snapshot.CreateTrackingSpan(sLine.Start + column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
-                }
-              }
-            ).ToArray();
-            return _stateSpans;
-          }
+          _stateSpans = model.States.Select(
+           cs =>
+           {
+             var match = locRegex.Match(cs.Name);
+             if (!match.Success)
+             {
+               return null;
+             }
+             else
+             {
+               var line = Math.Max(0, int.Parse(match.Groups[1].Value) - 1);
+               var column = Math.Max(0, int.Parse(match.Groups[2].Value) - 1);
+               var sLine = Snapshot.GetLineFromLineNumber(line);
+               Contract.Assert(column <= sLine.Length);
+               var sLength = Math.Max(0, Math.Min(sLine.Length - column, 0));
+               return Snapshot.CreateTrackingSpan(sLine.Start + column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
+             }
+           }).ToArray();
         }
-        else
-        {
-          return null;
-        }
+        return _stateSpans;
       }
     }
     public int SelectedStateId { get; set; }
@@ -561,7 +573,7 @@ namespace DafnyLanguage
       Contract.Assert(Column <= sLine.Length);
       var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
       Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
-      Model = model;
+      ModelText = model;
       _errorSelection = _errorSelectionSingleton;
       SelectedStateId = -1;
     }
