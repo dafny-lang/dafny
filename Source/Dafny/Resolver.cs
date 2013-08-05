@@ -1519,24 +1519,31 @@ namespace Microsoft.Dafny
         Error(expr.tok, msg, args);
       }
     }
-    class ResolverTopDownVisitor<T> : TopDownVisitor<T>
+    abstract class ResolverTopDownVisitor<T> : TopDownVisitor<T>
     {
       Resolver resolver;
       public ResolverTopDownVisitor(Resolver resolver) {
         Contract.Requires(resolver != null);
         this.resolver = resolver;
       }
-      public void Error(IToken tok, string msg, params object[] args) {
+      protected void Error(IToken tok, string msg, params object[] args)
+      {
         Contract.Requires(tok != null);
         Contract.Requires(msg != null);
         Contract.Requires(args != null);
         resolver.Error(tok, msg, args);
       }
-      public void Error(Expression expr, string msg, params object[] args) {
+      protected void Error(Expression expr, string msg, params object[] args)
+      {
         Contract.Requires(expr != null);
         Contract.Requires(msg != null);
         Contract.Requires(args != null);
         Error(expr.tok, msg, args);
+      }
+      protected void ReportAdditionalInformation(IToken tok, string text, int length)
+      {
+        Contract.Requires(tok != null);
+        resolver.ReportAdditionalInformation(tok, text, length);
       }
     }
     #endregion Visitors
@@ -1849,7 +1856,8 @@ namespace Microsoft.Dafny
     {
       public readonly CoPredicate context;
       public CoPredicateChecks_Visitor(Resolver resolver, CoPredicate context)
-        : base(resolver) {
+        : base(resolver)
+      {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
         this.context = context;
@@ -1875,6 +1883,7 @@ namespace Microsoft.Dafny
               Error(e, msg);
             } else {
               e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+              ReportAdditionalInformation(e.tok, e.Function.Name + "#[_k - 1]", e.Function.Name.Length);
             }
           }
           // fall through to do the subexpressions (with cp := Neither)
