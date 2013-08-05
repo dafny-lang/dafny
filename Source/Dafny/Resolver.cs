@@ -1865,10 +1865,10 @@ namespace Microsoft.Dafny
             if (!(e.Function is CoPredicate)) {
               Error(e, "a recursive call from a copredicate can go only to other copredicates");
             } else if (cp != CallingPosition.Positive) {
-              var msg = "a recursive copredicate call can only be done in positive positions";
+              var msg = "a copredicate can be called recursively only in positive positions";
               if (cp == CallingPosition.Neither) {
-                // this may be inside a 
-                msg += " and cannot sit inside an existential quantifier";
+                // this may be inside an existential quantifier
+                msg += " and cannot sit inside an unbounded existential quantifier";
               } else {
                 // the co-call is not inside an existential quantifier, so don't bother mentioning the part of existentials in the error message
               }
@@ -1921,14 +1921,12 @@ namespace Microsoft.Dafny
         } else if (expr is QuantifierExpr) {
           var e = (QuantifierExpr)expr;
           if ((cp == CallingPosition.Positive && e is ExistsExpr) || (cp == CallingPosition.Negative && e is ForallExpr)) {
-            // Don't allow any co-recursive calls under an existential, because that can be unsound.
-            // (TODO: be more liberal here--also allow this if the range is finite)
-            cp = CallingPosition.Neither;
+            if (e.MissingBounds != null && e.MissingBounds.Count != 0) {
+              // Don't allow any co-recursive calls under an existential with an unbounded range, because that can be unsound.
+              cp = CallingPosition.Neither;
+            }
           }
-          if (e.Range != null) {
-            Visit(e.Range, e is ExistsExpr ? Invert(cp) : cp);
-          }
-          Visit(e.Term, cp);
+          Visit(e.LogicalBody(), cp);
           return false;
         } else if (expr is ConcreteSyntaxExpression) {
           // do the sub-parts with the same "cp"

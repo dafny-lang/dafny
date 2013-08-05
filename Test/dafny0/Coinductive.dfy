@@ -92,6 +92,34 @@ module CoPredicateResolutionErrors {
     && (Even(s) <==> Even(s))  // error (x2): recursive copredicate calls allowed only in positive positions
   }
 
+  copredicate CP(i: int)
+  {
+    CP(i) &&
+    !CP(i) &&  // error: not in a positive position
+    (forall j :: CP(j)) &&
+    (exists k :: 0 <= k < i*i && CP(k)) &&
+    (exists k :: 0 <= k && CP(k)) &&  // error: unbounded range
+    (exists k :: k < i*i && CP(k)) &&  // error: unbounded range
+    (exists l :: CP(l))  // error: unbounded range
+  }
+
+  copredicate CQ(i: int, j: int)
+  {
+    exists i :: i == 6 && if j % 2 == 0 then CQ(i, i) else CQ(j, j)
+  }
+
+  copredicate CR(i: int, j: int)
+  {
+    exists i :: i == if CR(i, j) then 6 else j  // error: not allowed to call CR recursively here
+  }
+
+  copredicate CS(i: int, j: int)
+  {
+    exists i ::
+      i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
+      (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
+  }
+
   copredicate Another(s: Stream<int>)
   {
     !Even(s)  // here, negation is fine
