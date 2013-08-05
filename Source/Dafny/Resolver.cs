@@ -1978,6 +1978,19 @@ namespace Microsoft.Dafny
           }
         }
       }
+      protected override void VisitOneExpr(Expression expr)
+      {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          // the call goes from a comethod context to a non-comethod callee
+          var moduleCaller = context.EnclosingClass.Module;
+          var moduleCallee = e.Function.EnclosingClass.Module;
+          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
+            // we're looking at a recursive call (to a non-comethod)
+            Error(e.tok, "a recursive call from a comethod can go only to other comethods and prefix methods");
+          }
+        }
+      }
     }
     void CoMethodChecks(Statement stmt, CoMethod context) {
       Contract.Requires(stmt != null);

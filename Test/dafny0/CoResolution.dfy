@@ -97,3 +97,65 @@ module Mojul1 {
   comethod G() { H(); }
   comethod H() { G#[10](); }  // fine for comethod/prefix-method
 }
+
+module CallGraph {
+  // comethod -> copredicate -> comethod
+  // comethod -> copredicate -> prefix method
+  comethod CoLemma(n: nat)
+  {
+    var q := Q(n);  // error
+    var r := R(n);  // error
+  }
+
+  copredicate Q(n: nat)
+  {
+    calc { 87; { CoLemma(n); } }
+    false
+  }
+
+  copredicate R(n: nat)
+  {
+    calc { 87; { CoLemma#[n](n); } }
+    false
+  }
+
+  // comethod -> prefix predicate -> comethod
+  // comethod -> prefix predicate -> prefix method
+  comethod CoLemma_D(n: nat)
+  {
+    var q := Q_D#[n](n);  // error
+    var r := R_D#[n](n);  // error
+  }
+
+  copredicate Q_D(n: nat)
+  {
+    calc { 88; { CoLemma_D(n); } }
+    false
+  }
+
+  copredicate R_D(n: nat)
+  {
+    calc { 89; { CoLemma_D#[n](n); } }
+    false
+  }
+
+  // copredicate -> function -> copredicate
+  // copredicate -> function -> prefix predicate
+  copredicate P(n: nat)
+  {
+    G0(n)  // error
+    <
+    G1(n)  // error
+  }
+
+  function G0(n: nat): int
+  {
+    calc { true; { assert P(n); } }
+    100
+  }
+  function G1(n: nat): int
+  {
+    calc { true; { assert P#[n](n); } }
+    101
+  }
+}

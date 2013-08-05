@@ -1242,7 +1242,13 @@ CoResolution.dfy(70,31): Error: a copredicate is not allowed to declare any ensu
 CoResolution.dfy(79,20): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(83,20): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(92,4): Error: a recursive call from a comethod can go only to other comethods and prefix methods
-10 resolution/type errors detected in CoResolution.dfy
+CoResolution.dfy(106,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
+CoResolution.dfy(107,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
+CoResolution.dfy(126,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
+CoResolution.dfy(127,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
+CoResolution.dfy(146,4): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(148,4): Error: a recursive call from a copredicate can go only to other copredicates
+16 resolution/type errors detected in CoResolution.dfy
 
 -------------------- CoPrefix.dfy --------------------
 CoPrefix.dfy(161,3): Error BP5003: A postcondition might not hold on this return path.
