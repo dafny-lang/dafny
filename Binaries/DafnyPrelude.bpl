@@ -552,7 +552,6 @@ function DtRank(DatatypeType): int;
 // used to make sure function axioms are not used while their consistency is being checked
 const $ModuleContextHeight: int;
 const $FunctionContextHeight: int;
-const $InMethodContext: bool;
 
 // ---------------------------------------------------------------
 // -- Layers of function encodings -------------------------------

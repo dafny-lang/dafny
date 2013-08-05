@@ -1184,11 +1184,8 @@ namespace Microsoft.Dafny {
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
-        // free requires mh == ModuleContextHeight && InMethodContext;
-        Bpl.Expr context = Bpl.Expr.And(
-          Bpl.Expr.Eq(Bpl.Expr.Literal(iter.Module.Height), etran.ModuleContextHeight()),
-          etran.InMethodContext());
-        req.Add(Requires(iter.tok, true, context, null, null));
+        // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
+        req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null));
       }
       mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
@@ -1596,10 +1593,10 @@ namespace Microsoft.Dafny {
       // AXIOM_ACTIVATION
       // means:
       //   mh < ModuleContextHeight ||
-      //   (mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext))
+      //   (mh == ModuleContextHeight && fh <= FunctionContextHeight)
       //
       // USE_VIA_CONTEXT
-      //   (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext) &&
+      //   (mh != ModuleContextHeight || fh != FunctionContextHeight) &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -1665,13 +1662,11 @@ namespace Microsoft.Dafny {
       foreach (Expression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext)
+      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext =
-        Bpl.Expr.Or(Bpl.Expr.Or(
-          Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-          Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight())),
-          etran.InMethodContext());
+      Bpl.Expr useViaContext = Bpl.Expr.Or(
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), args);
@@ -1702,13 +1697,10 @@ namespace Microsoft.Dafny {
       var module = f.EnclosingClass.Module;
       // mh < ModuleContextHeight
       var activateForeignModule = Bpl.Expr.Lt(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight());
-      // mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext)
-      var activateIntraModule =
-          Bpl.Expr.And(
-            Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight()),
-            Bpl.Expr.Or(
-              Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()),
-              etran.InMethodContext()));
+      // mh == ModuleContextHeight && fh <= FunctionContextHeight
+      var activateIntraModule = Bpl.Expr.And(
+        Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       if (interModule && !intraModule) {
         return activateForeignModule;
       } else if (!interModule && intraModule) {
@@ -1745,13 +1737,13 @@ namespace Microsoft.Dafny {
       // for visibility==ForeignModuleOnly, means:
       //   mh < ModuleContextHeight
       // for visibility==IntraModuleOnly, means:
-      //   mh == ModuleContextHeight && (fh <= FunctionContextHeight || InMethodContext)
+      //   mh == ModuleContextHeight && fh <= FunctionContextHeight
       //
       // USE_VIA_CONTEXT
       // for visibility==ForeignModuleOnly, means:
       //   GOOD_PARAMETERS
       // for visibility==IntraModuleOnly, means:
-      //   (fh != FunctionContextHeight || InMethodContext) &&
+      //   fh != FunctionContextHeight &&
       //   GOOD_PARAMETERS
       // where GOOD_PARAMETERS means:
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
@@ -1887,15 +1879,10 @@ namespace Microsoft.Dafny {
       foreach (Expression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req, null, substMap)));
       }
-      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight || InMethodContext)
+      // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.Module;
-      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? Bpl.Expr.True :
-        Bpl.Expr.Or(Bpl.Expr.Or(
-          visibility == FunctionAxiomVisibility.IntraModuleOnly ?
-            (Bpl.Expr)Bpl.Expr.False :
-            Bpl.Expr.Neq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-          Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight())),
-          etran.InMethodContext());
+      Bpl.Expr useViaContext = visibility == FunctionAxiomVisibility.ForeignModuleOnly ? (Bpl.Expr)Bpl.Expr.True :
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), args);
@@ -2048,7 +2035,7 @@ namespace Microsoft.Dafny {
     /// AXIOM_ACTIVATION
     /// means:
     ///   mh LESS ModuleContextHeight ||
-    ///   (mh == ModuleContextHeight && (fh ATMOST FunctionContextHeight || InMethodContext))
+    ///   (mh == ModuleContextHeight && fh ATMOST FunctionContextHeight)
 
     /// </summary>
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
@@ -2971,11 +2958,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      ModuleDefinition module = f.EnclosingClass.Module;
-      Bpl.Expr context = Bpl.Expr.And(
-        Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight()),
-        Bpl.Expr.Eq(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
-      req.Add(Requires(f.tok, true, context, null, null));
+      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
       // modifies $Heap, $Tick
       var mod = new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick() };
       // check that postconditions hold
@@ -4442,11 +4425,8 @@ namespace Microsoft.Dafny {
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
-        // free requires mh == ModuleContextHeight && InMethodContext;
-        Bpl.Expr context = Bpl.Expr.And(
-          Bpl.Expr.Eq(Bpl.Expr.Literal(m.EnclosingClass.Module.Height), etran.ModuleContextHeight()),
-          etran.InMethodContext());
-        req.Add(Requires(m.tok, true, context, null, null));
+        // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
       }
       mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
@@ -4550,10 +4530,7 @@ namespace Microsoft.Dafny {
       List<Bpl.IdentifierExpr> mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
       
-      Bpl.Expr context = Bpl.Expr.And(
-        Bpl.Expr.Eq(Bpl.Expr.Literal(m.EnclosingClass.Module.Height), etran.ModuleContextHeight()),
-        etran.InMethodContext());
-      req.Add(Requires(m.tok, true, context, null, null));
+      req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
       
       mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
@@ -4721,11 +4698,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      ModuleDefinition mod = function.EnclosingClass.Module;
-      Bpl.Expr context = Bpl.Expr.And(
-        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(function)), etran.FunctionContextHeight()));
-      req.Add(Requires(f.tok, true, context, null, null));
+      req.Add(Requires(f.tok, true, etran.HeightContext(function), null, null));
 
       foreach (Expression p in f.Req) {
         req.Add(Requires(p.tok, true, etran.TrExpr(p), null, null));
@@ -8193,12 +8166,19 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Bpl.Type.Int);
       }
 
-      public Bpl.IdentifierExpr InMethodContext() {
-        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
-        return new Bpl.IdentifierExpr(Token.NoToken, "$InMethodContext", Bpl.Type.Bool);
+      public Bpl.Expr HeightContext(ICallable m)
+      {
+        Contract.Requires(m != null);
+        // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
+        var module = m.EnclosingModule;
+        Bpl.Expr context = Bpl.Expr.And(
+          Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), ModuleContextHeight()),
+          Bpl.Expr.Eq(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(m)), FunctionContextHeight()));
+        return context;
       }
 
-      public Expression GetSubstitutedBody(LetExpr e) {
+      public Expression GetSubstitutedBody(LetExpr e)
+      {
         Contract.Requires(e != null);
         Contract.Requires(e.Exact);
         Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
