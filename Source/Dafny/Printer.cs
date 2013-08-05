@@ -26,6 +26,16 @@ namespace Microsoft.Dafny {
       this.wr = wr;
     }
 
+    public static string ExprToString(Expression expr)
+    {
+      Contract.Requires(expr != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintExpression(expr);
+        return wr.ToString();
+      }
+    }
+
     public void PrintProgram(Program prog) {
       Contract.Requires(prog != null);
       if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {

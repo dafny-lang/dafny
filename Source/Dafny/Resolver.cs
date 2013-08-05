@@ -79,10 +79,9 @@ namespace Microsoft.Dafny
 
     public Action<AdditionalInformation> AdditionalInformationReporter;
 
-    internal void ReportAddionalInformation(IToken token, string text, int length)
+    internal void ReportAdditionalInformation(IToken token, string text, int length)
     {
-      if (AdditionalInformationReporter != null)
-      {
+      if (AdditionalInformationReporter != null) {
         AdditionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = length });
       }
     }
@@ -1226,14 +1225,14 @@ namespace Microsoft.Dafny
           foreach (var p in com.Ens) {
             var coConclusions = new HashSet<Expression>();
             CheckCoMethodConclusions(p.E, true, coConclusions);
-            var subst = new CoMethodPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name));
+            var subst = new CoMethodPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this);
             var post = subst.CloneExpr(p.E);
             prefixMethod.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
           }
           // Compute the statement body of the prefix method
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new CoMethodBodyCloner(com, kMinusOne);
+            var subst = new CoMethodBodyCloner(com, kMinusOne, this);
             var mainBody = subst.CloneBlockStmt(com.Body);
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
             var condBody = new IfStmt(com.BodyStartTok, kPositive, mainBody, null);
@@ -1300,7 +1299,7 @@ namespace Microsoft.Dafny
                 foreach (var c in coCandidates) {
                   c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
                   c.EnclosingCoConstructor.IsCoCall = true;
-                  ReportAddionalInformation(c.CandidateCall.tok, "co-recursive call", c.CandidateCall.Name.Length);
+                  ReportAdditionalInformation(c.CandidateCall.tok, "co-recursive call", c.CandidateCall.Name.Length);
                 }
               }
             }
@@ -1571,7 +1570,7 @@ namespace Microsoft.Dafny
               var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
               if (status != TailRecursionStatus.NotTailRecursive) {
                 m.IsTailRecursive = true;
-                ReportAddionalInformation(m.tok, "tail recursive", m.Name.Length);
+                ReportAdditionalInformation(m.tok, "tail recursive", m.Name.Length);
               }
             }
           }

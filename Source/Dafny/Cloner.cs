@@ -563,21 +563,47 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
+  /// Subclass of Cloner that collects some common functionality between CoMethodPostconditionSubstituter and
+  /// CoMethodBodyCloner.
+  /// </summary>
+  abstract class CoCloner : Cloner
+  {
+    protected readonly Expression k;
+    readonly Resolver resolver;
+    readonly string suffix;
+    protected CoCloner(Expression k, Resolver resolver)
+    {
+      Contract.Requires(k != null);
+      Contract.Requires(resolver != null);
+      this.k = k;
+      this.resolver = resolver;
+      this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
+    }
+    protected void ReportAdditionalInformation(IToken tok, string s)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(s != null);
+      resolver.ReportAdditionalInformation(tok, s + suffix, s.Length);
+    }
+  }
+
+  /// <summary>
   /// The CoMethodPostconditionSubstituter clones the postcondition declared on a comethod, but replaces
   /// the calls and equalities in "coConclusions" with corresponding prefix versions.  The resulting
   /// expression is then appropriate to be a postcondition of the comethod's corresponding prefix method.
   /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
   /// is not cloned with each use; it is simply used as is.
   /// </summary>
-  class CoMethodPostconditionSubstituter : Cloner
+  class CoMethodPostconditionSubstituter : CoCloner
   {
     readonly ISet<Expression> coConclusions;
-    readonly Expression k;
-    public CoMethodPostconditionSubstituter(ISet<Expression> coConclusions, Expression k) {
+    public CoMethodPostconditionSubstituter(ISet<Expression> coConclusions, Expression k, Resolver resolver)
+      : base(k, resolver)
+    {
       Contract.Requires(coConclusions != null);
       Contract.Requires(k != null);
+      Contract.Requires(resolver != null);
       this.coConclusions = coConclusions;
-      this.k = k;
     }
     public override Expression CloneExpr(Expression expr) {
       if (expr is ConcreteSyntaxExpression) {
@@ -592,7 +618,9 @@ namespace Microsoft.Dafny
           foreach (var arg in e.Args) {
             args.Add(CloneExpr(arg));
           }
-          return new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
+          var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
+          ReportAdditionalInformation(e.tok, e.Name);
+          return fexp;
         }
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
@@ -601,6 +629,8 @@ namespace Microsoft.Dafny
           var A = CloneExpr(e.E0);
           var B = CloneExpr(e.E1);
           var teq = new TernaryExpr(Tok(e.tok), op, k, A, B);
+          var opString = op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=";
+          ReportAdditionalInformation(e.tok, opString);
           return teq;
         }
       }
@@ -612,15 +642,16 @@ namespace Microsoft.Dafny
   /// The task of the CoMethodBodyCloner is to fill in the implicit _k-1 arguments in corecursive comethod calls.
   /// The source statement and the given "k" are assumed to have been resolved, and the resulting statement will also be resolved.
   /// </summary>
-  class CoMethodBodyCloner : Cloner
+  class CoMethodBodyCloner : CoCloner
   {
     readonly CoMethod context;
-    readonly Expression k;
-    public CoMethodBodyCloner(CoMethod context, Expression k) {
+    public CoMethodBodyCloner(CoMethod context, Expression k, Resolver resolver)
+      : base(k, resolver)
+    {
       Contract.Requires(context != null);
       Contract.Requires(k != null);
+      Contract.Requires(resolver != null);
       this.context = context;
-      this.k = k;
     }
     public override Statement CloneStmt(Statement stmt) {
       if (stmt is UpdateStmt) {
@@ -641,6 +672,7 @@ namespace Microsoft.Dafny
             // don't forget to add labels to the cloned statement
             AddStmtLabels(r, stmt.Labels);
             r.Attributes = CloneAttributes(stmt.Attributes);
+            ReportAdditionalInformation(call.Tok, call.MethodName);
             return r;
           }
         }
@@ -660,6 +692,7 @@ namespace Microsoft.Dafny
             // don't forget to add labels to the cloned statement
             AddStmtLabels(r, stmt.Labels);
             r.Attributes = CloneAttributes(stmt.Attributes);
+            ReportAdditionalInformation(s.Tok, s.MethodName);
             return r;
           }
         }
