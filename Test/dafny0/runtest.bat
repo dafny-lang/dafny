@@ -16,7 +16,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy Definedness.dfy
             ModulesCycle.dfy Modules0.dfy Modules1.dfy Modules2.dfy BadFunction.dfy
             Comprehensions.dfy Basics.dfy ControlStructures.dfy
             Termination.dfy DTypes.dfy ParallelResolveErrors.dfy Parallel.dfy
-            TypeParameters.dfy Datatypes.dfy
+            TypeParameters.dfy Datatypes.dfy StatementExpressions.dfy
             Coinductive.dfy Corecursion.dfy CoResolution.dfy
             CoPrefix.dfy CoinductiveProofs.dfy
             TypeAntecedents.dfy NoTypeArgs.dfy EqualityTypes.dfy SplitExpr.dfy

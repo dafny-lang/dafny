@@ -2204,7 +2204,7 @@ namespace Microsoft.Dafny {
     }
 
     ModuleDefinition currentModule = null;  // the name of the module whose members are currently being translated
-    ICodeContext codeContext = null;  // the method/iterator whose implementation is currently being translated
+    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     int loopHeapVarCount = 0;
@@ -2391,7 +2391,7 @@ namespace Microsoft.Dafny {
               var decrCallee = new List<Expr>();
               var decrCaller = new List<Expr>();
               bool decrInferred;  // we don't actually care
-              foreach (var ee in MethodDecreasesWithDefault(m, out decrInferred)) {
+              foreach (var ee in CallableDecreasesWithDefault(m, out decrInferred)) {
                 decrToks.Add(ee.tok);
                 decrTypes.Add(ee.Type);
                 decrCaller.Add(exprTran.TrExpr(ee));
@@ -2673,15 +2673,14 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
     }
 
-    void CheckFrameSubset(IToken tok, List<FrameExpression/*!*/>/*!*/ calleeFrame,
+    void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/> substMap,
                           ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, string errorMessage,
                           Bpl.QKeyValue kv)
     {
       Contract.Requires(tok != null);
-      Contract.Requires(cce.NonNullElements(calleeFrame));
+      Contract.Requires(calleeFrame != null);
       Contract.Requires((receiverReplacement == null) == (substMap == null));
-      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(etran != null);
       Contract.Requires(builder != null);
       Contract.Requires(errorMessage != null);
@@ -2947,10 +2946,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(f.EnclosingClass != null);
-      Contract.Requires(currentModule == null);
-      Contract.Ensures(currentModule == null);
+      Contract.Requires(currentModule == null && codeContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null);
 
       currentModule = f.EnclosingClass.Module;
+      codeContext = f;
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
@@ -2971,11 +2971,13 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      ModuleDefinition mod = f.EnclosingClass.Module;
+      ModuleDefinition module = f.EnclosingClass.Module;
       Bpl.Expr context = Bpl.Expr.And(
-        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.Height), etran.ModuleContextHeight()),
-        Bpl.Expr.Eq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
+        Bpl.Expr.Eq(Bpl.Expr.Literal(module.Height), etran.ModuleContextHeight()),
+        Bpl.Expr.Eq(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight()));
       req.Add(Requires(f.tok, true, context, null, null));
+      // modifies $Heap, $Tick
+      var mod = new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr, etran.Tick() };
       // check that postconditions hold
       var ens = new List<Bpl.Ensures>();
       foreach (Expression p in f.Ens) {
@@ -2989,7 +2991,7 @@ namespace Microsoft.Dafny {
         }
       }
       Bpl.Procedure proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullSanitizedName, typeParams, inParams, new List<Variable>(),
-        req, new List<Bpl.IdentifierExpr>(), ens, etran.TrAttributes(f.Attributes, null));
+        req, mod, ens, etran.TrAttributes(f.Attributes, null));
       sink.TopLevelDeclarations.Add(proc);
 
       if (InsertChecksums)
@@ -3005,7 +3007,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of the preconditions (including termination, but no reads checks), and then
       // assume each one of them
       foreach (Expression p in f.Req) {
-        CheckWellformed(p, new WFOptions(f, null, false), locals, builder, etran);
+        CheckWellformed(p, new WFOptions(null, false), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
       }
       // check well-formedness of the reads clause
@@ -3013,7 +3015,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
       foreach (Expression p in f.Decreases.Expressions)
       {
-        CheckWellformed(p, new WFOptions(f, null, false), locals, builder, etran);
+        CheckWellformed(p, new WFOptions(null, false), locals, builder, etran);
       }
       // Generate:
       //   if (*) {
@@ -3048,7 +3050,7 @@ namespace Microsoft.Dafny {
       }
       // Now for the ensures clauses
       foreach (Expression p in f.Ens) {
-        CheckWellformed(p, new WFOptions(f, f, false), locals, postCheckBuilder, etran);
+        CheckWellformed(p, new WFOptions(f, false), locals, postCheckBuilder, etran);
         // assume the postcondition for the benefit of checking the remaining postconditions
         postCheckBuilder.Add(new Bpl.AssumeCmd(p.tok, etran.TrExpr(p)));
       }
@@ -3070,7 +3072,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
         DefineFrame(f.tok, f.Reads, bodyCheckBuilder, locals, null);
-        CheckWellformedWithResult(f.Body, new WFOptions(f, null, true), funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        CheckWellformedWithResult(f.Body, new WFOptions(null, true), funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
       postCheckBuilder.Add(new Bpl.AssumeCmd(f.tok, Bpl.Expr.False));
@@ -3087,7 +3089,9 @@ namespace Microsoft.Dafny {
       }
 
       Contract.Assert(currentModule == f.EnclosingClass.Module);
+      Contract.Assert(codeContext == f);
       currentModule = null;
+      codeContext = null;
     }
 
     Bpl.Expr CtorInvocation(MatchCase mc, ExpressionTranslator etran, List<Variable> locals, StmtListBuilder localTypeAssumptions) {
@@ -3440,8 +3444,6 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Instances of WFContext are used as an argument to CheckWellformed, supplying options for the
     /// checks to be performed.
-    /// If non-null, "Decr" gives the caller to be used for termination checks.  If it is null, no
-    /// termination checks are performed.
     /// If "SelfCallsAllowance" is non-null, termination checks will be omitted for calls that look
     /// like it.  This is useful in function postconditions, where the result of the function is
     /// syntactically given as what looks like a recursive call with the same arguments.
@@ -3450,13 +3452,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     class WFOptions
     {
-      public readonly Function Decr;
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
       public readonly Bpl.QKeyValue AssertKv;
       public WFOptions() { }
-      public WFOptions(Function decr, Function selfCallsAllowance, bool doReadsChecks) {
-        Decr = decr;
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks) {
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
       }
@@ -3566,7 +3566,7 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true), "upper bound " + (e.E0 == null ? "" : "below lower bound or ") + "above length of " + (isSequence ? "sequence" : "array"), options.AssertKv));
           }
         }
-        if (options.DoReadsChecks && cce.NonNull(e.Seq.Type).IsArrayType) {
+        if (options.DoReadsChecks && e.Seq.Type.IsArrayType) {
           if (e.SelectOne) {
             Contract.Assert(e.E0 != null);
             Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, etran.TrExpr(e.E0));
@@ -3669,59 +3669,57 @@ namespace Microsoft.Dafny {
           Expression precond = Substitute(p, e.Receiver, substMap);
           builder.Add(Assert(expr.tok, etran.TrExpr(precond), "possible violation of function precondition", options.AssertKv));
         }
-        Bpl.Expr allowance = null;
-        if (options.Decr != null || options.DoReadsChecks) {
-          if (options.DoReadsChecks) {
-            // check that the callee reads only what the caller is already allowed to read
-            CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function", options.AssertKv);
-          }
+        if (options.DoReadsChecks) {
+          // check that the callee reads only what the caller is already allowed to read
+          CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function", options.AssertKv);
+        }
 
-          if (options.Decr != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is CoPredicate)) {
-            // check that the decreases measure goes down
-            ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
-            if (module == cce.NonNull(options.Decr.EnclosingClass).Module) {
-              if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(options.Decr)) {
-                bool contextDecrInferred, calleeDecrInferred;
-                List<Expression> contextDecreases = FunctionDecreasesWithDefault(options.Decr, out contextDecrInferred);
-                List<Expression> calleeDecreases = FunctionDecreasesWithDefault(e.Function, out calleeDecrInferred);
-                if (e.Function == options.SelfCallsAllowance) {
-                  allowance = Bpl.Expr.True;
-                  if (!e.Function.IsStatic) {
-                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
-                  }
-                  for (int i = 0; i < e.Args.Count; i++) {
-                    Expression ee = e.Args[i];
-                    Formal ff = e.Function.Formals[i];
-                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration), TrType(ff.Type))));
-                  }
+        Bpl.Expr allowance = null;
+        if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is CoPredicate)) {
+          // check that the decreases measure goes down
+          ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
+          if (module == codeContext.EnclosingModule) {
+            if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(codeContext)) {
+              bool contextDecrInferred, calleeDecrInferred;
+              List<Expression> contextDecreases = CallableDecreasesWithDefault(codeContext, out contextDecrInferred);
+              List<Expression> calleeDecreases = CallableDecreasesWithDefault(e.Function, out calleeDecrInferred);
+              if (e.Function == options.SelfCallsAllowance) {
+                allowance = Bpl.Expr.True;
+                if (!e.Function.IsStatic) {
+                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
                 }
-                string hint;
-                switch (e.CoCall) {
-                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                    hint = "note that only functions without side effects can be called co-recursively";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                    hint = "note that only functions without any ensures clause can be called co-recursively";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                    hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                    hint = "note that calls cannot be co-recursive in this context";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                    hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.No:
-                    hint = null;
-                    break;
-                  default:
-                    Contract.Assert(false);  // unexpected CoCallResolution
-                    goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
+                for (int i = 0; i < e.Args.Count; i++) {
+                  Expression ee = e.Args[i];
+                  Formal ff = e.Function.Formals[i];
+                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration), TrType(ff.Type))));
                 }
-                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
-                  contextDecrInferred, hint);
               }
+              string hint;
+              switch (e.CoCall) {
+                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                  hint = "note that only functions without side effects can be called co-recursively";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                  hint = "note that only functions without any ensures clause can be called co-recursively";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                  hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                  hint = "note that calls cannot be co-recursive in this context";
+                  break;
+                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                  hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                  break;
+                case FunctionCallExpr.CoCallResolution.No:
+                  hint = null;
+                  break;
+                default:
+                  Contract.Assert(false);  // unexpected CoCallResolution
+                  goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
+              }
+              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
+                contextDecrInferred, hint);
             }
           }
         }
@@ -3895,10 +3893,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is CalcExpr) {
         var e = (CalcExpr)expr;
-        // TrStmt needs a context so give it one:
-        codeContext = new NoContext(this.currentModule);
         TrStmt(e.Guard, builder, locals, etran);
-        codeContext = null;
         CheckWellformed(e.Body, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
@@ -3983,45 +3978,39 @@ namespace Microsoft.Dafny {
       return !t.IsTypeParameter && !t.IsCoDatatype;
     }
 
-    public static List<Expression> MethodDecreasesWithDefault(ICodeContext m, out bool inferredDecreases) {
+    List<Expression> CallableDecreasesWithDefault(ICallable m, out bool inferredDecreases)
+    {
+      Contract.Requires(m != null);
+      if (m is Function) {
+        var f = (Function)m;
+        if (f.Reads.Count != 0) {
+          // start the default lexicographic tuple with the reads clause
+          return CallableDecreasesWithDefault(m, FrameToObjectSet(f.Reads), out inferredDecreases);
+        }
+      }
+      return CallableDecreasesWithDefault(m, null, out inferredDecreases);
+    }
+    public static List<Expression> CallableDecreasesWithDefault(ICallable m, Expression firstComponent, out bool inferredDecreases)
+    {
       Contract.Requires(m != null);
 
       inferredDecreases = false;
       List<Expression> decr = m.Decreases.Expressions;
       if (decr.Count == 0 || (m is PrefixMethod && decr.Count == 1)) {
         decr = new List<Expression>();
+        if (firstComponent != null) {
+          decr.Add(firstComponent);
+        }
         foreach (Formal p in m.Ins) {
           if (IsOrdered(p.Type)) {
-            IdentifierExpr ie = new IdentifierExpr(p.tok, p.Name);
+            var ie = new IdentifierExpr(p.tok, p.Name);
             ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-            decr.Add(ie);  // use the method's first parameter instead
+            decr.Add(ie);
           }
         }
         inferredDecreases = true;
       } else if (m is IteratorDecl) {
         inferredDecreases = ((IteratorDecl)m).InferredDecreases;
-      }
-      return decr;
-    }
-
-    List<Expression> FunctionDecreasesWithDefault(Function f, out bool inferredDecreases) {
-      Contract.Requires(f != null);
-
-      inferredDecreases = false;
-      List<Expression> decr = f.Decreases.Expressions;
-      if (decr.Count == 0) {
-        decr = new List<Expression>();
-        if (f.Reads.Count != 0) {
-          decr.Add(FrameToObjectSet(f.Reads));  // start the lexicographic tuple with the reads clause
-        }
-        foreach (Formal p in f.Formals) {
-          if (IsOrdered(p.Type)) {
-            IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(f));
-            ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-            decr.Add(ie);
-          }
-        }
-        inferredDecreases = true;  // use 'true' even if decr.Count==0, because this will trigger an error message that asks the user to consider supplying a decreases clause
       }
       return decr;
     }
@@ -4540,6 +4529,10 @@ namespace Microsoft.Dafny {
     }
 
     private void AddMethodRefinementCheck(MethodCheck methodCheck) {
+      Contract.Requires(methodCheck != null);
+      Contract.Requires(methodCheck.Refined != null);
+      Contract.Requires(currentModule == null && codeContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null);
 
       // First, we generate the declaration of the procedure. This procedure has the same
       // pre and post conditions as the refined method. The body implementation will be a call
@@ -4807,7 +4800,7 @@ namespace Microsoft.Dafny {
       GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, out inParams, out outParams);
     }
 
-    private void GenerateMethodParametersChoose(IToken tok, ICodeContext m, MethodTranslationKind kind, bool includeReceiver, bool includeInParams, bool includeOutParams,
+    private void GenerateMethodParametersChoose(IToken tok, IMethodCodeContext m, MethodTranslationKind kind, bool includeReceiver, bool includeInParams, bool includeOutParams,
       ExpressionTranslator etran, out List<Variable> inParams, out List<Variable> outParams) {
       inParams = new List<Variable>();
       outParams = new List<Variable>();
@@ -6297,19 +6290,20 @@ namespace Microsoft.Dafny {
       foreach (Expression e in theDecreases) {
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
-      // include boilerplate invariants
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, codeContext.Modifies.Expressions, s.IsGhost, etranPreLoop, etran, etran.Old))
-      {
+      if (codeContext is IMethodCodeContext) {
+        var modifiesClause = ((IMethodCodeContext)codeContext).Modifies.Expressions;
+        // include boilerplate invariants
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, etranPreLoop, etran, etran.Old)) {
           if (tri.IsFree) {
-              invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
+            invariants.Add(new Bpl.AssumeCmd(s.Tok, tri.Expr));
+          } else {
+            Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
+            invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
           }
-          else {
-              Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-              invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
-          }
+        }
+        // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
+        invariants.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
       }
-      // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
-      invariants.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
 
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
       if (initDecr != null) {
@@ -6499,26 +6493,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(dafnyReceiver != null || bReceiver != null);
       Contract.Requires(method != null);
-      Contract.Requires(cce.NonNullElements(Args));
-      Contract.Requires(cce.NonNullElements(Lhss));
-      Contract.Requires(cce.NonNullElements(LhsTypes));
+      Contract.Requires(Args != null);
+      Contract.Requires(Lhss != null);
+      Contract.Requires(LhsTypes != null);
       Contract.Requires(method.Outs.Count == Lhss.Count);
       Contract.Requires(method.Outs.Count == LhsTypes.Count);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      // 'codeContext' can be a Method or an IteratorDecl.  In case of the latter, the caller is really
-      // the iterator's MoveNext method.  Computer the caller here:
-      Method caller = codeContext as Method ?? ((IteratorDecl)codeContext).Member_MoveNext;
       // Figure out if the call is recursive or not, which will be used below to determine the need for a
       // termination check and the need to include an implicit _k-1 argument.
       bool isRecursiveCall = false;
       // consult the call graph to figure out if this is a recursive call
       var module = method.EnclosingClass.Module;
-      if (module == currentModule) {
+      if (codeContext != null && module == currentModule) {
         // Note, prefix methods are not recorded in the call graph, but their corresponding comethods are.
-        Method cllr = caller is PrefixMethod ? ((PrefixMethod)caller).Co : caller;
+        // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
+        ICallable cllr =
+          codeContext is PrefixMethod ? ((PrefixMethod)codeContext).Co :
+          codeContext is IteratorDecl ? ((IteratorDecl)codeContext).Member_MoveNext :
+          codeContext;
         if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(cllr)) {
           isRecursiveCall = true;
         }
@@ -6541,7 +6536,7 @@ namespace Microsoft.Dafny {
 
       // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
-      List<Bpl.Expr> ins = new List<Bpl.Expr>();
+      var ins = new List<Bpl.Expr>();
       if (!method.IsStatic) {
         if (bReceiver == null && !(dafnyReceiver is ThisExpr)) {
           CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
@@ -6567,7 +6562,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr bActual;
         if (i == 0 && method is CoMethod && isRecursiveCall) {
           // Treat this call to M(args) as a call to the corresponding prefix method M#(_k - 1, args), so insert an argument here.
-          var k = ((PrefixMethod)caller).K;
+          var k = ((PrefixMethod)codeContext).K;
           bActual = Bpl.Expr.Sub(new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration), Bpl.Type.Int), Bpl.Expr.Literal(1));
         } else {
           Expression actual;
@@ -6586,19 +6581,22 @@ namespace Microsoft.Dafny {
       }
 
       // Check modifies clause of a subcall is a subset of the current frame.
-      CheckFrameSubset(tok, callee.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+      if (codeContext is IMethodCodeContext) {
+        CheckFrameSubset(tok, callee.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+      }
 
       // Check termination
       if (isRecursiveCall) {
+        Contract.Assert(codeContext != null);
         bool contextDecrInferred, calleeDecrInferred;
-        List<Expression> contextDecreases = MethodDecreasesWithDefault(caller, out contextDecrInferred);
-        List<Expression> calleeDecreases = MethodDecreasesWithDefault(callee, out calleeDecrInferred);
+        List<Expression> contextDecreases = CallableDecreasesWithDefault(codeContext, out contextDecrInferred);
+        List<Expression> calleeDecreases = CallableDecreasesWithDefault(callee, out calleeDecrInferred);
         CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, contextDecrInferred, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
-      List<Bpl.IdentifierExpr> outs = new List<Bpl.IdentifierExpr>();
-      List<Bpl.IdentifierExpr> tmpOuts = new List<Bpl.IdentifierExpr>();
+      var outs = new List<Bpl.IdentifierExpr>();
+      var tmpOuts = new List<Bpl.IdentifierExpr>();
       for (int i = 0; i < Lhss.Count; i++) {
         var bLhs = Lhss[i];
         if (ExpressionTranslator.ModeledAsBoxType(callee.Outs[i].Type) && !ExpressionTranslator.ModeledAsBoxType(LhsTypes[i])) {
@@ -10292,7 +10290,7 @@ namespace Microsoft.Dafny {
         // For non-recursive function:  arguments are "prominent" if the call is
         var rec = e.Function.IsRecursive && e.CoCall != FunctionCallExpr.CoCallResolution.Yes;
         bool inferredDecreases;  // we don't actually care
-        var decr = FunctionDecreasesWithDefault(e.Function, out inferredDecreases);
+        var decr = CallableDecreasesWithDefault(e.Function, out inferredDecreases);
         bool variantArgument;
         if (DafnyOptions.O.InductionHeuristic < 6) {
           variantArgument = rec;

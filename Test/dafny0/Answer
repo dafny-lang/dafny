@@ -366,6 +366,21 @@ ResolutionErrors.dfy(617,20): Error: only ghost methods can be called from this 
 ResolutionErrors.dfy(619,8): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(637,21): Error: the type of this expression is underspecified, but it cannot be an arbitrary type.
 ResolutionErrors.dfy(637,21): Error: the type of this expression is underspecified, but it cannot be an arbitrary type.
+ResolutionErrors.dfy(674,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(684,8): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(687,20): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(698,16): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(698,16): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(699,21): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(700,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(703,19): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(722,8): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(725,20): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors.dfy(730,16): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(730,16): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(731,21): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(732,8): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(735,19): Error: a while statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(427,2): Error: More than one default constructor
 ResolutionErrors.dfy(48,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(109,9): Error: ghost variables are allowed only in specification contexts
@@ -439,7 +454,7 @@ ResolutionErrors.dfy(541,20): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(543,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(544,18): Error: unresolved identifier: w
 ResolutionErrors.dfy(651,11): Error: lemmas are not allowed to have modifies clauses
-92 resolution/type errors detected in ResolutionErrors.dfy
+107 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -1161,6 +1176,20 @@ Execution trace:
 
 Dafny program verifier finished with 40 verified, 6 errors
 
+-------------------- StatementExpressions.dfy --------------------
+StatementExpressions.dfy(52,11): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+    (0,0): anon8_Then
+StatementExpressions.dfy(56,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+    StatementExpressions.dfy(50,7): anon8_Else
+
+Dafny program verifier finished with 9 verified, 2 errors
+
 -------------------- Coinductive.dfy --------------------
 Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed
 Coinductive.dfy(13,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
@@ -1749,6 +1778,45 @@ IteratorResolution.dfy(137,9): Error: unresolved identifier: _decreases0
 12 resolution/type errors detected in IteratorResolution.dfy
 
 -------------------- Iterators.dfy --------------------
+Iterators.dfy(248,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(271,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(281,24): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(293,9): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(314,9): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(323,24): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(340,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(350,24): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(367,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
 Iterators.dfy(100,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -1812,7 +1880,7 @@ Execution trace:
     Iterators.dfy(222,3): anon18_Else
     (0,0): anon19_Else
 
-Dafny program verifier finished with 38 verified, 11 errors
+Dafny program verifier finished with 65 verified, 20 errors
 
 -------------------- RankPos.dfy --------------------
 

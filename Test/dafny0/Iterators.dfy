@@ -233,3 +233,148 @@ method ClientOfNewReferences()
     i := i - 1;
   }
 }
+
+// ------ recursive iterators --------------------------------------
+
+module ITER_A {
+  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+    requires r != null;
+    decreases n+2, 0;
+  {
+    if n == 0 {
+    } else if good {
+      r.M(n - 1);
+    } else {
+      r.M(n + 1);  // error: may fail to terminate
+    }
+  }
+
+  class RecIterCaller {
+    method M(n: nat)
+      decreases n+2;
+    {
+      var good;
+      var iter := new RecursiveIterator(n, this, good);
+      var more := iter.MoveNext();
+    }
+  }
+}
+module ITER_B {
+  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+    requires r != null;
+    decreases n;
+  {
+    if n == 0 {
+    } else if good {
+      r.M(n - 1);
+    } else {
+      r.M(n + 1);  // error: may fail to terminate
+    }
+  }
+
+  class RecIterCaller {
+    method M(n: nat)
+      decreases n;
+    {
+      var good;
+      var iter := new RecursiveIterator(n, this, good);
+      var more := iter.MoveNext();  // error: failure to decrease variant function
+    }
+  }
+}
+module ITER_C {
+  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+    requires r != null;
+  {
+    if n == 0 {
+    } else if good {
+      r.M(n - 1);
+    } else {
+      r.M(n + 1);  // error: may fail to terminate
+    }
+  }
+
+  class RecIterCaller {
+    method M(n: nat)
+    {
+      var good;
+      var iter := new RecursiveIterator(n, this, good);
+      var more := iter.MoveNext();
+    }
+  }
+}
+module ITER_D {
+  iterator RecursiveIterator(n: nat, r: RecIterCaller, good: bool)
+    requires r != null;
+  {
+    if n == 0 {
+    } else if good {
+      r.M(n - 1, {});
+    } else {
+      r.M(n + 1, {});  // error: may fail to terminate
+    }
+  }
+
+  class RecIterCaller {
+    method M(n: nat, incomparable: set<int>)
+    {
+      var good;
+      var iter := new RecursiveIterator(n, this, good);
+      var more := iter.MoveNext();  // error: failure to decrease variant function
+    }
+  }
+}
+module ITER_E {
+  class Cell {
+    var data: nat;
+  }
+  iterator RecursiveIterator(cell: Cell, n: nat, r: RecIterCaller, good: bool)
+    requires cell != null && r != null;
+    modifies cell;
+    decreases if cell.data < 2 then n else n+n-n;
+  {
+    if n == 0 {
+    } else if good {
+      r.M(n - 1);
+    } else {
+      r.M(n + 1);  // error: may fail to terminate
+    }
+  }
+
+  class RecIterCaller {
+    method M(n: nat)
+    {
+      var good;
+      var cell := new Cell;
+      var iter := new RecursiveIterator(cell, n, this, good);
+      var more := iter.MoveNext();  // error: failure to decrease variant function
+    }
+  }
+}
+module ITER_F {
+  class Cell {
+    var data: nat;
+  }
+  iterator RecursiveIterator(cell: Cell, n: nat, r: RecIterCaller, good: bool)
+    requires cell != null && r != null;
+    modifies cell;
+    decreases if cell.data < 2 then n else n+n-n, 0;
+  {
+    if n == 0 {
+    } else if good {
+      r.M(n - 1);
+    } else {
+      r.M(n + 1);  // error: may fail to terminate
+    }
+  }
+
+  class RecIterCaller {
+    method M(n: nat)
+    {
+      var good;
+      var cell := new Cell;
+      var iter := new RecursiveIterator(cell, n, this, good);
+      var more := iter.MoveNext();
+    }
+  }
+}

@@ -1413,9 +1413,10 @@ namespace Microsoft.Dafny {
         var e = (CalcExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        PrintStatement(e.Guard, indent);
+        int ind = indent < 0 ? IndentAmount : indent;  // if the expression was to be printed on one line, instead print the calc statement part at indentation IndentAmount (not pretty, but something)
+        PrintStatement(e.Guard, ind);
         wr.WriteLine();
-        Indent(indent);
+        Indent(ind);
         PrintExpression(e.Body);
         if (parensNeeded) { wr.Write(")"); }
 

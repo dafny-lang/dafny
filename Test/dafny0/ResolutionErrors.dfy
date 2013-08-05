@@ -653,3 +653,98 @@ lemma MyLemma(x: int) returns (y: int)
 {
   y := x;
 }
+
+// ------------------------- statements in expressions ------------------------------
+
+module StatementsInExpressions {
+  ghost method SideEffect()
+    modifies this;
+  {
+  }
+
+  method NonGhostMethod()
+  {
+  }
+
+  ghost method M()
+    modifies this;
+  {
+    calc {
+      5;
+      { SideEffect(); }  // error: cannot call method with side effects
+      5;
+    }
+  }
+
+  function F(): int
+  {
+    calc {
+      6;
+      { assert 6 < 8; }
+      { NonGhostMethod(); }  // error: cannot call non-ghost method
+      { var x := 8;
+        while x != 0
+          decreases *;  // error: cannot use 'decreases *' in a ghost context
+        {
+          x := x - 1;
+        }
+      }
+      { var x := 8;
+        while x != 0
+        {
+          x := x - 1;
+        }
+      }
+      { MyField := 12; }  // error: cannot assign to a field
+      { MyGhostField := 12; }  // error: cannot assign to any field
+      { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
+      { var x := 8;
+        while x != 0
+          modifies this;  // error: cannot use a modifies clause on a loop
+        {
+          x := x - 1;
+        }
+      }
+      6;
+    }
+    5
+  }
+
+  var MyField: int;
+  ghost var MyGhostField: int;
+
+  method N()
+  {
+    var y :=
+    calc {
+      6;
+      { assert 6 < 8; }
+      { NonGhostMethod(); }  // error: cannot call non-ghost method
+      { var x := 8;
+        while x != 0
+          decreases *;  // error: cannot use 'decreases *' in a ghost context
+        {
+          x := x - 1;
+        }
+      }
+      { MyField := 12; }  // error: cannot assign to a field
+      { MyGhostField := 12; }  // error: cannot assign to any field
+      { M(); }  // error: cannot call (ghost) method with a modifies clause
+      { var x := 8;
+        while x != 0
+          modifies this;  // error: cannot use a modifies clause on a loop
+        {
+          x := x - 1;
+        }
+      }
+      { var x := 8;
+        while x != 0
+        {
+          x := x - 1;
+        }
+      }
+      6;
+    }
+    5;
+  }
+}

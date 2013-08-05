@@ -584,7 +584,7 @@ namespace Microsoft.Dafny
           }
           // finally, add special variables to hold the components of the (explicit or implicit) decreases clause
           bool inferredDecreases;
-          var decr = Translator.MethodDecreasesWithDefault(iter, out inferredDecreases);
+          var decr = Translator.CallableDecreasesWithDefault(iter, null, out inferredDecreases);
           if (inferredDecreases) {
             iter.InferredDecreases = true;
             Contract.Assert(iter.Decreases.Expressions.Count == 0);
@@ -1274,8 +1274,8 @@ namespace Microsoft.Dafny
           if (fn.Body != null && module.CallGraph.GetSCCRepresentative(fn) == fn) {
             bool dealsWithCodatatypes = false;
             foreach (var m in module.CallGraph.GetSCC(fn)) {
-              var f = (Function)m;
-              if (f.ResultType.InvolvesCoDatatype) {
+              var f = m as Function;
+              if (f != null && f.ResultType.InvolvesCoDatatype) {
                 dealsWithCodatatypes = true;
                 break;
               }
@@ -1283,11 +1283,13 @@ namespace Microsoft.Dafny
             var coCandidates = new List<CoCallResolution.CoCallInfo>();
             var hasIntraClusterCallsInDestructiveContexts = false;
             foreach (var m in module.CallGraph.GetSCC(fn)) {
-              var f = (Function)m;
-              var checker = new CoCallResolution(f, dealsWithCodatatypes);
-              checker.CheckCoCalls(f.Body);
-              coCandidates.AddRange(checker.FinalCandidates);
-              hasIntraClusterCallsInDestructiveContexts |= checker.HasIntraClusterCallsInDestructiveContexts;
+              if (m is Function) {
+                var f = (Function)m;
+                var checker = new CoCallResolution(f, dealsWithCodatatypes);
+                checker.CheckCoCalls(f.Body);
+                coCandidates.AddRange(checker.FinalCandidates);
+                hasIntraClusterCallsInDestructiveContexts |= checker.HasIntraClusterCallsInDestructiveContexts;
+              }
             }
             if (coCandidates.Count != 0) {
               if (hasIntraClusterCallsInDestructiveContexts) {
@@ -2255,7 +2257,6 @@ namespace Microsoft.Dafny
     }
 
     ClassDecl currentClass;
-    Function currentFunction;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
@@ -2677,42 +2678,39 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
-      Contract.Requires(currentFunction == null);
-      Contract.Ensures(currentFunction == null);
       scope.PushMarker();
-      currentFunction = f;
       if (f.IsStatic) {
         scope.AllowInstance = false;
       }
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
-      ResolveAttributes(f.Attributes, false, new NoContext(currentClass.Module));
+      ResolveAttributes(f.Attributes, false, f);
       foreach (Expression r in f.Req) {
-        ResolveExpression(r, false, new NoContext(currentFunction.EnclosingClass.Module));
+        ResolveExpression(r, false, f);
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(r.Type, Type.Bool)) {
           Error(r, "Precondition must be a boolean (got {0})", r.Type);
         }
       }
       foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpression(fr, "reads");
+        ResolveFrameExpression(fr, "reads", f);
       }
       foreach (Expression r in f.Ens) {
-        ResolveExpression(r, false, new NoContext(currentClass.Module));  // since this is a function, the postcondition is still a one-state predicate
+        ResolveExpression(r, false, f);  // since this is a function, the postcondition is still a one-state predicate
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
         if (!UnifyTypes(r.Type, Type.Bool)) {
           Error(r, "Postcondition must be a boolean (got {0})", r.Type);
         }
       }
       foreach (Expression r in f.Decreases.Expressions) {
-        ResolveExpression(r, false, new NoContext(currentClass.Module));
+        ResolveExpression(r, false, f);
         // any type is fine
       }
       if (f.Body != null) {
         var prevErrorCount = ErrorCount;
         List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
-        ResolveExpression(f.Body, false, new NoContext(currentClass.Module), matchVarContext);
+        ResolveExpression(f.Body, false, f, matchVarContext);
         if (!f.IsGhost) {
           CheckIsNonGhost(f.Body);
         }
@@ -2721,14 +2719,14 @@ namespace Microsoft.Dafny
           Error(f, "Function body type mismatch (expected {0}, got {1})", f.ResultType, f.Body.Type);
         }
       }
-      currentFunction = null;
       scope.PopMarker();
     }
 
-    void ResolveFrameExpression(FrameExpression fe, string kind) {
+    void ResolveFrameExpression(FrameExpression fe, string kind, ICodeContext codeContext) {
       Contract.Requires(fe != null);
-      Contract.Requires(kind != null);      
-      ResolveExpression(fe.E, false, new NoContext(moduleInfo.ModuleDef));
+      Contract.Requires(kind != null);
+      Contract.Requires(codeContext != null);
+      ResolveExpression(fe.E, false, codeContext);
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       if (t is CollectionType) {
@@ -2810,7 +2808,7 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fe in m.Mod.Expressions) {
-        ResolveFrameExpression(fe, "modifies");
+        ResolveFrameExpression(fe, "modifies", m);
         if (m is Lemma) {
           Error(fe.tok, "lemmas are not allowed to have modifies clauses");
         } else if (m is CoMethod) {
@@ -2925,10 +2923,10 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
-        ResolveFrameExpression(fe, "reads");
+        ResolveFrameExpression(fe, "reads", iter);
       }
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        ResolveFrameExpression(fe, "modifies");
+        ResolveFrameExpression(fe, "modifies", iter);
       }
       foreach (MaybeFreeExpression e in iter.Requires) {
         ResolveExpression(e.E, false, iter);
@@ -3672,14 +3670,17 @@ namespace Microsoft.Dafny
         }
         var s = (ProduceStmt)stmt;
         if (s.rhss != null) {
-          if (codeContext.Outs.Count != s.rhss.Count)
-            Error(s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, codeContext.Outs.Count, kind);
+          var cmc = codeContext as IMethodCodeContext;
+          if (cmc == null) {
+            // an error has already been reported above
+          } else if (cmc.Outs.Count != s.rhss.Count)
+            Error(s, "number of {2} parameters does not match declaration (found {0}, expected {1})", s.rhss.Count, cmc.Outs.Count, kind);
           else {
             Contract.Assert(s.rhss.Count > 0);
             // Create a hidden update statement using the out-parameter formals, resolve the RHS, and check that the RHS is good.
             List<Expression> formals = new List<Expression>();
             int i = 0;
-            foreach (Formal f in codeContext.Outs) {
+            foreach (Formal f in cmc.Outs) {
               Expression produceLhs;
               if (stmt is ReturnStmt) {
                 var ident = new IdentifierExpr(f.tok, f.Name);
@@ -3919,7 +3920,7 @@ namespace Microsoft.Dafny
 
         if (s.Mod.Expressions != null) {
           foreach (FrameExpression fe in s.Mod.Expressions) {
-            ResolveFrameExpression(fe, "modifies");
+            ResolveFrameExpression(fe, "modifies", codeContext);
           }
         }
         s.IsGhost = bodyMustBeSpecOnly;
@@ -4224,6 +4225,7 @@ namespace Microsoft.Dafny
     /// </summary>
     private void ResolveUpdateStmt(UpdateStmt update, bool specContextOnly, ICodeContext codeContext, int errorCountBeforeCheckingLhs) {
       Contract.Requires(update != null);
+      Contract.Requires(codeContext != null);
       IToken firstEffectfulRhs = null;
       CallRhs callRhs = null;
       foreach (var rhs in update.Rhss) {
@@ -4326,6 +4328,7 @@ namespace Microsoft.Dafny
 
     private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(s != null);
+      Contract.Requires(codeContext != null);
 
       var varLhss = new List<IVariable>();
       if (s.AssumeToken == null) {
@@ -4548,12 +4551,15 @@ namespace Microsoft.Dafny
         ModuleDefinition callerModule = codeContext.EnclosingModule;
         ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
         if (callerModule == calleeModule) {
-          // intra-module call; this is allowed; add edge in module's call graph
-          var caller = codeContext is Method ? (Method)codeContext : ((IteratorDecl)codeContext).Member_MoveNext;
-          callerModule.CallGraph.AddEdge(caller, callee);
-        } else {
-          //Contract.Assert(dependencies.Reaches(callerModule, calleeModule));
-          //
+          // intra-module call; add edge in module's call graph
+          var caller = codeContext as ICallable;
+          if (caller == null) {
+            // don't add anything to the call graph after all
+          } else if (caller is IteratorDecl) {
+            callerModule.CallGraph.AddEdge(((IteratorDecl)caller).Member_MoveNext, callee);
+          } else {
+            callerModule.CallGraph.AddEdge(caller, callee);
+          }
         }
       }
     }
@@ -4795,7 +4801,10 @@ namespace Microsoft.Dafny
         }
 
       } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+        var s = (WhileStmt)stmt;
+        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+          Error(s.Mod.Expressions[0].tok, "a while statement used inside a hint is not allowed to have a modifies clause");
+        }
         CheckHintRestrictions(s.Body);
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -4842,12 +4851,10 @@ namespace Microsoft.Dafny
 
     void CheckHintLhs(IToken tok, Expression lhs) {
       var idExpr = lhs as IdentifierExpr;
-      if (idExpr != null) {
-        if (scope.ContainsDecl(idExpr.Var)) {
-          Error(tok, "a hint is not allowed to update a variable declared outside the hint");
-        }
-      } else {
+      if (idExpr == null) {
         Error(tok, "a hint is not allowed to update heap locations");
+      } else if (scope.ContainsDecl(idExpr.Var)) {
+        Error(tok, "a hint is not allowed to update a variable declared outside the hint");
       }
     }
 
@@ -5657,7 +5664,7 @@ namespace Microsoft.Dafny
           if (missingBounds.Count != 0) {
             // Report errors here about quantifications that depend on the allocation state.
             var mb = missingBounds;
-            if (currentFunction != null) {
+            if (codeContext is Function) {
               mb = new List<BoundVar>();  // (who cares if we allocate another array; this happens only in the case of a resolution error anyhow)
               foreach (var bv in missingBounds) {
                 if (bv.Type.IsRefType) {
@@ -5764,11 +5771,8 @@ namespace Microsoft.Dafny
         ResolveStatement(e.Guard, twoState, codeContext);
         ResolveExpression(e.Body, twoState, codeContext);
         Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
-        if (prevErrorCount == ErrorCount) {
-          // Do not build AsAssumeExpression if there were errors, because e.Guard.Result might be null
-          e.AsAssumeExpr = new AssumeExpr(e.tok, e.Guard.Result, e.Body);
-          ResolveExpression(e.AsAssumeExpr, twoState, codeContext);
-        }        
+        e.AsAssumeExpr = new AssumeExpr(e.tok, prevErrorCount == ErrorCount ? e.Guard.Result : new LiteralExpr(e.tok, true), e.Body);
+        ResolveExpression(e.AsAssumeExpr, twoState, codeContext);
         expr.Type = e.Body.Type;
 
       } else if (expr is ITEExpr) {
@@ -6189,17 +6193,20 @@ namespace Microsoft.Dafny
         }
 
         // Resolution termination check
-        if (currentFunction != null && currentFunction.EnclosingClass != null && function.EnclosingClass != null) {
-          ModuleDefinition callerModule = currentFunction.EnclosingClass.Module;
-          ModuleDefinition calleeModule = function.EnclosingClass.Module;
-          if (callerModule == calleeModule) {
-            // intra-module call; this is allowed; add edge in module's call graph
-            callerModule.CallGraph.AddEdge(currentFunction, function);
-            if (currentFunction == function) {
-              currentFunction.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-            }
+        ModuleDefinition callerModule = codeContext.EnclosingModule;
+        ModuleDefinition calleeModule = function.EnclosingClass.Module;
+        if (callerModule == calleeModule) {
+          // intra-module call; add edge in module's call graph
+          var caller = codeContext as ICallable;
+          if (caller == null) {
+            // don't add anything to the call graph after all
+          } else if (caller is IteratorDecl) {
+            callerModule.CallGraph.AddEdge(((IteratorDecl)codeContext).Member_MoveNext, function);
           } else {
-            //Contract.Assert(dependencies.Reaches(callerModule, calleeModule));
+            callerModule.CallGraph.AddEdge(caller, function);
+            if (caller == function) {
+              function.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+            }
           }
         }
       }

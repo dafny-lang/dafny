@@ -977,8 +977,8 @@ namespace Microsoft.Dafny {
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
     
-    public readonly List<TopLevelDecl/*!*/> TopLevelDecls = new List<TopLevelDecl/*!*/>();  // filled in by the parser; readonly after that
-    public readonly Graph<MemberDecl/*!*/> CallGraph = new Graph<MemberDecl/*!*/>();  // filled in during resolution
+    public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that
+    public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsAbstract;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
@@ -1261,18 +1261,33 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public interface ICodeContext : ICallable
+  /// <summary>
+  /// An ICodeContext is a Function, Method, or IteratorDecl, or a NoContext.
+  /// </summary>
+  public interface ICodeContext
   {
     bool IsGhost { get; }
     bool IsStatic { get; }
     List<TypeParameter> TypeArgs { get; }
     List<Formal> Ins { get ; }
-    List<Formal> Outs { get; }
-    Specification<FrameExpression> Modifies { get; }
-    Specification<Expression> Decreases { get; }
     ModuleDefinition EnclosingModule { get; }  // to be called only after signature-resolution is complete
     bool MustReverify { get; }
     string FullSanitizedName { get; }
+  }
+  /// <summary>
+  /// An ICallable is a Function, Method, or IteratorDecl.
+  /// </summary>
+  public interface ICallable : ICodeContext
+  {
+    Specification<Expression> Decreases { get; }
+  }
+  /// <summary>
+  /// An IMethodCodeContext is a Method or IteratorDecl.
+  /// </summary>
+  public interface IMethodCodeContext : ICallable
+  {
+    List<Formal> Outs { get; }
+    Specification<FrameExpression> Modifies { get; }
   }
 
   /// <summary>
@@ -1289,15 +1304,13 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsStatic { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    List<Formal> ICodeContext.Outs { get { return new List<Formal>(); } }
-    Specification<FrameExpression> ICodeContext.Modifies { get { return new Specification<FrameExpression>(null, null); } }
-    Specification<Expression> ICodeContext.Decreases { get { return new Specification<Expression>(null, null); } }
+    Specification<Expression> Decreases { get { return new Specification<Expression>(null, null); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   }
 
-  public class IteratorDecl : ClassDecl, ICodeContext
+  public class IteratorDecl : ClassDecl, IMethodCodeContext
   {
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
@@ -1364,17 +1377,12 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsStatic { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
-    List<Formal> ICodeContext.Outs { get { return this.Outs; } }
-    Specification<FrameExpression> ICodeContext.Modifies { get { return this.Modifies; } }
-    Specification<Expression> ICodeContext.Decreases { get { return this.Decreases; } }
+    List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
+    Specification<FrameExpression> IMethodCodeContext.Modifies { get { return this.Modifies; } }
+    Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
   }
-
-  /// <summary>
-  /// An "ICallable" is a function, method, or iterator.
-  /// </summary>
-  public interface ICallable { }
 
   public abstract class MemberDecl : Declaration {
     public readonly bool IsStatic;
@@ -1854,6 +1862,14 @@ namespace Microsoft.Dafny {
       this.Body = body;
       this.SignatureIsOmitted = signatureOmitted;
     }
+
+    bool ICodeContext.IsGhost { get { return this.IsGhost; } }
+    bool ICodeContext.IsStatic { get { return this.IsStatic; } }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
+    List<Formal> ICodeContext.Ins { get { return this.Formals; } }
+    Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.Module; } }
+    bool ICodeContext.MustReverify { get { return false; } }
   }
 
   public class Predicate : Function
@@ -1929,7 +1945,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Method : MemberDecl, TypeParameter.ParentType, ICodeContext
+  public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext
   {
     public readonly bool SignatureIsOmitted;
     public bool MustReverify;
@@ -1989,9 +2005,9 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsStatic { get { return this.IsStatic; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
-    List<Formal> ICodeContext.Outs { get { return this.Outs; } }
-    Specification<FrameExpression> ICodeContext.Modifies { get { return Mod; } }
-    Specification<Expression> ICodeContext.Decreases { get { return this.Decreases; } }
+    List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
+    Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
+    Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
