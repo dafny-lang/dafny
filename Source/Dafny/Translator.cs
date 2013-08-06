@@ -11053,22 +11053,8 @@ namespace Microsoft.Dafny {
         } else if (rhs is HavocRhs) {
           c = new HavocRhs(rhs.Tok);
         } else {
-          var r = (TypeRhs)rhs;
-          var et = Resolver.SubstType(r.EType, typeMap);
-          TypeRhs trhs;
-          if (r.ArrayDimensions != null) {
-            trhs = new TypeRhs(r.Tok, et, r.ArrayDimensions.ConvertAll(Substitute));
-          } else if (r.Arguments == null) {
-            trhs = new TypeRhs(r.Tok, et);
-          } else {
-            trhs = new TypeRhs(r.Tok, et, r.OptionalNameComponent, Substitute(r.ReceiverArgumentForInitCall), r.Arguments.ConvertAll(Substitute));
-          }
-          if (r.ReceiverArgumentForInitCall != null) {
-            trhs.ReceiverArgumentForInitCall = Substitute(r.ReceiverArgumentForInitCall);
-          }
-          trhs.InitCall = (CallStmt)SubstStmt(r.InitCall);
-          trhs.Type = Resolver.SubstType(r.Type, typeMap);
-          c = trhs;
+          // since the Substituter is assumed to operate on statements only if they are part of a StatementExpression, then the TypeRhs case cannot occur
+          Contract.Assume(false); throw new cce.UnreachableException();
         }
         c.Attributes = SubstAttributes(rhs.Attributes);
         return c;
