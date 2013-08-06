@@ -85,7 +85,7 @@ namespace DafnyLanguage
       return activeTextView != null
                     && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
                     && resolver.Program != null
-                    && resolver.VerificationErrors.Any(err => !string.IsNullOrEmpty(err.Model));
+                    && resolver.VerificationErrors.Any(err => !string.IsNullOrEmpty(err.ModelText));
     }
 
     public void ShowErrorModel(IWpfTextView activeTextView)
@@ -94,14 +94,14 @@ namespace DafnyLanguage
       var show = activeTextView != null
                  && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
                  && resolver.Program != null
-                 && resolver.VerificationErrors.Any(err => err.IsSelected && !string.IsNullOrEmpty(err.Model));
+                 && resolver.VerificationErrors.Any(err => err.IsSelected && !string.IsNullOrEmpty(err.ModelText));
       if (show)
       {
-        var selectedError = resolver.VerificationErrors.FirstOrDefault(err => err.IsSelected && !string.IsNullOrEmpty(err.Model));
+        var selectedError = resolver.VerificationErrors.FirstOrDefault(err => err.IsSelected && !string.IsNullOrEmpty(err.ModelText));
 
         if (selectedError != null)
         {
-          DafnyMenuPackage.ShowErrorModelInBVD(selectedError.Model, selectedError.SelectedStateId);
+          DafnyMenuPackage.ShowErrorModelInBVD(selectedError.ModelText, selectedError.SelectedStateId);
         }
       }
     }
