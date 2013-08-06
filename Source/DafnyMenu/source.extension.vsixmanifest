@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="e1baf989-88a6-4acf-8d97-e0dc243476aa" Version="1.0" Language="en-US" Publisher="Microsoft Research" />
+    <Identity Id="e1baf989-88a6-4acf-8d97-e0dc243476aa" Version="1.6.3.00320" Language="en-US" Publisher="Microsoft Research" />
     <DisplayName>DafnyMenu</DisplayName>
     <Description xml:space="preserve">This is a menu for interacting with Dafny.</Description>
   </Metadata>
