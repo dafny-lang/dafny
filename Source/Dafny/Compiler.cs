@@ -2526,13 +2526,9 @@ namespace Microsoft.Dafny {
         wr.Write("return Dafny.Map<{0},{1}>.FromCollection(_coll); ", domtypeName, rantypeName);
         wr.Write("})()");
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        TrExpr(e.Body);
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        TrExpr(e.Body);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        TrExpr(e.E);
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;

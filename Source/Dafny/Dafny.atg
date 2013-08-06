@@ -1811,16 +1811,18 @@ EndlessExpression<out Expression e>
   | MatchExpression<out e>
   | QuantifierGuts<out e>
   | ComprehensionExpr<out e>
-  | "assert"                        (. x = t; .)
-    Expression<out e0> ";"
-    Expression<out e1>              (. e = new AssertExpr(x, e0, e1); .)
-  | "assume"                        (. x = t; .)
-    Expression<out e0> ";"
-    Expression<out e1>              (. e = new AssumeExpr(x, e0, e1); .)
-  | CalcStmt<out s>             
-    Expression<out e1>              (. e = new CalcExpr(s.Tok, (CalcStmt)s, e1); .)
+  | StmtInExpr<out s>
+    Expression<out e>               (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpr<out e>
   | NamedExpr<out e>
+  )
+  .
+
+StmtInExpr<out Statement s>
+= (. s = dummyStmt; .)
+  ( AssertStmt<out s>
+  | AssumeStmt<out s>
+  | CalcStmt<out s>
   )
   .
 

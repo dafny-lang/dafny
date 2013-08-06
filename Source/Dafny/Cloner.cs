@@ -318,18 +318,9 @@ namespace Microsoft.Dafny
       } else if (expr is WildcardExpr) {
         return new WildcardExpr(Tok(expr.tok));
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        if (e is AssertExpr) {
-          return new AssertExpr(Tok(e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
-        } else {
-          Contract.Assert(e is AssumeExpr);
-          return new AssumeExpr(Tok(e.tok), CloneExpr(e.Guard), CloneExpr(e.Body));
-        }
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        return new CalcExpr(Tok(e.tok), (CalcStmt)CloneStmt(e.Guard), CloneExpr(e.Body), (AssumeExpr)CloneExpr(e.AsAssumeExpr));
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        return new StmtExpr(Tok(e.tok), CloneStmt(e.S), CloneExpr(e.E));
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;

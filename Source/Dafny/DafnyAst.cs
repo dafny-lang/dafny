@@ -2654,7 +2654,7 @@ namespace Microsoft.Dafny {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
 
-    public List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
     }
@@ -3116,7 +3116,7 @@ namespace Microsoft.Dafny {
     public readonly List<BoundVar/*!*/> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
     public readonly Expression/*!*/ Range;
     public readonly List<MaybeFreeExpression/*!*/>/*!*/ Ens;
-    public readonly Statement Body;  // used only until resolution; afterwards, use BodyAssign
+    public readonly Statement Body;
 
     public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
@@ -4670,90 +4670,56 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class PredicateExpr : Expression
+  /// <summary>
+  /// A StmtExpr has the form S;E where S is a statement (from a restricted set) and E is an expression.
+  /// The expression S;E evaluates to whatever E evaluates to, but its well-formedness comes down to
+  /// executing S (which itself must be well-formed) and then checking the well-formedness of E.
+  /// </summary>
+  public class StmtExpr : Expression
   {
-    public readonly Expression Guard;
-    public readonly Expression Body;
-    public PredicateExpr(IToken tok, Expression guard, Expression body)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(guard != null);
-      Contract.Requires(body != null);
-      Guard = guard;
-      Body = body;
-    }
-    public abstract string Kind { get; }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Guard;
-        yield return Body;
-      }
-    }
-  }
-
-  public class AssertExpr : PredicateExpr
-  {
-    public AssertExpr(IToken tok, Expression guard, Expression body)
-      : base(tok, guard, body) {
-      Contract.Requires(tok != null);
-      Contract.Requires(guard != null);
-      Contract.Requires(body != null);
-    }
-    public override string Kind { get { return "assert"; } }
-  }
-
-  public class AssumeExpr : PredicateExpr
-  {
-    public AssumeExpr(IToken tok, Expression guard, Expression body)
-      : base(tok, guard, body) {
-      Contract.Requires(tok != null);
-      Contract.Requires(guard != null);
-      Contract.Requires(body != null);
-    }
-    public override string Kind { get { return "assume"; } }
-  }
-
-  public class CalcExpr : Expression
-  {
-    public readonly CalcStmt Guard;
-    public readonly Expression Body;
-    public AssumeExpr AsAssumeExpr; // assume expression that has the conclusion of the calc statement as a guard and this.Body as a body, filled in during resolution
+    public readonly Statement S;
+    public readonly Expression E;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Guard != null);
-      Contract.Invariant(Body != null);
-      Contract.Invariant(!this.WasResolved() || AsAssumeExpr != null);
+      Contract.Invariant(S != null);
+      Contract.Invariant(E != null);
     }
 
-    public CalcExpr(IToken tok, CalcStmt guard, Expression body)
-      : base(tok) {
+    public StmtExpr(IToken tok, Statement stmt, Expression expr)
+      : base(tok)
+    {
       Contract.Requires(tok != null);
-      Contract.Requires(guard != null);
-      Contract.Requires(body != null);
-      Guard = guard;
-      Body = body;
+      Contract.Requires(stmt != null);
+      Contract.Requires(expr != null);
+      S = stmt;
+      E = expr;
     }
-
-    public CalcExpr(IToken tok, CalcStmt guard, Expression body, AssumeExpr asAssume)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(guard != null);
-      Contract.Requires(body != null);
-      Guard = guard;
-      Body = body;
-      AsAssumeExpr = asAssume;
-    }
-    
     public override IEnumerable<Expression> SubExpressions {
       get {
-        // Note:  A CalcExpr is unusual in that it contains a statement.  For now, callers
-        // of SubExpressions need to be aware of this and hand it specially.
-        yield return Body;
+        // Note:  A StmtExpr is unusual in that it contains a statement.  For now, callers
+        // of SubExpressions need to be aware of this and handle it specially.
+        yield return E;
+      }
+    }
+
+    /// <summary>
+    /// Returns a conclusion that S gives rise to, that is, something that is known after
+    /// S is executed.
+    /// This method should be called only after successful resolution of the expression.
+    /// </summary>
+    public Expression GetSConclusion() {
+      // this is one place where we actually investigate what kind of statement .S is
+      if (S is PredicateStmt) {
+        var s = (PredicateStmt)S;
+        return s.Expr;
+      } else if (S is CalcStmt) {
+        var s = (CalcStmt)S;
+        return s.Result;
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
   }
-
 
   public class ITEExpr : Expression
   {
@@ -5141,10 +5107,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       // recursively visit all subexpressions and all substatements
       expr.SubExpressions.Iter(Visit);
-      if (expr is CalcExpr) {
-        // a CalcExpr also has a sub-statement
-        var e = (CalcExpr)expr;
-        Visit(e.Guard);
+      if (expr is StmtExpr) {
+        // a StmtExpr also has a sub-statement
+        var e = (StmtExpr)expr;
+        Visit(e.S);
       }
       VisitOneExpr(expr);
     }
@@ -5171,10 +5137,10 @@ namespace Microsoft.Dafny {
       if (VisitOneExpr(expr, ref st)) {
         // recursively visit all subexpressions and all substatements
         expr.SubExpressions.Iter(e => Visit(e, st));
-        if (expr is CalcExpr) {
-          // a CalcExpr also has a sub-statement
-          var e = (CalcExpr)expr;
-          Visit(e.Guard, st);
+        if (expr is StmtExpr) {
+          // a StmtExpr also has a sub-statement
+          var e = (StmtExpr)expr;
+          Visit(e.S, st);
         }
       }
     }

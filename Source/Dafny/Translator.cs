@@ -3283,19 +3283,9 @@ namespace Microsoft.Dafny {
           canCall = new Bpl.ForallExpr(expr.tok, bvars, Bpl.Expr.Imp(typeAntecedent, canCall));
         }
         return canCall;
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        Bpl.Expr gCanCall = CanCallAssumption(e.Guard, etran);
-        Bpl.Expr bCanCall = CanCallAssumption(e.Body, etran);
-        if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
-          return BplAnd(gCanCall, bCanCall);
-        } else {
-          Bpl.Expr g = etran.TrExpr(e.Guard);
-          return BplAnd(gCanCall, Bpl.Expr.Imp(g, bCanCall));
-        }
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        return CanCallAssumption(e.AsAssumeExpr, etran);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        return CanCallAssumption(e.E, etran);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         Bpl.Expr total = CanCallAssumption(e.Test, etran);
@@ -3853,31 +3843,10 @@ namespace Microsoft.Dafny {
           builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(range), b.Collect(expr.tok), null, null));
         }
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        CheckWellformed(e.Guard, options, locals, builder, etran);
-        if (e is AssertExpr || DafnyOptions.O.DisallowSoundnessCheating) {
-          bool splitHappened;
-          var ss = TrSplitExpr(e.Guard, etran, out splitHappened);
-          if (!splitHappened) {
-            builder.Add(Assert(e.Guard.tok, etran.TrExpr(e.Guard), "condition in assert expression might not hold"));
-          } else {
-            foreach (var split in ss) {
-              if (split.IsChecked) {
-                builder.Add(AssertNS(split.E.tok, split.E, "condition in assert expression might not hold"));
-              }
-            }
-            builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(e.Guard)));
-          }
-        } else {
-          builder.Add(new Bpl.AssumeCmd(e.tok, etran.TrExpr(e.Guard)));
-        }
-        CheckWellformed(e.Body, options, locals, builder, etran);
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        TrStmt(e.Guard, builder, locals, etran);
-        CheckWellformed(e.Body, options, locals, builder, etran);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        TrStmt(e.S, builder, locals, etran);
+        CheckWellformed(e.E, options, locals, builder, etran);
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
@@ -8785,13 +8754,9 @@ namespace Microsoft.Dafny {
           
           return translator.FunctionCall(e.tok, BuiltinFunction.MapGlue, null, l1, l2);
 
-        } else if (expr is PredicateExpr) {
-          var e = (PredicateExpr)expr;
-          return TrExpr(e.Body);
-
-        } else if (expr is CalcExpr) {
-          var e = (CalcExpr)expr;
-          return TrExpr(e.Body);
+        } else if (expr is StmtExpr) {
+          var e = (StmtExpr)expr;
+          return TrExpr(e.E);
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
@@ -9839,33 +9804,29 @@ namespace Microsoft.Dafny {
           return true;
         }
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        // For a predicate expression in split position, the predicate can be used as an assumption.  Unfortunately,
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
         // this assumption is not generated in non-split positions (because I don't know how.)
-        // So, treat "assert/assume P; E" like "P ==> E".
+        // So, treat "S; E" like "SConclusion ==> E".
         if (position) {
-          var guard = etran.TrExpr(e.Guard);
+          var conclusion = etran.TrExpr(e.GetSConclusion());
           var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.Body, ss, position, heightLimit, etran);
+          TrSplitExpr(e.E, ss, position, heightLimit, etran);
           foreach (var s in ss) {
             // as the source location in the following implication, use that of the translated "s"
-            splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, guard, s.E)));
+            splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, conclusion, s.E)));
           }
         } else {
           var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.Guard, ss, !position, heightLimit, etran);
-          var rhs = etran.TrExpr(e.Body);
+          TrSplitExpr(e.GetSConclusion(), ss, !position, heightLimit, etran);
+          var rhs = etran.TrExpr(e.E);
           foreach (var s in ss) {
             // as the source location in the following implication, use that of the translated "s"
             splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
           }
         }
         return true;
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        return TrSplitExpr(e.AsAssumeExpr, splits, position, heightLimit, etran);
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
@@ -10351,15 +10312,10 @@ namespace Microsoft.Dafny {
         }
         return VarOccursInArgumentToRecursiveFunction(e.E0, n, q) ||
           VarOccursInArgumentToRecursiveFunction(e.E1, n, q);
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        // ignore the guard
-        return VarOccursInArgumentToRecursiveFunction(e.Body, n);
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        // ignore the guard
-        return VarOccursInArgumentToRecursiveFunction(e.Body, n);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        // ignore the statement
+        return VarOccursInArgumentToRecursiveFunction(e.E, n);
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
@@ -10810,23 +10766,9 @@ namespace Microsoft.Dafny {
             substMap.Remove(bv);
           }
 
-        } else if (expr is PredicateExpr) {
-          var e = (PredicateExpr)expr;
-          Expression g = Substitute(e.Guard);
-          Expression b = Substitute(e.Body);
-          if (g != e.Guard || b != e.Body) {
-            if (expr is AssertExpr) {
-              newExpr = new AssertExpr(e.tok, g, b);
-            } else {
-              newExpr = new AssumeExpr(e.tok, g, b);
-            }
-          }
-
-        } else if (expr is CalcExpr) {
-          var e = (CalcExpr)expr;
-          // Since the Substituter is to be used only after the well-formedness checks, just use the conclusion of the calculation
-          // Note: if we ever have a statement substitutor (and we wanted to include the calculation itself), it could be used here
-          return Substitute(e.AsAssumeExpr);
+        } else if (expr is StmtExpr) {
+          var e = (StmtExpr)expr;
+          newExpr = new StmtExpr(e.tok, SubstStmt(e.S), Substitute(e.E));
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
@@ -10942,6 +10884,216 @@ namespace Microsoft.Dafny {
           return newTmap;
         } else {
           return tmap;
+        }
+      }
+
+      /// <summary>
+      /// This method (which currently is used only internally to class Substituter) performs substitutions in
+      /// statements that can occur in a StmtExpr.  (For example, it does not bother to do anything with a
+      /// PrintStmt, ReturnStmt, or YieldStmt.)
+      /// </summary>
+      protected virtual Statement SubstStmt(Statement stmt) {
+        Statement r;
+        if (stmt == null) {
+          return null;
+        } else if (stmt is AssertStmt) {
+          var s = (AssertStmt)stmt;
+          r = new AssertStmt(s.Tok, Substitute(s.Expr), SubstAttributes(s.Attributes));
+        } else if (stmt is AssumeStmt) {
+          var s = (AssumeStmt)stmt;
+          r = new AssumeStmt(s.Tok, Substitute(s.Expr), SubstAttributes(s.Attributes));
+        } else if (stmt is BreakStmt) {
+          var s = (BreakStmt)stmt;
+          BreakStmt rr;
+          if (s.TargetLabel != null) {
+            rr = new BreakStmt(s.Tok, s.TargetLabel);
+          } else {
+            rr = new BreakStmt(s.Tok, s.BreakCount);
+          }
+          // r.TargetStmt will be filled in as later
+          List<BreakStmt> breaks;
+          if (!BreaksToBeResolved.TryGetValue(s, out breaks)) {
+            breaks = new List<BreakStmt>();
+            BreaksToBeResolved.Add(s, breaks);
+          }
+          breaks.Add(rr);
+          r = rr;
+        } else if (stmt is AssignStmt) {
+          var s = (AssignStmt)stmt;
+          r = new AssignStmt(s.Tok, Substitute(s.Lhs), SubstRHS(s.Rhs));
+        } else if (stmt is VarDecl) {
+          var s = (VarDecl)stmt;
+          var tt = s.OptionalType == null ? null : Resolver.SubstType(s.OptionalType, typeMap);
+          r = new VarDecl(s.Tok, s.Name, tt, s.IsGhost);
+        } else if (stmt is CallStmt) {
+          var s = (CallStmt)stmt;
+          var rr = new CallStmt(s.Tok, s.Lhs.ConvertAll(Substitute), Substitute(s.Receiver), s.MethodName, s.Args.ConvertAll(Substitute));
+          rr.Method = s.Method;
+          r = rr;
+        } else if (stmt is BlockStmt) {
+          r = SubstBlockStmt((BlockStmt)stmt);
+        } else if (stmt is IfStmt) {
+          var s = (IfStmt)stmt;
+          r = new IfStmt(s.Tok, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+        } else if (stmt is AlternativeStmt) {
+          var s = (AlternativeStmt)stmt;
+          r = new AlternativeStmt(s.Tok, s.Alternatives.ConvertAll(SubstGuardedAlternative));
+        } else if (stmt is WhileStmt) {
+          var s = (WhileStmt)stmt;
+          r = new WhileStmt(s.Tok, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
+        } else if (stmt is AlternativeLoopStmt) {
+          var s = (AlternativeLoopStmt)stmt;
+          r = new AlternativeLoopStmt(s.Tok, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative));
+        } else if (stmt is ForallStmt) {
+          var s = (ForallStmt)stmt;
+          var newBoundVars = CreateBoundVarSubstitutions(s.BoundVars);
+          var body = SubstStmt(s.Body);
+          // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
+          foreach (var bv in s.BoundVars) {
+            substMap.Remove(bv);
+          }
+          // Put things together
+          var rr = new ForallStmt(s.Tok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
+          rr.Kind = s.Kind;
+          r = rr;
+        } else if (stmt is CalcStmt) {
+          var s = (CalcStmt)stmt;
+          r = new CalcStmt(s.Tok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp));
+        } else if (stmt is MatchStmt) {
+          var s = (MatchStmt)stmt;
+          var rr = new MatchStmt(s.Tok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt));
+          rr.MissingCases.AddRange(s.MissingCases);
+          r = rr;
+        } else if (stmt is AssignSuchThatStmt) {
+          var s = (AssignSuchThatStmt)stmt;
+          r = new AssignSuchThatStmt(s.Tok, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken == null ? null : s.AssumeToken);
+        } else if (stmt is UpdateStmt) {
+          var s = (UpdateStmt)stmt;
+          var resolved = s.ResolvedStatements;
+          UpdateStmt rr;
+          if (resolved.Count == 1) {
+            // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
+            rr = new UpdateStmt(s.Tok, s.Lhss, s.Rhss, s.CanMutateKnownState);
+          } else {
+            rr = new UpdateStmt(s.Tok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
+          }
+          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+          r = rr;
+        } else if (stmt is VarDeclStmt) {
+          var s = (VarDeclStmt)stmt;
+          var rr = new VarDeclStmt(s.Tok, s.Lhss.ConvertAll(c => (VarDecl)SubstStmt(c)), (ConcreteUpdateStatement)SubstStmt(s.Update));
+          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+          r = rr;
+        } else {
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+        }
+
+        // add labels to the cloned statement
+        AddStmtLabels(r, stmt.Labels);
+        r.Attributes = SubstAttributes(stmt.Attributes);
+        r.IsGhost = stmt.IsGhost;
+        if (stmt.Labels != null || stmt is WhileStmt) {
+          List<BreakStmt> breaks;
+          if (BreaksToBeResolved.TryGetValue(stmt, out breaks)) {
+            foreach (var b in breaks) {
+              b.TargetStmt = r;
+            }
+            BreaksToBeResolved.Remove(stmt);
+          }
+        }
+
+        return r;
+      }
+
+      Dictionary<Statement, List<BreakStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakStmt>>();  // old-target -> new-breaks
+
+      protected void AddStmtLabels(Statement s, LList<Label> node) {
+        if (node != null) {
+          AddStmtLabels(s, node.Next);
+          s.Labels = new LList<Label>(node.Data, s.Labels);
+        }
+      }
+
+      protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
+        return stmt == null ? null : new BlockStmt(stmt.Tok, stmt.Body.ConvertAll(SubstStmt));
+      }
+
+      protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
+        Contract.Requires(alt != null);
+        return new GuardedAlternative(alt.Tok, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
+      }
+
+      protected MaybeFreeExpression SubstMayBeFreeExpr(MaybeFreeExpression expr) {
+        Contract.Requires(expr != null);
+        var mfe = new MaybeFreeExpression(Substitute(expr.E), expr.IsFree);
+        mfe.Attributes = SubstAttributes(expr.Attributes);
+        return mfe;
+      }
+
+      protected Specification<Expression> SubstSpecExpr(Specification<Expression> spec) {
+        var ee = spec.Expressions == null ? null : spec.Expressions.ConvertAll(Substitute);
+        return new Specification<Expression>(ee, SubstAttributes(spec.Attributes));
+      }
+
+      protected Specification<FrameExpression> SubstSpecFrameExpr(Specification<FrameExpression> frame) {
+        var ee = frame.Expressions == null ? null : frame.Expressions.ConvertAll(SubstFrameExpr);
+        return new Specification<FrameExpression>(ee, SubstAttributes(frame.Attributes));
+      }
+
+      protected FrameExpression SubstFrameExpr(FrameExpression frame) {
+        Contract.Requires(frame != null);
+        return new FrameExpression(frame.tok, Substitute(frame.E), frame.FieldName);
+      }
+
+      protected AssignmentRhs SubstRHS(AssignmentRhs rhs) {
+        AssignmentRhs c;
+        if (rhs is ExprRhs) {
+          var r = (ExprRhs)rhs;
+          c = new ExprRhs(Substitute(r.Expr));
+        } else if (rhs is HavocRhs) {
+          c = new HavocRhs(rhs.Tok);
+        } else {
+          var r = (TypeRhs)rhs;
+          var et = Resolver.SubstType(r.EType, typeMap);
+          TypeRhs trhs;
+          if (r.ArrayDimensions != null) {
+            trhs = new TypeRhs(r.Tok, et, r.ArrayDimensions.ConvertAll(Substitute));
+          } else if (r.Arguments == null) {
+            trhs = new TypeRhs(r.Tok, et);
+          } else {
+            trhs = new TypeRhs(r.Tok, et, r.OptionalNameComponent, Substitute(r.ReceiverArgumentForInitCall), r.Arguments.ConvertAll(Substitute));
+          }
+          if (r.ReceiverArgumentForInitCall != null) {
+            trhs.ReceiverArgumentForInitCall = Substitute(r.ReceiverArgumentForInitCall);
+          }
+          trhs.InitCall = (CallStmt)SubstStmt(r.InitCall);
+          trhs.Type = Resolver.SubstType(r.Type, typeMap);
+          c = trhs;
+        }
+        c.Attributes = SubstAttributes(rhs.Attributes);
+        return c;
+      }
+
+      protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
+        Contract.Requires(c != null);
+        var newBoundVars = CreateBoundVarSubstitutions(c.Arguments);
+        var r = new MatchCaseStmt(c.tok, c.Id, newBoundVars, c.Body.ConvertAll(SubstStmt));
+        r.Ctor = c.Ctor;
+        // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
+        foreach (var bv in c.Arguments) {
+          substMap.Remove(bv);
+        }
+        return r;
+      }
+
+      protected CalcStmt.CalcOp SubstCalcOp(CalcStmt.CalcOp op) {
+        if (op is CalcStmt.BinaryCalcOp) {
+          return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp)op).Op);
+        } else if (op is CalcStmt.TernaryCalcOp) {
+          return new CalcStmt.TernaryCalcOp(Substitute(((CalcStmt.TernaryCalcOp)op).Index));
+        } else {
+          Contract.Assert(false);
+          throw new cce.UnreachableException();
         }
       }
 

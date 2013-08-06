@@ -2829,28 +2829,10 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			ComprehensionExpr(out e);
 			break;
 		}
-		case 80: {
-			Get();
-			x = t; 
-			Expression(out e0);
-			Expect(20);
-			Expression(out e1);
-			e = new AssertExpr(x, e0, e1); 
-			break;
-		}
-		case 69: {
-			Get();
-			x = t; 
-			Expression(out e0);
-			Expect(20);
-			Expression(out e1);
-			e = new AssumeExpr(x, e0, e1); 
-			break;
-		}
-		case 84: {
-			CalcStmt(out s);
-			Expression(out e1);
-			e = new CalcExpr(s.Tok, (CalcStmt)s, e1); 
+		case 69: case 80: case 84: {
+			StmtInExpr(out s);
+			Expression(out e);
+			e = new StmtExpr(s.Tok, s, e); 
 			break;
 		}
 		case 28: {
@@ -3255,6 +3237,17 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		
 	}
 
+	void StmtInExpr(out Statement s) {
+		s = dummyStmt; 
+		if (la.kind == 80) {
+			AssertStmt(out s);
+		} else if (la.kind == 69) {
+			AssumeStmt(out s);
+		} else if (la.kind == 84) {
+			CalcStmt(out s);
+		} else SynErr(218);
+	}
+
 	void LetExpr(out Expression e) {
 		IToken/*!*/ x;
 		e = dummyExpr;
@@ -3278,7 +3271,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 68) {
 			Get();
 			exact = false; 
-		} else SynErr(218);
+		} else SynErr(219);
 		Expression(out e);
 		letRHSs.Add(e); 
 		while (la.kind == 29) {
@@ -3335,7 +3328,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 117) {
 			Get();
-		} else SynErr(219);
+		} else SynErr(220);
 	}
 
 	void Exists() {
@@ -3343,7 +3336,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 119) {
 			Get();
-		} else SynErr(220);
+		} else SynErr(221);
 	}
 
 	void AttributeBody(ref Attributes attrs) {
@@ -3652,9 +3645,10 @@ public class Errors {
 			case 215: s = "invalid Nat"; break;
 			case 216: s = "invalid QSep"; break;
 			case 217: s = "invalid QuantifierGuts"; break;
-			case 218: s = "invalid LetExpr"; break;
-			case 219: s = "invalid Forall"; break;
-			case 220: s = "invalid Exists"; break;
+			case 218: s = "invalid StmtInExpr"; break;
+			case 219: s = "invalid LetExpr"; break;
+			case 220: s = "invalid Forall"; break;
+			case 221: s = "invalid Exists"; break;
 
 			default: s = "error " + n; break;
 		}

@@ -1085,18 +1085,9 @@ namespace Microsoft.Dafny
       } else if (expr is WildcardExpr) {
         return new WildcardExpr(expr.tok);
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        if (e is AssertExpr) {
-          return new AssertExpr(e.tok, CloneExpr(e.Guard), CloneExpr(e.Body));
-        } else {
-          Contract.Assert(e is AssumeExpr);
-          return new AssumeExpr(e.tok, CloneExpr(e.Guard), CloneExpr(e.Body));
-        }
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        return new CalcExpr(e.tok, (CalcStmt)((new Cloner()).CloneStmt(e.Guard)), CloneExpr(e.Body), (AssumeExpr)CloneExpr(e.AsAssumeExpr));
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        return new StmtExpr(e.tok, (new Cloner()).CloneStmt(e.S), CloneExpr(e.E));
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
@@ -5773,26 +5764,13 @@ namespace Microsoft.Dafny
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(new ObjectType());
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        ResolveExpression(e.Guard, twoState, codeContext);
-        Contract.Assert(e.Guard.Type != null);  // follows from postcondition of ResolveExpression
-        ResolveExpression(e.Body, twoState, codeContext);
-        Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.Guard.Type, Type.Bool)) {
-          Error(expr, "guard condition in {0} expression must be a boolean (instead got {1})", e.Kind, e.Guard.Type);
-        }
-        expr.Type = e.Body.Type;
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
         int prevErrorCount = ErrorCount;
-        ResolveStatement(e.Guard, twoState, codeContext);
-        ResolveExpression(e.Body, twoState, codeContext);
-        Contract.Assert(e.Body.Type != null);  // follows from postcondition of ResolveExpression
-        e.AsAssumeExpr = new AssumeExpr(e.tok, prevErrorCount == ErrorCount ? e.Guard.Result : new LiteralExpr(e.tok, true), e.Body);
-        ResolveExpression(e.AsAssumeExpr, twoState, codeContext);
-        expr.Type = e.Body.Type;
+        ResolveStatement(e.S, twoState, codeContext);
+        ResolveExpression(e.E, twoState, codeContext);
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        expr.Type = e.E.Type;
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
@@ -6076,16 +6054,10 @@ namespace Microsoft.Dafny
         Error(expr, "fresh expressions are allowed only in specification and ghost contexts");
         return;
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        // ignore the guard
-        CheckIsNonGhost(e.Body);
-        return;
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        // ignore the guard
-        CheckIsNonGhost(e.Body);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        // ignore the statement
+        CheckIsNonGhost(e.E);
         return;
 
       } else if (expr is BinaryExpr) {
@@ -7313,12 +7285,9 @@ namespace Microsoft.Dafny
         return (UsesSpecFeatures(e.Range)) || (UsesSpecFeatures(e.Term));
       } else if (expr is WildcardExpr) {
         return false;
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        return UsesSpecFeatures(e.Body);
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        return UsesSpecFeatures(e.Body);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        return UsesSpecFeatures(e.E);
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
         return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
@@ -7379,13 +7348,9 @@ namespace Microsoft.Dafny
         CheckCoMethodConclusions(ite.Thn, position, coConclusions);
         CheckCoMethodConclusions(ite.Els, position, coConclusions);
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
-        CheckCoMethodConclusions(e.Body, position, coConclusions);
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        CheckCoMethodConclusions(e.Body, position, coConclusions);
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        CheckCoMethodConclusions(e.E, position, coConclusions);
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;

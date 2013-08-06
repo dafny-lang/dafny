@@ -1409,25 +1409,13 @@ namespace Microsoft.Dafny {
       } else if (expr is WildcardExpr) {
         wr.Write("*");
 
-      } else if (expr is PredicateExpr) {
-        var e = (PredicateExpr)expr;
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        wr.Write("{0} ", e.Kind);
-        PrintExpression(e.Guard);
-        wr.Write("; ");
-        PrintExpression(e.Body);
-        if (parensNeeded) { wr.Write(")"); }
-
-      } else if (expr is CalcExpr) {
-        var e = (CalcExpr)expr;
-        bool parensNeeded = !isRightmost;
-        if (parensNeeded) { wr.Write("("); }
-        int ind = indent < 0 ? IndentAmount : indent;  // if the expression was to be printed on one line, instead print the calc statement part at indentation IndentAmount (not pretty, but something)
-        PrintStatement(e.Guard, ind);
-        wr.WriteLine();
-        Indent(ind);
-        PrintExpression(e.Body);
+        int ind = indent < 0 ? IndentAmount : indent;  // if the expression was to be printed on one line, instead print the .S part at indentation IndentAmount (not pretty, but something)
+        PrintStatement(e.S, ind);
+        PrintExpression(e.E);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is ITEExpr) {
