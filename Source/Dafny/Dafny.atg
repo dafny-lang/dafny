@@ -117,6 +117,12 @@ bool IsParenStar() {
   Token x = scanner.Peek();
   return la.kind == _openparen && x.kind == _star;
 }
+
+bool SemiFollowsCall(Expression e) {
+  return la.kind == _semi &&
+    (e is FunctionCallExpr ||
+     (e is IdentifierSequence && ((IdentifierSequence)e).OpenParen != null));
+}
 /*--------------------------------------------------------------------------*/
 CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
@@ -154,6 +160,7 @@ TOKENS
   arrayToken = 'a' 'r' 'r' 'a' 'y' [posDigit {digit}].
   string = quote {nonquote} quote.
   colon = ':'.
+  semi = ';'.
   lbrace = '{'.
   rbrace = '}'.
   openparen = '('.
@@ -890,19 +897,20 @@ FrameExpression<out FrameExpression/*!*/ fe>
      string fieldName = null;  IToken feTok = null;
      fe = null;
   .)
- (( Expression<out e>          (. feTok = e.tok; .)
-    [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
-    ]
-                               (. fe = new FrameExpression(feTok, e, fieldName); .)
-  ) |
-  (  "`" Ident<out id>         (. fieldName = id.val; .)
-                               (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
+  (( Expression<out e>          (. feTok = e.tok; .)
+     [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
+     ]
+                                (. fe = new FrameExpression(feTok, e, fieldName); .)
+   )
+  |
+   (  "`" Ident<out id>         (. fieldName = id.val; .)
+                                (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
   ))
   .
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   "{"                         (. bodyStart = t; .)
-  Expression<out e>
+  ExpressionX<out e>
   "}"                         (. bodyEnd = t; .)
   .
 /*------------------------------------------------------------------------*/
@@ -1164,7 +1172,7 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives.>
   .)
   "{"
   { "case"                      (. x = t; .)
-    Expression<out e>
+    ExpressionX<out e>
     "=>"
     (. body = new List<Statement>(); .)
     { Stmt<body> }
@@ -1264,7 +1272,7 @@ Guard<out Expression e>   /* null represents demonic-choice */
 = (. Expression/*!*/ ee;  e = null; .)
   ( "*"                             (. e = null; .)
   | IF(IsParenStar())  "(" "*" ")"  (. e = null; .)
-  | Expression<out ee>              (. e = ee; .)
+  | ExpressionX<out ee>             (. e = ee; .)
   )
   .
 MatchStmt<out Statement/*!*/ s>
@@ -1272,7 +1280,7 @@ MatchStmt<out Statement/*!*/ s>
      Token x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
      List<MatchCaseStmt/*!*/> cases = new List<MatchCaseStmt/*!*/>(); .)
   "match"                     (. x = t; .)
-  Expression<out e>
+  ExpressionX<out e>
   "{"
   { CaseStatement<out c>     (. cases.Add(c); .)
   }
@@ -1433,7 +1441,7 @@ CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
      x = null;
   .)
   ( "=="           (. x = t;  binOp = BinaryExpr.Opcode.Eq; .)
-    [ "#" "[" Expression<out k> "]" ]
+    [ "#" "[" ExpressionX<out k> "]" ]
   | "<"            (. x = t;  binOp = BinaryExpr.Opcode.Lt; .)
   | ">"            (. x = t;  binOp = BinaryExpr.Opcode.Gt; .)
   | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
@@ -1469,6 +1477,17 @@ Hint<out BlockStmt s>
   .)
   .
 /*------------------------------------------------------------------------*/
+ExpressionX<out Expression/*!*/ e>
+= (. Expression e0; .)
+  Expression<out e>
+  [ IF(SemiFollowsCall(e))
+    ";" ExpressionX<out e0>
+    (. e = new StmtExpr(e.tok,
+             new UpdateStmt(e.tok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
+             e0);
+    .)
+  ]
+  .
 Expression<out Expression/*!*/ e>
 =
   EquivExpression<out e>
@@ -1623,13 +1642,13 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
      k = null;
   .)
   ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
-    [ "#" "[" Expression<out k> "]" ]
+    [ "#" "[" ExpressionX<out k> "]" ]
   | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt; .)
   | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt; .)
   | "<="           (. x = t;  op = BinaryExpr.Opcode.Le; .)
   | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-    [ "#" "[" Expression<out k> "]" ]
+    [ "#" "[" ExpressionX<out k> "]" ]
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
   | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
   | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is gready 
@@ -1763,7 +1782,7 @@ MultiSetExpr<out Expression e>
       [ Expressions<elements> ]                (. e = new MultiSetDisplayExpr(x, elements);.)
     "}"
   | "("                                        (. x = t;  elements = new List<Expression/*!*/>(); .)
-      Expression<out e>                        (. e = new MultiSetFormingExpr(x, e); .)
+      ExpressionX<out e>                       (. e = new MultiSetFormingExpr(x, e); .)
     ")"
   | (. SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); .)
   )
@@ -1780,8 +1799,8 @@ MapDisplayExpr<IToken/*!*/ mapToken, out Expression e>
 MapLiteralExpressions<.out List<ExpressionPair> elements.>
 = (. Expression/*!*/ d, r;
      elements = new List<ExpressionPair/*!*/>(); .)
-  Expression<out d> ":=" Expression<out r>      (. elements.Add(new ExpressionPair(d,r)); .)
-  { "," Expression<out d> ":=" Expression<out r>(. elements.Add(new ExpressionPair(d,r)); .)
+  ExpressionX<out d> ":=" ExpressionX<out r>       (. elements.Add(new ExpressionPair(d,r)); .)
+  { "," ExpressionX<out d> ":=" ExpressionX<out r> (. elements.Add(new ExpressionPair(d,r)); .)
   }
   .
 MapComprehensionExpr<IToken/*!*/ mapToken, out Expression e>
@@ -1902,7 +1921,7 @@ DottedIdentifiersAndFunction<out Expression e>
   }
   [                                    (. args = new List<Expression>(); .)
     [ "#"                              (. id.val = id.val + "#";  Expression k; .)
-      "[" Expression<out k> "]"        (. args.Add(k); .)
+      "[" ExpressionX<out k> "]"       (. args.Add(k); .)
     ]
     "("                                (. openParen = t; .)
       [ Expressions<args> ]
@@ -1920,20 +1939,20 @@ Suffix<ref Expression/*!*/ e>
     IdentOrDigits<out id>
     [                                          (. args = new List<Expression/*!*/>();  func = true; .)
       [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
-        "[" Expression<out k> "]"              (. args.Add(k); .)
+        "[" ExpressionX<out k> "]"             (. args.Add(k); .)
       ]
       "("                                      (. IToken openParen = t; .)
         [ Expressions<args> ]
       ")"                                      (. e = new FunctionCallExpr(id, id.val, e, openParen, args); .)
     ]                                          (. if (!func) { e = new ExprDotName(id, e, id.val); } .)
   | "["                                        (. x = t; .)
-      ( Expression<out ee>                     (. e0 = ee; .)
+      ( ExpressionX<out ee>                    (. e0 = ee; .)
         ( ".."                                 (. anyDots = true; .)
-          [ Expression<out ee>                 (. e1 = ee; .)
+          [ ExpressionX<out ee>                (. e1 = ee; .)
           ]
         | ":="
-          Expression<out ee>                   (. e1 = ee; .)
-        | { "," Expression<out ee>             (. if (multipleIndices == null) {
+          ExpressionX<out ee>                  (. e1 = ee; .)
+        | { "," ExpressionX<out ee>            (. if (multipleIndices == null) {
                                                     multipleIndices = new List<Expression>();
                                                     multipleIndices.Add(e0);
                                                   }
@@ -1942,7 +1961,7 @@ Suffix<ref Expression/*!*/ e>
           }
         )
       | ".."                                   (. anyDots = true; .)
-        [ Expression<out ee>                   (. e1 = ee; .)
+        [ ExpressionX<out ee>                  (. e1 = ee; .)
         ]
       )
       (. if (multipleIndices != null) {
@@ -2038,8 +2057,8 @@ ComprehensionExpr<out Expression/*!*/ q>
   .
 Expressions<.List<Expression/*!*/>/*!*/ args.>
 = (. Contract.Requires(cce.NonNullElements(args)); Expression/*!*/ e; .)
-  Expression<out e>                            (. args.Add(e); .)
-  { "," Expression<out e>                      (. args.Add(e); .)
+  ExpressionX<out e>                           (. args.Add(e); .)
+  { "," ExpressionX<out e>                     (. args.Add(e); .)
   }
   .
 /*------------------------------------------------------------------------*/
@@ -2062,7 +2081,7 @@ AttributeBody<ref Attributes attrs>
 AttributeArg<out Attributes.Argument/*!*/ arg>
 = (. Contract.Ensures(Contract.ValueAtReturn(out arg) != null); Expression/*!*/ e;  arg = dummyAttrArg; .)
   ( string                             (. arg = new Attributes.Argument(t, t.val.Substring(1, t.val.Length-2)); .)
-  | Expression<out e>                  (. arg = new Attributes.Argument(t, e); .)
+  | ExpressionX<out e>                 (. arg = new Attributes.Argument(t, e); .)
   )
   .
 /*------------------------------------------------------------------------*/

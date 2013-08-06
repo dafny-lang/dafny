@@ -5767,7 +5767,16 @@ namespace Microsoft.Dafny
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = ErrorCount;
-        ResolveStatement(e.S, twoState, codeContext);
+        ResolveStatement(e.S, true, codeContext);
+        if (ErrorCount == prevErrorCount) {
+          var r = e.S as UpdateStmt;
+          if (r != null && r.ResolvedStatements.Count == 1) {
+            var call = r.ResolvedStatements[0] as CallStmt;
+            if (call.Method.Mod.Expressions.Count != 0) {
+              Error(call, "calls to methods with side-effects are not allowed inside a statement expression");
+            }
+          }
+        }
         ResolveExpression(e.E, twoState, codeContext);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         expr.Type = e.E.Type;

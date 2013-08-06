@@ -747,4 +747,19 @@ module StatementsInExpressions {
     }
     5;
   }
+
+  ghost method MyLemma()
+  ghost method MyGhostMethod()
+    modifies this;
+  method OrdinaryMethod()
+  ghost method OutParamMethod() returns (y: int)
+
+  function UseLemma(): int
+  {
+    MyLemma();
+    MyGhostMethod();   // error: modifies state
+    OrdinaryMethod();  // error: not a ghost
+    OutParamMethod();  // error: has out-parameters
+    10
+  }
 }

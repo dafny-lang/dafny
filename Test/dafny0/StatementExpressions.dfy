@@ -56,3 +56,32 @@ ghost method Q(n: nat)
     assert y == 102;  // error: assertion does not hold
   }
 }
+
+// ---------------------
+
+function Fact(n: nat): nat
+{
+  if n == 0 then 1 else n * Fact(n-1)
+}
+
+lemma L(n: nat)
+  ensures 1 <= Fact(n);
+{
+}
+
+function F_Fails(n: nat): int
+{
+  50 / Fact(n)  // error: possible division by zero
+}
+
+function F_Succeeds(n: nat): int
+{
+  L(n);
+  50 / Fact(n)
+}
+
+function F_PreconditionViolation(n: int): int
+{
+  L(n);  // error: argument might be negative
+  50 / Fact(n)
+}
