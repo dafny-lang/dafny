@@ -80,9 +80,6 @@
     <Reference Include="Houdini">
       <HintPath>..\..\..\boogie\Binaries\Houdini.dll</HintPath>
     </Reference>
-    <Reference Include="Graph">
-      <HintPath>..\..\..\boogie\Binaries\Graph.dll</HintPath>
-    </Reference>
     <Reference Include="Model">
       <HintPath>..\..\..\boogie\Binaries\Model.dll</HintPath>
     </Reference>

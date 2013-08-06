@@ -9,20 +9,22 @@ if not exist %DEST_DIR% mkdir %DEST_DIR%
 for %%f in (
   AbsInt.dll                          AbsInt.pdb
   Basetypes.dll                       Basetypes.pdb
-  BVD.exe                             BVD.pdb
   CodeContractsExtender.dll           CodeContractsExtender.pdb
   Core.dll                            Core.pdb
   Dafny.exe                           Dafny.pdb
   DafnyPipeline.dll                   DafnyPipeline.pdb
   DafnyPrelude.bpl                    DafnyRuntime.cs
+  Doomed.dll                          Doomed.pdb
+  ExecutionEngine.dll                 ExecutionEngine.pdb
   Graph.dll                           Graph.pdb
+  Houdini.dll                         Houdini.dll
   Model.dll                           Model.pdb
   ParserHelper.dll                    ParserHelper.pdb
   Provers.SMTLib.dll                  Provers.SMTLib.pdb
   UnivBackPred2.smt2
   VCExpr.dll                          VCExpr.pdb
   VCGeneration.dll                    VCGeneration.pdb
-  ..\Source\DafnyExtension\bin\Debug\DafnyLanguageService.vsix
+  DafnyLanguageService.vsix
 ) do (
   copy %%f %DEST_DIR%
 )
