@@ -15,7 +15,7 @@ syntax keyword dafnyStatement assume assert return yield new print break label w
 syntax keyword dafnyKeyword var ghost returns yields null static this refines
 syntax keyword dafnyType bool nat int seq set multiset object array array2 array3 map
 syntax keyword dafnyLogic requires ensures modifies reads decreases invariant 
-syntax keyword dafnyOperator forall exists old fresh choose
+syntax keyword dafnyOperator forall exists old fresh
 syntax keyword dafnyBoolean true false
   
 syntax region dafnyString start=/"/ skip=/\\"/ end=/"/

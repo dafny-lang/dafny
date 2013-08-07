@@ -38,7 +38,7 @@
         "invariant" "decreases"
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
-        "assert" "assume" "break" "choose" "then" "else" "if" "label" "return" "yield"
+        "assert" "assume" "break" "then" "else" "if" "label" "return" "yield"
         "while" "print" "where"
         "old" "forall" "exists" "new" "calc" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)

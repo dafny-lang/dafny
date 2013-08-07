@@ -261,7 +261,6 @@ namespace DafnyLanguage
                 case "break":
                 case "calc":
                 case "case":
-                case "choose":
                 case "class":
                 case "codatatype":
                 case "colemma":
