@@ -17,7 +17,7 @@ for %%f in (
   Doomed.dll                          Doomed.pdb
   ExecutionEngine.dll                 ExecutionEngine.pdb
   Graph.dll                           Graph.pdb
-  Houdini.dll                         Houdini.dll
+  Houdini.dll                         Houdini.pdb
   Model.dll                           Model.pdb
   ParserHelper.dll                    ParserHelper.pdb
   Provers.SMTLib.dll                  Provers.SMTLib.pdb
