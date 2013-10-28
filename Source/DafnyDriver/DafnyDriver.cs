@@ -163,7 +163,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
-      LinearTypechecker ltc;
+      LinearTypeChecker ltc;
       PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc);
       switch (oc) {
         case PipelineOutcome.Done:
