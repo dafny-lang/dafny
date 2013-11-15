@@ -48,3 +48,4 @@ for %%f in (SmallTests.dfy LetExpr.dfy) do (
 )
 
 %DAFNY_EXE% %* Compilation.dfy
+%DAFNY_EXE% %* CompilationErrors.dfy

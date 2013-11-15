@@ -686,10 +686,10 @@ namespace Microsoft.Dafny {
 
         } else if (member is Function) {
           Function f = (Function)member;
-          if (f.IsGhost) {
-            // nothing to compile
-          } else if (f.Body == null) {
+          if (f.Body == null) {
             Error("Function {0} has no body", f.FullName);
+          } else if (f.IsGhost) {
+            // nothing to compile
           } else {
             Indent(indent);
             wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
@@ -700,12 +700,14 @@ namespace Microsoft.Dafny {
             WriteFormals("", f.Formals);
             wr.WriteLine(") {");
             CompileReturnBody(f.Body, indent + IndentAmount);
-            Indent(indent);  wr.WriteLine("}");
+            Indent(indent); wr.WriteLine("}");
           }
 
         } else if (member is Method) {
           Method m = (Method)member;
-          if (!m.IsGhost) {
+          if (m.IsGhost && m.Body == null) {
+            Error("Method {0} has no body", m.FullName);
+          } else if (!m.IsGhost) {
             Indent(indent);
             wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
             if (m.TypeArgs.Count != 0) {

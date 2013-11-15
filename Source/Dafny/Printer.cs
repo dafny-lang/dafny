@@ -1454,6 +1454,8 @@ namespace Microsoft.Dafny {
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
         var e = (BoxingCastExpr)expr;
         PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, indent);
+      } else if (expr is Translator.BoogieWrapper) {
+        wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
