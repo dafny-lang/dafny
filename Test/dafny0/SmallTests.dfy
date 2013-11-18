@@ -190,7 +190,7 @@ class AllocatedTests {
   {
     var n := new Node;
     var t := S + {n};
-    
+
     if (*) {
       assert !fresh(n);  // error: n was not allocated in the initial state
     } else {
@@ -496,6 +496,16 @@ class AttributeTests {
       return new AttributeTests.C() {:intAttr 0};
     }
   }
+}
+
+// ----------------------- test attributes on variable declarations --------
+
+static method TestAttributesVarDecls()
+{
+  var {:foo} foo;
+  var {:bar} bar := 0;
+  var {:foo} {:bar} foobar := {};
+  var {:baz} baz, {:foobaz} foobaz := true, false;
 }
 
 // ----------------------- Pretty printing of !(!expr) --------

@@ -1090,13 +1090,16 @@ VarDeclStatement<.out Statement/*!*/ s.>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;
+     Attributes attrs = null;
   .)
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
   "var"                                     (. if (!isGhost) { x = t; } .)
-  LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); .)
+  { Attribute<ref attrs> }
+  LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
   { ","
-    LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); .)
+    { Attribute<ref attrs> }
+    LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
   }
   [ ":="                           (. assignTok = t;
                                       lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name);
