@@ -1698,6 +1698,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
 		IToken suchThatAssume = null;
 		Expression suchThat = null;
+		Attributes attrs = null;
 		
 		if (la.kind == 23) {
 			Get();
@@ -1705,12 +1706,18 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		Expect(28);
 		if (!isGhost) { x = t; } 
+		while (la.kind == 8) {
+			Attribute(ref attrs);
+		}
 		LocalIdentTypeOptional(out d, isGhost);
-		lhss.Add(d); 
+		lhss.Add(d); d.Attributes = attrs; attrs = null; 
 		while (la.kind == 29) {
 			Get();
+			while (la.kind == 8) {
+				Attribute(ref attrs);
+			}
 			LocalIdentTypeOptional(out d, isGhost);
-			lhss.Add(d); 
+			lhss.Add(d); d.Attributes = attrs; attrs = null; 
 		}
 		if (la.kind == 66 || la.kind == 68) {
 			if (la.kind == 66) {

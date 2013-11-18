@@ -578,7 +578,12 @@ namespace Microsoft.Dafny {
         if (s.IsGhost) {
           wr.Write("ghost ");
         }
-        wr.Write("var {0}", s.DisplayName);
+        wr.Write("var");
+        if (s.HasAttributes())
+        {
+          PrintAttributes(s.Attributes);
+        }
+        wr.Write(" {0}", s.DisplayName);
         PrintType(": ", s.OptionalType);
         wr.Write(";");
 
@@ -732,12 +737,17 @@ namespace Microsoft.Dafny {
         if (s.Lhss[0].IsGhost) {
           wr.Write("ghost ");
         }
-        wr.Write("var ");
+        wr.Write("var");
         string sep = "";
         foreach (var lhs in s.Lhss) {
-          wr.Write("{0}{1}", sep, lhs.DisplayName);
+          wr.Write(sep);
+          if (lhs.HasAttributes())
+          {
+            PrintAttributes(lhs.Attributes);
+          }
+          wr.Write(" {0}", lhs.DisplayName);
           PrintType(": ", lhs.OptionalType);
-          sep = ", ";
+          sep = ",";
         }
         if (s.Update != null) {
           PrintUpdateRHS(s.Update);

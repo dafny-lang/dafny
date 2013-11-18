@@ -5299,6 +5299,7 @@ namespace Microsoft.Dafny {
         Bpl.Type varType = TrType(s.Type);
         Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.AssignUniqueName(currentDeclaration), varType), s.Type, etran);
         Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.AssignUniqueName(currentDeclaration), varType, wh));
+        var.Attributes = etran.TrAttributes(s.Attributes, null);;
         locals.Add(var);
 
       } else if (stmt is CallStmt) {
