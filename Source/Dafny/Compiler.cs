@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           if (d is ArbitraryTypeDecl) {
             var at = (ArbitraryTypeDecl)d;
-            Error("Arbitrary type ('{0}') cannot be compiled", at.CompileName);
+            Error("Arbitrary type ('{0}') cannot be compiled", at.FullName);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             Indent(indent);

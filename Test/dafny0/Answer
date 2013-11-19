@@ -2403,7 +2403,7 @@ Dafny program verifier finished with 30 verified, 0 errors
 Compiled assembly into Compilation.exe
 
 Dafny program verifier finished with 9 verified, 0 errors
-Compilation error: Arbitrary type ('MyType') cannot be compiled
+Compilation error: Arbitrary type ('_module.MyType') cannot be compiled
 Compilation error: Iterator _module.Iter has no body
 Compilation error: Method _module._default.M has no body
 Compilation error: Method _module._default.P has no body
