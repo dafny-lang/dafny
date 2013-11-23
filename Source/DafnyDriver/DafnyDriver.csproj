@@ -127,6 +127,9 @@
     <Reference Include="AbsInt">
       <HintPath>..\..\..\boogie\Binaries\AbsInt.dll</HintPath>
     </Reference>
+    <Reference Include="Concurrency">
+      <HintPath>..\..\..\boogie\Binaries\Concurrency.dll</HintPath>
+    </Reference>
     <Reference Include="Core">
       <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
     </Reference>

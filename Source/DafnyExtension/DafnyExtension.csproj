@@ -59,6 +59,9 @@
     <Reference Include="CodeContractsExtender">
       <HintPath>..\..\Binaries\CodeContractsExtender.dll</HintPath>
     </Reference>
+    <Reference Include="Concurrency">
+      <HintPath>..\..\Binaries\Concurrency.dll</HintPath>
+    </Reference>
     <Reference Include="Core">
       <HintPath>..\..\Binaries\Core.dll</HintPath>
     </Reference>

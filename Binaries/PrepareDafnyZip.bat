@@ -10,6 +10,7 @@ for %%f in (
   AbsInt.dll                          AbsInt.pdb
   Basetypes.dll                       Basetypes.pdb
   CodeContractsExtender.dll           CodeContractsExtender.pdb
+  Concurrency.dll                     Concurrency.pdb
   Core.dll                            Core.pdb
   Dafny.exe                           Dafny.pdb
   DafnyPipeline.dll                   DafnyPipeline.pdb
