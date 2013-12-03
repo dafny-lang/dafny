@@ -729,9 +729,7 @@ Execution trace:
     (0,0): anon14_Then
     (0,0): anon15_Then
     Basics.dfy(66,72): anon16_Else
-    (0,0): anon8
     Basics.dfy(66,82): anon17_Else
-    (0,0): anon10
     Basics.dfy(66,95): anon18_Else
     (0,0): anon12
 Basics.dfy(110,16): Error: assertion violation
@@ -862,7 +860,6 @@ Execution trace:
     ControlStructures.dfy(221,7): anon76_Else
     (0,0): anon78_Then
     (0,0): anon38
-    (0,0): after_9
     (0,0): anon83_Then
     (0,0): anon52
 ControlStructures.dfy(235,30): Error: assertion violation
@@ -877,7 +874,6 @@ Execution trace:
     ControlStructures.dfy(198,5): anon63_Else
     ControlStructures.dfy(198,5): anon64_Else
     (0,0): anon65_Then
-    (0,0): after_5
     (0,0): anon84_Then
     (0,0): anon85_Then
     (0,0): anon56
@@ -905,7 +901,6 @@ Execution trace:
     ControlStructures.dfy(221,7): anon76_Else
     (0,0): anon79_Then
     (0,0): anon82_Then
-    (0,0): after_8
     (0,0): anon86_Then
     (0,0): anon58
 
@@ -2050,7 +2045,6 @@ Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
     (0,0): anon24_Else
-    (0,0): anon11
     (0,0): anon26_Else
     (0,0): anon28_Then
     (0,0): anon29_Then
@@ -2105,7 +2099,6 @@ SmallTests.dfy(279,11): Related location: This is the postcondition that might n
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
-    (0,0): anon11
     (0,0): anon23_Then
     (0,0): anon24_Then
     (0,0): anon15
@@ -2151,7 +2144,6 @@ Execution trace:
     SmallTests.dfy(559,18): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon30_Then
     (0,0): anon9
     (0,0): anon31_Else
@@ -2236,7 +2228,6 @@ Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
     (0,0): anon24_Else
-    (0,0): anon11
     (0,0): anon26_Else
     (0,0): anon28_Then
     (0,0): anon29_Then
@@ -2291,7 +2282,6 @@ out.tmp.dfy(445,11): Related location: This is the postcondition that might not 
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
-    (0,0): anon11
     (0,0): anon23_Then
     (0,0): anon24_Then
     (0,0): anon15
@@ -2337,7 +2327,6 @@ Execution trace:
     out.tmp.dfy(553,17): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon30_Then
     (0,0): anon9
     (0,0): anon31_Else
