@@ -2721,7 +2721,7 @@ namespace Microsoft.Dafny
         var prevErrorCount = ErrorCount;
         List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
         ResolveExpression(f.Body, false, f, matchVarContext);
-        if (!f.IsGhost) {
+        if (!f.IsGhost && prevErrorCount == ErrorCount) {
           CheckIsNonGhost(f.Body);
         }
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
