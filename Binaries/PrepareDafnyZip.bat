@@ -22,7 +22,6 @@ for %%f in (
   Model.dll                           Model.pdb
   ParserHelper.dll                    ParserHelper.pdb
   Provers.SMTLib.dll                  Provers.SMTLib.pdb
-  UnivBackPred2.smt2
   VCExpr.dll                          VCExpr.pdb
   VCGeneration.dll                    VCGeneration.pdb
   DafnyLanguageService.vsix

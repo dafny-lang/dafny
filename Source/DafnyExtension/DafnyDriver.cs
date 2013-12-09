@@ -251,7 +251,10 @@ namespace DafnyLanguage
 
       PipelineOutcome oc = BoogieResolveAndTypecheck(program);
       if (oc == PipelineOutcome.ResolvedAndTypeChecked) {
-        ExecutionEngine.EliminateDeadVariablesAndInline(program);        
+        ExecutionEngine.EliminateDeadVariables(program);
+        ExecutionEngine.CollectModSets(program);
+        ExecutionEngine.CoalesceBlocks(program);
+        ExecutionEngine.Inline(program);  
         return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), er, requestId);
       }
       return oc;
