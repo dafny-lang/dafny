@@ -4651,6 +4651,13 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
       List<Variable> inParams = new List<Variable>();
+      Bpl.Formal layer;
+      if (f.IsRecursive) {
+        layer = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true);
+        inParams.Add(layer);
+      } else {
+        layer = null;
+      }
       if (!f.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
@@ -4694,9 +4701,16 @@ namespace Microsoft.Dafny {
       Bpl.FunctionCall funcOriginal = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
       Bpl.FunctionCall funcRefining = new Bpl.FunctionCall(new Bpl.IdentifierExpr(functionCheck.Refining.tok, functionCheck.Refining.FullSanitizedName, TrType(f.ResultType)));
       List<Bpl.Expr> args = new List<Bpl.Expr>();
+      List<Bpl.Expr> argsCanCall = new List<Bpl.Expr>();
+      if (layer != null) {
+        args.Add(new Bpl.IdentifierExpr(f.tok, implInParams[0]));
+        // don't add layer parameter to canCall's arguments
+      }
       args.Add(etran.HeapExpr);
-      foreach (Variable p in implInParams) {
-        args.Add(new Bpl.IdentifierExpr(f.tok, p));
+      argsCanCall.Add(etran.HeapExpr);
+      for (int i = layer == null ? 0 : 1; i < implInParams.Count; i++) {
+        args.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
+        argsCanCall.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
       }
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcOriginal, args);
       Bpl.Expr funcAppl2 = new Bpl.NAryExpr(f.tok, funcRefining, args);
@@ -4710,7 +4724,7 @@ namespace Microsoft.Dafny {
       }
       // add canCall
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(Token.NoToken, function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr canCall = new Bpl.NAryExpr(Token.NoToken, new Bpl.FunctionCall(canCallFuncID), args);
+      Bpl.Expr canCall = new Bpl.NAryExpr(Token.NoToken, new Bpl.FunctionCall(canCallFuncID), argsCanCall);
       builder.Add(new AssumeCmd(function.tok, canCall));
       
       // check that the preconditions for the call hold
