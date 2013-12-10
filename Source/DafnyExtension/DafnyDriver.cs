@@ -97,8 +97,10 @@ namespace DafnyLanguage
     bool ParseAndTypeCheck() {
       Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, module, builtIns, new VSErrors(this));
-      if (errorCount != 0)
+      Dafny.Errors parseErrors = new VSErrors(this);
+      int errorCount = Dafny.Parser.Parse(_snapshot.GetText(), _filename, module, builtIns, parseErrors);
+      string errString = Dafny.Main.ParseIncludes(module, builtIns, parseErrors);
+      if (errorCount != 0 || errString != null)
         return false;
       Dafny.Program program = new Dafny.Program(_filename, module, builtIns);
 
@@ -112,9 +114,9 @@ namespace DafnyLanguage
       return true;  // success
     }
 
-    void RecordError(int line, int col, ErrorCategory cat, string msg)
+    void RecordError(string filename, int line, int col, ErrorCategory cat, string msg)
     {
-      _errors.Add(new DafnyError(line, col, cat, msg, _snapshot));
+      _errors.Add(new DafnyError(filename, line, col, cat, msg, _snapshot, null, System.IO.Path.GetFullPath(this._filename) == filename));
     }
 
     class VSErrors : Dafny.Errors
@@ -124,15 +126,15 @@ namespace DafnyLanguage
         this.dd = dd;
       }
       public override void SynErr(string filename, int line, int col, string msg) {
-        dd.RecordError(line - 1, col - 1, ErrorCategory.ParseError, msg);
+        dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ParseError, msg);
         count++;
       }
       public override void SemErr(string filename, int line, int col, string msg) {
-        dd.RecordError(line - 1, col - 1, ErrorCategory.ResolveError, msg);
+        dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ResolveError, msg);
         count++;
       }
       public override void Warning(string filename, int line, int col, string msg) {
-        dd.RecordError(line - 1, col - 1, ErrorCategory.ParseWarning, msg);
+        dd.RecordError(filename, line - 1, col - 1, ErrorCategory.ParseWarning, msg);
       }
     }
 
@@ -159,7 +161,7 @@ namespace DafnyLanguage
 
       public override void Error(Bpl.IToken tok, string msg, params object[] args) {
         string s = string.Format(msg, args);
-        dd.RecordError(tok.line - 1, tok.col - 1, ErrorCategory.ResolveError, s);
+        dd.RecordError(tok.filename, tok.line - 1, tok.col - 1, ErrorCategory.ResolveError, s);
         ErrorCount++;
       }
     }

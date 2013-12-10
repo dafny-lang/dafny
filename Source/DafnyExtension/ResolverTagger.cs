@@ -271,7 +271,7 @@ namespace DafnyLanguage
       var currentSnapshot = spans[0].Snapshot;
       foreach (var err in AllErrors)
       {
-        if (err.Category != ErrorCategory.ProcessError)
+        if (err.Category != ErrorCategory.ProcessError && err.Filename == System.IO.Path.GetFullPath(_document.FilePath))
         {
           yield return new TagSpan<IDafnyResolverTag>(err.Span.GetSpan(currentSnapshot), new DafnyErrorResolverTag(err));
 
@@ -316,7 +316,8 @@ namespace DafnyLanguage
       if (snapshot == Snapshot)
         return;  // we've already done this snapshot
 
-      var driver = new DafnyDriver(snapshot, _document != null ? _document.FilePath : "<program>");
+      string filename = _document != null ? _document.FilePath : "<program>";
+      var driver = new DafnyDriver(snapshot, filename);
       List<DafnyError> newErrors;
       Dafny.Program program;
       try
@@ -326,7 +327,7 @@ namespace DafnyLanguage
       }
       catch (Exception e)
       {
-        newErrors = new List<DafnyError> { new DafnyError(0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message, snapshot) };
+        newErrors = new List<DafnyError> { new DafnyError(filename, 0, 0, ErrorCategory.InternalError, "internal Dafny error: " + e.Message, snapshot) };
         program = null;
       }
 
@@ -359,11 +360,19 @@ namespace DafnyLanguage
           _errorProvider.SuspendRefresh();  // reduce flickering
           _errorProvider.Tasks.Clear();
           foreach (var err in AllErrors)
-          {
-            var span = err.Span.GetSpan(snapshot);
-            var lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
-            var line = snapshot.GetLineFromPosition(span.Start.Position);
-            var columnNum = span.Start - line.Start;
+          { 
+            var lineNum = 0;
+            var columnNum = 0;
+            if (err.Span != null) {
+              var span = err.Span.GetSpan(snapshot);
+              lineNum = snapshot.GetLineNumberFromPosition(span.Start.Position);
+              var line = snapshot.GetLineFromPosition(span.Start.Position);
+              columnNum = span.Start - line.Start;
+            } else {
+              lineNum = err.Line;
+              columnNum = err.Column;
+            }
+            
             ErrorTask task = new ErrorTask()
             {
               Category = TaskCategory.BuildCompile,
@@ -372,7 +381,10 @@ namespace DafnyLanguage
               Line = lineNum,
               Column = columnNum
             };
-            if (_document != null)
+            if (err.Filename != null) {
+              task.Document = err.Filename;
+            } 
+            else if (_document != null)
             {
               task.Document = _document.FilePath;
             }
@@ -470,6 +482,7 @@ namespace DafnyLanguage
 
   public class DafnyError
   {
+    public readonly string Filename;
     public readonly int Line;  // 0 based
     public readonly int Column;  // 0 based
     public readonly ErrorCategory Category;
@@ -562,17 +575,22 @@ namespace DafnyLanguage
     /// <summary>
     /// "line" and "col" are expected to be 0-based
     /// </summary>
-    public DafnyError(int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot, string model = null)
+    public DafnyError(string filename, int line, int col, ErrorCategory cat, string msg, ITextSnapshot snapshot, string model = null, bool inCurrentDocument=true)
     {
+      Filename = filename;
       Line = Math.Max(0, line);
       Column = Math.Max(0, col);
       Category = cat;
       Message = msg;
       Snapshot = snapshot;
-      var sLine = snapshot.GetLineFromLineNumber(line);
-      Contract.Assert(Column <= sLine.Length);
-      var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
-      Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
+      if (inCurrentDocument) {
+        var sLine = snapshot.GetLineFromLineNumber(line);
+        Contract.Assert(Column <= sLine.Length);
+        var sLength = Math.Max(0, Math.Min(sLine.Length - Column, 5));
+        Span = snapshot.CreateTrackingSpan(sLine.Start + Column, sLength, SpanTrackingMode.EdgeExclusive, TrackingFidelityMode.Forward);
+      } else {
+        Span = null;
+      }
       ModelText = model;
       _errorSelection = _errorSelectionSingleton;
       SelectedStateId = -1;

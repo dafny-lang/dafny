@@ -282,6 +282,7 @@ namespace DafnyLanguage
                 case "if":
                 case "import":
                 case "in":
+                case "include":
                 case "int":
                 case "invariant":
                 case "iterator":
