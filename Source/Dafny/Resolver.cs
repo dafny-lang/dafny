@@ -186,9 +186,11 @@ namespace Microsoft.Dafny
         h++;
       }
 
+      var rewriters = new List<IRewriter>();
       var refinementTransformer = new RefinementTransformer(this, prog);
+      rewriters.Add(refinementTransformer);
+      rewriters.Add(new AutoContractsRewriter());
 
-      IRewriter rewriter = new AutoContractsRewriter();
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
@@ -204,32 +206,21 @@ namespace Microsoft.Dafny
           var m = literalDecl.ModuleDef;
 
           var errorCount = ErrorCount;
-          ModuleSignature refinedSig = null;
-          if (m.RefinementBaseRoot != null) {
-            if (ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out refinedSig)) {
-              if (refinedSig.ModuleDef != null) {
-                m.RefinementBase = refinedSig.ModuleDef;
-                refinementTransformer.PreResolve(m);
-              } else {
-                Error(m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or simple reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));
-              }
-            } else {
-              Error(m.RefinementBaseName[0], "module ({0}) named as refinement base does not exist", Util.Comma(".", m.RefinementBaseName, x => x.val));
-            }
+          foreach (var r in rewriters) {
+            r.PreResolve(m);
           }
-          if (errorCount == ErrorCount) {
-            rewriter.PreResolve(m);
-          }
+
           literalDecl.Signature = RegisterTopLevelDecls(m, true);
-          literalDecl.Signature.Refines = refinedSig;
+          literalDecl.Signature.Refines = refinementTransformer.RefinedSig;
           var sig = literalDecl.Signature;
           // set up environment
           var preResolveErrorCount = ErrorCount;
           ResolveModuleDefinition(m, sig);
-          if (ErrorCount == preResolveErrorCount) {
-            refinementTransformer.PostResolve(m);
-            // give rewriter a chance to do processing
-            rewriter.PostResolve(m);
+          foreach (var r in rewriters) {
+            if (ErrorCount != preResolveErrorCount) {
+              break;
+            }
+            r.PostResolve(m);
           }
           if (ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
@@ -237,7 +228,7 @@ namespace Microsoft.Dafny
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             var nw = new Cloner().CloneModuleDefinition(m, m.CompileName + "_Compile");
             var compileSig = RegisterTopLevelDecls(nw, true);
-            compileSig.Refines = refinedSig;
+            compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
@@ -247,7 +238,7 @@ namespace Microsoft.Dafny
           var alias = (AliasModuleDecl)decl;
           // resolve the path
           ModuleSignature p;
-          if (ResolvePath(alias.Root, alias.Path, out p)) {
+          if (ResolvePath(alias.Root, alias.Path, out p, this)) {
             alias.Signature = p;
           } else {
             alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
@@ -255,12 +246,12 @@ namespace Microsoft.Dafny
         } else if (decl is ModuleFacadeDecl) {
           var abs = (ModuleFacadeDecl)decl;
           ModuleSignature p;
-          if (ResolvePath(abs.Root, abs.Path, out p)) {
+          if (ResolvePath(abs.Root, abs.Path, out p, this)) {
             abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.Modules);
             abs.OriginalSignature = p;
             ModuleSignature compileSig;
             if (abs.CompilePath != null) {
-              if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig)) {
+              if (ResolvePath(abs.CompileRoot, abs.CompilePath, out compileSig, this)) {
                 if (refinementTransformer.CheckIsRefinement(compileSig, p)) {
                   abs.Signature.CompileSignature = compileSig;
                 } else {
@@ -436,7 +427,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private string ModuleNotFoundErrorMessage(int i, List<IToken> path) {
+    private static string ModuleNotFoundErrorMessage(int i, List<IToken> path) {
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
       return "module " + path[i].val + " does not exist" +
@@ -1112,7 +1103,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    private bool ResolvePath(ModuleDecl root, List<IToken> Path, out ModuleSignature p) {
+    public static bool ResolvePath(ModuleDecl root, List<IToken> Path, out ModuleSignature p, ResolutionErrorReporter reporter) {
+      Contract.Requires(reporter != null);
       p = root.Signature;
       int i = 1;
       while (i < Path.Count) {
@@ -1121,7 +1113,7 @@ namespace Microsoft.Dafny
           p = pp;
           i++;
         } else {
-          Error(Path[i], ModuleNotFoundErrorMessage(i, Path));
+          reporter.Error(Path[i], ModuleNotFoundErrorMessage(i, Path));
           break;
         }
       }
