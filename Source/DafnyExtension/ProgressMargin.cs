@@ -325,22 +325,22 @@ namespace DafnyLanguage
             if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
             {
               var s = RequestIdToSnapshot[errorInfo.RequestId];
-              errorListHolder.AddError(new DafnyError(errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, errorInfo.Model.ToString()), errorInfo.ImplementationName, requestId);
+              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, requestId);
               foreach (var aux in errorInfo.Aux)
               {
-                errorListHolder.AddError(new DafnyError(aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s), errorInfo.ImplementationName, requestId);
+                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, requestId);
               }
             }
           }
         });
         if (!success)
         {
-          errorListHolder.AddError(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error", snapshot), "$$program$$", requestId);
+          errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error", snapshot), "$$program$$", requestId);
         }
       }
       catch (Exception e)
       {
-        errorListHolder.AddError(new DafnyError(0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot), "$$program$$", requestId);
+        errorListHolder.AddError(new DafnyError("$$program$$", 0, 0, ErrorCategory.InternalError, "Verification process error: " + e.Message, snapshot), "$$program$$", requestId);
       }
 
       lock (this) {

@@ -28,7 +28,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy Definedness.dfy
             RefinementModificationChecking.dfy TailCalls.dfy
             Calculations.dfy IteratorResolution.dfy Iterators.dfy
             RankPos.dfy RankNeg.dfy
-            Computations.dfy ComputationsNeg.dfy) do (
+            Computations.dfy ComputationsNeg.dfy
+            Include.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f

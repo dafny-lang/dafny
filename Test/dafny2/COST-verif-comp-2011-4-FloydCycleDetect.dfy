@@ -8,7 +8,7 @@ Given: A Java linked data structure with the signature:
 
 public class Node {
     Node next;
-    
+
     public boolean cyclic() {
         //...
     }
@@ -59,7 +59,7 @@ links) and false when it is not.
 // details.  Well, one may want to inspect the body of 'Cyclic' to see that it
 // does indeed implement Floyd's algorithm--for this inspection, ignore all
 // ghost things, like ghost variables, updates to ghost variables, assert
-// statements, and calls to lemmas. 
+// statements, and calls to lemmas.
 
 // The proof is long.  One interesting aspect of it is that it is all constructed
 // as a program fed to a program verifier.  Since the additional properties
@@ -192,16 +192,15 @@ class Node {
     // the first A steps are no on a cycle, and
     // either next^A == null or next^A == next^(A+B).
     ensures 0 <= A && 1 <= B;
+    ensures Nexxxt(A, S) != null ==> Nexxxt(A, S) == Nexxxt(A, S).Nexxxt(B, S);
     ensures forall k,l :: 0 <= k < l < A ==> Nexxxt(k, S) != Nexxxt(l, S);
-    ensures Nexxxt(A, S) == null || Nexxxt(A, S).Nexxxt(B, S) == Nexxxt(A, S);
   {
     // since S is finite, we can just go ahead and compute the transitive closure of "next" from "this"
     var p, steps, Visited := this, 0, {null};
     while (p !in Visited)
-      invariant 0 <= steps && p == Nexxxt(steps, S) && p in S && null in Visited;
-      invariant Visited <= S;
+      invariant 0 <= steps && p == Nexxxt(steps, S) && p in S && null in Visited && Visited <= S;
       invariant forall t :: 0 <= t < steps ==> Nexxxt(t, S) in Visited;
-      invariant forall q :: q in Visited ==> q == null || exists t :: 0 <= t < steps && Nexxxt(t, S) == q;
+      invariant forall q :: q in (Visited - {null}) ==> exists t :: 0 <= t < steps && Nexxxt(t, S) == q;
       invariant forall k,l :: 0 <= k < l < steps ==> Nexxxt(k, S) != Nexxxt(l, S);
       decreases S - Visited;
     {
@@ -210,19 +209,27 @@ class Node {
     if (p == null) {
       A, B := steps, 1;
     } else {
-      assert exists k :: 0 <= k < steps && Nexxxt(k, S) == p;
-      // find this k
-      A := 0;
-      while (Nexxxt(A, S) != p)
-        invariant 0 <= A < steps;
-        invariant forall k :: 0 <= k < A ==> Nexxxt(k, S) != p;
-        decreases steps - A;
-      {
-        A := A + 1;
-      }
+      A := FindA(S, steps, p);
       B := steps - A;
-      assert Nexxxt(A, S) != null;
       Lemma_NexxxtIsTransitive(A, B, S);
+    }
+  }
+
+  ghost method FindA(S: set<Node>, steps: int, p: Node) returns (A: int)
+    requires IsClosed(S);
+    requires 0 <= steps && p == Nexxxt(steps, S) && p in S && p != null;
+    requires exists k :: 0 <= k < steps && Nexxxt(k, S) == p;
+    ensures 0 <= A < steps;
+    ensures Nexxxt(A, S) == p;
+    ensures forall k :: 0 <= k < A ==> Nexxxt(k, S) != p;
+  {
+    A := 0;
+    while (Nexxxt(A, S) != p)
+      invariant 0 <= A < steps;
+      invariant forall k :: 0 <= k < A ==> Nexxxt(k, S) != p;
+      decreases steps - A;
+    {
+      A := A + 1;
     }
   }
 

@@ -46,6 +46,26 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class Include : IComparable
+  {
+    public readonly IToken tok;
+    public readonly string filename;    
+
+    public Include(IToken/*!*/ tok, string theFilename) {
+      this.tok = tok;
+      this.filename = theFilename;      
+    }
+
+
+    public int CompareTo(object obj) {
+      if (obj is Include) {
+        return this.filename.CompareTo(((Include)obj).filename);
+      } else {
+        throw new NotImplementedException();
+      }
+    }
+  }
+
   public class BuiltIns
   {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, true);
@@ -976,6 +996,7 @@ namespace Microsoft.Dafny {
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
+    public List<Include> Includes;
     
     public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that
     public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
@@ -998,6 +1019,7 @@ namespace Microsoft.Dafny {
       IsFacade = isFacade;
       RefinementBaseRoot = null;
       RefinementBase = null;
+      Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
     }
     public virtual bool IsDefaultModule {
