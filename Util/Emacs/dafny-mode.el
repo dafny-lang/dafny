@@ -19,7 +19,7 @@
 ;; font-lock
 
 (defun dafny-regexp-opt (l)
-  (concat "\\<" (concat (regexp-opt l t) "\\>")))
+  (concat "\\_<" (concat (regexp-opt l t) "\\_>")))
 
 (defconst dafny-font-lock-keywords-1
   (list
