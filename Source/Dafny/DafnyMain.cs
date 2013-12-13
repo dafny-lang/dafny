@@ -38,10 +38,12 @@ namespace Microsoft.Dafny {
         }        
       }
 
-      string errString = ParseIncludes(module, builtIns, new Errors());
-      if (errString != null) {
-        return errString;
-      } 
+      if (!DafnyOptions.O.DisallowIncludes) {
+        string errString = ParseIncludes(module, builtIns, new Errors());
+        if (errString != null) {
+          return errString;
+        }
+      }
 
       program = new Program(programName, module, builtIns);
 
