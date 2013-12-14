@@ -1561,7 +1561,10 @@ namespace Microsoft.Dafny
               var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
               if (status != TailRecursionStatus.NotTailRecursive) {
                 m.IsTailRecursive = true;
-                ReportAdditionalInformation(m.tok, "tail recursive", m.Name.Length);
+                if (tailCall != null) {
+                  // this means there was at least one recursive call
+                  ReportAdditionalInformation(m.tok, "tail recursive", m.Name.Length);
+                }
               }
             }
           }

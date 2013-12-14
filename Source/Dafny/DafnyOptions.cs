@@ -97,7 +97,7 @@ namespace Microsoft.Dafny
           ps.GetNumericArgument(ref InductionHeuristic, 7);
           return true;
 
-        case "noInclude":
+        case "noIncludes":
           DisallowIncludes = true;
           return true;
 
