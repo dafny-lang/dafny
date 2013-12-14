@@ -2442,7 +2442,7 @@ Execution trace:
 
 Dafny program verifier finished with 28 verified, 2 errors
 
-Dafny program verifier finished with 30 verified, 0 errors
+Dafny program verifier finished with 37 verified, 0 errors
 Compiled assembly into Compilation.exe
 
 Dafny program verifier finished with 9 verified, 0 errors

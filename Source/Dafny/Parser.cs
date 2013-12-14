@@ -790,6 +790,11 @@ bool SemiFollowsCall(Expression e) {
 		args.Add(anArg);
 		attrs = new Attributes("verify", args, attrs);
 		} 
+		
+		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
+		}
+		
 		if (isPredicate) {
 		  f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
 		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureOmitted);
@@ -910,6 +915,15 @@ bool SemiFollowsCall(Expression e) {
 		args.Add(anArg);
 		attrs = new Attributes("verify", args, attrs);
 		}
+		
+		if (Attributes.Contains(attrs, "axiom") && !mmod.IsGhost && !isLemma) {
+		SemErr(t, "only ghost methods can have the :axiom attribute");
+		}
+		
+		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
+		}
+		
 		if (isConstructor) {
 		 m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
 		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);

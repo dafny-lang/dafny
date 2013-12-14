@@ -9063,7 +9063,10 @@ namespace Microsoft.Dafny {
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
         Bpl.QKeyValue kv = null;
         for ( ; attrs != null; attrs = attrs.Prev) {
-          if (attrs.Name == skipThisAttribute) { continue; }
+          if (attrs.Name == skipThisAttribute 
+           || attrs.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+            continue; 
+          }
           List<object> parms = new List<object>();
           foreach (Attributes.Argument arg in attrs.Args) {
             if (arg.E != null) {

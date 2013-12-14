@@ -442,7 +442,7 @@ namespace Microsoft.Dafny
             //     ensures foo(x, y) < 10;
             //   { x + y }
             // We produce:
-            //   lemma reveal_foo()
+            //   lemma {:axiom} reveal_foo()
             //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y);
             Expression reqExpr = new LiteralExpr(f.tok, true);
             foreach (Expression req in f.Req) {
@@ -481,9 +481,13 @@ namespace Microsoft.Dafny
             var newEnsuresList = new List<MaybeFreeExpression>();
             newEnsuresList.Add(newEnsures);
 
+            // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
+            List<Attributes.Argument/*!*/> argList = new List<Attributes.Argument/*!*/>();
+            Attributes lemma_attrs = new Attributes("axiom", argList, null);
+
             var reveal = new Method(f.tok, "reveal_" + f.Name, f.IsStatic, true, f.TypeArgs, new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
-                                    new Specification<Expression>(new List<Expression>(), null), null, null, false);
+                                    new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, false);
             newDecls.Add(reveal);
 
             // Update f's body to simply call the full version, so we preserve recursion checks, decreases clauses, etc.
