@@ -1085,7 +1085,9 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           AddClassMember_Function(f);
-          AddWellformednessCheck(f);
+          if (!IsOpaqueFunction(f)) { // Opaque function's well-formedness is checked on the full version
+            AddWellformednessCheck(f);
+          }
           var cop = f as CoPredicate;
           if (cop != null) {
             AddClassMember_Function(cop.PrefixPredicate);
@@ -1125,6 +1127,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private bool IsOpaqueFunction(Function f) {
+      return Attributes.Contains(f.Attributes, "opaque") && 
+            !Attributes.Contains(f.Attributes, "opaque_full");  // The full version has both attributes
+    }
+
     private void AddClassMember_Function(Function f) {
       // declare function
       AddFunction(f);
@@ -1137,7 +1144,7 @@ namespace Microsoft.Dafny {
       // add consequence axiom
       sink.TopLevelDeclarations.Add(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for "match" cases and for literals
-      if (f.Body != null) {
+      if (f.Body != null && !IsOpaqueFunction(f)) {
         AddFunctionAxiomCase(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved, null);
         AddFunctionAxiomCase(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved, null);
       }

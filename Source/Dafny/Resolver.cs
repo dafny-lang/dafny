@@ -190,6 +190,7 @@ namespace Microsoft.Dafny
       var refinementTransformer = new RefinementTransformer(this, prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
+      rewriters.Add(new OpaqueFunctionRewriter());
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       foreach (var decl in sortedDecls) {

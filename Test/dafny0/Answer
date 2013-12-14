@@ -343,8 +343,58 @@ FunctionSpecifications.dfy(57,22): Related location: This is the postcondition t
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
+FunctionSpecifications.dfy(105,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(108,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(123,27): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+FunctionSpecifications.dfy(127,27): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(150,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(162,3): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(169,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(178,3): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(132,20): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(134,29): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Else
+FunctionSpecifications.dfy(143,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(157,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(185,3): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(182,20): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 8 verified, 4 errors
+Dafny program verifier finished with 19 verified, 17 errors
 
 -------------------- ResolutionErrors.dfy --------------------
 ResolutionErrors.dfy(497,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)

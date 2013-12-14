@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny
 {
@@ -360,6 +361,162 @@ namespace Microsoft.Dafny
       p.ResolvedOp = rop;  // resolve here
       p.Type = Type.Bool;  // resolve here
       return p;
+    }
+  }
+
+
+  /// <summary>
+  /// For any function foo() with the :opaque attribute,
+  /// hide the body, so that it can only be seen within its
+  /// recursive clique (if any), or if the prgrammer
+  /// specifically asks to see it via the reveal_foo() lemma
+  /// </summary>
+  public class OpaqueFunctionRewriter : IRewriter {
+    //protected Dictionary<Function, Function> fullVersion;
+    protected Dictionary<Function, Function> original;
+
+    public void PreResolve(ModuleDefinition m) {
+      //fullVersion = new Dictionary<Function, Function>();
+      original = new Dictionary<Function, Function>();
+
+      foreach (var d in m.TopLevelDecls) {
+        if (d is ClassDecl) {
+          DuplicateOpaqueClassFunctions((ClassDecl)d);
+        }
+      }
+    }    
+
+    public void PostResolve(ModuleDefinition m) {
+      // Fix up the ensures clause of the full version of the function,
+      // since it may refer to the original opaque function      
+      foreach (var fn in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {        
+        if (isFullVersion(fn)) {  // Is this a function we created to supplement an opaque function?                  
+          OpaqueFunctionVisitor visitor = new OpaqueFunctionVisitor();
+          var context = new OpaqueFunctionContext(original[fn], fn);
+
+          foreach (Expression ens in fn.Ens) {
+            visitor.Visit(ens, context);
+          }
+        }
+      }
+    }
+
+    // Is f the full version of an opaque function?
+    protected bool isFullVersion(Function f) {
+      return original.ContainsKey(f);
+    }
+
+    // Trims the body from the original function and then adds an internal,
+    // full version, along with a lemma connecting the two
+    protected void DuplicateOpaqueClassFunctions(ClassDecl c) {
+      List<MemberDecl> newDecls = new List<MemberDecl>();
+      foreach (MemberDecl member in c.Members) {
+        if (member is Function) {
+          var f = (Function)member;
+
+          if (Attributes.Contains(f.Attributes, "opaque")) {
+            // Create a copy, which will be the internal version with a full body
+            // which will allow us to verify that the ensures are true
+            var cloner = new Cloner();
+            var fWithBody = cloner.CloneFunction(f, "#" + f.Name + "_FULL");  
+            newDecls.Add(fWithBody);
+            //fullVersion.Add(f, fWithBody);
+            original.Add(fWithBody, f);
+
+            var newToken = new Boogie.Token(f.tok.line, f.tok.col);
+            newToken.filename = f.tok.filename;
+            newToken._val = fWithBody.Name;
+            newToken._kind = f.tok.kind;
+            newToken._pos = f.tok.pos;
+            fWithBody.tok = newToken;
+
+            // Annotate the new function so we remember that we introduced it
+            List<Attributes.Argument/*!*/>new_args = new List<Attributes.Argument/*!*/>();
+            fWithBody.Attributes = new Attributes("opaque_full", new_args, fWithBody.Attributes);
+
+            // Create a lemma to allow the user to selectively reveal the function's body          
+            // That is, given:
+            //   function {:opaque} foo(x:int, y:int) : int
+            //     requires 0 <= x < 5;
+            //     requires 0 <= y < 5;
+            //     ensures foo(x, y) < 10;
+            //   { x + y }
+            // We produce:
+            //   lemma reveal_foo()
+            //     ensures forall x:int, y:int {:trigger foo(x,y)} :: 0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y);
+            Expression reqExpr = new LiteralExpr(f.tok, true);
+            foreach (Expression req in f.Req) {
+              Expression newReq = cloner.CloneExpr(req);
+              reqExpr = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, reqExpr, newReq);
+            }
+
+            List<BoundVar> boundVars = new List<BoundVar>();
+            foreach (Formal formal in f.Formals) {
+              boundVars.Add(new BoundVar(f.tok, formal.Name, formal.Type));
+            }
+
+            // Build the implication connecting the function's requires to the connection with the revealed-body version
+            Func<Function, IdentifierSequence> func_builder = func => new IdentifierSequence(new List<Bpl.IToken>() { func.tok }, func.tok, func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name))); 
+            var oldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, func_builder(f), func_builder(fWithBody));
+            var requiresImpliesOldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Imp, reqExpr, oldEqualsNew);            
+
+            MaybeFreeExpression newEnsures;
+            if (f.Formals.Count > 0)
+            {
+              // Build an explicit trigger for the forall, so Z3 doesn't get confused
+              Expression trigger = func_builder(f);
+              List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
+              Attributes.Argument/*!*/ anArg;
+              anArg = new Attributes.Argument(f.tok, trigger);
+              args.Add(anArg);
+              Attributes attrs = new Attributes("trigger", args, null);
+
+              newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, boundVars, null, requiresImpliesOldEqualsNew, attrs));
+            }
+            else
+            {
+              // No need for a forall
+              newEnsures = new MaybeFreeExpression(oldEqualsNew);
+            }
+            var newEnsuresList = new List<MaybeFreeExpression>();
+            newEnsuresList.Add(newEnsures);
+
+            var reveal = new Method(f.tok, "reveal_" + f.Name, f.IsStatic, true, f.TypeArgs, new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+                                    new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
+                                    new Specification<Expression>(new List<Expression>(), null), null, null, false);
+            newDecls.Add(reveal);
+
+            // Update f's body to simply call the full version, so we preserve recursion checks, decreases clauses, etc.
+            f.Body = func_builder(fWithBody);
+          }
+        }
+      }
+      c.Members.AddRange(newDecls);
+    }
+
+
+    protected class OpaqueFunctionContext {
+      public Function original;   // The original declaration of the opaque function
+      public Function full;       // The version we added that has a body
+
+      public OpaqueFunctionContext(Function Orig, Function Full) {
+        original = Orig;
+        full = Full;
+      }
+    }
+
+    class OpaqueFunctionVisitor : TopDownVisitor<OpaqueFunctionContext> {
+      protected override bool VisitOneExpr(Expression expr, ref OpaqueFunctionContext context) {
+        if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+
+          if (e.Function == context.original) { // Attempting to call the original opaque function
+            // Redirect the call to the full version
+            e.Function = context.full;            
+          }
+        }
+        return true;
+      }
     }
   }
 }
