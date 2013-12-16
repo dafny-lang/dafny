@@ -9,6 +9,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
+using BplParser = Parser;
 using System.Text;
 using Microsoft.Boogie;
 
@@ -308,7 +309,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Program prelude;
-      int errorCount = Bpl.Parser.Parse(preludePath, (List<string>)null, out prelude);
+      int errorCount = BplParser.Parse(preludePath, (List<string>)null, out prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
