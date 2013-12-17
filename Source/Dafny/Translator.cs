@@ -5002,7 +5002,7 @@ namespace Microsoft.Dafny {
       return Assert(tok, condition, errorMessage, tok);
     }
 
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken) {
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Requires(errorMessage != null);
@@ -5010,17 +5010,17 @@ namespace Microsoft.Dafny {
 
       if (assertAsAssume || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
-        return new Bpl.AssumeCmd(tok, condition);
+        return new Bpl.AssumeCmd(tok, condition, kv);
       } else {
-        var cmd = new Bpl.AssertCmd(ForceCheckToken.Unwrap(tok), condition);
+        var cmd = new Bpl.AssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
     }
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
-      return AssertNS(tok, condition, errorMessage, tok);
+      return AssertNS(tok, condition, errorMessage, tok, null);
     }
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok)
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv)
     {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
@@ -5029,13 +5029,12 @@ namespace Microsoft.Dafny {
 
       if (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
         // produce a "skip" instead
-        return new Bpl.AssumeCmd(tok, Bpl.Expr.True);
+        return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
-        Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "subsumption", args, null);
-        Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition, kv);
+        Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
@@ -5114,12 +5113,12 @@ namespace Microsoft.Dafny {
           var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok));
+            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                builder.Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok));
+                builder.Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
@@ -5128,7 +5127,7 @@ namespace Microsoft.Dafny {
           AddComment(builder, stmt, "assume statement");
           AssumeStmt s = (AssumeStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-          builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+          builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
         }
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
@@ -5203,7 +5202,7 @@ namespace Microsoft.Dafny {
                 // this postcondition was inherited into this module, so just ignore it
               } else if (split.IsChecked) {
                 var yieldToken = new NestedToken(s.Tok, split.E.tok);
-                builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok));
+                builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
