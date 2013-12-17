@@ -9853,15 +9853,15 @@ namespace Microsoft.Dafny {
             var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.TypeArgumentSubstitutions);
 
             // Produce, for a "body" split into b0, b1, b2:
-            //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
             //     checked F#canCall(args) ==> F(args) || b0
             //     checked F#canCall(args) ==> F(args) || b1
             //     checked F#canCall(args) ==> F(args) || b2
+            //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
             // For "inCoContext", split into:
-            //     free F#canCall(args) && F'(args)
             //     checked F#canCall(args) ==> F'(args) || b0''
             //     checked F#canCall(args) ==> F'(args) || b1''
             //     checked F#canCall(args) ==> F'(args) || b2''
+            //     free F#canCall(args) && F'(args)
             // where the primes indicate certificate translations.
             // The checked conjuncts of the body make use of the type-specialized body.
 
@@ -9873,12 +9873,6 @@ namespace Microsoft.Dafny {
             Bpl.Expr fargs;
             // F(args)
             fargs = etran.TrExpr(fexp);
-            // body
-            var trBody = etran.TrExpr(body);
-            trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
-            // F#canCall(args) && F(args) && (b0 && b1 && b2)
-            var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
 
             // recurse on body
             var ss = new List<SplitExprInfo>();
@@ -9893,6 +9887,13 @@ namespace Microsoft.Dafny {
                 splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
               }
             }
+
+            // body
+            var trBody = etran.TrExpr(body);
+            trBody = etran.CondApplyUnbox(trBody.tok, trBody, f.ResultType, expr.Type);
+            // F#canCall(args) && F(args) && (b0 && b1 && b2)
+            var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
 
             return true;
           }
