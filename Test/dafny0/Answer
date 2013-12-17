@@ -343,8 +343,58 @@ FunctionSpecifications.dfy(57,22): Related location: This is the postcondition t
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
+FunctionSpecifications.dfy(105,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(108,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(123,27): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+FunctionSpecifications.dfy(127,27): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(150,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(162,3): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(169,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+FunctionSpecifications.dfy(178,3): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(132,20): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(134,29): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Else
+FunctionSpecifications.dfy(143,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(157,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(185,3): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+FunctionSpecifications.dfy(182,20): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 8 verified, 4 errors
+Dafny program verifier finished with 19 verified, 17 errors
 
 -------------------- ResolutionErrors.dfy --------------------
 ResolutionErrors.dfy(497,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
@@ -729,9 +779,7 @@ Execution trace:
     (0,0): anon14_Then
     (0,0): anon15_Then
     Basics.dfy(66,72): anon16_Else
-    (0,0): anon8
     Basics.dfy(66,82): anon17_Else
-    (0,0): anon10
     Basics.dfy(66,95): anon18_Else
     (0,0): anon12
 Basics.dfy(110,16): Error: assertion violation
@@ -781,8 +829,22 @@ Execution trace:
 Basics.dfy(235,10): Error: when left-hand sides 0 and 1 refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
+Basics.dfy(426,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Basics.dfy(437,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+Basics.dfy(439,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
 
-Dafny program verifier finished with 59 verified, 11 errors
+Dafny program verifier finished with 61 verified, 14 errors
 
 -------------------- ControlStructures.dfy --------------------
 ControlStructures.dfy(5,3): Error: missing case in case statement: Purple
@@ -862,7 +924,6 @@ Execution trace:
     ControlStructures.dfy(221,7): anon76_Else
     (0,0): anon78_Then
     (0,0): anon38
-    (0,0): after_9
     (0,0): anon83_Then
     (0,0): anon52
 ControlStructures.dfy(235,30): Error: assertion violation
@@ -877,7 +938,6 @@ Execution trace:
     ControlStructures.dfy(198,5): anon63_Else
     ControlStructures.dfy(198,5): anon64_Else
     (0,0): anon65_Then
-    (0,0): after_5
     (0,0): anon84_Then
     (0,0): anon85_Then
     (0,0): anon56
@@ -905,7 +965,6 @@ Execution trace:
     ControlStructures.dfy(221,7): anon76_Else
     (0,0): anon79_Then
     (0,0): anon82_Then
-    (0,0): after_8
     (0,0): anon86_Then
     (0,0): anon58
 
@@ -1958,6 +2017,10 @@ Execution trace:
 
 Dafny program verifier finished with 3 verified, 3 errors
 
+-------------------- Include.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...
@@ -2054,7 +2117,6 @@ Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
     (0,0): anon24_Else
-    (0,0): anon11
     (0,0): anon26_Else
     (0,0): anon28_Then
     (0,0): anon29_Then
@@ -2109,7 +2171,6 @@ SmallTests.dfy(279,11): Related location: This is the postcondition that might n
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
-    (0,0): anon11
     (0,0): anon23_Then
     (0,0): anon24_Then
     (0,0): anon15
@@ -2155,7 +2216,6 @@ Execution trace:
     SmallTests.dfy(559,18): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon30_Then
     (0,0): anon9
     (0,0): anon31_Else
@@ -2240,7 +2300,6 @@ Execution trace:
     (0,0): anon0
     (0,0): anon22_Else
     (0,0): anon24_Else
-    (0,0): anon11
     (0,0): anon26_Else
     (0,0): anon28_Then
     (0,0): anon29_Then
@@ -2295,7 +2354,6 @@ out.tmp.dfy(445,11): Related location: This is the postcondition that might not 
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
-    (0,0): anon11
     (0,0): anon23_Then
     (0,0): anon24_Then
     (0,0): anon15
@@ -2341,7 +2399,6 @@ Execution trace:
     out.tmp.dfy(553,17): anon28_Else
     (0,0): anon4
     (0,0): anon29_Else
-    (0,0): anon7
     (0,0): anon30_Then
     (0,0): anon9
     (0,0): anon31_Else
@@ -2403,7 +2460,7 @@ Execution trace:
 
 Dafny program verifier finished with 28 verified, 2 errors
 
-Dafny program verifier finished with 30 verified, 0 errors
+Dafny program verifier finished with 37 verified, 0 errors
 Compiled assembly into Compilation.exe
 
 Dafny program verifier finished with 9 verified, 0 errors

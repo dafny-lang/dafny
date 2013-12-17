@@ -32,18 +32,16 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFileName);
         }
 
-        int errorCount;
-        try
-        {
-          errorCount = Dafny.Parser.Parse(dafnyFileName, module, builtIns);
-          if (errorCount != 0)
-          {
-            return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
-          }
-        }
-        catch (IOException e)
-        {
-          return string.Format("Error opening file \"{0}\": {1}", dafnyFileName, e.Message);
+        string err = ParseFile(dafnyFileName, null, module, builtIns, new Errors());
+        if (err != null) {
+          return err;
+        }        
+      }
+
+      if (!DafnyOptions.O.DisallowIncludes) {
+        string errString = ParseIncludes(module, builtIns, new Errors());
+        if (errString != null) {
+          return errString;
         }
       }
 
@@ -84,5 +82,52 @@ namespace Microsoft.Dafny {
 
       return null;  // success
     }
+
+    // Lower-case file names before comparing them, since Windows uses case-insensitive file names
+    private class IncludeComparer : IComparer<Include> {
+      public int Compare(Include x, Include y) {
+        return x.filename.ToLower().CompareTo(y.filename.ToLower());
+      }
+    }
+
+    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, Errors errs) {
+      SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
+      bool newlyIncluded = false;
+      do {
+        newlyIncluded = false;
+
+        List<Include> newFilesToInclude = new List<Include>();
+        foreach (Include include in ((LiteralModuleDecl)module).ModuleDef.Includes) {
+          bool isNew = includes.Add(include);
+          if (isNew) {
+            newlyIncluded = true;
+            newFilesToInclude.Add(include);
+          }
+        }
+
+        foreach (Include include in newFilesToInclude) {
+          string ret = ParseFile(include.filename, include.tok, module, builtIns, errs, false);
+          if (ret != null) {
+            return ret;
+          }
+        }
+      } while (newlyIncluded);
+
+      return null; // Success
+    }
+
+    private static string ParseFile(string dafnyFileName, Bpl.IToken tok, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
+      try {
+        int errorCount = Dafny.Parser.Parse(dafnyFileName, module, builtIns, errs, verifyThisFile);
+        if (errorCount != 0) {
+          return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
+        }
+      } catch (IOException e) {
+        errs.SemErr(tok, "Unable to open included file");
+        return string.Format("Error opening file \"{0}\": {1}", dafnyFileName, e.Message);
+      }
+      return null; // Success
+    }
+
   }
 }

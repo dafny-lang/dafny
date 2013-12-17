@@ -1,4 +1,4 @@
-/*-----------------------------------------------------------------------------
+	/*-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
@@ -21,6 +21,7 @@ readonly Statement/*!*/ dummyStmt;
 readonly Attributes.Argument/*!*/ dummyAttrArg;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
+readonly bool theVerifyThisFile;
 int anonymousIds = 0;
 
 struct MemberModifiers {
@@ -34,17 +35,17 @@ struct MemberModifiers {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns builtIns) /* throws System.IO.IOException */ {
+public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, module, builtIns);
+    return Parse(s, filename, module, builtIns, errors, verifyThisFile);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, module, builtIns);
+      return Parse(s, filename, module, builtIns, errors, verifyThisFile);
     }
   }
 }
@@ -54,12 +55,12 @@ public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns built
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns) {
+public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Errors errors = new Errors();
-  return Parse(s, filename, module, builtIns, errors);
+  return Parse(s, filename, module, builtIns, errors, verifyThisFile);
 }
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
@@ -68,7 +69,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module,
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
 public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns,
-                         Errors/*!*/ errors) {
+                         Errors/*!*/ errors, bool verifyThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
@@ -76,11 +77,11 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module,
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, filename);
-  Parser parser = new Parser(scanner, errors, module, builtIns);
+  Parser parser = new Parser(scanner, errors, module, builtIns, verifyThisFile);
   parser.Parse();
   return parser.errors.count;
 }
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns) 
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) 
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -91,6 +92,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
   theModule = module;
   theBuiltIns = builtIns;
+  theVerifyThisFile = verifyThisFile;
 }
 
 bool IsAttribute() {
@@ -180,11 +182,23 @@ Dafny
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
   .)
+  { "include" string							(. {
+													string parsedFile = t.filename;
+													string includedFile = t.val.Substring(1, t.val.Length - 2);
+													if (!Path.IsPathRooted(includedFile)) {
+													  string basePath = Path.GetDirectoryName(parsedFile);
+													  includedFile = Path.GetFullPath(Path.Combine(basePath, includedFile));
+													} 
+													defaultModule.Includes.Add(new Include(t, includedFile)); 
+													}
+												.) 
+  }
   { SubModuleDecl<defaultModule, out submodule> (. defaultModule.TopLevelDecls.Add(submodule); .)
   | ClassDecl<defaultModule, out c>             (. defaultModule.TopLevelDecls.Add(c); .)
   | DatatypeDecl<defaultModule, out dt>         (. defaultModule.TopLevelDecls.Add(dt); .)
   | ArbitraryTypeDecl<defaultModule, out at>    (. defaultModule.TopLevelDecls.Add(at); .)
   | IteratorDecl<defaultModule, out iter>       (. defaultModule.TopLevelDecls.Add(iter); .)
+
   | ClassMemberDecl<membersDefaultClass, false>
   }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
@@ -591,7 +605,26 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (isConstructor) {
+  (. 
+     if (!theVerifyThisFile) {
+       body = null;
+	   
+		List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
+		Attributes.Argument/*!*/ anArg;
+		anArg = new Attributes.Argument(id, new LiteralExpr(t, false));
+		args.Add(anArg);
+		attrs = new Attributes("verify", args, attrs);
+     }
+
+	 if (Attributes.Contains(attrs, "axiom") && !mmod.IsGhost && !isLemma) {
+		SemErr(t, "only ghost methods can have the :axiom attribute");
+     }
+
+     if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
+     }
+
+     if (isConstructor) {
        m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
      } else if (isCoMethod) {
@@ -833,7 +866,19 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (isPredicate) {
+  (. if (!theVerifyThisFile) {  // We still need the func bodies, but don't bother verifying their correctness
+		List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
+		Attributes.Argument/*!*/ anArg;
+		anArg = new Attributes.Argument(id, new LiteralExpr(t, false));
+		args.Add(anArg);
+		attrs = new Attributes("verify", args, attrs);
+	 } 
+
+     if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
+		SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
+     }
+
+	 if (isPredicate) {
         f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureOmitted);
      } else if (isCoPredicate) {

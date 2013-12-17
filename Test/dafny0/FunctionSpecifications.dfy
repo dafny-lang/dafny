@@ -87,3 +87,102 @@ function IncC(i: nat): int
 {
   var n :| n>i; n
 }
+
+
+/////////////////////////////////////////////////////////////
+//  Test :opaque functions
+/////////////////////////////////////////////////////////////
+
+// Test basic function hiding
+function {:opaque} secret(x:int, y:int) : int 
+  requires 0 <= x < 5;
+  requires 0 <= y < 5;
+  ensures secret(x, y) < 10;
+{ x + y }
+
+method test_secret()
+{
+  assert secret(2, 3) >= 5;   // Should fail because secret's body is hidden
+  reveal_secret();
+  assert secret(2, 3) == 5;   // Should pass now that the body is "visible" 
+  assert secret(4, 1) == 7;   // Make sure it catches incorrect applications as well
+}
+
+// Check that opaque doesn't break recursion unrolling
+// Also checks that opaque functions that do terminate are verified as such
+function {:opaque} recursive_f(x:int) : int
+  requires x >= 0;
+{
+  if x == 0 then 0
+  else 1 + recursive_f(x - 1)
+}
+
+method test_recursive_f()
+{
+  if * {
+    assert recursive_f(4) == 4;   // Should fail because body is hidden
+  } else {
+    reveal_recursive_f();
+    assert recursive_f(4) == 4;   // Should pass now body is visible and can be unrolled
+    assert recursive_f(3) == 5;   // Make sure it catches incorrect applications as well
+  }
+}
+
+// Check that opaque doesn't interfere with ensures checking
+function {:opaque} bad_ensures(x:int, y:int):int 
+  requires x >= 0 && y >= 0;
+  ensures bad_ensures(x, y) > 0;
+{
+  x + y
+}
+
+// Check that opaque doesn't interfere with termination checking
+function {:opaque} f(i:int):int
+  decreases i;
+{
+  f(i) + 1
+}
+
+method m()
+  ensures false;
+{
+  reveal_f();
+  assert f(0) == f(0) + 1;
+}
+
+// Try a sneakier (nested) version of the test above
+function {:opaque} g(i:int):int
+  decreases i;
+{
+  h(i) + 1
+}
+
+function h(i:int):int
+{
+  g(i)
+}
+
+method n()
+  ensures false;
+{
+  reveal_g();
+  assert g(0) == g(0) + 1;
+}
+
+// Check that using the reveal_ lemma to prove the well-definedness of a function 
+// in a lower SCC does not cause a soundness problem
+
+function A(): int
+  ensures A() == 5;
+{
+  reveal_B();  // error: should not be allowed to invoke reveal_B() here
+  6  // this result value is not what the postcondition specification says
+}
+
+function {:opaque} B(): int
+  ensures B() == 5;
+{
+  A()
+}
+
+ 

@@ -19,7 +19,7 @@
 ;; font-lock
 
 (defun dafny-regexp-opt (l)
-  (concat "\\<" (concat (regexp-opt l t) "\\>")))
+  (concat "\\_<" (concat (regexp-opt l t) "\\_>")))
 
 (defconst dafny-font-lock-keywords-1
   (list
@@ -35,7 +35,7 @@
         "ghost" "var" "method" "lemma" "constructor" "comethod" "colemma"
         "abstract" "module" "import" "default" "as" "opened" "static" "refines"
         "returns" "yields" "requires" "ensures" "modifies" "reads" "free"
-        "invariant" "decreases"
+        "invariant" "decreases" "include"
         )) . font-lock-builtin-face)
    `(,(dafny-regexp-opt '(
         "assert" "assume" "break" "then" "else" "if" "label" "return" "yield"

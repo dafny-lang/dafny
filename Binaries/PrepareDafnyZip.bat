@@ -10,6 +10,7 @@ for %%f in (
   AbsInt.dll                          AbsInt.pdb
   Basetypes.dll                       Basetypes.pdb
   CodeContractsExtender.dll           CodeContractsExtender.pdb
+  Concurrency.dll                     Concurrency.pdb
   Core.dll                            Core.pdb
   Dafny.exe                           Dafny.pdb
   DafnyPipeline.dll                   DafnyPipeline.pdb
@@ -21,7 +22,6 @@ for %%f in (
   Model.dll                           Model.pdb
   ParserHelper.dll                    ParserHelper.pdb
   Provers.SMTLib.dll                  Provers.SMTLib.pdb
-  UnivBackPred2.smt2
   VCExpr.dll                          VCExpr.pdb
   VCGeneration.dll                    VCGeneration.pdb
   DafnyLanguageService.vsix

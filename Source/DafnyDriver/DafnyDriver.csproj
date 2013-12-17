@@ -127,6 +127,9 @@
     <Reference Include="AbsInt">
       <HintPath>..\..\..\boogie\Binaries\AbsInt.dll</HintPath>
     </Reference>
+    <Reference Include="Concurrency">
+      <HintPath>..\..\..\boogie\Binaries\Concurrency.dll</HintPath>
+    </Reference>
     <Reference Include="Core">
       <HintPath>..\..\..\boogie\Binaries\Core.dll</HintPath>
     </Reference>
@@ -175,9 +178,6 @@
     <None Include="app.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>copy /y "$(SolutionDir)"..\..\boogie\Binaries\UnivBackPred2.smt2 "$(TargetDir)"</PreBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

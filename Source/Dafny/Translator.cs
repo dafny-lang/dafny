@@ -9,6 +9,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
+using BplParser = Parser;
 using System.Text;
 using Microsoft.Boogie;
 
@@ -308,7 +309,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Program prelude;
-      int errorCount = Bpl.Parser.Parse(preludePath, (List<string>)null, out prelude);
+      int errorCount = BplParser.Parse(preludePath, (List<string>)null, out prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
@@ -1085,7 +1086,9 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           AddClassMember_Function(f);
-          AddWellformednessCheck(f);
+          if (!IsOpaqueFunction(f)) { // Opaque function's well-formedness is checked on the full version
+            AddWellformednessCheck(f);
+          }
           var cop = f as CoPredicate;
           if (cop != null) {
             AddClassMember_Function(cop.PrefixPredicate);
@@ -1125,6 +1128,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private bool IsOpaqueFunction(Function f) {
+      return Attributes.Contains(f.Attributes, "opaque") && 
+            !Attributes.Contains(f.Attributes, "opaque_full");  // The full version has both attributes
+    }
+
     private void AddClassMember_Function(Function f) {
       // declare function
       AddFunction(f);
@@ -1137,7 +1145,7 @@ namespace Microsoft.Dafny {
       // add consequence axiom
       sink.TopLevelDeclarations.Add(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for "match" cases and for literals
-      if (f.Body != null) {
+      if (f.Body != null && !IsOpaqueFunction(f)) {
         AddFunctionAxiomCase(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved, null);
         AddFunctionAxiomCase(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved, null);
       }
@@ -4651,6 +4659,13 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
       // parameters of the procedure
       List<Variable> inParams = new List<Variable>();
+      Bpl.Formal layer;
+      if (f.IsRecursive) {
+        layer = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true);
+        inParams.Add(layer);
+      } else {
+        layer = null;
+      }
       if (!f.IsStatic) {
         Bpl.Expr wh = Bpl.Expr.And(
           Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
@@ -4694,9 +4709,16 @@ namespace Microsoft.Dafny {
       Bpl.FunctionCall funcOriginal = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
       Bpl.FunctionCall funcRefining = new Bpl.FunctionCall(new Bpl.IdentifierExpr(functionCheck.Refining.tok, functionCheck.Refining.FullSanitizedName, TrType(f.ResultType)));
       List<Bpl.Expr> args = new List<Bpl.Expr>();
+      List<Bpl.Expr> argsCanCall = new List<Bpl.Expr>();
+      if (layer != null) {
+        args.Add(new Bpl.IdentifierExpr(f.tok, implInParams[0]));
+        // don't add layer parameter to canCall's arguments
+      }
       args.Add(etran.HeapExpr);
-      foreach (Variable p in implInParams) {
-        args.Add(new Bpl.IdentifierExpr(f.tok, p));
+      argsCanCall.Add(etran.HeapExpr);
+      for (int i = layer == null ? 0 : 1; i < implInParams.Count; i++) {
+        args.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
+        argsCanCall.Add(new Bpl.IdentifierExpr(f.tok, implInParams[i]));
       }
       Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcOriginal, args);
       Bpl.Expr funcAppl2 = new Bpl.NAryExpr(f.tok, funcRefining, args);
@@ -4710,7 +4732,7 @@ namespace Microsoft.Dafny {
       }
       // add canCall
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(Token.NoToken, function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr canCall = new Bpl.NAryExpr(Token.NoToken, new Bpl.FunctionCall(canCallFuncID), args);
+      Bpl.Expr canCall = new Bpl.NAryExpr(Token.NoToken, new Bpl.FunctionCall(canCallFuncID), argsCanCall);
       builder.Add(new AssumeCmd(function.tok, canCall));
       
       // check that the preconditions for the call hold
@@ -4980,7 +5002,7 @@ namespace Microsoft.Dafny {
       return Assert(tok, condition, errorMessage, tok);
     }
 
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken) {
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Requires(errorMessage != null);
@@ -4988,17 +5010,17 @@ namespace Microsoft.Dafny {
 
       if (assertAsAssume || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
-        return new Bpl.AssumeCmd(tok, condition);
+        return new Bpl.AssumeCmd(tok, condition, kv);
       } else {
-        var cmd = new Bpl.AssertCmd(ForceCheckToken.Unwrap(tok), condition);
+        var cmd = new Bpl.AssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
     }
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
-      return AssertNS(tok, condition, errorMessage, tok);
+      return AssertNS(tok, condition, errorMessage, tok, null);
     }
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok)
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv)
     {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
@@ -5007,13 +5029,12 @@ namespace Microsoft.Dafny {
 
       if (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
         // produce a "skip" instead
-        return new Bpl.AssumeCmd(tok, Bpl.Expr.True);
+        return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
-        Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "subsumption", args, null);
-        Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition, kv);
+        Bpl.AssertCmd cmd = new Bpl.AssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
@@ -5092,12 +5113,12 @@ namespace Microsoft.Dafny {
           var ss = TrSplitExpr(s.Expr, etran, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok));
+            builder.Add(Assert(tok, etran.TrExpr(s.Expr), "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                builder.Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok));
+                builder.Add(AssertNS(tok, split.E, "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
@@ -5106,7 +5127,7 @@ namespace Microsoft.Dafny {
           AddComment(builder, stmt, "assume statement");
           AssumeStmt s = (AssumeStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-          builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
+          builder.Add(new Bpl.AssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
         }
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
@@ -5181,7 +5202,7 @@ namespace Microsoft.Dafny {
                 // this postcondition was inherited into this module, so just ignore it
               } else if (split.IsChecked) {
                 var yieldToken = new NestedToken(s.Tok, split.E.tok);
-                builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok));
+                builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
               }
             }
             builder.Add(new Bpl.AssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -9042,7 +9063,10 @@ namespace Microsoft.Dafny {
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
         Bpl.QKeyValue kv = null;
         for ( ; attrs != null; attrs = attrs.Prev) {
-          if (attrs.Name == skipThisAttribute) { continue; }
+          if (attrs.Name == skipThisAttribute 
+           || attrs.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
+            continue; 
+          }
           List<object> parms = new List<object>();
           foreach (Attributes.Argument arg in attrs.Args) {
             if (arg.E != null) {

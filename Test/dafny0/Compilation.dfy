@@ -148,3 +148,25 @@ class DigitsClass {
   }
 }
 
+// Should not get errors about methods or functions with empty bodies
+// if they're marked with an :axiom attribute
+ghost method {:axiom} m_nobody() returns (y:int)
+  ensures y > 5;
+
+lemma {:axiom} l_nobody() returns (y:int)
+  ensures y > 5;
+
+function {:axiom} f_nobody():int 
+  ensures f_nobody() > 5;
+
+// Make sure the lemma created for opaque functions doesn't produce compiler errors
+function {:opaque} hidden():int
+{
+  7
+}
+
+method hidden_test()
+{
+  reveal_hidden();
+  assert hidden() == 7;
+}

@@ -686,7 +686,7 @@ namespace Microsoft.Dafny {
 
         } else if (member is Function) {
           Function f = (Function)member;
-          if (f.Body == null) {
+          if (f.Body == null && !Attributes.Contains(f.Attributes, "axiom")) {
             Error("Function {0} has no body", f.FullName);
           } else if (f.IsGhost) {
             // nothing to compile
@@ -705,7 +705,7 @@ namespace Microsoft.Dafny {
 
         } else if (member is Method) {
           Method m = (Method)member;
-          if (m.IsGhost && m.Body == null) {
+          if (m.IsGhost && m.Body == null && !Attributes.Contains(m.Attributes, "axiom")) {
             Error("Method {0} has no body", m.FullName);
           } else if (!m.IsGhost) {
             Indent(indent);

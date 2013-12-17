@@ -4,6 +4,7 @@ syntax: regexp
 ^Source/.*\.(smt2|bpl)$
 ^.*(bin|obj)/([^/]*/)?(Debug|Release|Checked|Debug All|DEBUG ALL)/.*$
 Test/.*/Output
+Test/desktop/.*
 Test/([^/]*)/([^/]*)\.sx
 syntax: glob
 *.exe

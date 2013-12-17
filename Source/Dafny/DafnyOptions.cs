@@ -39,6 +39,7 @@ namespace Microsoft.Dafny
     public bool Compile = true;
     public bool ForceCompile = false;
     public bool SpillTargetCode = false;
+    public bool DisallowIncludes = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -94,6 +95,10 @@ namespace Microsoft.Dafny
 
         case "inductionHeuristic":
           ps.GetNumericArgument(ref InductionHeuristic, 7);
+          return true;
+
+        case "noIncludes":
+          DisallowIncludes = true;
           return true;
 
         default:
@@ -154,6 +159,7 @@ namespace Microsoft.Dafny
                 1,2,3,4,5 - levels in between, ordered as follows as far as
                     how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
                 6 (default) - most discriminating
+  /noIncludes   Ignore include directives
 ");
       base.Usage();  // also print the Boogie options
     }

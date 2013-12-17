@@ -501,7 +501,7 @@ namespace Microsoft.Dafny
       return new GuardedAlternative(Tok(alt.Tok), CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
     }
 
-    public Function CloneFunction(Function f) {
+    public Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
       var req = f.Req.ConvertAll(CloneExpr);
@@ -510,14 +510,18 @@ namespace Microsoft.Dafny
       var ens = f.Ens.ConvertAll(CloneExpr);
       var body = CloneExpr(f.Body);
 
+      if (newName == null) {
+        newName = f.Name;
+      }
+
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals,
+        return new Predicate(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), false);
       } else if (f is CoPredicate) {
-        return new CoPredicate(Tok(f.tok), f.Name, f.IsStatic, tps, f.OpenParen, formals,
+        return new CoPredicate(Tok(f.tok), newName, f.IsStatic, tps, f.OpenParen, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), false);
       } else {
-        return new Function(Tok(f.tok), f.Name, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
+        return new Function(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), false);
       }
     }

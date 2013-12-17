@@ -67,8 +67,25 @@ namespace Microsoft.Dafny
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
+    public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
 
     public void PreResolve(ModuleDefinition m) {
+      if (m.RefinementBaseRoot != null) {
+        if (Resolver.ResolvePath(m.RefinementBaseRoot, m.RefinementBaseName, out RefinedSig, reporter)) {
+          if (RefinedSig.ModuleDef != null) {
+            m.RefinementBase = RefinedSig.ModuleDef;
+            PreResolveWorker(m);
+          } else {
+            reporter.Error(m.RefinementBaseName[0], "module ({0}) named as refinement base is not a literal module or simple reference to a literal module", Util.Comma(".", m.RefinementBaseName, x => x.val));
+          }
+        } else {
+          reporter.Error(m.RefinementBaseName[0], "module ({0}) named as refinement base does not exist", Util.Comma(".", m.RefinementBaseName, x => x.val));
+        }
+      }
+    }
+    
+    void PreResolveWorker(ModuleDefinition m) {
+      Contract.Requires(m != null);
 
       if (m.RefinementBase == null) return;
 
