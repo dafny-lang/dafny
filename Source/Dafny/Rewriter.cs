@@ -414,7 +414,7 @@ namespace Microsoft.Dafny
         if (member is Function) {
           var f = (Function)member;
 
-          if (Attributes.Contains(f.Attributes, "opaque")) {
+          if (Attributes.Contains(f.Attributes, "opaque") && !RefinementToken.IsInherited(f.tok, c.Module)) {
             // Create a copy, which will be the internal version with a full body
             // which will allow us to verify that the ensures are true
             var cloner = new Cloner();
@@ -485,7 +485,7 @@ namespace Microsoft.Dafny
             List<Attributes.Argument/*!*/> argList = new List<Attributes.Argument/*!*/>();
             Attributes lemma_attrs = new Attributes("axiom", argList, null);
 
-            var reveal = new Method(f.tok, "reveal_" + f.Name, f.IsStatic, true, f.TypeArgs, new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, f.TypeArgs, new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
                                     new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, false);
             newDecls.Add(reveal);
@@ -516,7 +516,7 @@ namespace Microsoft.Dafny
 
           if (e.Function == context.original) { // Attempting to call the original opaque function
             // Redirect the call to the full version
-            e.Function = context.full;            
+            e.Function = context.full;
           }
         }
         return true;

@@ -142,3 +142,12 @@ module OpaqueFunctionsAreNotInlined {
     assert F(x);
   }
 }
+
+// --------------------------------- opaque and refinement
+
+module M0 {
+  function {:opaque} F(): int
+  { 12 }
+}
+module M1 refines M0 {
+}
