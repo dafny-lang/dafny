@@ -121,3 +121,24 @@ module B' refines B {
   }
 }
 
+// ---------------------------------
+
+module OpaqueFunctionsAreNotInlined {
+  predicate {:opaque} F(n: int)
+  {
+    0 <= n < 100
+  }
+
+  method M()
+  {
+    var x := 18;
+    assert F(x);  // error: cannot be determined, since F is opaque
+  }
+
+  method M'()
+  {
+    var x := 18;
+    reveal_F();
+    assert F(x);
+  }
+}

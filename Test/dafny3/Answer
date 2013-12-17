@@ -54,3 +54,7 @@ Dafny program verifier finished with 10 verified, 0 errors
 -------------------- InfiniteTrees.dfy --------------------
 
 Dafny program verifier finished with 88 verified, 0 errors
+
+-------------------- OpaqueTrees.dfy --------------------
+
+Dafny program verifier finished with 6 verified, 0 errors

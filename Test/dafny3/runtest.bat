@@ -9,6 +9,7 @@ for %%f in (
   SimpleInduction.dfy SimpleCoinduction.dfy CalcExample.dfy
   InductionVsCoinduction.dfy Zip.dfy SetIterations.dfy
   Paulson.dfy Filter.dfy WideTrees.dfy InfiniteTrees.dfy
+  OpaqueTrees.dfy
 ) do (
   echo.
   echo -------------------- %%f --------------------

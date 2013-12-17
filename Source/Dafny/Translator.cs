@@ -9870,6 +9870,8 @@ namespace Microsoft.Dafny {
               (codeContext == null || !codeContext.MustReverify)) {
             // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
+          } else if (IsOpaqueFunction(f)) {
+            // Don't inline opaque functions
           } else {
             // inline this body
             var body = GetSubstitutedBody(fexp, f, false);
