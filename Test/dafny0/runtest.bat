@@ -26,7 +26,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy Definedness.dfy
             Predicates.dfy Skeletons.dfy OpaqueFunctions.dfy
             Maps.dfy LiberalEquality.dfy
             RefinementModificationChecking.dfy TailCalls.dfy
-            Calculations.dfy IteratorResolution.dfy Iterators.dfy
+            IteratorResolution.dfy Iterators.dfy
             RankPos.dfy RankNeg.dfy
             Computations.dfy ComputationsNeg.dfy
             Include.dfy) do (
@@ -41,11 +41,11 @@ for %%f in (Superposition.dfy) do (
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp /tracePOs %* %%f
 )
 
-for %%f in (SmallTests.dfy LetExpr.dfy) do (
+for %%f in (SmallTests.dfy LetExpr.dfy Calculations.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.tmp.dfy %* %%f
-  %DAFNY_EXE% /compile:0 %* out.tmp.dfy
+  %DAFNY_EXE% /noVerify /compile:0 %* out.tmp.dfy
 )
 
 %DAFNY_EXE% %* Compilation.dfy

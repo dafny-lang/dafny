@@ -1824,34 +1824,6 @@ TailCalls.dfy(42,12): Error: 'decreases *' is allowed only on tail-recursive met
 TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive methods
 5 resolution/type errors detected in TailCalls.dfy
 
--------------------- Calculations.dfy --------------------
-Calculations.dfy(3,4): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon24_Then
-Calculations.dfy(8,13): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon26_Then
-Calculations.dfy(8,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon26_Then
-Calculations.dfy(52,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Calculations.dfy(47,2): anon5_Else
-Calculations.dfy(75,13): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
-Calculations.dfy(75,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
-
-Dafny program verifier finished with 6 verified, 6 errors
-
 -------------------- IteratorResolution.dfy --------------------
 IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field
 IteratorResolution.dfy(64,18): Error: arguments must have the same type (got _T0 and int)
@@ -2259,189 +2231,8 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 87 verified, 33 errors
-out.tmp.dfy(33,11): Error: index out of range
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(69,37): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
-out.tmp.dfy(70,52): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Else
-    (0,0): anon3
-    (0,0): anon13_Else
-out.tmp.dfy(71,22): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
-    (0,0): anon3
-    (0,0): anon13_Then
-    (0,0): anon6
-out.tmp.dfy(88,24): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    out.tmp.dfy(87,5): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    (0,0): anon9_Then
-out.tmp.dfy(122,5): Error: call may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-    (0,0): anon3
-out.tmp.dfy(135,9): Error: call may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-out.tmp.dfy(137,9): Error: call may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
-out.tmp.dfy(177,9): Error: assignment may update an object field not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon22_Else
-    (0,0): anon24_Else
-    (0,0): anon26_Else
-    (0,0): anon28_Then
-    (0,0): anon29_Then
-    (0,0): anon19
-out.tmp.dfy(199,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-out.tmp.dfy(205,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon3
-    (0,0): anon7_Then
-out.tmp.dfy(207,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon3
-    (0,0): anon7_Else
-out.tmp.dfy(245,24): Error BP5002: A precondition for this call might not hold.
-out.tmp.dfy(226,30): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    out.tmp.dfy(242,19): anon3_Else
-    (0,0): anon2
-out.tmp.dfy(265,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(275,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(285,6): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
-out.tmp.dfy(388,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    out.tmp.dfy(384,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    out.tmp.dfy(384,5): anon8_Else
-    (0,0): anon9_Then
-out.tmp.dfy(414,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
-    (0,0): anon3
-out.tmp.dfy(451,3): Error BP5003: A postcondition might not hold on this return path.
-out.tmp.dfy(445,11): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Else
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon15
-    (0,0): anon25_Else
-out.tmp.dfy(475,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon7
-out.tmp.dfy(480,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(490,4): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
-out.tmp.dfy(498,10): Error BP5003: A postcondition might not hold on this return path.
-out.tmp.dfy(499,41): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-out.tmp.dfy(544,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
-out.tmp.dfy(558,20): Error: left-hand sides 0 and 1 may refer to the same location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon27_Then
-    (0,0): anon28_Then
-    (0,0): anon4
-    (0,0): anon29_Then
-    (0,0): anon30_Then
-    (0,0): anon9
-    (0,0): anon31_Then
-    (0,0): anon32_Then
-    (0,0): anon12
-out.tmp.dfy(560,15): Error: left-hand sides 1 and 2 may refer to the same location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon27_Then
-    out.tmp.dfy(553,17): anon28_Else
-    (0,0): anon4
-    (0,0): anon29_Else
-    (0,0): anon30_Then
-    (0,0): anon9
-    (0,0): anon31_Else
-    (0,0): anon35_Then
-    (0,0): anon36_Then
-    (0,0): anon37_Then
-    (0,0): anon22
-    (0,0): anon38_Then
-out.tmp.dfy(567,25): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(580,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(606,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(625,10): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon9_Then
-    (0,0): anon4
-    (0,0): anon10_Then
-    (0,0): anon7
-out.tmp.dfy(639,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Then
-    (0,0): anon3
-out.tmp.dfy(641,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-out.tmp.dfy(655,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
 
-Dafny program verifier finished with 87 verified, 33 errors
+Dafny program verifier finished with 0 verified, 0 errors
 
 -------------------- LetExpr.dfy --------------------
 LetExpr.dfy(5,12): Error: assertion violation
@@ -2453,15 +2244,38 @@ Execution trace:
     (0,0): anon11_Then
 
 Dafny program verifier finished with 28 verified, 2 errors
-out.tmp.dfy(66,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-out.tmp.dfy(157,21): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 
-Dafny program verifier finished with 28 verified, 2 errors
+Dafny program verifier finished with 0 verified, 0 errors
+
+-------------------- Calculations.dfy --------------------
+Calculations.dfy(3,6): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon24_Then
+Calculations.dfy(8,15): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+Calculations.dfy(8,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+Calculations.dfy(52,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Calculations.dfy(47,3): anon5_Else
+Calculations.dfy(75,15): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+Calculations.dfy(75,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+
+Dafny program verifier finished with 9 verified, 6 errors
+
+Dafny program verifier finished with 0 verified, 0 errors
 
 Dafny program verifier finished with 37 verified, 0 errors
 Compiled assembly into Compilation.exe

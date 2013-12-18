@@ -669,27 +669,34 @@ namespace Microsoft.Dafny {
         }
         wr.WriteLine("{");
         int lineInd = indent + IndentAmount;
-        if (s.Lines.Count > 0) {
-          Indent(lineInd);
-          PrintExpression(s.Lines.First(), lineInd);
-          wr.WriteLine(";");
-        }
-        for (var i = 1; i < s.Lines.Count; i++){
+        int lineCount = s.Lines.Count == 0 ? 0 : s.Lines.Count - 1;  // if nonempty, .Lines always contains a duplicated last line
+        // The number of op/hints is commonly one less than the number of lines, but
+        // it can also equal the number of lines for empty calc's and for calc's with
+        // a dangling hint.
+        int hintCount = s.Lines.Count != 0 && s.Hints.Last().Body.Count == 0 ? lineCount - 1 : lineCount;
+        for (var i = 0; i < lineCount; i++) {
           var e = s.Lines[i];
-          var h = s.Hints[i - 1];
-          var op = s.StepOps[i - 1];
+          var op = s.StepOps[i];
+          var h = s.Hints[i];
+          // print the line
+          Indent(lineInd);
+          PrintExpression(e, lineInd);
+          wr.WriteLine(";");
+          if (i == hintCount) {
+            break;
+          }
+          // print the operator, if any
+          if (!s.Op.Equals(op)) {
+            Indent(indent);  // this lines up with the "calc"
+            PrintCalcOp(op);
+            wr.WriteLine();
+          }
+          // print the hints
           foreach (var st in h.Body) {
             Indent(lineInd);
             PrintStatement(st, lineInd);
             wr.WriteLine();
           }
-          Indent(lineInd);
-          if (!s.Op.Equals(op)) {
-            PrintCalcOp(op);
-            wr.Write(" ");
-          }
-          PrintExpression(e, lineInd);
-          wr.WriteLine(";");
         }
         Indent(indent);
         wr.Write("}");

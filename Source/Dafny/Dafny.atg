@@ -1451,9 +1451,10 @@ CalcStmt<out Statement/*!*/ s>
      Expression/*!*/ e;
      BlockStmt/*!*/ h;
      IToken opTok;
+     IToken danglingOperator = null;
   .)
   "calc"                                                  (. x = t; .)
-  [ CalcOp<out opTok, out calcOp>                         (. maybeOp = calcOp.ResultOp(calcOp); // guard against non-trasitive calcOp (like !=)
+  [ CalcOp<out opTok, out calcOp>                         (. maybeOp = calcOp.ResultOp(calcOp); // guard against non-transitive calcOp (like !=)
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
                                                              }
@@ -1461,26 +1462,32 @@ CalcStmt<out Statement/*!*/ s>
                                                           .)
   ]
   "{"
-  { Expression<out e>                                     (. lines.Add(e); stepOp = calcOp; .)
+  { Expression<out e>                                     (. lines.Add(e); stepOp = calcOp; danglingOperator = null; .)
     ";"
     [ CalcOp<out opTok, out op>                           (. maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
                                                                SemErr(opTok, "this operator cannot continue this calculation");
                                                              } else {
                                                                stepOp = op;
-                                                               resOp = maybeOp;                                                              
+                                                               resOp = maybeOp;
+                                                               danglingOperator = opTok;
                                                              }
                                                           .)
     ]                                                   (. stepOps.Add(stepOp); .)
-    Hint<out h>                                         (. hints.Add(h); .)
+    Hint<out h>                                         (. hints.Add(h);
+                                                           if (h.Body.Count != 0) { danglingOperator = null; }
+                                                        .)
   }
   "}"
   (.
+    if (danglingOperator != null) {
+      SemErr(danglingOperator, "a calculation cannot end with an operator");
+    }
     if (lines.Count > 0) {
-	  // Repeat the last line to create a dummy line for the dangling hint
-	  lines.Add(lines[lines.Count - 1]);
+      // Repeat the last line to create a dummy line for the dangling hint
+      lines.Add(lines[lines.Count - 1]);
     }  
-	s = new CalcStmt(x, calcOp, lines, hints, stepOps, resOp); 
+    s = new CalcStmt(x, calcOp, lines, hints, stepOps, resOp); 
   .)
   .
 CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
