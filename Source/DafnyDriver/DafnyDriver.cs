@@ -97,7 +97,22 @@ namespace Microsoft.Dafny
     static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
+
       ExitValue exitValue = ExitValue.VERIFIED;
+      if (CommandLineOptions.Clo.VerifySeparately && 1 < fileNames.Count)
+      {
+        foreach (var f in fileNames)
+        {
+          Console.WriteLine("\n-------------------- {0} --------------------", f);
+          var ev = ProcessFiles(new List<string> { f });
+          if (exitValue != ev && ev != ExitValue.VERIFIED)
+          {
+            exitValue = ev;
+          }
+        }
+        return exitValue;
+      }
+      
       using (XmlFileScope xf = new XmlFileScope(CommandLineOptions.Clo.XmlSink, fileNames[fileNames.Count-1])) {
         Dafny.Program dafnyProgram;
         string programName = fileNames.Count == 1 ? fileNames[0] : "the program";
