@@ -101,6 +101,7 @@ class Benchmark3 {
       var x := q.Dequeue();
       q.Enqueue(x);
       j := j+1;
+      assert q.contents == old(q.contents)[j..] + old(q.contents)[..j];
     }
 
     m := q.Dequeue();
