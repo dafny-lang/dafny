@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFileName);
         }
 
-        string err = ParseFile(dafnyFileName, null, module, builtIns, new Errors());
+        string err = ParseFile(dafnyFileName, Bpl.Token.NoToken, module, builtIns, new Errors());
         if (err != null) {
           return err;
         }        
