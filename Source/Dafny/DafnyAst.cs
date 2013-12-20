@@ -235,6 +235,7 @@ namespace Microsoft.Dafny {
       }
     }
 
+    [Pure]
     public abstract bool Equals(Type that);
 
     public bool IsSubrangeType {
@@ -1083,6 +1084,27 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Yields all functions and methods that are members of some non-iterator class in the given
+    /// list of declarations, as well as any IteratorDecl's in that list.
+    /// </summary>
+    public static IEnumerable<ICallable> AllItersAndCallables(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          yield return iter;
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          foreach (var member in cl.Members) {
+            var clbl = member as ICallable;
+            if (clbl != null) {
+              yield return clbl;
+            }
+          }
+        }
+      }
+    }
+
     public static IEnumerable<IteratorDecl> AllIteratorDecls(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var iter = d as IteratorDecl;
@@ -1395,6 +1417,7 @@ namespace Microsoft.Dafny {
     public Constructor Member_Init;  // created during registration phase of resolution; its specification is filled in during resolution
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
+    public readonly VarDecl YieldCountVariable;
     public IteratorDecl(IToken iteratorKeywordTok, IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -1435,6 +1458,26 @@ namespace Microsoft.Dafny {
       OutsFields = new List<Field>();
       OutsHistoryFields = new List<Field>();
       DecreasesFields = new List<Field>();
+
+      YieldCountVariable = new VarDecl(tok, tok, "_yieldCount", new EverIncreasingType(), true);
+      YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
+    }
+
+    /// <summary>
+    /// This Dafny type exists only for the purpose of giving the yield-count variable a type, so
+    /// that the type can be recognized during translation of Dafny into Boogie.  It represents
+    /// an integer component in a "decreases" clause whose order is (\lambda x,y :: x GREATER y),
+    /// not the usual (\lambda x,y :: x LESS y AND 0 ATMOST y).
+    /// </summary>
+    public class EverIncreasingType : BasicType
+    {
+      [Pure]
+      public override string TypeName(ModuleDefinition context) {
+        return "_increasingInt";
+      }
+      public override bool Equals(Type that) {
+        return that.Normalize() is EverIncreasingType;
+      }
     }
 
     bool ICodeContext.IsGhost { get { return false; } }
@@ -3097,6 +3140,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<MaybeFreeExpression> Invariants;
     public readonly Specification<Expression> Decreases;
+    public bool InferredDecreases;  // filled in by resolution
     public readonly Specification<FrameExpression> Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -3801,6 +3845,180 @@ namespace Microsoft.Dafny {
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
+    }
+
+    public static IEnumerable<Expression> Conjuncts(Expression expr) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type is BoolType);
+      Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
+
+      // strip off parens
+      while (true) {
+        var pr = expr as ParensExpression;
+        if (pr == null) {
+          break;
+        } else {
+          expr = pr.E;
+        }
+      }
+
+      var bin = expr as BinaryExpr;
+      if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+        foreach (Expression e in Conjuncts(bin.E0)) {
+          yield return e;
+        }
+        foreach (Expression e in Conjuncts(bin.E1)) {
+          yield return e;
+        }
+        yield break;
+      }
+      yield return expr;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 - e1"
+    /// </summary>
+    public static Expression CreateSubtract(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
+      s.Type = Type.Int;  // resolve here
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e + n"
+    /// </summary>
+    public static Expression CreateIncrement(Expression e, int n) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type is IntType);
+      Contract.Requires(0 <= n);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (n == 0) {
+        return e;
+      }
+      var nn = new LiteralExpr(e.tok, n);
+      nn.Type = Type.Int;
+      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Add, e, nn);
+      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
+      p.Type = Type.Int;
+      return p;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e - n"
+    /// </summary>
+    public static Expression CreateDecrement(Expression e, int n) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type is IntType);
+      Contract.Requires(0 <= n);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (n == 0) {
+        return e;
+      }
+      var nn = Expression.CreateIntLiteral(e.tok, n);
+      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, e, nn);
+      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
+      p.Type = Type.Int;
+      return p;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "n"
+    /// </summary>
+    public static Expression CreateIntLiteral(IToken tok, int n) {
+      Contract.Requires(tok != null);
+      Contract.Requires(n != int.MinValue);
+      if (0 <= n) {
+        var nn = new LiteralExpr(tok, n);
+        nn.Type = Type.Int;
+        return nn;
+      } else {
+        return CreateDecrement(CreateIntLiteral(tok, 0), -n);
+      }
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 LESS e1"
+    /// </summary>
+    public static Expression CreateLess(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
+      s.Type = Type.Bool;  // resolve here
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 ATMOST e1"
+    /// </summary>
+    public static Expression CreateAtMost(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
+      s.Type = Type.Bool;  // resolve here
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 && e1"
+    /// </summary>
+    public static Expression CreateAnd(Expression a, Expression b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(a.Type is BoolType && b.Type is BoolType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsTrue(a)) {
+        return b;
+      } else if (LiteralExpr.IsTrue(b)) {
+        return a;
+      } else {
+        var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
+        and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
+        and.Type = Type.Bool;  // resolve here
+        return and;
+      }
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 ==> e1"
+    /// </summary>
+    public static Expression CreateImplies(Expression a, Expression b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(a.Type is BoolType && b.Type is BoolType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b)) {
+        return b;
+      } else {
+        var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
+        imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
+        imp.Type = Type.Bool;  // resolve here
+        return imp;
+      }
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "if test then e0 else e1"
+    /// </summary>
+    public static Expression CreateITE(Expression test, Expression e0, Expression e1) {
+      Contract.Requires(test != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(test.Type is BoolType && e0.Type.Equals(e1.Type));
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var ite = new ITEExpr(test.tok, test, e0, e1);
+      ite.Type = e0.type;  // resolve here
+      return ite;
     }
   }
 

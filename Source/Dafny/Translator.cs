@@ -1413,7 +1413,8 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.AssumeCmd(p.E.tok, etran.TrExpr(p.E)));
       }
       // add the _yieldCount variable, and assume its initial value to be 0
-      yieldCountVariable = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "_yieldCount", Bpl.Type.Int));
+      yieldCountVariable = new Bpl.LocalVariable(iter.tok,
+        new Bpl.TypedIdent(iter.tok, iter.YieldCountVariable.AssignUniqueName(currentDeclaration), TrType(iter.YieldCountVariable.Type)));
       yieldCountVariable.TypedIdent.WhereExpr = YieldCountAssumption(iter, etran);  // by doing this after setting "yieldCountVariable", the variable can be used by YieldCountAssumption
       localVariables.Add(yieldCountVariable);
       builder.Add(new Bpl.AssumeCmd(iter.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable), Bpl.Expr.Literal(0))));
@@ -1967,16 +1968,14 @@ namespace Microsoft.Dafny {
       var k = new IdentifierExpr(pp.tok, pp.K.Name);
       k.Var = pp.K;  // resolve here
       k.Type = pp.K.Type;  // resolve here
-      var kMinusOne = CreateIntSub(pp.tok, k, Resolver.CreateResolvedLiteral(pp.tok, 1));
+      var kMinusOne = Expression.CreateSubtract(k, Expression.CreateIntLiteral(pp.tok, 1));
 
       var s = new PrefixCallSubstituter(null, paramMap, pp.Co, kMinusOne, this);
       body = s.Substitute(body);
 
       // add antecedent "0 < _k ==>"
-      var kIsPositive = new BinaryExpr(pp.tok, BinaryExpr.Opcode.Lt, Resolver.CreateResolvedLiteral(pp.tok, 0), k);
-      kIsPositive.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
-      kIsPositive.Type = Type.Int;  // resolve here
-      return DafnyImp(kIsPositive, body);
+      var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
+      return Expression.CreateImplies(kIsPositive, body);
     }
 
     void AddSynonymAxiom(Function f) {
@@ -2372,11 +2371,11 @@ namespace Microsoft.Dafny {
               var neqNull = new BinaryExpr(receiverReplacement.tok, BinaryExpr.Opcode.Neq, receiverReplacement, nil);
               neqNull.ResolvedOp = BinaryExpr.ResolvedOpcode.NeqCommon;  // resolve here
               neqNull.Type = Type.Bool;  // resolve here
-              parRange = DafnyAnd(parRange, neqNull);
+              parRange = Expression.CreateAnd(parRange, neqNull);
             }
             foreach (var pre in m.Req) {
               if (!pre.IsFree) {
-                parRange = DafnyAnd(parRange, Substitute(pre.E, receiverReplacement, substMap));
+                parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverReplacement, substMap));
               }
             }
             // construct an expression (generator) for:  VF' << VF
@@ -3332,38 +3331,6 @@ namespace Microsoft.Dafny {
       return total;
     }
 
-    Expression DafnyAnd(Expression a, Expression b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-
-      if (LiteralExpr.IsTrue(a)) {
-        return b;
-      } else if (LiteralExpr.IsTrue(b)) {
-        return a;
-      } else {
-        BinaryExpr and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
-        and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
-        and.Type = Type.Bool;  // resolve here
-        return and;
-      }
-    }
-
-    Expression DafnyImp(Expression a, Expression b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-
-      if (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b)) {
-        return b;
-      } else {
-        BinaryExpr imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
-        imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
-        imp.Type = Type.Bool;  // resolve here
-        return imp;
-      }
-    }
-
     Bpl.Expr BplAnd(IEnumerable<Bpl.Expr> conjuncts) {
       Contract.Requires(conjuncts != null);
       Bpl.Expr eq = Bpl.Expr.True;
@@ -3934,88 +3901,6 @@ namespace Microsoft.Dafny {
         CheckSubrange(expr.tok, bResult, resultType, builder);
         builder.Add(new Bpl.AssumeCmd(expr.tok, Bpl.Expr.Eq(result, bResult)));
         builder.Add(new Bpl.AssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
-      }
-    }
-
-    List<Expression> LoopDecreasesWithDefault(IToken tok, Expression Guard, List<Expression> Decreases, out bool inferredDecreases) {
-      Contract.Requires(tok != null);
-      Contract.Requires(Decreases != null);
-
-      List<Expression> theDecreases = Decreases;
-      inferredDecreases = false;
-      if (theDecreases.Count == 0 && Guard != null) {
-        theDecreases = new List<Expression>();
-        Expression prefix = null;
-        foreach (Expression guardConjunct in Conjuncts(Guard)) {
-          Expression guess = null;
-          BinaryExpr bin = guardConjunct as BinaryExpr;
-          if (bin != null) {
-            switch (bin.ResolvedOp) {
-              case BinaryExpr.ResolvedOpcode.Lt:
-              case BinaryExpr.ResolvedOpcode.Le:
-                // for A < B and A <= B, use the decreases B - A
-                guess = CreateIntSub(tok, bin.E1, bin.E0);
-                break;
-              case BinaryExpr.ResolvedOpcode.Ge:
-              case BinaryExpr.ResolvedOpcode.Gt:
-                // for A >= B and A > B, use the decreases A - B
-                guess = CreateIntSub(tok, bin.E0, bin.E1);
-                break;
-              case BinaryExpr.ResolvedOpcode.NeqCommon:
-                if (bin.E0.Type is IntType) {
-                  // for A != B where A and B are integers, use the absolute difference between A and B (that is: if 0 <= A-B then A-B else B-A)
-                  Expression AminusB = CreateIntSub(tok, bin.E0, bin.E1);
-                  Expression BminusA = CreateIntSub(tok, bin.E1, bin.E0);
-                  Expression zero = Resolver.CreateResolvedLiteral(tok, 0);
-                  BinaryExpr test = new BinaryExpr(tok, BinaryExpr.Opcode.Le, zero, AminusB);
-                  test.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
-                  test.Type = Type.Bool;  // resolve here
-                  guess = CreateIntITE(tok, test, AminusB, BminusA);
-                }
-                break;
-              default:
-                break;
-            }
-          }
-          if (guess != null) {
-            if (prefix != null) {
-              // Make the following guess:  if prefix then guess else -1
-              Expression negativeOne = Resolver.CreateResolvedLiteral(tok, -1);
-              guess = CreateIntITE(tok, prefix, guess, negativeOne);
-            }
-            theDecreases.Add(guess);
-            inferredDecreases = true;
-            break;  // ignore any further conjuncts
-          }
-          if (prefix == null) {
-            prefix = guardConjunct;
-          } else {
-            prefix = DafnyAnd(prefix, guardConjunct);
-          }
-        }
-      }
-      if (yieldCountVariable != null) {
-        var decr = new List<Expression>();
-        decr.Add(new BoogieWrapper(new Bpl.IdentifierExpr(tok, yieldCountVariable), new EverIncreasingType()));
-        decr.AddRange(theDecreases);
-        theDecreases = decr;
-      }
-      return theDecreases;
-    }
-
-    /// <summary>
-    /// This Dafny type, which exists only during translation of Dafny into Boogie, represents
-    /// an integer component in a "decreases" clause whose order is (\lambda x,y :: x GREATER y),
-    /// not the usual (\lambda x,y :: x LESS y AND 0 ATMOST y).
-    /// </summary>
-    public class EverIncreasingType : BasicType
-    {
-      [Pure]
-      public override string TypeName(ModuleDefinition context) {
-        return "_increasingInt";
-      }
-      public override bool Equals(Type that) {
-        return that.Normalize() is EverIncreasingType;
       }
     }
 
@@ -4849,7 +4734,7 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Bool;
       } else if (type is IntType) {
         return Bpl.Type.Int;
-      } else if (type is EverIncreasingType) {
+      } else if (type is IteratorDecl.EverIncreasingType) {
         return Bpl.Type.Int;
       } else if (type.IsTypeParameter) {
         return predef.BoxType;
@@ -5551,7 +5436,7 @@ namespace Microsoft.Dafny {
           var g = Substitute(tup.Item2, null, substMap);
           var subrange = SubrangeConstraint(x.tok, guess, x.Type);
           if (subrange != null) {
-            g = CreateAnd(x.tok, subrange, g);
+            g = Expression.CreateAnd(subrange, g);
           }
           result.Add(new Tuple<List<BoundVar>, Expression>(tup.Item1, g));
         }
@@ -5613,7 +5498,7 @@ namespace Microsoft.Dafny {
           if (bound is ComprehensionExpr.IntBoundedPool) {
             var bnd = (ComprehensionExpr.IntBoundedPool)bound;
             if (bnd.LowerBound != null) yield return bnd.LowerBound;
-            if (bnd.UpperBound != null) yield return Resolver.Minus(bnd.UpperBound, 1);
+            if (bnd.UpperBound != null) yield return Expression.CreateDecrement(bnd.UpperBound, 1);
           } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
             var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
             yield return bnd.UpperBound;
@@ -6090,9 +5975,7 @@ namespace Microsoft.Dafny {
       int loopId = loopHeapVarCount;
       loopHeapVarCount++;
 
-      // use simple heuristics to create a default decreases clause, if none is given
-      bool inferredDecreases;
-      List<Expression> theDecreases = LoopDecreasesWithDefault(s.Tok, Guard, s.Decreases.Expressions, out inferredDecreases);
+      var theDecreases = s.Decreases.Expressions;
 
       Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap" + loopId, predef.HeapType));
       locals.Add(preLoopHeapVar);
@@ -6218,7 +6101,7 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
         string msg;
-        if (inferredDecreases) {
+        if (s.InferredDecreases) {
           msg = "cannot prove termination; try supplying a decreases clause for the loop";
           if (s is RefinedWhileStmt) {
             msg += " (note that a refined loop does not inherit 'decreases *' from the refined loop)";
@@ -6508,86 +6391,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Expression CreateIntSub(IToken tok, Expression e0, Expression e1)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-      BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-      s.Type = Type.Int;  // resolve here
-      return s;
-    }
-
-    static Expression CreateIntAtMost(IToken tok, Expression e0, Expression e1) {
-      Contract.Requires(tok != null);
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-      BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.Le, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
-    }
-
-    static Expression CreateAnd(IToken tok, Expression e0, Expression e1) {
-      Contract.Requires(tok != null);
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type is BoolType && e1.Type is BoolType);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-      BinaryExpr s = new BinaryExpr(tok, BinaryExpr.Opcode.And, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
-    }
-
-    static Expression CreateIntITE(IToken tok, Expression test, Expression e0, Expression e1)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(test != null);
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
-      Contract.Requires(test.Type is BoolType && e0.Type is IntType && e1.Type is IntType);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-
-      ITEExpr ite = new ITEExpr(tok, test, e0, e1);
-      ite.Type = Type.Int;  // resolve here
-      return ite;
-    }
-
-    public IEnumerable<Expression> Conjuncts(Expression expr)
-    {
-      Contract.Requires(expr != null);
-      Contract.Requires(expr.Type is BoolType);
-      Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
-
-      // strip off parens
-      while (true) {
-        var pr = expr as ParensExpression;
-        if (pr == null) {
-          break;
-        } else {
-          expr = pr.E;
-        }
-      }
-
-      var bin = expr as BinaryExpr;
-      if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-        foreach (Expression e in Conjuncts(bin.E0)) {
-          yield return e;
-        }
-        foreach (Expression e in Conjuncts(bin.E1)) {
-          yield return e;
-        }
-        yield break;
-      }
-      yield return expr;
-    }
-
     Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(boundVars != null);
       Contract.Requires(builder != null);
@@ -6844,7 +6647,7 @@ namespace Microsoft.Dafny {
           atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
         }
 
-      } else if (ty0 is EverIncreasingType) {
+      } else if (ty0 is IteratorDecl.EverIncreasingType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Gt(e0, e1);
         atmost = Bpl.Expr.Ge(e0, e1);
@@ -7550,7 +7353,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tp != null);
 
       if (tp is NatType) {
-        return CreateIntAtMost(tok, Resolver.CreateResolvedLiteral(tok, 0), e);
+        return Expression.CreateAtMost(Expression.CreateIntLiteral(tok, 0), e);
       }
       return null;
     }

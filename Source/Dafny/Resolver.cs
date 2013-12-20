@@ -159,6 +159,7 @@ namespace Microsoft.Dafny
 
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
+      var origErrorCount = ErrorCount;
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName("_module", prog.DefaultModule, b);
@@ -269,6 +270,10 @@ namespace Microsoft.Dafny
         } else { Contract.Assert(false); }
         Contract.Assert(decl.Signature != null);
       }
+      if (ErrorCount != origErrorCount) {
+        // do nothing else
+        return;
+      }
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var module in prog.Modules) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
@@ -300,7 +305,22 @@ namespace Microsoft.Dafny
           }
         }
       }
+      // fill in default decreases clauses:  for functions and methods, and for loops
       FillInDefaultDecreasesClauses(prog);
+      foreach (var module in prog.Modules) {
+        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+          Statement body = null;
+          if (clbl is Method) {
+            body = ((Method)clbl).Body;
+          } else if (clbl is IteratorDecl) {
+            body = ((IteratorDecl)clbl).Body;
+          }
+          if (body != null) {
+            var c = new FillInDefaultLoopDecreases_Visitor(this, clbl);
+            c.Visit(body);
+          }
+        }
+      }
       foreach (var module in prog.Modules) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
           var tok = iter.IteratorKeywordTok;
@@ -1639,7 +1659,7 @@ namespace Microsoft.Dafny
     #region Visitors
     class ResolverBottomUpVisitor : BottomUpVisitor
     {
-      Resolver resolver;
+      protected Resolver resolver;
       public ResolverBottomUpVisitor(Resolver resolver) {
         Contract.Requires(resolver != null);
         this.resolver = resolver;
@@ -2373,6 +2393,31 @@ namespace Microsoft.Dafny
     }
 
     #endregion CheckEqualityTypes
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- FillInDefaultLoopDecreases ---------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region FillInDefaultLoopDecreases
+    class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor
+    {
+      readonly ICallable EnclosingMethod;
+      public FillInDefaultLoopDecreases_Visitor(Resolver resolver, ICallable enclosingMethod)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(enclosingMethod != null);
+        EnclosingMethod = enclosingMethod;
+      }
+      protected override void VisitOneStmt(Statement stmt) {
+        if (stmt is WhileStmt) {
+          var s = (WhileStmt)stmt;
+          resolver.FillInDefaultLoopDecreases(s, s.Guard, s.Decreases.Expressions, EnclosingMethod);
+        } else if (stmt is AlternativeLoopStmt) {
+          var s = (AlternativeLoopStmt)stmt;
+          resolver.FillInDefaultLoopDecreases(s, null, s.Decreases.Expressions, EnclosingMethod);
+        }
+      }
+    }
+    #endregion FillInDefaultLoopDecreases
 
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
@@ -4233,7 +4278,7 @@ namespace Microsoft.Dafny
           // do not build Result from the lines if there were errors, as it might be ill-typed and produce unnecessary resolution errors
           s.Result = s.ResultOp.StepExpr(s.Lines.First(), s.Lines.Last());
         } else {
-          s.Result = CalcStmt.DefaultOp.StepExpr(CreateResolvedLiteral(s.Tok, 0), CreateResolvedLiteral(s.Tok, 0));
+          s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Tok, 0), Expression.CreateIntLiteral(s.Tok, 0));
         }
         ResolveExpression(s.Result, true, codeContext);
         Contract.Assert(s.Result != null);        
@@ -4339,6 +4384,79 @@ namespace Microsoft.Dafny
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
+      }
+    }
+
+    void FillInDefaultLoopDecreases(LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
+      Contract.Requires(loopStmt != null);
+      Contract.Requires(theDecreases != null);
+
+      if (theDecreases.Count == 0 && guard != null) {
+        loopStmt.InferredDecreases = true;
+        Expression prefix = null;
+        foreach (Expression guardConjunct in Expression.Conjuncts(guard)) {
+          Expression guess = null;
+          BinaryExpr bin = guardConjunct as BinaryExpr;
+          if (bin != null) {
+            switch (bin.ResolvedOp) {
+              case BinaryExpr.ResolvedOpcode.Lt:
+              case BinaryExpr.ResolvedOpcode.Le:
+                // for A < B and A <= B, use the decreases B - A
+                guess = Expression.CreateSubtract(bin.E1, bin.E0);
+                break;
+              case BinaryExpr.ResolvedOpcode.Ge:
+              case BinaryExpr.ResolvedOpcode.Gt:
+                // for A >= B and A > B, use the decreases A - B
+                guess = Expression.CreateSubtract(bin.E0, bin.E1);
+                break;
+              case BinaryExpr.ResolvedOpcode.NeqCommon:
+                if (bin.E0.Type is IntType) {
+                  // for A != B where A and B are integers, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
+                  var AminusB = Expression.CreateSubtract(bin.E0, bin.E1);
+                  var BminusA = Expression.CreateSubtract(bin.E1, bin.E0);
+                  var test = Expression.CreateAtMost(bin.E0, bin.E1);
+                  guess = Expression.CreateITE(test, BminusA, AminusB);
+                }
+                break;
+              default:
+                break;
+            }
+          }
+          if (guess != null) {
+            if (prefix != null) {
+              // Make the following guess:  if prefix then guess else -1
+              guess = Expression.CreateITE(prefix, guess, Expression.CreateIntLiteral(prefix.tok, -1));
+            }
+            theDecreases.Add(guess);
+            break;  // ignore any further conjuncts
+          }
+          if (prefix == null) {
+            prefix = guardConjunct;
+          } else {
+            prefix = Expression.CreateAnd(prefix, guardConjunct);
+          }
+        }
+      }
+      if (enclosingMethod is IteratorDecl) {
+        var iter = (IteratorDecl)enclosingMethod;
+        var ie = new IdentifierExpr(loopStmt.Tok, iter.YieldCountVariable.Name);
+        ie.Var = iter.YieldCountVariable;  // resolve here
+        ie.Type = iter.YieldCountVariable.Type;  // resolve here
+        theDecreases.Insert(0, ie);
+        loopStmt.InferredDecreases = true;
+      }
+      if (loopStmt.InferredDecreases) {
+        string s = "decreases ";
+        if (theDecreases.Count == 0) {
+          s += ";";  // found nothing; indicate this more explicitly by just showing a semi-colon
+        } else {
+          string sep = "";
+          foreach (var d in theDecreases) {
+            s += sep + Printer.ExprToString(d);
+            sep = ", ";
+          }
+        }
+        ReportAdditionalInformation(loopStmt.Tok, s, loopStmt.Tok.val.Length);
       }
     }
     private void ResolveConcreteUpdateStmt(ConcreteUpdateStatement s, bool specContextOnly, ICodeContext codeContext) {
@@ -6715,7 +6833,7 @@ namespace Microsoft.Dafny
             foundBoundsForBv = true;
           }
           // Go through the conjuncts of the range expression to look for bounds.
-          Expression lowerBound = bv.Type is NatType ? Resolver.CreateResolvedLiteral(bv.Tok, 0) : null;
+          Expression lowerBound = bv.Type is NatType ? Expression.CreateIntLiteral(bv.Tok, 0) : null;
           Expression upperBound = null;
           if (returnAllBounds && lowerBound != null) {
             bounds.Add(new ComprehensionExpr.IntBoundedPool(lowerBound, upperBound));
@@ -6771,7 +6889,7 @@ namespace Microsoft.Dafny
               case BinaryExpr.ResolvedOpcode.EqCommon:
                 if (bv.Type is IntType) {
                   var otherOperand = whereIsBv == 0 ? e1 : e0;
-                  bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Plus(otherOperand, 1)));
+                  bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Expression.CreateIncrement(otherOperand, 1)));
                   foundBoundsForBv = true;
                   if (!returnAllBounds) goto CHECK_NEXT_BOUND_VARIABLE;
                 } else if (returnAllBounds && bv.Type is SetType) {
@@ -6787,12 +6905,12 @@ namespace Microsoft.Dafny
                 if (whereIsBv == 0 && upperBound == null) {
                   upperBound = e1;  // bv < E
                 } else if (whereIsBv == 1 && lowerBound == null) {
-                  lowerBound = Plus(e0, 1);  // E < bv
+                  lowerBound = Expression.CreateIncrement(e0, 1);  // E < bv
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.Le:
                 if (whereIsBv == 0 && upperBound == null) {
-                  upperBound = Plus(e1, 1);  // bv <= E
+                  upperBound = Expression.CreateIncrement(e1, 1);  // bv <= E
                 } else if (whereIsBv == 1 && lowerBound == null) {
                   lowerBound = e0;  // E <= bv
                 }
@@ -7061,38 +7179,6 @@ namespace Microsoft.Dafny
         expr = new UnaryExpr(expr.tok, UnaryExpr.Opcode.Not, expr);
         expr.Type = Type.Bool;
         yield return expr;
-      }
-    }
-
-    public static Expression Plus(Expression e, int n) {
-      Contract.Requires(0 <= n);
-
-      var nn = new LiteralExpr(e.tok, n);
-      nn.Type = Type.Int;
-      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Add, e, nn);
-      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
-      p.Type = Type.Int;
-      return p;
-    }
-
-    public static Expression Minus(Expression e, int n) {
-      Contract.Requires(0 <= n);
-
-      var nn = CreateResolvedLiteral(e.tok, n);
-      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, e, nn);
-      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-      p.Type = Type.Int;
-      return p;
-    }
-
-    public static Expression CreateResolvedLiteral(IToken tok, int n) {
-      Contract.Requires(tok != null);
-      if (0 <= n) {
-        var nn = new LiteralExpr(tok, n);
-        nn.Type = Type.Int;
-        return nn;
-      } else {
-        return Minus(CreateResolvedLiteral(tok, 0), -n);
       }
     }
 
