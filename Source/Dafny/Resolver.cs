@@ -303,7 +303,8 @@ namespace Microsoft.Dafny
       FillInDefaultDecreasesClauses(prog);
       foreach (var module in prog.Modules) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
-          ReportAdditionalInformation(iter.tok, Printer.IteratorClassToString(iter), iter.tok.val.Length);
+          var tok = iter.IteratorKeywordTok;
+          ReportAdditionalInformation(tok, Printer.IteratorClassToString(iter), tok.val.Length);
         }
       }
     }
