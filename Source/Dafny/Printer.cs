@@ -36,6 +36,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string IteratorClassToString(IteratorDecl iter) {
+      Contract.Requires(iter != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintIteratorClass(iter, 0);
+        return wr.ToString();
+      }
+    }
+
     public void PrintProgram(Program prog) {
       Contract.Requires(prog != null);
       if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {
@@ -108,10 +117,7 @@ namespace Microsoft.Dafny {
             // also print the members that were created as part of the interpretation of the iterator
             Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
             wr.WriteLine("/*---------- iterator members ----------");
-            PrintClassMethodHelper("class", null, iter.Name, iter.TypeArgs);
-            wr.WriteLine(" {");
-            PrintMembers(iter.Members, indent + IndentAmount);
-            Indent(indent); wr.WriteLine("}");
+            PrintIteratorClass(iter, indent);
             wr.WriteLine("---------- iterator members ----------*/");
           }
 
@@ -162,6 +168,13 @@ namespace Microsoft.Dafny {
           Contract.Assert(false);  // unexpected TopLevelDecl
         }
       }
+    }
+
+    private void PrintIteratorClass(IteratorDecl iter, int indent) {
+      PrintClassMethodHelper("class", null, iter.Name, iter.TypeArgs);
+      wr.WriteLine(" {");
+      PrintMembers(iter.Members, indent + IndentAmount);
+      Indent(indent); wr.WriteLine("}");
     }
 
     public void PrintClass(ClassDecl c, int indent) {

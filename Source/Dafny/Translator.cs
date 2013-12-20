@@ -2385,8 +2385,7 @@ namespace Microsoft.Dafny {
               var decrTypes = new List<Type>();
               var decrCallee = new List<Expr>();
               var decrCaller = new List<Expr>();
-              bool decrInferred;  // we don't actually care
-              foreach (var ee in CallableDecreasesWithDefault(m, out decrInferred)) {
+              foreach (var ee in m.Decreases.Expressions) {
                 decrToks.Add(ee.tok);
                 decrTypes.Add(ee.Type);
                 decrCaller.Add(exprTran.TrExpr(ee));
@@ -3661,9 +3660,8 @@ namespace Microsoft.Dafny {
           ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
           if (module == codeContext.EnclosingModule) {
             if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(codeContext)) {
-              bool contextDecrInferred, calleeDecrInferred;
-              List<Expression> contextDecreases = CallableDecreasesWithDefault(codeContext, out contextDecrInferred);
-              List<Expression> calleeDecreases = CallableDecreasesWithDefault(e.Function, out calleeDecrInferred);
+              List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+              List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
               if (e.Function == options.SelfCallsAllowance) {
                 allowance = Bpl.Expr.True;
                 if (!e.Function.IsStatic) {
@@ -3700,7 +3698,7 @@ namespace Microsoft.Dafny {
                   goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
               }
               CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
-                contextDecrInferred, hint);
+                codeContext.InferredDecreases, hint);
             }
           }
         }
@@ -3931,50 +3929,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Returns true if it is known how to meaningfully compare the type's inhabitants.
-    /// </summary>
-    static bool IsOrdered(Type t) {
-      return !t.IsTypeParameter && !t.IsCoDatatype;
-    }
-
-    List<Expression> CallableDecreasesWithDefault(ICallable m, out bool inferredDecreases)
-    {
-      Contract.Requires(m != null);
-      if (m is Function) {
-        var f = (Function)m;
-        if (f.Reads.Count != 0) {
-          // start the default lexicographic tuple with the reads clause
-          return CallableDecreasesWithDefault(m, FrameToObjectSet(f.Reads), out inferredDecreases);
-        }
-      }
-      return CallableDecreasesWithDefault(m, null, out inferredDecreases);
-    }
-    public static List<Expression> CallableDecreasesWithDefault(ICallable m, Expression firstComponent, out bool inferredDecreases)
-    {
-      Contract.Requires(m != null);
-
-      inferredDecreases = false;
-      List<Expression> decr = m.Decreases.Expressions;
-      if (decr.Count == 0 || (m is PrefixMethod && decr.Count == 1)) {
-        decr = new List<Expression>();
-        if (firstComponent != null) {
-          decr.Add(firstComponent);
-        }
-        foreach (Formal p in m.Ins) {
-          if (IsOrdered(p.Type)) {
-            var ie = new IdentifierExpr(p.tok, p.Name);
-            ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-            decr.Add(ie);
-          }
-        }
-        inferredDecreases = true;
-      } else if (m is IteratorDecl) {
-        inferredDecreases = ((IteratorDecl)m).InferredDecreases;
-      }
-      return decr;
-    }
-
     List<Expression> LoopDecreasesWithDefault(IToken tok, Expression Guard, List<Expression> Decreases, out bool inferredDecreases) {
       Contract.Requires(tok != null);
       Contract.Requires(Decreases != null);
@@ -4054,67 +4008,6 @@ namespace Microsoft.Dafny {
       }
       public override bool Equals(Type that) {
         return that.Normalize() is EverIncreasingType;
-      }
-    }
-
-    Expression FrameToObjectSet(List<FrameExpression> fexprs) {
-      Contract.Requires(fexprs != null);
-      Contract.Ensures(Contract.Result<Expression>() != null);
-
-      List<Expression> sets = new List<Expression>();
-      List<Expression> singletons = null;
-      foreach (FrameExpression fe in fexprs) {
-        Contract.Assert(fe != null);
-        if (fe.E is WildcardExpr) {
-          // drop wildcards altogether
-        } else {
-          Expression e = fe.E;  // keep only fe.E, drop any fe.Field designation
-          Contract.Assert(e.Type != null);  // should have been resolved already
-          if (e.Type.IsRefType) {
-            // e represents a singleton set
-            if (singletons == null) {
-              singletons = new List<Expression>();
-            }
-            singletons.Add(e);
-          } else if (e.Type is SeqType) {
-            // e represents a sequence
-            // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, "_s2s_" + otherTmpVarCount, ((SeqType)e.Type).Arg);
-            otherTmpVarCount++;  // use this counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
-            var bvIE = new IdentifierExpr(e.tok, bv.Name);
-            bvIE.Var = bv;  // resolve here
-            bvIE.Type = bv.Type;  // resolve here
-            var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
-            sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
-            sInE.Type = Type.Bool;  // resolve here
-            var s = new SetComprehension(e.tok, new List<BoundVar>() { bv }, sInE, bvIE);
-            s.Type = new SetType(new ObjectType());  // resolve here
-            sets.Add(s);
-          } else {
-            // e is already a set
-            Contract.Assert(e.Type is SetType);
-            sets.Add(e);
-          }
-        }
-      }
-      if (singletons != null) {
-        Expression display = new SetDisplayExpr(singletons[0].tok, singletons);
-        display.Type = new SetType(new ObjectType());  // resolve here
-        sets.Add(display);
-      }
-      if (sets.Count == 0) {
-        Expression emptyset = new SetDisplayExpr(Token.NoToken, new List<Expression>());
-        emptyset.Type = new SetType(new ObjectType());  // resolve here
-        return emptyset;
-      } else {
-        Expression s = sets[0];
-        for (int i = 1; i < sets.Count; i++) {
-          BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
-          union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-          union.Type = new SetType(new ObjectType());  // resolve here
-          s = union;
-        }
-        return s;
       }
     }
 
@@ -6552,10 +6445,9 @@ namespace Microsoft.Dafny {
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
-        bool contextDecrInferred, calleeDecrInferred;
-        List<Expression> contextDecreases = CallableDecreasesWithDefault(codeContext, out contextDecrInferred);
-        List<Expression> calleeDecreases = CallableDecreasesWithDefault(callee, out calleeDecrInferred);
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, contextDecrInferred, null);
+        List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+        List<Expression> calleeDecreases = callee.Decreases.Expressions;
+        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, etran, etran.Old, builder, codeContext.InferredDecreases, null);
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -10258,8 +10150,7 @@ namespace Microsoft.Dafny {
         // For recursive functions:  arguments are "prominent"
         // For non-recursive function:  arguments are "prominent" if the call is
         var rec = e.Function.IsRecursive && e.CoCall != FunctionCallExpr.CoCallResolution.Yes;
-        bool inferredDecreases;  // we don't actually care
-        var decr = CallableDecreasesWithDefault(e.Function, out inferredDecreases);
+        var decr = e.Function.Decreases.Expressions;
         bool variantArgument;
         if (DafnyOptions.O.InductionHeuristic < 6) {
           variantArgument = rec;
