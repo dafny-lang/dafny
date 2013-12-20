@@ -269,24 +269,183 @@ namespace Microsoft.Dafny
         } else { Contract.Assert(false); }
         Contract.Assert(decl.Signature != null);
       }
-      // compute IsRecursive bit for mutually recursive functions
-      foreach (ModuleDefinition m in prog.Modules) {
-        foreach (var fn in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {
-          if (!fn.IsRecursive) {  // note, self-recursion has already been determined
-            int n = m.CallGraph.GetSCCSize(fn);
-            if (2 <= n) {
-              // the function is mutually recursive (note, the SCC does not determine self recursion)
-              fn.IsRecursive = true;
+      // compute IsRecursive bit for mutually recursive functions and methods
+      foreach (var module in prog.Modules) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
+          if (clbl is Function) {
+            var fn = (Function)clbl;
+            if (!fn.IsRecursive) {  // note, self-recursion has already been determined
+              int n = module.CallGraph.GetSCCSize(fn);
+              if (2 <= n) {
+                // the function is mutually recursive (note, the SCC does not determine self recursion)
+                fn.IsRecursive = true;
+              }
             }
-          }
-          if (fn.IsRecursive && fn is CoPredicate) {
-            // this means the corresponding prefix predicate is also recursive
-            var prefixPred = ((CoPredicate)fn).PrefixPredicate;
-            if (prefixPred != null) {
-              prefixPred.IsRecursive = true;
+            if (fn.IsRecursive && fn is CoPredicate) {
+              // this means the corresponding prefix predicate is also recursive
+              var prefixPred = ((CoPredicate)fn).PrefixPredicate;
+              if (prefixPred != null) {
+                prefixPred.IsRecursive = true;
+              }
+            }
+          } else {
+            var m = (Method)clbl;
+            if (!m.IsRecursive) {  // note, self-recursion has already been determined
+              int n = module.CallGraph.GetSCCSize(m);
+              if (2 <= n) {
+                // the function is mutually recursive (note, the SCC does not determine self recursion)
+                m.IsRecursive = true;
+              }
             }
           }
         }
+      }
+      FillInDefaultDecreasesClauses(prog);
+      foreach (var module in prog.Modules) {
+        foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
+          ReportAdditionalInformation(iter.tok, Printer.IteratorClassToString(iter), iter.tok.val.Length);
+        }
+      }
+    }
+
+    void FillInDefaultDecreasesClauses(Program prog)
+    {
+      Contract.Requires(prog != null);
+
+      foreach (var module in prog.Modules) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
+          ICallable m;
+          string s;
+          if (clbl is CoMethod) {
+            var prefixMethod = ((CoMethod)clbl).PrefixMethod;
+            m = prefixMethod;
+            s = prefixMethod.Name + " ";
+          } else {
+            m = clbl;
+            s = "";
+          }
+          FillInDefaultDecreases(m);
+
+          if (m.InferredDecreases || m is PrefixMethod) {
+            bool showIt = false;
+            if (m is Function) {
+              // show the inferred decreases clause only if it will ever matter, i.e., if the function is recursive
+              showIt = ((Function)m).IsRecursive;
+            } else if (m is PrefixMethod) {
+              // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
+              showIt = true;
+            } else {
+              showIt = ((Method)m).IsRecursive;
+            }
+            if (showIt) {
+              s += "decreases ";
+              if (m.Decreases.Expressions.Count == 0) {
+                s += ";";  // found nothing; indicate this more explicitly by just showing a semi-colon
+              } else {
+                string sep = "";
+                foreach (var d in m.Decreases.Expressions) {
+                  s += sep + Printer.ExprToString(d);
+                  sep = ", ";
+                }
+                // don't bother with a terminating semi-colon
+              }
+              // Note, in the following line, we use the location information for "clbl", not "m".  These
+              // are the same, except in the case where "clbl" is a CoMethod and "m" is a prefix method.
+              ReportAdditionalInformation(clbl.Tok, s, clbl.Tok.val.Length);
+            }
+          }
+        }
+      }
+    }
+
+    void FillInDefaultDecreases(ICallable clbl) {
+      Contract.Requires(clbl != null);
+
+      var decr = clbl.Decreases.Expressions;
+      if (decr.Count == 0 || (clbl is PrefixMethod && decr.Count == 1)) {
+        // The default for a function starts with the function's reads clause, if any
+        if (clbl is Function) {
+          var fn = (Function)clbl;
+          if (fn.Reads.Count != 0) {
+            // start the default lexicographic tuple with the reads clause
+            var r = FrameToObjectSet(fn.Reads);
+            decr.Add(r);
+          }
+        }
+
+        // Add one component for each parameter, unless the parameter's type is one that
+        // doesn't appear useful to orderings.
+        foreach (var p in clbl.Ins) {
+          if (!(p is ImplicitFormal) && p.Type.IsOrdered) {
+            var ie = new IdentifierExpr(p.tok, p.Name);
+            ie.Var = p; ie.Type = p.Type;  // resolve it here
+            decr.Add(ie);
+          }
+        }
+
+        clbl.InferredDecreases = true;
+      }
+    }
+
+    public static Expression FrameToObjectSet(List<FrameExpression> fexprs) {
+      Contract.Requires(fexprs != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+
+      List<Expression> sets = new List<Expression>();
+      List<Expression> singletons = null;
+      int tmpVarCount = 0;
+      foreach (FrameExpression fe in fexprs) {
+        Contract.Assert(fe != null);
+        if (fe.E is WildcardExpr) {
+          // drop wildcards altogether
+        } else {
+          Expression e = fe.E;  // keep only fe.E, drop any fe.Field designation
+          Contract.Assert(e.Type != null);  // should have been resolved already
+          if (e.Type.IsRefType) {
+            // e represents a singleton set
+            if (singletons == null) {
+              singletons = new List<Expression>();
+            }
+            singletons.Add(e);
+          } else if (e.Type is SeqType) {
+            // e represents a sequence
+            // Add:  set x :: x in e
+            var bv = new BoundVar(e.tok, "_s2s_" + tmpVarCount, ((SeqType)e.Type).Arg);
+            tmpVarCount++;
+            var bvIE = new IdentifierExpr(e.tok, bv.Name);
+            bvIE.Var = bv;  // resolve here
+            bvIE.Type = bv.Type;  // resolve here
+            var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
+            sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
+            sInE.Type = Type.Bool;  // resolve here
+            var s = new SetComprehension(e.tok, new List<BoundVar>() { bv }, sInE, bvIE);
+            s.Type = new SetType(new ObjectType());  // resolve here
+            sets.Add(s);
+          } else {
+            // e is already a set
+            Contract.Assert(e.Type is SetType);
+            sets.Add(e);
+          }
+        }
+      }
+      if (singletons != null) {
+        Expression display = new SetDisplayExpr(singletons[0].tok, singletons);
+        display.Type = new SetType(new ObjectType());  // resolve here
+        sets.Add(display);
+      }
+      if (sets.Count == 0) {
+        Expression emptyset = new SetDisplayExpr(Token.NoToken, new List<Expression>());
+        emptyset.Type = new SetType(new ObjectType());  // resolve here
+        return emptyset;
+      } else {
+        Expression s = sets[0];
+        for (int i = 1; i < sets.Count; i++) {
+          BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
+          union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
+          union.Type = new SetType(new ObjectType());  // resolve here
+          s = union;
+        }
+        return s;
       }
     }
 
@@ -574,13 +733,7 @@ namespace Microsoft.Dafny
             iter.Members.Add(field);
           }
           // finally, add special variables to hold the components of the (explicit or implicit) decreases clause
-          bool inferredDecreases;
-          var decr = Translator.CallableDecreasesWithDefault(iter, null, out inferredDecreases);
-          if (inferredDecreases) {
-            iter.InferredDecreases = true;
-            Contract.Assert(iter.Decreases.Expressions.Count == 0);
-            iter.Decreases.Expressions.AddRange(decr);
-          }
+          FillInDefaultDecreases(iter);
           // create the fields; unfortunately, we don't know their types yet, so we'll just insert type proxies for now
           var i = 0;
           foreach (var p in iter.Decreases.Expressions) {
@@ -4565,6 +4718,9 @@ namespace Microsoft.Dafny
             callerModule.CallGraph.AddEdge(((IteratorDecl)caller).Member_MoveNext, callee);
           } else {
             callerModule.CallGraph.AddEdge(caller, callee);
+            if (caller == callee) {
+              callee.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
+            }
           }
         }
       }

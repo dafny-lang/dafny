@@ -169,7 +169,7 @@ namespace DafnyLanguage
             iter.YieldRequires.ForEach(e => ExprRegions(e.E, newRegions, module));
             iter.YieldEnsures.ForEach(e => ExprRegions(e.E, newRegions, module));
             iter.Ensures.ForEach(e => ExprRegions(e.E, newRegions, module));
-            if (!iter.InferredDecreases) {
+            if (!((ICallable)iter).InferredDecreases) {
               iter.Decreases.Expressions.ForEach(e => ExprRegions(e, newRegions, module));
             }
             if (iter.Body != null) {

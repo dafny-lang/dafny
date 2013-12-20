@@ -328,6 +328,13 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
+
+    /// <summary>
+    /// Returns true if it is known how to meaningfully compare the type's inhabitants.
+    /// </summary>
+    public bool IsOrdered {
+      get { return !IsTypeParameter && !IsCoDatatype; }
+    }
   }
 
   /// <summary>
@@ -1054,7 +1061,38 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static IEnumerable<CoMethod> AllCoMethods(List<TopLevelDecl> declarations) {
+    /// <summary>
+    /// Yields all functions and methods that are members of some class in the given list of
+    /// declarations.
+    /// Note, an iterator declaration is a class, in this sense.
+    /// Note, if the given list are the top-level declarations of a module, the yield will include
+    /// co-methods but not their associated prefix methods (which are tucked into the co-method's
+    /// .PrefixMethod field).
+    /// </summary>
+    public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          foreach (var member in cl.Members) {
+            var clbl = member as ICallable;
+            if (clbl != null) {
+              yield return clbl;
+            }
+          }
+        }
+      }
+    }
+
+    public static IEnumerable<IteratorDecl> AllIteratorDecls(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        var iter = d as IteratorDecl;
+        if (iter != null) {
+          yield return iter;
+        }
+      }
+    }
+
+      public static IEnumerable<CoMethod> AllCoMethods(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
         if (cl != null) {
@@ -1301,7 +1339,9 @@ namespace Microsoft.Dafny {
   /// </summary>
   public interface ICallable : ICodeContext
   {
+    IToken Tok { get; }
     Specification<Expression> Decreases { get; }
+    bool InferredDecreases { get; set; }
   }
   /// <summary>
   /// An IMethodCodeContext is a Method or IteratorDecl.
@@ -1340,7 +1380,6 @@ namespace Microsoft.Dafny {
     public readonly Specification<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Modifies;
     public readonly Specification<Expression> Decreases;
-    public bool InferredDecreases;  // fill in during resolution/registration
     public readonly List<MaybeFreeExpression> Requires;
     public readonly List<MaybeFreeExpression> Ensures;
     public readonly List<MaybeFreeExpression> YieldRequires;
@@ -1404,7 +1443,13 @@ namespace Microsoft.Dafny {
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> IMethodCodeContext.Modifies { get { return this.Modifies; } }
+    IToken ICallable.Tok { get { return this.tok; } }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
+    bool _inferredDecr;
+    bool ICallable.InferredDecreases {
+      set { _inferredDecr = value; }
+      get { return _inferredDecr; }
+    }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
   }
@@ -1892,7 +1937,13 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsStatic { get { return this.IsStatic; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Formals; } }
+    IToken ICallable.Tok { get { return this.tok; } }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
+    bool _inferredDecr;
+    bool ICallable.InferredDecreases {
+      set { _inferredDecr = value; }
+      get { return _inferredDecr; }
+    }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.Module; } }
     bool ICodeContext.MustReverify { get { return false; } }
   }
@@ -1982,6 +2033,7 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression> Ens;
     public readonly Specification<Expression> Decreases;
     public BlockStmt Body;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    public bool IsRecursive;  // filled in during resolution
     public bool IsTailRecursive;  // filled in during resolution
 
     [ContractInvariantMethod]
@@ -2032,7 +2084,13 @@ namespace Microsoft.Dafny {
     List<Formal> ICodeContext.Ins { get { return this.Ins; } }
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
+    IToken ICallable.Tok { get { return this.tok; } }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
+    bool _inferredDecr;
+    bool ICallable.InferredDecreases {
+      set { _inferredDecr = value; }
+      get { return _inferredDecr; }
+    }
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
