@@ -4,7 +4,7 @@ setlocal
 set BINARIES=..\..\Binaries
 set DAFNY_EXE=%BINARIES%\Dafny.exe
 
-%DAFNY_EXE% /compile:0 /verifySeparately %* Iter.dfy Streams.dfy Dijkstra.dfy CachedContainer.dfy SimpleInduction.dfy SimpleCoinduction.dfy CalcExample.dfy InductionVsCoinduction.dfy Zip.dfy SetIterations.dfy Paulson.dfy Filter.dfy WideTrees.dfy InfiniteTrees.dfy OpaqueTrees.dfy GenericSort.dfy
+%DAFNY_EXE% /compile:0 /verifySeparately /dprint:out.dfy.tmp %* Iter.dfy Streams.dfy Dijkstra.dfy CachedContainer.dfy SimpleInduction.dfy SimpleCoinduction.dfy CalcExample.dfy InductionVsCoinduction.dfy Zip.dfy SetIterations.dfy Paulson.dfy Filter.dfy WideTrees.dfy InfiniteTrees.dfy OpaqueTrees.dfy GenericSort.dfy
 
 rem for %%f in (
 rem   Iter.dfy Streams.dfy Dijkstra.dfy CachedContainer.dfy
