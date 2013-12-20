@@ -487,10 +487,9 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
      bool signatureOmitted = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     IToken iteratorKeywordTok;
   .)
   SYNC
-  "iterator"                (. iteratorKeywordTok = t; .)
+  "iterator"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   (
@@ -506,7 +505,7 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
   { IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (. iter = new IteratorDecl(iteratorKeywordTok, id, id.val, module, typeArgs, ins, outs,
+  (. iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
                              new Specification<FrameExpression>(reads, readsAttrs),
                              new Specification<FrameExpression>(mod, modAttrs),
                              new Specification<Expression>(decreases, decrAttrs),

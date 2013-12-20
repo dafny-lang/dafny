@@ -55,7 +55,7 @@ namespace Microsoft.Dafny
         var ens = dd.Ensures.ConvertAll(CloneMayBeFreeExpr);
         var yens = dd.YieldEnsures.ConvertAll(CloneMayBeFreeExpr);
         var body = CloneBlockStmt(dd.Body);
-        var iter = new IteratorDecl(Tok(dd.IteratorKeywordTok), Tok(dd.tok), dd.Name, dd.Module,
+        var iter = new IteratorDecl(Tok(dd.tok), dd.Name, dd.Module,
           tps, ins, outs, reads, mod, decr,
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureIsOmitted);

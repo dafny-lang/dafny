@@ -608,8 +608,8 @@ namespace Microsoft.Dafny
       var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
       yens.AddRange(nw.YieldEnsures);
 
-      return new IteratorDecl(new RefinementToken(nw.IteratorKeywordTok, moduleUnderConstruction),
-        new RefinementToken(nw.tok, moduleUnderConstruction), nw.Name, moduleUnderConstruction,
+      return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
+        nw.Name, moduleUnderConstruction,
         nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
         nw.SignatureIsOmitted ? prev.Ins.ConvertAll(refinementCloner.CloneFormal) : nw.Ins,
         nw.SignatureIsOmitted ? prev.Outs.ConvertAll(refinementCloner.CloneFormal) : nw.Outs,

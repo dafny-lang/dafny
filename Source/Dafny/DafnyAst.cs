@@ -1396,7 +1396,6 @@ namespace Microsoft.Dafny {
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext
   {
-    public readonly IToken IteratorKeywordTok;
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
     public readonly Specification<FrameExpression> Reads;
@@ -1418,7 +1417,7 @@ namespace Microsoft.Dafny {
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
     public readonly VarDecl YieldCountVariable;
-    public IteratorDecl(IToken iteratorKeywordTok, IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
+    public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
                         List<MaybeFreeExpression> requires,
@@ -1428,7 +1427,6 @@ namespace Microsoft.Dafny {
                         BlockStmt body, Attributes attributes, bool signatureIsOmitted)
       : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes)
     {
-      Contract.Requires(iteratorKeywordTok != null);
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -1442,7 +1440,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(ensures != null);
       Contract.Requires(yieldRequires != null);
       Contract.Requires(yieldEnsures != null);
-      IteratorKeywordTok = iteratorKeywordTok;
       Ins = ins;
       Outs = outs;
       Reads = reads;

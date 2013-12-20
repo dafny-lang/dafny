@@ -513,11 +513,9 @@ bool SemiFollowsCall(Expression e) {
 		bool signatureOmitted = false;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
-		IToken iteratorKeywordTok;
 		
 		while (!(la.kind == 0 || la.kind == 34)) {SynErr(131); Get();}
 		Expect(34);
-		iteratorKeywordTok = t; 
 		while (la.kind == 8) {
 			Attribute(ref attrs);
 		}
@@ -546,7 +544,7 @@ bool SemiFollowsCall(Expression e) {
 		if (la.kind == 8) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		iter = new IteratorDecl(iteratorKeywordTok, id, id.val, module, typeArgs, ins, outs,
+		iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
 		                       new Specification<FrameExpression>(reads, readsAttrs),
 		                       new Specification<FrameExpression>(mod, modAttrs),
 		                       new Specification<Expression>(decreases, decrAttrs),
