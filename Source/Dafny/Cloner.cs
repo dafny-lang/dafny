@@ -55,7 +55,7 @@ namespace Microsoft.Dafny
         var ens = dd.Ensures.ConvertAll(CloneMayBeFreeExpr);
         var yens = dd.YieldEnsures.ConvertAll(CloneMayBeFreeExpr);
         var body = CloneBlockStmt(dd.Body);
-        var iter = new IteratorDecl(Tok(dd.tok), dd.Name, dd.Module,
+        var iter = new IteratorDecl(Tok(dd.IteratorKeywordTok), Tok(dd.tok), dd.Name, dd.Module,
           tps, ins, outs, reads, mod, decr,
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureIsOmitted);
@@ -370,7 +370,7 @@ namespace Microsoft.Dafny
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Tok(stmt.Tok), stmt.Body.ConvertAll(CloneStmt));
+        return new BlockStmt(Tok(stmt.Tok), Tok(stmt.EndTok), stmt.Body.ConvertAll(CloneStmt));
       }
     }
 
@@ -382,87 +382,87 @@ namespace Microsoft.Dafny
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
+        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
-        r = new AssumeStmt(Tok(s.Tok), CloneExpr(s.Expr), null);
+        r = new AssumeStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
-        r = new PrintStmt(Tok(s.Tok), s.Args.ConvertAll(CloneAttrArg));
+        r = new PrintStmt(Tok(s.Tok), Tok(s.EndTok), s.Args.ConvertAll(CloneAttrArg));
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          r = new BreakStmt(Tok(s.Tok), s.TargetLabel);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel);
         } else {
-          r = new BreakStmt(Tok(s.Tok), s.BreakCount);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakCount);
         }
 
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
-        r = new ReturnStmt(Tok(s.Tok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+        r = new ReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
-        r = new YieldStmt(Tok(s.Tok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
+        r = new YieldStmt(Tok(s.Tok), Tok(s.EndTok), s.rhss == null ? null : s.rhss.ConvertAll(CloneRHS));
 
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        r = new AssignStmt(Tok(s.Tok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
+        r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
 
       } else if (stmt is VarDecl) {
         var s = (VarDecl)stmt;
-        r = new VarDecl(Tok(s.Tok), s.Name, CloneType(s.OptionalType), s.IsGhost);
+        r = new VarDecl(Tok(s.Tok), Tok(s.EndTok), s.Name, CloneType(s.OptionalType), s.IsGhost);
 
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        r = new CallStmt(Tok(s.Tok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName, s.Args.ConvertAll(CloneExpr));
+        r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName, s.Args.ConvertAll(CloneExpr));
 
       } else if (stmt is BlockStmt) {
         r = CloneBlockStmt((BlockStmt)stmt);
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        r = new IfStmt(Tok(s.Tok), CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
+        r = new IfStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), CloneBlockStmt(s.Thn), CloneStmt(s.Els));
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), s.Alternatives.ConvertAll(CloneGuardedAlternative));
+        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative));
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative));
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        r = new ForallStmt(Tok(s.Tok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
+        r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
 
       } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          r = new CalcStmt(Tok(s.Tok), CloneCalcOp(s.Op), s.Lines.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneCalcOp(s.ResultOp));
+          r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.Op), s.Lines.ConvertAll(CloneExpr), s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneCalcOp(s.ResultOp));
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
-        r = new MatchStmt(Tok(s.Tok), CloneExpr(s.Source),
+        r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source),
           s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        r = new AssignSuchThatStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken));
+        r = new AssignSuchThatStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Expr), s.AssumeToken == null ? null : Tok(s.AssumeToken));
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
-        r = new UpdateStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
+        r = new UpdateStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        r = new VarDeclStmt(Tok(s.Tok), s.Lhss.ConvertAll(c => (VarDecl)CloneStmt(c)), (ConcreteUpdateStatement)CloneStmt(s.Update));
+        r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(c => (VarDecl)CloneStmt(c)), (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
@@ -663,7 +663,7 @@ namespace Microsoft.Dafny
               args.Add(CloneExpr(arg));
             }
             var rhs = new CallRhs(Tok(call.Tok), CloneExpr(call.Receiver), call.MethodName + "#", args);
-            var r = new UpdateStmt(Tok(s.Tok), s.Lhss.ConvertAll(CloneExpr), new List<AssignmentRhs>() { rhs }, s.CanMutateKnownState);
+            var r = new UpdateStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), new List<AssignmentRhs>() { rhs }, s.CanMutateKnownState);
             // don't forget to add labels to the cloned statement
             AddStmtLabels(r, stmt.Labels);
             r.Attributes = CloneAttributes(stmt.Attributes);
@@ -683,7 +683,7 @@ namespace Microsoft.Dafny
             foreach (var arg in s.Args) {
               args.Add(CloneExpr(arg));
             }
-            var r = new CallStmt(Tok(s.Tok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName + "#", args);
+            var r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName + "#", args);
             // don't forget to add labels to the cloned statement
             AddStmtLabels(r, stmt.Labels);
             r.Attributes = CloneAttributes(stmt.Attributes);

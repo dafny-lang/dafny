@@ -608,7 +608,8 @@ namespace Microsoft.Dafny
       var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
       yens.AddRange(nw.YieldEnsures);
 
-      return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction), nw.Name, moduleUnderConstruction,
+      return new IteratorDecl(new RefinementToken(nw.IteratorKeywordTok, moduleUnderConstruction),
+        new RefinementToken(nw.tok, moduleUnderConstruction), nw.Name, moduleUnderConstruction,
         nw.SignatureIsOmitted ? prev.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam) : nw.TypeArgs,
         nw.SignatureIsOmitted ? prev.Ins.ConvertAll(refinementCloner.CloneFormal) : nw.Ins,
         nw.SignatureIsOmitted ? prev.Outs.ConvertAll(refinementCloner.CloneFormal) : nw.Outs,
@@ -939,7 +940,8 @@ namespace Microsoft.Dafny
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), attrs)));
+                body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), new Translator.ForceCheckToken(skel.EndTok),
+                  e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), attrs)));
                 i++; j++;
               }
 
@@ -953,7 +955,7 @@ namespace Microsoft.Dafny
               } else {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssumeStmt(skel.Tok, e, attrs));
+                body.Add(new AssumeStmt(skel.Tok, skel.EndTok, e, attrs));
                 i++; j++;
               }
 
@@ -967,7 +969,7 @@ namespace Microsoft.Dafny
               } else {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
-                var r = new IfStmt(skel.Tok, refinementCloner.CloneExpr(oldIf.Guard), resultingThen, resultingElse);
+                var r = new IfStmt(skel.Tok, skel.EndTok, refinementCloner.CloneExpr(oldIf.Guard), resultingThen, resultingElse);
                 body.Add(r);
                 i++; j++;
               }
@@ -1034,7 +1036,8 @@ namespace Microsoft.Dafny
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                body.Add(new AssertStmt(new Translator.ForceCheckToken(addedAssert.tok), addedAssert, null));
+                var tok = new Translator.ForceCheckToken(addedAssert.tok);
+                body.Add(new AssertStmt(tok, tok, addedAssert, null));
               }
             } else {
               MergeAddStatement(cur, body);
@@ -1087,7 +1090,8 @@ namespace Microsoft.Dafny
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
-                stmtGenerated.Add(new AssertStmt(new Translator.ForceCheckToken(addedAssert.tok), addedAssert, null));
+                var tok = new Translator.ForceCheckToken(addedAssert.tok);
+                stmtGenerated.Add(new AssertStmt(tok, tok, addedAssert, null));
               }
             }
             if (doMerge) {
@@ -1103,7 +1107,7 @@ namespace Microsoft.Dafny
             var cNew = (IfStmt)cur;
             var cOld = oldS as IfStmt;
             if (cOld != null && cOld.Guard == null) {
-              var r = new IfStmt(cNew.Tok, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
+              var r = new IfStmt(cNew.Tok, cNew.EndTok, cNew.Guard, MergeBlockStmt(cNew.Thn, cOld.Thn), MergeElse(cNew.Els, cOld.Els));
               body.Add(r);
               i++; j++;
             } else {
@@ -1144,7 +1148,7 @@ namespace Microsoft.Dafny
       for (; j < oldStmt.Body.Count; j++) {
         body.Add(refinementCloner.CloneStmt(oldStmt.Body[j]));
       }
-      return new BlockStmt(skeleton.Tok, body);
+      return new BlockStmt(skeleton.Tok, skeleton.EndTok, body);
     }
 
     private bool LeftHandSidesAgree(List<Expression> old, List<Expression> nw) {
@@ -1255,7 +1259,7 @@ namespace Microsoft.Dafny
 
       var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
       invs.AddRange(cNew.Invariants);
-      var r = new RefinedWhileStmt(cNew.Tok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
+      var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
       return r;
     }
 
@@ -1267,15 +1271,15 @@ namespace Microsoft.Dafny
         return refinementCloner.CloneStmt(oldStmt);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
-        skeleton = new BlockStmt(skeleton.Tok, new List<Statement>() { skeleton });
+        skeleton = new BlockStmt(skeleton.Tok, skeleton.EndTok, new List<Statement>() { skeleton });
       }
 
       if (oldStmt == null) {
         // make it into an empty block statement
-        oldStmt = new BlockStmt(skeleton.Tok, new List<Statement>());
+        oldStmt = new BlockStmt(skeleton.Tok, skeleton.EndTok, new List<Statement>());
       } else if (oldStmt is IfStmt || oldStmt is SkeletonStatement) {
         // wrap a block statement around the if statement
-        oldStmt = new BlockStmt(oldStmt.Tok, new List<Statement>() { oldStmt });
+        oldStmt = new BlockStmt(oldStmt.Tok, skeleton.EndTok, new List<Statement>() { oldStmt });
       }
 
       Contract.Assert(skeleton is BlockStmt && oldStmt is BlockStmt);

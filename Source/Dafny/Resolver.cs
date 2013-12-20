@@ -1219,8 +1219,8 @@ namespace Microsoft.Dafny
             var subst = new CoMethodBodyCloner(com, kMinusOne, this);
             var mainBody = subst.CloneBlockStmt(com.Body);
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
-            var condBody = new IfStmt(com.BodyStartTok, kPositive, mainBody, null);
-            prefixMethod.Body = new BlockStmt(com.tok, new List<Statement>() { condBody });
+            var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, kPositive, mainBody, null);
+            prefixMethod.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
           }
           // The prefix method now has all its components, so it's finally time we resolve it
           currentClass = (ClassDecl)prefixMethod.EnclosingClass;
@@ -3710,7 +3710,7 @@ namespace Microsoft.Dafny
               }
               i++;
             }
-            s.hiddenUpdate = new UpdateStmt(s.Tok, formals, s.rhss, true);
+            s.hiddenUpdate = new UpdateStmt(s.Tok, s.EndTok, formals, s.rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.hiddenUpdate, specContextOnly, codeContext);
           }
@@ -4276,7 +4276,7 @@ namespace Microsoft.Dafny
         } else if (ErrorCount == errorCountBeforeCheckingLhs) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translated properly as multi-assignment)
           for (int i = 0; i < update.Lhss.Count; i++) {
-            var a = new AssignStmt(update.Tok, update.Lhss[i].Resolved, update.Rhss[i]);
+            var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[i].Resolved, update.Rhss[i]);
             update.ResolvedStatements.Add(a);
           }
         }
@@ -4296,7 +4296,7 @@ namespace Microsoft.Dafny
             if (tr.CanAffectPreviouslyKnownExpressions) {
               Error(tr.Tok, "can only have initialization methods which modify at most 'this'.");
             } else if (ErrorCount == errorCountBeforeCheckingLhs) {
-              var a = new AssignStmt(update.Tok, update.Lhss[0].Resolved, tr);
+              var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[0].Resolved, tr);
               update.ResolvedStatements.Add(a);
             }
           }
@@ -4312,7 +4312,7 @@ namespace Microsoft.Dafny
             Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
             Error(update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingLhs) {
-            var a = new AssignStmt(update.Tok, update.Lhss[0].Resolved, update.Rhss[0]);
+            var a = new AssignStmt(update.Tok, update.EndTok, update.Lhss[0].Resolved, update.Rhss[0]);
             update.ResolvedStatements.Add(a);
           }
         } else if (ErrorCount == errorCountBeforeCheckingLhs) {
@@ -4321,7 +4321,7 @@ namespace Microsoft.Dafny
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          var a = new CallStmt(callRhs.Tok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
+          var a = new CallStmt(callRhs.Tok, update.EndTok, resolvedLhss, callRhs.Receiver, callRhs.MethodName, callRhs.Args);
           update.ResolvedStatements.Add(a);
         }
       }
@@ -4924,7 +4924,7 @@ namespace Microsoft.Dafny
             if (rr.Arguments != null) {
               // ---------- new C.Init(EE)
               Contract.Assert(rr.OptionalNameComponent != null);  // if it wasn't non-null from the beginning, the code above would have set it to a non-null value
-              rr.InitCall = new CallStmt(initCallTok, new List<Expression>(), rr.ReceiverArgumentForInitCall, rr.OptionalNameComponent, rr.Arguments);
+              rr.InitCall = new CallStmt(initCallTok, stmt.EndTok, new List<Expression>(), rr.ReceiverArgumentForInitCall, rr.OptionalNameComponent, rr.Arguments);
               ResolveCallStmt(rr.InitCall, specContextOnly, codeContext, rr.EType);
               if (rr.InitCall.Method is Constructor) {
                 callsConstructor = true;

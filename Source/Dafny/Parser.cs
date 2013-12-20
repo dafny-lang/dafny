@@ -113,7 +113,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyExpr = new LiteralExpr(Token.NoToken);
   dummyRhs = new ExprRhs(dummyExpr, null);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
-  dummyStmt = new ReturnStmt(Token.NoToken, null);
+  dummyStmt = new ReturnStmt(Token.NoToken, Token.NoToken, null);
   dummyAttrArg = new Attributes.Argument(Token.NoToken, "dummyAttrArg");
   theModule = module;
   theBuiltIns = builtIns;
@@ -513,9 +513,11 @@ bool SemiFollowsCall(Expression e) {
 		bool signatureOmitted = false;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
+		IToken iteratorKeywordTok;
 		
 		while (!(la.kind == 0 || la.kind == 34)) {SynErr(131); Get();}
 		Expect(34);
+		iteratorKeywordTok = t; 
 		while (la.kind == 8) {
 			Attribute(ref attrs);
 		}
@@ -544,7 +546,7 @@ bool SemiFollowsCall(Expression e) {
 		if (la.kind == 8) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
+		iter = new IteratorDecl(iteratorKeywordTok, id, id.val, module, typeArgs, ins, outs,
 		                       new Specification<FrameExpression>(reads, readsAttrs),
 		                       new Specification<FrameExpression>(mod, modAttrs),
 		                       new Specification<Expression>(decreases, decrAttrs),
@@ -1033,7 +1035,7 @@ bool SemiFollowsCall(Expression e) {
 			Type(out ty);
 			optType = ty; 
 		}
-		var = new VarDecl(id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); 
+		var = new VarDecl(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); 
 	}
 
 	void IdentTypeOptional(out BoundVar/*!*/ var) {
@@ -1268,7 +1270,7 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 		}
 		Expect(9);
 		bodyEnd = t;
-		block = new BlockStmt(bodyStart, body); 
+		block = new BlockStmt(bodyStart, bodyEnd, body); 
 	}
 
 	void MethodSpec(List<MaybeFreeExpression/*!*/>/*!*/ req, List<FrameExpression/*!*/>/*!*/ mod, List<MaybeFreeExpression/*!*/>/*!*/ ens,
@@ -1500,13 +1502,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	}
 
 	void ExpressionX(out Expression/*!*/ e) {
-		Expression e0; 
+		Expression e0; IToken endTok; 
 		Expression(out e);
 		if (SemiFollowsCall(e)) {
 			Expect(7);
+			endTok = t; 
 			ExpressionX(out e0);
 			e = new StmtExpr(e.tok,
-			     new UpdateStmt(e.tok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
+			     new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
 			     e0);
 			
 		}
@@ -1596,7 +1599,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			} else SynErr(173);
 			while (!(la.kind == 0 || la.kind == 7)) {SynErr(174); Get();}
 			Expect(7);
-			s = label != null ? new BreakStmt(x, label) : new BreakStmt(x, breakCount); 
+			s = label != null ? new BreakStmt(x, t, label) : new BreakStmt(x, t, breakCount); 
 			break;
 		}
 		case 51: case 68: {
@@ -1605,7 +1608,6 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		case 37: {
 			SkeletonStmt(out s);
-			Expect(7);
 			break;
 		}
 		default: SynErr(175); break;
@@ -1628,9 +1630,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else SynErr(176);
 		Expect(7);
 		if (e == null) {
-		 s = new SkeletonStatement(new AssertStmt(x, new LiteralExpr(x, true), attrs), true, false);
+		 s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), true, false);
 		} else {
-		 s = new AssertStmt(x, e, attrs);
+		 s = new AssertStmt(x, t, e, attrs);
 		}
 		
 	}
@@ -1649,13 +1651,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 37) {
 			Get();
 		} else SynErr(177);
+		Expect(7);
 		if (e == null) {
-		 s = new SkeletonStatement(new AssumeStmt(x, new LiteralExpr(x, true), attrs), true, false);
+		 s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), true, false);
 		} else {
-		 s = new AssumeStmt(x, e, attrs);
+		 s = new AssumeStmt(x, t, e, attrs);
 		}
 		
-		Expect(7);
 	}
 
 	void PrintStmt(out Statement/*!*/ s) {
@@ -1672,7 +1674,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			args.Add(arg); 
 		}
 		Expect(7);
-		s = new PrintStmt(x, args); 
+		s = new PrintStmt(x, t, args); 
 	}
 
 	void UpdateStmt(out Statement/*!*/ s) {
@@ -1680,7 +1682,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
 		Expression e;  AssignmentRhs r;
 		Expression lhs0;
-		IToken x;
+		IToken x, endTok = Token.NoToken;
 		Attributes attrs = null;
 		IToken suchThatAssume = null;
 		Expression suchThat = null;
@@ -1692,7 +1694,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Attribute(ref attrs);
 			}
 			Expect(7);
-			rhss.Add(new ExprRhs(e, attrs)); 
+			endTok = t; rhss.Add(new ExprRhs(e, attrs)); 
 		} else if (la.kind == 30 || la.kind == 67 || la.kind == 69) {
 			lhss.Add(e);  lhs0 = e; 
 			while (la.kind == 30) {
@@ -1720,17 +1722,18 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Expression(out suchThat);
 			} else SynErr(178);
 			Expect(7);
+			endTok = t; 
 		} else if (la.kind == 6) {
 			Get();
 			SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); 
 		} else SynErr(179);
 		if (suchThat != null) {
-		 s = new AssignSuchThatStmt(x, lhss, suchThat, suchThatAssume);
+		 s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume);
 		} else {
 		 if (lhss.Count == 0 && rhss.Count == 0) {
-		   s = new BlockStmt(x, new List<Statement>()); // error, give empty statement
+		   s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
 		 } else {
-		   s = new UpdateStmt(x, lhss, rhss);
+		   s = new UpdateStmt(x, endTok, lhss, rhss);
 		 }
 		}
 		
@@ -1745,6 +1748,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		IToken suchThatAssume = null;
 		Expression suchThat = null;
 		Attributes attrs = null;
+		IToken endTok;
 		
 		if (la.kind == 24) {
 			Get();
@@ -1790,13 +1794,14 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 		}
 		Expect(7);
+		endTok = t; 
 		ConcreteUpdateStatement update;
 		if (suchThat != null) {
 		 var ies = new List<Expression>();
 		 foreach (var lhs in lhss) {
 		   ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
 		 }
-		 update = new AssignSuchThatStmt(assignTok, ies, suchThat, suchThatAssume);
+		 update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume);
 		} else if (rhss.Count == 0) {
 		 update = null;
 		} else {
@@ -1804,9 +1809,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		 foreach (var lhs in lhss) {
 		   ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
 		 }
-		 update = new UpdateStmt(assignTok, ies, rhss);
+		 update = new UpdateStmt(assignTok, endTok, ies, rhss);
 		}
-		s = new VarDeclStmt(x, lhss, update);
+		s = new VarDeclStmt(x, endTok, lhss, update);
 		
 	}
 
@@ -1817,15 +1822,15 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		BlockStmt/*!*/ bs;
 		Statement/*!*/ s;
 		Statement els = null;
-		IToken bodyStart, bodyEnd;
+		IToken bodyStart, bodyEnd, endTok;
 		List<GuardedAlternative> alternatives;
 		ifStmt = dummyStmt;  // to please the compiler
 		
 		Expect(74);
 		x = t; 
 		if (IsAlternative()) {
-			AlternativeBlock(out alternatives);
-			ifStmt = new AlternativeStmt(x, alternatives); 
+			AlternativeBlock(out alternatives, out endTok);
+			ifStmt = new AlternativeStmt(x, endTok, alternatives); 
 		} else if (StartOf(19)) {
 			if (StartOf(20)) {
 				Guard(out guard);
@@ -1834,20 +1839,21 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				guardOmitted = true; 
 			}
 			BlockStmt(out thn, out bodyStart, out bodyEnd);
+			endTok = thn.EndTok; 
 			if (la.kind == 75) {
 				Get();
 				if (la.kind == 74) {
 					IfStmt(out s);
-					els = s; 
+					els = s; endTok = s.EndTok; 
 				} else if (la.kind == 8) {
 					BlockStmt(out bs, out bodyStart, out bodyEnd);
-					els = bs; 
+					els = bs; endTok = bs.EndTok; 
 				} else SynErr(180);
 			}
 			if (guardOmitted) {
-			 ifStmt = new SkeletonStatement(new IfStmt(x, guard, thn, els), true, false);
+			 ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), true, false);
 			} else {
-			 ifStmt = new IfStmt(x, guard, thn, els);
+			 ifStmt = new IfStmt(x, endTok, guard, thn, els);
 			}
 			
 		} else SynErr(181);
@@ -1862,7 +1868,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Attributes modAttrs = null;
 		List<FrameExpression/*!*/> mod = null;
 		BlockStmt/*!*/ body = null;  bool bodyOmitted = false;
-		IToken bodyStart = null, bodyEnd = null;
+		IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
 		List<GuardedAlternative> alternatives;
 		stmt = dummyStmt;  // to please the compiler
 		
@@ -1870,8 +1876,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		x = t; 
 		if (IsLoopSpecOrAlternative()) {
 			LoopSpec(out invariants, out decreases, out mod, ref decAttrs, ref modAttrs);
-			AlternativeBlock(out alternatives);
-			stmt = new AlternativeLoopStmt(x, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); 
+			AlternativeBlock(out alternatives, out endTok);
+			stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); 
 		} else if (StartOf(19)) {
 			if (StartOf(20)) {
 				Guard(out guard);
@@ -1883,23 +1889,24 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			LoopSpec(out invariants, out decreases, out mod, ref decAttrs, ref modAttrs);
 			if (la.kind == 8) {
 				BlockStmt(out body, out bodyStart, out bodyEnd);
+				endTok = body.EndTok; 
 			} else if (la.kind == 37) {
 				Get();
-				bodyOmitted = true; 
+				bodyOmitted = true; endTok = t; 
 			} else SynErr(182);
 			if (guardOmitted || bodyOmitted) {
 			 if (mod != null) {
 			   SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
 			 }
 			 if (body == null) {
-			   body = new BlockStmt(x, new List<Statement>());
+			   body = new BlockStmt(x, endTok, new List<Statement>());
 			 }
-			 stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
+			 stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
 			 stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
 			} else {
 			 // The following statement protects against crashes in case of parsing errors
-			 body = body ?? new BlockStmt(x, new List<Statement>());
-			 stmt = new WhileStmt(x, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
+			 body = body ?? new BlockStmt(x, endTok, new List<Statement>());
+			 stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
 			}
 			
 		} else SynErr(183);
@@ -1918,7 +1925,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			cases.Add(c); 
 		}
 		Expect(9);
-		s = new MatchStmt(x, e, cases); 
+		s = new MatchStmt(x, t, e, cases); 
 	}
 
 	void ForallStmt(out Statement/*!*/ s) {
@@ -1974,7 +1981,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			ens.Add(new MaybeFreeExpression(e, isFree)); 
 		}
 		BlockStmt(out block, out bodyStart, out bodyEnd);
-		s = new ForallStmt(x, bvars, attrs, range, ens, block); 
+		s = new ForallStmt(x, block.EndTok, bvars, attrs, range, ens, block); 
 	}
 
 	void CalcStmt(out Statement/*!*/ s) {
@@ -2033,7 +2040,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		 // Repeat the last line to create a dummy line for the dangling hint
 		 lines.Add(lines[lines.Count - 1]);
 		}  
-		s = new CalcStmt(x, calcOp, lines, hints, stepOps, resOp); 
+		s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp); 
 		
 	}
 
@@ -2061,9 +2068,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		Expect(7);
 		if (isYield) {
-		 s = new YieldStmt(returnTok, rhss);
+		 s = new YieldStmt(returnTok, t, rhss);
 		} else {
-		 s = new ReturnStmt(returnTok, rhss);
+		 s = new ReturnStmt(returnTok, t, rhss);
 		}
 		
 	}
@@ -2099,7 +2106,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			
 		}
-		s = new SkeletonStatement(dotdotdot, names, exprs); 
+		Expect(7);
+		s = new SkeletonStatement(dotdotdot, t, names, exprs); 
 	}
 
 	void Rhs(out AssignmentRhs r, Expression receiverForInitCall) {
@@ -2185,7 +2193,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 	}
 
-	void AlternativeBlock(out List<GuardedAlternative> alternatives) {
+	void AlternativeBlock(out List<GuardedAlternative> alternatives, out IToken endTok) {
 		alternatives = new List<GuardedAlternative>();
 		IToken x;
 		Expression e;
@@ -2204,6 +2212,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			alternatives.Add(new GuardedAlternative(x, e, body)); 
 		}
 		Expect(9);
+		endTok = t; 
 	}
 
 	void Guard(out Expression e) {
@@ -2431,17 +2440,18 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		BlockStmt/*!*/ block;
 		Statement/*!*/ calc;
 		Token x = la;
+		IToken endTok = x;
 		
 		while (la.kind == 8 || la.kind == 85) {
 			if (la.kind == 8) {
 				BlockStmt(out block, out bodyStart, out bodyEnd);
-				subhints.Add(block); 
+				endTok = block.EndTok; subhints.Add(block); 
 			} else {
 				CalcStmt(out calc);
-				subhints.Add(calc); 
+				endTok = calc.EndTok; subhints.Add(calc); 
 			}
 		}
-		s = new BlockStmt(x, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container 
+		s = new BlockStmt(x, endTok, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container 
 		
 	}
 

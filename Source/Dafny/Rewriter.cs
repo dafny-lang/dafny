@@ -240,7 +240,7 @@ namespace Microsoft.Dafny
             // Repr := {this};
             var e = new SetDisplayExpr(tok, new List<Expression>() { self });
             e.Type = new SetType(new ObjectType());
-            Statement s = new AssignStmt(tok, Repr, new ExprRhs(e));
+            Statement s = new AssignStmt(tok, tok, Repr, new ExprRhs(e));
             s.IsGhost = true;
             bodyStatements.Add(s);
 
@@ -300,13 +300,13 @@ namespace Microsoft.Dafny
           rhs.Type = Repr.Type;  // resolve here
         }
         // Repr := Repr + ...;
-        Statement s = new AssignStmt(tok, Repr, new ExprRhs(rhs));
+        Statement s = new AssignStmt(tok, tok, Repr, new ExprRhs(rhs));
         s.IsGhost = true;
         // wrap if statement around s
         e = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NeqCommon, F, cNull);
-        var thn = new BlockStmt(tok, new List<Statement>() { s });
+        var thn = new BlockStmt(tok, tok, new List<Statement>() { s });
         thn.IsGhost = true;
-        s = new IfStmt(tok, e, thn, null);
+        s = new IfStmt(tok, tok, e, thn, null);
         s.IsGhost = true;
         // finally, add s to the body
         bodyStatements.Add(s);

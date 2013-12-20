@@ -2288,7 +2288,7 @@ namespace Microsoft.Dafny {
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
       List<Variable> localVariables = new List<Variable>();
-      GenerateImplPrelude(m, inParams, outParams, builder, localVariables);
+      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
       
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
@@ -2359,7 +2359,7 @@ namespace Microsoft.Dafny {
                 recursiveCallArgs.Add(ie);
               }
             }
-            var recursiveCall = new CallStmt(m.tok, new List<Expression>(), recursiveCallReceiver, m.Name, recursiveCallArgs);
+            var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), recursiveCallReceiver, m.Name, recursiveCallArgs);
             recursiveCall.Method = m;  // resolve here
             recursiveCall.IsGhost = m.IsGhost;  // resolve here
 
@@ -2450,7 +2450,7 @@ namespace Microsoft.Dafny {
         // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
         // omit the CaptureState if there's no ensures clause)
         if (m.Ens.Count != 0) {
-          builder.Add(CaptureState(m.Ens[0].E.tok, "post-state"));
+          builder.Add(CaptureState(m.Ens[0].E.tok, false, "post-state"));
         }
 
         // check wellformedness of postconditions
@@ -2594,7 +2594,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void GenerateImplPrelude(Method m, List<Variable> inParams, List<Variable> outParams,
+    void GenerateImplPrelude(Method m, bool wellformednessProc, List<Variable> inParams, List<Variable> outParams,
                              Bpl.StmtListBuilder builder, List<Variable> localVariables) {
       Contract.Requires(m != null);
       Contract.Requires(inParams != null);
@@ -2602,10 +2602,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(localVariables != null);
       Contract.Requires(predef != null);
+      Contract.Requires(wellformednessProc || m.Body != null);
 
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
-      builder.Add(CaptureState(m.tok, "initial state"));
+      if (wellformednessProc) {
+        builder.Add(CaptureState(m.tok, false, "initial state"));
+      } else {
+        Contract.Assert(m.Body != null);  // follows from precondition and the if guard
+        // use the position immediately after the open-curly-brace of the body
+        builder.Add(CaptureState(m.Body.Tok, true, "initial state"));
+      }
     }
 
     void GenerateIteratorImplPrelude(IteratorDecl iter, List<Variable> inParams, List<Variable> outParams,
@@ -2624,20 +2631,21 @@ namespace Microsoft.Dafny {
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
-      builder.Add(CaptureState(iter.tok, "initial state"));
+      builder.Add(CaptureState(iter.tok, false, "initial state"));
     }
 
-    Bpl.Cmd CaptureState(IToken tok, string/*?*/ additionalInfo) {
+    Bpl.Cmd CaptureState(IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      string description = string.Format("{0}({1},{2}){3}{4}", tok.filename, tok.line, tok.col, additionalInfo == null ? "" : ": ", additionalInfo ?? "");
+      var col = tok.col + (isEndToken ? tok.val.Length : 0);
+      string description = string.Format("{0}({1},{2}){3}{4}", tok.filename, tok.line, col, additionalInfo == null ? "" : ": ", additionalInfo ?? "");
       QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return new Bpl.AssumeCmd(tok, Bpl.Expr.True, kv);
     }
-    Bpl.Cmd CaptureState(IToken tok) {
-      Contract.Requires(tok != null);
+    Bpl.Cmd CaptureState(Statement stmt) {
+      Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(tok, null);
+      return CaptureState(stmt.EndTok, true, null);
     }
 
     void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, Bpl.StmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name)
@@ -2993,7 +3001,7 @@ namespace Microsoft.Dafny {
       var implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       var locals = new List<Variable>();
       var builder = new Bpl.StmtListBuilder();
-      builder.Add(CaptureState(f.tok, "initial state"));
+      builder.Add(CaptureState(f.tok, false, "initial state"));
 
       // check well-formedness of the preconditions (including termination, but no reads checks), and then
       // assume each one of them
@@ -3614,7 +3622,7 @@ namespace Microsoft.Dafny {
         Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
-          VarDecl local = new VarDecl(p.tok, p.Name, p.Type, p.IsGhost);
+          VarDecl local = new VarDecl(p.tok, p.tok, p.Name, p.Type, p.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
           ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -4547,7 +4555,7 @@ namespace Microsoft.Dafny {
 
       var builder = new Bpl.StmtListBuilder();
       var localVariables = new List<Variable>();
-      GenerateImplPrelude(m, inParams, outParams, builder, localVariables);
+      GenerateImplPrelude(m, true, inParams, outParams, builder, localVariables);
 
       // Generate the call to the refining method
       Method method = methodCheck.Refining;
@@ -4564,7 +4572,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < method.Ins.Count; i++) {
         var p = method.Ins[i];
-        var local = new VarDecl(p.tok, p.Name + "#", p.Type, p.IsGhost);
+        var local = new VarDecl(p.tok, p.tok, p.Name + "#", p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(methodCheck.Refining));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -5209,7 +5217,7 @@ namespace Microsoft.Dafny {
           }
         }
         YieldHavoc(iter.tok, iter, builder, etran);
-        builder.Add(CaptureState(s.Tok));
+        builder.Add(CaptureState(s));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -5270,7 +5278,7 @@ namespace Microsoft.Dafny {
         }
         // End by doing the assume
         builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
-        builder.Add(CaptureState(s.Tok));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
+        builder.Add(CaptureState(s));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -5307,13 +5315,13 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < lhss.Count; i++) {
             lhsBuilder[i](finalRhss[i], builder, etran);
           }
-          builder.Add(CaptureState(s.Tok));
+          builder.Add(CaptureState(s));
         }
 
       } else if (stmt is AssignStmt) {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;
-        TrAssignment(stmt.Tok, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
+        TrAssignment(stmt, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
       } else if (stmt is VarDecl) {
         AddComment(builder, stmt, "var-declaration statement");
         VarDecl s = (VarDecl)stmt;
@@ -5396,7 +5404,7 @@ namespace Microsoft.Dafny {
             TrForallAssign(s, s0, definedness, updater, locals, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
-            builder.Add(CaptureState(stmt.Tok));
+            builder.Add(CaptureState(stmt));
           }
 
         } else if (s.Kind == ForallStmt.ParBodyKind.Call) {
@@ -5412,7 +5420,7 @@ namespace Microsoft.Dafny {
             TrForallStmtCall(s.Tok, s.BoundVars, s.Range, null, s0, definedness, exporter, locals, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
-            builder.Add(CaptureState(stmt.Tok));
+            builder.Add(CaptureState(stmt));
           }
 
         } else if (s.Kind == ForallStmt.ParBodyKind.Proof) {
@@ -5422,7 +5430,7 @@ namespace Microsoft.Dafny {
           TrForallProof(s, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
-          builder.Add(CaptureState(stmt.Tok));
+          builder.Add(CaptureState(stmt));
 
         } else {
           Contract.Assert(false);  // unexpected kind
@@ -6284,7 +6292,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtListBuilder loopBodyBuilder = new Bpl.StmtListBuilder();
-      loopBodyBuilder.Add(CaptureState(s.Tok, "after some loop iterations"));
+      loopBodyBuilder.Add(CaptureState(s.Tok, true, "after some loop iterations"));
       // as the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(new Bpl.AssumeCmd(s.Tok, Bpl.Expr.False));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
@@ -6445,7 +6453,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(initHeap != null);
         RecordNewObjectsIn_New(s.Tok, iter, initHeap, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, builder, locals, etran);
       }
-      builder.Add(CaptureState(s.Tok));
+      builder.Add(CaptureState(s));
     }
 
     void ProcessCallStmt(IToken tok,
@@ -6515,7 +6523,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new VarDecl(formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
+        var local = new VarDecl(formal.tok, formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -6696,7 +6704,7 @@ namespace Microsoft.Dafny {
 
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
-        VarDecl local = new VarDecl(bv.tok, bv.Name, bv.Type, bv.IsGhost);
+        VarDecl local = new VarDecl(bv.tok, bv.tok, bv.Name, bv.Type, bv.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -7201,10 +7209,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
     /// </summary>
-    void TrAssignment(IToken tok, Expression lhs, AssignmentRhs rhs,
+    void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
       Bpl.StmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
-      Contract.Requires(tok != null);
+      Contract.Requires(stmt != null);
       Contract.Requires(lhs != null);
       Contract.Requires(!(lhs is ConcreteSyntaxExpression));
       Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'forall' statements
@@ -7225,7 +7233,7 @@ namespace Microsoft.Dafny {
 
       var rhss = new List<AssignmentRhs>() { rhs };
       ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
-      builder.Add(CaptureState(tok));
+      builder.Add(CaptureState(stmt));
     }
 
     void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,
@@ -10926,17 +10934,17 @@ namespace Microsoft.Dafny {
           return null;
         } else if (stmt is AssertStmt) {
           var s = (AssertStmt)stmt;
-          r = new AssertStmt(s.Tok, Substitute(s.Expr), SubstAttributes(s.Attributes));
+          r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));
         } else if (stmt is AssumeStmt) {
           var s = (AssumeStmt)stmt;
-          r = new AssumeStmt(s.Tok, Substitute(s.Expr), SubstAttributes(s.Attributes));
+          r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
           BreakStmt rr;
           if (s.TargetLabel != null) {
-            rr = new BreakStmt(s.Tok, s.TargetLabel);
+            rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel);
           } else {
-            rr = new BreakStmt(s.Tok, s.BreakCount);
+            rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount);
           }
           // r.TargetStmt will be filled in as later
           List<BreakStmt> breaks;
@@ -10948,30 +10956,30 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
-          r = new AssignStmt(s.Tok, Substitute(s.Lhs), SubstRHS(s.Rhs));
+          r = new AssignStmt(s.Tok, s.EndTok, Substitute(s.Lhs), SubstRHS(s.Rhs));
         } else if (stmt is VarDecl) {
           var s = (VarDecl)stmt;
           var tt = s.OptionalType == null ? null : Resolver.SubstType(s.OptionalType, typeMap);
-          r = new VarDecl(s.Tok, s.Name, tt, s.IsGhost);
+          r = new VarDecl(s.Tok, s.EndTok, s.Name, tt, s.IsGhost);
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          var rr = new CallStmt(s.Tok, s.Lhs.ConvertAll(Substitute), Substitute(s.Receiver), s.MethodName, s.Args.ConvertAll(Substitute));
+          var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), Substitute(s.Receiver), s.MethodName, s.Args.ConvertAll(Substitute));
           rr.Method = s.Method;
           r = rr;
         } else if (stmt is BlockStmt) {
           r = SubstBlockStmt((BlockStmt)stmt);
         } else if (stmt is IfStmt) {
           var s = (IfStmt)stmt;
-          r = new IfStmt(s.Tok, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+          r = new IfStmt(s.Tok, s.EndTok, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
         } else if (stmt is AlternativeStmt) {
           var s = (AlternativeStmt)stmt;
-          r = new AlternativeStmt(s.Tok, s.Alternatives.ConvertAll(SubstGuardedAlternative));
+          r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative));
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
-          r = new WhileStmt(s.Tok, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
+          r = new WhileStmt(s.Tok, s.EndTok, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
-          r = new AlternativeLoopStmt(s.Tok, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative));
+          r = new AlternativeLoopStmt(s.Tok, s.EndTok, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative));
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           var newBoundVars = CreateBoundVarSubstitutions(s.BoundVars);
@@ -10981,35 +10989,35 @@ namespace Microsoft.Dafny {
             substMap.Remove(bv);
           }
           // Put things together
-          var rr = new ForallStmt(s.Tok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
+          var rr = new ForallStmt(s.Tok, s.EndTok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
           rr.Kind = s.Kind;
           r = rr;
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          r = new CalcStmt(s.Tok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp));
+          r = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp));
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          var rr = new MatchStmt(s.Tok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt));
+          var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt));
           rr.MissingCases.AddRange(s.MissingCases);
           r = rr;
         } else if (stmt is AssignSuchThatStmt) {
           var s = (AssignSuchThatStmt)stmt;
-          r = new AssignSuchThatStmt(s.Tok, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken == null ? null : s.AssumeToken);
+          r = new AssignSuchThatStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken == null ? null : s.AssumeToken);
         } else if (stmt is UpdateStmt) {
           var s = (UpdateStmt)stmt;
           var resolved = s.ResolvedStatements;
           UpdateStmt rr;
           if (resolved.Count == 1) {
             // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
-            rr = new UpdateStmt(s.Tok, s.Lhss, s.Rhss, s.CanMutateKnownState);
+            rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss, s.Rhss, s.CanMutateKnownState);
           } else {
-            rr = new UpdateStmt(s.Tok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
+            rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
           }
           rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
           r = rr;
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
-          var rr = new VarDeclStmt(s.Tok, s.Lhss.ConvertAll(c => (VarDecl)SubstStmt(c)), (ConcreteUpdateStatement)SubstStmt(s.Update));
+          var rr = new VarDeclStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(c => (VarDecl)SubstStmt(c)), (ConcreteUpdateStatement)SubstStmt(s.Update));
           rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
           r = rr;
         } else {
@@ -11043,7 +11051,7 @@ namespace Microsoft.Dafny {
       }
 
       protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
-        return stmt == null ? null : new BlockStmt(stmt.Tok, stmt.Body.ConvertAll(SubstStmt));
+        return stmt == null ? null : new BlockStmt(stmt.Tok, stmt.EndTok, stmt.Body.ConvertAll(SubstStmt));
       }
 
       protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
