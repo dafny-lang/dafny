@@ -326,6 +326,21 @@ namespace Microsoft.Dafny
           ReportAdditionalInformation(iter.tok, Printer.IteratorClassToString(iter), iter.Name.Length);
         }
       }
+      // fill in other additional information
+      foreach (var module in prog.Modules) {
+        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+          Statement body = null;
+          if (clbl is Method) {
+            body = ((Method)clbl).Body;
+          } else if (clbl is IteratorDecl) {
+            body = ((IteratorDecl)clbl).Body;
+          }
+          if (body != null) {
+            var c = new ReportOtherAdditionalInformation_Visitor(this);
+            c.Visit(body);
+          }
+        }
+      }
     }
 
     void FillInDefaultDecreasesClauses(Program prog)
@@ -2417,6 +2432,39 @@ namespace Microsoft.Dafny
     #endregion FillInDefaultLoopDecreases
 
     // ------------------------------------------------------------------------------------------------------
+    // ----- ReportMoreAdditionalInformation ----------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+    #region ReportOtherAdditionalInformation_Visitor
+    class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor
+    {
+      public ReportOtherAdditionalInformation_Visitor(Resolver resolver)
+        : base(resolver) {
+        Contract.Requires(resolver != null);
+      }
+      protected override void VisitOneStmt(Statement stmt) {
+        if (stmt is ForallStmt) {
+          var s = (ForallStmt)stmt;
+          if (s.Kind == ForallStmt.ParBodyKind.Call) {
+            var cs = (CallStmt)s.S0;
+            // show the callee's postcondition as the postcondition of the 'forall' statement
+            // TODO:  The following substitutions do not correctly take into consideration variable capture; hence, what the hover text displays may be misleading
+            var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+            Contract.Assert(cs.Method.Ins.Count == cs.Args.Count);
+            for (int i = 0; i < cs.Method.Ins.Count; i++) {
+              argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
+            }
+            var substituter = new Translator.Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), new Translator());
+            foreach (var ens in cs.Method.Ens) {
+              var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
+              resolver.ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(p) + ";", s.Tok.val.Length);
+            }
+          }
+        }
+      }
+    }
+    #endregion ReportOtherAdditionalInformation_Visitor
+
+    // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
 
@@ -4218,10 +4266,14 @@ namespace Microsoft.Dafny
               s.Kind = ForallStmt.ParBodyKind.Assign;
             } else if (s0 is CallStmt) {
               s.Kind = ForallStmt.ParBodyKind.Call;
+              // Additional information (namely, the postcondition of the call) will be reported later. But it cannot be
+              // done yet, because the specification of the callee may not have been resolved yet.
             } else if (s0 is CalcStmt) {
               s.Kind = ForallStmt.ParBodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
-              s.Ens.Add(new MaybeFreeExpression(((CalcStmt)s0).Result, true));
+              var result = ((CalcStmt)s0).Result;
+              s.Ens.Add(new MaybeFreeExpression(result, true));
+              ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(result) + ";", s.Tok.val.Length);
             } else {
               s.Kind = ForallStmt.ParBodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
