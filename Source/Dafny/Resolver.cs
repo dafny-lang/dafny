@@ -323,8 +323,7 @@ namespace Microsoft.Dafny
       }
       foreach (var module in prog.Modules) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
-          var tok = iter.IteratorKeywordTok;
-          ReportAdditionalInformation(tok, Printer.IteratorClassToString(iter), tok.val.Length);
+          ReportAdditionalInformation(iter.tok, Printer.IteratorClassToString(iter), iter.Name.Length);
         }
       }
     }

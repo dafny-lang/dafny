@@ -1242,7 +1242,7 @@ namespace Microsoft.Dafny {
 
       var typeParams = TrTypeParamDecls(iter.TypeArgs);
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.tok, name, typeParams, inParams, outParams, req, mod, ens);
+      var proc = new Bpl.Procedure(iter.tok, name, typeParams, inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
 
       currentModule = null;
       codeContext = null;
@@ -3077,7 +3077,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Implementation impl = new Bpl.Implementation(f.tok, proc.Name,
         typeParams, implInParams, new List<Variable>(),
-        locals, builder.Collect(f.tok));
+        locals, builder.Collect(f.tok), etran.TrAttributes(f.Attributes, null));
       sink.TopLevelDeclarations.Add(impl);
 
       if (InsertChecksums)
@@ -4239,7 +4239,7 @@ namespace Microsoft.Dafny {
 
       var typeParams = TrTypeParamDecls(m.TypeArgs);
       var name = MethodName(m, kind);
-      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens);
+      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
 
       if (InsertChecksums)
       {
@@ -4321,7 +4321,7 @@ namespace Microsoft.Dafny {
       // Generate procedure, and then add it to the sink
       List<TypeVariable> typeParams = TrTypeParamDecls(m.TypeArgs);
       string name = "CheckRefinement$$" + m.FullSanitizedName + "$" + methodCheck.Refining.FullSanitizedName;
-      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new List<Bpl.Ensures>());
+      var proc = new Bpl.Procedure(m.tok, name, typeParams, inParams, outParams, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(m.Attributes, null));
 
       sink.TopLevelDeclarations.Add(proc);
 
@@ -4485,7 +4485,7 @@ namespace Microsoft.Dafny {
         }
       }
       Bpl.Procedure proc = new Bpl.Procedure(function.tok, "CheckIsRefinement$$" + f.FullSanitizedName + "$" + functionCheck.Refining.FullSanitizedName, typeParams, inParams, new List<Variable>(),
-        req, new List<Bpl.IdentifierExpr>(), ens, etran.TrAttributes(f.Attributes, null));
+        req, new List<Bpl.IdentifierExpr>(), ens, etran.TrAttributes(function.Attributes, null));
       sink.TopLevelDeclarations.Add(proc);
 
       List<Variable> implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -4539,7 +4539,7 @@ namespace Microsoft.Dafny {
       }
       Bpl.Implementation impl = new Bpl.Implementation(function.tok, proc.Name,
         typeParams, implInParams, new List<Variable>(),
-        locals, builder.Collect(function.tok));
+        locals, builder.Collect(function.tok), etran.TrAttributes(function.Attributes, null));
       sink.TopLevelDeclarations.Add(impl);
 
       Contract.Assert(currentModule == function.EnclosingClass.Module);
