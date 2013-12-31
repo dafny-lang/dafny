@@ -85,3 +85,74 @@ function F_PreconditionViolation(n: int): int
   L(n);  // error: argument might be negative
   50 / Fact(n)
 }
+
+// --------------------- These had had parsing problems in the past
+
+lemma MyLemma(x: int) {
+  var d: Dtz;
+  if 0 < x {
+    var y: int;
+    match MyLemma(y); d {  // error: cannot prove termination
+      case Cons0(_) =>
+      case Cons1(_) =>
+    }
+  }
+}
+
+function Parsing_Regression_test0(): int
+{
+  var x := 12;
+  assert x < 20;
+  MyLemma(x);
+  calc { x; < x+1; }
+  // and again
+  var x := 12;
+  assert x < 20;
+  MyLemma(x);
+  calc { x; < x+1; }
+  17
+}
+
+datatype Dtz = Cons0(int) | Cons1(bool)
+
+function Parsing_Regression_test1(dtz: Dtz): int
+{
+  match dtz
+  case Cons0(s) =>
+    var x := 12;
+    assert x < 20;
+    MyLemma(x);
+    calc { x; < x+1; }
+    // and again
+    var x := 12;
+    assert x < 20;
+    MyLemma(x);
+    calc { x; < x+1; }
+    17
+  case Cons1(_) =>
+    var x := 12;
+    assert x < 20;
+    MyLemma(x);
+    calc { x; < x+1; }
+    // and again
+    var x := 12;
+    assert x < 20;
+    MyLemma(x);
+    calc { x; < x+1; }
+    19
+}
+
+function Parsing_Regression_test2(): int
+{
+  // parentheses should be allowed anywhere
+  var x := 12;
+  ( assert x < 20;
+    ( MyLemma(x);
+      ( calc { x; < x+1; }
+        ( var x := 12;
+          ( assert x < 20;
+            ( MyLemma(x);
+              ( calc { x; < x+1; }
+                17
+  ) ) ) ) ) ) )
+}

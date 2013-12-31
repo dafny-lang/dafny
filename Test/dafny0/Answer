@@ -1257,8 +1257,12 @@ StatementExpressions.dfy(85,5): Error: value assigned to a nat must be non-negat
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
+StatementExpressions.dfy(95,11): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
 
-Dafny program verifier finished with 13 verified, 4 errors
+Dafny program verifier finished with 17 verified, 5 errors
 
 -------------------- Coinductive.dfy --------------------
 Coinductive.dfy(10,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Rec_Forever' can be constructed

@@ -2525,7 +2525,7 @@ namespace Microsoft.Dafny {
       using (var writer = new System.IO.StringWriter())
       {
         var printer = new Printer(writer);
-        printer.PrintExtendedExpr(e, 0, false, false);
+        printer.PrintExtendedExpr(e, 0, false, false, true);
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
 
@@ -2550,7 +2550,7 @@ namespace Microsoft.Dafny {
         printer.PrintDecreasesSpec(f.Decreases, 0);
         if (!specificationOnly && f.Body != null)
         {
-          printer.PrintExtendedExpr(f.Body, 0, false, false);
+          printer.PrintExtendedExpr(f.Body, 0, false, false, true);
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
@@ -9783,7 +9783,7 @@ namespace Microsoft.Dafny {
 
     List<BoundVar> ApplyInduction(QuantifierExpr e) {
       return ApplyInduction(e.BoundVars, e.Attributes, new List<Expression>() { e.LogicalBody() },
-        delegate(System.IO.TextWriter wr) { new Printer(Console.Out).PrintExpression(e); });
+        delegate(System.IO.TextWriter wr) { new Printer(wr).PrintExpression(e, true); });
     }
 
     delegate void TracePrinter(System.IO.TextWriter wr);
@@ -10688,7 +10688,10 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
-          r = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp));
+          var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.Op), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstCalcOp(s.ResultOp));
+          rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
+          rr.Result = Substitute(s.Result);
+          r = rr;
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
           var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt));

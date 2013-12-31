@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintExpression(expr);
+        pr.PrintExpression(expr, true);
         return wr.ToString();
       }
     }
@@ -276,13 +276,13 @@ namespace Microsoft.Dafny {
         wr.Write(" {{:{0}", a.Name);
         if (a.Args != null)
         {
-          PrintAttributeArgs(a.Args);
+          PrintAttributeArgs(a.Args, false);
         }
         wr.Write("}");
       }
     }
 
-    public void PrintAttributeArgs(List<Attributes.Argument> args) {
+    public void PrintAttributeArgs(List<Attributes.Argument> args, bool isFollowedBySemicolon) {
       Contract.Requires(args != null);
       string prefix = " ";
       foreach (Attributes.Argument arg in args) {
@@ -293,7 +293,7 @@ namespace Microsoft.Dafny {
           wr.Write("\"{0}\"", arg.S);
         } else {
           Contract.Assert( arg.E != null);
-          PrintExpression(arg.E);
+          PrintExpression(arg.E, isFollowedBySemicolon);
         }
       }
     }
@@ -350,7 +350,7 @@ namespace Microsoft.Dafny {
       if (f.Body != null) {
         Indent(indent);
         wr.WriteLine("{");
-        PrintExtendedExpr(f.Body, ind, true, false);
+        PrintExtendedExpr(f.Body, ind, true, false, false);
         Indent(indent);
         wr.WriteLine("}");
       }
@@ -449,7 +449,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e != null);
         Indent(indent);
         wr.Write("{0} ", kind);
-        PrintExpression(e);
+        PrintExpression(e, true);
         wr.WriteLine(";");
       }
     }
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
           PrintAttributes(decs.Attributes);
         }
         wr.Write(" ");
-        PrintExpressionList(decs.Expressions);
+        PrintExpressionList(decs.Expressions, true);
         wr.WriteLine(";");
       }
     }
@@ -499,7 +499,7 @@ namespace Microsoft.Dafny {
         }
 
         wr.Write(" ");
-        PrintExpression(e.E);
+        PrintExpression(e.E, true);
 
         wr.WriteLine(";");
       }
@@ -544,13 +544,13 @@ namespace Microsoft.Dafny {
           PrintAttributes(stmt.Attributes);
         }
         wr.Write(" ");
-        PrintExpression(expr);
+        PrintExpression(expr, true);
         wr.Write(";");
 
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");
-        PrintAttributeArgs(s.Args);
+        PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
       } else if (stmt is BreakStmt) {
@@ -581,7 +581,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
-        PrintExpression(s.Lhs);
+        PrintExpression(s.Lhs, true);
         wr.Write(" := ");
         PrintRhs(s.Rhs);
         wr.Write(";");
@@ -606,13 +606,13 @@ namespace Microsoft.Dafny {
           string sep = "";
           foreach (IdentifierExpr v in s.Lhs) {
             wr.Write(sep);
-            PrintExpression(v);
+            PrintExpression(v, true);
             sep = ", ";
           }
           wr.Write(" := ");
         }
         if (!(s.Receiver is ImplicitThisExpr)) {
-          PrintExpr(s.Receiver, 0x70, false, false, -1);
+          PrintExpr(s.Receiver, 0x70, false, false, true, -1);
           wr.Write(".");
         }
         wr.Write("{0}", s.MethodName);
@@ -693,7 +693,7 @@ namespace Microsoft.Dafny {
           var h = s.Hints[i];
           // print the line
           Indent(lineInd);
-          PrintExpression(e, lineInd);
+          PrintExpression(e, true, lineInd);
           wr.WriteLine(";");
           if (i == hintCount) {
             break;
@@ -717,7 +717,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         wr.Write("match ");
-        PrintExpression(s.Source);
+        PrintExpression(s.Source, false);
         wr.WriteLine(" {");
         int caseInd = indent + IndentAmount;
         foreach (MatchCaseStmt mc in s.Cases) {
@@ -746,7 +746,7 @@ namespace Microsoft.Dafny {
         string sep = "";
         foreach (var lhs in s.Lhss) {
           wr.Write(sep);
-          PrintExpression(lhs);
+          PrintExpression(lhs, true);
           sep = ", ";
         }
         PrintUpdateRHS(s);
@@ -819,7 +819,7 @@ namespace Microsoft.Dafny {
         if (update.AssumeToken != null) {
           wr.Write("assume ");
         }
-        PrintExpression(update.Expr);
+        PrintExpression(update.Expr, true);
       } else {
         Contract.Assert(s == null);  // otherwise, unknown type
       }
@@ -876,7 +876,7 @@ namespace Microsoft.Dafny {
       foreach (var alternative in alternatives) {
         Indent(caseInd);
         wr.Write("case ");
-        PrintExpression(alternative.Guard);
+        PrintExpression(alternative.Guard, false);
         wr.WriteLine(" =>");
         foreach (Statement s in alternative.Body) {
           Indent(caseInd + IndentAmount);
@@ -889,7 +889,7 @@ namespace Microsoft.Dafny {
     void PrintRhs(AssignmentRhs rhs) {
       Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
-        PrintExpression(((ExprRhs)rhs).Expr);
+        PrintExpression(((ExprRhs)rhs).Expr, true);
       } else if (rhs is HavocRhs) {
         wr.Write("*");
       } else if (rhs is TypeRhs) {
@@ -901,7 +901,7 @@ namespace Microsoft.Dafny {
           foreach (Expression dim in t.ArrayDimensions) {
             Contract.Assume(dim != null);
             wr.Write(s);
-            PrintExpression(dim);
+            PrintExpression(dim, false);
             s = ", ";
           }
           wr.Write("]");
@@ -912,13 +912,13 @@ namespace Microsoft.Dafny {
             wr.Write(".{0}", t.OptionalNameComponent);
           }
           wr.Write("(");
-          PrintExpressionList(t.Arguments);
+          PrintExpressionList(t.Arguments, false);
           wr.Write(")");
         }
       } else if (rhs is CallRhs) {
         var r = (CallRhs)rhs;
         if (!(r.Receiver is ImplicitThisExpr)) {
-          PrintExpr(r.Receiver, 0x70, false, false, -1);
+          PrintExpr(r.Receiver, 0x70, false, false, true, -1);
           wr.Write(".");
         }
         wr.Write("{0}", r.MethodName);
@@ -937,7 +937,7 @@ namespace Microsoft.Dafny {
       if (guard == null) {
         wr.Write("*");
       } else {
-        PrintExpression(guard);
+        PrintExpression(guard, false);
       }
     }
 
@@ -946,30 +946,30 @@ namespace Microsoft.Dafny {
       wr.Write(op.ToString());
       if (op is CalcStmt.TernaryCalcOp) {
         wr.Write("[");
-        PrintExpression(((CalcStmt.TernaryCalcOp) op).Index);
+        PrintExpression(((CalcStmt.TernaryCalcOp) op).Index, false);
         wr.Write("]");
       }
     }
 
     // ----------------------------- PrintExpression -----------------------------
 
-    public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen) {
+    public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen, bool isFollowedBySemicolon) {
       Contract.Requires(expr != null);
       Indent(indent);
       if (expr is ITEExpr) {
         while (true) {
           ITEExpr ite = (ITEExpr)expr;
           wr.Write("if ");
-          PrintExpression(ite.Test);
+          PrintExpression(ite.Test, false);
           wr.WriteLine(" then");
-          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false);
+          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false, false);
           expr = ite.Els;
           if (expr is ITEExpr) {
             Indent(indent);  wr.Write("else ");
           } else {
             Indent(indent);  wr.WriteLine("else");
             Indent(indent + IndentAmount);
-            PrintExpression(expr);
+            PrintExpression(expr, isFollowedBySemicolon);
             wr.WriteLine(endWithCloseParen ? ")" : "");
             return;
           }
@@ -977,7 +977,7 @@ namespace Microsoft.Dafny {
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         wr.Write("match ");
-        PrintExpression(me.Source);
+        PrintExpression(me.Source, isFollowedBySemicolon);
         wr.WriteLine();
         int i = 0;
         foreach (MatchCaseExpr mc in me.Cases) {
@@ -998,34 +998,34 @@ namespace Microsoft.Dafny {
           } else {
             wr.WriteLine(" =>");
           }
-          PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, parensNeeded || (isLastCase && endWithCloseParen));
+          PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, parensNeeded || (isLastCase && endWithCloseParen), !parensNeeded && isFollowedBySemicolon);
           i++;
         }
       } else if (expr is ParensExpression) {
-        PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen);
+        PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen, isFollowedBySemicolon);
       } else {
-        PrintExpression(expr, indent);
+        PrintExpression(expr, isFollowedBySemicolon, indent);
         wr.WriteLine(endWithCloseParen ? ")" : "");
       }
     }
 
-    public void PrintExpression(Expression expr) {
+    public void PrintExpression(Expression expr, bool isFollowedBySemicolon) {
       Contract.Requires(expr != null);
-      PrintExpr(expr, 0, false, true, -1);
+      PrintExpr(expr, 0, false, true, isFollowedBySemicolon, - 1);
     }
 
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    public void PrintExpression(Expression expr, int indent) {
+    public void PrintExpression(Expression expr, bool isFollowedBySemicolon, int indent) {
       Contract.Requires(expr != null);
-      PrintExpr(expr, 0, false, true, indent);
+      PrintExpr(expr, 0, false, true, isFollowedBySemicolon, indent);
     }
 
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, int indent)
+    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, bool isFollowedBySemicolon, int indent)
     {
       Contract.Requires(-1 <= indent);
       Contract.Requires(expr != null);
@@ -1054,7 +1054,7 @@ namespace Microsoft.Dafny {
         wr.Write("#{0}.{1}", dtv.DatatypeName, dtv.MemberName);
         if (dtv.Arguments.Count != 0) {
           wr.Write("(");
-          PrintExpressionList(dtv.Arguments);
+          PrintExpressionList(dtv.Arguments, false);
           wr.Write(")");
         }
 
@@ -1062,7 +1062,7 @@ namespace Microsoft.Dafny {
         DisplayExpression e = (DisplayExpression)expr;
         if (e is MultiSetDisplayExpr) wr.Write("multiset");
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "{" : "[");
-        PrintExpressionList(e.Elements);
+        PrintExpressionList(e.Elements, false);
         wr.Write(e is SetDisplayExpr || e is MultiSetDisplayExpr ? "}" : "]");
 
       } else if (expr is MapDisplayExpr) {
@@ -1081,7 +1081,7 @@ namespace Microsoft.Dafny {
 
         if (parensNeeded) { wr.Write("("); }
         if (!(e.Obj is ImplicitThisExpr)) {
-          PrintExpr(e.Obj, opBindingStrength, false, false, -1);
+          PrintExpr(e.Obj, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
         wr.Write(e.SuffixName);
@@ -1097,7 +1097,7 @@ namespace Microsoft.Dafny {
 
         if (parensNeeded) { wr.Write("("); }
         if (!(e.Obj is ImplicitThisExpr)) {
-          PrintExpr(e.Obj, opBindingStrength, false, false, -1);
+          PrintExpr(e.Obj, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
         wr.Write(e.FieldName);
@@ -1111,18 +1111,18 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 0x00, false, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
         wr.Write("[");
         if (e.SelectOne) {
           Contract.Assert( e.E0 != null);
-          PrintExpression(e.E0);
+          PrintExpression(e.E0, false);
         } else {
           if (e.E0 != null) {
-            PrintExpression(e.E0);
+            PrintExpression(e.E0, false);
           }
           wr.Write(e.E0 != null && e.E1 != null ? " .. " : "..");
           if (e.E1 != null) {
-            PrintExpression(e.E1);
+            PrintExpression(e.E1, false);
           }
         }
         wr.Write("]");
@@ -1136,12 +1136,12 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Array, 0x00, false, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Array, 0x00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
         string prefix = "[";
         foreach (Expression idx in e.Indices) {
           Contract.Assert(idx != null);
           wr.Write(prefix);
-          PrintExpression(idx);
+          PrintExpression(idx, false);
           prefix = ", ";
         }
         wr.Write("]");
@@ -1155,11 +1155,11 @@ namespace Microsoft.Dafny {
           (fragileContext && opBindingStrength == contextBindingStrength);
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 00, false, false, indent);  // BOGUS: fix me
+        PrintExpr(e.Seq, 00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
         wr.Write("[");
-        PrintExpression(e.Index);
+        PrintExpression(e.Index, false);
         wr.Write(" := ");
-        PrintExpression(e.Value);
+        PrintExpression(e.Value, false);
         wr.Write("]");
         if (parensNeeded) { wr.Write(")"); }
 
@@ -1173,7 +1173,7 @@ namespace Microsoft.Dafny {
 
         if (parensNeeded) { wr.Write("("); }
         if (!(e.Receiver is ImplicitThisExpr)) {
-          PrintExpr(e.Receiver, opBindingStrength, false, false, -1);
+          PrintExpr(e.Receiver, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1);
           wr.Write(".");
         }
         wr.Write(e.Name);
@@ -1185,24 +1185,24 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         wr.Write("old(");
-        PrintExpression(((OldExpr)expr).E);
+        PrintExpression(((OldExpr)expr).E, false);
         wr.Write(")");
 
       } else if (expr is MultiSetFormingExpr) {
         wr.Write("multiset(");
-        PrintExpression(((MultiSetFormingExpr)expr).E);
+        PrintExpression(((MultiSetFormingExpr)expr).E, false);
         wr.Write(")");
 
       } else if (expr is FreshExpr) {
         wr.Write("fresh(");
-        PrintExpression(((FreshExpr)expr).E);
+        PrintExpression(((FreshExpr)expr).E, false);
         wr.Write(")");
 
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.SeqLength) {
           wr.Write("|");
-          PrintExpression(e.E);
+          PrintExpression(e.E, false);
           wr.Write("|");
         } else {
           // Prefix operator.
@@ -1224,7 +1224,7 @@ namespace Microsoft.Dafny {
 
           if (parensNeeded) { wr.Write("("); }
           wr.Write(op);
-          PrintExpr(e.E, opBindingStrength, containsNestedNot, parensNeeded || isRightmost, -1);
+          PrintExpr(e.E, opBindingStrength, containsNestedNot, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1);
           if (parensNeeded) { wr.Write(")"); }
         }
 
@@ -1275,31 +1275,32 @@ namespace Microsoft.Dafny {
 
         string op = BinaryExpr.OpcodeString(e.Op);
         if (parensNeeded) { wr.Write("("); }
+        var sem = !parensNeeded && isFollowedBySemicolon;
         if (0 <= indent && e.Op == BinaryExpr.Opcode.And) {
-          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, indent);
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, indent);
           wr.WriteLine(" {0}", op);
           Indent(indent);
-          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, indent);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, indent);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Imp) {
-          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, indent);
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, indent);
           wr.WriteLine(" {0}", op);
           int ind = indent + IndentAmount;
           Indent(ind);
-          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, ind);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, ind);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Exp) {
-          PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, indent);
+          PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, indent);
           wr.WriteLine(" {0}", op);
           int ind = indent + IndentAmount;
           Indent(ind);
-          PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, ind);
+          PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, ind);
         } else if (e.Op == BinaryExpr.Opcode.Exp) {
-          PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, -1);
+          PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, -1);
           wr.Write(" {0} ", op);
-          PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
+          PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1);
         } else {
-          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, -1);
+          PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, -1);
           wr.Write(" {0} ", op);
-          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
+          PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1);
         }
         if (parensNeeded) { wr.Write(")"); }
 
@@ -1318,11 +1319,12 @@ namespace Microsoft.Dafny {
               (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
 
             if (parensNeeded) { wr.Write("("); }
-            PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, -1);
+            var sem = !parensNeeded && isFollowedBySemicolon;
+            PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, -1);
             wr.Write(" {0}#[", e.Op == TernaryExpr.Opcode.PrefixEqOp ? "==" : "!=");
-            PrintExpression(e.E0);
+            PrintExpression(e.E0, false);
             wr.Write("] ");
-            PrintExpr(e.E2, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, -1);
+            PrintExpr(e.E2, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1);
             if (parensNeeded) { wr.Write(")"); }
             break;
           default:
@@ -1340,17 +1342,18 @@ namespace Microsoft.Dafny {
           (opBS == ctxtBS && (opBindingStrength != contextBindingStrength || fragileContext));
 
         if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Operands[0], opBindingStrength, true, false, -1);
+        var sem = !parensNeeded && isFollowedBySemicolon;
+        PrintExpr(e.Operands[0], opBindingStrength, true, false, sem, -1);
         for (int i = 0; i < e.Operators.Count; i++) {
           string op = BinaryExpr.OpcodeString(e.Operators[i]);
           if (e.PrefixLimits[i] == null) {
             wr.Write(" {0} ", op);
           } else {
             wr.Write(" {0}#[", op);
-            PrintExpression(e.PrefixLimits[i]);
+            PrintExpression(e.PrefixLimits[i], false);
             wr.Write("] ");
           }
-          PrintExpr(e.Operands[i+1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), -1);
+          PrintExpr(e.Operands[i+1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), sem, -1);
         }
         if (parensNeeded) { wr.Write(")"); }
 
@@ -1370,11 +1373,10 @@ namespace Microsoft.Dafny {
         } else {
           wr.Write(" :| ");
         }
-        PrintExpressionList(e.RHSs);
+        PrintExpressionList(e.RHSs, true);
         wr.Write("; ");
-        PrintExpression(e.Body);
+        PrintExpression(e.Body, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
-
 
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
@@ -1387,16 +1389,16 @@ namespace Microsoft.Dafny {
           int ind = indent + IndentAmount;
           wr.WriteLine();
           Indent(ind);
-          PrintExpression(e.Term, ind);
+          PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon, ind);
         } else {
-          PrintExpression(e.Term);
+          PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         }
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         wr.Write("expr {0}: ", e.Name);
-        PrintExpression(e.Body);
+        PrintExpression(e.Body, isFollowedBySemicolon);
 
        } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -1411,10 +1413,10 @@ namespace Microsoft.Dafny {
         }
         PrintAttributes(e.Attributes);
         wr.Write(" | ");
-        PrintExpression(e.Range);
+        PrintExpression(e.Range, !parensNeeded && isFollowedBySemicolon);
         if (!e.TermIsImplicit) {
           wr.Write(" :: ");
-          PrintExpression(e.Term);
+          PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         }
         if (parensNeeded) { wr.Write(")"); }
 
@@ -1431,9 +1433,9 @@ namespace Microsoft.Dafny {
         }
         PrintAttributes(e.Attributes);
         wr.Write(" | ");
-        PrintExpression(e.Range);
+        PrintExpression(e.Range, !parensNeeded && isFollowedBySemicolon);
         wr.Write(" :: ");
-        PrintExpression(e.Term);
+        PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is WildcardExpr) {
@@ -1441,11 +1443,17 @@ namespace Microsoft.Dafny {
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
-        bool parensNeeded = !isRightmost;
+        bool parensNeeded;
+        if (e.S is AssertStmt || e.S is AssumeStmt || e.S is CalcStmt) {
+          parensNeeded = !isRightmost;
+        } else {
+          parensNeeded = !isRightmost || isFollowedBySemicolon;
+        }
         if (parensNeeded) { wr.Write("("); }
         int ind = indent < 0 ? IndentAmount : indent;  // if the expression was to be printed on one line, instead print the .S part at indentation IndentAmount (not pretty, but something)
         PrintStatement(e.S, ind);
-        PrintExpression(e.E);
+        wr.Write(" ");
+        PrintExpression(e.E, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is ITEExpr) {
@@ -1453,17 +1461,17 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("if ");
-        PrintExpression(ite.Test);
+        PrintExpression(ite.Test, false);
         wr.Write(" then ");
-        PrintExpression(ite.Thn);
+        PrintExpression(ite.Thn, false);
         wr.Write(" else ");
-        PrintExpression(ite.Els);
+        PrintExpression(ite.Els, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
         // printing of parentheses is done optimally, not according to the parentheses in the given program
-        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, indent);
+        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
 
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
@@ -1483,7 +1491,7 @@ namespace Microsoft.Dafny {
       } else if (expr is BoxingCastExpr) {
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
         var e = (BoxingCastExpr)expr;
-        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, indent);
+        PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
       } else if (expr is Translator.BoogieWrapper) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
       } else {
@@ -1502,7 +1510,7 @@ namespace Microsoft.Dafny {
       PrintAttributes(attrs);
       if (range != null) {
         wr.Write(" | ");
-        PrintExpression(range);
+        PrintExpression(range, false);
       }
     }
 
@@ -1511,23 +1519,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       if (name.EndsWith("#")) {
         wr.Write("[");
-        PrintExpression(args[0]);
+        PrintExpression(args[0], false);
         wr.Write("]");
         args = new List<Expression>(args.Skip(1));
       }
       wr.Write("(");
-      PrintExpressionList(args);
+      PrintExpressionList(args, false);
       wr.Write(")");
     }
 
-    void PrintExpressionList(List<Expression> exprs) {
+    void PrintExpressionList(List<Expression> exprs, bool isFollowedBySemicolon) {
       Contract.Requires(exprs != null);
       string sep = "";
       foreach (Expression e in exprs) {
         Contract.Assert(e != null);
         wr.Write(sep);
         sep = ", ";
-        PrintExpression(e);
+        PrintExpression(e, isFollowedBySemicolon);
       }
     }
     void PrintExpressionPairList(List<ExpressionPair> exprs) {
@@ -1537,9 +1545,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(p != null);
         wr.Write(sep);
         sep = ", ";
-        PrintExpression(p.A);
+        PrintExpression(p.A, false);
         wr.Write(":=");
-        PrintExpression(p.B);
+        PrintExpression(p.B, false);
       }
     }
 
@@ -1550,7 +1558,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(fe != null);
         wr.Write(sep);
         sep = ", ";
-        PrintExpression(fe.E);
+        PrintExpression(fe.E, true);
         if (fe.FieldName != null) {
           wr.Write("`{0}", fe.FieldName);
         }

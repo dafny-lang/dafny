@@ -360,16 +360,14 @@ namespace Microsoft.Dafny
             }
             if (showIt) {
               s += "decreases ";
-              if (m.Decreases.Expressions.Count == 0) {
-                s += ";";  // found nothing; indicate this more explicitly by just showing a semi-colon
-              } else {
+              if (m.Decreases.Expressions.Count != 0) {
                 string sep = "";
                 foreach (var d in m.Decreases.Expressions) {
                   s += sep + Printer.ExprToString(d);
                   sep = ", ";
                 }
-                // don't bother with a terminating semi-colon
               }
+              s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
               // Note, in the following line, we use the location information for "clbl", not "m".  These
               // are the same, except in the case where "clbl" is a CoMethod and "m" is a prefix method.
               ReportAdditionalInformation(clbl.Tok, s, clbl.Tok.val.Length);
@@ -4447,15 +4445,14 @@ namespace Microsoft.Dafny
       }
       if (loopStmt.InferredDecreases) {
         string s = "decreases ";
-        if (theDecreases.Count == 0) {
-          s += ";";  // found nothing; indicate this more explicitly by just showing a semi-colon
-        } else {
+        if (theDecreases.Count != 0) {
           string sep = "";
           foreach (var d in theDecreases) {
             s += sep + Printer.ExprToString(d);
             sep = ", ";
           }
         }
+        s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
         ReportAdditionalInformation(loopStmt.Tok, s, loopStmt.Tok.val.Length);
       }
     }
