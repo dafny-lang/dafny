@@ -350,7 +350,7 @@ namespace Microsoft.Dafny {
       if (f.Body != null) {
         Indent(indent);
         wr.WriteLine("{");
-        PrintExtendedExpr(f.Body, ind, true, false, false);
+        PrintExtendedExpr(f.Body, ind, true, false);
         Indent(indent);
         wr.WriteLine("}");
       }
@@ -953,35 +953,42 @@ namespace Microsoft.Dafny {
 
     // ----------------------------- PrintExpression -----------------------------
 
-    public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen, bool isFollowedBySemicolon) {
+    /// <summary>
+    /// PrintExtendedExpr prints an expression, but formats top-level if-then-else and match expressions across several lines.
+    /// Its intended use is thus to print the body of a function.
+    /// </summary>
+    public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen) {
       Contract.Requires(expr != null);
-      Indent(indent);
       if (expr is ITEExpr) {
+        Indent(indent);
         while (true) {
-          ITEExpr ite = (ITEExpr)expr;
+          var ite = (ITEExpr)expr;
           wr.Write("if ");
           PrintExpression(ite.Test, false);
           wr.WriteLine(" then");
-          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false, false);
+          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false);
           expr = ite.Els;
           if (expr is ITEExpr) {
             Indent(indent);  wr.Write("else ");
           } else {
             Indent(indent);  wr.WriteLine("else");
             Indent(indent + IndentAmount);
-            PrintExpression(expr, isFollowedBySemicolon);
+            PrintExpression(expr, isRightmost, false);
             wr.WriteLine(endWithCloseParen ? ")" : "");
             return;
           }
         }
       } else if (expr is MatchExpr) {
-        MatchExpr me = (MatchExpr)expr;
+        var e = (MatchExpr)expr;
+        Indent(indent);
+        var parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
         wr.Write("match ");
-        PrintExpression(me.Source, isFollowedBySemicolon);
-        wr.WriteLine();
+        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
+        if (parensNeeded && e.Cases.Count == 0) { wr.WriteLine(")"); } else { wr.WriteLine(); }
         int i = 0;
-        foreach (MatchCaseExpr mc in me.Cases) {
-          bool isLastCase = i == me.Cases.Count - 1;
+        foreach (var mc in e.Cases) {
+          bool isLastCase = i == e.Cases.Count - 1;
           Indent(indent);
           wr.Write("case {0}", mc.Id);
           if (mc.Arguments.Count != 0) {
@@ -992,26 +999,27 @@ namespace Microsoft.Dafny {
             }
             wr.Write(")");
           }
-          bool parensNeeded = !isLastCase && mc.Body.WasResolved() && mc.Body.Resolved is MatchExpr;
-          if (parensNeeded) {
-            wr.WriteLine(" => (");
-          } else {
-            wr.WriteLine(" =>");
-          }
-          PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, parensNeeded || (isLastCase && endWithCloseParen), !parensNeeded && isFollowedBySemicolon);
+          wr.WriteLine(" =>");
+          PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
           i++;
         }
       } else if (expr is ParensExpression) {
-        PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen, isFollowedBySemicolon);
+        PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen);
       } else {
-        PrintExpression(expr, isFollowedBySemicolon, indent);
+        Indent(indent);
+        PrintExpression(expr, false, indent);
         wr.WriteLine(endWithCloseParen ? ")" : "");
       }
     }
 
     public void PrintExpression(Expression expr, bool isFollowedBySemicolon) {
       Contract.Requires(expr != null);
-      PrintExpr(expr, 0, false, true, isFollowedBySemicolon, - 1);
+      PrintExpr(expr, 0, false, true, isFollowedBySemicolon, -1);
+    }
+
+    public void PrintExpression(Expression expr, bool isRightmost, bool isFollowedBySemicolon) {
+      Contract.Requires(expr != null);
+      PrintExpr(expr, 0, false, isRightmost, isFollowedBySemicolon, -1);
     }
 
     /// <summary>
@@ -1487,7 +1495,29 @@ namespace Microsoft.Dafny {
         }
 
       } else if (expr is MatchExpr) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // MatchExpr is an extended expression and should be printed only using PrintExtendedExpr
+        var e = (MatchExpr)expr;
+        var parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("match ");
+        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
+        int i = 0;
+        foreach (var mc in e.Cases) {
+          bool isLastCase = i == e.Cases.Count - 1;
+          wr.Write(" case {0}", mc.Id);
+          if (mc.Arguments.Count != 0) {
+            string sep = "(";
+            foreach (BoundVar bv in mc.Arguments) {
+              wr.Write("{0}{1}", sep, bv.DisplayName);
+              sep = ", ";
+            }
+            wr.Write(")");
+          }
+          wr.Write(" => ");
+          PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
+          i++;
+        }
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is BoxingCastExpr) {
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
         var e = (BoxingCastExpr)expr;

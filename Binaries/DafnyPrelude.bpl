@@ -479,6 +479,7 @@ axiom (forall<U, V> m: Map U V, m': Map U V ::
 // ---------------------------------------------------------------
 
 type BoxType;
+const $ArbitraryBoxValue: BoxType;
 
 function $Box<T>(T): BoxType;
 function $Unbox<T>(BoxType): T;

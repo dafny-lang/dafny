@@ -2525,7 +2525,7 @@ namespace Microsoft.Dafny {
       using (var writer = new System.IO.StringWriter())
       {
         var printer = new Printer(writer);
-        printer.PrintExtendedExpr(e, 0, false, false, true);
+        printer.PrintExpression(e, false);
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
 
@@ -2550,7 +2550,7 @@ namespace Microsoft.Dafny {
         printer.PrintDecreasesSpec(f.Decreases, 0);
         if (!specificationOnly && f.Body != null)
         {
-          printer.PrintExtendedExpr(f.Body, 0, false, false, true);
+          printer.PrintExpression(f.Body, false);
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
@@ -3313,6 +3313,10 @@ namespace Microsoft.Dafny {
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var ite = etran.DesugarMatchExpr(e);
+        return CanCallAssumption(ite, etran);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -7832,8 +7836,21 @@ namespace Microsoft.Dafny {
       public Bpl.IdentifierExpr Tick() {
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>().Type != null);
-
         return new Bpl.IdentifierExpr(Token.NoToken, "$Tick", predef.TickType);
+      }
+
+      public Bpl.IdentifierExpr ArbitraryBoxValue() {
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
+        return new Bpl.IdentifierExpr(Token.NoToken, "$ArbitraryBoxValue", predef.BoxType);
+      }
+      public Bpl.Expr ArbitraryValue(Type type) {
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        var bx = ArbitraryBoxValue();
+        if (!ModeledAsBoxType(type)) {
+          return translator.FunctionCall(Token.NoToken, BuiltinFunction.Unbox, translator.TrType(type), bx);
+        } else {
+          return bx;
+        }
       }
 
       public Bpl.Expr LayerZero() {
@@ -8490,6 +8507,11 @@ namespace Microsoft.Dafny {
           Bpl.Expr els = TrExpr(e.Els);
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
 
+        } else if (expr is MatchExpr) {
+          var e = (MatchExpr)expr;
+          var ite = DesugarMatchExpr(e);
+          return TrExpr(ite);
+
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
@@ -8505,6 +8527,54 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
+      }
+
+      public Expression DesugarMatchExpr(MatchExpr e) {
+        Contract.Requires(e != null);
+        // Translate:
+        //   match S
+        //   case C(i, j) => X
+        //   case D(k, l) => Y
+        //   case E(m, n) => Z
+        // into:
+        //   if S.C? then
+        //     X[i,j := S.dC0, S.dC1]
+        //   else if S.D? then
+        //     Y[k,l := S.dD0, S.dD1]
+        //   else
+        //     Z[m,n := S.dE0, S.dE1]
+        // As a special case, when there are no cases at all (which, in a correct program, means the
+        // match expression is unreachable), the translation is:
+        //   t
+        // where is "t" is some value (in particular, the default value) of the expected type.
+        Expression r = null;
+        for (int i = e.Cases.Count; 0 <= --i; ) {
+          var mc = e.Cases[i];
+          var substMap = new Dictionary<IVariable, Expression>();
+          var argIndex = 0;
+          foreach (var bv in mc.Arguments) {
+            if (!VarDecl.HasWildcardName(bv)) {
+              var dtor = mc.Ctor.Destructors[argIndex];
+              var dv = new FieldSelectExpr(bv.tok, e.Source, dtor.Name);
+              dv.Field = dtor;  // resolve here
+              dv.Type = bv.Type;  // resolve here
+              substMap.Add(bv, dv);
+            }
+            argIndex++;
+          }
+          var c = translator.Substitute(mc.Body, null, substMap);
+          if (r == null) {
+            r = c;
+          } else {
+            var test = new FieldSelectExpr(mc.tok, e.Source, mc.Ctor.QueryField.Name);
+            test.Field = mc.Ctor.QueryField;  // resolve here
+            test.Type = Type.Bool;  // resolve here
+            var ite = new ITEExpr(mc.tok, test, c, r);
+            ite.Type = e.Type;
+            r = ite;
+          }
+        }
+        return r ?? new BoogieWrapper(ArbitraryValue(e.Type), e.Type);
       }
 
       public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, List<Variable> bvars) {
@@ -10463,6 +10533,32 @@ namespace Microsoft.Dafny {
             var info = translator.letSuchThatExprInfo[e];
             translator.letSuchThatExprInfo.Add(newLet, new LetSuchThatExprInfo(info, translator, substMap));
             newExpr = newLet;
+          }
+
+        } else if (expr is MatchExpr) {
+          var e = (MatchExpr)expr;
+          var src = Substitute(e.Source);
+          bool anythingChanged = src != e.Source;
+          var cases = new List<MatchCaseExpr>();
+          foreach (var mc in e.Cases) {
+            var newBoundVars = CreateBoundVarSubstitutions(mc.Arguments);
+            var body = Substitute(mc.Body);
+            // undo any changes to substMap (could be optimized to do this only if newBoundVars != mc.Arguments)
+            foreach (var bv in mc.Arguments) {
+              substMap.Remove(bv);
+            }
+            // Put things together
+            if (newBoundVars != mc.Arguments || body != mc.Body) {
+              anythingChanged = true;
+            }
+            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Id, newBoundVars, body);
+            newCaseExpr.Ctor = mc.Ctor;  // resolve here
+            cases.Add(newCaseExpr);
+          }
+          if (anythingChanged) {
+            var newME = new MatchExpr(expr.tok, src, cases);
+            newME.MissingCases.AddRange(e.MissingCases);
+            newExpr = newME;
           }
 
         } else if (expr is NamedExpr) {
