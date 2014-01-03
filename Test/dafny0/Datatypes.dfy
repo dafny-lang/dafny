@@ -281,3 +281,76 @@ predicate F(xs: List, vs: map<int,int>)
   case Nil => true
   case Cons(_, tail) => forall vsi :: F(tail, vsi)
 }
+
+// -- match expressions in arbitrary positions --
+
+module MatchExpressionsInArbitraryPositions {
+  datatype List<T> = Nil | Cons(head: T, tail: List)
+  datatype AList<T> = ANil | ACons(head: T, tail: AList) | Appendix(b: bool)
+
+  method M(xs: AList<int>) returns (y: int)
+    ensures 0 <= y;
+  {
+    if * {
+      y := match xs  // error: missing case Appendix
+           case ANil => 0
+           case ACons(x, _) => x;  // error: might be negative
+    } else {
+      y := 0;
+      ghost var b := forall tl ::
+                       match ACons(8, tl)
+                       case ACons(w, _) => w <= 16;
+      assert b;
+    }
+  }
+
+  function F(xs: List<int>, ys: List<int>): int
+  {
+    match xs
+    case Cons(x, _) =>
+      (match ys
+       case Nil => x
+       case Cons(y, _) => x + y)
+    case Nil =>
+      (match ys
+       case Nil => 0
+       case Cons(y, _) => y)
+  }
+
+  function G(xs: List<int>, ys: List<int>, k: int): int
+  {
+    match xs
+    case Cons(x, _) =>
+      (if k == 0 then 3 else
+        match ys
+        case Nil => x
+        case Cons(y, _) => x + y)
+    case Nil =>
+      (if k == 0 then 3 else
+        match ys
+        case Nil => 3
+        case Cons(y, _) => 3 + y)
+  }
+
+  function H(xs: List<int>, ys: List<int>, k: int): int
+  {
+    if 0 <= k then
+      (if k < 10 then 0 else 3) + (if k < 100 then 2 else 5)
+    else
+      if k < -17 then 10 else
+        (if k < -110 then 0 else 3) + (if k < -200 then 2 else 5)
+  }
+
+  function J(xs: List<int>): int
+  {
+    match xs  // error: missing cases
+  }
+
+  function K(xs: List<int>): int
+  {
+    match xs
+    case Cons(_, ys) =>
+      (match ys)  // error: missing cases
+    case Nil => 0
+  }
+}

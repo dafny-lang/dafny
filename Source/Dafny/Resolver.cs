@@ -2959,8 +2959,7 @@ namespace Microsoft.Dafny
       }
       if (f.Body != null) {
         var prevErrorCount = ErrorCount;
-        List<IVariable> matchVarContext = new List<IVariable>(f.Formals);
-        ResolveExpression(f.Body, false, f, matchVarContext);
+        ResolveExpression(f.Body, false, f);
         if (!f.IsGhost && prevErrorCount == ErrorCount) {
           CheckIsNonGhost(f.Body);
         }
@@ -5455,16 +5454,6 @@ namespace Microsoft.Dafny
     void ResolveExpression(Expression expr, bool twoState, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(codeContext != null);
-      ResolveExpression(expr, twoState, codeContext, null);
-    }
-
-    /// <summary>
-    /// "matchVarContext" says which variables are allowed to be used as the source expression in a "match" expression;
-    /// if null, no "match" expression will be allowed.
-    /// </summary>
-    void ResolveExpression(Expression expr, bool twoState, ICodeContext codeContext, List<IVariable> matchVarContext) {
-      Contract.Requires(expr != null);
-      Contract.Requires(codeContext != null);
       Contract.Ensures(expr.Type != null);
       if (expr.Type != null) {
         // expression has already been resovled
@@ -5478,7 +5467,7 @@ namespace Microsoft.Dafny
 
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
-        ResolveExpression(e.E, twoState, codeContext, matchVarContext);  // allow "match" expressions inside e.E if the parenthetic expression had been allowed to be a "match" expression
+        ResolveExpression(e.E, twoState, codeContext);
         e.ResolvedExpression = e.E;
         e.Type = e.E.Type;
 
@@ -5688,7 +5677,7 @@ namespace Microsoft.Dafny
         if (!twoState) {
           Error(expr, "old expressions are not allowed in this context");
         }
-        ResolveExpression(e.E, twoState, codeContext, null);
+        ResolveExpression(e.E, twoState, codeContext);
         expr.Type = e.E.Type;
 
       } else if (expr is MultiSetFormingExpr) {
@@ -6118,13 +6107,7 @@ namespace Microsoft.Dafny
         }
 
       } else if (expr is MatchExpr) {
-        MatchExpr me = (MatchExpr)expr;
-        if (matchVarContext == null) {
-          Error(me, "'match' expressions are not supported in this context");
-          matchVarContext = new List<IVariable>();
-        } else {
-          Contract.Assert(!twoState);  // currently, match expressions are allowed only at the outermost level of function bodies
-        }
+        var me = (MatchExpr)expr;
         ResolveExpression(me.Source, twoState, codeContext);
         Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
         UserDefinedType sourceType = null;
@@ -6135,7 +6118,6 @@ namespace Microsoft.Dafny
           dtd = cce.NonNull((DatatypeDecl)sourceType.ResolvedClass);
         }
         Dictionary<string, DatatypeCtor> ctors;
-        IVariable goodMatchVariable = null;
         if (dtd == null) {
           Error(me.Source, "the type of the match source expression must be a datatype (instead found {0})", me.Source.Type);
           ctors = null;
@@ -6143,15 +6125,6 @@ namespace Microsoft.Dafny
           Contract.Assert(sourceType != null);  // dtd and sourceType are set together above
           ctors = datatypeCtors[dtd];
           Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
-
-          IdentifierExpr ie = me.Source.Resolved as IdentifierExpr;
-          if (ie == null || !(ie.Var is Formal || ie.Var is BoundVar)) {
-            Error(me.Source.tok, "match source expression must be a formal parameter of the enclosing function or an enclosing match expression");
-          } else if (!matchVarContext.Contains(ie.Var)) {
-            Error(me.Source.tok, "match source expression '{0}' has already been used as a match source expression in this context", ie.Var.Name);
-          } else {
-            goodMatchVariable = ie.Var;
-          }
 
           // build the type-parameter substitution map for this use of the datatype
           for (int i = 0; i < dtd.TypeArgs.Count; i++) {
@@ -6197,12 +6170,7 @@ namespace Microsoft.Dafny
             }
             i++;
           }
-          List<IVariable> innerMatchVarContext = new List<IVariable>(matchVarContext);
-          if (goodMatchVariable != null) {
-            innerMatchVarContext.Remove(goodMatchVariable);  // this variable is no longer available for matching
-          }
-          innerMatchVarContext.AddRange(mc.Arguments);
-          ResolveExpression(mc.Body, twoState, codeContext, innerMatchVarContext);
+          ResolveExpression(mc.Body, twoState, codeContext);
           Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(expr.Type, mc.Body.Type)) {
             Error(mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, expr.Type);
@@ -6258,7 +6226,7 @@ namespace Microsoft.Dafny
       int j = 0;
       foreach (Expression arg in dtv.Arguments) {
         Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
-        ResolveExpression(arg, twoState, codeContext, null);
+        ResolveExpression(arg, twoState, codeContext);
         Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
         if (formal != null) {
           Type st = SubstType(formal.Type, subst);
@@ -6752,7 +6720,7 @@ namespace Microsoft.Dafny
         var resolved = ResolvePredicateOrField(e.Tokens[p], r, e.Tokens[p].val);
         if (resolved != null) {
           r = resolved;
-          ResolveExpression(r, twoState, codeContext, null);
+          ResolveExpression(r, twoState, codeContext);
         }
       }
 
@@ -6781,7 +6749,7 @@ namespace Microsoft.Dafny
           r = null;
         } else {
           r = new FunctionCallExpr(e.Tokens[p], e.Tokens[p].val, r, e.OpenParen, e.Arguments);
-          ResolveExpression(r, twoState, codeContext, null);
+          ResolveExpression(r, twoState, codeContext);
         }
       } else if (e.Arguments != null) {
         Contract.Assert(p == e.Tokens.Count);
