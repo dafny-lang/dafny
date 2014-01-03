@@ -1146,8 +1146,8 @@ namespace Microsoft.Dafny {
       sink.TopLevelDeclarations.Add(FunctionConsequenceAxiom(f, f.Ens));
       // add definition axioms, suitably specialized for "match" cases and for literals
       if (f.Body != null && !IsOpaqueFunction(f)) {
-        AddFunctionAxiomCase(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved, null);
-        AddFunctionAxiomCase(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved, null);
+        AddFunctionAxiom(f, FunctionAxiomVisibility.IntraModuleOnly, f.Body.Resolved);
+        AddFunctionAxiom(f, FunctionAxiomVisibility.ForeignModuleOnly, f.Body.Resolved);
       }
       // supply the connection between co-predicates and prefix predicates
       if (f is CoPredicate) {
@@ -1462,22 +1462,6 @@ namespace Microsoft.Dafny {
       return wh;
     }
 
-    void AddFunctionAxiomCase(Function f, FunctionAxiomVisibility visibility, Expression body, Specialization specialization) {
-      Contract.Requires(f != null);
-      Contract.Requires(body != null);
-
-      var me = body as MatchExpr;
-      if (me == null) {
-        AddFunctionAxiom(f, visibility, body, specialization);
-      } else {
-        IVariable formal = ((IdentifierExpr)me.Source.Resolved).Var;  // correctness of casts follows from what resolution checks
-        foreach (MatchCaseExpr mc in me.Cases) {
-          Contract.Assert(mc.Ctor != null);  // the field is filled in by resolution
-          AddFunctionAxiomCase(f, visibility, mc.Body.Resolved, new Specialization(formal, mc, specialization, this));
-        }
-      }
-    }
-
     class Specialization
     {
       public readonly List<Formal/*!*/> Formals;
@@ -1544,10 +1528,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddFunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, Specialization specialization) {
+    void AddFunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body) {
       Contract.Requires(f != null);
 
-      var ax = FunctionAxiom(f, visibility, body, specialization, null);
+      var ax = FunctionAxiom(f, visibility, body, null);
       sink.TopLevelDeclarations.Add(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
@@ -1566,10 +1550,10 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(decs.Count <= f.Formals.Count);
         if (0 < decs.Count && decs.Count < f.Formals.Count) {
-          ax = FunctionAxiom(f, visibility, body, specialization, decs);
+          ax = FunctionAxiom(f, visibility, body, decs);
           sink.TopLevelDeclarations.Add(ax);
         }
-        ax = FunctionAxiom(f, visibility, body, specialization, f.Formals);
+        ax = FunctionAxiom(f, visibility, body, f.Formals);
         sink.TopLevelDeclarations.Add(ax);
       }
     }
@@ -1719,7 +1703,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, Specialization specialization, ICollection<Formal> lits) {
+    Bpl.Axiom FunctionAxiom(Function f, FunctionAxiomVisibility visibility, Expression body, ICollection<Formal> lits) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
@@ -1728,7 +1712,7 @@ namespace Microsoft.Dafny {
 
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, f.tok);
 
-      // This method generates the Definition Axiom, suitably modified according to the optional "specialization" and "lits".
+      // This method generates the Definition Axiom, suitably modified according to the optional "lits".
       //
       // axiom  // definition axiom
       //   AXIOM_ACTIVATION
@@ -1762,13 +1746,8 @@ namespace Microsoft.Dafny {
       // means:
       //   the body of f translated with "s" as the layer argument
       //
-      // The variables "formals" are the formals of function "f"; except, if a specialization is provided, then
-      // "specialization.Formals" (which are expected to be among the formals of "f") are excluded and replaced by
-      // "specialization.ReplacementFormals".
-      // The list "args" is the list of formals of function "f"; except, if a specialization is provided, then
-      // each of the "specialization.Formals" is replaced by the corresponding expression in "specialization.ReplacementExprs".
-      // If a specialization is provided, occurrences of "specialization.Formals" in "body" and "f.Req"
-      // are also replaced by those corresponding expressions.
+      // The variables "formals" are the formals of function "f".
+      // The list "args" is the list of formals of function "f".
       //
       // The translation of "body" uses "s" as the layer argument for intra-cluster calls and the default layer argument
       // (which is Succ(0)) for other calls.  Usually, the layer argument in the LHS of the definition (and also in the trigger,
@@ -1808,63 +1787,26 @@ namespace Microsoft.Dafny {
           etran.GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = Bpl.Expr.And(ante, wh);
       }
-      if (specialization != null) {
-        foreach (BoundVar p in specialization.ReplacementFormals) {
-          bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration), TrType(p.Type)));
-          formals.Add(bv);
-          // add well-typedness conjunct to antecedent
-          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, bv), p.Type, etran);
-          if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
-        }
-      }
-      List<Formal> specializationFormals;
-      if (specialization == null) {
-        specializationFormals = null;
-      } else if (f is PrefixPredicate) {
-        var pp = (PrefixPredicate)f;
-        // the specialization formals are given in terms of the co-predicate formals, but we're sitting
-        // here with the prefix predicate, so lets map them over
-        var paramMap = new Dictionary<Formal, Formal>();
-        for (int i = 0; i < pp.Co.Formals.Count; i++) {
-          paramMap.Add(pp.Co.Formals[i], pp.Formals[i + 1]);
-        }
-        specializationFormals = new List<Formal>();
-        foreach (var p in specialization.Formals) {
-          specializationFormals.Add(paramMap[p]);
-        }
-        Contract.Assert(specializationFormals.Count == specialization.Formals.Count);
-      } else {
-        specializationFormals = specialization.Formals;
-      }
-      var substMap = new Dictionary<IVariable, Expression>();
-      if (specialization != null) {
-        substMap = specialization.SubstMap;
-      }
 
+      var substMap = new Dictionary<IVariable, Expression>();
       foreach (Formal p in f.Formals) {
-        int i = specializationFormals == null ? -1 : specializationFormals.FindIndex(val => val == p);
-        if (i == -1) {
-          bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration), TrType(p.Type)));
-          formals.Add(bv);
-          Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
-          if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
-            args.Add(Lit(formal));
-            var ie = new IdentifierExpr(p.tok, p.AssignUniqueName(f));
-            ie.Var = p; ie.Type = ie.Var.Type;
-            var l = new UnaryExpr(p.tok, UnaryExpr.Opcode.Lit, ie);
-            l.Type = ie.Var.Type;
-            substMap.Add(p, l);
-          } else {
-            args.Add(formal);
-          }
-          if (lits == null) {  // TODO(rustan): don't we need well-typedness conjuncts even when literal are involved?
-            // add well-typedness conjunct to antecedent
-            Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
-            if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
-          }
+        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration), TrType(p.Type)));
+        formals.Add(bv);
+        Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
+        if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
+          args.Add(Lit(formal));
+          var ie = new IdentifierExpr(p.tok, p.AssignUniqueName(f));
+          ie.Var = p; ie.Type = ie.Var.Type;
+          var l = new UnaryExpr(p.tok, UnaryExpr.Opcode.Lit, ie);
+          l.Type = ie.Var.Type;
+          substMap.Add(p, l);
         } else {
-          args.Add(etran.TrExpr(specialization.ReplacementExprs[i]));
-          // note, well-typedness conjuncts for the replacement formals has already been done above
+          args.Add(formal);
+        }
+        if (lits == null) {  // TODO(rustan): don't we need well-typedness conjuncts even when literal are involved?
+          // add well-typedness conjunct to antecedent
+          Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
+          if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
         }
       }
 
@@ -1933,13 +1875,6 @@ namespace Microsoft.Dafny {
         comment += " (intra-module)";
       } else if (visibility == FunctionAxiomVisibility.ForeignModuleOnly) {
         comment += " (foreign modules)";
-      }
-      if (specialization != null) {
-        string sep = "{0}, specialized for '{1}'";
-        foreach (var formal in specialization.Formals) {
-          comment = string.Format(sep, comment, formal.Name);
-          sep = "{0}, '{1}'";
-        }
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
     }
