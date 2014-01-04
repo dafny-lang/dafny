@@ -317,7 +317,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 				Get();
 				QualifiedName(out idRefined);
 			}
-			module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, attrs, false); 
+			module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, parent, attrs, false); 
 			Expect(8);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

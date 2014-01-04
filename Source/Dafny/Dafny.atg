@@ -232,7 +232,7 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
     { Attribute<ref attrs> }
     NoUSIdent<out id>                          
     
-      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, attrs, false); .)
+      [ "refines" QualifiedName<out idRefined> ] (. module = new ModuleDefinition(id, id.val, isAbstract, false, idRefined == null ? null : idRefined, parent, attrs, false); .)
        "{"                                       (. module.BodyStartTok = t; .)
         { SubModuleDecl<module, out sm>                (. module.TopLevelDecls.Add(sm); .)
         | ClassDecl<module, out c>                     (. module.TopLevelDecls.Add(c); .)

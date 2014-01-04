@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, true);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, null, true);
     Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     public readonly ClassDecl ObjectDecl;
     public BuiltIns() {
@@ -1000,7 +1000,7 @@ namespace Microsoft.Dafny {
     
       
   }
-  public class ModuleDefinition : Declaration {
+  public class ModuleDefinition : TopLevelDecl {
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
@@ -1018,8 +1018,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isFacade, List<IToken> refinementBase, Attributes attributes, bool isBuiltinName)
-      : base(tok, name, attributes) {
+    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isFacade, List<IToken> refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName)
+      : base(tok, name, parent, new List<TypeParameter>(), attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       RefinementBaseName = refinementBase;
@@ -1130,7 +1130,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DefaultModuleDecl : ModuleDefinition {
-    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, true) {
+    public DefaultModuleDecl() : base(Token.NoToken, "_module", false, false, null, null, null, true) {
     }
     public override bool IsDefaultModule {
       get {
