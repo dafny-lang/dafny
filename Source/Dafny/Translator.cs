@@ -10576,7 +10576,7 @@ namespace Microsoft.Dafny {
       /// undoing these changes once the updated 'substMap' has been used.
       /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
       /// </summary>
-      private List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfQuantifiedVars = false) {
+      protected virtual List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfQuantifiedVars = false) {
         bool anythingChanged = false;
         var newBoundVars = new List<BoundVar>();
         foreach (var bv in vars) {
@@ -10875,5 +10875,37 @@ namespace Microsoft.Dafny {
         return attrs;
       }
     }
+
+    /// <summary>
+    /// This substituter performs substitutions in such a way that it's okay to print the resulting expression without a human getting confused.
+    /// More precisely, bound variables first gets alpha-renamed.  Also, "this" is never left implicit, including in the
+    /// case where "receiverReplacement" is given as ImplicitThisExpr (but no attempt is made to substitute for all ImplicitThisExpr's in
+    /// "receiverReplacement" and the range of "substMap").
+    /// </summary>
+    public class AlphaConverting_Substituter : Substituter
+    {
+      ISet<string> namesToAvoid = new HashSet<string>();
+      public AlphaConverting_Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Translator translator)
+        : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) : receiverReplacement, substMap, typeMap, translator) {
+        Contract.Requires(substMap != null);
+        Contract.Requires(typeMap != null);
+        Contract.Requires(translator != null);
+      }
+      protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfQuantifiedVars) {
+        var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();
+        foreach (var bv in vars) {
+          var tt = Resolver.SubstType(bv.Type, typeMap);
+          var newBv = new BoundVar(bv.tok, "_'" + bv.Name, tt);
+          newBoundVars.Add(newBv);
+          // update substMap to reflect the new BoundVar substitutions
+          var ie = new IdentifierExpr(newBv.tok, newBv.Name);
+          ie.Var = newBv;  // resolve here
+          ie.Type = newBv.Type;  // resolve here
+          substMap.Add(bv, ie);
+        }
+        return newBoundVars;
+      }
+    }
+
   }
 }

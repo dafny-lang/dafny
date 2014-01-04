@@ -2453,7 +2453,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            var substituter = new Translator.Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), new Translator());
+            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>(), new Translator());
             foreach (var ens in cs.Method.Ens) {
               var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
               resolver.ReportAdditionalInformation(s.Tok, "ensures " + Printer.ExprToString(p) + ";", s.Tok.val.Length);
