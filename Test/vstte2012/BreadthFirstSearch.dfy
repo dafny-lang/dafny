@@ -248,5 +248,3 @@ static function elements<T>(list: List<T>): set<T>
   case Nil => {}
   case Cons(x, tail) => {x} + elements(tail)
 }
-
-datatype Nat = Zero | Suc(predecessor: Nat)
