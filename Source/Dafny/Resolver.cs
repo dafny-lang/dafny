@@ -963,7 +963,7 @@ namespace Microsoft.Dafny
     }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, List<ModuleDefinition> mods) {
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, null, null, false);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, null, null, null, false);
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
         mod.TopLevelDecls.Add(CloneDeclaration(kv.Value, mod, mods, Name));
