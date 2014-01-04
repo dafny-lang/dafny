@@ -1,9 +1,9 @@
-datatype Tree<T> = Null | Node(Tree, T, Tree);
+datatype Tree<T> = Leaf | Node(Tree, T, Tree)
 
 function Contains<T>(t: Tree, v: T): bool
 {
   match t
-  case Null => false
+  case Leaf => false
   case Node(left, x, right) => x == v || Contains(left, v) || Contains(right, v)
 }
 
@@ -14,12 +14,12 @@ method Fill<T>(t: Tree, a: array<T>, start: int) returns (end: int)
   ensures forall i :: 0 <= i < start ==> a[i] == old(a[i]);
   ensures forall i :: start <= i < end ==> Contains(t, a[i]);
 {
-  match (t) {
-    case Null =>
+  match t {
+    case Leaf =>
       end := start;
     case Node(left, x, right) =>
       end := Fill(left, a, start);
-      if (end < a.Length) {
+      if end < a.Length {
         a[end] := x;
         end := Fill(right, a, end + 1);
       }
