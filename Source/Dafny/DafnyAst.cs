@@ -1821,7 +1821,7 @@ namespace Microsoft.Dafny {
     public abstract bool IsMutable {
       get;
     }
-    bool isGhost;  // readonly, except for BoundVar's of match expressions/statements during resolution
+    bool isGhost;  // readonly after resolution
     public bool IsGhost {
       get {
         return isGhost;

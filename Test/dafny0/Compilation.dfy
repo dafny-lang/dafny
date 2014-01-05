@@ -170,3 +170,40 @@ method hidden_test()
   reveal_hidden();
   assert hidden() == 7;
 }
+
+// ----- LetExpr with ghosts and in ghost contexts -----
+
+module GhostLetExpr {
+  method M() {
+    ghost var y;
+    var x;
+    var g := G(x, y);
+    ghost var h := var ta := F(); 5;
+    var j := ghost var tb := F(); 5;
+    assert h == j;
+  }
+
+  function F(): int
+  { 5 }
+
+  function method G(x: int, ghost y: int): int
+  { assert y == y; x }
+
+  datatype Dt = MyRecord(a: int, ghost b: int)
+
+  method P(dt: Dt) {
+    match dt {
+      case MyRecord(aa, bb) =>
+        ghost var z := bb + F();
+        ghost var t0 := var y := z; z + 3;
+        ghost var t1 := ghost var y := z; z + 3;
+        var t2 := ghost var y := z; aa + 3;
+    }
+  }
+
+  function method FM(): int
+  {
+    ghost var xyz := F();
+    G(5, xyz)
+  }
+}

@@ -156,7 +156,9 @@ namespace Microsoft.Dafny
     }
 
     public BoundVar CloneBoundVar(BoundVar bv) {
-      return new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
+      var bvNew = new BoundVar(Tok(bv.tok), bv.Name, CloneType(bv.Type));
+      bvNew.IsGhost = bv.IsGhost;
+      return bvNew;
     }
 
     public Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {

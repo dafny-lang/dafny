@@ -827,9 +827,21 @@ namespace Microsoft.Dafny {
       if (expr is LetExpr) {
         var e = (LetExpr)expr;
         foreach (var v in e.Vars) {
-          Indent(indent);
-          wr.WriteLine("{0} @{1};", TypeName(v.Type), v.CompileName);
+          if (!v.IsGhost) {
+            Indent(indent);
+            wr.WriteLine("{0} @{1};", TypeName(v.Type), v.CompileName);
+          }
         }
+        Contract.Assert(e.Vars.Count == e.RHSs.Count);
+        var i = 0;
+        foreach (var rhs in e.RHSs) {
+          if (!e.Vars[i].IsGhost) {
+            SpillLetVariableDecls(rhs, indent);
+          }
+          i++;
+        }
+        SpillLetVariableDecls(e.Body, indent);
+        return;
       }
       foreach (var ee in expr.SubExpressions) {
         SpillLetVariableDecls(ee, indent);
@@ -2336,13 +2348,18 @@ namespace Microsoft.Dafny {
         // preceded by the declaration of x.
         Contract.Assert(e.Vars.Count == e.RHSs.Count);  // checked by resolution
         Contract.Assert(e.Exact);  // because !Exact is ghost only
+        var nonGhostVars = 0;
         for (int i = 0; i < e.Vars.Count; i++) {
-          wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = ", e.Vars[i].CompileName);
-          TrExpr(e.RHSs[i]);
-          wr.Write(", ");
+          var v = e.Vars[i];
+          if (!v.IsGhost) {
+            wr.Write("Dafny.Helpers.ExpressionSequence(@{0} = ", e.Vars[i].CompileName);
+            TrExpr(e.RHSs[i]);
+            wr.Write(", ");
+            nonGhostVars++;
+          }
         }
         TrExpr(e.Body);
-        for (int i = 0; i < e.Vars.Count; i++) {
+        for (int i = 0; i < nonGhostVars; i++) {
           wr.Write(")");
         }
 

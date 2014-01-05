@@ -763,3 +763,44 @@ module StatementsInExpressions {
     10
   }
 }
+
+module GhostLetExpr {
+  method M() {
+    ghost var y;
+    var x;
+    var g := G(x, y);
+    ghost var h := ghost var ta := F(); 5;
+    var j := var tb := F(); 5;  // error: allowed only if 'tb' were ghost
+    assert h == j;
+  }
+
+  function F(): int
+  { 5 }
+
+  function method G(x: int, ghost y: int): int
+  {
+    assert y == x;
+    y  // error: not allowed in non-ghost context
+  }
+
+  datatype Dt = MyRecord(a: int, ghost b: int)
+
+  method P(dt: Dt) {
+    match dt {
+      case MyRecord(aa, bb) =>
+        ghost var z := aa + F();
+        ghost var t0 := var y := z; z + 3;
+        ghost var t1 := ghost var y := z + bb; y + z + 3;
+        var t2 := ghost var y := z; y + 3;  // error: 'y' can only be used in ghost contexts
+    }
+  }
+
+  function method FM(e: bool): int
+  {
+    if e then
+      G(5, F())
+    else
+      var xyz := F();  // error: 'xyz' needs to be declared ghost to allow this
+      G(5, xyz)
+  }
+}

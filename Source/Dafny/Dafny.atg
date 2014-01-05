@@ -417,16 +417,23 @@ IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
   ":"
   Type<out ty>
   .
-LocalIdentTypeOptional<out VarDecl/*!*/ var, bool isGhost>
-= (. IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
+LocalIdentTypeOptional<out VarDecl var, bool isGhost>
+= (. IToken id;  Type ty;  Type optType = null;
   .)
   WildIdent<out id, true>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new VarDecl(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
   .
-IdentTypeOptional<out BoundVar/*!*/ var>
-= (. Contract.Ensures(Contract.ValueAtReturn(out var)!=null); IToken/*!*/ id;  Type/*!*/ ty;  Type optType = null;
+IdentTypeOptionalG<out BoundVar var, bool isGhost>
+= (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
+  .)
+  IdentTypeOptional<out var>
+  (. var.IsGhost = isGhost; .)
+  .
+IdentTypeOptional<out BoundVar var>
+= (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
+     IToken id;  Type ty;  Type optType = null;
   .)
   WildIdent<out id, true>
   [ ":" Type<out ty>             (. optType = ty; .)
@@ -437,7 +444,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     string name = null; id = Token.NoToken; ty = null; isGhost = false; .)
+     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false; .)
   [ "ghost"                            (. isGhost = true; .)
   ]
   ( TypeAndToken<out id, out ty>
@@ -1908,17 +1915,20 @@ StmtInExpr<out Statement s>
   .
 
 LetExpr<out Expression e, bool allowSemi>
-= (. IToken/*!*/ x;
+= (. IToken x = null;
      e = dummyExpr;
      BoundVar d;
      List<BoundVar> letVars;  List<Expression> letRHSs;
      bool exact = true;
+     bool isGhost = false;
   .)
-    "var"                           (. x = t;
+    [ "ghost"                       (. isGhost = true;  x = t; .)
+    ]
+    "var"                           (. if (!isGhost) { x = t; }
                                        letVars = new List<BoundVar>();
                                        letRHSs = new List<Expression>(); .)
-    IdentTypeOptional<out d>        (. letVars.Add(d); .)
-    { "," IdentTypeOptional<out d>  (. letVars.Add(d); .)
+    IdentTypeOptionalG<out d, isGhost>        (. letVars.Add(d); .)
+    { "," IdentTypeOptionalG<out d, isGhost>  (. letVars.Add(d); .)
     }
     ( ":="
     | ":|"                          (. exact = false; .)

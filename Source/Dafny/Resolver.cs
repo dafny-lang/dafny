@@ -6382,6 +6382,16 @@ namespace Microsoft.Dafny
         if (!e.Exact) {
           Error(expr, "let-such-that expressions are allowed only in ghost contexts");
         }
+        Contract.Assert(e.Vars.Count == e.RHSs.Count);
+        var i = 0;
+        foreach (var ee in e.RHSs) {
+          if (!e.Vars[i].IsGhost) {
+            CheckIsNonGhost(ee);
+          }
+          i++;
+        }
+        CheckIsNonGhost(e.Body);
+        return;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         if (e.MissingBounds != null) {
