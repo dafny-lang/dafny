@@ -686,10 +686,13 @@ namespace Microsoft.Dafny {
 
         } else if (member is Function) {
           Function f = (Function)member;
-          if (f.Body == null && !Attributes.Contains(f.Attributes, "axiom")) {
-            Error("Function {0} has no body", f.FullName);
+          if (f.Body == null) {
+            if (!Attributes.Contains(f.Attributes, "axiom")) {
+              Error("Function {0} has no body", f.FullName);
+            }
           } else if (f.IsGhost) {
-            // nothing to compile
+            var v = new CheckHasNoAssumes_Visitor(this);
+            v.Visit(f.Body);
           } else {
             Indent(indent);
             wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType), f.CompileName);
@@ -705,9 +708,14 @@ namespace Microsoft.Dafny {
 
         } else if (member is Method) {
           Method m = (Method)member;
-          if (m.IsGhost && m.Body == null && !Attributes.Contains(m.Attributes, "axiom")) {
-            Error("Method {0} has no body", m.FullName);
-          } else if (!m.IsGhost) {
+          if (m.Body == null) {
+            if (!Attributes.Contains(m.Attributes, "axiom")) {
+              Error("Method {0} has no body", m.FullName);
+            }
+          } else if (m.IsGhost) {
+            var v = new CheckHasNoAssumes_Visitor(this);
+            v.Visit(m.Body);
+          } else {
             Indent(indent);
             wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
             if (m.TypeArgs.Count != 0) {
@@ -1001,18 +1009,21 @@ namespace Microsoft.Dafny {
 
     // ----- Stmt ---------------------------------------------------------------------------------
 
-    void CheckHasNoAssumes(Statement stmt) {
-      Contract.Requires(stmt != null);
-      if (stmt is AssumeStmt) {
-        Error("an assume statement cannot be compiled (line {0})", stmt.Tok.line);
-      } else if (stmt is AssignSuchThatStmt) {
-        var s = (AssignSuchThatStmt)stmt;
-        if (s.AssumeToken != null) {
-          Error("an assume statement cannot be compiled (line {0})", s.AssumeToken.line);
-        }
-      } else {
-        foreach (var ss in stmt.SubStatements) {
-          CheckHasNoAssumes(ss);
+    public class CheckHasNoAssumes_Visitor : BottomUpVisitor
+    {
+      readonly Compiler compiler;
+      public CheckHasNoAssumes_Visitor(Compiler c) {
+        Contract.Requires(c != null);
+        compiler = c;
+      }
+      protected override void VisitOneStmt(Statement stmt) {
+        if (stmt is AssumeStmt) {
+          compiler.Error("an assume statement cannot be compiled (line {0})", stmt.Tok.line);
+        } else if (stmt is AssignSuchThatStmt) {
+          var s = (AssignSuchThatStmt)stmt;
+          if (s.AssumeToken != null) {
+            compiler.Error("an assume statement cannot be compiled (line {0})", s.AssumeToken.line);
+          }
         }
       }
     }
@@ -1021,7 +1032,8 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
-        CheckHasNoAssumes(stmt);
+        var v = new CheckHasNoAssumes_Visitor(this);
+        v.Visit(stmt);
         Indent(indent); wr.WriteLine("{ }");
         return;
       }

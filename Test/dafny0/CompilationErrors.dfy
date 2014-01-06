@@ -12,3 +12,27 @@ ghost var g: int;
 
 function F(): int  // compile error: body-less ghost function
 function method H(): int  // compile error: body-less function method
+
+lemma Lemma() {
+  assume false;  // compile error: assume
+}
+ghost method GMethod() {
+  assume false;  // compile error: assume
+}
+
+function MyFunction(): int
+{
+  assume false;  // compile error: assume
+  6
+}
+
+function MyCalcFunction(): int
+{
+  calc <= {
+    2;
+    6;
+    { assume true; }  // compile error: assume
+    10;
+  }
+  12
+}
