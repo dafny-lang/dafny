@@ -1121,14 +1121,14 @@ namespace Microsoft.Dafny {
           // for (BigInteger iterLimit = 5; ; iterLimit *= 2) {
           //   var il$0 = iterLimit;
           //   foreach (L l' in sq.Elements) { l = l';
-          //     il$0--;  if (il$0 == 0) { break; }
+          //     if (il$0 == 0) { break; }  il$0--;
           //     var il$1 = iterLimit;
           //     foreach (K k' in st.Elements) { k = k';
-          //       il$1--;  if (il$1 == 0) { break; }
+          //       if (il$1 == 0) { break; }  il$1--;
           //       var il$2 = iterLimit;
           //       j = Lo;
           //       for (;; j++) {
-          //         il$2--;  if (il$2 == 0) { break; }
+          //         if (il$2 == 0) { break; }  il$2--;
           //         foreach (bool i' in Helper.AllBooleans) { i = i';
           //           if (R(i,j,k,l)) {
           //             goto ASSIGN_SUCH_THAT_<id>;
@@ -1194,6 +1194,8 @@ namespace Microsoft.Dafny {
                 Indent(ind);
                 wr.WriteLine("for (;; @{0}--) {{ ", bv.CompileName);
               }
+            } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
+              wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllIntegers) {{ @{1} = {0};", tmpVar, bv.CompileName);
             } else if (bound is ComprehensionExpr.SetBoundedPool) {
               var b = (ComprehensionExpr.SetBoundedPool)bound;
               wr.Write("foreach (var {0} in (", tmpVar);
@@ -1222,7 +1224,7 @@ namespace Microsoft.Dafny {
             }
             if (needIterLimit) {
               Indent(ind + IndentAmount);
-              wr.WriteLine("{0}_{1}--;  if ({0}_{1} == 0) {{ break; }}", iterLimit, i);
+              wr.WriteLine("if ({0}_{1} == 0) {{ break; }}  {0}_{1}--;", iterLimit, i);
             }
           }
           Indent(ind);
