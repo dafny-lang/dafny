@@ -581,6 +581,15 @@ namespace Dafny
         yield return true;
       }
     }
+    public static IEnumerable<BigInteger> AllIntegers {
+      get {
+        yield return new BigInteger(0);
+        for (var j = new BigInteger(1);; j++) {
+          yield return j;
+          yield return -j;
+        }
+      }
+    }
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static BigInteger EuclideanDivision(BigInteger a, BigInteger b) {
