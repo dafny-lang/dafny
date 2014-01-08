@@ -36,6 +36,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /*
+    public static string ExtendedExprToString(Expression expr) {
+      Contract.Requires(expr != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintExtendedExpr(expr, 0, true, false, false);        
+        return wr.ToString();
+      }
+    }
+     */
+
     public static string IteratorClassToString(IteratorDecl iter) {
       Contract.Requires(iter != null);
       using (var wr = new System.IO.StringWriter()) {

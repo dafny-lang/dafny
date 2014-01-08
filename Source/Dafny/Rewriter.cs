@@ -523,4 +523,288 @@ namespace Microsoft.Dafny
       }
     }
   }
+
+
+  /// <summary>
+  /// Automatically accumulate requires for function calls within a function body, 
+  /// if requested via {:autoreq}
+  /// </summary>
+  public class AutoReqFunctionRewriter : IRewriter {
+    Function parentFunction;
+    Resolver resolver;
+
+    public AutoReqFunctionRewriter(Resolver r) {
+      this.resolver = r;
+    }
+
+    public void PreResolve(ModuleDefinition m) { 
+    }    
+
+    public void PostResolve(ModuleDefinition m) {
+      var components = m.CallGraph.TopologicallySortedComponents();
+
+      foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated
+        if (scComponent is Function) {
+          Function fn = (Function)scComponent;
+          if (Attributes.ContainsBoolAtAnyLevel(fn, "autoReq")) {
+            parentFunction = fn;  // Remember where the recursion started
+
+            List<Expression> auto_reqs = new List<Expression>();
+
+            // First handle all of the requirements' preconditions
+            foreach (Expression req in fn.Req) {
+              auto_reqs.AddRange(generateAutoReqs(req));
+            }
+
+            // Then the body itself, if any
+            if (fn.Body != null) {
+              auto_reqs.AddRange(generateAutoReqs(fn.Body));
+            }
+           
+            fn.Req.InsertRange(0, auto_reqs);
+            addAutoReqToolTipInfo(fn, auto_reqs);
+          }
+        } 
+      }
+    }
+  
+    public void addAutoReqToolTipInfo(Function f, List<Expression> reqs) {
+      string prefix = "auto requires ";
+      string tip = "";
+
+      foreach (var req in reqs) {
+        //tip += prefix + Printer.ExtendedExprToString(req) + ";\n";
+        tip += prefix + Printer.ExprToString(req) + ";\n";
+      }
+
+      if (!tip.Equals("")) {
+        resolver.ReportAdditionalInformation(f.tok, tip, f.tok.val.Length);
+      }
+    }
+
+    // Stitch a list of expressions together with logical ands
+    Expression andify(Bpl.IToken tok, List<Expression> exprs) {
+      Expression ret = Expression.CreateBoolLiteral(tok, true); 
+
+      foreach (var expr in exprs) {        
+        ret = Expression.CreateAnd(ret, expr);
+      }   
+
+      return ret;
+    }
+   
+    List<Expression> gatherReqs(Function f, List<Expression> args, Expression f_this) {
+      List<Expression> translated_f_reqs = new List<Expression>();
+
+      if (f.Req.Count > 0) {
+        Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable,Expression>();
+        Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter,Type>();
+
+        for (int i = 0; i < f.Formals.Count; i++) {
+          substMap.Add(f.Formals[i], args[i]);
+        }
+
+        foreach (var req in f.Req) {
+          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap, null);          
+          translated_f_reqs.Add(sub.Substitute(req));         
+        }
+      }
+
+      return translated_f_reqs;
+    }
+
+    List<Expression> generateAutoReqs(Expression expr) {
+      List<Expression> reqs = new List<Expression>();
+
+      if (expr is LiteralExpr) {      
+      } else if (expr is ThisExpr) {
+      } else if (expr is IdentifierExpr) {
+      } else if (expr is SetDisplayExpr) {
+        SetDisplayExpr e = (SetDisplayExpr)expr;
+
+        foreach (var elt in e.Elements) {
+          reqs.AddRange(generateAutoReqs(elt));
+        }
+      } else if (expr is MultiSetDisplayExpr) {
+        MultiSetDisplayExpr e = (MultiSetDisplayExpr)expr;
+        foreach (var elt in e.Elements) {
+          reqs.AddRange(generateAutoReqs(elt));
+        }
+      } else if (expr is SeqDisplayExpr) {
+        SeqDisplayExpr e = (SeqDisplayExpr)expr;
+        foreach (var elt in e.Elements) {
+          reqs.AddRange(generateAutoReqs(elt));
+        }
+      } else if (expr is MapDisplayExpr) {
+        MapDisplayExpr e = (MapDisplayExpr)expr;
+
+        foreach (ExpressionPair p in e.Elements) {
+          reqs.AddRange(generateAutoReqs(p.A));
+          reqs.AddRange(generateAutoReqs(p.B));        
+        }
+      } else if (expr is FieldSelectExpr) {
+        FieldSelectExpr e = (FieldSelectExpr)expr;
+        Contract.Assert(e.Field != null);
+
+        reqs.AddRange(generateAutoReqs(e.Obj));       
+      } else if (expr is SeqSelectExpr) {
+        SeqSelectExpr e = (SeqSelectExpr)expr;
+
+        reqs.AddRange(generateAutoReqs(e.Seq));
+        if (e.E0 != null) {
+          reqs.AddRange(generateAutoReqs(e.E0));
+        }
+
+        if (e.E1 != null) {
+          reqs.AddRange(generateAutoReqs(e.E1));
+        }
+      } else if (expr is SeqUpdateExpr) {
+        SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        reqs.AddRange(generateAutoReqs(e.Seq));
+        reqs.AddRange(generateAutoReqs(e.Index));
+        reqs.AddRange(generateAutoReqs(e.Value));
+      } else if (expr is FunctionCallExpr) {
+        FunctionCallExpr e = (FunctionCallExpr)expr;
+
+        // All of the arguments need to be satisfied
+        foreach (var arg in e.Args) {
+          reqs.AddRange(generateAutoReqs(arg));
+        }
+
+        ModuleDefinition module = e.Function.EnclosingClass.Module;
+        if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(parentFunction)) {
+          // We're making a call within the same SCC, so don't descend into this function
+        } else {
+          reqs.AddRange(gatherReqs(e.Function, e.Args, e.Receiver));
+        }
+      } else if (expr is DatatypeValue) {         
+        DatatypeValue dtv = (DatatypeValue)expr;
+        Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
+        for (int i = 0; i < dtv.Arguments.Count; i++) {
+          Expression arg = dtv.Arguments[i];
+          reqs.AddRange(generateAutoReqs(arg));
+        }              
+      } else if (expr is OldExpr) {  
+      } else if (expr is MatchExpr) {
+        MatchExpr e = (MatchExpr)expr;
+        reqs.AddRange(generateAutoReqs(e.Source));
+        
+        /*  Still under development
+        List<MatchCaseExpr> newMatches = new List<MatchCaseExpr>();
+        foreach (MatchCaseExpr caseExpr in e.Cases) {
+          //MatchCaseExpr c = new MatchCaseExpr(caseExpr.tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.tok, generateAutoReqs(caseExpr.Body)));
+          //c.Ctor = caseExpr.Ctor; // resolve here
+          MatchCaseExpr c = Expression.CreateMatchCase(caseExpr, andify(caseExpr.tok, generateAutoReqs(caseExpr.Body)));
+          newMatches.Add(c);
+        }
+        
+        reqs.Add(Expression.CreateMatch(e.tok, e.Source, newMatches, e.Type));
+        */
+      } else if (expr is MultiSetFormingExpr) {
+        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
+        reqs.AddRange(generateAutoReqs(e.E));
+      } else if (expr is FreshExpr) {
+      } else if (expr is UnaryExpr) {
+        UnaryExpr e = (UnaryExpr)expr;
+        Expression arg = e.E;                
+        reqs.AddRange(generateAutoReqs(arg));
+      } else if (expr is BinaryExpr) {
+        BinaryExpr e = (BinaryExpr)expr;
+  
+        switch (e.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Imp:
+          case BinaryExpr.ResolvedOpcode.And:
+            reqs.AddRange(generateAutoReqs(e.E0));
+            foreach (var req in generateAutoReqs(e.E1)) {
+              // We only care about this req if E0 is true, since And short-circuits              
+              reqs.Add(Expression.CreateImplies(e.E0, req));  
+            }
+            break;
+
+          case BinaryExpr.ResolvedOpcode.Or:
+            reqs.AddRange(generateAutoReqs(e.E0));
+            foreach (var req in generateAutoReqs(e.E1)) {
+              // We only care about this req if E0 is false, since Or short-circuits              
+              reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e.E0), req));
+            }
+            break;
+
+          default:
+            reqs.AddRange(generateAutoReqs(e.E0));
+            reqs.AddRange(generateAutoReqs(e.E1));
+            break;
+        }   
+      } else if (expr is TernaryExpr) {
+        var e = (TernaryExpr)expr;
+
+        reqs.AddRange(generateAutoReqs(e.E0));
+        reqs.AddRange(generateAutoReqs(e.E1));
+        reqs.AddRange(generateAutoReqs(e.E2));
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+
+        if (e.Exact) {
+          foreach (var rhs in e.RHSs) {
+            reqs.AddRange(generateAutoReqs(rhs));
+          }
+          var new_reqs = generateAutoReqs(e.Body);
+          if (new_reqs.Count > 0) {                 
+            reqs.Add(Expression.CreateLet(e.tok, e.Vars, e.RHSs, andify(e.tok, new_reqs), e.Exact));
+          }
+        } else {
+          // TODO: Still need to figure out what the right choice is here:
+          // Given: var x :| g(x); f(x, y) do we:
+          //    1) Update the original statement to be: var x :| g(x) && WP(f(x,y)); f(x, y)
+          //    2) Add forall x :: g(x) ==> WP(f(x, y)) to the function's requirements
+          //    3) Current option -- do nothing.  Up to the spec writer to fix
+        }
+      } else if (expr is NamedExpr) {
+        reqs.AddRange(generateAutoReqs(((NamedExpr)expr).Body));
+      } else if (expr is QuantifierExpr) {
+        QuantifierExpr e = (QuantifierExpr)expr;
+
+        // See LetExpr for issues with the e.Range
+
+        var auto_reqs = generateAutoReqs(e.Term);
+        if (auto_reqs.Count > 0) {
+          reqs.Add(Expression.CreateQuantifier(e, true, andify(e.Term.tok, auto_reqs)));        
+        }
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
+        // Translate "set xs | R :: T" 
+
+        // See LetExpr for issues with the e.Range
+        //reqs.AddRange(generateAutoReqs(e.Range));
+        var auto_reqs = generateAutoReqs(e.Term);
+        if (auto_reqs.Count > 0) {
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+        }      
+      } else if (expr is MapComprehension) {
+        var e = (MapComprehension)expr;
+        // Translate "map x | R :: T" into
+        // See LetExpr for issues with the e.Range
+        //reqs.AddRange(generateAutoReqs(e.Range));        
+        var auto_reqs = generateAutoReqs(e.Term);
+        if (auto_reqs.Count > 0) {
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+        }
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        reqs.AddRange(generateAutoReqs(e.E));
+      } else if (expr is ITEExpr) {
+        ITEExpr e = (ITEExpr)expr;
+        reqs.AddRange(generateAutoReqs(e.Test));        
+        reqs.Add(Expression.CreateITE(e.Test, andify(e.Thn.tok, generateAutoReqs(e.Thn)), andify(e.Els.tok, generateAutoReqs(e.Els))));
+      } else if (expr is ConcreteSyntaxExpression) {
+        var e = (ConcreteSyntaxExpression)expr;
+        reqs.AddRange(generateAutoReqs(e.ResolvedExpression));
+      } else {
+        //Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+
+      return reqs;
+    }
+  }
 }
+
+

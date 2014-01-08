@@ -10269,7 +10269,6 @@ namespace Microsoft.Dafny {
       public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, Translator translator) {
         Contract.Requires(substMap != null);
         Contract.Requires(typeMap != null);
-        Contract.Requires(translator != null);
         this.receiverReplacement = receiverReplacement;
         this.substMap = substMap;
         this.typeMap = typeMap;
@@ -10463,11 +10462,14 @@ namespace Microsoft.Dafny {
               return e;
             }
             var newLet = new LetExpr(e.tok, e.Vars, new List<Expression>{ rhs }, body, e.Exact);
-            Expression d = translator.LetDesugaring(e);
-            newLet.translationDesugaring = Substitute(d);
-            var info = translator.letSuchThatExprInfo[e];
-            translator.letSuchThatExprInfo.Add(newLet, new LetSuchThatExprInfo(info, translator, substMap));
-            newExpr = newLet;
+            if (translator != null)
+            {
+              Expression d = translator.LetDesugaring(e);
+              newLet.translationDesugaring = Substitute(d);
+              var info = translator.letSuchThatExprInfo[e];
+              translator.letSuchThatExprInfo.Add(newLet, new LetSuchThatExprInfo(info, translator, substMap));
+            }
+            newExpr = newLet;         
           }
 
         } else if (expr is MatchExpr) {

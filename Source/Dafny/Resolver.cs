@@ -192,6 +192,7 @@ namespace Microsoft.Dafny
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
       rewriters.Add(new OpaqueFunctionRewriter());
+      rewriters.Add(new AutoReqFunctionRewriter(this));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       foreach (var decl in sortedDecls) {

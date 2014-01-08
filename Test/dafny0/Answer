@@ -2043,6 +2043,44 @@ Dafny program verifier finished with 3 verified, 3 errors
 
 Dafny program verifier finished with 2 verified, 0 errors
 
+-------------------- AutoReq.dfy --------------------
+AutoReq.dfy(11,3): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+AutoReq.dfy(23,3): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+AutoReq.dfy(36,12): Error: assertion violation
+AutoReq.dfy(29,13): Related location
+AutoReq.dfy(5,5): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+AutoReq.dfy(36,12): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+AutoReq.dfy(38,12): Error: assertion violation
+AutoReq.dfy(29,27): Related location
+AutoReq.dfy(5,5): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+AutoReq.dfy(38,12): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+AutoReq.dfy(43,12): Error: assertion violation
+AutoReq.dfy(29,13): Related location
+AutoReq.dfy(5,5): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+
+Dafny program verifier finished with 37 verified, 7 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...
