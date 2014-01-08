@@ -394,6 +394,10 @@ namespace Microsoft.Dafny
     void FillInDefaultDecreases(ICallable clbl) {
       Contract.Requires(clbl != null);
 
+      if (clbl is CoPredicate) {
+        // copredicates don't have decreases clauses
+        return;
+      }
       var decr = clbl.Decreases.Expressions;
       if (decr.Count == 0 || (clbl is PrefixMethod && decr.Count == 1)) {
         // The default for a function starts with the function's reads clause, if any
