@@ -532,6 +532,7 @@ namespace Microsoft.Dafny
   public class AutoReqFunctionRewriter : IRewriter {
     Function parentFunction;
     Resolver resolver;
+    bool containsMatch; // TODO: Track this per-requirement, rather than per-function
 
     public AutoReqFunctionRewriter(Resolver r) {
       this.resolver = r;
@@ -548,6 +549,7 @@ namespace Microsoft.Dafny
           Function fn = (Function)scComponent;
           if (Attributes.ContainsBoolAtAnyLevel(fn, "autoReq")) {
             parentFunction = fn;  // Remember where the recursion started
+            containsMatch = false;  // Assume no match statements are involved
 
             List<Expression> auto_reqs = new List<Expression>();
 
@@ -573,8 +575,11 @@ namespace Microsoft.Dafny
       string tip = "";
 
       foreach (var req in reqs) {
-        //tip += prefix + Printer.ExtendedExprToString(req) + ";\n";
-        tip += prefix + Printer.ExprToString(req) + ";\n";
+        if (containsMatch) {  // Pretty print the requirements
+          tip += prefix + Printer.ExtendedExprToString(req) + ";\n";
+        } else {
+          tip += prefix + Printer.ExprToString(req) + ";\n";
+        }
       }
 
       if (!tip.Equals("")) {
@@ -687,9 +692,9 @@ namespace Microsoft.Dafny
       } else if (expr is OldExpr) {  
       } else if (expr is MatchExpr) {
         MatchExpr e = (MatchExpr)expr;
+        containsMatch = true;
         reqs.AddRange(generateAutoReqs(e.Source));
         
-        /*  Still under development
         List<MatchCaseExpr> newMatches = new List<MatchCaseExpr>();
         foreach (MatchCaseExpr caseExpr in e.Cases) {
           //MatchCaseExpr c = new MatchCaseExpr(caseExpr.tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.tok, generateAutoReqs(caseExpr.Body)));
@@ -699,7 +704,6 @@ namespace Microsoft.Dafny
         }
         
         reqs.Add(Expression.CreateMatch(e.tok, e.Source, newMatches, e.Type));
-        */
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         reqs.AddRange(generateAutoReqs(e.E));

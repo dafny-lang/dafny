@@ -4069,8 +4069,6 @@ namespace Microsoft.Dafny {
       return ite;
     }
 
-    /*  Still under development
-     
     /// <summary>
     /// Create a resolved case expression for a match expression
     /// </summary>
@@ -4078,8 +4076,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(old_case != null);
       Contract.Requires(new_body != null);   
       Contract.Ensures(Contract.Result<Expression>() != null);
-      
-      Cloner cloner = new Cloner();
+
+      ResolvedCloner cloner = new ResolvedCloner();
       var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
       new_body = VarSubstituter(old_case.Arguments, newVars, new_body);
 
@@ -4098,8 +4096,7 @@ namespace Microsoft.Dafny {
 
       return e;
     }
-    */
-
+ 
     /// <summary>
     /// Create a let expression with a resolved type and fresh variables
     /// </summary>
@@ -4109,7 +4106,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(vars.Count == RHSs.Count);
       Contract.Requires(body != null);
 
-      Cloner cloner = new Cloner();
+      ResolvedCloner cloner = new ResolvedCloner();
       var newVars = vars.ConvertAll(cloner.CloneBoundVar);
       body = VarSubstituter(vars, newVars, body);
 
@@ -4126,7 +4123,7 @@ namespace Microsoft.Dafny {
       //(IToken tok, List<BoundVar> vars, Expression range, Expression body, Attributes attribs, Qu) {
       Contract.Requires(expr != null);
 
-      Cloner cloner = new Cloner();
+      ResolvedCloner cloner = new ResolvedCloner();
       var newVars = expr.BoundVars.ConvertAll(cloner.CloneBoundVar);
 
       if (body == null) {

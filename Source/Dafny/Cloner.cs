@@ -123,7 +123,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public Type CloneType(Type t) {
+    virtual public Type CloneType(Type t) {
       if (t is BasicType) {
         return t;
       } else if (t is SetType) {
@@ -697,4 +697,23 @@ namespace Microsoft.Dafny
       return base.CloneStmt(stmt);
     }
   }
+
+
+  class ResolvedCloner : Cloner {
+
+    public override Type CloneType(Type t) {
+      Type new_t = base.CloneType(t);
+
+      if (t is UserDefinedType) {
+        var tt = (UserDefinedType)t;
+        var new_tt = (UserDefinedType)new_t;
+
+        new_tt.ResolvedClass = tt.ResolvedClass;
+        new_tt.ResolvedParam = tt.ResolvedParam;                
+      }
+
+      return new_t;
+    }
+  }
+
 }

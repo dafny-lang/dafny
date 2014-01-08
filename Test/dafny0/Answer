@@ -2044,6 +2044,10 @@ Dafny program verifier finished with 3 verified, 3 errors
 Dafny program verifier finished with 2 verified, 0 errors
 
 -------------------- AutoReq.dfy --------------------
+AutoReq.dfy(245,3): Error: possible violation of function precondition
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 AutoReq.dfy(11,3): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
@@ -2079,7 +2083,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 37 verified, 7 errors
+Dafny program verifier finished with 43 verified, 8 errors
 
 -------------------- Superposition.dfy --------------------
 

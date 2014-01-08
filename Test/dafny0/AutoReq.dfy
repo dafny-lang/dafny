@@ -222,7 +222,36 @@ module {:autoReq} M1 {
     }
 }
 
-/*  Not yet implemented
+module Datatypes {
+	datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
+
+	function f1(t:TheType):bool
+		requires t.TheType_builder? && t.x > 3;
+
+	function {:autoReq} test(t:TheType) : bool
+	{
+		f1(t)
+	}
+
+	function f2(x:int) : bool
+		requires forall t:TheType :: t.TheType_builder? && t.x > x;
+	{
+		true
+	}
+
+	// Should cause a function-requirement violation without autoReq
+	function f3(y:int) : bool
+	{
+		f2(y)
+	}
+
+	function {:autoReq} test2(z:int) : bool
+	{
+		f2(z)
+	}
+
+}
+
 module Matches {
 	datatype TheType = TheType_builder(x:int) | TheType_copier(t:TheType);
 
@@ -236,6 +265,5 @@ module Matches {
 			case TheType_copier(t) => true
 	}
 }
-*/
 
 
