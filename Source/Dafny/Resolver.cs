@@ -1241,7 +1241,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return new LetExpr(e.tok, e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
+        return new LetExpr(e.tok, e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
 
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -1287,6 +1287,15 @@ namespace Microsoft.Dafny
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    public CasePattern CloneCasePattern(CasePattern pat) {
+      Contract.Requires(pat != null);
+      if (pat.Arguments == null) {
+        return new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+      } else {
+        return new CasePattern(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
       }
     }
 
@@ -2295,7 +2304,7 @@ namespace Microsoft.Dafny
           }
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
-          foreach (var bv in e.Vars) {
+          foreach (var bv in e.BoundVars) {
             CheckEqualityTypes_Type(bv.tok, bv.Type);
           }
         } else if (expr is FunctionCallExpr) {
@@ -4365,7 +4374,7 @@ namespace Microsoft.Dafny
         }
         s.IsGhost = bodyIsSpecOnly;
 
-        Dictionary<string, object> memberNamesUsed = new Dictionary<string, object>();  // this is really a set
+        ISet<string> memberNamesUsed = new HashSet<string>();
         foreach (MatchCaseStmt mc in s.Cases) {
           DatatypeCtor ctor = null;
           if (ctors != null) {
@@ -4378,10 +4387,10 @@ namespace Microsoft.Dafny
               if (ctor.Formals.Count != mc.Arguments.Count) {
                 Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
               }
-              if (memberNamesUsed.ContainsKey(mc.Id)) {
+              if (memberNamesUsed.Contains(mc.Id)) {
                 Error(mc.tok, "member {0} appears in more than one case", mc.Id);
               } else {
-                memberNamesUsed.Add(mc.Id, null);  // add mc.Id to the set of names used
+                memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
               }
             }
           }
@@ -4413,7 +4422,7 @@ namespace Microsoft.Dafny
           // but instead we let the verifier do a semantic check.
           // So, for now, record the missing constructors:
           foreach (var ctr in dtd.Ctors) {
-            if (!memberNamesUsed.ContainsKey(ctr.Name)) {
+            if (!memberNamesUsed.Contains(ctr.Name)) {
               s.MissingCases.Add(ctr);
             }
           }
@@ -4513,7 +4522,7 @@ namespace Microsoft.Dafny
       int errorCountBeforeCheckingLhs = ErrorCount;
       var update = s as UpdateStmt;
 
-      var lhsNameSet = new Dictionary<string, object>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
+      var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
       foreach (var lhs in s.Lhss) {
         var ec = ErrorCount;
         ResolveExpression(lhs, true, codeContext);
@@ -4526,10 +4535,10 @@ namespace Microsoft.Dafny
           }
           var ie = lhs.Resolved as IdentifierExpr;
           if (ie != null) {
-            if (lhsNameSet.ContainsKey(ie.Name)) {
+            if (lhsNameSet.Contains(ie.Name)) {
               Error(update, "duplicate variable in left-hand side of call statement: {0}", ie.Name);
             } else {
-              lhsNameSet.Add(ie.Name, null);
+              lhsNameSet.Add(ie.Name);
             }
           }
         }
@@ -5904,17 +5913,24 @@ namespace Microsoft.Dafny
             ResolveExpression(rhs, twoState, codeContext);
           }
           scope.PushMarker();
-          if (e.Vars.Count != e.RHSs.Count) {
-            Error(expr, "let expression must have same number of bound variables (found {0}) as RHSs (found {1})", e.Vars.Count, e.RHSs.Count);
+          if (e.LHSs.Count != e.RHSs.Count) {
+            Error(expr, "let expression must have same number of LHSs (found {0}) as RHSs (found {1})", e.LHSs.Count, e.RHSs.Count);
           }
-          int i = 0;
-          foreach (var v in e.Vars) {
-            if (!scope.Push(v.Name, v)) {
-              Error(v, "Duplicate let-variable name: {0}", v.Name);
+          var i = 0;
+          foreach (var lhs in e.LHSs) {
+            var rhsType = i < e.RHSs.Count ? e.RHSs[i].Type : new InferredTypeProxy();
+            ResolveCasePattern(lhs, rhsType);
+            // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
+            var c = 0;
+            foreach (var v in lhs.Vars) {
+              if (!scope.Push(v.Name, v)) {
+                Error(v, "Duplicate let-variable name: {0}", v.Name);
+              }
+              c++;
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
-            if (i < e.RHSs.Count && !UnifyTypes(v.Type, e.RHSs[i].Type)) {
-              Error(e.RHSs[i].tok, "type of RHS ({0}) does not match type of bound variable ({1})", e.RHSs[i].Type, v.Type);
+            if (c == 0) {
+              // Every identifier-looking thing in the patterned resolved to a constructor; that is, this LHS is a constant literal
+              Error(lhs.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
             }
             i++;
           }
@@ -5925,7 +5941,9 @@ namespace Microsoft.Dafny
           }
           // the bound variables are in scope in the RHS of a let-such-that expression
           scope.PushMarker();
-          foreach (var v in e.Vars) {
+          foreach (var lhs in e.LHSs) {
+            Contract.Assert(lhs.Var != null);  // the parser already checked that every LHS is a BoundVar, not a general pattern
+            var v = lhs.Var;
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate let-variable name: {0}", v.Name);
             }
@@ -6132,7 +6150,7 @@ namespace Microsoft.Dafny
           }
         }
 
-        Dictionary<string, object> memberNamesUsed = new Dictionary<string, object>();  // this is really a set
+        ISet<string> memberNamesUsed = new HashSet<string>();
         expr.Type = new InferredTypeProxy();
         foreach (MatchCaseExpr mc in me.Cases) {
           DatatypeCtor ctor = null;
@@ -6146,10 +6164,10 @@ namespace Microsoft.Dafny
               if (ctor.Formals.Count != mc.Arguments.Count) {
                 Error(mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", mc.Id, mc.Arguments.Count, ctor.Formals.Count);
               }
-              if (memberNamesUsed.ContainsKey(mc.Id)) {
+              if (memberNamesUsed.Contains(mc.Id)) {
                 Error(mc.tok, "member {0} appears in more than one case", mc.Id);
               } else {
-                memberNamesUsed.Add(mc.Id, null);  // add mc.Id to the set of names used
+                memberNamesUsed.Add(mc.Id);  // add mc.Id to the set of names used
               }
             }
           }
@@ -6183,7 +6201,7 @@ namespace Microsoft.Dafny
           // but instead we let the verifier do a semantic check.
           // So, for now, record the missing constructors:
           foreach (var ctr in dtd.Ctors) {
-            if (!memberNamesUsed.ContainsKey(ctr.Name)) {
+            if (!memberNamesUsed.Contains(ctr.Name)) {
               me.MissingCases.Add(ctr);
             }
           }
@@ -6197,6 +6215,65 @@ namespace Microsoft.Dafny
       if (expr.Type == null) {
         // some resolution error occurred
         expr.Type = Type.Flexible;
+      }
+    }
+
+    void ResolveCasePattern(CasePattern pat, Type sourceType) {
+      Contract.Requires(pat != null);
+      Contract.Requires(sourceType != null);
+
+      DatatypeDecl dtd = null;
+      UserDefinedType udt = null;
+      if (sourceType.IsDatatype) {
+        udt = (UserDefinedType)sourceType;
+        dtd = (DatatypeDecl)udt.ResolvedClass;
+      }
+      // Find the constructor in the given datatype
+      // If what was parsed was just an identifier, we will interpret it as a datatype constructor, if possible
+      DatatypeCtor ctor = null;
+      if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy && dtd != null)) {
+        if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
+          pat.Ctor = ctor;
+          pat.Var = null;
+        }
+      }
+
+      if (pat.Var != null) {
+        // this is a simple resolution
+        var v = pat.Var;
+        ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+        if (!UnifyTypes(v.Type, sourceType)) {
+          Error(v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
+        }
+        pat.AssembleExpr(null);
+      } else if (dtd == null) {
+        Error(pat.tok, "to use a pattern, the type of the source/RHS expression must be a datatype (instead found {0})", sourceType);
+      } else if (ctor == null) {
+        Error(pat.tok, "constructor {0} does not exist in datatype {1}", pat.Id, dtd.Name);
+      } else {
+        var argCount = pat.Arguments == null ? 0 : pat.Arguments.Count;
+        if (ctor.Formals.Count != argCount) {
+          Error(pat.tok, "pattern for constructor {0} has wrong number of formals (found {1}, expected {2})", pat.Id, argCount, ctor.Formals.Count);
+        }
+        // build the type-parameter substitution map for this use of the datatype
+        Contract.Assert(dtd.TypeArgs.Count == udt.TypeArgs.Count);  // follows from the type previously having been successfully resolved
+        var subst = new Dictionary<TypeParameter, Type>();
+        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
+          subst.Add(dtd.TypeArgs[i], udt.TypeArgs[i]);
+        }
+        // recursively call ResolveCasePattern on each of the arguments
+        var j = 0;
+        foreach (var arg in pat.Arguments) {
+          if (j < ctor.Formals.Count) {
+            var formal = ctor.Formals[j];
+            Type st = SubstType(formal.Type, subst);
+            ResolveCasePattern(arg, st);
+          }
+          j++;
+        }
+        if (j == ctor.Formals.Count) {
+          pat.AssembleExpr(udt.TypeArgs);
+        }
       }
     }
 
@@ -6382,10 +6459,10 @@ namespace Microsoft.Dafny
         if (!e.Exact) {
           Error(expr, "let-such-that expressions are allowed only in ghost contexts");
         }
-        Contract.Assert(e.Vars.Count == e.RHSs.Count);
+        Contract.Assert(e.LHSs.Count == e.RHSs.Count);
         var i = 0;
         foreach (var ee in e.RHSs) {
-          if (!e.Vars[i].IsGhost) {
+          if (!e.LHSs[i].Vars.All(bv => bv.IsGhost)) {
             CheckIsNonGhost(ee);
           }
           i++;

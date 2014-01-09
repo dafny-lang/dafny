@@ -1371,9 +1371,9 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write("("); }
         wr.Write("var ");
         string sep = "";
-        foreach (var v in e.Vars) {
-          wr.Write("{0}{1}", sep, v.DisplayName);
-          PrintType(": ", v.Type);
+        foreach (var lhs in e.LHSs) {
+          wr.Write(sep);
+          PrintCasePattern(lhs);
           sep = ", ";
         }
         if (e.Exact) {
@@ -1526,6 +1526,29 @@ namespace Microsoft.Dafny {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    void PrintCasePattern(CasePattern pat) {
+      Contract.Requires(pat != null);
+      var v = pat.Var;
+      if (v != null) {
+        wr.Write(v.DisplayName);
+        if (v.Type is NonProxyType || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          PrintType(": ", v.Type);
+        }
+      } else {
+        wr.Write(pat.Id);
+        if (pat.Arguments != null) {
+          wr.Write("(");
+          var sep = "";
+          foreach (var arg in pat.Arguments) {
+            wr.Write(sep);
+            PrintCasePattern(arg);
+            sep = ", ";
+          }
+          wr.Write(")");
+        }
       }
     }
 

@@ -627,5 +627,6 @@ namespace Dafny
     {
       return u;
     }
+    public delegate Result Function<Input,Result>(Input input);
   }
 }

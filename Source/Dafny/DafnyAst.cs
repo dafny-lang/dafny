@@ -4781,14 +4781,14 @@ namespace Microsoft.Dafny {
 
   public class LetExpr : Expression
   {
-    public readonly List<BoundVar> Vars;
+    public readonly List<CasePattern> LHSs;
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
     public Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
-    public LetExpr(IToken tok, List<BoundVar> vars, List<Expression> rhss, Expression body, bool exact)
+    public LetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact)
       : base(tok) {
-      Vars = vars;
+      LHSs = lhss;
       RHSs = rhss;
       Body = body;
       Exact = exact;
@@ -4799,6 +4799,15 @@ namespace Microsoft.Dafny {
           yield return rhs;
         }
         yield return Body;
+      }
+    }
+    public IEnumerable<BoundVar> BoundVars {
+      get {
+        foreach (var lhs in LHSs) {
+          foreach (var bv in lhs.Vars) {
+            yield return bv;
+          }
+        }
       }
     }
   }
@@ -5116,6 +5125,76 @@ namespace Microsoft.Dafny {
         yield return Source;
         foreach (var mc in Cases) {
           yield return mc.Body;
+        }
+      }
+    }
+  }
+
+  /// <summary>
+  /// A CasePattern is either a BoundVar or a datatype constructor with optional arguments.
+  /// Lexically, the CasePattern starts with an identifier.  If it continues with an open paren (as
+  /// indicated by Arguments being non-null), then the CasePattern is a datatype constructor.  If
+  /// it continues with a colon (which is indicated by Var.Type not being a proxy type), then it is
+  /// a BoundVar.  But if it ends with just the identifier, then resolution is required to figure out
+  /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
+  /// is recorded by the parser.
+  /// </summary>
+  public class CasePattern
+  {
+    public readonly IToken tok;
+    public readonly string Id;
+    // After successful resolution, exactly one of the following two fields is non-null.
+    public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
+    public BoundVar Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
+    public readonly List<CasePattern> Arguments;
+
+    public Expression Expr;  // an r-value version of the CasePattern; filled in by resolution
+
+    public CasePattern(IToken tok, string id, [Captured] List<CasePattern> arguments) {
+      Contract.Requires(tok != null);
+      Contract.Requires(id != null);
+      this.tok = tok;
+      Id = id;
+      Arguments = arguments;
+    }
+
+    public CasePattern(IToken tok, BoundVar bv) {
+      Contract.Requires(tok != null);
+      Contract.Requires(bv != null);
+      this.tok = tok;
+      Id = bv.Name;
+      Var = bv;
+    }
+
+    /// <summary>
+    /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
+    /// to Expr.
+    /// </summary>
+    public void AssembleExpr(List<Type> dtvTypeArgs) {
+      Contract.Requires(Var != null || dtvTypeArgs != null);
+      if (Var != null) {
+        var ie = new IdentifierExpr(this.tok, this.Id);
+        ie.Var = this.Var; ie.Type = this.Var.Type;  // resolve here
+        this.Expr = ie;
+      } else {
+        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments.ConvertAll(arg => arg.Expr));
+        dtValue.Ctor = this.Ctor;  // resolve here
+        dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
+        dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
+        this.Expr = dtValue;
+      }
+    }
+
+    public IEnumerable<BoundVar> Vars {
+      get {
+        if (Var != null) {
+          yield return Var;
+        } else {
+          foreach (var arg in Arguments) {
+            foreach (var bv in arg.Vars) {
+              yield return bv;
+            }
+          }
         }
       }
     }

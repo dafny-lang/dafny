@@ -145,6 +145,11 @@ bool IsParenStar() {
   return la.kind == _openparen && x.kind == _star;
 }
 
+bool IsIdentParen() {
+  Token x = scanner.Peek();
+  return la.kind == _ident && x.kind == _openparen;
+}
+
 bool SemiFollowsCall(bool allowSemi, Expression e) {
   return allowSemi && la.kind == _semi &&
     (e is FunctionCallExpr ||
@@ -1034,13 +1039,6 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			optType = ty; 
 		}
 		var = new VarDecl(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); 
-	}
-
-	void IdentTypeOptionalG(out BoundVar var, bool isGhost) {
-		Contract.Ensures(Contract.ValueAtReturn(out var) != null);
-		
-		IdentTypeOptional(out var);
-		var.IsGhost = isGhost; 
 	}
 
 	void IdentTypeOptional(out BoundVar var) {
@@ -3342,32 +3340,41 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void LetExpr(out Expression e, bool allowSemi) {
 		IToken x = null;
-		e = dummyExpr;
-		BoundVar d;
-		List<BoundVar> letVars;  List<Expression> letRHSs;
-		bool exact = true;
 		bool isGhost = false;
+		var letLHSs = new List<CasePattern>();
+		var letRHSs = new List<Expression>();
+		CasePattern pat;
+		bool exact = true;
+		e = dummyExpr;
 		
 		if (la.kind == 24) {
 			Get();
 			isGhost = true;  x = t; 
 		}
 		Expect(29);
-		if (!isGhost) { x = t; }
-		letVars = new List<BoundVar>();
-		letRHSs = new List<Expression>(); 
-		IdentTypeOptionalG(out d, isGhost);
-		letVars.Add(d); 
+		if (!isGhost) { x = t; } 
+		CasePattern(out pat);
+		if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+		letLHSs.Add(pat);
+		
 		while (la.kind == 30) {
 			Get();
-			IdentTypeOptionalG(out d, isGhost);
-			letVars.Add(d); 
+			CasePattern(out pat);
+			if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+			letLHSs.Add(pat);
+			
 		}
 		if (la.kind == 67) {
 			Get();
 		} else if (la.kind == 69) {
 			Get();
-			exact = false; 
+			exact = false;
+			foreach (var lhs in letLHSs) {
+			 if (lhs.Arguments != null) {
+			   SemErr(lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
+			 }
+			}
+			
 		} else SynErr(220);
 		Expression(out e, false);
 		letRHSs.Add(e); 
@@ -3378,7 +3385,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		}
 		Expect(7);
 		Expression(out e, allowSemi);
-		e = new LetExpr(x, letVars, letRHSs, e, exact); 
+		e = new LetExpr(x, letLHSs, letRHSs, e, exact); 
 	}
 
 	void NamedExpr(out Expression e, bool allowSemi) {
@@ -3393,6 +3400,33 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expression(out e, allowSemi);
 		expr = e;
 		e = new NamedExpr(x, d.val, expr); 
+	}
+
+	void CasePattern(out CasePattern pat) {
+		IToken id;  List<CasePattern> arguments;
+		BoundVar bv;
+		pat = null;
+		
+		if (IsIdentParen()) {
+			Ident(out id);
+			Expect(10);
+			arguments = new List<CasePattern>(); 
+			if (la.kind == 1) {
+				CasePattern(out pat);
+				arguments.Add(pat); 
+				while (la.kind == 30) {
+					Get();
+					CasePattern(out pat);
+					arguments.Add(pat); 
+				}
+			}
+			Expect(33);
+			pat = new CasePattern(id, id.val, arguments); 
+		} else if (la.kind == 1) {
+			IdentTypeOptional(out bv);
+			pat = new CasePattern(bv.tok, bv); 
+			
+		} else SynErr(221);
 	}
 
 	void CaseExpression(out MatchCaseExpr c, bool allowSemi) {
@@ -3425,7 +3459,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 118) {
 			Get();
-		} else SynErr(221);
+		} else SynErr(222);
 	}
 
 	void Exists() {
@@ -3433,7 +3467,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 120) {
 			Get();
-		} else SynErr(222);
+		} else SynErr(223);
 	}
 
 	void AttributeBody(ref Attributes attrs) {
@@ -3745,8 +3779,9 @@ public class Errors {
 			case 218: s = "invalid QuantifierGuts"; break;
 			case 219: s = "invalid StmtInExpr"; break;
 			case 220: s = "invalid LetExpr"; break;
-			case 221: s = "invalid Forall"; break;
-			case 222: s = "invalid Exists"; break;
+			case 221: s = "invalid CasePattern"; break;
+			case 222: s = "invalid Forall"; break;
+			case 223: s = "invalid Exists"; break;
 
 			default: s = "error " + n; break;
 		}

@@ -2289,8 +2289,32 @@ LetExpr.dfy(104,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
+LetExpr.dfy(248,19): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+LetExpr.dfy(251,19): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+LetExpr.dfy(253,24): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+LetExpr.dfy(282,14): Error: RHS is not certain to look like the pattern 'Agnes'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+LetExpr.dfy(299,42): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+LetExpr.dfy(301,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
 
-Dafny program verifier finished with 28 verified, 2 errors
+Dafny program verifier finished with 38 verified, 8 errors
 
 Dafny program verifier finished with 0 verified, 0 errors
 

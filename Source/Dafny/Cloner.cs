@@ -295,7 +295,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        return new LetExpr(Tok(e.tok), e.Vars.ConvertAll(CloneBoundVar), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
+        return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact);
 
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
@@ -344,6 +344,15 @@ namespace Microsoft.Dafny
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    public CasePattern CloneCasePattern(CasePattern pat) {
+      Contract.Requires(pat != null);
+      if (pat.Arguments == null) {
+        return new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+      } else {
+        return new CasePattern(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
       }
     }
 

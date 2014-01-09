@@ -216,3 +216,88 @@ class TrickySubstitution {
     s := old(var y :| y == w; y);
   }
 }
+
+datatype List<T> = Nil | Cons(head: T, tail: List)
+
+method Q(list: List<int>, anotherList: List<int>)
+  requires list != Nil;
+{
+  var x :=
+    var Cons(h, t) := list;
+    Cons(h, t);
+  var y := match anotherList
+    case Nil => (match anotherList case Nil => 5)
+    case Cons(h, t) => h;
+  assert list == x;
+  assert anotherList.Cons? ==> y == anotherList.head;
+  assert anotherList.Nil? ==> y == 5;
+}
+
+// ------------- pattern LHSs ---------------
+
+datatype Tuple<T,U> = Pair(0: T, 1: U)
+
+function method Together(x: int, y: bool): Tuple<int, bool>
+{
+  Pair(x, y)
+}
+
+method LikeTogether() returns (z: int)
+{
+  if * {
+    z := var Pair(xx: nat, yy) := Together(-10, true); xx + 3;  // error: int-to-nat failure
+    assert 0 <= z;  // follows from the bogus type of xx
+  } else if * {
+    var t: nat := -30;  // error: int-to-nat failure in assignment statement
+  } else {
+    z := var t: nat := -30; t;  // error: int-to-nat failure in let expression
+  }
+}
+
+method Mountain() returns (z: int, t: nat)
+{
+  z := var Pair(xx: nat, yy) := Together(10, true); xx + 3;
+  assert 0 <= z;
+}
+
+function method Rainbow<X>(tup: Tuple<X, int>): int
+  ensures 0 <= Rainbow(tup);
+{
+  var Pair(left, right) := tup; right*right
+}
+
+datatype Friend = Agnes(int) | Agatha(int) | Jermaine(int) | Jack(int)
+
+function Fr(x: int): Friend
+{
+  if x < 10 then Jermaine(x) else Agnes(x)
+}
+
+method Friendly(n: nat) returns (ghost c: int)
+  ensures c == n;
+{
+  if n < 3 {
+    c := var Jermaine(y) := Fr(n); y;
+  } else {
+    c := var Agnes(y) := Fr(n); y;  // error: Fr might return something other than an Agnes
+  }
+}
+
+function method F_good(d: Tuple<
+                             Tuple<bool, int>,
+                             Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
+  requires 0 <= d.1.0.1 < 100;
+{
+  var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int := d.0, d, d.1.0.1;
+  assert q < 200;
+  p.1 + if b0 then x + y0 else x + y1
+}
+function method F_bad(d: Tuple<
+                            Tuple<bool, int>,
+                            Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
+{
+  var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int  // error: int-to-nat failure
+   := d.0, d, d.1.0.1;
+  assert q < 200;  // error: assertion failure
+  p.1 + if b0 then x + y0 else x + y1
+}

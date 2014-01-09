@@ -120,6 +120,11 @@ bool IsParenStar() {
   return la.kind == _openparen && x.kind == _star;
 }
 
+bool IsIdentParen() {
+  Token x = scanner.Peek();
+  return la.kind == _ident && x.kind == _openparen;
+}
+
 bool SemiFollowsCall(bool allowSemi, Expression e) {
   return allowSemi && la.kind == _semi &&
     (e is FunctionCallExpr ||
@@ -424,12 +429,6 @@ LocalIdentTypeOptional<out VarDecl var, bool isGhost>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new VarDecl(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
-  .
-IdentTypeOptionalG<out BoundVar var, bool isGhost>
-= (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
-  .)
-  IdentTypeOptional<out var>
-  (. var.IsGhost = isGhost; .)
   .
 IdentTypeOptional<out BoundVar var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
@@ -1916,28 +1915,37 @@ StmtInExpr<out Statement s>
 
 LetExpr<out Expression e, bool allowSemi>
 = (. IToken x = null;
-     e = dummyExpr;
-     BoundVar d;
-     List<BoundVar> letVars;  List<Expression> letRHSs;
-     bool exact = true;
      bool isGhost = false;
+     var letLHSs = new List<CasePattern>();
+     var letRHSs = new List<Expression>();
+     CasePattern pat;
+     bool exact = true;
+     e = dummyExpr;
   .)
     [ "ghost"                       (. isGhost = true;  x = t; .)
     ]
-    "var"                           (. if (!isGhost) { x = t; }
-                                       letVars = new List<BoundVar>();
-                                       letRHSs = new List<Expression>(); .)
-    IdentTypeOptionalG<out d, isGhost>        (. letVars.Add(d); .)
-    { "," IdentTypeOptionalG<out d, isGhost>  (. letVars.Add(d); .)
+    "var"                           (. if (!isGhost) { x = t; } .)
+    CasePattern<out pat>            (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+                                       letLHSs.Add(pat);
+                                    .)
+    { "," CasePattern<out pat>      (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+                                       letLHSs.Add(pat);
+                                    .)
     }
     ( ":="
-    | ":|"                          (. exact = false; .)
+    | ":|"                          (. exact = false;
+                                       foreach (var lhs in letLHSs) {
+                                         if (lhs.Arguments != null) {
+                                           SemErr(lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
+                                         }
+                                       }
+                                    .)
     )
     Expression<out e, false>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false>  (. letRHSs.Add(e); .)
     }
     ";"
-    Expression<out e, allowSemi>    (. e = new LetExpr(x, letVars, letRHSs, e, exact); .)
+    Expression<out e, allowSemi>    (. e = new LetExpr(x, letLHSs, letRHSs, e, exact); .)
   .
 
 NamedExpr<out Expression e, bool allowSemi>
@@ -1980,6 +1988,30 @@ CaseExpression<out MatchCaseExpr c, bool allowSemi>
   ")" ]
   "=>"
   Expression<out body, allowSemi>    (. c = new MatchCaseExpr(x, id.val, arguments, body); .)
+  .
+CasePattern<out CasePattern pat>
+= (. IToken id;  List<CasePattern> arguments;
+     BoundVar bv;
+     pat = null;
+  .)
+  ( IF(IsIdentParen())
+    Ident<out id>
+    "("                                (. arguments = new List<CasePattern>(); .)
+      [ CasePattern<out pat>           (. arguments.Add(pat); .)
+        { "," CasePattern<out pat>     (. arguments.Add(pat); .)
+        }
+      ]
+    ")"                                (. pat = new CasePattern(id, id.val, arguments); .)
+
+  | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.
+                                          // Nevertheless, we do put the "bv" into the CasePattern here (even though it will get thrown out
+                                          // later if resolution finds the CasePattern to denote a parameter-less constructor), because this
+                                          // (in particular, bv.IsGhost) is the place where a LetExpr records whether or not the "ghost"
+                                          // keyword was used in the declaration.
+                                          pat = new CasePattern(bv.tok, bv); 
+                                       .)
+  )
+  
   .
 /*------------------------------------------------------------------------*/
 DottedIdentifiersAndFunction<out Expression e>
