@@ -1299,8 +1299,10 @@ namespace Microsoft.Dafny
 
     public CasePattern CloneCasePattern(CasePattern pat) {
       Contract.Requires(pat != null);
-      if (pat.Arguments == null) {
+      if (pat.Var != null) {
         return new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+      } else if (pat.Arguments == null) {
+        return new CasePattern(pat.tok, pat.Id, null);
       } else {
         return new CasePattern(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
       }

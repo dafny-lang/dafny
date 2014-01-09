@@ -245,7 +245,7 @@ namespace DafnyLanguage
         IdRegion.Add(regions, e.tok, e.Field, e.Type, "field", false, module);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        foreach (var bv in e.Vars) {
+        foreach (var bv in e.BoundVars) {
           IdRegion.Add(regions, bv.tok, bv, true, module);
         }
       } else if (expr is ComprehensionExpr) {

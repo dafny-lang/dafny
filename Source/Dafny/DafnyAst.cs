@@ -4100,17 +4100,22 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a let expression with a resolved type and fresh variables
     /// </summary>
-    public static Expression CreateLet(IToken tok, List<BoundVar> vars, List<Expression> RHSs, Expression body, bool exact) {
+    public static Expression CreateLet(IToken tok, List<CasePattern> LHSs, List<Expression> RHSs, Expression body, bool exact) {
       Contract.Requires(tok  != null);
-      Contract.Requires(vars != null && RHSs != null);
-      Contract.Requires(vars.Count == RHSs.Count);
+      Contract.Requires(LHSs != null && RHSs != null);
+      Contract.Requires(LHSs.Count == RHSs.Count);
       Contract.Requires(body != null);
 
       ResolvedCloner cloner = new ResolvedCloner();
-      var newVars = vars.ConvertAll(cloner.CloneBoundVar);
-      body = VarSubstituter(vars, newVars, body);
+      var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
-      var let = new LetExpr(tok, newVars, RHSs, body, exact);
+      var oldVars = new List<BoundVar>();
+      LHSs.Iter(p => oldVars.AddRange(p.Vars));
+      var newVars = new List<BoundVar>();
+      newLHSs.Iter(p => newVars.AddRange(p.Vars));
+      body = VarSubstituter(oldVars, newVars, body);
+
+      var let = new LetExpr(tok, newLHSs, RHSs, body, exact);
       let.Type = body.Type;  // resolve here
       return let;
     }

@@ -753,7 +753,7 @@ namespace Microsoft.Dafny
           }
           var new_reqs = generateAutoReqs(e.Body);
           if (new_reqs.Count > 0) {                 
-            reqs.Add(Expression.CreateLet(e.tok, e.Vars, e.RHSs, andify(e.tok, new_reqs), e.Exact));
+            reqs.Add(Expression.CreateLet(e.tok, e.LHSs, e.RHSs, andify(e.tok, new_reqs), e.Exact));
           }
         } else {
           // TODO: Still need to figure out what the right choice is here:

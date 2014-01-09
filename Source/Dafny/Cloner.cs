@@ -123,7 +123,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    virtual public Type CloneType(Type t) {
+    public virtual Type CloneType(Type t) {
       if (t is BasicType) {
         return t;
       } else if (t is SetType) {
@@ -349,10 +349,12 @@ namespace Microsoft.Dafny
       }
     }
 
-    public CasePattern CloneCasePattern(CasePattern pat) {
+    public virtual CasePattern CloneCasePattern(CasePattern pat) {
       Contract.Requires(pat != null);
-      if (pat.Arguments == null) {
+      if (pat.Var != null) {
         return new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+      } else if (pat.Arguments == null) {
+        return new CasePattern(pat.tok, pat.Id, null);
       } else {
         return new CasePattern(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
       }
@@ -724,6 +726,21 @@ namespace Microsoft.Dafny
       }
 
       return new_t;
+    }
+
+    public override CasePattern CloneCasePattern(CasePattern pat) {
+      if (pat.Var != null) {
+        var newPat = new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+        newPat.AssembleExpr(null);
+        return newPat;
+      } else {
+        var newArgs = pat.Arguments == null ? null : pat.Arguments.ConvertAll(CloneCasePattern);
+        var patE = (DatatypeValue)pat.Expr;
+        var newPat = new CasePattern(pat.tok, pat.Id, newArgs);
+        newPat.Ctor = pat.Ctor;
+        newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(CloneType));
+        return newPat;
+      }
     }
   }
 
