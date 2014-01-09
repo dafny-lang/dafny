@@ -266,4 +266,23 @@ module Matches {
 	}
 }
 
+// Make sure :autoReq works with static functions
+module StaticTest {
+    static function f(x:int) : bool
+      requires x > 3;
+    {
+      x > 7
+    }
 
+	static function {:autoReq} g(z:int) : bool
+        requires f(z);
+    {
+        true
+    }
+	
+    // Should succeed thanks to auto-generation based on f's requirements
+    static function {:autoReq} h(y:int) : bool  
+    {
+      g(y)
+    }
+}

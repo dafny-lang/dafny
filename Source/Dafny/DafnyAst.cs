@@ -4169,6 +4169,13 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class StaticReceiverExpr : LiteralExpr
   {
+    public StaticReceiverExpr(IToken tok, Type t) 
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(t != null);
+      Type = t;
+    }
+
     public StaticReceiverExpr(IToken tok, ClassDecl cl)
       : base(tok)  // constructs a LiteralExpr representing the 'null' literal
     {

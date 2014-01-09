@@ -200,7 +200,9 @@ namespace Microsoft.Dafny
         return null;
       } else if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
-        if (e.Value == null) {
+        if (e is StaticReceiverExpr) {
+          return new StaticReceiverExpr(e.tok, e.Type);
+        } else if (e.Value == null) {          
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {
           return new LiteralExpr(Tok(e.tok), (bool)e.Value);
