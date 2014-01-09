@@ -192,6 +192,7 @@ namespace Microsoft.Dafny
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
       rewriters.Add(new OpaqueFunctionRewriter());
+      rewriters.Add(new AutoReqFunctionRewriter(this));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       foreach (var decl in sortedDecls) {
@@ -394,6 +395,10 @@ namespace Microsoft.Dafny
     void FillInDefaultDecreases(ICallable clbl) {
       Contract.Requires(clbl != null);
 
+      if (clbl is CoPredicate) {
+        // copredicates don't have decreases clauses
+        return;
+      }
       var decr = clbl.Decreases.Expressions;
       if (decr.Count == 0 || (clbl is PrefixMethod && decr.Count == 1)) {
         // The default for a function starts with the function's reads clause, if any
@@ -1146,7 +1151,9 @@ namespace Microsoft.Dafny
         return null;
       } else if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
-        if (e.Value == null) {
+        if (e is StaticReceiverExpr) {
+          return new StaticReceiverExpr(e.tok, e.Type);
+        } else if (e.Value == null) {
           return new LiteralExpr(e.tok);
         } else if (e.Value is bool) {
           return new LiteralExpr(e.tok, (bool)e.Value);
@@ -4685,7 +4692,7 @@ namespace Microsoft.Dafny
 
         var missingBounds = new List<IVariable>();
         CheckTypeInference(s.Expr);  // we need to resolve operators before the call to DiscoverBoundsAux
-        var allBounds = DiscoverBoundsAux(s.Tok, varLhss, s.Expr, true, true, missingBounds);
+        var allBounds = DiscoverBoundsAux(s.Tok, varLhss, s.Expr, true, true, true, missingBounds);
         if (missingBounds.Count != 0) {
           s.MissingBounds = missingBounds;  // so that an error message can be produced during compilation
         } else {
@@ -6879,7 +6886,7 @@ namespace Microsoft.Dafny
     /// For a description, see DiscoverBoundsAux.
     /// </summary>
     public static List<ComprehensionExpr.BoundedPool> DiscoverBounds<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, List<VT> missingBounds) where VT : IVariable {
-      var pairs = DiscoverBoundsAux(tok, bvars, expr, polarity, returnAllBounds, missingBounds);
+      var pairs = DiscoverBoundsAux(tok, bvars, expr, polarity, returnAllBounds, false, missingBounds);
       if (pairs == null) {
         return null;
       }
@@ -6904,8 +6911,10 @@ namespace Microsoft.Dafny
     ///   -- a non-null return value means that some bound were found for each variable (but, for example, perhaps one
     ///      variable only has lower bounds, no upper bounds)
     /// Requires "expr" to be successfully resolved.
+    /// If "allowAnyIntegers", then integer variables will always be given a bound, but this bound may be WiggleWaggle if
+    /// there is no better bound.
     /// </summary>
-    public static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverBoundsAux<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, List<VT> missingBounds) where VT : IVariable {
+    public static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverBoundsAux<VT>(IToken tok, List<VT> bvars, Expression expr, bool polarity, bool returnAllBounds, bool allowAnyIntegers, List<VT> missingBounds) where VT : IVariable {
       Contract.Requires(tok != null);
       Contract.Requires(bvars != null);
       Contract.Requires(missingBounds != null);
@@ -7034,8 +7043,12 @@ namespace Microsoft.Dafny
           }
           if (!foundBoundsForBv) {
             // we have checked every conjunct in the range expression and still have not discovered good bounds
-            missingBounds.Add(bv);  // record failing bound variable
-            foundError = true;
+            if (allowAnyIntegers && bv.Type is IntType) {
+              bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
+            } else {
+              missingBounds.Add(bv);  // record failing bound variable
+              foundError = true;
+            }
           }
         }
       CHECK_NEXT_BOUND_VARIABLE: ;  // should goto here only if the bound for the current variable has been discovered (otherwise, return with null from this method)

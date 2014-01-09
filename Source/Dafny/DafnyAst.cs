@@ -169,6 +169,33 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    /// <summary>
+    /// Checks whether a Boolean attribute has been set on the declaration itself,
+    /// the enclosing class, or any enclosing module.  Settings closer to the declaration
+    /// override those further away.
+    /// </summary>
+    public static bool ContainsBoolAtAnyLevel(MemberDecl decl, string attribName) {
+      bool setting = true;
+      if (Attributes.ContainsBool(decl.Attributes, attribName, ref setting)) {
+        return setting;
+      }
+
+      if (Attributes.ContainsBool(decl.EnclosingClass.Attributes, attribName, ref setting)) {
+        return setting;
+      }
+
+      // Check the entire stack of modules
+      var mod = decl.EnclosingClass.Module;
+      while (mod != null) {
+        if (Attributes.ContainsBool(mod.Attributes, attribName, ref setting)) {
+          return setting;
+        }
+        mod = mod.Module;
+      }
+
+      return false;
+    }
+
     public class Argument
     {
       public readonly IToken Tok;
@@ -2765,6 +2792,12 @@ namespace Microsoft.Dafny {
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
     public List<IVariable> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found
     // invariant Bounds == null || MissingBounds == null;
+    public class WiggleWaggleBound : ComprehensionExpr.BoundedPool
+    {
+      public override bool IsFinite {
+        get { return false; }
+      }
+    }
 
     /// <summary>
     /// "assumeToken" is allowed to be "null", in which case the verifier will check that a RHS value exists.
@@ -3939,6 +3972,24 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Create a resolved expression for a bool b
+    /// </summary>        
+    public static Expression CreateBoolLiteral(IToken tok, bool b) {
+      Contract.Requires(tok != null);
+      var lit = new LiteralExpr(tok, b);
+      lit.Type = Type.Bool;  // resolve here
+      return lit;
+    }
+
+    public static Expression CreateNot(IToken tok, Expression e) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e.Type is BoolType);
+      var un = new UnaryExpr(tok, UnaryExpr.Opcode.Not, e);
+      un.Type = Type.Bool;  // resolve here
+      return un;
+    }
+
+    /// <summary>
     /// Create a resolved expression of the form "e0 LESS e1"
     /// </summary>
     public static Expression CreateLess(Expression e0, Expression e1) {
@@ -4017,6 +4068,99 @@ namespace Microsoft.Dafny {
       ite.Type = e0.type;  // resolve here
       return ite;
     }
+
+    /// <summary>
+    /// Create a resolved case expression for a match expression
+    /// </summary>
+    public static MatchCaseExpr CreateMatchCase(MatchCaseExpr old_case, Expression new_body) {
+      Contract.Requires(old_case != null);
+      Contract.Requires(new_body != null);
+      Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
+
+      ResolvedCloner cloner = new ResolvedCloner();
+      var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
+      new_body = VarSubstituter(old_case.Arguments, newVars, new_body);
+
+      var new_case = new MatchCaseExpr(old_case.tok, old_case.Id, newVars, new_body);
+
+      new_case.Ctor = old_case.Ctor; // resolve here
+      return new_case;
+    }
+
+    /// <summary>
+    /// Create a match expression with a resolved type 
+    /// </summary>
+    public static Expression CreateMatch(IToken tok, Expression src, List<MatchCaseExpr> cases, Type type) {
+      MatchExpr e = new MatchExpr(tok, src, cases);
+      e.Type = type;  // resolve here
+
+      return e;
+    }
+ 
+    /// <summary>
+    /// Create a let expression with a resolved type and fresh variables
+    /// </summary>
+    public static Expression CreateLet(IToken tok, List<BoundVar> vars, List<Expression> RHSs, Expression body, bool exact) {
+      Contract.Requires(tok  != null);
+      Contract.Requires(vars != null && RHSs != null);
+      Contract.Requires(vars.Count == RHSs.Count);
+      Contract.Requires(body != null);
+
+      ResolvedCloner cloner = new ResolvedCloner();
+      var newVars = vars.ConvertAll(cloner.CloneBoundVar);
+      body = VarSubstituter(vars, newVars, body);
+
+      var let = new LetExpr(tok, newVars, RHSs, body, exact);
+      let.Type = body.Type;  // resolve here
+      return let;
+    }
+
+    /// <summary>
+    /// Create a quantifier expression with a resolved type and fresh variables
+    /// Optionally replace the old body with the supplied argument
+    /// </summary>
+    public static Expression CreateQuantifier(QuantifierExpr expr, bool forall,  Expression body = null) {
+      //(IToken tok, List<BoundVar> vars, Expression range, Expression body, Attributes attribs, Qu) {
+      Contract.Requires(expr != null);
+
+      ResolvedCloner cloner = new ResolvedCloner();
+      var newVars = expr.BoundVars.ConvertAll(cloner.CloneBoundVar);
+
+      if (body == null) {
+        body = expr.Term;
+      }
+
+      body = VarSubstituter(expr.BoundVars, newVars, body);
+      
+      QuantifierExpr q;
+      if (forall) {
+        q = new ForallExpr(expr.tok, newVars, expr.Range, body, expr.Attributes);
+      } else {
+        q = new ExistsExpr(expr.tok, newVars, expr.Range, body, expr.Attributes);
+      } 
+      q.Type = Type.Bool;
+
+      return q;           
+    }
+
+    private static Expression VarSubstituter(List<BoundVar> oldVars, List<BoundVar> newVars, Expression e) {
+      Contract.Requires(oldVars != null && newVars != null);
+      Contract.Requires(oldVars.Count == newVars.Count);
+      
+      Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
+
+      for (int i = 0; i < oldVars.Count; i++) {
+        var id = new IdentifierExpr(newVars[i].tok, newVars[i].Name);
+        id.Var = newVars[i];    // Resolve here manually
+        id.Type = newVars[i].Type;  // Resolve here manually
+        substMap.Add(oldVars[i], id);
+      }
+
+      Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap, null);
+      return sub.Substitute(e);
+    }
+
   }
 
   /// <summary>
@@ -4025,6 +4169,13 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class StaticReceiverExpr : LiteralExpr
   {
+    public StaticReceiverExpr(IToken tok, Type t) 
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(t != null);
+      Type = t;
+    }
+
     public StaticReceiverExpr(IToken tok, ClassDecl cl)
       : base(tok)  // constructs a LiteralExpr representing the 'null' literal
     {
