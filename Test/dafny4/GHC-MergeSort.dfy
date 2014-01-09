@@ -127,9 +127,6 @@ function method mergePairs(x: List<List<G>>): List<List<G>>
   ensures x != Nil ==> mergePairs(x) != Nil;
 {
   if x.Cons? && x.tail.Cons? then
-    assert
-      length(Cons(merge(x.head, x.tail.head), mergePairs(x.tail.tail))) ==
-      1 + length(mergePairs(x.tail.tail));
     Cons(merge(x.head, x.tail.head), mergePairs(x.tail.tail))
   else
     x
@@ -301,19 +298,6 @@ lemma perm_mergePairs(x: List<List<G>>)
 lemma perm_merge(xs: List<G>, ys: List<G>)
   ensures multiset_of(merge(xs, ys)) == multiset_of(xs) + multiset_of(ys);
 {
-  match xs {
-    case Nil =>
-    case Cons(a, xs') =>
-      match ys {
-        case Nil =>
-        case Cons(b, ys') =>
-          if Below(a, b) {
-            perm_merge(xs', ys);
-          } else {
-            perm_merge(xs, ys');
-          }
-      }
-  }
 }
 
 // sorted-ness lemmas
@@ -393,18 +377,6 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
   ensures sorted(ys);
   ensures forall a,b :: a in multiset_of(xs) && b in multiset_of(ys) ==> Below(a, b);
 {
-  match xs {
-    case Nil =>
-    case Cons(b, xs') =>
-      calc {
-        sorted(reverse(Cons(b, xs'), ys));
-        sorted(reverse(xs', Cons(b, ys)));
-      ==> { sorted_reverse(xs', Cons(b, ys)); }
-        sorted(Cons(b, ys));
-      ==>
-        sorted(ys);
-      }
-  }
 }
 
 lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
@@ -718,7 +690,6 @@ lemma stable_mergePairs(g: G, x: List<List<G>>)
   ensures filter(g, flatten(mergePairs(x))) == filter(g, flatten(x));
 {
   if x.Cons? && x.tail.Cons? {
-    match x { case Nil => case Cons(_, _) => }
     calc {
       filter(g, flatten(mergePairs(x)));
       // def. mergePairs
@@ -789,7 +760,6 @@ lemma filter_Cons_notBelow(g: G, b: G, a: G, ys: List<G>)
   requires !Below(a, b);
   ensures filter(g, Cons(b, Cons(a, ys))) == filter(g, Cons(a, Cons(b, ys)));
 {
-  filter_append_notBelow(g, b, Cons(a, Nil), ys);
 }
 
 lemma filter_append_reverse(g: G, b: G, xs: List<G>, ys: List<G>)
