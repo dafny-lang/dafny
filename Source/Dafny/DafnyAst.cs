@@ -3983,7 +3983,7 @@ namespace Microsoft.Dafny {
 
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
-      Contract.Requires(e.Type == Type.Bool);
+      Contract.Requires(e.Type is BoolType);
       var un = new UnaryExpr(tok, UnaryExpr.Opcode.Not, e);
       un.Type = Type.Bool;  // resolve here
       return un;
@@ -4074,8 +4074,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static MatchCaseExpr CreateMatchCase(MatchCaseExpr old_case, Expression new_body) {
       Contract.Requires(old_case != null);
-      Contract.Requires(new_body != null);   
-      Contract.Ensures(Contract.Result<Expression>() != null);
+      Contract.Requires(new_body != null);
+      Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
       ResolvedCloner cloner = new ResolvedCloner();
       var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
