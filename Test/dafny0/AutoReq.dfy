@@ -285,4 +285,15 @@ module StaticTest {
     {
       g(y)
     }
+
+    static predicate IsEven(x:int)
+
+    static function EvenDoubler(x:int) : int
+        requires IsEven(x);
+
+    // Should succeed thanks to auto-generated requirement of IsEven
+    static function {:autoReq} test(y:int) : int
+    {
+        EvenDoubler(y)
+    }
 }
