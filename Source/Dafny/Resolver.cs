@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny
       } else if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e is StaticReceiverExpr) {
-          return new StaticReceiverExpr(e.tok, e.Type);
+          return new StaticReceiverExpr(e.tok, CloneType(e.Type));
         } else if (e.Value == null) {
           return new LiteralExpr(e.tok);
         } else if (e.Value is bool) {
@@ -3625,7 +3625,7 @@ namespace Microsoft.Dafny
         }
         UserDefinedType aa = (UserDefinedType)a;
         UserDefinedType bb = (UserDefinedType)b;
-        if (aa.ResolvedClass != null && aa.ResolvedClass.Name == bb.ResolvedClass.Name) {
+        if (aa.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           bool successSoFar = true;
@@ -5501,16 +5501,22 @@ namespace Microsoft.Dafny
 
       } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
-        if (e.Value == null) {
-          e.Type = new ObjectTypeProxy();
-        } else if (e.Value is BigInteger) {
-          e.Type = Type.Int;
-        } else if (e.Value is bool) {
-          e.Type = Type.Bool;
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
-        }
 
+        if (e is StaticReceiverExpr) {
+          StaticReceiverExpr eStatic = (StaticReceiverExpr)e;
+          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, ResolveTypeOption.InferTypeProxies, null);
+          eStatic.Type = eStatic.UnresolvedType;
+        } else {
+          if (e.Value == null) {
+            e.Type = new ObjectTypeProxy();
+          } else if (e.Value is BigInteger) {
+            e.Type = Type.Int;
+          } else if (e.Value is bool) {
+            e.Type = Type.Bool;
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
+          }
+        }
       } else if (expr is ThisExpr) {
         if (!scope.AllowInstance) {
           Error(expr, "'this' is not allowed in a 'static' context");

@@ -4174,11 +4174,13 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class StaticReceiverExpr : LiteralExpr
   {
+    public readonly Type UnresolvedType;
+
     public StaticReceiverExpr(IToken tok, Type t) 
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
-      Type = t;
+      UnresolvedType = t;
     }
 
     public StaticReceiverExpr(IToken tok, ClassDecl cl)
@@ -4191,6 +4193,7 @@ namespace Microsoft.Dafny {
         typeArgs.Add(new InferredTypeProxy());
       }
       Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      UnresolvedType = Type;
     }
   }
 
