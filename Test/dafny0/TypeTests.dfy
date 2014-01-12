@@ -116,3 +116,8 @@ method M()
     k, m :| 0 <= k < m;  // error: not allowed in ghost context
   }
 }
+
+ghost method GhostM() returns (x: int)
+{
+  x :| true;  // no problem (but there once was a problem with this case, where an error was generated for no reason)
+}

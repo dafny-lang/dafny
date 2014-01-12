@@ -4536,7 +4536,7 @@ namespace Microsoft.Dafny
         var ec = ErrorCount;
         ResolveExpression(lhs, true, codeContext);
         if (ec == ErrorCount) {
-          if (update == null && specContextOnly && !AssignStmt.LhsIsToGhost(lhs)) {
+          if (update == null && specContextOnly && !AssignStmt.LhsIsToGhost(lhs) && !codeContext.IsGhost) {
             Error(lhs, "cannot assign to non-ghost variable in a ghost context");
           }
           if (lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne) {
