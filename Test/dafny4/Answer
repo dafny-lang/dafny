@@ -10,3 +10,7 @@ Dafny program verifier finished with 85 verified, 0 errors
 -------------------- Fstar-QuickSort.dfy --------------------
 
 Dafny program verifier finished with 6 verified, 0 errors
+
+-------------------- Primes.dfy --------------------
+
+Dafny program verifier finished with 22 verified, 0 errors
