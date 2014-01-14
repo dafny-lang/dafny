@@ -297,7 +297,7 @@ namespace Microsoft.Dafny
           cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
           cp.GenerateInMemory = false;
         }
-        cp.CompilerOptions = "/debug /nowarn:0164";  // warning CS0164 complains about unreferenced labels
+        cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219";  // warning CS0164 complains about unreferenced labels, CS0219 is about unused variables
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
