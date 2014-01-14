@@ -557,21 +557,22 @@ namespace Microsoft.Dafny
             foreach (Expression req in fn.Req) {
               auto_reqs.AddRange(generateAutoReqs(req));
             }
+            fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
+            addAutoReqToolTipInfo("pre", fn, auto_reqs);
 
             // Then the body itself, if any
             if (fn.Body != null) {
-              auto_reqs.AddRange(generateAutoReqs(fn.Body));
-            }
-           
-            fn.Req.InsertRange(0, auto_reqs);
-            addAutoReqToolTipInfo(fn, auto_reqs);
+              auto_reqs = generateAutoReqs(fn.Body);
+              fn.Req.AddRange(auto_reqs);
+              addAutoReqToolTipInfo("post", fn, auto_reqs);
+            }            
           }
         } 
       }
     }
   
-    public void addAutoReqToolTipInfo(Function f, List<Expression> reqs) {
-      string prefix = "auto requires ";
+    public void addAutoReqToolTipInfo(string label, Function f, List<Expression> reqs) {
+      string prefix = "auto requires " + label + " ";
       string tip = "";
 
       foreach (var req in reqs) {
