@@ -631,6 +631,7 @@ namespace Microsoft.Dafny
                 foreach (var formal in fn.Formals) {
                   var id = new IdentifierExpr(formal.tok, formal.Name);
                   id.Var = formal;  // resolve here
+                  id.Type = formal.Type;  // resolve here
                   fnVars.Add(id);
                 }
 
