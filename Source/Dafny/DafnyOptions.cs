@@ -38,6 +38,7 @@ namespace Microsoft.Dafny
     public string DafnyPrintResolvedFile = null;
     public bool Compile = true;
     public bool ForceCompile = false;
+    public bool RunAfterCompile = false;
     public bool SpillTargetCode = false;
     public bool DisallowIncludes = false;
 
@@ -65,10 +66,11 @@ namespace Microsoft.Dafny
 
         case "compile": {
             int compile = 0;
-            if (ps.GetNumericArgument(ref compile, 3)) {
+            if (ps.GetNumericArgument(ref compile, 4)) {
               // convert option to two booleans
-              Compile = compile == 1 || compile == 2;
+              Compile = compile != 0;
               ForceCompile = compile == 2;
+              RunAfterCompile = compile == 3;
             }
             return true;
           }
@@ -136,9 +138,15 @@ namespace Microsoft.Dafny
                 (use - as <file> to print to console)
   /compile:<n>  0 - do not compile Dafny program
                 1 (default) - upon successful verification of the Dafny
-                    program, compile Dafny program to C# program out.cs
+                    program, compile Dafny program to .NET assembly
+                    Program.exe (if the program has a Main method) or
+                    Program.dll (othewise), where Program.dfy is the name
+                    of the last .dfy file on the command line
                 2 - always attempt to compile Dafny program to C# program
                     out.cs, regardless of verification outcome
+                3 - if there is a Main method and there are no verification
+                    errors, compiles program in memory (i.e., does not write
+                    an output file) and runs it
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
