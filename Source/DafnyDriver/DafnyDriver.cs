@@ -103,7 +103,8 @@ namespace Microsoft.Dafny
       {
         foreach (var f in fileNames)
         {
-          Console.WriteLine("\n-------------------- {0} --------------------", f);
+          Console.WriteLine();
+          Console.WriteLine("-------------------- {0} --------------------", f);
           var ev = ProcessFiles(new List<string> { f });
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
@@ -242,9 +243,15 @@ namespace Microsoft.Dafny
     public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
     {
       Contract.Requires(dafnyProgram != null);
+
       // Compile the Dafny program into a string that contains the C# program
       StringWriter sw = new StringWriter();
       Dafny.Compiler compiler = new Dafny.Compiler(sw);
+      var hasMain = compiler.HasMain(dafnyProgram);
+      if (DafnyOptions.O.RunAfterCompile && !hasMain) {
+        // do no more
+        return;
+      }
       compiler.Compile(dafnyProgram);
       var csharpProgram = sw.ToString();
       bool completeProgram = compiler.ErrorCount == 0;
@@ -280,30 +287,39 @@ namespace Microsoft.Dafny
       {
         var provider = CodeDomProvider.CreateProvider("CSharp");
         var cp = new System.CodeDom.Compiler.CompilerParameters();
-        cp.GenerateExecutable = true;
-        if (compiler.HasMain(dafnyProgram))
-        {
+        cp.GenerateExecutable = hasMain;
+        if (DafnyOptions.O.RunAfterCompile) {
+          cp.GenerateInMemory = true;
+        } else if (hasMain) {
           cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
-          cp.CompilerOptions = "/debug /nowarn:0164";  // warning CS0164 complains about unreferenced labels
-        }
-        else
-        {
+          cp.GenerateInMemory = false;
+        } else {
           cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
-          cp.CompilerOptions = "/debug /nowarn:0164 /target:library";  // warning CS0164 complains about unreferenced labels
+          cp.GenerateInMemory = false;
         }
-        cp.GenerateInMemory = false;
+        cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219";  // warning CS0164 complains about unreferenced labels, CS0219 is about unused variables
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
-        if (cr.Errors.Count == 0)
-        {
+        if (DafnyOptions.O.RunAfterCompile && cr.Errors.Count == 0) {
+          Console.WriteLine("Program compiled successfully");
+          Console.WriteLine("Running...");
+          Console.WriteLine();
+          var entry = cr.CompiledAssembly.EntryPoint;
+          try {
+            entry.Invoke(null, new object[] { new string[0] });
+          } catch (System.Reflection.TargetInvocationException e) {
+            Console.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+            Console.WriteLine(e.InnerException.ToString());
+          } catch (Exception e) {
+            Console.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+            Console.WriteLine(e.ToString());
+          }
+        } else if (cr.Errors.Count == 0) {
           Console.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
-        }
-        else
-        {
+        } else {
           Console.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
-          foreach (var ce in cr.Errors)
-          {
+          foreach (var ce in cr.Errors) {
             Console.WriteLine(ce.ToString());
             Console.WriteLine();
           }
