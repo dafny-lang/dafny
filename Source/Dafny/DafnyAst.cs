@@ -4078,8 +4078,8 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
       ResolvedCloner cloner = new ResolvedCloner();
-      var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
-      new_body = VarSubstituter(old_case.Arguments, newVars, new_body);
+      var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);   
+      new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x=>(NonglobalVariable)x), newVars, new_body);
 
       var new_case = new MatchCaseExpr(old_case.tok, old_case.Id, newVars, new_body);
 
@@ -4113,7 +4113,7 @@ namespace Microsoft.Dafny {
       LHSs.Iter(p => oldVars.AddRange(p.Vars));
       var newVars = new List<BoundVar>();
       newLHSs.Iter(p => newVars.AddRange(p.Vars));
-      body = VarSubstituter(oldVars, newVars, body);
+      body = VarSubstituter(oldVars.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, body);
 
       var let = new LetExpr(tok, newLHSs, RHSs, body, exact);
       let.Type = body.Type;  // resolve here
@@ -4135,7 +4135,7 @@ namespace Microsoft.Dafny {
         body = expr.Term;
       }
 
-      body = VarSubstituter(expr.BoundVars, newVars, body);
+      body = VarSubstituter(expr.BoundVars.ConvertAll<NonglobalVariable>(x=>(NonglobalVariable)x), newVars, body);
       
       QuantifierExpr q;
       if (forall) {
@@ -4148,7 +4148,7 @@ namespace Microsoft.Dafny {
       return q;           
     }
 
-    private static Expression VarSubstituter(List<BoundVar> oldVars, List<BoundVar> newVars, Expression e) {
+    public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e) {
       Contract.Requires(oldVars != null && newVars != null);
       Contract.Requires(oldVars.Count == newVars.Count);
       
