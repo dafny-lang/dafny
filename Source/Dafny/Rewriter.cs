@@ -372,12 +372,14 @@ namespace Microsoft.Dafny
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
-    //protected Dictionary<Function, Function> fullVersion;
-    protected Dictionary<Function, Function> original;
+    protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
+    protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
+    protected Dictionary<Lemma, Function> revealOriginal; // Map reveal_* lemmas back to their original functions
 
     public void PreResolve(ModuleDefinition m) {
-      //fullVersion = new Dictionary<Function, Function>();
+      fullVersion = new Dictionary<Function, Function>();
       original = new Dictionary<Function, Function>();
+      revealOriginal = new Dictionary<Lemma, Function>();
 
       foreach (var d in m.TopLevelDecls) {
         if (d is ClassDecl) {
@@ -397,13 +399,39 @@ namespace Microsoft.Dafny
           foreach (Expression ens in fn.Ens) {
             visitor.Visit(ens, context);
           }
+        } 
+      }
+
+      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+        if (decl is Lemma) {
+          var lem = (Lemma)decl;
+          if (revealOriginal.ContainsKey(lem)) {
+            fixupRevealLemma(lem, revealOriginal[lem]);
+          }
         }
       }
     }
-
+  
     // Is f the full version of an opaque function?
-    protected bool isFullVersion(Function f) {
+    public bool isFullVersion(Function f) {
       return original.ContainsKey(f);
+    }
+    
+    // In case we change how opacity is denoted
+    public bool isOpaque(Function f) {
+      return fullVersion.ContainsKey(f);
+    }
+
+    public Function OpaqueVersion(Function f) {
+      Function ret;
+      original.TryGetValue(f, out ret);
+      return ret;
+    }
+
+    public Function FullVersion(Function f) {
+      Function ret;
+      fullVersion.TryGetValue(f, out ret);
+      return ret;
     }
 
     // Trims the body from the original function and then adds an internal,
@@ -420,7 +448,7 @@ namespace Microsoft.Dafny
             var cloner = new Cloner();
             var fWithBody = cloner.CloneFunction(f, "#" + f.Name + "_FULL");  
             newDecls.Add(fWithBody);
-            //fullVersion.Add(f, fWithBody);
+            fullVersion.Add(f, fWithBody);
             original.Add(fWithBody, f);
 
             var newToken = new Boogie.Token(f.tok.line, f.tok.col);
@@ -489,6 +517,7 @@ namespace Microsoft.Dafny
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
                                     new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, false);
             newDecls.Add(reveal);
+            revealOriginal[reveal] = f;
 
             // Update f's body to simply call the full version, so we preserve recursion checks, decreases clauses, etc.
             f.Body = func_builder(fWithBody);
@@ -496,8 +525,7 @@ namespace Microsoft.Dafny
         }
       }
       c.Members.AddRange(newDecls);
-    }
-
+    }    
 
     protected class OpaqueFunctionContext {
       public Function original;   // The original declaration of the opaque function
@@ -522,6 +550,33 @@ namespace Microsoft.Dafny
         return true;
       }
     }
+
+    protected void fixupRevealLemma(Lemma lem, Function fn) {
+      if (fn.Req.Count == 0) {
+        return;
+      }
+
+      // Consolidate the requirements
+      Expression reqs = Expression.CreateBoolLiteral(fn.tok, true);
+      foreach (var expr in fn.Req) {
+        reqs = Expression.CreateAnd(reqs, expr);
+      }
+
+      var origForall = (ForallExpr)lem.Ens[0].E;
+      var origImpl = (BinaryExpr)origForall.Term;
+
+      // Substitute the forall's variables for those of the fn
+      var formals = fn.Formals.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x);
+      reqs = Expression.VarSubstituter(formals, origForall.BoundVars, reqs);
+
+      var newImpl = Expression.CreateImplies(reqs, origImpl.E1);
+      //var newForall = Expression.CreateQuantifier(origForall, true, newImpl);
+      var newForall = new ForallExpr(origForall.tok, origForall.BoundVars, origForall.Range, newImpl, origForall.Attributes);
+      newForall.Type = Type.Bool;
+
+      lem.Ens[0] = new MaybeFreeExpression(newForall);
+    }
+
   }
 
 
@@ -532,10 +587,12 @@ namespace Microsoft.Dafny
   public class AutoReqFunctionRewriter : IRewriter {
     Function parentFunction;
     Resolver resolver;
+    OpaqueFunctionRewriter opaqueInfo;
     bool containsMatch; // TODO: Track this per-requirement, rather than per-function
 
-    public AutoReqFunctionRewriter(Resolver r) {
+    public AutoReqFunctionRewriter(Resolver r, OpaqueFunctionRewriter o) {
       this.resolver = r;
+      this.opaqueInfo = o;
     }
 
     public void PreResolve(ModuleDefinition m) { 
@@ -561,16 +618,53 @@ namespace Microsoft.Dafny
             addAutoReqToolTipInfo("pre", fn, auto_reqs);
 
             // Then the body itself, if any
-            if (fn.Body != null) {
-              auto_reqs = generateAutoReqs(fn.Body);
+            var body = fn.Body;
+            if (opaqueInfo.isOpaque(fn)) {  // Opaque functions don't have a body at this point, so use the original body
+              body = opaqueInfo.FullVersion(fn).Body;
+            }
+
+            if (body != null) {
+              auto_reqs = generateAutoReqs(body);
+
+              if (opaqueInfo.isOpaque(fn)) {  // We need to swap fn's variables in for fn_FULL's               
+                List<Expression> fnVars = new List<Expression>();
+                foreach (var formal in fn.Formals) {
+                  var id = new IdentifierExpr(formal.tok, formal.Name);
+                  id.Var = formal;  // resolve here
+                  id.Type = formal.Type;  // resolve here
+                  fnVars.Add(id);
+                }
+
+                var body_reqs = new List<Expression>();
+                foreach (var req in auto_reqs) {
+                  body_reqs.Add(subVars(opaqueInfo.FullVersion(fn).Formals, fnVars, req, null));
+                }
+                auto_reqs = body_reqs;
+              }
+
               fn.Req.AddRange(auto_reqs);
               addAutoReqToolTipInfo("post", fn, auto_reqs);
-            }            
+            }          
           }
         } 
       }
     }
-  
+
+    Expression subVars(List<Formal> formals, List<Expression> values, Expression e, Expression f_this) {
+      Contract.Assert(formals != null);
+      Contract.Assert(values != null);
+      Contract.Assert(formals.Count == values.Count);
+      Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
+
+      for (int i = 0; i < formals.Count; i++) {
+        substMap.Add(formals[i], values[i]);
+      }
+
+      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap, null);
+      return sub.Substitute(e);
+    }
+
     public void addAutoReqToolTipInfo(string label, Function f, List<Expression> reqs) {
       string prefix = "auto requires " + label + " ";
       string tip = "";

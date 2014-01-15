@@ -297,3 +297,17 @@ module StaticTest {
         EvenDoubler(y)
     }
 }
+
+module OpaqueTest {
+    static function bar(x:int) : int
+           requires x>7;
+    {
+           x-2
+    }
+
+    static function {:autoReq} {:opaque} foo(x:int) : int
+    {
+           bar(x)
+    }
+
+}

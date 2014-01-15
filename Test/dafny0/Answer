@@ -2095,7 +2095,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 49 verified, 8 errors
+Dafny program verifier finished with 52 verified, 8 errors
 
 -------------------- Superposition.dfy --------------------
 
