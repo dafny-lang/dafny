@@ -3610,7 +3610,22 @@ namespace Microsoft.Dafny {
         // check that the preconditions for the call hold
         foreach (Expression p in e.Function.Req) {
           Expression precond = Substitute(p, e.Receiver, substMap);
-          builder.Add(Assert(expr.tok, etran.TrExpr(precond), "possible violation of function precondition", options.AssertKv));
+          bool splitHappened;  // we don't actually care
+          foreach (var ss in TrSplitExpr(precond, etran, out splitHappened)) {
+            if (ss.IsChecked) {
+              var tok = new NestedToken(expr.tok, ss.E.tok);
+              if (options.AssertKv != null) {
+                // use the given assert attribute only
+                builder.Add(Assert(tok, ss.E, "possible violation of function precondition", options.AssertKv));
+              } else {
+                builder.Add(AssertNS(tok, ss.E, "possible violation of function precondition"));
+              }
+            }
+          }
+          if (options.AssertKv == null) {
+            // assume only if no given assert attribute is given
+            builder.Add(new Bpl.AssumeCmd(expr.tok, etran.TrExpr(precond)));
+          }
         }
         if (options.DoReadsChecks) {
           // check that the callee reads only what the caller is already allowed to read

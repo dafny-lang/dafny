@@ -74,7 +74,7 @@ class StatementTwoShoes {
   var s: StatementTwoShoes;
   function method F(b: int): StatementTwoShoes
     requires 0 <= b;
-	reads this;
+    reads this;
   {
     s
   }
