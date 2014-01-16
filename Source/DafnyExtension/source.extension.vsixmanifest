@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="6c7ed99a-206a-4937-9e08-b389de175f68" Version="1.7.0.00806" Language="en-US" Publisher="Microsoft Research" />
+    <Identity Id="6c7ed99a-206a-4937-9e08-b389de175f68" Version="1.8.0.10115" Language="en-US" Publisher="Microsoft Research" />
     <DisplayName>DafnyLanguageMode</DisplayName>
     <Description xml:space="preserve">This is a language mode for using the Dafny language inside Visual Studio.</Description>
   </Metadata>
