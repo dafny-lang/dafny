@@ -778,7 +778,7 @@ namespace Microsoft.Dafny {
                 wr.Write(">");
               }
               wr.WriteLine("();");
-              Indent(indent + IndentAmount);  wr.WriteLine("b.Main();");
+              Indent(indent + IndentAmount);  wr.WriteLine("b.@Main();");
               Indent(indent);  wr.WriteLine("}");
             }
           }
