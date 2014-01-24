@@ -480,7 +480,7 @@ namespace Microsoft.Dafny
 
             List<BoundVar> boundVars = new List<BoundVar>();
             foreach (Formal formal in f.Formals) {
-              boundVars.Add(new BoundVar(f.tok, formal.Name, formal.Type));
+              boundVars.Add(new BoundVar(f.tok, formal.Name, cloner.CloneType(formal.Type)));
             }
 
             // Build the implication connecting the function's requires to the connection with the revealed-body version
@@ -513,7 +513,7 @@ namespace Microsoft.Dafny
             List<Attributes.Argument/*!*/> argList = new List<Attributes.Argument/*!*/>();
             Attributes lemma_attrs = new Attributes("axiom", argList, null);
 
-            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, f.TypeArgs, new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, f.TypeArgs.ConvertAll(cloner.CloneTypeParam), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
                                     new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, false);
             newDecls.Add(reveal);

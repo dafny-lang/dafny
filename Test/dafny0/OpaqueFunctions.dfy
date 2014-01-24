@@ -151,3 +151,7 @@ module M0 {
 }
 module M1 refines M0 {
 }
+
+// ---------------------------------- opaque and generics
+
+function{:opaque} zero<A>():int { 0 }

@@ -1847,7 +1847,7 @@ OpaqueFunctions.dfy(135,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 41 verified, 19 errors
+Dafny program verifier finished with 43 verified, 19 errors
 
 -------------------- Maps.dfy --------------------
 Maps.dfy(76,8): Error: element may not be in domain
