@@ -31,12 +31,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintExpression(expr, true);
+        pr.PrintExpression(expr, false);
         return wr.ToString();
       }
     }
 
- 
+    public static string GuardToString(Expression expr) {
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintGuard(expr);
+        return wr.ToString();
+      }
+    }
+
     public static string ExtendedExprToString(Expression expr) {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
@@ -46,11 +53,47 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string StatementToString(Statement stmt) {
+      Contract.Requires(stmt != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintStatement(stmt, 0);
+        return wr.ToString();
+      }
+    }
+
     public static string IteratorClassToString(IteratorDecl iter) {
       Contract.Requires(iter != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
         pr.PrintIteratorClass(iter, 0);
+        return wr.ToString();
+      }
+    }
+
+    public static string IteratorSignatureToString(IteratorDecl iter) {
+      Contract.Requires(iter != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintIteratorSignature(iter, 0);
+        return wr.ToString();
+      }
+    }
+
+    public static string FunctionSignatureToString(Function f) {
+      Contract.Requires(f != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintFunction(f, 0, true);
+        return wr.ToString();
+      }
+    }
+
+    public static string MethodSignatureToString(Method m) {
+      Contract.Requires(m != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintMethod(m, 0, true);
         return wr.ToString();
       }
     }
@@ -85,37 +128,7 @@ namespace Microsoft.Dafny {
           PrintDatatype((DatatypeDecl)d, indent);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-          Indent(indent);
-          PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
-          if (iter.SignatureIsOmitted) {
-            wr.WriteLine(" ...");
-          } else {
-            PrintFormals(iter.Ins);
-            if (iter.Outs.Count != 0) {
-              if (iter.Ins.Count + iter.Outs.Count <= 3) {
-                wr.Write(" yields ");
-              } else {
-                wr.WriteLine();
-                Indent(indent + 2 * IndentAmount);
-                wr.Write("yields ");
-              }
-              PrintFormals(iter.Outs);
-            }
-            wr.WriteLine();
-          }
-
-          int ind = indent + IndentAmount;
-          PrintSpec("requires", iter.Requires, ind);
-          if (iter.Reads.Expressions != null) {
-            PrintFrameSpecLine("reads", iter.Reads.Expressions, ind, iter.Reads.HasAttributes() ? iter.Reads.Attributes : null);
-          }
-          if (iter.Modifies.Expressions != null) {
-            PrintFrameSpecLine("modifies", iter.Modifies.Expressions, ind, iter.Modifies.HasAttributes() ? iter.Modifies.Attributes : null);
-          }
-          PrintSpec("yield requires", iter.YieldRequires, ind);
-          PrintSpec("yield ensures", iter.YieldEnsures, ind);
-          PrintSpec("ensures", iter.Ensures, ind);
-          PrintDecreasesSpec(iter.Decreases, ind);
+          PrintIteratorSignature(iter, indent);
 
           if (iter.Body != null) {
             Indent(indent);
@@ -180,6 +193,40 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void PrintIteratorSignature(IteratorDecl iter, int indent) {
+      Indent(indent);
+      PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
+      if (iter.SignatureIsOmitted) {
+        wr.WriteLine(" ...");
+      } else {
+        PrintFormals(iter.Ins);
+        if (iter.Outs.Count != 0) {
+          if (iter.Ins.Count + iter.Outs.Count <= 3) {
+            wr.Write(" yields ");
+          } else {
+            wr.WriteLine();
+            Indent(indent + 2 * IndentAmount);
+            wr.Write("yields ");
+          }
+          PrintFormals(iter.Outs);
+        }
+        wr.WriteLine();
+      }
+
+      int ind = indent + IndentAmount;
+      PrintSpec("requires", iter.Requires, ind);
+      if (iter.Reads.Expressions != null) {
+        PrintFrameSpecLine("reads", iter.Reads.Expressions, ind, iter.Reads.HasAttributes() ? iter.Reads.Attributes : null);
+      }
+      if (iter.Modifies.Expressions != null) {
+        PrintFrameSpecLine("modifies", iter.Modifies.Expressions, ind, iter.Modifies.HasAttributes() ? iter.Modifies.Attributes : null);
+      }
+      PrintSpec("yield requires", iter.YieldRequires, ind);
+      PrintSpec("yield ensures", iter.YieldEnsures, ind);
+      PrintSpec("ensures", iter.Ensures, ind);
+      PrintDecreasesSpec(iter.Decreases, ind);
+    }
+
     private void PrintIteratorClass(IteratorDecl iter, int indent) {
       PrintClassMethodHelper("class", null, iter.Name, iter.TypeArgs);
       wr.WriteLine(" {");
@@ -209,11 +256,11 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl m in members) {
         if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
-          PrintMethod((Method)m, indent);
+          PrintMethod((Method)m, indent, false);
           var com = m as CoMethod;
           if (com != null && com.PrefixMethod != null) {
             Indent(indent); wr.WriteLine("/***");
-            PrintMethod(com.PrefixMethod, indent);
+            PrintMethod(com.PrefixMethod, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
           state = 2;
@@ -223,11 +270,11 @@ namespace Microsoft.Dafny {
           state = 1;
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
-          PrintFunction((Function)m, indent);
+          PrintFunction((Function)m, indent, false);
           var cop = m as CoPredicate;
           if (cop != null && cop.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/***");
-            PrintFunction(cop.PrefixPredicate, indent);
+            PrintFunction(cop.PrefixPredicate, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
           state = 2;
@@ -329,7 +376,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
     }
 
-    public void PrintFunction(Function f, int indent) {
+    public void PrintFunction(Function f, int indent, bool printSignatureOnly) {
       Contract.Requires(f != null);
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
@@ -357,7 +404,7 @@ namespace Microsoft.Dafny {
       PrintFrameSpecLine("reads", f.Reads, ind, null);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
-      if (f.Body != null) {
+      if (f.Body != null && !printSignatureOnly) {
         Indent(indent);
         wr.WriteLine("{");
         PrintExtendedExpr(f.Body, ind, true, false);
@@ -380,7 +427,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintMethod(Method method, int indent) {
+    public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
       Contract.Requires(method != null);
 
       Indent(indent);
@@ -415,7 +462,7 @@ namespace Microsoft.Dafny {
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
 
-      if (method.Body != null) {
+      if (method.Body != null && !printSignatureOnly) {
         Indent(indent);
         PrintStatement(method.Body, indent);
         wr.WriteLine();

@@ -73,14 +73,15 @@ namespace Microsoft.Dafny
   {
     readonly BuiltIns builtIns;
 
-    //Dictionary<string/*!*/,TopLevelDecl/*!*/>/*!*/ classes;  // can map to AmbiguousTopLevelDecl
-    //Dictionary<string, ModuleDecl> importedNames; // the imported modules, as a map.
     ModuleSignature moduleInfo = null;
 
     public Action<AdditionalInformation> AdditionalInformationReporter;
 
     internal void ReportAdditionalInformation(IToken token, string text, int length)
     {
+      Contract.Requires(token != null);
+      Contract.Requires(text != null);
+      Contract.Requires(0 <= length);
       if (AdditionalInformationReporter != null) {
         AdditionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = length });
       }
@@ -188,7 +189,7 @@ namespace Microsoft.Dafny
       }
 
       var rewriters = new List<IRewriter>();
-      var refinementTransformer = new RefinementTransformer(this, prog);
+      var refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
       var opaqueRewriter = new OpaqueFunctionRewriter();      
@@ -794,7 +795,7 @@ namespace Microsoft.Dafny
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<MaybeFreeExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, null, false);
+            null, null, null);
           // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(), iter.tok,
             new List<Formal>(),
@@ -802,7 +803,7 @@ namespace Microsoft.Dafny
             new List<FrameExpression>(),
             new List<Expression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
@@ -810,7 +811,7 @@ namespace Microsoft.Dafny
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<MaybeFreeExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, null, false);
+            null, null, null);
           // add these implicit members to the class
           init.EnclosingClass = iter;
           valid.EnclosingClass = iter;
@@ -1095,13 +1096,13 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, null, false);
+          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
-          req, reads, ens, body, null, false);
+          req, reads, ens, body, null, null);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, null, false);
+          req, reads, ens, decreases, body, null, null);
       }
     }
     Method CloneMethod(Method m) {
@@ -1117,16 +1118,16 @@ namespace Microsoft.Dafny
 
       if (m is Constructor) {
         return new Constructor(m.tok, m.Name, tps, ins,
-          req, mod, ens, decreases, null, null, false);
+          req, mod, ens, decreases, null, null, null);
       } else if (m is CoMethod) {
         return new CoMethod(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, null, null, false);
+          req, mod, ens, decreases, null, null, null);
       } else if (m is Lemma) {
         return new Lemma(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, null, null, false);
+          req, mod, ens, decreases, null, null, null);
       } else {
         return new Method(m.tok, m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, null, null, false);
+          req, mod, ens, decreases, null, null, null);
       }
     }
     Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {

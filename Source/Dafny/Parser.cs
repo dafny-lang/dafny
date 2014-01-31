@@ -515,7 +515,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		Attributes modAttrs = null;
 		Attributes decrAttrs = null;
 		BlockStmt body = null;
-		bool signatureOmitted = false;
+		IToken signatureEllipsis = null;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
 		
@@ -541,7 +541,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			}
 		} else if (la.kind == 37) {
 			Get();
-			signatureOmitted = true; openParen = Token.NoToken; 
+			signatureEllipsis = t; openParen = Token.NoToken; 
 		} else SynErr(132);
 		while (StartOf(3)) {
 			IteratorSpec(reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs);
@@ -554,7 +554,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		                       new Specification<FrameExpression>(mod, modAttrs),
 		                       new Specification<Expression>(decreases, decrAttrs),
 		                       req, ens, yieldReq, yieldEns,
-		                       body, attrs, signatureOmitted);
+		                       body, attrs, signatureEllipsis);
 		iter.BodyStartTok = bodyStart;
 		iter.BodyEndTok = bodyEnd;
 		
@@ -700,7 +700,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		IToken openParen = null;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
-		bool signatureOmitted = false;
+		IToken signatureEllipsis = null;
 		
 		if (la.kind == 60) {
 			Get();
@@ -723,7 +723,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 				Type(out returnType);
 			} else if (la.kind == 37) {
 				Get();
-				signatureOmitted = true;
+				signatureEllipsis = t;
 				openParen = Token.NoToken; 
 			} else SynErr(137);
 		} else if (la.kind == 61) {
@@ -752,7 +752,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 				}
 			} else if (la.kind == 37) {
 				Get();
-				signatureOmitted = true;
+				signatureEllipsis = t;
 				openParen = Token.NoToken; 
 			} else SynErr(138);
 		} else if (la.kind == 62) {
@@ -777,7 +777,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 				}
 			} else if (la.kind == 37) {
 				Get();
-				signatureOmitted = true;
+				signatureEllipsis = t;
 				openParen = Token.NoToken; 
 			} else SynErr(139);
 		} else SynErr(140);
@@ -802,13 +802,13 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		
 		if (isPredicate) {
 		  f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
-		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureOmitted);
+		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
 		} else if (isCoPredicate) {
 		  f = new CoPredicate(id, id.val, mmod.IsStatic, typeArgs, openParen, formals,
-		                    reqs, reads, ens, body, attrs, signatureOmitted);
+		                    reqs, reads, ens, body, attrs, signatureEllipsis);
 		} else {
 		  f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
-		                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
+		                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
 		}
 		f.BodyStartTok = bodyStart;
 		f.BodyEndTok = bodyEnd;
@@ -834,7 +834,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		bool isLemma = false;
 		bool isConstructor = false;
 		bool isCoMethod = false;
-		bool signatureOmitted = false;
+		IToken signatureEllipsis = null;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
 		
@@ -903,7 +903,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			}
 		} else if (la.kind == 37) {
 			Get();
-			signatureOmitted = true; openParen = Token.NoToken; 
+			signatureEllipsis = t; openParen = Token.NoToken; 
 		} else SynErr(143);
 		while (StartOf(8)) {
 			MethodSpec(req, mod, ens, dec, ref decAttrs, ref modAttrs);
@@ -931,16 +931,16 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		
 		if (isConstructor) {
 		 m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
-		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else if (isCoMethod) {
 		 m = new CoMethod(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
-		                req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+		                req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else if (isLemma) {
 		 m = new Lemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
-		               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+		               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else {
 		 m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
-		                req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+		                req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		}
 		m.BodyStartTok = bodyStart;
 		m.BodyEndTok = bodyEnd;
@@ -1617,6 +1617,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void AssertStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
 		Expression e = null; Attributes attrs = null;
+		IToken dotdotdot = null;
 		
 		Expect(81);
 		x = t; 
@@ -1627,10 +1628,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e, false);
 		} else if (la.kind == 37) {
 			Get();
+			dotdotdot = t; 
 		} else SynErr(176);
 		Expect(7);
-		if (e == null) {
-		 s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), true, false);
+		if (dotdotdot != null) {
+		 s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
 		} else {
 		 s = new AssertStmt(x, t, e, attrs);
 		}
@@ -1640,6 +1642,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void AssumeStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
 		Expression e = null; Attributes attrs = null;
+		IToken dotdotdot = null;
 		
 		Expect(70);
 		x = t; 
@@ -1650,10 +1653,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e, false);
 		} else if (la.kind == 37) {
 			Get();
+			dotdotdot = t; 
 		} else SynErr(177);
 		Expect(7);
-		if (e == null) {
-		 s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), true, false);
+		if (dotdotdot != null) {
+		 s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
 		} else {
 		 s = new AssumeStmt(x, t, e, attrs);
 		}
@@ -1817,7 +1821,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void IfStmt(out Statement/*!*/ ifStmt) {
 		Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-		Expression guard = null;  bool guardOmitted = false;
+		Expression guard = null;  IToken guardEllipsis = null;
 		BlockStmt/*!*/ thn;
 		BlockStmt/*!*/ bs;
 		Statement/*!*/ s;
@@ -1836,7 +1840,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Guard(out guard);
 			} else {
 				Get();
-				guardOmitted = true; 
+				guardEllipsis = t; 
 			}
 			BlockStmt(out thn, out bodyStart, out bodyEnd);
 			endTok = thn.EndTok; 
@@ -1850,8 +1854,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					els = bs; endTok = bs.EndTok; 
 				} else SynErr(180);
 			}
-			if (guardOmitted) {
-			 ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), true, false);
+			if (guardEllipsis != null) {
+			 ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), guardEllipsis, null);
 			} else {
 			 ifStmt = new IfStmt(x, endTok, guard, thn, els);
 			}
@@ -1861,13 +1865,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void WhileStmt(out Statement/*!*/ stmt) {
 		Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
-		Expression guard = null;  bool guardOmitted = false;
+		Expression guard = null;  IToken guardEllipsis = null;
 		List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
 		List<Expression/*!*/> decreases = new List<Expression/*!*/>();
 		Attributes decAttrs = null;
 		Attributes modAttrs = null;
 		List<FrameExpression/*!*/> mod = null;
-		BlockStmt/*!*/ body = null;  bool bodyOmitted = false;
+		BlockStmt/*!*/ body = null;  IToken bodyEllipsis = null;
 		IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
 		List<GuardedAlternative> alternatives;
 		stmt = dummyStmt;  // to please the compiler
@@ -1884,7 +1888,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Contract.Assume(guard == null || cce.Owner.None(guard)); 
 			} else {
 				Get();
-				guardOmitted = true; 
+				guardEllipsis = t; 
 			}
 			LoopSpec(out invariants, out decreases, out mod, ref decAttrs, ref modAttrs);
 			if (la.kind == 8) {
@@ -1892,9 +1896,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				endTok = body.EndTok; 
 			} else if (la.kind == 37) {
 				Get();
-				bodyOmitted = true; endTok = t; 
+				bodyEllipsis = t; endTok = t; 
 			} else SynErr(182);
-			if (guardOmitted || bodyOmitted) {
+			if (guardEllipsis != null || bodyEllipsis != null) {
 			 if (mod != null) {
 			   SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
 			 }
@@ -1902,7 +1906,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			   body = new BlockStmt(x, endTok, new List<Statement>());
 			 }
 			 stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
-			 stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
+			 stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
 			} else {
 			 // The following statement protects against crashes in case of parsing errors
 			 body = body ?? new BlockStmt(x, endTok, new List<Statement>());

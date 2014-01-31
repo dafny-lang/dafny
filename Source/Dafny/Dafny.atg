@@ -490,7 +490,7 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
      Attributes modAttrs = null;
      Attributes decrAttrs = null;
      BlockStmt body = null;
-     bool signatureOmitted = false;
+     IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
@@ -506,7 +506,7 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
       )
       Formals<false, true, outs, out openParen>
     ]
-  | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
+  | "..."                                       (. signatureEllipsis = t; openParen = Token.NoToken; .)
   )
   { IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
@@ -516,7 +516,7 @@ IteratorDecl<ModuleDefinition module, out IteratorDecl/*!*/ iter>
                              new Specification<FrameExpression>(mod, modAttrs),
                              new Specification<Expression>(decreases, decrAttrs),
                              req, ens, yieldReq, yieldEns,
-                             body, attrs, signatureOmitted);
+                             body, attrs, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
      iter.BodyEndTok = bodyEnd;
  .)
@@ -557,7 +557,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      bool isLemma = false;
      bool isConstructor = false;
      bool isCoMethod = false;
-     bool signatureOmitted = false;
+     IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
   .)
@@ -606,7 +606,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
       Formals<false, !mmod.IsGhost, outs, out openParen>
     ]
-  | "..."                                       (. signatureOmitted = true; openParen = Token.NoToken; .)
+  | "..."                                       (. signatureEllipsis = t; openParen = Token.NoToken; .)
   )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
@@ -632,16 +632,16 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
 
      if (isConstructor) {
        m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
-                           req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+                           req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isCoMethod) {
        m = new CoMethod(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
        m = new Lemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
-                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureOmitted);
+                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
      m.BodyEndTok = bodyEnd;
@@ -816,7 +816,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
      IToken openParen = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     bool signatureOmitted = false;
+     IToken signatureEllipsis = null;
   .)
   /* ----- function ----- */
   ( "function"
@@ -831,7 +831,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
       Formals<true, isFunctionMethod, formals, out openParen>
       ":"
       Type<out returnType>
-    | "..."                    (. signatureOmitted = true;
+    | "..."                    (. signatureEllipsis = t;
                                   openParen = Token.NoToken; .)
     )
 
@@ -849,7 +849,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
         [ ":"                  (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
         ]
       ]
-    | "..."                    (. signatureOmitted = true;
+    | "..."                    (. signatureEllipsis = t;
                                   openParen = Token.NoToken; .)
     )
 
@@ -865,7 +865,7 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
         [ ":"                  (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
         ]
       ]
-    | "..."                    (. signatureOmitted = true;
+    | "..."                    (. signatureEllipsis = t;
                                   openParen = Token.NoToken; .)
     )
   )
@@ -888,13 +888,13 @@ FunctionDecl<MemberModifiers mmod, out Function/*!*/ f>
 
      if (isPredicate) {
         f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
-                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureOmitted);
+                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isCoPredicate) {
         f = new CoPredicate(id, id.val, mmod.IsStatic, typeArgs, openParen, formals,
-                          reqs, reads, ens, body, attrs, signatureOmitted);
+                          reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
         f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
-                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureOmitted);
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -1189,7 +1189,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
   .
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-     Expression guard = null;  bool guardOmitted = false;
+     Expression guard = null;  IToken guardEllipsis = null;
      BlockStmt/*!*/ thn;
      BlockStmt/*!*/ bs;
      Statement/*!*/ s;
@@ -1205,7 +1205,7 @@ IfStmt<out Statement/*!*/ ifStmt>
     (. ifStmt = new AlternativeStmt(x, endTok, alternatives); .)
   |
     ( Guard<out guard>
-    | "..."                  (. guardOmitted = true; .)
+    | "..."                  (. guardEllipsis = t; .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
@@ -1213,8 +1213,8 @@ IfStmt<out Statement/*!*/ ifStmt>
       | BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; endTok = bs.EndTok; .)
       )
     ]
-    (. if (guardOmitted) {
-         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), true, false);
+    (. if (guardEllipsis != null) {
+         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, guard, thn, els), guardEllipsis, null);
        } else {
          ifStmt = new IfStmt(x, endTok, guard, thn, els);
        }
@@ -1239,13 +1239,13 @@ AlternativeBlock<.out List<GuardedAlternative> alternatives, out IToken endTok.>
   .
 WhileStmt<out Statement/*!*/ stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken/*!*/ x;
-     Expression guard = null;  bool guardOmitted = false;
+     Expression guard = null;  IToken guardEllipsis = null;
      List<MaybeFreeExpression/*!*/> invariants = new List<MaybeFreeExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression/*!*/> mod = null;
-     BlockStmt/*!*/ body = null;  bool bodyOmitted = false;
+     BlockStmt/*!*/ body = null;  IToken bodyEllipsis = null;
      IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
      List<GuardedAlternative> alternatives;
      stmt = dummyStmt;  // to please the compiler
@@ -1258,14 +1258,14 @@ WhileStmt<out Statement/*!*/ stmt>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | "..."                      (. guardOmitted = true; .)
+    | "..."                      (. guardEllipsis = t; .)
     )
     LoopSpec<out invariants, out decreases, out mod, ref decAttrs, ref modAttrs>
     ( BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; .)
-    | "..."                      (. bodyOmitted = true; endTok = t; .)
+    | "..."                      (. bodyEllipsis = t; endTok = t; .)
     )
     (.
-      if (guardOmitted || bodyOmitted) {
+      if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
         }
@@ -1273,7 +1273,7 @@ WhileStmt<out Statement/*!*/ stmt>
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
         stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
-        stmt = new SkeletonStatement(stmt, guardOmitted, bodyOmitted);
+        stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
         body = body ?? new BlockStmt(x, endTok, new List<Statement>());
@@ -1367,15 +1367,16 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
 AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = null; Attributes attrs = null;
+     IToken dotdotdot = null;
   .)
   "assert"                                     (. x = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
   ( Expression<out e, false>
-  | "..."
+  | "..."                                      (. dotdotdot = t; .)
   )
   ";"
-  (. if (e == null) {
-       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), true, false);
+  (. if (dotdotdot != null) {
+       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
      } else {
        s = new AssertStmt(x, t, e, attrs);
      }
@@ -1384,15 +1385,16 @@ AssertStmt<out Statement/*!*/ s>
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = null; Attributes attrs = null;
+     IToken dotdotdot = null;
   .)
   "assume"                                     (. x = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
   ( Expression<out e, false>
-  | "..."
+  | "..."                                      (. dotdotdot = t; .)
   )
   ";"
-  (. if (e == null) {
-       s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), true, false);
+  (. if (dotdotdot != null) {
+       s = new SkeletonStatement(new AssumeStmt(x, t, new LiteralExpr(x, true), attrs), dotdotdot, null);
      } else {
        s = new AssumeStmt(x, t, e, attrs);
      }

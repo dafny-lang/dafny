@@ -58,7 +58,7 @@ namespace Microsoft.Dafny
         var iter = new IteratorDecl(Tok(dd.tok), dd.Name, dd.Module,
           tps, ins, outs, reads, mod, decr,
           req, ens, yreq, yens,
-          body, CloneAttributes(dd.Attributes), dd.SignatureIsOmitted);
+          body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
       } else if (d is ClassDecl) {
         if (d is DefaultClassDecl) {
@@ -531,13 +531,13 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), false);
+          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
       } else if (f is CoPredicate) {
         return new CoPredicate(Tok(f.tok), newName, f.IsStatic, tps, f.OpenParen, formals,
-          req, reads, ens, body, CloneAttributes(f.Attributes), false);
+          req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Tok(f.tok), newName, f.IsStatic, f.IsGhost, tps, f.OpenParen, formals, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), false);
+          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       }
     }
 
@@ -555,16 +555,16 @@ namespace Microsoft.Dafny
       var body = CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is CoMethod) {
         return new CoMethod(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else {
         return new Method(Tok(m.tok), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), false);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       }
     }
     public virtual IToken Tok(IToken tok) {

@@ -1433,7 +1433,8 @@ namespace Microsoft.Dafny {
     public readonly List<MaybeFreeExpression> YieldRequires;
     public readonly List<MaybeFreeExpression> YieldEnsures;
     public readonly BlockStmt Body;
-    public readonly bool SignatureIsOmitted;
+    public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
+    public readonly IToken SignatureEllipsis;
     public readonly List<Field> OutsFields;
     public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
     public readonly List<Field> DecreasesFields;  // filled in during resolution
@@ -1451,7 +1452,7 @@ namespace Microsoft.Dafny {
                         List<MaybeFreeExpression> ensures,
                         List<MaybeFreeExpression> yieldRequires,
                         List<MaybeFreeExpression> yieldEnsures,
-                        BlockStmt body, Attributes attributes, bool signatureIsOmitted)
+                        BlockStmt body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes)
     {
       Contract.Requires(tok != null);
@@ -1477,7 +1478,7 @@ namespace Microsoft.Dafny {
       YieldRequires = yieldRequires;
       YieldEnsures = yieldEnsures;
       Body = body;
-      SignatureIsOmitted = signatureIsOmitted;
+      SignatureEllipsis = signatureEllipsis;
 
       OutsFields = new List<Field>();
       OutsHistoryFields = new List<Field>();
@@ -1958,7 +1959,8 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> Ens;
     public readonly Specification<Expression> Decreases;
     public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
-    public readonly bool SignatureIsOmitted;  // is "false" for all Function objects that survive into resolution
+    public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
+    public readonly IToken SignatureEllipsis;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
@@ -1976,7 +1978,7 @@ namespace Microsoft.Dafny {
     public Function(IToken tok, string name, bool isStatic, bool isGhost,
                     List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals, Type resultType,
                     List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                    Expression body, Attributes attributes, bool signatureOmitted)
+                    Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, isStatic, isGhost, attributes) {
 
       Contract.Requires(tok != null);
@@ -1997,7 +1999,7 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
-      this.SignatureIsOmitted = signatureOmitted;
+      this.SignatureEllipsis = signatureEllipsis;
     }
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
@@ -2027,8 +2029,8 @@ namespace Microsoft.Dafny {
     public Predicate(IToken tok, string name, bool isStatic, bool isGhost,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
-                     Expression body, BodyOriginKind bodyOrigin, Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, isGhost, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureOmitted) {
+                     Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, isStatic, isGhost, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -2045,7 +2047,7 @@ namespace Microsoft.Dafny {
                      List<TypeParameter> typeArgs, IToken openParen, Formal k, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, CoPredicate coPred)
-      : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, false) {
+      : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(), req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(coPred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -2062,9 +2064,9 @@ namespace Microsoft.Dafny {
     public CoPredicate(IToken tok, string name, bool isStatic,
                      List<TypeParameter> typeArgs, IToken openParen, List<Formal> formals,
                      List<Expression> req, List<FrameExpression> reads, List<Expression> ens,
-                     Expression body, Attributes attributes, bool signatureOmitted)
+                     Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, isStatic, true, typeArgs, openParen, formals, new BoolType(),
-             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureOmitted) {
+             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
     }
 
     /// <summary>
@@ -2090,7 +2092,8 @@ namespace Microsoft.Dafny {
 
   public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext
   {
-    public readonly bool SignatureIsOmitted;
+    public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
+    public readonly IToken SignatureEllipsis;
     public bool MustReverify;
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Ins;
@@ -2122,7 +2125,7 @@ namespace Microsoft.Dafny {
                   [Captured] List<MaybeFreeExpression> ens,
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
-                  Attributes attributes, bool signatureOmitted)
+                  Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, isStatic, isGhost, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -2141,7 +2144,7 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
-      this.SignatureIsOmitted = signatureOmitted;
+      this.SignatureEllipsis = signatureEllipsis;
       MustReverify = false;
     }
 
@@ -2177,8 +2180,8 @@ namespace Microsoft.Dafny {
                  [Captured] List<MaybeFreeExpression> ens,
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
-                 Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureOmitted) {
+                 Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
     }
   }
 
@@ -2191,8 +2194,8 @@ namespace Microsoft.Dafny {
                   [Captured] List<MaybeFreeExpression> ens,
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
-                  Attributes attributes, bool signatureOmitted)
-      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureOmitted) {
+                  Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -2221,7 +2224,7 @@ namespace Microsoft.Dafny {
                         List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                         List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                         BlockStmt body, Attributes attributes, CoMethod co)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, false) {
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
       Contract.Requires(co != null);
@@ -2242,8 +2245,8 @@ namespace Microsoft.Dafny {
                   List<MaybeFreeExpression> ens,
                   Specification<Expression> decreases,
                   BlockStmt body,
-                  Attributes attributes, bool signatureOmitted)
-      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureOmitted) {
+                  Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -3723,8 +3726,10 @@ namespace Microsoft.Dafny {
   public class SkeletonStatement : Statement
   {
     public readonly Statement S;
-    public readonly bool ConditionOmitted;
-    public readonly bool BodyOmitted;
+    public bool ConditionOmitted { get { return ConditionEllipsis != null; } }
+    public readonly IToken ConditionEllipsis;
+    public bool BodyOmitted { get { return BodyEllipsis != null; } }
+    public readonly IToken BodyEllipsis;
     public readonly List<IToken> NameReplacements;
     public readonly List<Expression> ExprReplacements;
     public SkeletonStatement(IToken tok, IToken endTok)
@@ -3734,13 +3739,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       S = null;
     }
-    public SkeletonStatement(Statement s, bool conditionOmitted, bool bodyOmitted)
+    public SkeletonStatement(Statement s, IToken conditionEllipsis, IToken bodyEllipsis)
       : base(s.Tok, s.EndTok)
     {
       Contract.Requires(s != null);
       S = s;
-      ConditionOmitted = conditionOmitted;
-      BodyOmitted = bodyOmitted;
+      ConditionEllipsis = conditionEllipsis;
+      BodyEllipsis = bodyEllipsis;
     }
     public SkeletonStatement(IToken tok, IToken endTok, List<IToken> nameReplacements, List<Expression> exprReplacements)
       : base(tok, endTok) {

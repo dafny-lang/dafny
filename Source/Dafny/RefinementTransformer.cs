@@ -53,12 +53,14 @@ namespace Microsoft.Dafny
   public class RefinementTransformer : IRewriter
   {
     ResolutionErrorReporter reporter;
+    Action<AdditionalInformation> additionalInformationReporter;
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementTransformer
     Program program;
-    public RefinementTransformer(ResolutionErrorReporter reporter, Program p) {
+    public RefinementTransformer(ResolutionErrorReporter reporter, Action<AdditionalInformation> additionalInformationReporter, Program p) {
       Contract.Requires(reporter != null);
       this.reporter = reporter;
+      this.additionalInformationReporter = additionalInformationReporter;
       rawCloner = new Cloner();
       program = p;
     }
@@ -68,6 +70,16 @@ namespace Microsoft.Dafny
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
     public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
+
+    void ReportAdditionalInformation(IToken token, string text, int length)
+    {
+      Contract.Requires(token != null);
+      Contract.Requires(text != null);
+      Contract.Requires(0 <= length);
+      if (additionalInformationReporter != null) {
+        additionalInformationReporter(new AdditionalInformation { Token = token, Text = text, Length = length });
+      }
+    }
 
     public void PreResolve(ModuleDefinition m) {
       if (m.RefinementBaseRoot != null) {
@@ -518,13 +530,13 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals,
-          req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), false);
+          req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is CoPredicate) {
         return new CoPredicate(tok, f.Name, f.IsStatic, tps, f.OpenParen, formals,
-          req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), false);
+          req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
         return new Function(tok, f.Name, f.IsStatic, isGhost, tps, f.OpenParen, formals, refinementCloner.CloneType(f.ResultType),
-          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), false);
+          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
 
@@ -549,16 +561,16 @@ namespace Microsoft.Dafny
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.Body);
       if (m is Constructor) {
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is CoMethod) {
         return new CoMethod(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
         return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsStatic, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), false);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
     }
 
@@ -588,6 +600,7 @@ namespace Microsoft.Dafny
         Contract.Assert(nw.TypeArgs.Count == 0);
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
+        ReportAdditionalInformation(nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev), 3);
       } else {
         CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "iterator");
         CheckAgreement_Parameters(nw.tok, prev.Ins, nw.Ins, nw.Name, "iterator", "in-parameter");
@@ -622,7 +635,7 @@ namespace Microsoft.Dafny
         yens,
         newBody,
         refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes),
-        false);
+        null);
     }
 
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
@@ -687,6 +700,7 @@ namespace Microsoft.Dafny
               if (f.SignatureIsOmitted) {
                 Contract.Assert(f.TypeArgs.Count == 0);
                 Contract.Assert(f.Formals.Count == 0);
+                ReportAdditionalInformation(f.SignatureEllipsis, Printer.FunctionSignatureToString(prevFunction), 3);
               } else {
                 CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
                 CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
@@ -742,6 +756,7 @@ namespace Microsoft.Dafny
                 Contract.Assert(m.TypeArgs.Count == 0);
                 Contract.Assert(m.Ins.Count == 0);
                 Contract.Assert(m.Outs.Count == 0);
+                ReportAdditionalInformation(m.SignatureEllipsis, Printer.MethodSignatureToString(prevMethod), 3);
               } else {
                 CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
                 CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
@@ -889,8 +904,8 @@ namespace Microsoft.Dafny
            * Note, there is an implicit "...;" at the end of every block in a skeleton.
            */
           if (cur is SkeletonStatement) {
-            var S = ((SkeletonStatement)cur).S;
             var c = (SkeletonStatement)cur;
+            var S = c.S;
             if (S == null) {
               var nxt = i + 1 == skeleton.Body.Count ? null : skeleton.Body[i + 1];
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
@@ -908,15 +923,22 @@ namespace Microsoft.Dafny
                   subber = new SubstitutionCloner(subExprs, rawCloner);
                 }
                 // skip up until the next thing that matches "nxt"
+                var hoverTextA = "";
+                var sepA = "";
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = refinementCloner.CloneStmt(oldS);
                   if (subber != null)
                     s = subber.CloneStmt(s);
                   body.Add(s);
+                  hoverTextA += sepA + Printer.StatementToString(s);
+                  sepA = "\n";
                   j++;
                   if (j == oldStmt.Body.Count) { break; }
                   oldS = oldStmt.Body[j];
+                }
+                if (hoverTextA.Length != 0) {
+                  ReportAdditionalInformation(c.Tok, hoverTextA, 3);
                 }
                 if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
                   foreach (var s in subber.SubstitutionsMade)
@@ -928,7 +950,7 @@ namespace Microsoft.Dafny
 
             } else if (S is AssertStmt) {
               var skel = (AssertStmt)S;
-              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as PredicateStmt;
               if (oldAssume == null) {
                 reporter.Error(cur.Tok, "assert template does not match inherited statement");
@@ -942,12 +964,13 @@ namespace Microsoft.Dafny
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), new Translator.ForceCheckToken(skel.EndTok),
                   e, new Attributes("prependAssertToken", new List<Attributes.Argument>(), attrs)));
+                ReportAdditionalInformation(c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e), 3);
                 i++; j++;
               }
 
             } else if (S is AssumeStmt) {
               var skel = (AssumeStmt)S;
-              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as AssumeStmt;
               if (oldAssume == null) {
                 reporter.Error(cur.Tok, "assume template does not match inherited statement");
@@ -956,12 +979,13 @@ namespace Microsoft.Dafny
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssumeStmt(skel.Tok, skel.EndTok, e, attrs));
+                ReportAdditionalInformation(c.ConditionEllipsis, Printer.ExprToString(e), 3);
                 i++; j++;
               }
 
             } else if (S is IfStmt) {
               var skel = (IfStmt)S;
-              Contract.Assert(((SkeletonStatement)cur).ConditionOmitted);
+              Contract.Assert(c.ConditionOmitted);
               var oldIf = oldS as IfStmt;
               if (oldIf == null) {
                 reporter.Error(cur.Tok, "if-statement template does not match inherited statement");
@@ -969,8 +993,10 @@ namespace Microsoft.Dafny
               } else {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
-                var r = new IfStmt(skel.Tok, skel.EndTok, refinementCloner.CloneExpr(oldIf.Guard), resultingThen, resultingElse);
+                var e = refinementCloner.CloneExpr(oldIf.Guard);
+                var r = new IfStmt(skel.Tok, skel.EndTok, e, resultingThen, resultingElse);
                 body.Add(r);
+                ReportAdditionalInformation(c.ConditionEllipsis, Printer.GuardToString(e), 3);
                 i++; j++;
               }
 
@@ -982,8 +1008,9 @@ namespace Microsoft.Dafny
                 i++;
               } else {
                 Expression guard;
-                if (((SkeletonStatement)cur).ConditionOmitted) {
+                if (c.ConditionOmitted) {
                   guard = refinementCloner.CloneExpr(oldWhile.Guard);
+                  ReportAdditionalInformation(c.ConditionEllipsis, Printer.GuardToString(oldWhile.Guard), 3);
                 } else {
                   if (oldWhile.Guard != null) {
                     reporter.Error(skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
@@ -1145,8 +1172,16 @@ namespace Microsoft.Dafny
         }
       }
       // implement the implicit "...;" at the end of each block statement skeleton
+      var hoverText = "";
+      var sep = "";
       for (; j < oldStmt.Body.Count; j++) {
-        body.Add(refinementCloner.CloneStmt(oldStmt.Body[j]));
+        var b = oldStmt.Body[j];
+        body.Add(refinementCloner.CloneStmt(b));
+        hoverText += sep + Printer.StatementToString(b);
+        sep = "\n";
+      }
+      if (hoverText.Length != 0) {
+        ReportAdditionalInformation(skeleton.EndTok, hoverText, 3);
       }
       return new BlockStmt(skeleton.Tok, skeleton.EndTok, body);
     }

@@ -515,7 +515,7 @@ namespace Microsoft.Dafny
 
             var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, f.TypeArgs.ConvertAll(cloner.CloneTypeParam), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
-                                    new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, false);
+                                    new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
             newDecls.Add(reveal);
             revealOriginal[reveal] = f;
 
