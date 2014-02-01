@@ -3993,7 +3993,7 @@ namespace Microsoft.Dafny
           s.ResolvedStatements.Add(s.Update);
         }
         if (!s.IsGhost) {
-          s.IsGhost = s.Lhss.All(v => v.IsGhost);
+          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Lhss.All(v => v.IsGhost);
         }
 
       } else if (stmt is AssignStmt) {
