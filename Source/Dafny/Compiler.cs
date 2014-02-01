@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
             foreach (var member in c.Members) {
               var m = member as Method;
               if (m != null) {
-                if (!m.IsGhost && m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0) {
+                if (!m.IsGhost && m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
                   return true;
                 }
               }
@@ -761,7 +761,7 @@ namespace Microsoft.Dafny {
             Indent(indent);  wr.WriteLine("}");
 
             // allow the Main method to be an instance method
-            if (m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0) {
+            if (!m.IsStatic && m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
               Indent(indent);
               wr.WriteLine("public static void Main(string[] args) {");
               Contract.Assert(m.EnclosingClass == c);
