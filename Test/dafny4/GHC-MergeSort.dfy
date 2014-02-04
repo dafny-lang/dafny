@@ -388,40 +388,15 @@ lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
   match xs {
     case Nil =>
     case Cons(b, xs') =>
-      calc {
-        sorted(reverse(Cons(b, xs'), Cons(a, ys)));
-        sorted(reverse(xs', Cons(b, Cons(a, ys))));
-      <==  { sorted_insertInMiddle(xs', b, Cons(a, ys)); }
-        // the next 3 lines are the premises of sorted_insertInMiddle
-        sorted(reverse(xs', Cons(a, ys))) &&
-        (forall y :: y in multiset_of(xs') ==> Below(y, b)) &&
-        (forall y :: y in multiset_of(Cons(a, ys)) ==> Below(b, y));
-        // the third premise holds
-        sorted(reverse(xs', Cons(a, ys))) &&
-        (forall y :: y in multiset_of(xs') ==> Below(y, b));
-        // the following sub-calculation establishes the second premise
-        calc {
-          true;
-          sorted(reverse(Cons(b, xs'), ys));
-          sorted(reverse(xs', Cons(b, ys)));
-        ==> { sorted_reverse(xs', Cons(b, ys)); }
-          forall y :: y in multiset_of(xs') ==> Below(y, b);
-        }
-        // finally, for the first premise
-        sorted(reverse(xs', Cons(a, ys)));
-      }
-      // Here is the proof of that premise
       calc ==> {
         true;
-        calc {
-          sorted(reverse(xs, ys));
-          { sorted_reverse(xs, ys); }
-          sorted(ys);
-          sorted(Cons(a, ys));
-        }
+        { sorted_reverse(xs, ys); }
         sorted(reverse(xs', Cons(b, ys))) && sorted(Cons(a, ys));
         { sorted_replaceSuffix(xs', Cons(b, ys), Cons(a, ys)); }
         sorted(reverse(xs', Cons(a, ys)));
+        { sorted_reverse(xs', Cons(b, ys));
+          sorted_insertInMiddle(xs', b, Cons(a, ys)); }
+        sorted(reverse(xs', Cons(b, Cons(a, ys))));
       }
   }
 }
@@ -439,15 +414,7 @@ lemma sorted_replaceSuffix(xs: List<G>, ys: List<G>, zs: List<G>)
       {
         sorted_reverse(xs', Cons(c, ys));
       }
-      calc {
-        sorted(reverse(Cons(c, xs'), ys));
-        sorted(reverse(xs', Cons(c, ys)));
-        sorted(reverse(xs', Cons(c, ys))) && sorted(Cons(c, zs));
-      ==>  { sorted_replaceSuffix(xs', Cons(c, ys), Cons(c, zs)); }
-        sorted(reverse(xs', Cons(c, zs)));
-        sorted(reverse(Cons(c, xs'), zs));
-        sorted(reverse(xs, zs));
-      }
+      sorted_replaceSuffix(xs', Cons(c, ys), Cons(c, zs));
   }
 }
 
@@ -456,8 +423,7 @@ lemma sorted_mergeAll(x: List<List<G>>)
   ensures sorted(mergeAll(x));
   decreases length(x);
 {
-  if x.tail == Nil {
-  } else {
+  if x.tail != Nil {
     sorted_mergePairs(x);
   }
 }
@@ -467,78 +433,13 @@ lemma sorted_mergePairs(x: List<List<G>>)
   ensures AllSorted(mergePairs(x));
 {
   if x.Cons? && x.tail.Cons? {
-    calc {
-      AllSorted(mergePairs(x));
-      AllSorted(Cons(merge(x.head, x.tail.head), mergePairs(x.tail.tail)));
-      sorted(merge(x.head, x.tail.head)) && AllSorted(mergePairs(x.tail.tail));
-      calc ==> {
-        AllSorted(x);
-        AllSorted(x.tail);
-        AllSorted(x.tail.tail);
-        // induction hypothesis
-        AllSorted(mergePairs(x.tail.tail));
-      }
-      sorted(merge(x.head, x.tail.head));
-      calc ==> {
-        AllSorted(x);
-        sorted(x.head) && AllSorted(x.tail);
-        sorted(x.head) && sorted(x.tail.head);
-        { sorted_merge(x.head, x.tail.head); }
-        sorted(merge(x.head, x.tail.head));
-      }
-      true;
-    }
+    sorted_merge(x.head, x.tail.head);
   }
 }
 
 lemma sorted_merge(xs: List<G>, ys: List<G>)
   requires sorted(xs) && sorted(ys);
   ensures sorted(merge(xs, ys));
-{
-  match xs {
-    case Nil =>
-    case Cons(a, xs') =>
-      match ys {
-        case Nil =>
-        case Cons(b, ys') =>
-          sorted_smallest(a, xs');
-          sorted_smallest(b, ys');
-          if Below(a, b) {
-            forall y {
-              calc {
-                y in multiset_of(merge(xs', ys));
-                { perm_merge(xs', ys); }
-                y in multiset_of(xs') + multiset_of(ys);
-                y in multiset_of(xs') || y in multiset_of(ys);
-              ==>
-                Below(a, y) || Below(b, y);
-              ==>
-                Below(a, y);
-              }
-            }
-            assert sorted(merge(xs', ys));  // by induction hypothesis
-          } else {
-            forall y {
-              calc {
-                y in multiset_of(merge(xs, ys'));
-                { perm_merge(xs, ys'); }
-                y in multiset_of(xs) + multiset_of(ys');
-                y in multiset_of(xs) || y in multiset_of(ys');
-              ==>
-                Below(a, y) || Below(b, y);
-              ==>
-                Below(b, y);
-              }
-            }
-            assert sorted(merge(xs, ys'));  // by induction hypothesis
-          }
-      }
-  }
-}
-
-lemma sorted_smallest(a: G, xs: List<G>)
-  requires sorted(Cons(a, xs));
-  ensures forall y :: y in multiset_of(xs) ==> key(a) <= key(y);
 {
 }
 
