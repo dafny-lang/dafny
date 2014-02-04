@@ -9592,24 +9592,26 @@ namespace Microsoft.Dafny {
 
         var ssThen = new List<SplitExprInfo>();
         var ssElse = new List<SplitExprInfo>();
-        // Note: The following lines intentionally uses | instead of ||, because we need both calls to TrSplitExpr
-        if (TrSplitExpr(ite.Thn, ssThen, position, heightLimit, etran) | TrSplitExpr(ite.Els, ssElse, position, heightLimit, etran)) {
-          var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
-          var test = etran.TrExpr(ite.Test);
-          foreach (var s in ssThen) {
-            // as the source location in the following implication, use that of the translated "s"
-            splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, test, s.E)));
-          }
 
-          var negatedTest = Bpl.Expr.Not(test);
-          foreach (var s in ssElse) {
-            // as the source location in the following implication, use that of the translated "s"
-            splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, negatedTest, s.E)));
-          }
+        TrSplitExpr(ite.Thn, ssThen, position, heightLimit, etran);
+        TrSplitExpr(ite.Els, ssElse, position, heightLimit, etran);
 
-          return true;
+        var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
+        var test = etran.TrExpr(ite.Test);
+        foreach (var s in ssThen)
+        {
+          // as the source location in the following implication, use that of the translated "s"
+          splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, test, s.E)));
         }
 
+        var negatedTest = Bpl.Expr.Not(test);
+        foreach (var s in ssElse)
+        {
+          // as the source location in the following implication, use that of the translated "s"
+          splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, negatedTest, s.E)));
+        }
+
+        return true;        
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
