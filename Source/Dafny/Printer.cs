@@ -58,7 +58,7 @@ namespace Microsoft.Dafny {
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
         pr.PrintStatement(stmt, 0);
-        return wr.ToString();
+        return ToStringWithoutNewline(wr);
       }
     }
 
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
         pr.PrintIteratorClass(iter, 0);
-        return wr.ToString();
+        return ToStringWithoutNewline(wr);
       }
     }
 
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
         pr.PrintIteratorSignature(iter, 0);
-        return wr.ToString();
+        return ToStringWithoutNewline(wr);
       }
     }
 
@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
         pr.PrintFunction(f, 0, true);
-        return wr.ToString();
+        return ToStringWithoutNewline(wr);
       }
     }
 
@@ -94,8 +94,18 @@ namespace Microsoft.Dafny {
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
         pr.PrintMethod(m, 0, true);
-        return wr.ToString();
+        return ToStringWithoutNewline(wr);
       }
+    }
+
+    public static string ToStringWithoutNewline(System.IO.StringWriter wr) {
+      Contract.Requires(wr != null);
+      var sb = wr.GetStringBuilder();
+      var len = sb.Length;
+      while (len > 0 && (sb[len - 1] == '\n' || sb[len - 1] == '\r')) {
+        len--;
+      }
+      return sb.ToString(0, len);
     }
 
     public void PrintProgram(Program prog) {

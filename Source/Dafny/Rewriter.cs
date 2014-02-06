@@ -669,12 +669,14 @@ namespace Microsoft.Dafny
       string prefix = "auto requires " + label + " ";
       string tip = "";
 
+      string sep = "";
       foreach (var req in reqs) {
         if (containsMatch) {  // Pretty print the requirements
-          tip += prefix + Printer.ExtendedExprToString(req) + ";\n";
+          tip += sep + prefix + Printer.ExtendedExprToString(req) + ";";
         } else {
-          tip += prefix + Printer.ExprToString(req) + ";\n";
+          tip += sep + prefix + Printer.ExprToString(req) + ";";
         }
+        sep = "\n";
       }
 
       if (!tip.Equals("")) {
