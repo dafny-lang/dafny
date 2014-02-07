@@ -312,6 +312,16 @@ namespace DafnyLanguage
         if (s.Mod.Expressions != null) {
           s.Mod.Expressions.ForEach(fe => FrameExprRegions(fe, regions, false, module));
         }
+      } else if (stmt is CalcStmt) {
+        var s = (CalcStmt)stmt;
+        // skip the last line, which is just a duplicate anyway
+        for (int i = 0; i < s.Lines.Count - 1; i++) {
+          ExprRegions(s.Lines[i], regions, module);
+        }
+        foreach (var ss in stmt.SubStatements) {
+          StatementRegions(ss, regions, module);
+        }
+        return;
       }
       foreach (var ee in stmt.SubExpressions) {
         ExprRegions(ee, regions, module);

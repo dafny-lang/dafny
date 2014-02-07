@@ -1684,6 +1684,9 @@ namespace Microsoft.Dafny {
     string UniqueName {
       get;
     }
+    bool HasBeenAssignedUniqueName {  // unique names are not assigned until the Translator; if you don't already know if that stage has run, this boolean method will tell you
+      get;
+    }
     string AssignUniqueName(IUniqueNameGenerator generator);
     string CompileName {
       get;
@@ -1718,6 +1721,11 @@ namespace Microsoft.Dafny {
     public string UniqueName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+      }
+    }
+    public bool HasBeenAssignedUniqueName {
+      get {
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
@@ -1779,8 +1787,12 @@ namespace Microsoft.Dafny {
     private string uniqueName;
     public string UniqueName {
       get {
-        Contract.Ensures(Contract.Result<string>() != null);
         return uniqueName;
+      }
+    }
+    public bool HasBeenAssignedUniqueName {
+      get {
+        return uniqueName != null;
       }
     }
     public string AssignUniqueName(IUniqueNameGenerator generator)
@@ -2962,8 +2974,12 @@ namespace Microsoft.Dafny {
     private string uniqueName;
     public string UniqueName {
       get {
-        Contract.Ensures(Contract.Result<string>() != null);
         return uniqueName;
+      }
+    }
+    public bool HasBeenAssignedUniqueName {
+      get {
+        return uniqueName != null;
       }
     }
     public string AssignUniqueName(IUniqueNameGenerator generator)

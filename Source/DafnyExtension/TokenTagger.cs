@@ -44,7 +44,7 @@ namespace DafnyLanguage
       get
       {
         string text = FixedHoverText;
-        if (Variable != null)
+        if (Variable != null && Variable.HasBeenAssignedUniqueName)
         {
           bool wasUpdated;
           var value = DafnyClassifier.DafnyMenuPackage.TryToLookupValueInCurrentModel(Variable.UniqueName, out wasUpdated);
