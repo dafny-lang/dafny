@@ -14,3 +14,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 -------------------- Primes.dfy --------------------
 
 Dafny program verifier finished with 24 verified, 0 errors
+
+-------------------- KozenSilva.dfy --------------------
+
+Dafny program verifier finished with 47 verified, 0 errors
