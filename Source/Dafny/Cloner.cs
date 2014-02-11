@@ -206,6 +206,8 @@ namespace Microsoft.Dafny
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {
           return new LiteralExpr(Tok(e.tok), (bool)e.Value);
+        } else if (e.Value is Basetypes.BigDec) {
+          return new LiteralExpr(Tok(e.tok), (Basetypes.BigDec)e.Value);
         } else {
           return new LiteralExpr(Tok(e.tok), (BigInteger)e.Value);
         }

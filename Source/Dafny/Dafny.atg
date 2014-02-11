@@ -163,8 +163,9 @@ TOKENS
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}.
   digits = digit {digit}.
-  hexdigits = '0' 'x' hexdigit {hexdigit}.
-  arrayToken = 'a' 'r' 'r' 'a' 'y' [posDigit {digit}].
+  hexdigits = "0x" hexdigit {hexdigit}.
+  decimaldigits = digit {digit} '.' digit {digit}.
+  arrayToken = "array" [posDigit {digit}].
   string = quote {nonquote} quote.
   colon = ':'.
   semi = ';'.
@@ -274,9 +275,11 @@ SubModuleDecl<ModuleDefinition parent, out ModuleDecl submodule>
 .
 
 QualifiedName<.out List<IToken> ids.>
-= (. IToken id; ids = new List<IToken>(); .)
-  Ident<out id>                            (. ids.Add(id); .)
-  { "." IdentOrDigits<out id>              (. ids.Add(id); .)
+= (. IToken id; IToken idPrime; ids = new List<IToken>(); .)
+  Ident<out id>                               (. ids.Add(id); .)
+  { IdentOrDigitsSuffix<out id, out idPrime>  (. ids.Add(id);
+                                                 if (idPrime != null) { ids.Add(idPrime); }
+                                              .)
   }
   .
 
@@ -738,6 +741,7 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
   ( "bool"                          (. tok = t; .)
   | "nat"                           (. tok = t;  ty = new NatType(); .)
   | "int"                           (. tok = t;  ty = new IntType(); .)
+  | "real"                          (. tok = t;  ty = new RealType(); .)
   | "set"                           (. tok = t;  gt = new List<Type/*!*/>(); .)
     GenericInstantiation<gt>        (. if (gt.Count != 1) {
                                          SemErr("set type expects exactly one type argument");
@@ -787,7 +791,7 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
     {                               (. path.Add(tok); .)
       "." Ident<out tok>           
     }
-    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, path); .)
+    [ GenericInstantiation<gt> ]    (. ty = (tok.val == "real") ? (Type)Microsoft.Dafny.Type.Real : new UserDefinedType(tok, tok.val, gt, path); .)
   )
   .
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
@@ -1809,13 +1813,14 @@ NegOp = "!" | '\u00ac'.
  */
 ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x;  BigInteger n;
+     IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
      e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
   | "null"                                     (. e = new LiteralExpr(t); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
+  | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e, true> ")"            (. e = new FreshExpr(x, e); .)
@@ -1827,6 +1832,22 @@ ConstAtomExpression<out Expression e>
   | "("                                        (. x = t; .)
       Expression<out e, true>                  (. e = new ParensExpression(x, e); .)
     ")"
+  | "real"									   (. x = t; .)
+    "("										   (. IToken openParen = t; .)
+	Expression<out e, true> 
+	")"										   (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
+											      IToken fnTok = new Token(t.line, t.col); fnTok.val = "IntToReal";
+											      //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e }); 
+												  e = new FunctionCallExpr(x, "IntToReal", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
+												.)
+  | "int"									   (. x = t; .)
+    "("										   (. IToken openParen = t; .)
+	Expression<out e, true> 
+	")"										   (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
+											      IToken fnTok = new Token(t.line, t.col); fnTok.val = "RealToInt";
+											      //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e }); 
+												  e = new FunctionCallExpr(x, "RealToInt", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
+												.)
   )
   .
 DisplayExpr<out Expression e>
@@ -2017,19 +2038,20 @@ CasePattern<out CasePattern pat>
   .
 /*------------------------------------------------------------------------*/
 DottedIdentifiersAndFunction<out Expression e>
-= (. IToken id;  IToken openParen = null;
+= (. IToken id, idPrime;  IToken openParen = null;
      List<Expression> args = null;
      List<IToken> idents = new List<IToken>();
   .)
-  Ident<out id>                        (. idents.Add(id); .)
-  { "."
-    IdentOrDigits<out id>              (. idents.Add(id); .)
+  Ident<out id>                              (. idents.Add(id); .)
+  { IdentOrDigitsSuffix<out id, out idPrime> (. idents.Add(id);
+                                                if (idPrime != null) { idents.Add(idPrime); id = idPrime; }
+                                              .)
   }
-  [                                    (. args = new List<Expression>(); .)
-    [ "#"                              (. id.val = id.val + "#";  Expression k; .)
-      "[" Expression<out k, true> "]"  (. args.Add(k); .)
+  [                                     (. args = new List<Expression>(); .)
+    [ "#"                               (. id.val = id.val + "#";  Expression k; .)
+      "[" Expression<out k, true> "]"   (. args.Add(k); .)
     ]
-    "("                                (. openParen = t; .)
+    "("                                 (. openParen = t; .)
       [ Expressions<args> ]
     ")"
   ]
@@ -2041,8 +2063,12 @@ Suffix<ref Expression e>
      List<Expression> multipleIndices = null;
      bool func = false;
   .)
-  ( "."
-    IdentOrDigits<out id>
+  ( IdentOrDigitsSuffix<out id, out x>         (. if (x != null) {
+                                                    // process id as a Suffix in its own right
+                                                    e = new ExprDotName(id, e, id.val);
+                                                    id = x;  // move to the next Suffix
+                                                  }
+                                               .)
     [                                          (. args = new List<Expression/*!*/>();  func = true; .)
       [ "#"                                    (. id.val = id.val + "#";  Expression k; .)
         "[" Expression<out k, true> "]"        (. args.Add(k); .)
@@ -2196,10 +2222,41 @@ Ident<out IToken/*!*/ x>
   ident            (. x = t; .)
   .
 // Identifier or sequence of digits
-IdentOrDigits<out IToken/*!*/ x>
-= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken; .)
-  ( ident            (. x = t; .)
+// Parse one of the following:
+//      . ident
+//      . digits
+//      . digits . digits
+// In the first two cases, x returns as the token for the ident/digits and y returns as null.
+// In the third case, x and y return as the tokens for the first and second digits.
+// This parser production solves a problem where the scanner might parse a real number instead
+// of stopping at the decimal point.
+IdentOrDigitsSuffix<out IToken x, out IToken y>
+= (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
+     x = Token.NoToken;
+     y = null;
+  .)
+  "."
+  ( ident          (. x = t; .)
   | digits         (. x = t; .)
+  | decimaldigits  (. x = t;
+                      int exponent = x.val.IndexOf('e');
+                      if (0 <= exponent) {
+                        // this is not a legal field/destructor name
+                        SemErr(x, "invalid IdentOrDigitsSuffix");
+                      } else {
+                        int dot = x.val.IndexOf('.');
+                        if (0 <= dot) {
+                          y = new Token();
+                          y.pos = x.pos + dot + 1;
+                          y.val = x.val.Substring(dot + 1);
+                          x.val = x.val.Substring(0, dot);
+                          y.col = x.col + dot + 1;
+                          y.line = x.line;
+                          y.filename = x.filename;
+                          y.kind = x.kind;
+                        }
+                      }
+                   .)
   )
   .
 // Identifier, disallowing leading underscores
@@ -2246,5 +2303,17 @@ Nat<out BigInteger n>
        }
     .)
    )
+  .
+Dec<out Basetypes.BigDec d>
+= (. d = Basetypes.BigDec.ZERO; .)
+  (decimaldigits
+    (. try {
+         d = Basetypes.BigDec.FromString(t.val);
+       } catch (System.FormatException) {
+         SemErr("incorrectly formatted number");
+         d = Basetypes.BigDec.ZERO;
+       }
+    .)   
+  )
   .
 END Dafny.

@@ -1114,6 +1114,24 @@ namespace Microsoft.Dafny {
           wr.Write("null");
         } else if (e.Value is bool) {
           wr.Write((bool)e.Value ? "true" : "false");
+        } else if (e.Value is Basetypes.BigDec) {
+          Basetypes.BigDec dec = (Basetypes.BigDec)e.Value;
+          wr.Write((dec.Mantissa >= 0) ? "" : "-");
+          string s = BigInteger.Abs(dec.Mantissa).ToString();
+          int digits = s.Length;
+          if (dec.Exponent >= 0) {
+            wr.Write("{0}{1}.0", s, new string('0', dec.Exponent));
+          } else {
+            int exp = -dec.Exponent;
+            if (exp < digits) {
+              int intDigits = digits - exp;
+              int fracDigits = digits - intDigits;
+              wr.Write("{0}.{1}", s.Substring(0, intDigits), s.Substring(intDigits, fracDigits));
+            } else {
+              int fracDigits = digits;
+              wr.Write("0.{0}{1}", new string('0', exp - fracDigits), s.Substring(0, fracDigits));
+            }
+          }
         } else {
           wr.Write((BigInteger)e.Value);
         }

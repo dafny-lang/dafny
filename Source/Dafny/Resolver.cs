@@ -1159,6 +1159,8 @@ namespace Microsoft.Dafny
           return new LiteralExpr(e.tok);
         } else if (e.Value is bool) {
           return new LiteralExpr(e.tok, (bool)e.Value);
+        } else if (e.Value is Basetypes.BigDec) {
+          return new LiteralExpr(e.tok, (Basetypes.BigDec)e.Value);
         } else {
           return new LiteralExpr(e.tok, (BigInteger)e.Value);
         }
@@ -3603,7 +3605,7 @@ namespace Microsoft.Dafny
 #if !NO_CHEAP_OBJECT_WORKAROUND
       if (a is ObjectType || b is ObjectType) {  // TODO: remove this temporary hack
         var other = a is ObjectType ? b : a;
-        if (other is BoolType || other is IntType || other is SetType || other is SeqType || other.IsDatatype) {
+        if (other is BoolType || other is IntType || other is RealType || other is SetType || other is SeqType || other.IsDatatype) {
           return false;
         }
         // allow anything else with object; this is BOGUS
@@ -3616,6 +3618,8 @@ namespace Microsoft.Dafny
         return b is BoolType;
       } else if (a is IntType) {
         return b is IntType;
+      } else if (a is RealType) {
+        return b is RealType;
       } else if (a is ObjectType) {
         return b is ObjectType;
       } else if (a is SetType) {
@@ -3716,7 +3720,7 @@ namespace Microsoft.Dafny
 
       } else if (proxy is OperationTypeProxy) {
         OperationTypeProxy opProxy = (OperationTypeProxy)proxy;
-        if (t is IntType || t is SetType || t is MultiSetType || (opProxy.AllowSeq && t is SeqType)) {
+        if (t is IntType || t is RealType || t is SetType || t is MultiSetType || (opProxy.AllowSeq && t is SeqType)) {
           // this is the expected case
         } else {
           return false;
@@ -5518,6 +5522,8 @@ namespace Microsoft.Dafny
             e.Type = new ObjectTypeProxy();
           } else if (e.Value is BigInteger) {
             e.Type = Type.Int;
+          } else if (e.Value is Basetypes.BigDec) {
+            e.Type = Type.Real;
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
           } else {
@@ -5826,7 +5832,7 @@ namespace Microsoft.Dafny
               } else {
                 bool err = false;
                 if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(true))) {
-                  Error(expr, "arguments to {0} must be int or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                  Error(expr, "arguments to {0} must be int or real or a collection type (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
                   err = true;
                 }
                 if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -5863,7 +5869,7 @@ namespace Microsoft.Dafny
               } else {
                 bool err = false;
                 if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
-                  Error(expr, "arguments to {0} must be int or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+                  Error(expr, "arguments to {0} must be int or real or a set (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
                   err = true;
                 }
                 if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
@@ -5888,6 +5894,16 @@ namespace Microsoft.Dafny
             break;
 
           case BinaryExpr.Opcode.Div:
+            if (!UnifyTypes(e.E0.Type, new OperationTypeProxy(false))) {
+              // TODO: this should disallow OperationTypeProxy types except for int and real
+              Error(expr, "first argument to {0} must be of type int or real (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);
+            }
+            if (!UnifyTypes(e.E1.Type, e.E0.Type)) {
+              Error(expr, "arguments to {0} must have the same type (got {1} and {2})", BinaryExpr.OpcodeString(e.Op), e.E0.Type, e.E1.Type);
+            }
+            expr.Type = e.E0.Type;
+            break;
+
           case BinaryExpr.Opcode.Mod:
             if (!UnifyTypes(e.E0.Type, Type.Int)) {
               Error(expr, "first argument to {0} must be of type int (instead got {1})", BinaryExpr.OpcodeString(e.Op), e.E0.Type);

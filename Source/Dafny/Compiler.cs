@@ -869,6 +869,9 @@ namespace Microsoft.Dafny {
         return "bool";
       } else if (type is IntType) {
         return "BigInteger";
+      } else if (type is RealType) {
+        Error("compilation of real is not supported");
+        return "object";
       } else if (type is ObjectType) {
         return "object";
       } else if (type.IsArrayType) {
@@ -967,6 +970,9 @@ namespace Microsoft.Dafny {
         return "false";
       } else if (type is IntType) {
         return "new BigInteger(0)";
+      } else if (type is RealType) {
+        Error("compilation of real is not supported");
+        return "null";
       } else if (type.IsRefType) {
         return string.Format("({0})null", TypeName(type));
       } else if (type.IsDatatype) {

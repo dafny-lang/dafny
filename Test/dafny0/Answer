@@ -143,6 +143,23 @@ Execution trace:
 
 Dafny program verifier finished with 15 verified, 9 errors
 
+-------------------- RealTypes.dfy --------------------
+RealTypes.dfy(5,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+RealTypes.dfy(11,12): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    RealTypes.dfy(10,23): anon3_Else
+    (0,0): anon2
+RealTypes.dfy(11,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    RealTypes.dfy(10,23): anon3_Else
+    (0,0): anon2
+
+Dafny program verifier finished with 5 verified, 3 errors
+
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero
 Execution trace:
@@ -498,7 +515,7 @@ ResolutionErrors.dfy(309,18): Error: ghost fields are allowed only in specificat
 ResolutionErrors.dfy(318,15): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(343,2): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>)
 ResolutionErrors.dfy(355,18): Error: incorrect type of datatype constructor argument (found GList<_T0>, expected GList<int>)
-ResolutionErrors.dfy(363,6): Error: arguments to + must be int or a collection type (instead got bool)
+ResolutionErrors.dfy(363,6): Error: arguments to + must be int or real or a collection type (instead got bool)
 ResolutionErrors.dfy(368,6): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors.dfy(371,6): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(371,6): Error: second argument to ==> must be of type bool (instead got int)

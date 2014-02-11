@@ -438,6 +438,8 @@ namespace Microsoft.Dafny
         if (next is IntType) {
           return (prev is NatType) == (next is NatType);
         } else return false;
+      } else if (prev is RealType) {
+        return next is RealType;
       } else if (prev is ObjectType) {
         return next is ObjectType;
       } else if (prev is SetType) {

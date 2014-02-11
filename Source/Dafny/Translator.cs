@@ -1086,7 +1086,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           AddClassMember_Function(f);
-          if (!IsOpaqueFunction(f)) { // Opaque function's well-formedness is checked on the full version
+          if (!IsOpaqueFunction(f) && !f.IsBuiltin) { // Opaque function's well-formedness is checked on the full version
             AddWellformednessCheck(f);
           }
           var cop = f as CoPredicate;
@@ -3724,9 +3724,11 @@ namespace Microsoft.Dafny {
             }
             break;
           case BinaryExpr.ResolvedOpcode.Div:
-          case BinaryExpr.ResolvedOpcode.Mod:
-            CheckWellformed(e.E1, options, locals, builder, etran);
-            builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), Bpl.Expr.Literal(0)), "possible division by zero", options.AssertKv));
+          case BinaryExpr.ResolvedOpcode.Mod: {
+              Bpl.Expr zero = (e.E1.Type is RealType) ? Bpl.Expr.Literal(Basetypes.BigDec.ZERO) : Bpl.Expr.Literal(0);
+              CheckWellformed(e.E1, options, locals, builder, etran);
+              builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
+            }
             break;
           default:
             CheckWellformed(e.E1, options, locals, builder, etran);
@@ -3975,6 +3977,8 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(tok, "class._System.bool", predef.ClassNameType);
       } else if (type is IntType) {
         return new Bpl.IdentifierExpr(tok, "class._System.int", predef.ClassNameType);
+      } else if (type is RealType) {
+        return new Bpl.IdentifierExpr(tok, "class._System.real", predef.ClassNameType);
       } else if (type is ObjectType) {
         return new Bpl.IdentifierExpr(tok, GetClass(program.BuiltIns.ObjectDecl));
       } else if (type is CollectionType) {
@@ -4099,7 +4103,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null && sink != null);
 
       // declare the function
-      {
+      if (!f.IsBuiltin) {
         var typeParams = TrTypeParamDecls(f.TypeArgs);
         var formals = new List<Variable>();
         if (f.IsRecursive) {
@@ -4739,6 +4743,8 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Bool;
       } else if (type is IntType) {
         return Bpl.Type.Int;
+      } else if (type is RealType) {
+        return Bpl.Type.Real;
       } else if (type is IteratorDecl.EverIncreasingType) {
         return Bpl.Type.Int;
       } else if (type.IsTypeParameter) {
@@ -5545,6 +5551,10 @@ namespace Microsoft.Dafny {
       } else if (x.Type is IntType) {
         var lit = new LiteralExpr(x.tok, 0);
         lit.Type = Type.Int;  // resolve here
+        yield return lit;
+      } else if (x.Type is RealType) {
+        var lit = new LiteralExpr(x.tok, Basetypes.BigDec.ZERO);
+        lit.Type = Type.Real;  // resolve here
         yield return lit;
       }
 
@@ -6630,6 +6640,8 @@ namespace Microsoft.Dafny {
         return u is BoolType;
       } else if (t is IntType) {
         return u is IntType;
+      } else if (t is RealType) {
+        return false;
       } else if (t is SetType) {
         return u is SetType;
       } else if (t is SeqType) {
@@ -6813,7 +6825,7 @@ namespace Microsoft.Dafny {
         // 0 <= x
         return Bpl.Expr.Le(Bpl.Expr.Literal(0), x);
 
-      } else  if (type is BoolType || type is IntType) {
+      } else  if (type is BoolType || type is IntType || type is RealType) {
         // nothing to do
 
       } else if (type is SetType) {
@@ -6939,6 +6951,8 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.Literal(false);
       } else if (type is IntType) {
         return Bpl.Expr.Literal(0);
+      } else if (type is RealType) {
+        return Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
       } else if (type.IsRefType) {
         return predef.Null;
       } else {
@@ -7972,6 +7986,8 @@ namespace Microsoft.Dafny {
             return translator.Lit(new Bpl.LiteralExpr(e.tok, (bool)e.Value));
           } else if (e.Value is BigInteger) {
             return translator.Lit(Bpl.Expr.Literal(Microsoft.Basetypes.BigNum.FromBigInt((BigInteger)e.Value)));
+          } else if (e.Value is Basetypes.BigDec) {
+            return translator.Lit(Bpl.Expr.Literal((Basetypes.BigDec)e.Value));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
           }
@@ -8253,6 +8269,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
+          bool isReal = e.E0.Type is RealType;
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInSet translate e.E1
@@ -8330,8 +8347,13 @@ namespace Microsoft.Dafny {
               typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mul; break;
             case BinaryExpr.ResolvedOpcode.Div:
-              typ = Bpl.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Div; break;
+              if (isReal) {
+                typ = Bpl.Type.Real;
+                bOpcode = BinaryOperator.Opcode.RealDiv; break;
+              } else {
+                typ = Bpl.Type.Int;
+                bOpcode = BinaryOperator.Opcode.Div; break;
+              }
             case BinaryExpr.ResolvedOpcode.Mod:
               typ = Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mod; break;

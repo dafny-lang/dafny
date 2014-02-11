@@ -71,12 +71,31 @@ namespace Microsoft.Dafny {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, null, true);
     Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     public readonly ClassDecl ObjectDecl;
+    public readonly ClassDecl RealClass;
+    //public readonly Function RealToInt;
+    //public readonly Function IntToReal;
     public BuiltIns() {
       // create class 'object'
       ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
+      // add real number functions
+      Function RealToInt = new Function(Token.NoToken, "RealToInt", true, true, new List<TypeParameter>(), Token.NoToken,
+        new List<Formal> { new Formal(Token.NoToken, "x", Type.Real, true, true) }, Type.Int, new List<Expression>(),
+        new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
+        null, null, Token.NoToken);
+      Function IntToReal = new Function(Token.NoToken, "IntToReal", true, true, new List<TypeParameter>(), Token.NoToken,
+        new List<Formal> { new Formal(Token.NoToken, "x", Type.Int, true, true) }, Type.Real, new List<Expression>(),
+        new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
+        null, null, Token.NoToken);
+      RealClass = new ClassDecl(Token.NoToken, "Real", SystemModule, new List<TypeParameter>(),
+        new List<MemberDecl>() { RealToInt, IntToReal }, null);
+      RealToInt.EnclosingClass = RealClass;
+      IntToReal.EnclosingClass = RealClass;
+      RealToInt.IsBuiltin = true;
+      IntToReal.IsBuiltin = true;
+      SystemModule.TopLevelDecls.Add(RealClass);
     }
 
     public UserDefinedType ArrayType(int dims, Type arg) {
@@ -227,6 +246,7 @@ namespace Microsoft.Dafny {
   public abstract class Type {
     public static readonly BoolType Bool = new BoolType();
     public static readonly IntType Int = new IntType();
+    public static readonly RealType Real = new RealType();
     /// <summary>
     /// Used in error situations in order to reduce further error messages.
     /// </summary>
@@ -401,6 +421,16 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       return "nat";
+    }
+  }
+
+  public class RealType : BasicType {
+    [Pure]
+    public override string TypeName(ModuleDefinition context) {
+      return "real";
+    }
+    public override bool Equals(Type that) {
+      return that.Normalize() is RealType;
     }
   }
 
@@ -803,9 +833,9 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// This proxy stands for either:
-  ///     int or set or multiset or seq
+  ///     int or real or set or multiset or seq
   /// if AllowSeq, or:
-  ///     int or set or multiset
+  ///     int or real or set or multiset
   /// if !AllowSeq.
   /// </summary>
   public class OperationTypeProxy : RestrictedTypeProxy {
@@ -1973,6 +2003,7 @@ namespace Microsoft.Dafny {
     public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
+    public bool IsBuiltin;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
@@ -4246,6 +4277,14 @@ namespace Microsoft.Dafny {
       this.Value = n;
     }
 
+    public LiteralExpr(IToken tok, Basetypes.BigDec n)
+      : base(tok) {
+      Contract.Requires(0 <= n.Mantissa.Sign);
+      Contract.Requires(tok != null);
+
+      this.Value = n;
+    }
+
     public LiteralExpr(IToken tok, int n) :base(tok){
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
@@ -4259,7 +4298,7 @@ namespace Microsoft.Dafny {
       this.Value = b;
     }
   }
-
+  
   public class DatatypeValue : Expression {
     public readonly string DatatypeName;
     public readonly string MemberName;
