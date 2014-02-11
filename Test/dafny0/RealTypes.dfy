@@ -16,7 +16,7 @@ method R3() {
   ghost var x := 1.5;
   ghost var y := real(3);
   assert x == y / 2.0000000;  
-  assert x == y / 2.000000000000000000000000001;  // Should error
+  assert x == y / 2.000000000000000000000000001;  // error
 }
 
 // Check that real value in decreases clause doesn't scare Dafny
