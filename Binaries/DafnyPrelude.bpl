@@ -646,6 +646,9 @@ axiom (forall b: BoxType, h: HeapType, t: BoxType ::
 axiom (forall b: BoxType, h: HeapType ::
   { GenericAlloc(b, h), DtAlloc($Unbox(b): DatatypeType, h) }
   GenericAlloc(b, h) <==> DtAlloc($Unbox(b): DatatypeType, h));
+axiom (forall dt: DatatypeType, h: HeapType ::
+  { GenericAlloc($Box(dt), h) }
+  GenericAlloc($Box(dt), h) <==> DtAlloc(dt, h));
 // ==> GenericAlloc
 axiom (forall b: bool, h: HeapType ::
   $IsGoodHeap(h) ==> GenericAlloc($Box(b), h));

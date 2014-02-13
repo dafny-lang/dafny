@@ -1803,11 +1803,9 @@ namespace Microsoft.Dafny {
         } else {
           args.Add(formal);
         }
-        if (lits == null) {  // TODO(rustan): don't we need well-typedness conjuncts even when literal are involved?
-          // add well-typedness conjunct to antecedent
-          Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
-          if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
-        }
+        // add well-typedness conjunct to antecedent
+        Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran);
+        if (wh != null) { ante = Bpl.Expr.And(ante, wh); }
       }
 
       Bpl.Expr funcAppl;
