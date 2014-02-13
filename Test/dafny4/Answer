@@ -18,3 +18,10 @@ Dafny program verifier finished with 24 verified, 0 errors
 -------------------- KozenSilva.dfy --------------------
 
 Dafny program verifier finished with 47 verified, 0 errors
+
+-------------------- SoftwareFoundations-Basics.dfy --------------------
+SoftwareFoundations-Basics.dfy(38,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 80 verified, 1 error
