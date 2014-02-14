@@ -25,3 +25,7 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 80 verified, 1 error
+
+-------------------- NumberRepresentations.dfy --------------------
+
+Dafny program verifier finished with 33 verified, 0 errors
