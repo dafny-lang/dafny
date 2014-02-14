@@ -303,6 +303,7 @@ namespace DafnyLanguage
                 case "predicate":
                 case "print":
                 case "reads":
+                case "real":
                 case "refines":
                 case "requires":
                 case "return":

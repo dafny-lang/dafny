@@ -42,7 +42,7 @@
         "while" "print" "where"
         "old" "forall" "exists" "new" "calc" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
-   `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "object" "set" "seq")) . font-lock-type-face)
+   `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "real" "object" "set" "seq")) . font-lock-type-face)
    )
   "Minimal highlighting for Dafny mode")
 
