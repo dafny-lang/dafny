@@ -1648,7 +1648,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void AssertStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-		Expression e = null; Attributes attrs = null;
+		Expression e = dummyExpr; Attributes attrs = null;
 		IToken dotdotdot = null;
 		
 		Expect(83);
@@ -1673,7 +1673,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void AssumeStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-		Expression e = null; Attributes attrs = null;
+		Expression e = dummyExpr; Attributes attrs = null;
 		IToken dotdotdot = null;
 		
 		Expect(72);

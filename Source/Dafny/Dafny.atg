@@ -1370,7 +1370,7 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression e = null; Attributes attrs = null;
+     Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
   .)
   "assert"                                     (. x = t; .)
@@ -1388,7 +1388,7 @@ AssertStmt<out Statement/*!*/ s>
   .
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression e = null; Attributes attrs = null;
+     Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
   .)
   "assume"                                     (. x = t; .)
