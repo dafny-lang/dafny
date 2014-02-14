@@ -1566,6 +1566,20 @@ namespace Microsoft.Dafny {
         // printing of parentheses is done optimally, not according to the parentheses in the given program
         PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
 
+      } else if (expr is NegationExpression) {
+        var e = (NegationExpression)expr;
+        string op = "-";
+        int opBindingStrength = 0x60;
+        bool parensNeeded = opBindingStrength < contextBindingStrength ||
+          (fragileContext && opBindingStrength == contextBindingStrength);
+
+        bool containsNestedNegation = e.E is ParensExpression && ((ParensExpression)e.E).E is NegationExpression;
+
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write(op);
+        PrintExpr(e.E, opBindingStrength, containsNestedNegation, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1);
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
         string sep = "";

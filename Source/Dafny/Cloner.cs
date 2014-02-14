@@ -351,6 +351,10 @@ namespace Microsoft.Dafny
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
           e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
 
+      } else if (expr is NegationExpression) {
+        var e = (NegationExpression)expr;
+        return new NegationExpression(Tok(e.tok), CloneExpr(e.E));
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

@@ -1301,6 +1301,10 @@ namespace Microsoft.Dafny
         return new MatchExpr(e.tok, CloneExpr(e.Source),
           e.Cases.ConvertAll(c => new MatchCaseExpr(c.tok, c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
 
+      } else if (expr is NegationExpression) {
+        var e = (NegationExpression)expr;
+        return new NegationExpression(e.tok, CloneExpr(e.E));
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -5509,6 +5513,34 @@ namespace Microsoft.Dafny
       } else if (expr is IdentifierSequence) {
         var e = (IdentifierSequence)expr;
         ResolveIdentifierSequence(e, twoState, codeContext, false);
+
+      } else if (expr is NegationExpression) {
+        var e = (NegationExpression)expr;
+        var errorCount = ErrorCount;
+        ResolveExpression(e.E, twoState, codeContext);
+        e.Type = e.E.Type;
+        if (errorCount != ErrorCount) {
+          // there were errors resolving the operand; take the quick way out and
+          // just let the (already erronous) subexpression be what the negation expression
+          // will resolve to
+          e.ResolvedExpression = e.E;
+        } else {
+          Expression zero;
+          if (e.E.Type is RealType) {
+            // we know for sure that this is a real-unary-minus
+            zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+          } else {
+            // it's may be an integer operand or it may be that we don't know yet; we'll treat
+            // two cases the same way
+            zero = new LiteralExpr(e.tok, 0);
+          }
+          var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
+          // Resolve the subtraction expression.  This look like it will resolve e.E once more,
+          // but the recursive calls to the resolver is mindful about DAGs and will check if the
+          // subexpression has already been resolved.
+          ResolveExpression(subtract, twoState, codeContext);
+          e.ResolvedExpression = subtract;
+        }
 
       } else if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;

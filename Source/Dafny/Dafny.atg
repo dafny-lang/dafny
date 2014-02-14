@@ -1776,7 +1776,7 @@ MulOp<out IToken x, out BinaryExpr.Opcode op>
 UnaryExpression<out Expression e, bool allowSemi>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
   ( "-"                                        (. x = t; .)
-    UnaryExpression<out e, allowSemi>          (. e = new BinaryExpr(x, BinaryExpr.Opcode.Sub, new LiteralExpr(x, 0), e); .)
+    UnaryExpression<out e, allowSemi>          (. e = new NegationExpression(x, e); .)
   | NegOp                                      (. x = t; .)
     UnaryExpression<out e, allowSemi>          (. e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); .)
   | EndlessExpression<out e, allowSemi>   /* these have no further suffix */

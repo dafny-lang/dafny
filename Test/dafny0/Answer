@@ -161,7 +161,7 @@ RealTypes.dfy(19,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 4 verified, 4 errors
+Dafny program verifier finished with 6 verified, 4 errors
 
 -------------------- Definedness.dfy --------------------
 Definedness.dfy(8,7): Error: possible division by zero

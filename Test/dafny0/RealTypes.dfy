@@ -22,6 +22,12 @@ method R3() {
 // Check that real value in decreases clause doesn't scare Dafny
 function R4(x:int, r:real) : int
 {
-	if x < 0 then 5
-	else R4(x - 1, r)
+  if x < 0 then 5
+  else R4(x - 1, r)
+}
+
+method RoundingDirection()
+{
+  assert int(51.500277) == 51;
+  assert int(-0.194771) == -1;
 }

@@ -5642,6 +5642,21 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A NegationExpression e represents the value -e and is syntactic shorthand
+  /// for 0-e (for integers) or 0.0-e (for reals).
+  /// </summary>
+  public class NegationExpression : ConcreteSyntaxExpression
+  {
+    public readonly Expression E;
+    public NegationExpression(IToken tok, Expression e)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e != null);
+      E = e;
+    }
+  }
+
   public class ChainingExpression : ConcreteSyntaxExpression
   {
     public readonly List<Expression> Operands;

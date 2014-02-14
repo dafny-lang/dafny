@@ -2842,7 +2842,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			x = t; 
 			UnaryExpression(out e, allowSemi);
-			e = new BinaryExpr(x, BinaryExpr.Opcode.Sub, new LiteralExpr(x, 0), e); 
+			e = new NegationExpression(x, e); 
 			break;
 		}
 		case 106: case 111: {
