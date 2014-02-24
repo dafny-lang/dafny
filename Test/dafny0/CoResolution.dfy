@@ -169,3 +169,19 @@ module CallGraph {
     5
   }
 }
+
+module CrashRegression {
+  codatatype Stream<T> = Cons(T, Stream)
+
+  // The following functions (where A ends up being the representative in the
+  // SCC and B, which is also in the same SCC, has no body) once crashed the
+  // resolver.
+  function A(): Stream
+  {
+    B()
+  }
+  function B(): Stream
+    ensures A() == S();
+
+  function S(): Stream
+}

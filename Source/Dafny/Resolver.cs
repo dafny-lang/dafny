@@ -1483,8 +1483,8 @@ namespace Microsoft.Dafny
             var coCandidates = new List<CoCallResolution.CoCallInfo>();
             var hasIntraClusterCallsInDestructiveContexts = false;
             foreach (var m in module.CallGraph.GetSCC(fn)) {
-              if (m is Function) {
-                var f = (Function)m;
+              var f = m as Function;
+              if (f != null && f.Body != null) {
                 var checker = new CoCallResolution(f, dealsWithCodatatypes);
                 checker.CheckCoCalls(f.Body);
                 coCandidates.AddRange(checker.FinalCandidates);
@@ -7922,7 +7922,9 @@ namespace Microsoft.Dafny
           CheckCoCalls(arg, int.MaxValue, null, coCandidates);
         }
         // Second, investigate the possibility that this call itself may be a candidate co-call
-        if (currentModule.CallGraph.GetSCCRepresentative(currentFunction) == currentModule.CallGraph.GetSCCRepresentative(e.Function)) {
+        var calleeModule = e.Function.EnclosingClass.Module;
+        if (currentModule == calleeModule &&
+          currentModule.CallGraph.GetSCCRepresentative(currentFunction) == calleeModule.CallGraph.GetSCCRepresentative(e.Function)) {
           // This call goes to another function in the same recursive cluster
           if (destructionLevel > 0) {
             // a potentially destructive context
