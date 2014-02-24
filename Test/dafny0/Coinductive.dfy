@@ -129,6 +129,27 @@ module CoPredicateResolutionErrors {
     ensures Even(Doubles(n));
   {
   }
+
+  copredicate CoStmtExpr_Good(s: Stream<int>)
+  {
+    s.head > 0 && (MyLemma(s.head); CoStmtExpr_Good(s.tail))
+  }
+
+  lemma MyLemma(x: int)
+  {
+  }
+
+  copredicate CoStmtExpr_Bad(s: Stream<int>)
+  {
+    s.head > 0 &&
+    (MyRecursiveLemma(s.head);  // error: cannot call method recursively from copredicate
+     CoStmtExpr_Bad(s.tail))
+  }
+
+  lemma MyRecursiveLemma(x: int)
+  {
+    var p := CoStmtExpr_Bad(Upward(x));
+  }
 }
 
 // --------------------------------------------------

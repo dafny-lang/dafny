@@ -1350,7 +1350,8 @@ Coinductive.dfy(103,17): Error: a copredicate can be called recursively only in 
 Coinductive.dfy(113,24): Error: a copredicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
 Coinductive.dfy(119,15): Error: a copredicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
 Coinductive.dfy(120,10): Error: a copredicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-15 resolution/type errors detected in Coinductive.dfy
+Coinductive.dfy(145,5): Error: a recursive call from a copredicate can go only to other copredicates
+16 resolution/type errors detected in Coinductive.dfy
 
 -------------------- Corecursion.dfy --------------------
 Corecursion.dfy(15,13): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can be called co-recursively)
@@ -1395,11 +1396,15 @@ CoResolution.dfy(83,20): Error: a recursive call from a copredicate can go only 
 CoResolution.dfy(92,4): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
 CoResolution.dfy(106,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
 CoResolution.dfy(107,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(112,17): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(118,17): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(126,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
 CoResolution.dfy(127,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(132,17): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(138,17): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(146,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(148,4): Error: a recursive call from a copredicate can go only to other copredicates
-16 resolution/type errors detected in CoResolution.dfy
+20 resolution/type errors detected in CoResolution.dfy
 
 -------------------- CoPrefix.dfy --------------------
 CoPrefix.dfy(161,3): Error BP5003: A postcondition might not hold on this return path.

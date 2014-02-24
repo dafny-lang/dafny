@@ -109,13 +109,13 @@ module CallGraph {
 
   copredicate Q(n: nat)
   {
-    calc { 87; { CoLemma(n); } }
+    calc { 87; { CoLemma(n); } }  // error: this recursive call not allowed
     false
   }
 
   copredicate R(n: nat)
   {
-    calc { 87; { CoLemma#[n](n); } }
+    calc { 87; { CoLemma#[n](n); } }  // error: this recursive call not allowed
     false
   }
 
@@ -129,13 +129,13 @@ module CallGraph {
 
   copredicate Q_D(n: nat)
   {
-    calc { 88; { CoLemma_D(n); } }
+    calc { 88; { CoLemma_D(n); } }  // error: this recursive call not allowed
     false
   }
 
   copredicate R_D(n: nat)
   {
-    calc { 89; { CoLemma_D#[n](n); } }
+    calc { 89; { CoLemma_D#[n](n); } }  // error: this recursive call not allowed
     false
   }
 

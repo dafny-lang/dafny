@@ -2141,6 +2141,11 @@ namespace Microsoft.Dafny
           }
           Visit(e.LogicalBody(), cp);
           return false;
+        } else if (expr is StmtExpr) {
+          var e = (StmtExpr)expr;
+          Visit(e.E, cp);
+          Visit(e.S, CallingPosition.Neither);
+          return false;
         } else if (expr is ConcreteSyntaxExpression) {
           // do the sub-parts with the same "cp"
           return true;
@@ -2148,6 +2153,22 @@ namespace Microsoft.Dafny
         // do the sub-parts with cp := Neither
         cp = CallingPosition.Neither;
         return true;
+      }
+
+      protected override bool VisitOneStmt(Statement stmt, ref CallingPosition st) {
+        if (stmt is CallStmt) {
+          var s = (CallStmt)stmt;
+          var moduleCaller = context.EnclosingClass.Module;
+          var moduleCallee = s.Method.EnclosingClass.Module;
+          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+            // we're looking at a recursive call
+            Error(stmt.Tok, "a recursive call from a copredicate can go only to other copredicates");
+          }
+          // do the sub-parts with the same "cp"
+          return true;
+        } else {
+          return base.VisitOneStmt(stmt, ref st);
+        }
       }
     }
 
