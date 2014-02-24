@@ -1404,7 +1404,8 @@ CoResolution.dfy(132,17): Error: a recursive call from a copredicate can go only
 CoResolution.dfy(138,17): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(146,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(148,4): Error: a recursive call from a copredicate can go only to other copredicates
-20 resolution/type errors detected in CoResolution.dfy
+CoResolution.dfy(164,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+21 resolution/type errors detected in CoResolution.dfy
 
 -------------------- CoPrefix.dfy --------------------
 CoPrefix.dfy(161,3): Error BP5003: A postcondition might not hold on this return path.

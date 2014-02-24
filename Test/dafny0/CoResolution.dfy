@@ -158,4 +158,14 @@ module CallGraph {
     calc { true; { assert P#[n](n); } }
     101
   }
+
+  colemma J()
+  {
+    var f := JF();  // error: cannot call non-colemma recursively from colemma
+  }
+  function JF(): int
+  {
+    J();
+    5
+  }
 }
