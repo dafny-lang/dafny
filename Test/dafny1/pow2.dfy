@@ -31,20 +31,20 @@ function pow2_slow(n: int): int
     2*pow2_slow(n-1)
 }
 
-ghost method Lemma(n: int)
+lemma Lemma(n: int)
   requires 0 <= n && IsEven(n);
   ensures pow2_slow(n) == Square(pow2_slow(n/2));
 {
-  if (n != 0) {
+  if n != 0 {
     Lemma(n-2);
   }
 }
 
-ghost method Theorem(n: int)
+lemma Theorem(n: int)
   requires 0 <= n;
   ensures pow2(n) == pow2_slow(n);
 {
-  if (n == 0) {
+  if n == 0 {
   } else if (IsEven(n)) {
     Lemma(n);
     Theorem(n/2);

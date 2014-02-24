@@ -53,8 +53,8 @@ method test_next_weekday()
   // "function method" in the declaration of next_weekday.)  To try this
   // out on rise4fun.com/dafny:  (0) comment out (or fix!) the assert above
   // so that the program will verify, (1) fill in a body of the uninterpreted
-  // function f on line 412 below (any body will do; for example, uncomment
-  // line 416), and (2) change the name of this method to Main().
+  // function f on line 396 below (any body will do; for example, uncomment
+  // line 400), and (2) change the name of this method to Main().
   print next_weekday(wednesday);
 }
 
@@ -134,10 +134,7 @@ datatype Nat =
     O
   | S(Nat)
 
-// Note, in order to refer to the function pred as Playground1.pred outside the current
-// module, the function must be declared "static".  This will change in a near-future
-// release of Dafny.
-static function pred (n : Nat) : Nat
+function pred (n : Nat) : Nat
 {
   match n
   case O => O
