@@ -133,7 +133,7 @@ module CoPredicateResolutionErrors {
 
 // --------------------------------------------------
 
-module UnfruitfulCoMethodConclusions {
+module UnfruitfulCoLemmaConclusions {
   codatatype Stream<T> = Cons(head: T, tail: Stream);
 
   copredicate Positive(s: Stream<int>)
@@ -141,13 +141,13 @@ module UnfruitfulCoMethodConclusions {
     s.head > 0 && Positive(s.tail)
   }
 
-  comethod BadTheorem(s: Stream)
+  colemma BadTheorem(s: Stream)
     ensures false;
   {
     BadTheorem(s.tail);
   }
 
-  comethod CM(s: Stream<int>)
+  colemma CM(s: Stream<int>)
     ensures true && !false;
     ensures s.head == 8 ==> Positive(s);
     ensures s.tail == s;

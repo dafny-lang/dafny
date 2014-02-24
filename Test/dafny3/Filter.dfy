@@ -13,20 +13,20 @@ copredicate IsSubStream(s: Stream, u: Stream)
   In(s.head, u) && IsSubStream(s.tail, u)
 }
 
-ghost method Lemma_InTail<T>(x: T, s: Stream<T>)
+lemma Lemma_InTail<T>(x: T, s: Stream<T>)
   requires In(x, s.tail);
   ensures In(x, s);
 {
   var n :| 0 <= n && Tail(s.tail, n).head == x;
   assert Tail(s, n+1).head == x;
 }
-comethod Lemma_TailSubStream(s: Stream, u: Stream)
+colemma Lemma_TailSubStream(s: Stream, u: Stream)
   requires IsSubStream(s, u.tail);
   ensures IsSubStream(s, u);
 {
   Lemma_InTail(s.head, u);
 }
-ghost method Lemma_TailSubStreamK(s: Stream, u: Stream, k: nat)  // this lemma could have been used to prove the previous one
+lemma Lemma_TailSubStreamK(s: Stream, u: Stream, k: nat)  // this lemma could have been used to prove the previous one
   requires IsSubStream#[k](s, u.tail);
   ensures IsSubStream#[k](s, u);
 {
@@ -35,7 +35,7 @@ ghost method Lemma_TailSubStreamK(s: Stream, u: Stream, k: nat)  // this lemma c
     Lemma_TailSubStreamK(s.tail, u, k-1);
   }
 }
-ghost method Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
+lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
   requires In(x, s) && IsSubStream(s, u);
   ensures In(x, u);
 {
@@ -57,7 +57,7 @@ copredicate AllP(s: Stream, h: PredicateHandle)
 {
   P(s.head, h) && AllP(s.tail, h)
 }
-ghost method Lemma_InAllP<T>(x: T, s: Stream<T>, h: PredicateHandle)
+lemma Lemma_InAllP<T>(x: T, s: Stream<T>, h: PredicateHandle)
   requires In(x, s) && AllP(s, h);
   ensures P(x, h);
 {
@@ -80,7 +80,7 @@ copredicate AlwaysAnother(s: Stream, h: PredicateHandle)
 {
   IsAnother(s, h) && AlwaysAnother(s.tail, h)
 }
-comethod Lemma_AllImpliesAlwaysAnother(s: Stream, h: PredicateHandle)
+colemma Lemma_AllImpliesAlwaysAnother(s: Stream, h: PredicateHandle)
   requires AllP(s, h);
   ensures AlwaysAnother(s, h);
 {
@@ -118,7 +118,7 @@ function Filter(s: Stream, h: PredicateHandle): Stream
     Filter(s.tail, h)
 }
 // properties about Filter
-comethod Filter_AlwaysAnother(s: Stream, h: PredicateHandle)
+colemma Filter_AlwaysAnother(s: Stream, h: PredicateHandle)
   requires AlwaysAnother(s, h);
   ensures AllP(Filter(s, h), h);
   decreases Next(s, h);
@@ -129,7 +129,7 @@ comethod Filter_AlwaysAnother(s: Stream, h: PredicateHandle)
     Filter_AlwaysAnother#[_k](s.tail, h);
   }
 }
-comethod Filter_IsSubStream(s: Stream, h: PredicateHandle)
+colemma Filter_IsSubStream(s: Stream, h: PredicateHandle)
   requires AlwaysAnother(s, h);
   ensures IsSubStream(Filter(s, h), s);
   decreases Next(s, h);
@@ -160,7 +160,7 @@ comethod Filter_IsSubStream(s: Stream, h: PredicateHandle)
 }
 
 // The following says nothing about the order of the elements in the stream
-ghost method Theorem_Filter<T>(s: Stream<T>, h: PredicateHandle)
+lemma Theorem_Filter<T>(s: Stream<T>, h: PredicateHandle)
   requires AlwaysAnother(s, h);
   ensures forall x :: In(x, Filter(s, h)) <==> In(x, s) && P(x, h);
 {
@@ -177,7 +177,7 @@ ghost method Theorem_Filter<T>(s: Stream<T>, h: PredicateHandle)
   }
 }
 
-ghost method FS_Ping<T>(s: Stream<T>, h: PredicateHandle, x: T)
+lemma FS_Ping<T>(s: Stream<T>, h: PredicateHandle, x: T)
   requires AlwaysAnother(s, h) && In(x, Filter(s, h));
   ensures In(x, s) && P(x, h);
 {
@@ -189,7 +189,7 @@ ghost method FS_Ping<T>(s: Stream<T>, h: PredicateHandle, x: T)
   Lemma_InAllP(x, Filter(s, h), h);
 }
 
-ghost method FS_Pong<T>(s: Stream<T>, h: PredicateHandle, x: T, k: nat)
+lemma FS_Pong<T>(s: Stream<T>, h: PredicateHandle, x: T, k: nat)
   requires AlwaysAnother(s, h) && In(x, s) && P(x, h);
   requires Tail(s, k).head == x;
   ensures In(x, Filter(s, h));
@@ -226,19 +226,19 @@ copredicate IncrFrom(s: Stream, low: int, ord: PredicateHandle)
   low <= Ord(s.head, ord) && IncrFrom(s.tail, Ord(s.head, ord) + 1, ord)
 }
 
-comethod Lemma_Incr0(s: Stream, low: int, ord: PredicateHandle)
+colemma Lemma_Incr0(s: Stream, low: int, ord: PredicateHandle)
   requires IncrFrom(s, low, ord);
   ensures Increasing(s, ord);
 {
 }
-comethod Lemma_Incr1(s: Stream, ord: PredicateHandle)
+colemma Lemma_Incr1(s: Stream, ord: PredicateHandle)
   requires Increasing(s, ord);
   ensures IncrFrom(s, Ord(s.head, ord), ord);
 {
   Lemma_Incr1(s.tail, ord);
 }
 
-ghost method Theorem_FilterPreservesOrdering(s: Stream, h: PredicateHandle, ord: PredicateHandle)
+lemma Theorem_FilterPreservesOrdering(s: Stream, h: PredicateHandle, ord: PredicateHandle)
   requires Increasing(s, ord) && AlwaysAnother(s, h);
   ensures Increasing(Filter(s, h), ord);
 {
@@ -246,7 +246,7 @@ ghost method Theorem_FilterPreservesOrdering(s: Stream, h: PredicateHandle, ord:
   Lemma_FilterPreservesIncrFrom(s, h, Ord(s.head, ord), ord);
   Lemma_Incr0(Filter(s, h), Ord(s.head, ord), ord);
 }
-comethod Lemma_FilterPreservesIncrFrom(s: Stream, h: PredicateHandle, low: int, ord: PredicateHandle)
+colemma Lemma_FilterPreservesIncrFrom(s: Stream, h: PredicateHandle, low: int, ord: PredicateHandle)
   requires IncrFrom(s, low, ord) && AlwaysAnother(s, h) && low <= Ord(s.head, ord);
   ensures IncrFrom(Filter(s, h), low, ord);
   decreases Next(s, h);

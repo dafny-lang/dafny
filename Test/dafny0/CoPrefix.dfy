@@ -26,7 +26,7 @@ copredicate atmost(a: Stream, b: Stream)
   case Cons(h,t) => b.Cons? && h <= b.head && atmost(t, b.tail)
 }
 
-comethod {:induction false} Theorem0()
+colemma {:induction false} Theorem0()
   ensures atmost(zeros(), ones());
 {
   // the following shows two equivalent ways to getting essentially the
@@ -48,7 +48,7 @@ ghost method Theorem0_Manual()
 
 datatype Natural = Zero | Succ(Natural);
 
-comethod {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Natural)
+colemma {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Natural)
   ensures atmost(zeros(), ones());
   decreases y;
 {
@@ -62,7 +62,7 @@ comethod {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Nat
   Theorem0_TerminationFailure_ExplicitDecreases#[_k-1](y);
 }
 
-comethod {:induction false} Theorem0_TerminationFailure_DefaultDecreases(y: Natural)
+colemma {:induction false} Theorem0_TerminationFailure_DefaultDecreases(y: Natural)
   ensures atmost(zeros(), ones());
 {
   match (y) {
@@ -80,7 +80,7 @@ ghost method {:induction true} Theorem0_Lemma(k: nat)
 {
 }
 
-comethod {:induction false} Theorem1()
+colemma {:induction false} Theorem1()
   ensures append(zeros(), ones()) == zeros();
 {
   Theorem1();
@@ -98,14 +98,14 @@ copredicate Pos(s: IList)
   s.head > 0 && Pos(s.tail)
 }
 
-comethod {:induction false} Theorem2(n: int)
+colemma {:induction false} Theorem2(n: int)
   requires 1 <= n;
   ensures Pos(UpIList(n));
 {
   Theorem2(n+1);
 }
 
-comethod {:induction false} Theorem2_NotAProof(n: int)
+colemma {:induction false} Theorem2_NotAProof(n: int)
   requires 1 <= n;
   ensures Pos(UpIList(n));
 {  // error: this is not a proof (without automatic induction)
@@ -125,7 +125,7 @@ function GG<T>(h: T): TList<T>
   TCons(h, GG(Next(h)))
 }
 
-comethod {:induction false} Compare<T>(h: T)
+colemma {:induction false} Compare<T>(h: T)
   ensures FF(h) == GG(h);
 {
   assert FF(h).head == GG(h).head;
@@ -143,7 +143,7 @@ comethod {:induction false} Compare<T>(h: T)
   }
 }
 
-comethod {:induction false} BadTheorem(s: IList)
+colemma {:induction false} BadTheorem(s: IList)
   ensures false;
 {  // error: postcondition violation
   BadTheorem(s.tail);
@@ -153,36 +153,36 @@ comethod {:induction false} BadTheorem(s: IList)
 
 // Make sure recursive calls get checked for termination
 module Recursion {
-  comethod X() { Y(); }
-  comethod Y() { X(); }
+  colemma X() { Y(); }
+  colemma Y() { X(); }
 
-  comethod G(x: int)
+  colemma G(x: int)
     ensures x < 100;
   {  // error: postcondition violation (when _k == 0)
     H(x);
   }
-  comethod H(x: int)
+  colemma H(x: int)
     ensures x < 100;
   {  // error: postcondition violation (when _k == 0)
     G(x);
   }
   
-  comethod A(x: int) { B(x); }
-  comethod B(x: int)
+  colemma A(x: int) { B(x); }
+  colemma B(x: int)
   {
     A#[10](x);  // error: this is a recursive call, and the termination metric may not be going down
   }
   
-  comethod A'(x: int) { B'(x); }
-  comethod B'(x: int)
+  colemma A'(x: int) { B'(x); }
+  colemma B'(x: int)
   {
     if (10 < _k) {
       A'#[10](x);
     }
   }
   
-  comethod A''(x: int) { B''(x); }
-  comethod B''(x: int)
+  colemma A''(x: int) { B''(x); }
+  colemma B''(x: int)
   {
     if (0 < x) {
       A''#[_k](x-1);

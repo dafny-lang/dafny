@@ -36,12 +36,12 @@ function SmallTrees(n: nat): Stream<Tree>
   if n == 0 then SNil else SCons(SmallTree(n-1), SmallTrees(n))
 }
 // prove that the tree returned by SmallTree is finite
-ghost method Theorem(n: nat)
+lemma Theorem(n: nat)
   ensures HasBoundedHeight(SmallTree(n));
 {
   Lemma(n);
 }
-comethod Lemma(n: nat)
+colemma Lemma(n: nat)
   ensures LowerThan(SmallTrees(n), n);
 {
   if 0 < n {

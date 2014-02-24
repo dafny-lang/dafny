@@ -860,7 +860,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		BlockStmt body = null;
 		bool isLemma = false;
 		bool isConstructor = false;
-		bool isCoMethod = false;
+		bool isCoLemma = false;
 		IToken signatureEllipsis = null;
 		IToken bodyStart = Token.NoToken;
 		IToken bodyEnd = Token.NoToken;
@@ -873,10 +873,12 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			isLemma = true; 
 		} else if (la.kind == 42) {
 			Get();
-			isCoMethod = true; 
+			isCoLemma = true; 
 		} else if (la.kind == 43) {
 			Get();
-			isCoMethod = true; 
+			isCoLemma = true;
+			errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
+			
 		} else if (la.kind == 44) {
 			Get();
 			if (allowConstructor) {
@@ -898,9 +900,9 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		 if (mmod.IsStatic) {
 		   SemErr(t, "constructors cannot be declared 'static'");
 		 }
-		} else if (isCoMethod) {
+		} else if (isCoLemma) {
 		 if (mmod.IsGhost) {
-		   SemErr(t, "comethods cannot be declared 'ghost' (they are automatically 'ghost')");
+		   SemErr(t, "colemmas cannot be declared 'ghost' (they are automatically 'ghost')");
 		 }
 		}
 		
@@ -959,9 +961,9 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		if (isConstructor) {
 		 m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
 		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
-		} else if (isCoMethod) {
-		 m = new CoMethod(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
-		                req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+		} else if (isCoLemma) {
+		 m = new CoLemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
+		                 req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else if (isLemma) {
 		 m = new Lemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
 		               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -3687,8 +3689,8 @@ public class Errors {
 			case 39: s = "\">\" expected"; break;
 			case 40: s = "\"method\" expected"; break;
 			case 41: s = "\"lemma\" expected"; break;
-			case 42: s = "\"comethod\" expected"; break;
-			case 43: s = "\"colemma\" expected"; break;
+			case 42: s = "\"colemma\" expected"; break;
+			case 43: s = "\"comethod\" expected"; break;
 			case 44: s = "\"constructor\" expected"; break;
 			case 45: s = "\"modifies\" expected"; break;
 			case 46: s = "\"free\" expected"; break;

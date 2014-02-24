@@ -18,7 +18,7 @@ function Inc(s: Stream<int>): Stream<int>
   Cons(s.head + 1, Inc(s.tail))
 }
 
-ghost method {:induction false} UpLemma(k: nat, n: int)
+lemma {:induction false} UpLemma(k: nat, n: int)
   ensures Inc(Up(n)) ==#[k] Up(n+1);
 {
   if (k != 0) {
@@ -26,18 +26,18 @@ ghost method {:induction false} UpLemma(k: nat, n: int)
   }
 }
 
-comethod {:induction false} CoUpLemma(n: int)
+colemma {:induction false} CoUpLemma(n: int)
   ensures Inc(Up(n)) == Up(n+1);
 {
   CoUpLemma(n+1);
 }
 
-ghost method UpLemma_Auto(k: nat, n: int)
+lemma UpLemma_Auto(k: nat, n: int)
   ensures Inc(Up(n)) ==#[k] Up(n+1);
 {
 }
 
-comethod CoUpLemma_Auto(n: int)
+colemma CoUpLemma_Auto(n: int)
   ensures Inc(Up(n)) == Up(n+1);
 {
 }
@@ -49,7 +49,7 @@ function Repeat(n: int): Stream<int>
   Cons(n, Repeat(n))
 }
 
-comethod RepeatLemma(n: int)
+colemma RepeatLemma(n: int)
   ensures Inc(Repeat(n)) == Repeat(n+1);
 {
 }
@@ -61,7 +61,7 @@ copredicate True(s: Stream)
   True(s.tail)
 }
 
-comethod AlwaysTrue(s: Stream)
+colemma AlwaysTrue(s: Stream)
   ensures True(s);
 {
 }
@@ -71,7 +71,7 @@ copredicate AlsoTrue(s: Stream)
   AlsoTrue(s)
 }
 
-comethod AlsoAlwaysTrue(s: Stream)
+colemma AlsoAlwaysTrue(s: Stream)
   ensures AlsoTrue(s);
 {
 }
@@ -81,7 +81,7 @@ copredicate TT(y: int)
   TT(y+1)
 }
 
-comethod AlwaysTT(y: int)
+colemma AlwaysTT(y: int)
   ensures TT(y);
 {
 }
@@ -112,12 +112,12 @@ copredicate AtMost(a: IList<int>, b: IList<int>)
   case ICons(h,t) => b.ICons? && h <= b.head && AtMost(t, b.tail)
 }
 
-comethod ZerosAndOnes_Theorem0()
+colemma ZerosAndOnes_Theorem0()
   ensures AtMost(zeros(), ones());
 {
 }
 
-comethod ZerosAndOnes_Theorem1()
+colemma ZerosAndOnes_Theorem1()
   ensures Append(zeros(), ones()) == zeros();
 {
 }

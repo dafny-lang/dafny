@@ -511,8 +511,8 @@ public class Scanner {
 			case "returns": t.kind = 36; break;
 			case "method": t.kind = 40; break;
 			case "lemma": t.kind = 41; break;
-			case "comethod": t.kind = 42; break;
-			case "colemma": t.kind = 43; break;
+			case "colemma": t.kind = 42; break;
+			case "comethod": t.kind = 43; break;
 			case "constructor": t.kind = 44; break;
 			case "modifies": t.kind = 45; break;
 			case "free": t.kind = 46; break;

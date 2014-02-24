@@ -17,7 +17,7 @@ namespace Demo
         StringLiteral stringLiteral = TerminalFactory.CreateCSharpString("String");
 
         this.MarkReservedWords(  // NOTE: these keywords must also appear once more below
-          "class", "ghost", "static", "var", "method", "constructor", "comethod", "datatype", "codatatype",
+          "class", "ghost", "static", "var", "method", "constructor", "colemma", "datatype", "codatatype",
           "iterator", "type",
           "assert", "assume", "new", "this", "object", "refines",
           "abstract", "module", "import", "as", "default", "opened",
@@ -267,7 +267,7 @@ namespace Demo
           | "var"
           | "method"
           | "constructor"
-          | "comethod"
+          | "colemma"
           | "datatype"
           | "codatatype"
           | "type"

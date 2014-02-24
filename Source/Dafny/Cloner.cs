@@ -567,8 +567,8 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else if (m is CoMethod) {
-        return new CoMethod(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+      } else if (m is CoLemma) {
+        return new CoLemma(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -584,8 +584,8 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// Subclass of Cloner that collects some common functionality between CoMethodPostconditionSubstituter and
-  /// CoMethodBodyCloner.
+  /// Subclass of Cloner that collects some common functionality between CoLemmaPostconditionSubstituter and
+  /// CoLemmaBodyCloner.
   /// </summary>
   abstract class CoCloner : Cloner
   {
@@ -609,16 +609,16 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The CoMethodPostconditionSubstituter clones the postcondition declared on a comethod, but replaces
+  /// The CoLemmaPostconditionSubstituter clones the postcondition declared on a colemma, but replaces
   /// the calls and equalities in "coConclusions" with corresponding prefix versions.  The resulting
-  /// expression is then appropriate to be a postcondition of the comethod's corresponding prefix method.
+  /// expression is then appropriate to be a postcondition of the colemma's corresponding prefix lemma.
   /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
   /// is not cloned with each use; it is simply used as is.
   /// </summary>
-  class CoMethodPostconditionSubstituter : CoCloner
+  class CoLemmaPostconditionSubstituter : CoCloner
   {
     readonly ISet<Expression> coConclusions;
-    public CoMethodPostconditionSubstituter(ISet<Expression> coConclusions, Expression k, Resolver resolver)
+    public CoLemmaPostconditionSubstituter(ISet<Expression> coConclusions, Expression k, Resolver resolver)
       : base(k, resolver)
     {
       Contract.Requires(coConclusions != null);
@@ -660,13 +660,13 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The task of the CoMethodBodyCloner is to fill in the implicit _k-1 arguments in corecursive comethod calls.
+  /// The task of the CoLemmaBodyCloner is to fill in the implicit _k-1 arguments in corecursive colemma calls.
   /// The source statement and the given "k" are assumed to have been resolved, and the resulting statement will also be resolved.
   /// </summary>
-  class CoMethodBodyCloner : CoCloner
+  class CoLemmaBodyCloner : CoCloner
   {
-    readonly CoMethod context;
-    public CoMethodBodyCloner(CoMethod context, Expression k, Resolver resolver)
+    readonly CoLemma context;
+    public CoLemmaBodyCloner(CoLemma context, Expression k, Resolver resolver)
       : base(k, resolver)
     {
       Contract.Requires(context != null);
@@ -681,8 +681,8 @@ namespace Microsoft.Dafny
           var call = (CallStmt)s.ResolvedStatements[0];
           var moduleCaller = context.EnclosingClass.Module;
           var moduleCallee = call.Method.EnclosingClass.Module;
-          if (call.Method is CoMethod && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(call.Method)) {
-            // we're looking at a recursive call to a comethod
+          if (call.Method is CoLemma && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(call.Method)) {
+            // we're looking at a recursive call to a colemma
             var args = new List<Expression>();
             args.Add(k);
             foreach (var arg in call.Args) {
@@ -699,11 +699,11 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        if (s.Method is CoMethod) {
+        if (s.Method is CoLemma) {
           var moduleCaller = context.EnclosingClass.Module;
           var moduleCallee = s.Method.EnclosingClass.Module;
-          if (s.Method is CoMethod && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
-            // we're looking at a recursive call to a comethod
+          if (s.Method is CoLemma && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+            // we're looking at a recursive call to a colemma
             var args = new List<Expression>();
             args.Add(k);
             foreach (var arg in s.Args) {

@@ -62,7 +62,7 @@ function SAppend(xs: Stream, ys: Stream): Stream
   we also get ==#[k].
 */
 
-ghost method {:induction false} SAppendIsAssociativeK(k:nat, a:Stream, b:Stream, c:Stream)
+lemma {:induction false} SAppendIsAssociativeK(k:nat, a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c));
   decreases k;
 {
@@ -72,7 +72,7 @@ ghost method {:induction false} SAppendIsAssociativeK(k:nat, a:Stream, b:Stream,
   }
 }
 
-ghost method SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
+lemma SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
   forall k:nat { SAppendIsAssociativeK(k, a, b, c); }
@@ -80,8 +80,8 @@ ghost method SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
   assert (forall k:nat :: SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c)));
 }
 
-// Equivalent proof using the comethod syntax.
-comethod {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:Stream)
+// Equivalent proof using the colemma syntax.
+colemma {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
   match (a) {
@@ -91,26 +91,26 @@ comethod {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:Stream)
 }
 
 // In fact the proof can be fully automatic.
-comethod SAppendIsAssociative_Auto(a:Stream, b:Stream, c:Stream)
+colemma SAppendIsAssociative_Auto(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
 }
 
-comethod {:induction false} UpPos(n:int)
+colemma {:induction false} UpPos(n:int)
   requires n > 0;
   ensures Pos(Up(n));
 {
   UpPos(n+1);
 }
 
-comethod UpPos_Auto(n:int)
+colemma UpPos_Auto(n:int)
   requires n > 0;
   ensures Pos(Up(n));
 {
 }
 
 // This does induction and coinduction in the same proof.
-comethod {:induction false} FivesUpPos(n:int)
+colemma {:induction false} FivesUpPos(n:int)
   requires n > 0;
   ensures Pos(FivesUp(n));
   decreases 4 - (n-1) % 5;
@@ -124,7 +124,7 @@ comethod {:induction false} FivesUpPos(n:int)
 
 // Again, Dafny can just employ induction tactic and do it automatically.
 // The only hint required is the decrease clause.
-comethod FivesUpPos_Auto(n:int)
+colemma FivesUpPos_Auto(n:int)
   requires n > 0;
   ensures Pos(FivesUp(n));
   decreases 4 - (n-1) % 5;

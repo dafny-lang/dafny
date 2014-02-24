@@ -6,7 +6,7 @@
 syntax clear
 syntax case match
 syntax keyword dafnyFunction function predicate copredicate
-syntax keyword method lemma constructor comethod colemma
+syntax keyword method lemma constructor colemma
 syntax keyword dafnyTypeDef class datatype codatatype type iterator
 syntax keyword abstract module import opened as default
 syntax keyword dafnyConditional if then else match case 

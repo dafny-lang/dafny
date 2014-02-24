@@ -171,11 +171,11 @@ namespace DafnyLanguage
               } else if (m is Dafny.Method && ((Dafny.Method)m).Body != null) {
                 var nm =
                   m is Dafny.Constructor ? "constructor" :
-                  m is Dafny.CoMethod ? "comethod" :
+                  m is Dafny.CoLemma ? "colemma" :
                   m is Dafny.Lemma ? "lemma" :
-                  // m is Dafny.PrefixMethod ? "prefix method" :  // this won't ever occur here
+                  // m is Dafny.PrefixLemma ? "prefix lemma" :  // this won't ever occur here
                   "method";
-                if (m.IsGhost && !(m is Dafny.CoMethod)) {
+                if (m.IsGhost && !(m is Dafny.CoLemma)) {
                   nm = "ghost " + nm;
                 }
                 newRegions.Add(new OutliningRegion(m, nm));

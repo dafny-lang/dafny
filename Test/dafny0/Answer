@@ -60,7 +60,7 @@ lemma M(x: int)
 {
 }
 
-comethod M'(x': int)
+colemma M'(x': int)
   ensures true;
 {
 }
@@ -1392,11 +1392,11 @@ CoResolution.dfy(64,10): Error: a copredicate is not allowed to declare any read
 CoResolution.dfy(70,31): Error: a copredicate is not allowed to declare any ensures clause
 CoResolution.dfy(79,20): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(83,20): Error: a recursive call from a copredicate can go only to other copredicates
-CoResolution.dfy(92,4): Error: a recursive call from a comethod can go only to other comethods and prefix methods
-CoResolution.dfy(106,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
-CoResolution.dfy(107,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
-CoResolution.dfy(126,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
-CoResolution.dfy(127,13): Error: a recursive call from a comethod can go only to other comethods and prefix methods
+CoResolution.dfy(92,4): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(106,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(107,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(126,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(127,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
 CoResolution.dfy(146,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(148,4): Error: a recursive call from a copredicate can go only to other copredicates
 16 resolution/type errors detected in CoResolution.dfy

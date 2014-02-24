@@ -18,7 +18,7 @@ module TestModule {
     S#[_k](d)  // error: _k is not an identifier in scope
   }
 
-  comethod CM(d: set<int>)
+  colemma CM(d: set<int>)
   {
     var b;
     b := this.S#[5](d);
@@ -82,26 +82,26 @@ module Mojul1 {
   copredicate X() { Y() }
   copredicate Y() { X#[10]() }  // error: X is not allowed to depend on X#
 
-  comethod M()
+  colemma M()
   {
     N();
   }
-  comethod N()
+  colemma N()
   {
     Z();
-    W();  // error: not allowed to make co-recursive call to non-comethod
+    W();  // error: not allowed to make co-recursive call to non-colemma
   }
   ghost method Z() { }
   ghost method W() { M(); }
 
-  comethod G() { H(); }
-  comethod H() { G#[10](); }  // fine for comethod/prefix-method
+  colemma G() { H(); }
+  colemma H() { G#[10](); }  // fine for colemma/prefix-lemma
 }
 
 module CallGraph {
-  // comethod -> copredicate -> comethod
-  // comethod -> copredicate -> prefix method
-  comethod CoLemma(n: nat)
+  // colemma -> copredicate -> colemma
+  // colemma -> copredicate -> prefix lemma
+  colemma CoLemma(n: nat)
   {
     var q := Q(n);  // error
     var r := R(n);  // error
@@ -119,9 +119,9 @@ module CallGraph {
     false
   }
 
-  // comethod -> prefix predicate -> comethod
-  // comethod -> prefix predicate -> prefix method
-  comethod CoLemma_D(n: nat)
+  // colemma -> prefix predicate -> colemma
+  // colemma -> prefix predicate -> prefix lemma
+  colemma CoLemma_D(n: nat)
   {
     var q := Q_D#[n](n);  // error
     var r := R_D#[n](n);  // error

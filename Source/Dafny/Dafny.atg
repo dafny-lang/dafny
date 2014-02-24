@@ -559,7 +559,7 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      BlockStmt body = null;
      bool isLemma = false;
      bool isConstructor = false;
-     bool isCoMethod = false;
+     bool isCoLemma = false;
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
@@ -567,8 +567,10 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
   SYNC
   ( "method"
   | "lemma"                         (. isLemma = true; .)
-  | "comethod"                      (. isCoMethod = true; .)
-  | "colemma"                       (. isCoMethod = true; .)
+  | "colemma"                       (. isCoLemma = true; .)
+  | "comethod"                      (. isCoLemma = true;
+                                       errors.Warning(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
+                                    .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -587,9 +589,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
        if (mmod.IsStatic) {
          SemErr(t, "constructors cannot be declared 'static'");
        }
-     } else if (isCoMethod) {
+     } else if (isCoLemma) {
        if (mmod.IsGhost) {
-         SemErr(t, "comethods cannot be declared 'ghost' (they are automatically 'ghost')");
+         SemErr(t, "colemmas cannot be declared 'ghost' (they are automatically 'ghost')");
        }
      }
   .)
@@ -636,9 +638,9 @@ MethodDecl<MemberModifiers mmod, bool allowConstructor, out Method/*!*/ m>
      if (isConstructor) {
        m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
-     } else if (isCoMethod) {
-       m = new CoMethod(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+     } else if (isCoLemma) {
+       m = new CoLemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
+                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
        m = new Lemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);

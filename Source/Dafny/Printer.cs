@@ -267,10 +267,10 @@ namespace Microsoft.Dafny {
         if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent, false);
-          var com = m as CoMethod;
-          if (com != null && com.PrefixMethod != null) {
+          var com = m as CoLemma;
+          if (com != null && com.PrefixLemma != null) {
             Indent(indent); wr.WriteLine("/***");
-            PrintMethod(com.PrefixMethod, indent, false);
+            PrintMethod(com.PrefixLemma, indent, false);
             Indent(indent); wr.WriteLine("***/");
           }
           state = 2;
@@ -441,9 +441,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(method != null);
 
       Indent(indent);
-      string k = method is Constructor ? "constructor" : method is CoMethod ? "comethod" : method is Lemma ? "lemma" : "method";
+      string k = method is Constructor ? "constructor" : method is CoLemma ? "colemma" : method is Lemma ? "lemma" : "method";
       if (method.IsStatic) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is CoMethod)) { k = "ghost " + k; }
+      if (method.IsGhost && !(method is Lemma) && !(method is CoLemma)) { k = "ghost " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {

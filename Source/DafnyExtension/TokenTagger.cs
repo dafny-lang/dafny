@@ -264,7 +264,7 @@ namespace DafnyLanguage
                 case "class":
                 case "codatatype":
                 case "colemma":
-                case "comethod":
+                case "colemma":
                 case "constructor":
                 case "copredicate":
                 case "datatype":

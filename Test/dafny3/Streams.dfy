@@ -40,7 +40,7 @@ function map_fg(M: Stream<X>): Stream<X>
 // ----- Theorems
 
 // map (f * g) M = map f (map g M)
-comethod Theorem0(M: Stream<X>)
+colemma Theorem0(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
   match (M) {
@@ -49,21 +49,21 @@ comethod Theorem0(M: Stream<X>)
       Theorem0(N);
   }
 }
-comethod Theorem0_Alt(M: Stream<X>)
+colemma Theorem0_Alt(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
   if (M.Cons?) {
     Theorem0_Alt(M.tail);
   }
 }
-ghost method Theorem0_Par(M: Stream<X>)
+lemma Theorem0_Par(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
   forall k: nat {
     Theorem0_Ind(k, M);
   }
 }
-ghost method Theorem0_Ind(k: nat, M: Stream<X>)
+lemma Theorem0_Ind(k: nat, M: Stream<X>)
   ensures map_fg(M) ==#[k] map_f(map_g(M));
 {
   if (k != 0) {
@@ -74,13 +74,13 @@ ghost method Theorem0_Ind(k: nat, M: Stream<X>)
     }
   }
 }
-ghost method Theorem0_AutoInd(k: nat, M: Stream<X>)
+lemma Theorem0_AutoInd(k: nat, M: Stream<X>)
   ensures map_fg(M) ==#[k] map_f(map_g(M));
 // {  // TODO: this is not working yet, apparently
 // }
 
 // map f (append M N) = append (map f M) (map f N)
-comethod Theorem1(M: Stream<X>, N: Stream<X>)
+colemma Theorem1(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
   match (M) {
@@ -89,21 +89,21 @@ comethod Theorem1(M: Stream<X>, N: Stream<X>)
       Theorem1(M', N);
   }
 }
-comethod Theorem1_Alt(M: Stream<X>, N: Stream<X>)
+colemma Theorem1_Alt(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
   if (M.Cons?) {
     Theorem1_Alt(M.tail, N);
   }
 }
-ghost method Theorem1_Par(M: Stream<X>, N: Stream<X>)
+lemma Theorem1_Par(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
   forall k: nat {
     Theorem1_Ind(k, M, N);
   }
 }
-ghost method Theorem1_Ind(k: nat, M: Stream<X>, N: Stream<X>)
+lemma Theorem1_Ind(k: nat, M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));
 {
   // this time, try doing the 'if' inside the 'match' (instead of the other way around)
@@ -115,24 +115,24 @@ ghost method Theorem1_Ind(k: nat, M: Stream<X>, N: Stream<X>)
       }
   }
 }
-ghost method Theorem1_AutoInd(k: nat, M: Stream<X>, N: Stream<X>)
+lemma Theorem1_AutoInd(k: nat, M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));
 // {  // TODO: this is not working yet, apparently
 // }
-ghost method Theorem1_AutoForall()
+lemma Theorem1_AutoForall()
 {
 //  assert forall k: nat, M, N :: map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));  // TODO: this is not working yet, apparently
 }
 
 // append NIL M = M
-ghost method Theorem2(M: Stream<X>)
+lemma Theorem2(M: Stream<X>)
   ensures append(Nil, M) == M;
 {
   // trivial
 }
 
 // append M NIL = M
-comethod Theorem3(M: Stream<X>)
+colemma Theorem3(M: Stream<X>)
   ensures append(M, Nil) == M;
 {
   match (M) {
@@ -141,7 +141,7 @@ comethod Theorem3(M: Stream<X>)
       Theorem3(N);
   }
 }
-comethod Theorem3_Alt(M: Stream<X>)
+colemma Theorem3_Alt(M: Stream<X>)
   ensures append(M, Nil) == M;
 {
   if (M.Cons?) {
@@ -150,7 +150,7 @@ comethod Theorem3_Alt(M: Stream<X>)
 }
 
 // append M (append N P) = append (append M N) P
-comethod Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
+colemma Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
   ensures append(M, append(N, P)) == append(append(M, N), P);
 {
   match (M) {
@@ -159,7 +159,7 @@ comethod Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
       Theorem4(M', N, P);
   }
 }
-comethod Theorem4_Alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
+colemma Theorem4_Alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
   ensures append(M, append(N, P)) == append(append(M, N), P);
 {
   if (M.Cons?) {
@@ -241,7 +241,7 @@ function Prepend<T>(x: T, M: Stream<Stream>): Stream<Stream>
   case Cons(s, N) => Cons(Cons(x, s), Prepend(x, N))
 }
 
-comethod Prepend_Lemma<T>(x: T, M: Stream<Stream>)
+colemma Prepend_Lemma<T>(x: T, M: Stream<Stream>)
   ensures StreamOfNonEmpties(Prepend(x, M));
 {
   match M {
@@ -250,7 +250,7 @@ comethod Prepend_Lemma<T>(x: T, M: Stream<Stream>)
   }
 }
 
-ghost method Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
+lemma Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
   ensures
     StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
                                           // but until (co-)method can be called from functions,
@@ -261,7 +261,7 @@ ghost method Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
   Lemma_Flatten(Nil, M, startMarker);
 }
 
-comethod Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
+colemma Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
   ensures
     StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
                                           // but until (co-)method can be called from functions,
@@ -325,7 +325,7 @@ comethod Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
   }
 }
 
-comethod Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
+colemma Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
   ensures PrependThenFlattenStartMarker(s, M, startMarker) == append(s, PrependThenFlattenStartMarker(Nil, M, startMarker));
 {
   match (s) {
@@ -335,7 +335,7 @@ comethod Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
   }
 }
 
-comethod Lemma_FlattenAppend1<T>(s: Stream, M: Stream<Stream>)
+colemma Lemma_FlattenAppend1<T>(s: Stream, M: Stream<Stream>)
   requires StreamOfNonEmpties(M);
   ensures PrependThenFlattenNonEmpties(s, M) == append(s, PrependThenFlattenNonEmpties(Nil, M));
 {

@@ -1124,8 +1124,8 @@ namespace Microsoft.Dafny {
     /// declarations.
     /// Note, an iterator declaration is a class, in this sense.
     /// Note, if the given list are the top-level declarations of a module, the yield will include
-    /// co-methods but not their associated prefix methods (which are tucked into the co-method's
-    /// .PrefixMethod field).
+    /// colemmas but not their associated prefix lemmas (which are tucked into the colemma's
+    /// .PrefixLemma field).
     /// </summary>
     public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
@@ -1171,12 +1171,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-      public static IEnumerable<CoMethod> AllCoMethods(List<TopLevelDecl> declarations) {
+      public static IEnumerable<CoLemma> AllCoLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;
         if (cl != null) {
           foreach (var member in cl.Members) {
-            var m = member as CoMethod;
+            var m = member as CoLemma;
             if (m != null) {
               yield return m;
             }
@@ -1950,7 +1950,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ImplicitFormal is a parameter that is declared implicitly, in particular the "_k" depth parameter
-  /// of each comethod (for use in the comethod body only, not the specification).
+  /// of each colemma (for use in the comethod body only, not the specification).
   /// </summary>
   public class ImplicitFormal : Formal
   {
@@ -2257,16 +2257,16 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every copredicate P.
+  /// A PrefixLemma is the inductive unrolling M# implicitly declared for every colemma M.
   /// </summary>
-  public class PrefixMethod : Method
+  public class PrefixLemma : Method
   {
     public readonly Formal K;
-    public readonly CoMethod Co;
-    public PrefixMethod(IToken tok, string name, bool isStatic,
-                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
-                        List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
-                        BlockStmt body, Attributes attributes, CoMethod co)
+    public readonly CoLemma Co;
+    public PrefixLemma(IToken tok, string name, bool isStatic,
+                       List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
+                       List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                       BlockStmt body, Attributes attributes, CoLemma co)
       : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
@@ -2276,19 +2276,19 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoMethod : Method
+  public class CoLemma : Method
   {
-    public PrefixMethod PrefixMethod;  // filled in during resolution (name registration)
+    public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
-    public CoMethod(IToken tok, string name,
-                  bool isStatic,
-                  List<TypeParameter> typeArgs,
-                  List<Formal> ins, [Captured] List<Formal> outs,
-                  List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                  List<MaybeFreeExpression> ens,
-                  Specification<Expression> decreases,
-                  BlockStmt body,
-                  Attributes attributes, IToken signatureEllipsis)
+    public CoLemma(IToken tok, string name,
+                   bool isStatic,
+                   List<TypeParameter> typeArgs,
+                   List<Formal> ins, [Captured] List<Formal> outs,
+                   List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
+                   List<MaybeFreeExpression> ens,
+                   Specification<Expression> decreases,
+                   BlockStmt body,
+                   Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, isStatic, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);

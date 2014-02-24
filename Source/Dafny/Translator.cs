@@ -1109,10 +1109,10 @@ namespace Microsoft.Dafny {
           // the method spec itself
           sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.InterModuleCall));
           sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.IntraModuleCall));
-          if (m is CoMethod) {
-            // Let the CoCall and Impl forms to use m.PrefixMethod signature and specification (and
-            // note that m.PrefixMethod.Body == m.Body.
-            m = ((CoMethod)m).PrefixMethod;
+          if (m is CoLemma) {
+            // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
+            // note that m.PrefixLemma.Body == m.Body.
+            m = ((CoLemma)m).PrefixLemma;
             sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.CoCall));
           }
           if (m.Body != null) {
@@ -2224,7 +2224,7 @@ namespace Microsoft.Dafny {
       
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
-        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is CoMethod)) {
+        if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is CoLemma)) {
           var posts = new List<Expression>();
           m.Ens.ForEach(mfe => posts.Add(mfe.E));
           var allIns = new List<Formal>();
@@ -4156,7 +4156,7 @@ namespace Microsoft.Dafny {
     /// CoCall
     ///    This procedure is suitable for (intra-module) co-calls.
     ///    In these calls, some uses of copredicates may be replaced by
-    ///    proof certificates.  Note, unless the method is a comethod, there
+    ///    proof certificates.  Note, unless the method is a colemma, there
     ///    is no reason to include a procedure for co-calls.
     /// Implementation
     ///    This procedure is suitable for checking the implementation of the
@@ -6321,10 +6321,10 @@ namespace Microsoft.Dafny {
       // consult the call graph to figure out if this is a recursive call
       var module = method.EnclosingClass.Module;
       if (codeContext != null && module == currentModule) {
-        // Note, prefix methods are not recorded in the call graph, but their corresponding comethods are.
+        // Note, prefix lemmas are not recorded in the call graph, but their corresponding colemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
         ICallable cllr =
-          codeContext is PrefixMethod ? ((PrefixMethod)codeContext).Co :
+          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).Co :
           codeContext is IteratorDecl ? ((IteratorDecl)codeContext).Member_MoveNext :
           codeContext;
         if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(cllr)) {
@@ -6334,11 +6334,11 @@ namespace Microsoft.Dafny {
 
       MethodTranslationKind kind;
       var callee = method;
-      if (method is CoMethod && isRecursiveCall) {
+      if (method is CoLemma && isRecursiveCall) {
         kind = MethodTranslationKind.CoCall;
-        callee = ((CoMethod)method).PrefixMethod;
-      } else if (method is PrefixMethod) {
-        // an explicit call to a prefix method is allowed only inside the SCC of the corresponding comethod,
+        callee = ((CoLemma)method).PrefixLemma;
+      } else if (method is PrefixLemma) {
+        // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
         // so we consider this to be a co-call
         kind = MethodTranslationKind.CoCall;
       } else if (module == currentModule) {
@@ -6373,13 +6373,13 @@ namespace Microsoft.Dafny {
 
         var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
         Bpl.Expr bActual;
-        if (i == 0 && method is CoMethod && isRecursiveCall) {
-          // Treat this call to M(args) as a call to the corresponding prefix method M#(_k - 1, args), so insert an argument here.
-          var k = ((PrefixMethod)codeContext).K;
+        if (i == 0 && method is CoLemma && isRecursiveCall) {
+          // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
+          var k = ((PrefixLemma)codeContext).K;
           bActual = Bpl.Expr.Sub(new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration), Bpl.Type.Int), Bpl.Expr.Literal(1));
         } else {
           Expression actual;
-          if (method is CoMethod && isRecursiveCall) {
+          if (method is CoLemma && isRecursiveCall) {
             actual = Args[i - 1];
           } else {
             actual = Args[i];
@@ -10084,7 +10084,7 @@ namespace Microsoft.Dafny {
             // The argument position is considered to be "variant" if the function is recursive and...
             // ... it has something to do with why the callee is well-founded, which happens when...
             if (f is ImplicitFormal) {
-              // ... it is the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix method, or
+              // ... it is the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix lemma, or
               variantArgument = true;
             } else if (decr.Exists(ee => ContainsFreeVariable(ee, false, f))) {
               // ... it participates in the effective decreases clause of the function, which happens when it is

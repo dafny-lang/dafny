@@ -354,22 +354,22 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           ICallable m;
           string s;
-          if (clbl is CoMethod) {
-            var prefixMethod = ((CoMethod)clbl).PrefixMethod;
-            m = prefixMethod;
-            s = prefixMethod.Name + " ";
+          if (clbl is CoLemma) {
+            var prefixLemma = ((CoLemma)clbl).PrefixLemma;
+            m = prefixLemma;
+            s = prefixLemma.Name + " ";
           } else {
             m = clbl;
             s = "";
           }
           FillInDefaultDecreases(m);
 
-          if (m.InferredDecreases || m is PrefixMethod) {
+          if (m.InferredDecreases || m is PrefixLemma) {
             bool showIt = false;
             if (m is Function) {
               // show the inferred decreases clause only if it will ever matter, i.e., if the function is recursive
               showIt = ((Function)m).IsRecursive;
-            } else if (m is PrefixMethod) {
+            } else if (m is PrefixLemma) {
               // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
               showIt = true;
             } else {
@@ -386,7 +386,7 @@ namespace Microsoft.Dafny
               }
               s += ";";  // always terminate with a semi-colon, even in the case of an empty decreases clause
               // Note, in the following line, we use the location information for "clbl", not "m".  These
-              // are the same, except in the case where "clbl" is a CoMethod and "m" is a prefix method.
+              // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
               ReportAdditionalInformation(clbl.Tok, s, clbl.Tok.val.Length);
             }
           }
@@ -402,7 +402,7 @@ namespace Microsoft.Dafny
         return;
       }
       var decr = clbl.Decreases.Expressions;
-      if (decr.Count == 0 || (clbl is PrefixMethod && decr.Count == 1)) {
+      if (decr.Count == 0 || (clbl is PrefixLemma && decr.Count == 1)) {
         // The default for a function starts with the function's reads clause, if any
         if (clbl is Function) {
           var fn = (Function)clbl;
@@ -853,7 +853,7 @@ namespace Microsoft.Dafny
           foreach (MemberDecl m in cl.Members) {
             if (!members.ContainsKey(m.Name)) {
               members.Add(m.Name, m);
-              if (m is CoPredicate || m is CoMethod) {
+              if (m is CoPredicate || m is CoLemma) {
                 var extraName = m.Name + "#";
                 MemberDecl extraMember;
                 var cloner = new Cloner();
@@ -873,24 +873,24 @@ namespace Microsoft.Dafny
                   // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
                 } else {
-                  var com = (CoMethod)m;
+                  var com = (CoLemma)m;
                   // _k has already been added to 'formals', so append the original formals
                   formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
                   // prepend _k to the given decreases clause
                   var decr = new List<Expression>();
                   decr.Add(new IdentifierExpr(com.tok, k.Name));
                   decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
-                  // Create prefix method.  Note that the body is not cloned, but simply shared.
-                  com.PrefixMethod = new PrefixMethod(com.tok, extraName, com.IsStatic,
+                  // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+                  com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.IsStatic,
                     com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
                     com.Req.ConvertAll(cloner.CloneMayBeFreeExpr), cloner.CloneSpecFrameExpr(com.Mod),
-                    new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the comethod's postconditions have been resolved
+                    new List<MaybeFreeExpression>(),  // Note, the postconditions are filled in after the colemma's postconditions have been resolved
                     new Specification<Expression>(decr, null),
-                    null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the comethod is known
+                    null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the colemma is known
                     cloner.CloneAttributes(com.Attributes), com);
-                  extraMember = com.PrefixMethod;
+                  extraMember = com.PrefixLemma;
                   // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-                  moduleDef.CallGraph.AddEdge(com.PrefixMethod, com);
+                  moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
                 }
                 members.Add(extraName, extraMember);
               }
@@ -1119,8 +1119,8 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(m.tok, m.Name, tps, ins,
           req, mod, ens, decreases, null, null, null);
-      } else if (m is CoMethod) {
-        return new CoMethod(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
+      } else if (m is CoLemma) {
+        return new CoLemma(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, null, null, null);
       } else if (m is Lemma) {
         return new Lemma(m.tok, m.Name, m.IsStatic, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -1414,40 +1414,40 @@ namespace Microsoft.Dafny
       }
 
       if (ErrorCount == prevErrorCount) {
-        // fill in the postconditions and bodies of prefix methods
-        foreach (var com in ModuleDefinition.AllCoMethods(declarations)) {
-          var prefixMethod = com.PrefixMethod;
-          if (prefixMethod == null) {
-            continue;  // something went wrong during registration of the prefix method (probably a duplicated comethod name)
+        // fill in the postconditions and bodies of prefix lemmas
+        foreach (var com in ModuleDefinition.AllCoLemmas(declarations)) {
+          var prefixLemma = com.PrefixLemma;
+          if (prefixLemma == null) {
+            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated colemma name)
           }
-          Contract.Assume(prefixMethod.Ens.Count == 0 && prefixMethod.Body == null);  // there are not supposed have have been filled in before
-          // compute the postconditions of the prefix method
-          var k = prefixMethod.Ins[0];
+          Contract.Assume(prefixLemma.Ens.Count == 0 && prefixLemma.Body == null);  // there are not supposed have have been filled in before
+          // compute the postconditions of the prefix lemma
+          var k = prefixLemma.Ins[0];
           foreach (var p in com.Ens) {
             var coConclusions = new HashSet<Expression>();
-            CheckCoMethodConclusions(p.E, true, coConclusions);
-            var subst = new CoMethodPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this);
+            CheckCoLemmaConclusions(p.E, true, coConclusions);
+            var subst = new CoLemmaPostconditionSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this);
             var post = subst.CloneExpr(p.E);
-            prefixMethod.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+            prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
           }
-          // Compute the statement body of the prefix method
+          // Compute the statement body of the prefix lemma
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new CoMethodBodyCloner(com, kMinusOne, this);
+            var subst = new CoLemmaBodyCloner(com, kMinusOne, this);
             var mainBody = subst.CloneBlockStmt(com.Body);
             var kPositive = new BinaryExpr(com.tok, BinaryExpr.Opcode.Lt, new LiteralExpr(com.tok, 0), new IdentifierExpr(k.tok, k.Name));
             var condBody = new IfStmt(com.BodyStartTok, mainBody.EndTok, kPositive, mainBody, null);
-            prefixMethod.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
+            prefixLemma.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
           }
-          // The prefix method now has all its components, so it's finally time we resolve it
-          currentClass = (ClassDecl)prefixMethod.EnclosingClass;
+          // The prefix lemma now has all its components, so it's finally time we resolve it
+          currentClass = (ClassDecl)prefixLemma.EnclosingClass;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(currentClass.TypeArgs, false, currentClass);
-          ResolveTypeParameters(prefixMethod.TypeArgs, false, prefixMethod);
-          ResolveMethod(prefixMethod);
+          ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
+          ResolveMethod(prefixLemma);
           allTypeParameters.PopMarker();
           currentClass = null;
-          CheckTypeInference_Member(prefixMethod);
+          CheckTypeInference_Member(prefixLemma);
         }
       }
 
@@ -1666,7 +1666,7 @@ namespace Microsoft.Dafny
           }
         }
         // Check that copredicates are not recursive with non-copredicate functions, and
-        // check that comethods are not recursive with non-comethod methods.
+        // check that colemmas are not recursive with non-colemma methods.
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
@@ -1684,10 +1684,10 @@ namespace Microsoft.Dafny
                 if (fn.Body != null) {
                   CoPredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
-              } else if (member is CoMethod) {
-                var m = (CoMethod)member;
+              } else if (member is CoLemma) {
+                var m = (CoLemma)member;
                 if (m.Body != null) {
-                  CoMethodChecks(m.Body, m);
+                  CoLemmaChecks(m.Body, m);
                 }
               }
             }
@@ -2160,13 +2160,13 @@ namespace Microsoft.Dafny
     #endregion CoPredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- CoMethodChecks ---------------------------------------------------------------------------------
+    // ----- CoLemmaChecks ----------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-    #region CoMethodChecks
-    class CoMethodChecks_Visitor : ResolverBottomUpVisitor
+    #region CoLemmaChecks
+    class CoLemmaChecks_Visitor : ResolverBottomUpVisitor
     {
-      CoMethod context;
-      public CoMethodChecks_Visitor(Resolver resolver, CoMethod context)
+      CoLemma context;
+      public CoLemmaChecks_Visitor(Resolver resolver, CoLemma context)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
@@ -2175,15 +2175,15 @@ namespace Microsoft.Dafny
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          if (s.Method is CoMethod || s.Method is PrefixMethod) {
+          if (s.Method is CoLemma || s.Method is PrefixLemma) {
             // all is cool
           } else {
-            // the call goes from a comethod context to a non-comethod callee
+            // the call goes from a colemma context to a non-colemma callee
             var moduleCaller = context.EnclosingClass.Module;
             var moduleCallee = s.Method.EnclosingClass.Module;
             if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
-              // we're looking at a recursive call (to a non-comethod)
-              Error(s.Tok, "a recursive call from a comethod can go only to other comethods and prefix methods");
+              // we're looking at a recursive call (to a non-colemma)
+              Error(s.Tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
             }
           }
         }
@@ -2192,23 +2192,23 @@ namespace Microsoft.Dafny
       {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          // the call goes from a comethod context to a non-comethod callee
+          // the call goes from a colemma context to a non-colemma callee
           var moduleCaller = context.EnclosingClass.Module;
           var moduleCallee = e.Function.EnclosingClass.Module;
           if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
-            // we're looking at a recursive call (to a non-comethod)
-            Error(e.tok, "a recursive call from a comethod can go only to other comethods and prefix methods");
+            // we're looking at a recursive call (to a non-colemma)
+            Error(e.tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
           }
         }
       }
     }
-    void CoMethodChecks(Statement stmt, CoMethod context) {
+    void CoLemmaChecks(Statement stmt, CoLemma context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
-      var v = new CoMethodChecks_Visitor(this, context);
+      var v = new CoLemmaChecks_Visitor(this, context);
       v.Visit(stmt);
     }
-    #endregion CoMethodChecks
+    #endregion CoLemmaChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckEqualityTypes -----------------------------------------------------------------------------
@@ -2582,10 +2582,10 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          var com = m as CoMethod;
-          if (com != null && com.PrefixMethod != null && ec == ErrorCount) {
-            var mm = com.PrefixMethod;
-            // resolve signature of the prefix method
+          var com = m as CoLemma;
+          if (com != null && com.PrefixLemma != null && ec == ErrorCount) {
+            var mm = com.PrefixLemma;
+            // resolve signature of the prefix lemma
             mm.EnclosingClass = cl;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(mm.TypeArgs, true, mm);
@@ -3091,8 +3091,8 @@ namespace Microsoft.Dafny
         ResolveFrameExpression(fe, "modifies", m);
         if (m is Lemma) {
           Error(fe.tok, "lemmas are not allowed to have modifies clauses");
-        } else if (m is CoMethod) {
-          Error(fe.tok, "comethods are not allowed to have modifies clauses");
+        } else if (m is CoLemma) {
+          Error(fe.tok, "colemmas are not allowed to have modifies clauses");
         }
       }
       foreach (Expression e in m.Decreases.Expressions) {
@@ -3106,8 +3106,8 @@ namespace Microsoft.Dafny
       // Add out-parameters to a new scope that will also include the outermost-level locals of the body
       // Don't care about any duplication errors among the out-parameters, since they have already been reported
       scope.PushMarker();
-      if (m is CoMethod && m.Outs.Count != 0) {
-        Error(m.Outs[0].tok, "comethods are not allowed to have out-parameters");
+      if (m is CoLemma && m.Outs.Count != 0) {
+        Error(m.Outs[0].tok, "colemmas are not allowed to have out-parameters");
       } else {
         foreach (Formal p in m.Outs) {
           scope.Push(p.Name, p);
@@ -3125,18 +3125,18 @@ namespace Microsoft.Dafny
 
       // Resolve body
       if (m.Body != null) {
-        var com = m as CoMethod;
-        if (com != null && com.PrefixMethod != null) {
+        var com = m as CoLemma;
+        if (com != null && com.PrefixLemma != null) {
           // The body may mentioned the implicitly declared parameter _k.  Throw it into the
           // scope before resolving the body.
-          var k = com.PrefixMethod.Ins[0];
+          var k = com.PrefixLemma.Ins[0];
           scope.Push(k.Name, k);  // we expect no name conflict for _k
         }
         var codeContext = m;
         ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
       }
 
-      // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for comethods)
+      // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
       ResolveAttributes(m.Attributes, false, m);
 
       scope.PopMarker();  // for the out-parameters and outermost-level locals
@@ -7735,35 +7735,35 @@ namespace Microsoft.Dafny
     /// <summary>
     /// This method adds to "coConclusions" all copredicate calls and codatatype equalities that occur
     /// in positive positions and not under existential quantification.  If "expr" is the postcondition
-    /// of a comethod, then the "coConclusions" are the subexpressions that need to be replaced in order
-    /// to create the postcondition of the corresponding prefix method.
+    /// of a colemma, then the "coConclusions" are the subexpressions that need to be replaced in order
+    /// to create the postcondition of the corresponding prefix lemma.
     /// </summary>
-    void CheckCoMethodConclusions(Expression expr, bool position, ISet<Expression> coConclusions) {
+    void CheckCoLemmaConclusions(Expression expr, bool position, ISet<Expression> coConclusions) {
       Contract.Requires(expr != null);
       if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        CheckCoMethodConclusions(e.ResolvedExpression, position, coConclusions);
+        CheckCoLemmaConclusions(e.ResolvedExpression, position, coConclusions);
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         // For simplicity, only look in the body of the let expression, that is, ignoring the RHS of the
         // binding and ignoring what that binding would expand to in the body.
-        CheckCoMethodConclusions(e.Body, position, coConclusions);
+        CheckCoLemmaConclusions(e.Body, position, coConclusions);
 
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
         if (e.Op == UnaryExpr.Opcode.Not) {
-          CheckCoMethodConclusions(e.E, !position, coConclusions);
+          CheckCoLemmaConclusions(e.E, !position, coConclusions);
         }
 
       } else if (expr is BinaryExpr) {
         var bin = (BinaryExpr)expr;
         if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          CheckCoMethodConclusions(bin.E0, position, coConclusions);
-          CheckCoMethodConclusions(bin.E1, position, coConclusions);
+          CheckCoLemmaConclusions(bin.E0, position, coConclusions);
+          CheckCoLemmaConclusions(bin.E1, position, coConclusions);
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          CheckCoMethodConclusions(bin.E0, !position, coConclusions);
-          CheckCoMethodConclusions(bin.E1, position, coConclusions);
+          CheckCoLemmaConclusions(bin.E0, !position, coConclusions);
+          CheckCoLemmaConclusions(bin.E1, position, coConclusions);
         } else if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
           coConclusions.Add(bin);
         } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
@@ -7772,16 +7772,16 @@ namespace Microsoft.Dafny
 
       } else if (expr is ITEExpr) {
         var ite = (ITEExpr)expr;
-        CheckCoMethodConclusions(ite.Thn, position, coConclusions);
-        CheckCoMethodConclusions(ite.Els, position, coConclusions);
+        CheckCoLemmaConclusions(ite.Thn, position, coConclusions);
+        CheckCoLemmaConclusions(ite.Els, position, coConclusions);
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
-        CheckCoMethodConclusions(e.E, position, coConclusions);
+        CheckCoLemmaConclusions(e.E, position, coConclusions);
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        CheckCoMethodConclusions(e.E, position, coConclusions);
+        CheckCoLemmaConclusions(e.E, position, coConclusions);
 
       } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;

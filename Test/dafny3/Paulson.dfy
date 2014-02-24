@@ -10,7 +10,7 @@ function Apply<T>(f: FunctionHandle<T>, argument: T): T
 
 // Function composition
 function After(f: FunctionHandle, g: FunctionHandle): FunctionHandle
-ghost method Definition_After<T>(f: FunctionHandle<T>, g: FunctionHandle<T>, arg: T)
+lemma Definition_After<T>(f: FunctionHandle<T>, g: FunctionHandle<T>, arg: T)
   ensures Apply(After(f, g), arg) == Apply(f, Apply(g, arg));
 
 function Lmap(f: FunctionHandle, a: LList): LList
@@ -29,7 +29,7 @@ function Lappend(a: LList, b: LList): LList
 
 // ---------- Section 8.3 ----------
 
-comethod Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
+colemma Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
   ensures Lmap(After(f, g), M) == Lmap(f, Lmap(g, M));
 {
   match M {
@@ -61,7 +61,7 @@ function Iterates<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
   Cons(M, Iterates(f, Apply(f, M)))
 }
 
-comethod Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
+colemma Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
   ensures Lmap(f, Iterates(f, M)) == Iterates(f, Apply(f, M));
 {
   calc {
@@ -80,7 +80,7 @@ comethod Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
   }
 }
 
-ghost method CorollaryEq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
+lemma CorollaryEq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
   ensures Iterates(f, M) == Cons(M, Lmap(f, Iterates(f, M)));
 {
   Eq24(f, M);
@@ -92,7 +92,7 @@ ghost method CorollaryEq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
 // Let h be any function
 function h<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
 // ... that satisfies the property in CorollaryEq24:
-ghost method Definition_h<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
+lemma Definition_h<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
   ensures h(f, M) == Cons(M, Lmap(f, h(f, M)));
 
 // Functions to support the proof:
@@ -107,19 +107,19 @@ function LmapIter(n: nat, f: FunctionHandle, arg: LList): LList
   if n == 0 then arg else Lmap(f, LmapIter(n-1, f, arg))
 }
 
-ghost method Lemma25<A>(n: nat, f: FunctionHandle<A>, b: A, M: LList<A>)
+lemma Lemma25<A>(n: nat, f: FunctionHandle<A>, b: A, M: LList<A>)
   ensures LmapIter(n, f, Cons(b, M)) == Cons(Iter(n, f, b), LmapIter(n, f, M));
 {
   // proof is by (automatic) induction
 }
 
-ghost method Lemma26<A>(n: nat, f: FunctionHandle, x: LList)  // (26) in the paper, but with f := LMap f
+lemma Lemma26<A>(n: nat, f: FunctionHandle, x: LList)  // (26) in the paper, but with f := LMap f
   ensures LmapIter(n, f, Lmap(f, x)) == LmapIter(n+1, f, x);
 {
   // proof is by (automatic) induction
 }
 
-comethod BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
+colemma BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
   ensures LmapIter(n, f, h(f, u)) == LmapIter(n, f, Iterates(f, u));
 {
   calc {
@@ -146,7 +146,7 @@ comethod BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
   }
 }
 
-ghost method Example7<A>(f: FunctionHandle<LList<A>>)
+lemma Example7<A>(f: FunctionHandle<LList<A>>)
   // Given the definition of h, prove h(f, _) == Iterates(f, _):
   ensures forall M :: h(f, M) == Iterates(f, M);
 {
@@ -157,13 +157,13 @@ ghost method Example7<A>(f: FunctionHandle<LList<A>>)
 
 // ---------- Section 8.5 ----------
 
-comethod Example8<A>(f: FunctionHandle<A>, M: LList<A>, N: LList<A>)
+colemma Example8<A>(f: FunctionHandle<A>, M: LList<A>, N: LList<A>)
   ensures Lmap(f, Lappend(M, N)) == Lappend(Lmap(f, M), Lmap(f, N));
 {
   // A proof doesn't get any simpler than this
 }
 
-comethod Associativity(a: LList, b: LList, c: LList)
+colemma Associativity(a: LList, b: LList, c: LList)
   ensures Lappend(Lappend(a, b), c) == Lappend(a, Lappend(b, c));
 {
   // Again, Dafny does this proof completely automatically
