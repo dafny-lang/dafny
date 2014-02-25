@@ -2039,6 +2039,21 @@ namespace Microsoft.Dafny {
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
+
+    /// <summary>
+    /// The "AllCalls" field is used for non-CoPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for CoPredicate and PrefixPredicate functions).
+    /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
+    /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
+    /// with co-recursive calls.
+    /// </summary>
+    public readonly List<FunctionCallExpr> AllCalls = new List<FunctionCallExpr>();
+    public enum CoCallClusterInvolvement {
+      None,  // the SCC containing the function does not involve any co-recursive calls
+      IsMutuallyRecursiveTarget,  // the SCC contains co-recursive calls, and this function is the target of some non-self recursive call
+      CoRecursiveTargetAllTheWay,  // the SCC contains co-recursive calls, and this function is the target only of self-recursive calls and co-recursive calls
+    }
+    public CoCallClusterInvolvement CoClusterTarget = CoCallClusterInvolvement.None;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
