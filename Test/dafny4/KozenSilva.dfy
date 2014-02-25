@@ -263,19 +263,15 @@ function merge(s: Stream, t: Stream): Stream
 // Dafny treats the call as a co-recurvie call.  A consequence of this is that
 // there is no proof obligation to show termination for that call.  However, the
 // call from SplitRight back to SplitLeft is an ordinary (mutually) recursive
-// call, and hence Dafny checks termination for it.  Dafny has some simple
-// heuristics, based on the types of the arguments of a call, for trying to
-// prove termination.  In this case, the type is a co-datatype, for which Dafny
-// does not define any useful well-founded order.  Instead, the termination
-// argument needs to be supplied explicitly in terms of a metric, rank, variant
-// function, or whatever you want to call it--"decreases" clause in Dafny.  In
-// this case, Dafny will use a "decreases \top" for SplitRight ("\top" is not
-// concrete syntax; I'm using it here just as an illustration).  From this,
-// Dafny can prove termination, because the (arbitrary non-\top) value 0 of
-// the callee is smaller than the "\top" of the caller.  (Hm, it seems that
-// Dafny could be modified to detect this case automatically.)
+// call, and hence Dafny checks termination for it.
+// In general, the termination argument needs to be supplied explicitly in terms
+// of a metric, rank, variant function, or whatever you want to call it--a
+// "decreases" clause in Dafny.  Dafny provides some help in making up "decreases"
+// clauses, and in this case it automatically adds "decreases 0;" to SplitLeft
+// and "decreases 1;" to SplitRight.  With these "decreases" clauses, the
+// termination check of SplitRight's call to SplitLeft will simply be "0 < 1",
+// which is trivial to check.
 function SplitLeft(s: Stream): Stream
-  decreases 0;
 {
   Cons(s.hd, SplitRight(s.tl))
 }

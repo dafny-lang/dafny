@@ -1455,6 +1455,11 @@ namespace Microsoft.Dafny {
   {
     IToken Tok { get; }
     Specification<Expression> Decreases { get; }
+    /// <summary>
+    /// The InferredDecreases property says whether or not a process was attempted to provide a default decreases
+    /// clause.  If such a process was attempted, even if the resulting decreases clause turned out to be empty,
+    /// the property will get the value "true".  This is so that a useful error message can be provided.
+    /// </summary>
     bool InferredDecreases { get; set; }
   }
   /// <summary>

@@ -165,3 +165,42 @@ module FunctionSCCsWithMethods {
     var h := H();
   }
 }
+
+// --------------------------------------------------
+
+module AutomaticPrefixingOfCoClusterDecreasesClauses {
+  codatatype Stream<T> = Cons(head: T, tail: Stream)
+
+  // The following three functions will verify automatically
+  function H(): Stream<int>  // automatic:  decreases 1;
+  {
+    F(true)
+  }
+  function F(b: bool): Stream<int>  // automatic:  decreases 0, b;
+  {
+    if b then Cons(5, G()) else Cons(7, H())
+  }
+  function G(): Stream<int>  // automatic:  decreases 1;
+  {
+    F(false)
+  }
+
+  // In the following, A gets a default decreases clause of 1, because
+  // the only recursive call to A is a self-call.  B, on the other
+  // hand, has a mutually recursive call from A, and therefore it gets
+  // a decreases clause of 0.
+  function A(n: nat): Stream<int>  // automatic:  decreases 1, n;
+  {
+    if n < 100 then
+      B(n)  // the automatic decreases clauses take care of the termination of this call
+    else
+      A(n - 1)  // termination proved on account of decreasing 1,n
+  }
+  function B(n: nat): Stream<int>  // automatic:  decreases 0, n;
+  {
+    if n < 100 then
+      Cons(n, A(n + 102))  // co-recursive call, so no termination check
+    else
+      B(n - 1)  // termination proved on account of decreasing 0,n
+  }
+}

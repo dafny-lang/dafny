@@ -1389,7 +1389,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 15 verified, 8 errors
+Dafny program verifier finished with 20 verified, 8 errors
 
 -------------------- CoResolution.dfy --------------------
 CoResolution.dfy(14,9): Error: member Undeclared# does not exist in class _default
