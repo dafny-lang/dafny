@@ -124,3 +124,44 @@ module MixRecursiveAndCorecursive {
     X(n-1)
   }
 }
+
+// --------------------------------------------------
+
+module FunctionSCCsWithMethods {
+  codatatype Stream<T> = Cons(head: T, tail: Stream)
+
+  lemma M(n: nat)
+    decreases n, 0;
+  {
+    if n != 0 {
+      var p := Cons(10, F(n-1));
+    }
+  }
+
+  function F(n: nat): Stream<int>
+    decreases n;
+  {
+    M(n);
+    // the following call to F is not considered co-recursive, because the SCC contains a method
+    Cons(5, F(n))  // error: cannot prove termination
+  }
+
+  function G(): Stream<int>
+  {
+    Lemma();
+    H()
+  }
+
+  function H(): Stream<int>
+    decreases 0;
+  {
+    // the following call to G is not considered co-recursive, because the SCC contains a method
+    Cons(5, G())  // error: cannot prove termination
+  }
+
+  lemma Lemma()
+    decreases 1;
+  {
+    var h := H();
+  }
+}

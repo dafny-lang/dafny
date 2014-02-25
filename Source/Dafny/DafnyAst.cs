@@ -1105,6 +1105,41 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Determines if "a" and "b" are in the same strongly connected component of the call graph, that is,
+    /// if "a" and "b" are mutually recursive.
+    /// Assumes that CallGraph has already been filled in for the modules containing "a" and "b".
+    /// </summary>
+    public static bool InSameSCC(ICallable a, ICallable b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      var module = a.EnclosingModule;
+      return module == b.EnclosingModule && module.CallGraph.GetSCCRepresentative(a) == module.CallGraph.GetSCCRepresentative(b);
+    }
+
+    /// <summary>
+    /// Return the representative elements of the SCCs that contain contain any member declaration in a
+    /// class in "declarations".
+    /// Note, the representative element may in some cases be a Method, not necessarily a Function.
+    /// </summary>
+    public static IEnumerable<ICallable> AllFunctionSCCs(List<TopLevelDecl> declarations) {
+      var set = new HashSet<ICallable>();
+      foreach (var d in declarations) {
+        var cl = d as ClassDecl;
+        if (cl != null) {
+          var module = cl.Module;
+          foreach (var member in cl.Members) {
+            var fn = member as Function;
+            if (fn != null) {
+              var repr = module.CallGraph.GetSCCRepresentative(fn);
+              set.Add(repr);
+            }
+          }
+        }
+      }
+      return set;
+    }
+
     public static IEnumerable<Function> AllFunctions(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as ClassDecl;

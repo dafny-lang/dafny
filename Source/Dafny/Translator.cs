@@ -3633,49 +3633,46 @@ namespace Microsoft.Dafny {
         Bpl.Expr allowance = null;
         if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is CoPredicate)) {
           // check that the decreases measure goes down
-          ModuleDefinition module = cce.NonNull(e.Function.EnclosingClass).Module;
-          if (module == codeContext.EnclosingModule) {
-            if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(codeContext)) {
-              List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-              List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-              if (e.Function == options.SelfCallsAllowance) {
-                allowance = Bpl.Expr.True;
-                if (!e.Function.IsStatic) {
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
-                }
-                for (int i = 0; i < e.Args.Count; i++) {
-                  Expression ee = e.Args[i];
-                  Formal ff = e.Function.Formals[i];
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration), TrType(ff.Type))));
-                }
+          if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
+            List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+            List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
+            if (e.Function == options.SelfCallsAllowance) {
+              allowance = Bpl.Expr.True;
+              if (!e.Function.IsStatic) {
+                allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
               }
-              string hint;
-              switch (e.CoCall) {
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                  hint = "note that only functions without side effects can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                  hint = "note that only functions without any ensures clause can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                  hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                  hint = "note that calls cannot be co-recursive in this context";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                  hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                  break;
-                case FunctionCallExpr.CoCallResolution.No:
-                  hint = null;
-                  break;
-                default:
-                  Contract.Assert(false);  // unexpected CoCallResolution
-                  goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
+              for (int i = 0; i < e.Args.Count; i++) {
+                Expression ee = e.Args[i];
+                Formal ff = e.Function.Formals[i];
+                allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration), TrType(ff.Type))));
               }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
-                codeContext.InferredDecreases, hint);
             }
+            string hint;
+            switch (e.CoCall) {
+              case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                hint = "note that only functions without side effects can be called co-recursively";
+                break;
+              case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                hint = "note that only functions without any ensures clause can be called co-recursively";
+                break;
+              case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                break;
+              case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                hint = "note that calls cannot be co-recursive in this context";
+                break;
+              case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                break;
+              case FunctionCallExpr.CoCallResolution.No:
+                hint = null;
+                break;
+              default:
+                Contract.Assert(false);  // unexpected CoCallResolution
+                goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
+            }
+            CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, etran, etran, builder,
+              codeContext.InferredDecreases, hint);
           }
         }
         // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
@@ -6327,7 +6324,7 @@ namespace Microsoft.Dafny {
           codeContext is PrefixLemma ? ((PrefixLemma)codeContext).Co :
           codeContext is IteratorDecl ? ((IteratorDecl)codeContext).Member_MoveNext :
           codeContext;
-        if (module.CallGraph.GetSCCRepresentative(method) == module.CallGraph.GetSCCRepresentative(cllr)) {
+        if (ModuleDefinition.InSameSCC(method, cllr)) {
           isRecursiveCall = true;
         }
       }
@@ -8165,8 +8162,7 @@ namespace Microsoft.Dafny {
             ModuleDefinition module = e.Function.EnclosingClass.Module;
             if (this.applyLimited_CurrentFunction != null &&
               this.layerIntraCluster != null &&
-              module == applyLimited_CurrentFunction.EnclosingClass.Module &&
-              module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(applyLimited_CurrentFunction)) {
+              ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
               layerArgument = this.layerIntraCluster;
             } else {
               layerArgument = LayerN(layerInterCluster);
@@ -10341,8 +10337,7 @@ namespace Microsoft.Dafny {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           var cof = e.Function as CoPredicate;
-          if (cof != null && cof.EnclosingClass.Module == module &&
-            module.CallGraph.GetSCCRepresentative(cof) == module.CallGraph.GetSCCRepresentative(coPred)) {
+          if (cof != null && ModuleDefinition.InSameSCC(cof, coPred)) {
             expr = cof.CreatePrefixPredicateCall(e, coDepth);
           }
         }

@@ -1469,39 +1469,40 @@ namespace Microsoft.Dafny
 
       if (ErrorCount == prevErrorCount) {  // because CheckCoCalls requires the given expression to have been successfully resolved
         // Perform the guardedness check on co-datatypes
-        foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
-          var module = fn.EnclosingClass.Module;
-          if (fn.Body != null && module.CallGraph.GetSCCRepresentative(fn) == fn) {
-            bool dealsWithCodatatypes = false;
-            foreach (var m in module.CallGraph.GetSCC(fn)) {
-              var f = m as Function;
-              if (f != null && f.ResultType.InvolvesCoDatatype) {
-                dealsWithCodatatypes = true;
-                break;
-              }
+        foreach (var repr in ModuleDefinition.AllFunctionSCCs(declarations)) {
+          var module = repr.EnclosingModule;
+          bool dealsWithCodatatypes = false;
+          foreach (var m in module.CallGraph.GetSCC(repr)) {
+            var f = m as Function;
+            if (f != null && f.ResultType.InvolvesCoDatatype) {
+              dealsWithCodatatypes = true;
+              break;
             }
-            var coCandidates = new List<CoCallResolution.CoCallInfo>();
-            var hasIntraClusterCallsInDestructiveContexts = false;
-            foreach (var m in module.CallGraph.GetSCC(fn)) {
-              var f = m as Function;
-              if (f != null && f.Body != null) {
-                var checker = new CoCallResolution(f, dealsWithCodatatypes);
-                checker.CheckCoCalls(f.Body);
-                coCandidates.AddRange(checker.FinalCandidates);
-                hasIntraClusterCallsInDestructiveContexts |= checker.HasIntraClusterCallsInDestructiveContexts;
-              }
+          }
+          var coCandidates = new List<CoCallResolution.CoCallInfo>();
+          var hasIntraClusterCallsInDestructiveContexts = false;
+          foreach (var m in module.CallGraph.GetSCC(repr)) {
+            var f = m as Function;
+            if (f != null && f.Body != null) {
+              var checker = new CoCallResolution(f, dealsWithCodatatypes);
+              checker.CheckCoCalls(f.Body);
+              coCandidates.AddRange(checker.FinalCandidates);
+              hasIntraClusterCallsInDestructiveContexts |= checker.HasIntraClusterCallsInDestructiveContexts;
+            } else if (f == null) {
+              // the SCC contains a method, which we always consider to be a destructive context
+              hasIntraClusterCallsInDestructiveContexts = true;
             }
-            if (coCandidates.Count != 0) {
-              if (hasIntraClusterCallsInDestructiveContexts) {
-                foreach (var c in coCandidates) {
-                  c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext;
-                }
-              } else {
-                foreach (var c in coCandidates) {
-                  c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-                  c.EnclosingCoConstructor.IsCoCall = true;
-                  ReportAdditionalInformation(c.CandidateCall.tok, "co-recursive call", c.CandidateCall.Name.Length);
-                }
+          }
+          if (coCandidates.Count != 0) {
+            if (hasIntraClusterCallsInDestructiveContexts) {
+              foreach (var c in coCandidates) {
+                c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext;
+              }
+            } else {
+              foreach (var c in coCandidates) {
+                c.CandidateCall.CoCall = FunctionCallExpr.CoCallResolution.Yes;
+                c.EnclosingCoConstructor.IsCoCall = true;
+                ReportAdditionalInformation(c.CandidateCall.tok, "co-recursive call", c.CandidateCall.Name.Length);
               }
             }
           }
@@ -2070,9 +2071,7 @@ namespace Microsoft.Dafny
       protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          var moduleCaller = context.EnclosingClass.Module;
-          var moduleCallee = e.Function.EnclosingClass.Module;
-          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
+          if (ModuleDefinition.InSameSCC(context, e.Function)) {
             // we're looking at a recursive call
             if (!(e.Function is CoPredicate)) {
               Error(e, "a recursive call from a copredicate can go only to other copredicates");
@@ -2158,9 +2157,7 @@ namespace Microsoft.Dafny
       protected override bool VisitOneStmt(Statement stmt, ref CallingPosition st) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          var moduleCaller = context.EnclosingClass.Module;
-          var moduleCallee = s.Method.EnclosingClass.Module;
-          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+          if (ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call
             Error(stmt.Tok, "a recursive call from a copredicate can go only to other copredicates");
           }
@@ -2200,9 +2197,7 @@ namespace Microsoft.Dafny
             // all is cool
           } else {
             // the call goes from a colemma context to a non-colemma callee
-            var moduleCaller = context.EnclosingClass.Module;
-            var moduleCallee = s.Method.EnclosingClass.Module;
-            if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+            if (ModuleDefinition.InSameSCC(context, s.Method)) {
               // we're looking at a recursive call (to a non-colemma)
               Error(s.Tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
             }
@@ -2214,9 +2209,7 @@ namespace Microsoft.Dafny
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           // the call goes from a colemma context to a non-colemma callee
-          var moduleCaller = context.EnclosingClass.Module;
-          var moduleCallee = e.Function.EnclosingClass.Module;
-          if (moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(e.Function)) {
+          if (ModuleDefinition.InSameSCC(context, e.Function)) {
             // we're looking at a recursive call (to a non-colemma)
             Error(e.tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
           }
@@ -7815,7 +7808,6 @@ namespace Microsoft.Dafny
 
   class CoCallResolution
   {
-    readonly ModuleDefinition currentModule;
     readonly Function currentFunction;
     readonly bool dealsWithCodatatypes;
     public bool HasIntraClusterCallsInDestructiveContexts = false;
@@ -7823,7 +7815,6 @@ namespace Microsoft.Dafny
 
     public CoCallResolution(Function currentFunction, bool dealsWithCodatatypes) {
       Contract.Requires(currentFunction != null);
-      this.currentModule = currentFunction.EnclosingClass.Module;
       this.currentFunction = currentFunction;
       this.dealsWithCodatatypes = dealsWithCodatatypes;
     }
@@ -7922,9 +7913,7 @@ namespace Microsoft.Dafny
           CheckCoCalls(arg, int.MaxValue, null, coCandidates);
         }
         // Second, investigate the possibility that this call itself may be a candidate co-call
-        var calleeModule = e.Function.EnclosingClass.Module;
-        if (currentModule == calleeModule &&
-          currentModule.CallGraph.GetSCCRepresentative(currentFunction) == calleeModule.CallGraph.GetSCCRepresentative(e.Function)) {
+        if (ModuleDefinition.InSameSCC(currentFunction, e.Function)) {
           // This call goes to another function in the same recursive cluster
           if (destructionLevel > 0) {
             // a potentially destructive context

@@ -1380,8 +1380,16 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
+Corecursion.dfy(146,13): Error: failure to decrease termination measure (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Corecursion.dfy(159,13): Error: failure to decrease termination measure (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 10 verified, 6 errors
+Dafny program verifier finished with 15 verified, 8 errors
 
 -------------------- CoResolution.dfy --------------------
 CoResolution.dfy(14,9): Error: member Undeclared# does not exist in class _default

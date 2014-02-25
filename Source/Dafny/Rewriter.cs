@@ -773,8 +773,7 @@ namespace Microsoft.Dafny
           reqs.AddRange(generateAutoReqs(arg));
         }
 
-        ModuleDefinition module = e.Function.EnclosingClass.Module;
-        if (module.CallGraph.GetSCCRepresentative(e.Function) == module.CallGraph.GetSCCRepresentative(parentFunction)) {
+        if (ModuleDefinition.InSameSCC(e.Function, parentFunction)) {
           // We're making a call within the same SCC, so don't descend into this function
         } else {
           reqs.AddRange(gatherReqs(e.Function, e.Args, e.Receiver));

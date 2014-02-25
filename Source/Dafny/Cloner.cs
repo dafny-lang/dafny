@@ -681,7 +681,7 @@ namespace Microsoft.Dafny
           var call = (CallStmt)s.ResolvedStatements[0];
           var moduleCaller = context.EnclosingClass.Module;
           var moduleCallee = call.Method.EnclosingClass.Module;
-          if (call.Method is CoLemma && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(call.Method)) {
+          if (call.Method is CoLemma && ModuleDefinition.InSameSCC(context, call.Method)) {
             // we're looking at a recursive call to a colemma
             var args = new List<Expression>();
             args.Add(k);
@@ -700,9 +700,7 @@ namespace Microsoft.Dafny
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method is CoLemma) {
-          var moduleCaller = context.EnclosingClass.Module;
-          var moduleCallee = s.Method.EnclosingClass.Module;
-          if (s.Method is CoLemma && moduleCaller == moduleCallee && moduleCaller.CallGraph.GetSCCRepresentative(context) == moduleCaller.CallGraph.GetSCCRepresentative(s.Method)) {
+          if (s.Method is CoLemma && ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call to a colemma
             var args = new List<Expression>();
             args.Add(k);
