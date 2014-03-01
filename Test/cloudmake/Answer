@@ -1,0 +1,12 @@
+
+-------------------- CloudMake-ParallelBuilds.dfy --------------------
+
+Dafny program verifier finished with 244 verified, 0 errors
+
+-------------------- CloudMake-CachedBuilds.dfy --------------------
+
+Dafny program verifier finished with 104 verified, 0 errors
+
+-------------------- CloudMake-ConsistentBuilds.dfy --------------------
+
+Dafny program verifier finished with 59 verified, 0 errors
