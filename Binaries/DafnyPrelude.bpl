@@ -605,7 +605,6 @@ axiom FDim(alloc) == 0 && !$IsGhostField(alloc);  // treat as non-ghost field, b
 function DtAlloc(DatatypeType, HeapType): bool;
 axiom (forall h, k: HeapType, d: DatatypeType ::
   { $HeapSucc(h, k), DtAlloc(d, h) }
-  { $HeapSucc(h, k), DtAlloc(d, k) }
   $HeapSucc(h, k) ==> DtAlloc(d, h) ==> DtAlloc(d, k));
 
 function GenericAlloc(BoxType, HeapType): bool;
