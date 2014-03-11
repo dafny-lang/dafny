@@ -1856,7 +1856,7 @@ namespace Microsoft.Dafny {
       }
       QKeyValue kv = null;
       if (lits != null) {
-        kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(10) }, null);
+        kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
       }
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, typeParams, formals, kv, tr, Bpl.Expr.Imp(ante, meat));
       var activate = AxiomActivation(f, visibility == FunctionAxiomVisibility.ForeignModuleOnly, visibility == FunctionAxiomVisibility.IntraModuleOnly, etran);
