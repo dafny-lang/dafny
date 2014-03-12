@@ -8061,6 +8061,9 @@ namespace Microsoft.Dafny {
             result = ReadHeap(expr.tok, HeapExpr, obj, new Bpl.IdentifierExpr(expr.tok, translator.GetField(e.Field)));
           } else {
             result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(e.Field)), new List<Bpl.Expr> { obj });
+            if (translator.IsLit(obj)) {
+              result = translator.Lit(result, translator.TrType(expr.Type));
+            }
           }
           return translator.CondApplyUnbox(expr.tok, result, e.Field.Type, cce.NonNull(expr.Type));
 
@@ -8171,24 +8174,34 @@ namespace Microsoft.Dafny {
             layerArgument = null;
           }
 
-          var id = new Bpl.IdentifierExpr(e.tok, e.Function.FullSanitizedName, translator.TrType(e.Type));
-          var args = FunctionInvocationArguments(e, layerArgument);
-          var result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+          var ty = translator.TrType(e.Type);
+          var id = new Bpl.IdentifierExpr(e.tok, e.Function.FullSanitizedName, ty);
+          bool returnLit;
+          var args = FunctionInvocationArguments(e, layerArgument, out returnLit);
+          Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+          if (returnLit && !translator.IsOpaqueFunction(e.Function)) {
+            result = translator.Lit(result, ty);
+          }
           return translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
           Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
           List<Bpl.Expr> args = new List<Bpl.Expr>();
+          bool isLit = true;
           for (int i = 0; i < dtv.Arguments.Count; i++) {
             Expression arg = dtv.Arguments[i];
             Type t = dtv.Ctor.Formals[i].Type;
             var bArg = TrExpr(arg);
+            isLit = isLit && translator.IsLit(bArg);
             args.Add(translator.CondApplyBox(expr.tok, bArg, cce.NonNull(arg.Type), t));
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(dtv.tok, dtv.Ctor.FullName, predef.DatatypeType);
-          return new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
-
+          Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
+          if (isLit) {
+            ret = translator.Lit(ret, predef.DatatypeType);
+          }
+          return ret;
         } else if (expr is OldExpr) {
           OldExpr e = (OldExpr)expr;
           return Old.TrExpr(e.E);
@@ -8570,9 +8583,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
-          Bpl.Expr g = TrExpr(e.Test);
-          Bpl.Expr thn = TrExpr(e.Thn);
-          Bpl.Expr els = TrExpr(e.Els);
+          Bpl.Expr g = translator.RemoveLit(TrExpr(e.Test));
+          Bpl.Expr thn = translator.RemoveLit(TrExpr(e.Thn));
+          Bpl.Expr els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
 
         } else if (expr is MatchExpr) {
@@ -8694,6 +8707,11 @@ namespace Microsoft.Dafny {
       }
 
       public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument) {
+        bool returnLit;
+        return FunctionInvocationArguments(e, layerArgument, out returnLit);
+      }
+
+      public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Bpl.Expr layerArgument, out bool returnLit) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<List<Bpl.Expr>>() != null);
 
@@ -8705,10 +8723,13 @@ namespace Microsoft.Dafny {
         if (!e.Function.IsStatic) {
           args.Add(TrExpr(e.Receiver));
         }
+        returnLit = true;
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
           Type t = e.Function.Formals[i].Type;
-          args.Add(translator.CondApplyBox(e.tok, TrExpr(ee), cce.NonNull(ee.Type), t));
+          Expr tr_ee = TrExpr(ee);
+          returnLit = returnLit && translator.IsLit(tr_ee);
+          args.Add(translator.CondApplyBox(e.tok, tr_ee, cce.NonNull(ee.Type), t));
         }
         return args;
       }
@@ -9089,6 +9110,10 @@ namespace Microsoft.Dafny {
         e = expr; 
       }
       return e;
+    }
+
+    bool IsLit(Bpl.Expr expr) {
+      return GetLit(expr) != null;
     }
 
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.

@@ -237,7 +237,21 @@ method test_factorial1()
   var n10 := S(S(S(S(n6))));
   var n12 := S(S(n10));
 
-  // proving that 5! == 10*12 takes some effort, because the computation fuel runs out
+  assert factorial(n5)==mult(n10, n12);
+}
+
+method test_factorial1_old()
+{
+  var n2 := S(S(O));
+  var n3 := S(n2);
+  var n5 := S(S(n3));
+  var n6 := S(n5);
+  assert factorial(n3) == n6;
+
+  var n10 := S(S(S(S(n6))));
+  var n12 := S(S(n10));
+
+  // proving that 5! == 10*12 _used to_ take some effort...
   calc {
     factorial(n5);
     { mult_lemma(n2, n6); }

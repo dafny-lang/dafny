@@ -2061,14 +2061,8 @@ Execution trace:
 Dafny program verifier finished with 1 verified, 4 errors
 
 -------------------- Computations.dfy --------------------
-Computations.dfy(163,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Computations.dfy(168,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
-Dafny program verifier finished with 49 verified, 2 errors
+Dafny program verifier finished with 49 verified, 0 errors
 
 -------------------- ComputationsNeg.dfy --------------------
 ComputationsNeg.dfy(4,3): Error: failure to decrease termination measure
@@ -2083,8 +2077,14 @@ ComputationsNeg.dfy(20,1): Error BP5003: A postcondition might not hold on this 
 ComputationsNeg.dfy(19,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
+ComputationsNeg.dfy(33,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ComputationsNeg.dfy(42,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 3 verified, 3 errors
+Dafny program verifier finished with 7 verified, 5 errors
 
 -------------------- Include.dfy --------------------
 
