@@ -33,3 +33,7 @@ Dafny program verifier finished with 33 verified, 0 errors
 -------------------- Circ.dfy --------------------
 
 Dafny program verifier finished with 16 verified, 0 errors
+
+-------------------- ACL2-extractor.dfy --------------------
+
+Dafny program verifier finished with 33 verified, 0 errors
