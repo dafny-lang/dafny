@@ -1556,8 +1556,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        foreach (var lhs in s.Lhss) {
-          TrVarDecl(lhs, true, indent);
+        foreach (var local in s.Locals) {
+          TrLocalVar(local, true, indent);
         }
         if (s.Update != null) {
           TrStmt(s.Update, indent);
@@ -1841,7 +1841,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrVarDecl(VarDecl s, bool alwaysInitialize, int indent) {
+    void TrLocalVar(LocalVariable s, bool alwaysInitialize, int indent) {
       Contract.Requires(s != null);
       if (s.IsGhost) {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)

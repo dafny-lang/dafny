@@ -1058,7 +1058,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		TypeAndToken(out tok, out ty);
 	}
 
-	void LocalIdentTypeOptional(out VarDecl var, bool isGhost) {
+	void LocalIdentTypeOptional(out LocalVariable var, bool isGhost) {
 		IToken id;  Type ty;  Type optType = null;
 		
 		WildIdent(out id, true);
@@ -1067,7 +1067,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			Type(out ty);
 			optType = ty; 
 		}
-		var = new VarDecl(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); 
+		var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); 
 	}
 
 	void IdentTypeOptional(out BoundVar var) {
@@ -1779,9 +1779,9 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void VarDeclStatement(out Statement/*!*/ s) {
 		IToken x = null, assignTok = null;  bool isGhost = false;
-		VarDecl/*!*/ d;
+		LocalVariable d;
 		AssignmentRhs r;  IdentifierExpr lhs0;
-		List<VarDecl> lhss = new List<VarDecl>();
+		List<LocalVariable> lhss = new List<LocalVariable>();
 		List<AssignmentRhs> rhss = new List<AssignmentRhs>();
 		IToken suchThatAssume = null;
 		Expression suchThat = null;

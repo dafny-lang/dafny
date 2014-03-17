@@ -2132,7 +2132,7 @@ namespace Microsoft.Dafny {
 
     ModuleDefinition currentModule = null;  // the name of the module whose members are currently being translated
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
-    LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
+    Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     int loopHeapVarCount = 0;
     int otherTmpVarCount = 0;
@@ -3574,7 +3574,7 @@ namespace Microsoft.Dafny {
         Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
-          VarDecl local = new VarDecl(p.tok, p.tok, p.Name, p.Type, p.IsGhost);
+          LocalVariable local = new LocalVariable(p.tok, p.tok, p.Name, p.Type, p.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
           ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -4354,7 +4354,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < method.Ins.Count; i++) {
         var p = method.Ins[i];
-        var local = new VarDecl(p.tok, p.tok, p.Name + "#", p.Type, p.IsGhost);
+        var local = new LocalVariable(p.tok, p.tok, p.Name + "#", p.Type, p.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(methodCheck.Refining));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -5409,11 +5409,11 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        foreach (var lhs in s.Lhss) {
-          Bpl.Type varType = TrType(lhs.Type);
-          Bpl.Expr wh = GetWhereClause(lhs.Tok, new Bpl.IdentifierExpr(lhs.Tok, lhs.AssignUniqueName(currentDeclaration), varType), lhs.Type, etran);
-          Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.Tok, new Bpl.TypedIdent(lhs.Tok, lhs.AssignUniqueName(currentDeclaration), varType, wh));
-          var.Attributes = etran.TrAttributes(lhs.Attributes, null); ;
+        foreach (var local in s.Locals) {
+          Bpl.Type varType = TrType(local.Type);
+          Bpl.Expr wh = GetWhereClause(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration), varType), local.Type, etran);
+          Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration), varType, wh));
+          var.Attributes = etran.TrAttributes(local.Attributes, null); ;
           locals.Add(var);
         }
         if (s.Update != null) {
@@ -6362,7 +6362,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new VarDecl(formal.tok, formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
+        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -6462,7 +6462,7 @@ namespace Microsoft.Dafny {
 
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
-        VarDecl local = new VarDecl(bv.tok, bv.tok, bv.Name, bv.Type, bv.IsGhost);
+        LocalVariable local = new LocalVariable(bv.tok, bv.tok, bv.Name, bv.Type, bv.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -8622,7 +8622,7 @@ namespace Microsoft.Dafny {
           var substMap = new Dictionary<IVariable, Expression>();
           var argIndex = 0;
           foreach (var bv in mc.Arguments) {
-            if (!VarDecl.HasWildcardName(bv)) {
+            if (!LocalVariable.HasWildcardName(bv)) {
               var dtor = mc.Ctor.Destructors[argIndex];
               var dv = new FieldSelectExpr(bv.tok, e.Source, dtor.Name);
               dv.Field = dtor;  // resolve here
@@ -10889,7 +10889,7 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
-          var lhss = s.Lhss.ConvertAll(c => new VarDecl(c.Tok, c.EndTok, c.Name, c.OptionalType == null ? null : Resolver.SubstType(c.OptionalType, typeMap), c.IsGhost));
+          var lhss = s.Locals.ConvertAll(c => new LocalVariable(c.Tok, c.EndTok, c.Name, c.OptionalType == null ? null : Resolver.SubstType(c.OptionalType, typeMap), c.IsGhost));
           var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
           r = rr;
         } else {

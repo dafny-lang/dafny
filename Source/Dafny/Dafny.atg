@@ -425,13 +425,13 @@ IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
   ":"
   Type<out ty>
   .
-LocalIdentTypeOptional<out VarDecl var, bool isGhost>
+LocalIdentTypeOptional<out LocalVariable var, bool isGhost>
 = (. IToken id;  Type ty;  Type optType = null;
   .)
   WildIdent<out id, true>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
-  (. var = new VarDecl(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
+  (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
   .
 IdentTypeOptional<out BoundVar var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
@@ -1143,9 +1143,9 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
   .
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
-     VarDecl/*!*/ d;
+     LocalVariable d;
      AssignmentRhs r;  IdentifierExpr lhs0;
-     List<VarDecl> lhss = new List<VarDecl>();
+     List<LocalVariable> lhss = new List<LocalVariable>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;

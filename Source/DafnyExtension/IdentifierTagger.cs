@@ -278,8 +278,8 @@ namespace DafnyLanguage
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         // Add the variables here, once, and then go directly to the RHS's (without letting the sub-statements re-do the LHS's)
-        foreach (var lhs in s.Lhss) {
-          IdRegion.Add(regions, lhs.Tok, lhs, true, module);
+        foreach (var local in s.Locals) {
+          IdRegion.Add(regions, local.Tok, local, true, module);
         }
         if (s.Update == null) {
           // the VarDeclStmt has no associated assignment
@@ -296,9 +296,6 @@ namespace DafnyLanguage
         }
         // we're done, so don't do the sub-statements/expressions again
         return;
-      } else  if (stmt is VarDecl) {
-        var s = (VarDecl)stmt;
-        IdRegion.Add(regions, s.Tok, s, true, module);
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         s.BoundVars.ForEach(bv => IdRegion.Add(regions, bv.tok, bv, true, module));
@@ -385,7 +382,7 @@ namespace DafnyLanguage
         Length = v.DisplayName.Length;
         if (kind == null) {
           // use default
-          if (v is VarDecl) {
+          if (v is LocalVariable) {
             kind = "local variable";
           } else if (v is BoundVar) {
             kind = "bound variable";
@@ -399,7 +396,7 @@ namespace DafnyLanguage
         }
         Variable = v;
         HoverText = string.Format("({2}{3}) {0}: {1}", v.DisplayName, v.Type.TypeName(context), v.IsGhost ? "ghost " : "", kind);
-        Kind = !isDefinition ? OccurrenceKind.Use : VarDecl.HasWildcardName(v) ? OccurrenceKind.WildDefinition : OccurrenceKind.Definition;
+        Kind = !isDefinition ? OccurrenceKind.Use : LocalVariable.HasWildcardName(v) ? OccurrenceKind.WildDefinition : OccurrenceKind.Definition;
       }
       private IdRegion(Bpl.IToken tok, Field decl, Microsoft.Dafny.Type showType, string kind, bool isDefinition, ModuleDefinition context) {
         Contract.Requires(tok != null);

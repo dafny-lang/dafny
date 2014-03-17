@@ -1873,8 +1873,8 @@ namespace Microsoft.Dafny
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
-          foreach (var lhs in s.Lhss) {
-            CheckTypeIsDetermined(lhs.Tok, lhs.Type, "local variable");
+          foreach (var local in s.Locals) {
+            CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
           }
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -4058,23 +4058,23 @@ namespace Microsoft.Dafny
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        foreach (var v in s.Lhss) {
-          ResolveType(v.Tok, v.OptionalType, ResolveTypeOption.InferTypeProxies, null);
-          v.type = v.OptionalType;
+        foreach (var local in s.Locals) {
+          ResolveType(local.Tok, local.OptionalType, ResolveTypeOption.InferTypeProxies, null);
+          local.type = local.OptionalType;
           // now that the declaration has been processed, add the name to the scope
-          if (!scope.Push(v.Name, v)) {
-            Error(v.Tok, "Duplicate local-variable name: {0}", v.Name);
+          if (!scope.Push(local.Name, local)) {
+            Error(local.Tok, "Duplicate local-variable name: {0}", local.Name);
           }
           if (specContextOnly) {
             // a local variable in a specification-only context might as well be ghost
-            v.IsGhost = true;
+            local.IsGhost = true;
           }
         }
         if (s.Update != null) {
           ResolveConcreteUpdateStmt(s.Update, specContextOnly, codeContext);
         }
         if (!s.IsGhost) {
-          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Lhss.All(v => v.IsGhost);
+          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
         }
 
       } else if (stmt is AssignStmt) {
@@ -4929,9 +4929,9 @@ namespace Microsoft.Dafny
               if (resolvedLhs is IdentifierExpr) {
                 var ll = (IdentifierExpr)resolvedLhs;
                 if (!ll.Var.IsGhost) {
-                  if (ll is AutoGhostIdentifierExpr && ll.Var is VarDecl) {
+                  if (ll is AutoGhostIdentifierExpr && ll.Var is LocalVariable) {
                     // the variable was actually declared in this statement, so auto-declare it as ghost
-                    ((VarDecl)ll.Var).MakeGhost();
+                    ((LocalVariable)ll.Var).MakeGhost();
                   } else {
                     Error(s, "actual out-parameter {0} is required to be a ghost variable", i);
                   }

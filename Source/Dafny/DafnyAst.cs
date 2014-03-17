@@ -1514,7 +1514,7 @@ namespace Microsoft.Dafny {
     public Constructor Member_Init;  // created during registration phase of resolution; its specification is filled in during resolution
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
-    public readonly VarDecl YieldCountVariable;
+    public readonly LocalVariable YieldCountVariable;
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -1554,7 +1554,7 @@ namespace Microsoft.Dafny {
       OutsHistoryFields = new List<Field>();
       DecreasesFields = new List<Field>();
 
-      YieldCountVariable = new VarDecl(tok, tok, "_yieldCount", new EverIncreasingType(), true);
+      YieldCountVariable = new LocalVariable(tok, tok, "_yieldCount", new EverIncreasingType(), true);
       YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
     }
 
@@ -1852,7 +1852,7 @@ namespace Microsoft.Dafny {
       }
     }
     public string DisplayName {
-      get { return VarDecl.DisplayNameHelper(this); }
+      get { return LocalVariable.DisplayNameHelper(this); }
     }
     private string uniqueName;
     public string UniqueName {
@@ -2832,21 +2832,21 @@ namespace Microsoft.Dafny {
 
   public class VarDeclStmt : Statement
   {
-    public readonly List<VarDecl> Lhss;
+    public readonly List<LocalVariable> Locals;
     public readonly ConcreteUpdateStatement Update;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(cce.NonNullElements(Lhss));
+      Contract.Invariant(cce.NonNullElements(Locals));
     }
 
-    public VarDeclStmt(IToken tok, IToken endTok, List<VarDecl> lhss, ConcreteUpdateStatement update)
+    public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
       : base(tok, endTok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(lhss != null);
+      Contract.Requires(locals != null);
 
-      Lhss = lhss;
+      Locals = locals;
       Update = update;
     }
 
@@ -3006,7 +3006,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class VarDecl : /*Statement,*/ IVariable {
+  public class LocalVariable : IVariable {
     public readonly IToken Tok;
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     readonly string name;
@@ -3018,7 +3018,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(OptionalType != null);
     }
 
-    public VarDecl(IToken tok, IToken endTok, string name, Type type, bool isGhost) {
+    public LocalVariable(IToken tok, IToken endTok, string name, Type type, bool isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(name != null);
@@ -3101,7 +3101,7 @@ namespace Microsoft.Dafny {
       }
     }
     /// <summary>
-    /// This method retrospectively makes the VarDecl a ghost.  It is to be used only during resolution.
+    /// This method retrospectively makes the LocalVariable a ghost.  It is to be used only during resolution.
     /// </summary>
     public void MakeGhost() {
       this.IsGhost = true;

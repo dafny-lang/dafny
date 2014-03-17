@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny
             Expression addedAssert = null;
             if (oldS is VarDeclStmt) {
               var cOld = (VarDeclStmt)oldS;
-              if (VarDeclAgree(cOld.Lhss, cNew.Lhss)) {
+              if (LocalVarsAgree(cOld.Locals, cNew.Locals)) {
                 var update = cNew.Update as UpdateStmt;
                 if (update != null && update.Rhss.TrueForAll(rhs => !rhs.CanAffectPreviouslyKnownExpressions)) {
                   // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
@@ -1202,7 +1202,7 @@ namespace Microsoft.Dafny
       }
       return true;
     }
-    private bool VarDeclAgree(List<VarDecl> old, List<VarDecl> nw) {
+    private bool LocalVarsAgree(List<LocalVariable> old, List<LocalVariable> nw) {
       if (old.Count != nw.Count)
         return false;
       for (int i = 0; i < old.Count; i++) {
@@ -1249,7 +1249,7 @@ namespace Microsoft.Dafny
         return oth != null && oth.Guard == null;
       } else if (nxt is VarDeclStmt) {
         var oth = other as VarDeclStmt;
-        return oth != null && VarDeclAgree(((VarDeclStmt)nxt).Lhss, oth.Lhss);
+        return oth != null && LocalVarsAgree(((VarDeclStmt)nxt).Locals, oth.Locals);
       } else if (nxt is BlockStmt) {
         var b = (BlockStmt)nxt;
         if (b.Labels != null) {
@@ -1397,8 +1397,8 @@ namespace Microsoft.Dafny
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
           var ident = (IdentifierExpr)l;
-          Contract.Assert(ident.Var is VarDecl || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
-          if ((ident.Var is VarDecl && RefinementToken.IsInherited(((VarDecl)ident.Var).Tok, m)) || ident.Var is Formal) {
+          Contract.Assert(ident.Var is LocalVariable || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
+          if ((ident.Var is LocalVariable && RefinementToken.IsInherited(((LocalVariable)ident.Var).Tok, m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
             reporter.Error(l.tok, "cannot assign to variable defined previously");
             return false;

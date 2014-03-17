@@ -807,18 +807,18 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        if (s.Lhss.Exists(v => v.IsGhost)) {
+        if (s.Locals.Exists(v => v.IsGhost)) {
           wr.Write("ghost ");
         }
         wr.Write("var");
         string sep = "";
-        foreach (var lhs in s.Lhss) {
+        foreach (var local in s.Locals) {
           wr.Write(sep);
-          if (lhs.Attributes != null) {
-            PrintAttributes(lhs.Attributes);
+          if (local.Attributes != null) {
+            PrintAttributes(local.Attributes);
           }
-          wr.Write(" {0}", lhs.DisplayName);
-          PrintType(": ", lhs.OptionalType);
+          wr.Write(" {0}", local.DisplayName);
+          PrintType(": ", local.OptionalType);
           sep = ",";
         }
         if (s.Update != null) {
