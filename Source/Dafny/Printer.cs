@@ -607,7 +607,7 @@ namespace Microsoft.Dafny {
       if (stmt is PredicateStmt) {
         Expression expr = ((PredicateStmt)stmt).Expr;
         wr.Write(stmt is AssertStmt ? "assert" : "assume");
-        if (stmt.HasAttributes()) {
+        if (stmt.Attributes != null) {
           PrintAttributes(stmt.Attributes);
         }
         wr.Write(" ");
@@ -651,20 +651,6 @@ namespace Microsoft.Dafny {
         PrintExpression(s.Lhs, true);
         wr.Write(" := ");
         PrintRhs(s.Rhs);
-        wr.Write(";");
-
-      } else if (stmt is VarDecl) {
-        VarDecl s = (VarDecl)stmt;
-        if (s.IsGhost) {
-          wr.Write("ghost ");
-        }
-        wr.Write("var");
-        if (s.HasAttributes())
-        {
-          PrintAttributes(s.Attributes);
-        }
-        wr.Write(" {0}", s.DisplayName);
-        PrintType(": ", s.OptionalType);
         wr.Write(";");
 
       } else if (stmt is CallStmt) {
@@ -821,15 +807,14 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        if (s.Lhss[0].IsGhost) {
+        if (s.Lhss.Exists(v => v.IsGhost)) {
           wr.Write("ghost ");
         }
         wr.Write("var");
         string sep = "";
         foreach (var lhs in s.Lhss) {
           wr.Write(sep);
-          if (lhs.HasAttributes())
-          {
+          if (lhs.Attributes != null) {
             PrintAttributes(lhs.Attributes);
           }
           wr.Write(" {0}", lhs.DisplayName);

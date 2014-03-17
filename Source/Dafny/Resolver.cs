@@ -1871,9 +1871,11 @@ namespace Microsoft.Dafny
         Contract.Requires(resolver != null);
       }
       protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is VarDecl) {
-          var s = (VarDecl)stmt;
-          CheckTypeIsDetermined(s.Tok, s.Type, "local variable");
+        if (stmt is VarDeclStmt) {
+          var s = (VarDeclStmt)stmt;
+          foreach (var lhs in s.Lhss) {
+            CheckTypeIsDetermined(lhs.Tok, lhs.Type, "local variable");
+          }
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
@@ -1977,7 +1979,6 @@ namespace Microsoft.Dafny
           return CheckTailRecursive(s.hiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
         }
       } else if (stmt is AssignStmt) {
-      } else if (stmt is VarDecl) {
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method == enclosingMethod) {
@@ -2078,9 +2079,11 @@ namespace Microsoft.Dafny
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        if (s.Update != null) {
+          return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
+        }
       } else {
         Contract.Assert(false);  // unexpected statement type
       }
@@ -4055,13 +4058,20 @@ namespace Microsoft.Dafny
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        foreach (var vd in s.Lhss) {
-          ResolveStatement(vd, specContextOnly, codeContext);
-          s.ResolvedStatements.Add(vd);
+        foreach (var v in s.Lhss) {
+          ResolveType(v.Tok, v.OptionalType, ResolveTypeOption.InferTypeProxies, null);
+          v.type = v.OptionalType;
+          // now that the declaration has been processed, add the name to the scope
+          if (!scope.Push(v.Name, v)) {
+            Error(v.Tok, "Duplicate local-variable name: {0}", v.Name);
+          }
+          if (specContextOnly) {
+            // a local variable in a specification-only context might as well be ghost
+            v.IsGhost = true;
+          }
         }
         if (s.Update != null) {
-          ResolveStatement(s.Update, specContextOnly, codeContext);
-          s.ResolvedStatements.Add(s.Update);
+          ResolveConcreteUpdateStmt(s.Update, specContextOnly, codeContext);
         }
         if (!s.IsGhost) {
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Lhss.All(v => v.IsGhost);
@@ -4167,18 +4177,6 @@ namespace Microsoft.Dafny
           // nothing else to do
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
-        }
-      } else if (stmt is VarDecl) {
-        var s = (VarDecl)stmt;
-        ResolveType(stmt.Tok, s.OptionalType, ResolveTypeOption.InferTypeProxies, null);
-        s.type = s.OptionalType;
-        // now that the declaration has been processed, add the name to the scope
-        if (!scope.Push(s.Name, s)) {
-          Error(s, "Duplicate local-variable name: {0}", s.Name);
-        }
-        if (specContextOnly) {
-          // a local variable in a specification-only context might as well be ghost
-          s.IsGhost = true;
         }
 
       } else if (stmt is CallStmt) {
@@ -5036,10 +5034,10 @@ namespace Microsoft.Dafny
         foreach (var ss in s.ResolvedStatements) {
           CheckForallStatementBodyRestrictions(ss, kind);
         }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckForallStatementBodyRestrictions(ss, kind);
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        if (s.Update != null) {
+          CheckForallStatementBodyRestrictions(s.Update, kind);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -5052,8 +5050,6 @@ namespace Microsoft.Dafny
             Error(rhs.Tok, "new allocation not allowed in ghost context");
           }
         }
-      } else if (stmt is VarDecl) {
-        // cool
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         foreach (var lhs in s.Lhs) {
@@ -5179,8 +5175,6 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         CheckHintLhs(s.Tok, s.Lhs.Resolved);
-      } else if (stmt is VarDecl) {
-        // cool
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method.Mod.Expressions.Count != 0) {
@@ -5191,10 +5185,10 @@ namespace Microsoft.Dafny
         foreach (var ss in s.ResolvedStatements) {
           CheckHintRestrictions(ss);
         }
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss);
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        if (s.Update != null) {
+          CheckHintRestrictions(s.Update);
         }
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;

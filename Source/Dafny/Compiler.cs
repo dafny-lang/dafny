@@ -1237,9 +1237,6 @@ namespace Microsoft.Dafny {
           wr.WriteLine("{0}: ;", doneLabel);
         }
 
-      } else if (stmt is VarDecl) {
-        TrVarDecl((VarDecl)stmt, true, indent);
-
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
         TrCallStmt(s, null, indent);
@@ -1557,10 +1554,13 @@ namespace Microsoft.Dafny {
           Indent(indent); wr.WriteLine("}");
         }
 
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          TrStmt(ss, indent);
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        foreach (var lhs in s.Lhss) {
+          TrVarDecl(lhs, true, indent);
+        }
+        if (s.Update != null) {
+          TrStmt(s.Update, indent);
         }
 
       } else {

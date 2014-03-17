@@ -5158,14 +5158,6 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;
         TrAssignment(stmt, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
-      } else if (stmt is VarDecl) {
-        AddComment(builder, stmt, "var-declaration statement");
-        VarDecl s = (VarDecl)stmt;
-        Bpl.Type varType = TrType(s.Type);
-        Bpl.Expr wh = GetWhereClause(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, s.AssignUniqueName(currentDeclaration), varType), s.Type, etran);
-        Bpl.LocalVariable var = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, s.AssignUniqueName(currentDeclaration), varType, wh));
-        var.Attributes = etran.TrAttributes(s.Attributes, null);;
-        locals.Add(var);
 
       } else if (stmt is CallStmt) {
         AddComment(builder, stmt, "call statement");
@@ -5415,9 +5407,18 @@ namespace Microsoft.Dafny {
         Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
         builder.Add(ifCmd);
 
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        TrStmtList(s.ResolvedStatements, builder, locals, etran);
+      } else if (stmt is VarDeclStmt) {
+        var s = (VarDeclStmt)stmt;
+        foreach (var lhs in s.Lhss) {
+          Bpl.Type varType = TrType(lhs.Type);
+          Bpl.Expr wh = GetWhereClause(lhs.Tok, new Bpl.IdentifierExpr(lhs.Tok, lhs.AssignUniqueName(currentDeclaration), varType), lhs.Type, etran);
+          Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.Tok, new Bpl.TypedIdent(lhs.Tok, lhs.AssignUniqueName(currentDeclaration), varType, wh));
+          var.Attributes = etran.TrAttributes(lhs.Attributes, null); ;
+          locals.Add(var);
+        }
+        if (s.Update != null) {
+          TrStmt(s.Update, builder, locals, etran);
+        }
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
@@ -10829,10 +10830,6 @@ namespace Microsoft.Dafny {
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
           r = new AssignStmt(s.Tok, s.EndTok, Substitute(s.Lhs), SubstRHS(s.Rhs));
-        } else if (stmt is VarDecl) {
-          var s = (VarDecl)stmt;
-          var tt = s.OptionalType == null ? null : Resolver.SubstType(s.OptionalType, typeMap);
-          r = new VarDecl(s.Tok, s.EndTok, s.Name, tt, s.IsGhost);
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), Substitute(s.Receiver), s.MethodName, s.Args.ConvertAll(Substitute));
@@ -10892,8 +10889,8 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
-          var rr = new VarDeclStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(c => (VarDecl)SubstStmt(c)), (ConcreteUpdateStatement)SubstStmt(s.Update));
-          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+          var lhss = s.Lhss.ConvertAll(c => new VarDecl(c.Tok, c.EndTok, c.Name, c.OptionalType == null ? null : Resolver.SubstType(c.OptionalType, typeMap), c.IsGhost));
+          var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
           r = rr;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

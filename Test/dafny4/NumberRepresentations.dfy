@@ -77,7 +77,7 @@ lemma CompleteNat(n: nat, base: nat) returns (digits: seq<int>)
         base * n <= n;
         (base - 1) * n + n <= n;
         (base - 1) * n <= 0;
-      ==> { MulSign(base - 1, n); }
+      ==> { assert (base - 1) * n <= 0; MulSign(base - 1, n); }
         (base - 1) <= 0 || n <= 0;
         { assert 0 < n; }
         (base - 1) <= 0;

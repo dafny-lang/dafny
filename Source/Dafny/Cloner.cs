@@ -438,10 +438,6 @@ namespace Microsoft.Dafny
         var s = (AssignStmt)stmt;
         r = new AssignStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhs), CloneRHS(s.Rhs));
 
-      } else if (stmt is VarDecl) {
-        var s = (VarDecl)stmt;
-        r = new VarDecl(Tok(s.Tok), Tok(s.EndTok), s.Name, CloneType(s.OptionalType), s.IsGhost);
-
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         r = new CallStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhs.ConvertAll(CloneExpr), CloneExpr(s.Receiver), s.MethodName, s.Args.ConvertAll(CloneExpr));
@@ -488,7 +484,8 @@ namespace Microsoft.Dafny
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(c => (VarDecl)CloneStmt(c)), (ConcreteUpdateStatement)CloneStmt(s.Update));
+        var lhss = s.Lhss.ConvertAll(c => new VarDecl(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
+        r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

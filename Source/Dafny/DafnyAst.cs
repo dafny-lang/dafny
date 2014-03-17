@@ -2374,10 +2374,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public bool HasAttributes() {
-      return Attributes != null;
-    }
-
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
@@ -2834,21 +2830,7 @@ namespace Microsoft.Dafny {
     public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   }
 
-  public abstract class ConcreteSyntaxStatement : Statement
-  {
-    public List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
-    public ConcreteSyntaxStatement(IToken tok, IToken endTok)
-      : base(tok, endTok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(endTok != null);
-    }
-
-    public override IEnumerable<Statement> SubStatements {
-      get { return ResolvedStatements; }
-    }
-  }
-
-  public class VarDeclStmt : ConcreteSyntaxStatement
+  public class VarDeclStmt : Statement
   {
     public readonly List<VarDecl> Lhss;
     public readonly ConcreteUpdateStatement Update;
@@ -2866,6 +2848,10 @@ namespace Microsoft.Dafny {
 
       Lhss = lhss;
       Update = update;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get { if (Update != null) { yield return Update; } }
     }
   }
 
@@ -3020,21 +3006,26 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class VarDecl : Statement, IVariable {
+  public class VarDecl : /*Statement,*/ IVariable {
+    public readonly IToken Tok;
+    public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     readonly string name;
+    public Attributes Attributes;
+    public bool IsGhost;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(name != null);
       Contract.Invariant(OptionalType != null);
     }
 
-    public VarDecl(IToken tok, IToken endTok, string name, Type type, bool isGhost)
-      : base(tok, endTok) {
+    public VarDecl(IToken tok, IToken endTok, string name, Type type, bool isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);  // can be a proxy, though
 
+      this.Tok = tok;
+      this.EndTok = endTok;
       this.name = name;
       this.OptionalType = type;
       this.IsGhost = isGhost;
@@ -3106,14 +3097,14 @@ namespace Microsoft.Dafny {
     }
     bool IVariable.IsGhost {
       get {
-        return base.IsGhost;
+        return this.IsGhost;
       }
     }
     /// <summary>
     /// This method retrospectively makes the VarDecl a ghost.  It is to be used only during resolution.
     /// </summary>
     public void MakeGhost() {
-      base.IsGhost = true;
+      this.IsGhost = true;
     }
     IToken IVariable.Tok {
       get {
@@ -3468,20 +3459,17 @@ namespace Microsoft.Dafny {
           var block = s as BlockStmt;
           if (block != null && block.Body.Count == 1) {
             s = block.Body[0];
+            // dig further into s
           } else if (s is UpdateStmt) {
             var update = (UpdateStmt)s;
             if (update.ResolvedStatements.Count == 1) {
               s = update.ResolvedStatements[0];
+              // dig further into s
             } else {
               return s;
             }
           } else {
-            var conc = s as ConcreteSyntaxStatement;
-            if (conc != null && conc.ResolvedStatements.Count == 1) {
-              s = conc.ResolvedStatements[0];
-            } else {
-              return s;
-            }
+            return s;
           }
         }
       }
