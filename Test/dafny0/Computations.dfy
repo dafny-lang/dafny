@@ -151,19 +151,12 @@ ghost method copt_test()
 {
 }
 
-// The following is a test that well-typedness antecednets are included in the literal axioms
-static function StaticFact(n: nat): nat
-  ensures 0 < StaticFact(n);
+function power(b: int, n: nat): int
 {
-  if n == 0 then 1 else n * StaticFact(n - 1)
+  if (n==0) then 1 else b*power(b, n-1)
 }
-static method test_StaticFact()
+
+ghost method test_power()
+  ensures power(power(2, 3), 1+power(2, 2))==32768;
 {
-  assert StaticFact(0) == 1;
-  assert 42 != 42;  // error:  this should fail
-} 
-method test_fact()
-{
-  assert fact(0) == 1;
-  assert 42 != 42;  // error:  this should fail
-} 
+}

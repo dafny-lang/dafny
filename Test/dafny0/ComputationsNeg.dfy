@@ -20,3 +20,24 @@ ghost method test_ThProperty()
 {
 //  assert ThProperty(9, Zero, 0);
 }
+
+// The following is a test that well-typedness antecednets are included in the literal axioms
+static function StaticFact(n: nat): nat
+  ensures 0 < StaticFact(n);
+{
+  if n == 0 then 1 else n * StaticFact(n - 1)
+}
+static method test_StaticFact()
+{
+  assert StaticFact(0) == 1;
+  assert 42 != 42;  // error:  this should fail
+} 
+function fact(n: nat): nat
+{
+  if (n==0) then 1 else n*fact(n-1)
+}
+method test_fact()
+{
+  assert fact(0) == 1;
+  assert 42 != 42;  // error:  this should fail
+} 
