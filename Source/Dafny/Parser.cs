@@ -1812,7 +1812,6 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				Get();
 				assignTok = t;
 				lhs0 = new IdentifierExpr(lhss[0].Tok, lhss[0].Name);
-				lhs0.Var = lhss[0];  lhs0.Type = lhss[0].OptionalType;  // resolve here
 				
 				Rhs(out r, lhs0);
 				rhss.Add(r); 

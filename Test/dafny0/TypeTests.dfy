@@ -62,6 +62,26 @@ method DuplicateVarName(x: int) returns (y: int)
                // treated like an outermost-scoped local in this regard)
 }
 
+method ScopeTests()
+{
+  var x := x;  // error: the 'x' in the RHS is not in scope
+  var y :| y == y;  // fine, 'y' is in scope in the RHS
+  var z := DuplicateVarName(z);  // error: the 'z' in the RHS is not in scope
+  var w0, w1 := IntTransform(w1), IntTransform(w0);  // errors two
+  var c := new MyClass.Init(null);  // fine
+  var d := new MyClass.Init(c);  // fine
+  var e := new MyClass.Init(e);  // error: the 'e' in the RHS is not in scope
+  e := new MyClass.Init(e);  // fine (no variable is being introduced here)
+  e.c := new MyClass.Init(e);  // also fine
+}
+
+function IntTransform(w: int): int
+
+class MyClass {
+  var c: MyClass;
+  constructor Init(c: MyClass)
+}
+
 // ---------------------
 
 method InitCalls() {

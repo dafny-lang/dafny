@@ -4058,21 +4058,68 @@ namespace Microsoft.Dafny
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, specContextOnly, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
+        // We have three cases.
+        Contract.Assert(s.Update == null || s.Update is UpdateStmt || s.Update is AssignSuchThatStmt);
+        // 0.  There is no .Update.  This is easy, we will just resolve the locals.
+        // 1.  The .Update is an AssignSuchThatStmt.  This is also straightforward:  first
+        //     resolve the locals, which adds them to the scope, and then resolve the .Update.
+        // 2.  The .Update is an UpdateStmt, which, resolved, means either a CallStmt or a bunch
+        //     of parallel AssignStmt's.  Here, the right-hand sides should be resolved before
+        //     the local variables have been added to the scope, but the left-hand sides should
+        //     resolve to the newly introduced variables.
+        // To accommodate these options, we first reach into the UpdateStmt, if any, to resolve
+        // the left-hand sides of the UpdateStmt.  This will have the effect of shielding them
+        // from a subsequent resolution (since expression resolution will do nothing if the .Type
+        // field is already assigned.
+        // Alright, so it is:
+
+        // Resolve the types of the locals
         foreach (var local in s.Locals) {
           ResolveType(local.Tok, local.OptionalType, ResolveTypeOption.InferTypeProxies, null);
           local.type = local.OptionalType;
-          // now that the declaration has been processed, add the name to the scope
-          if (!scope.Push(local.Name, local)) {
-            Error(local.Tok, "Duplicate local-variable name: {0}", local.Name);
-          }
           if (specContextOnly) {
             // a local variable in a specification-only context might as well be ghost
             local.IsGhost = true;
           }
         }
-        if (s.Update != null) {
+        // Resolve the UpdateStmt, if any
+        if (s.Update is UpdateStmt) {
+          var upd = (UpdateStmt)s.Update;
+          // resolve the LHS
+          Contract.Assert(upd.Lhss.Count == s.Locals.Count);
+          for (int i = 0; i < upd.Lhss.Count; i++) {
+            var local = s.Locals[i];
+            var lhs = (IdentifierExpr)upd.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+            Contract.Assert(lhs.Type == null);  // not yet resolved
+            lhs.Var = local;
+            lhs.Type = local.Type;
+          }
+          // there is one more place where a newly declared local may be lurking
+          if (upd.Rhss.Count == 1 && upd.Rhss[0] is TypeRhs) {
+            var rhs = (TypeRhs)upd.Rhss[0];
+            Contract.Assert(s.Locals.Count != 0);  // this is always true of a VarDeclStmt
+            var local = s.Locals[0];
+            if (rhs != null && rhs.ReceiverArgumentForInitCall != null) {
+              var lhs = (IdentifierExpr)rhs.ReceiverArgumentForInitCall;  // as above, we expect this to be an IdentifierExpr, because that's how the parser sets things up
+              Contract.Assert(lhs.Type == null || (upd.Lhss.Count == 1 && upd.Lhss[0] == lhs));  // if it's been resolved before, it's because it's aliased with a Lhss
+              lhs.Var = local;
+              lhs.Type = local.type;
+            }
+          }
+          // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, specContextOnly, codeContext);
         }
+        // Add the locals to the scope
+        foreach (var local in s.Locals) {
+          if (!scope.Push(local.Name, local)) {
+            Error(local.Tok, "Duplicate local-variable name: {0}", local.Name);
+          }
+        }
+        // Resolve the AssignSuchThatStmt, if any
+        if (s.Update is AssignSuchThatStmt) {
+          ResolveConcreteUpdateStmt(s.Update, specContextOnly, codeContext);
+        }
+        // Update the VarDeclStmt's ghost status according to its components
         if (!s.IsGhost) {
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
         }

@@ -2837,6 +2837,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Locals));
+      Contract.Invariant(Locals.Count != 0);
     }
 
     public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
@@ -2845,6 +2846,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(locals != null);
+      Contract.Requires(locals.Count != 0);
 
       Locals = locals;
       Update = update;
