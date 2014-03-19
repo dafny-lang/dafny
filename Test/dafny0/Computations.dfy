@@ -155,8 +155,29 @@ function power(b: int, n: nat): int
 {
   if (n==0) then 1 else b*power(b, n-1)
 }
-
 ghost method test_power()
   ensures power(power(2, 3), 1+power(2, 2))==32768;
 {
+}
+
+function fib(n: nat): nat
+{
+  if (n<2) then n else fib(n-1)+fib(n-2)
+}
+ghost method test_fib()
+  ensures fib(12)==144;
+{
+}
+ghost method test_fib1(k: nat)
+  ensures k==12 ==> fib(k)==144;
+{
+}
+ghost method test_fib2(k: nat)
+  ensures 12<=k && k<=12 ==> fib(k)==144;
+{
+}
+ghost method test_fib3(k: nat, m: nat)
+{
+  var y := 12;
+  assert y <= k && k < y + m && m == 1 ==> fib(k)==144;
 }

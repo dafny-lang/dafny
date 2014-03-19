@@ -2067,7 +2067,7 @@ Dafny program verifier finished with 1 verified, 4 errors
 
 -------------------- Computations.dfy --------------------
 
-Dafny program verifier finished with 49 verified, 0 errors
+Dafny program verifier finished with 58 verified, 0 errors
 
 -------------------- ComputationsNeg.dfy --------------------
 ComputationsNeg.dfy(4,3): Error: failure to decrease termination measure

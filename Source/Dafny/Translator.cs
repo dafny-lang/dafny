@@ -8293,10 +8293,14 @@ namespace Microsoft.Dafny {
           Bpl.Expr e1 = TrExpr(e.E1);
           BinaryOperator.Opcode bOpcode;
           Bpl.Type typ;
+          var oe0 = e0;
+          var oe1 = e1;
           var lit0 = translator.GetLit(e0);
           var lit1 = translator.GetLit(e1);
-          // TODO(namin): Since Boogie knows about Lit, can we keep the Lit when not lifting?
           bool liftLit = lit0 != null && lit1 != null;
+          // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
+          //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
+          bool keepLits = false;
           if (lit0 != null) {
             e0 = lit0;
           }
@@ -8318,6 +8322,7 @@ namespace Microsoft.Dafny {
               bOpcode = BinaryOperator.Opcode.Or; break;
 
             case BinaryExpr.ResolvedOpcode.EqCommon:
+              keepLits = true;
               if (e.E0.Type.IsCoDatatype) {
                 var cot = e.E0.Type.AsCoDatatype;
                 return translator.FunctionCall(expr.tok, "$Eq#" + cot.FullSanitizedName, Bpl.Type.Bool, e0, e1);
@@ -8337,9 +8342,11 @@ namespace Microsoft.Dafny {
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Lt; break;
             case BinaryExpr.ResolvedOpcode.Le:
+              keepLits = true;
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Le; break;
             case BinaryExpr.ResolvedOpcode.Ge:
+              keepLits = true;
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Ge; break;
             case BinaryExpr.ResolvedOpcode.Gt:
@@ -8464,8 +8471,10 @@ namespace Microsoft.Dafny {
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
           }
-
-          Bpl.Expr re = Bpl.Expr.Binary(expr.tok, bOpcode, e0, e1);
+          liftLit = liftLit && !keepLits;
+          var ae0 = keepLits ? oe0 : e0;
+          var ae1 = keepLits ? oe1 : e1;
+          Bpl.Expr re = Bpl.Expr.Binary(expr.tok, bOpcode, ae0, ae1);
           if (liftLit) {
             re = translator.Lit(re, typ);
           }
