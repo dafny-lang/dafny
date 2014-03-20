@@ -488,6 +488,7 @@ axiom (forall<T> x: T :: { $Box(x) } $Unbox($Box(x)) == x);
 axiom (forall b: BoxType :: { $Unbox(b): int } $Box($Unbox(b): int) == b);
 axiom (forall b: BoxType :: { $Unbox(b): ref } $Box($Unbox(b): ref) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Set BoxType } $Box($Unbox(b): Set BoxType) == b);
+axiom (forall b: BoxType :: { $Unbox(b): MultiSet BoxType } $Box($Unbox(b): MultiSet BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Seq BoxType } $Box($Unbox(b): Seq BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): Map BoxType BoxType } $Box($Unbox(b): Map BoxType BoxType) == b);
 axiom (forall b: BoxType :: { $Unbox(b): DatatypeType } $Box($Unbox(b): DatatypeType) == b);
@@ -583,6 +584,16 @@ axiom (forall f: Field BoxType, i: int :: { MultiIndexField(f,i) }
   MultiIndexField_Inverse0(MultiIndexField(f,i)) == f &&
   MultiIndexField_Inverse1(MultiIndexField(f,i)) == i);
 
+axiom (forall h: HeapType, a: ref, j: int ::
+  { $Unbox(read(h, a, IndexField(j))) : ref }
+  $IsGoodHeap(h) &&
+  a != null && read(h, a, alloc) &&
+  0 <= j && j < _System.array.Length(a)
+  // It would be nice also to restrict this axiom to an 'a' whose type is
+  // really a reference type.
+  ==>
+  $Unbox(read(h, a, IndexField(j))) : ref == null ||
+  dtype($Unbox(read(h, a, IndexField(j))) : ref) == TypeParams(a, 0));
 
 function DeclType<T>(Field T): ClassName;
 
@@ -664,12 +675,20 @@ axiom (forall r: ref, f: Field BoxType, h: HeapType ::
 
 axiom (forall h: HeapType, r: ref, j: int ::
  { read(h, r, IndexField(j)) }
- $IsGoodHeap(h) && r != null && read(h, r, alloc)
+ $IsGoodHeap(h) && r != null && read(h, r, alloc) &&
+ 0 <= j && j < _System.array.Length(r)
  ==>
  GenericAlloc(read(h, r, IndexField(j)), h));
 axiom (forall h: HeapType, r: ref, m: Field BoxType, j: int ::
  { read(h, r, MultiIndexField(m, j)) }
  $IsGoodHeap(h) && r != null && read(h, r, alloc)
+ // It would be best also to constrain MultiIndexField(m,j) to produce
+ // a proper field (that is, to refer to an array element within
+ // bounds.  However, since the LengthX fields of multi-dimentional
+ // are produced on the fly, adding them would require more work.
+ // Thus, the model to keep in mind is that MultiIndexField then
+ // produces a field who value, when dereferenced for array 'r',
+ // is a box that has the desired allocation properties.
  ==>
  GenericAlloc(read(h, r, MultiIndexField(m, j)), h));
 

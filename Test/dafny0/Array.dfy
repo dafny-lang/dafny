@@ -258,16 +258,27 @@ class Cdefg<T> {
 
 class MyClass {
   ghost var Repr: set<object>;
+  predicate Valid()
+    reads this, Repr;
 }
 
-method AllocationBusinessA(a: array<MyClass>, j: int)
+method AllocationBusiness0(a: array<MyClass>, j: int)
   requires a != null && 0 <= j < a.Length;
   requires a[j] != null;
 {
   var c := new MyClass;
   assert c !in a[j].Repr;  // the proof requires allocation axioms for arrays
 }
-method AllocationBusinessB(a: array2<MyClass>, i: int, j: int)
+
+method AllocationBusiness1(a: array<MyClass>, j: int)
+  requires a != null && 0 <= j < a.Length;
+  requires a[j] != null && a[j].Valid();
+{
+  var c := new MyClass;
+  assert a[j].Valid();  // the allocation should not have invalidated the validity of a[j]
+}
+
+method AllocationBusiness2(a: array2<MyClass>, i: int, j: int)
   requires a != null && 0 <= i < a.Length0 && 0 <= j < a.Length1;
   requires a[i,j] != null;
 {
