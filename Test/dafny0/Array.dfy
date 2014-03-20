@@ -253,3 +253,24 @@ method Test_ArrayElementLhsOfCall(a: array<int>, i: int, c: Cdefg<int>) returns 
 class Cdefg<T> {
   var t: T;
 }
+
+// ---------- allocation business -----------
+
+class MyClass {
+  ghost var Repr: set<object>;
+}
+
+method AllocationBusinessA(a: array<MyClass>, j: int)
+  requires a != null && 0 <= j < a.Length;
+  requires a[j] != null;
+{
+  var c := new MyClass;
+  assert c !in a[j].Repr;  // the proof requires allocation axioms for arrays
+}
+method AllocationBusinessB(a: array2<MyClass>, i: int, j: int)
+  requires a != null && 0 <= i < a.Length0 && 0 <= j < a.Length1;
+  requires a[i,j] != null;
+{
+  var c := new MyClass;
+  assert c !in a[i,j].Repr;  // the proof requires allocation axioms for multi-dim arrays
+}

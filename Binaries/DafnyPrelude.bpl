@@ -662,6 +662,18 @@ axiom (forall r: ref, f: Field BoxType, h: HeapType ::
   $IsGoodHeap(h) && r != null && read(h, r, alloc) ==>
   GenericAlloc(read(h, r, f), h));
 
+axiom (forall h: HeapType, r: ref, j: int ::
+ { read(h, r, IndexField(j)) }
+ $IsGoodHeap(h) && r != null && read(h, r, alloc)
+ ==>
+ GenericAlloc(read(h, r, IndexField(j)), h));
+axiom (forall h: HeapType, r: ref, m: Field BoxType, j: int ::
+ { read(h, r, MultiIndexField(m, j)) }
+ $IsGoodHeap(h) && r != null && read(h, r, alloc)
+ ==>
+ GenericAlloc(read(h, r, MultiIndexField(m, j)), h));
+
+
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------

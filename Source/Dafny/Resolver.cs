@@ -3670,7 +3670,7 @@ namespace Microsoft.Dafny
 #if !NO_CHEAP_OBJECT_WORKAROUND
       if (a is ObjectType || b is ObjectType) {  // TODO: remove this temporary hack
         var other = a is ObjectType ? b : a;
-        if (other is BoolType || other is IntType || other is RealType || other is SetType || other is SeqType || other.IsDatatype) {
+        if (!other.IsRefType) {
           return false;
         }
         // allow anything else with object; this is BOGUS

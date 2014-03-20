@@ -804,3 +804,25 @@ module GhostLetExpr {
       G(5, xyz)
   }
 }
+
+module ObjectType {
+  type B
+  datatype Dt = Blue | Green
+  codatatype CoDt = Cons(int, CoDt)
+  class MyClass { }
+
+  method M<G>(zz: array<B>, j: int, b: B, co: CoDt, g: G) returns (o: object)
+    requires zz != null && 0 <= j < zz.Length;
+  {
+    o := b;  // error
+    o := 17;  // error
+    o := zz[j];  // error
+    o := null;
+    o := zz;
+    o := new MyClass;
+    o := o;
+    o := g;  // error
+    o := Blue;  // error
+    o := co;  // error
+  }
+}
