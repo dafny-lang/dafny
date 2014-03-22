@@ -3521,21 +3521,62 @@ namespace Microsoft.Dafny
       if (type is BasicType) {
         // nothing to resolve
       } else if (type is MapType) {
-        MapType mt = (MapType)type;
-        ResolveType(tok, mt.Domain, option, defaultTypeArguments);
-        ResolveType(tok, mt.Range, option, defaultTypeArguments);
+        var mt = (MapType)type;
+        int typeArgumentCount = 0;
+        if (mt.HasTypeArg()) {
+          ResolveType(tok, mt.Domain, option, defaultTypeArguments);
+          ResolveType(tok, mt.Range, option, defaultTypeArguments);
+          typeArgumentCount = 2;
+        } else if (option != ResolveTypeOption.DontInfer) {
+          var inferredTypeArgs = new List<Type>();
+          FillInTypeArguments(tok, 2, inferredTypeArgs, defaultTypeArguments, option);
+          Contract.Assert(inferredTypeArgs.Count <= 2);
+          if (inferredTypeArgs.Count != 0) {
+            mt.SetTypeArg(inferredTypeArgs[0]);
+            typeArgumentCount++;
+          }
+          if (inferredTypeArgs.Count == 2) {
+            mt.SetRangetype(inferredTypeArgs[1]);
+            typeArgumentCount++;
+          }
+        }
+        // defaults and auto have been applied; check if we now have the right number of arguments
+        if (2 != typeArgumentCount) {
+          Error(tok, "Wrong number of type arguments ({0} instead of 2) passed to type: {1}", typeArgumentCount, mt.CollectionTypeName);
+          // add proxy types, to make sure that MapType will have have a non-null Arg/Domain and Range
+          if (typeArgumentCount == 0) {
+            mt.SetTypeArg(new InferredTypeProxy());
+          }
+          mt.SetRangetype(new InferredTypeProxy());
+        }
+
         if (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
-        var argType = t.Arg;
-        ResolveType(tok, argType, option, defaultTypeArguments);
-        if (argType.IsSubrangeType) {
+        if (t.HasTypeArg()) {
+          ResolveType(tok, t.Arg, option, defaultTypeArguments);
+        } else if (option != ResolveTypeOption.DontInfer) {
+          var inferredTypeArgs = new List<Type>();
+          FillInTypeArguments(tok, 1, inferredTypeArgs, defaultTypeArguments, option);
+          if (inferredTypeArgs.Count != 0) {
+            Contract.Assert(inferredTypeArgs.Count == 1);
+            t.SetTypeArg(inferredTypeArgs[0]);
+          }
+        }
+        if (!t.HasTypeArg()) {
+          // defaults and auto have been applied; check if we now have the right number of arguments
+          Error(tok, "Wrong number of type arguments (0 instead of 1) passed to type: {0}", t.CollectionTypeName);
+          // add a proxy type, to make sure that CollectionType will have have a non-null Arg
+          t.SetTypeArg(new InferredTypeProxy());
+        }
+
+        if (t.Arg.IsSubrangeType) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
       } else if (type is UserDefinedType) {
-        UserDefinedType t = (UserDefinedType)type;
+        var t = (UserDefinedType)type;
         foreach (Type tt in t.TypeArgs) {
           ResolveType(t.tok, tt, option, defaultTypeArguments);
           if (tt.IsSubrangeType) {
@@ -3596,31 +3637,7 @@ namespace Microsoft.Dafny
             if (option == ResolveTypeOption.DontInfer) {
               // don't add anything
             } else if (d.TypeArgs.Count != t.TypeArgs.Count && t.TypeArgs.Count == 0) {
-              if (option == ResolveTypeOption.InferTypeProxies) {
-                // add type arguments that will be inferred
-                for (int i = 0; i < d.TypeArgs.Count; i++) {
-                  t.TypeArgs.Add(new InferredTypeProxy());
-                }
-              } else if (option == ResolveTypeOption.AllowExact && defaultTypeArguments.Count != d.TypeArgs.Count) {
-                // the number of default arguments is not exactly what we need, so don't add anything
-              } else if (option == ResolveTypeOption.AllowPrefix && defaultTypeArguments.Count < d.TypeArgs.Count) {
-                // there aren't enough default arguments, so don't do anything
-              } else {
-                // we'll add arguments
-                if (option == ResolveTypeOption.AllowPrefixExtend) {
-                  // extend defaultTypeArguments, if needed
-                  for (int i = defaultTypeArguments.Count; i < d.TypeArgs.Count; i++) {
-                    defaultTypeArguments.Add(new TypeParameter(t.tok, "_T" + i));
-                  }
-                }
-                Contract.Assert(d.TypeArgs.Count <= defaultTypeArguments.Count);
-                // automatically supply a prefix of the arguments from defaultTypeArguments
-                for (int i = 0; i < d.TypeArgs.Count; i++) {
-                  var typeArg = new UserDefinedType(t.tok, defaultTypeArguments[i].Name, new List<Type>(), null);
-                  typeArg.ResolvedParam = defaultTypeArguments[i];  // resolve "typeArg" here
-                  t.TypeArgs.Add(typeArg);
-                }
-              }
+              FillInTypeArguments(t.tok, d.TypeArgs.Count, t.TypeArgs, defaultTypeArguments, option);
             }
             // defaults and auto have been applied; check if we now have the right number of arguments
             if (d.TypeArgs.Count != t.TypeArgs.Count) {
@@ -3639,6 +3656,40 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
       return null;
+    }
+
+    /// <summary>
+    /// Adds to "typeArgs" a list of "n" type arguments, possibly extending "defaultTypeArguments".
+    /// </summary>
+    static void FillInTypeArguments(IToken tok, int n, List<Type> typeArgs, List<TypeParameter> defaultTypeArguments, ResolveTypeOption option) {
+      Contract.Requires(tok != null);
+      Contract.Requires(0 <= n);
+      Contract.Requires(typeArgs != null && typeArgs.Count == 0);
+      if (option == ResolveTypeOption.InferTypeProxies) {
+        // add type arguments that will be inferred
+        for (int i = 0; i < n; i++) {
+          typeArgs.Add(new InferredTypeProxy());
+        }
+      } else if (option == ResolveTypeOption.AllowExact && defaultTypeArguments.Count != n) {
+        // the number of default arguments is not exactly what we need, so don't add anything
+      } else if (option == ResolveTypeOption.AllowPrefix && defaultTypeArguments.Count < n) {
+        // there aren't enough default arguments, so don't do anything
+      } else {
+        // we'll add arguments
+        if (option == ResolveTypeOption.AllowPrefixExtend) {
+          // extend defaultTypeArguments, if needed
+          for (int i = defaultTypeArguments.Count; i < n; i++) {
+            defaultTypeArguments.Add(new TypeParameter(tok, "_T" + i));
+          }
+        }
+        Contract.Assert(n <= defaultTypeArguments.Count);
+        // automatically supply a prefix of the arguments from defaultTypeArguments
+        for (int i = 0; i < n; i++) {
+          var typeArg = new UserDefinedType(tok, defaultTypeArguments[i].Name, new List<Type>(), null);
+          typeArg.ResolvedParam = defaultTypeArguments[i];  // resolve "typeArg" here
+          typeArgs.Add(typeArg);
+        }
+      }
     }
 
     public bool UnifyTypes(Type a, Type b) {

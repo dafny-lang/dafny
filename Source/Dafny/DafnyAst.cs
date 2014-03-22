@@ -447,14 +447,36 @@ namespace Microsoft.Dafny {
 
   public abstract class CollectionType : NonProxyType
   {
-    public readonly Type Arg;  // denotes the Domain type for a Map
+    public abstract string CollectionTypeName { get; }
+    public override string TypeName(ModuleDefinition context) {
+      Contract.Ensures(Contract.Result<string>() != null);
+      var targs = HasTypeArg() ? "<" + Arg.TypeName(context) + ">" : "";
+      return CollectionTypeName + targs;
+    }
+    public Type Arg {
+      get {
+        Contract.Ensures(Contract.Result<Type>() != null);  // this is true only after "arg" has really been set (i.e., it follows from the precondition)
+        Contract.Assume(arg != null);  // This is really a precondition.  Don't call Arg until "arg" has been set.
+        return arg;
+      }
+    }  // denotes the Domain type for a Map
+    private Type arg;
+    // The following two methods, HasTypeArg and SetTypeArg, are to be called during resolution to make sure that "arg" becomes set.
+    public bool HasTypeArg() {
+      return arg != null;
+    }
+    public void SetTypeArg(Type arg) {
+      Contract.Requires(arg != null);
+      Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
+      this.arg = arg;
+    }
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Arg != null);
+      // After resolution, the following is invariant:  Contract.Invariant(Arg != null);
+      // However, it may not be true until then.
     }
     public CollectionType(Type arg) {
-      Contract.Requires(arg != null);
-      this.Arg = arg;
+      this.arg = arg;
     }
     public override bool SupportsEquality {
       get {
@@ -465,13 +487,9 @@ namespace Microsoft.Dafny {
 
   public class SetType : CollectionType {
     public SetType(Type arg) : base(arg) {
-      Contract.Requires(arg != null);
     }
+    public override string CollectionTypeName { get { return "set"; } }
     [Pure]
-    public override string TypeName(ModuleDefinition context) {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return "set<" + base.Arg.TypeName(context) + ">";
-    }
     public override bool Equals(Type that) {
       var t = that.Normalize() as SetType;
       return t != null && Arg.Equals(t.Arg);
@@ -481,13 +499,8 @@ namespace Microsoft.Dafny {
   public class MultiSetType : CollectionType
   {
     public MultiSetType(Type arg) : base(arg) {
-      Contract.Requires(arg != null);
     }
-    [Pure]
-    public override string TypeName(ModuleDefinition context) {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return "multiset<" + base.Arg.TypeName(context) + ">";
-    }
+    public override string CollectionTypeName { get { return "multiset"; } }
     public override bool Equals(Type that) {
       var t = that.Normalize() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
@@ -496,14 +509,8 @@ namespace Microsoft.Dafny {
 
   public class SeqType : CollectionType {
     public SeqType(Type arg) : base(arg) {
-      Contract.Requires(arg != null);
-
     }
-    [Pure]
-    public override string TypeName(ModuleDefinition context) {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return "seq<" + base.Arg.TypeName(context) + ">";
-    }
+    public override string CollectionTypeName { get { return "seq"; } }
     public override bool Equals(Type that) {
       var t = that.Normalize() as SeqType;
       return t != null && Arg.Equals(t.Arg);
@@ -511,22 +518,30 @@ namespace Microsoft.Dafny {
   }
   public class MapType : CollectionType
   {
-    public Type Range;
+    public Type Range { get { return range; } }
+    private Type range;
+    public void SetRangetype(Type range) {
+      Contract.Requires(range != null);
+      Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
+      this.range = range;
+    }
     public MapType(Type domain, Type range) : base(domain) {
-      Contract.Requires(domain != null && range != null);
-      Range = range;
+      Contract.Requires((domain == null && range == null) || (domain != null && range != null));
+      this.range = range;
     }
     public Type Domain {
       get { return Arg; }
     }
+    public override string CollectionTypeName { get { return "map"; } }
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      return "map<" + Domain.TypeName(context) + ", " + Range.TypeName(context) + ">";
+      var targs = HasTypeArg() ? "<" + Domain.TypeName(context) + ", " + Range.TypeName(context) + ">" : "";
+      return CollectionTypeName + targs;
     }
     public override bool Equals(Type that) {
       var t = that.Normalize() as MapType;
-      return t != null && Arg.Equals(t.Arg);
+      return t != null && Arg.Equals(t.Arg) && Range.Equals(t.Range);
     }
   }
 
