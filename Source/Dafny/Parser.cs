@@ -1147,44 +1147,56 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		case 56: {
 			Get();
 			tok = t;  gt = new List<Type/*!*/>(); 
-			GenericInstantiation(gt);
-			if (gt.Count != 1) {
-			 SemErr("set type expects exactly one type argument");
+			if (la.kind == 38) {
+				GenericInstantiation(gt);
 			}
-			ty = new SetType(gt[0]);
+			if (gt.Count > 1) {
+			 SemErr("set type expects only one type argument");
+			}
+			ty = new SetType(gt.Count == 1 ? gt[0] : null);
 			
 			break;
 		}
 		case 57: {
 			Get();
 			tok = t;  gt = new List<Type/*!*/>(); 
-			GenericInstantiation(gt);
-			if (gt.Count != 1) {
-			 SemErr("multiset type expects exactly one type argument");
+			if (la.kind == 38) {
+				GenericInstantiation(gt);
 			}
-			ty = new MultiSetType(gt[0]);
+			if (gt.Count > 1) {
+			 SemErr("multiset type expects only one type argument");
+			}
+			ty = new MultiSetType(gt.Count == 1 ? gt[0] : null);
 			
 			break;
 		}
 		case 58: {
 			Get();
 			tok = t;  gt = new List<Type/*!*/>(); 
-			GenericInstantiation(gt);
-			if (gt.Count != 1) {
-			 SemErr("seq type expects exactly one type argument");
+			if (la.kind == 38) {
+				GenericInstantiation(gt);
 			}
-			ty = new SeqType(gt[0]);
+			if (gt.Count > 1) {
+			 SemErr("seq type expects only one type argument");
+			}
+			ty = new SeqType(gt.Count == 1 ? gt[0] : null);
 			
 			break;
 		}
 		case 59: {
 			Get();
 			tok = t;  gt = new List<Type/*!*/>(); 
-			GenericInstantiation(gt);
-			if (gt.Count != 2) {
-			 SemErr("map type expects exactly two type arguments");
+			if (la.kind == 38) {
+				GenericInstantiation(gt);
 			}
-			else { ty = new MapType(gt[0], gt[1]); }
+			if (gt.Count == 0) {
+			 ty = new MapType(null, null);
+			} else if (gt.Count != 2) {
+			 SemErr("map type expects two type arguments");
+			 ty = new MapType(gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
+			} else {
+			 ty = new MapType(gt[0], gt[1]);
+			}
 			
 			break;
 		}

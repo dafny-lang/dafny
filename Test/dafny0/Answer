@@ -1244,7 +1244,7 @@ Execution trace:
     TypeParameters.dfy(174,3): anon21_Else
     TypeParameters.dfy(174,3): anon23_Else
 
-Dafny program verifier finished with 50 verified, 8 errors
+Dafny program verifier finished with 58 verified, 8 errors
 
 -------------------- Datatypes.dfy --------------------
 Datatypes.dfy(294,10): Error BP5003: A postcondition might not hold on this return path.

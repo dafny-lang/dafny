@@ -267,3 +267,54 @@ ghost method ammeLtsiL_int(xs: List<int>, ys: List<int>)
 {
   assert forall x :: InList(x, xs) ==> InList(x, ys);
 }
+
+// -------------- auto filled-in type arguments for collection types ------
+
+function length(xs: List): nat
+{
+  match xs
+  case Nil => 0
+  case Cons(_, tail) => 1 + length(tail)
+}
+
+function elems(xs: List): set
+{
+  match xs
+  case Nil => {}
+  case Cons(x, tail) => {x} + elems(tail)
+}
+
+function Card(s: set): nat
+{
+  |s|
+}
+
+function Identity(s: set): set
+{
+  s
+}
+
+function MultisetToSet(m: multiset): set
+{
+  if |m| == 0 then {} else
+  var x :| x in m; MultisetToSet(m - multiset{x}) + {x}
+}
+
+function SeqToSet(q: seq): set
+{
+  if q == [] then {} else {q[0]} + SeqToSet(q[1..])
+}
+
+datatype Pair<T(==),U(==)> = MkPair(0: T, 1: U)
+
+method IdentityMap(s: set<Pair>) returns (m: map)
+{
+  m := map[];
+  var s := s;
+  while s != {}
+    decreases s;
+  {
+    var p :| p in s;
+    m, s := m[p.0 := p.1], s - {p};
+  }
+}
