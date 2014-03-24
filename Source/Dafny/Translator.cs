@@ -3574,7 +3574,9 @@ namespace Microsoft.Dafny {
         Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
-          LocalVariable local = new LocalVariable(p.tok, p.tok, p.Name, p.Type, p.IsGhost);
+          // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
+          // to BVD what this variable stands for and display it as such to the user.
+          LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, p.Type, p.IsGhost);
           local.type = local.OptionalType;  // resolve local here
           IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration));
           ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
