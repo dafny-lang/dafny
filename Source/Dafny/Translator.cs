@@ -3121,6 +3121,10 @@ namespace Microsoft.Dafny {
         return total;
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        if (e.ResolvedUpdateExpr != null)
+        {
+          return CanCallAssumption(e.ResolvedUpdateExpr, etran);
+        }
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         Bpl.Expr index = etran.TrExpr(e.Index);
@@ -3543,21 +3547,35 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        CheckWellformed(e.Seq, options, locals, builder, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        Bpl.Expr index = etran.TrExpr(e.Index);
-        Bpl.Expr value = etran.TrExpr(e.Value);
-        CheckWellformed(e.Index, options, locals, builder, etran);
-        if (e.Seq.Type is SeqType) {
-          builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range", options.AssertKv));
-        } else if (e.Seq.Type is MapType) {          
-          // updates to maps are always valid if the values are well formed
-        } else if (e.Seq.Type is MultiSetType) {
-          builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
-        } else {
-          Contract.Assert(false);
+        if (e.ResolvedUpdateExpr != null)
+        {
+          CheckWellformedWithResult(e.ResolvedUpdateExpr, options, result, resultType, locals, builder, etran);
         }
-        CheckWellformed(e.Value, options, locals, builder, etran);
+        else
+        {
+          CheckWellformed(e.Seq, options, locals, builder, etran);
+          Bpl.Expr seq = etran.TrExpr(e.Seq);
+          Bpl.Expr index = etran.TrExpr(e.Index);
+          Bpl.Expr value = etran.TrExpr(e.Value);
+          CheckWellformed(e.Index, options, locals, builder, etran);
+          if (e.Seq.Type is SeqType)
+          {
+            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range", options.AssertKv));
+          }
+          else if (e.Seq.Type is MapType)
+          {
+            // updates to maps are always valid if the values are well formed
+          }
+          else if (e.Seq.Type is MultiSetType)
+          {
+            builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
+          }
+          else
+          {
+            Contract.Assert(false);
+          }
+          CheckWellformed(e.Value, options, locals, builder, etran);
+        }
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
@@ -8127,26 +8145,40 @@ namespace Microsoft.Dafny {
 
         } else if (expr is SeqUpdateExpr) {
           SeqUpdateExpr e = (SeqUpdateExpr)expr;
-          Bpl.Expr seq = TrExpr(e.Seq);
-          if (e.Seq.Type is SeqType) {
-            Type elmtType = cce.NonNull((SeqType)e.Seq.Type).Arg;
-            Bpl.Expr index = TrExpr(e.Index);
-            Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
-            return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
-          } else if (e.Seq.Type is MapType) {
-            MapType mt = (MapType)e.Seq.Type;
-            Bpl.Type maptype = predef.MapType(expr.tok, predef.BoxType, predef.BoxType);
-            Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
-            Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
-            return translator.FunctionCall(expr.tok, "Map#Build", maptype, seq, index, val);
-          } else if (e.Seq.Type is MultiSetType) {
-            Type elmtType = cce.NonNull((MultiSetType)e.Seq.Type).Arg;
-            Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), elmtType);
-            Bpl.Expr val = TrExpr(e.Value);
-            return Bpl.Expr.StoreTok(expr.tok, seq, index, val);
-          } else {
-            Contract.Assert(false);
-            throw new cce.UnreachableException();
+          if (e.ResolvedUpdateExpr != null)
+          {
+            return TrExpr(e.ResolvedUpdateExpr);
+          }
+          else
+          {
+            Bpl.Expr seq = TrExpr(e.Seq);
+            if (e.Seq.Type is SeqType)
+            {
+              Type elmtType = cce.NonNull((SeqType)e.Seq.Type).Arg;
+              Bpl.Expr index = TrExpr(e.Index);
+              Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
+              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
+            }
+            else if (e.Seq.Type is MapType)
+            {
+              MapType mt = (MapType)e.Seq.Type;
+              Bpl.Type maptype = predef.MapType(expr.tok, predef.BoxType, predef.BoxType);
+              Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
+              Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
+              return translator.FunctionCall(expr.tok, "Map#Build", maptype, seq, index, val);
+            }
+            else if (e.Seq.Type is MultiSetType)
+            {
+              Type elmtType = cce.NonNull((MultiSetType)e.Seq.Type).Arg;
+              Bpl.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), elmtType);
+              Bpl.Expr val = TrExpr(e.Value);
+              return Bpl.Expr.StoreTok(expr.tok, seq, index, val);
+            }
+            else
+            {
+              Contract.Assert(false);
+              throw new cce.UnreachableException();
+            }
           }
         } else if (expr is MultiSelectExpr) {
           MultiSelectExpr e = (MultiSelectExpr)expr;
@@ -10464,11 +10496,19 @@ namespace Microsoft.Dafny {
 
         } else if (expr is SeqUpdateExpr) {
           SeqUpdateExpr sse = (SeqUpdateExpr)expr;
-          Expression seq = Substitute(sse.Seq);
-          Expression index = Substitute(sse.Index);
-          Expression val = Substitute(sse.Value);
-          if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
-            newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
+          if (sse.ResolvedUpdateExpr != null)
+          {
+            newExpr = Substitute(sse.ResolvedUpdateExpr);
+          }
+          else
+          {
+            Expression seq = Substitute(sse.Seq);
+            Expression index = Substitute(sse.Index);
+            Expression val = Substitute(sse.Value);
+            if (seq != sse.Seq || index != sse.Index || val != sse.Value)
+            {
+              newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
+            }
           }
 
         } else if (expr is MultiSelectExpr) {

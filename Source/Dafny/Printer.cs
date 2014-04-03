@@ -1227,20 +1227,26 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        // determine if parens are needed
-        int opBindingStrength = 0x70;
-        bool parensNeeded = opBindingStrength < contextBindingStrength ||
-          (fragileContext && opBindingStrength == contextBindingStrength);
+        if (e.ResolvedUpdateExpr != null)
+        {
+          PrintExpr(e.ResolvedUpdateExpr, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
+        }
+        else
+        {
+          // determine if parens are needed
+          int opBindingStrength = 0x70;
+          bool parensNeeded = opBindingStrength < contextBindingStrength ||
+            (fragileContext && opBindingStrength == contextBindingStrength);
 
-        if (parensNeeded) { wr.Write("("); }
-        PrintExpr(e.Seq, 00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
-        wr.Write("[");
-        PrintExpression(e.Index, false);
-        wr.Write(" := ");
-        PrintExpression(e.Value, false);
-        wr.Write("]");
-        if (parensNeeded) { wr.Write(")"); }
-
+          if (parensNeeded) { wr.Write("("); }
+          PrintExpr(e.Seq, 00, false, false, !parensNeeded && isFollowedBySemicolon, indent);  // BOGUS: fix me
+          wr.Write("[");
+          PrintExpression(e.Index, false);
+          wr.Write(" := ");
+          PrintExpression(e.Value, false);
+          wr.Write("]");
+          if (parensNeeded) { wr.Write(")"); }
+        }
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         // determine if parens are needed

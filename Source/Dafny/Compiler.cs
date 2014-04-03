@@ -2067,12 +2067,19 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        TrParenExpr(e.Seq);
-        wr.Write(".Update(");
-        TrExpr(e.Index);
-        wr.Write(", ");
-        TrExpr(e.Value);
-        wr.Write(")");
+        if (e.ResolvedUpdateExpr != null)
+        {
+          TrExpr(e.ResolvedUpdateExpr);
+        }
+        else
+        {
+          TrParenExpr(e.Seq);
+          wr.Write(".Update(");
+          TrExpr(e.Index);
+          wr.Write(", ");
+          TrExpr(e.Value);
+          wr.Write(")");
+        }
 
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;

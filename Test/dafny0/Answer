@@ -2148,6 +2148,10 @@ Execution trace:
 
 Dafny program verifier finished with 52 verified, 8 errors
 
+-------------------- DatatypeUpdate.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...
