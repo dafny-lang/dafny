@@ -410,8 +410,13 @@ axiom (forall<T> s: Seq T, i: int, j: int ::
   0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
 
 // Additional axioms about common things
-axiom Seq#Take(Seq#Empty(): Seq BoxType, 0) == Seq#Empty();  // [][..0] == []
-axiom Seq#Drop(Seq#Empty(): Seq BoxType, 0) == Seq#Empty();  // [][0..] == []
+axiom (forall<T> s: Seq T, n: int :: { Seq#Drop(s, n) }
+  n == 0 ==> Seq#Drop(s, n) == s);
+axiom (forall<T> s: Seq T, n: int :: { Seq#Take(s, n) }
+  n == 0 ==> Seq#Take(s, n) == Seq#Empty());
+axiom (forall<T> s: Seq T, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
+  0 <= m && 0 <= n && m+n <= Seq#Length(s) ==>
+  Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m+n));
 
 // ---------------------------------------------------------------
 // -- Axiomatization of Maps -------------------------------------

@@ -1,4 +1,4 @@
-module TotalOrder {
+abstract module TotalOrder {
   type T // the type to be compared
   static predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b
   // Three properties of total orders.  Here, they are given as unproved
@@ -13,7 +13,7 @@ module TotalOrder {
     ensures Leq(a, b) || Leq(b, a);
 }
 
-module Sort {
+abstract module Sort {
   import O as TotalOrder  // let O denote some module that has the members of TotalOrder
 
   static predicate Sorted(a: array<O.T>, low: int, high: int)
@@ -141,5 +141,7 @@ module Client {
      assert IntSort.O.Leq(a[1], a[2]);  // lemma
      assert IntSort.O.Leq(a[2], a[3]);  // lemma
      assert a[..] == [I.T.Int(0), I.T.Int(1), I.T.Int(4), I.T.Int(6)];
+     // why not print out the result!
+     print a[..], "\n";
   }
 }
