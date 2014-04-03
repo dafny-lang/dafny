@@ -368,8 +368,8 @@ namespace DafnyLanguage
       List<SnapshotSpan> pre;
       List<SnapshotSpan> post;
       lock (this) {
-        pre = bufferChangesPreVerificationStart;
-        post = bufferChangesPostVerificationStart;
+        pre = bufferChangesPreVerificationStart.ToList();
+        post = bufferChangesPostVerificationStart.ToList();
       }
 
       // If the requested snapshot isn't the same as the one our words are on, translate our spans to the expected snapshot
