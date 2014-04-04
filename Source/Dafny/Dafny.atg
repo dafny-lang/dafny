@@ -1466,17 +1466,27 @@ ModifyStmt<out Statement s>
      Attributes attrs = null;
      FrameExpression fe;  var mod = new List<FrameExpression>();
      BlockStmt body = null;  IToken bodyStart;
+     IToken ellipsisToken = null;
   .)
   "modify"           (. tok = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
+  /* Note, there is an ambiguity here, because a curly brace may look like a FrameExpression and
+   * may also look like a BlockStmt.  We're happy to parse the former, because if the user intended
+   * the latter, then an explicit FrameExpression of {} could be given.
+   */
   [ FrameExpression<out fe>         (. mod.Add(fe); .)
     { "," FrameExpression<out fe>   (. mod.Add(fe); .)
     }
+  | "..."                           (. ellipsisToken = t; .)
   ]
   ( BlockStmt<out body, out bodyStart, out endTok>
   | SYNC ";"         (. endTok = t; .)
   )
-  (. s = new ModifyStmt(tok, endTok, mod, attrs, body); .)
+  (. s = new ModifyStmt(tok, endTok, mod, attrs, body);
+     if (ellipsisToken != null) {
+       s = new SkeletonStmt(s, ellipsisToken, null);
+     }
+  .)
   .
 
 CalcStmt<out Statement/*!*/ s>

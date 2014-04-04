@@ -53,6 +53,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static string FrameExprListToString(List<FrameExpression> fexprs) {
+      Contract.Requires(fexprs != null);
+      using (var wr = new System.IO.StringWriter()) {
+        var pr = new Printer(wr);
+        pr.PrintFrameExpressionList(fexprs);
+        return wr.ToString();
+      }
+    }
+
     public static string StatementToString(Statement stmt) {
       Contract.Requires(stmt != null);
       using (var wr = new System.IO.StringWriter()) {
@@ -728,24 +737,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
-        wr.Write("modify");
-        PrintAttributes(s.Mod.Attributes);
-        wr.Write(" ");
-        PrintFrameExpressionList(s.Mod.Expressions);
-        if (s.Body != null) {
-          // There's a possible syntactic ambiguity, namely if the frame is empty (more precisely,
-          // if s.Mod.Expressions.Count is 0).  Since the statement was parsed at some point, this
-          // situation can occur only if the modify statement inherited its frame by refinement
-          // and we're printing the post-resolve AST.  In this special case, print an explicit
-          // empty set as the frame.
-          if (s.Mod.Expressions.Count == 0) {
-            wr.Write(" {}");
-          }
-          wr.Write(" ");
-          PrintStatement(s.Body, indent);
-        } else {
-          wr.Write(";");
-        }
+        PrintModifyStmt(indent, s, false);
 
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
@@ -861,12 +853,43 @@ namespace Microsoft.Dafny {
           PrintIfStatement(indent, (IfStmt)s.S, s.ConditionOmitted);
         } else if (s.S is WhileStmt) {
           PrintWhileStatement(indent, (WhileStmt)s.S, s.ConditionOmitted, s.BodyOmitted);
+        } else if (s.S is ModifyStmt) {
+          PrintModifyStmt(indent, (ModifyStmt)s.S, true);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected skeleton statement
         }
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    private void PrintModifyStmt(int indent, ModifyStmt s, bool omitFrame) {
+      Contract.Requires(0 <= indent);
+      Contract.Requires(s != null);
+      Contract.Requires(!omitFrame || s.Mod.Expressions.Count == 0);
+
+      wr.Write("modify");
+      PrintAttributes(s.Mod.Attributes);
+      wr.Write(" ");
+      if (omitFrame) {
+        wr.Write("...");
+      } else {
+        PrintFrameExpressionList(s.Mod.Expressions);
+      }
+      if (s.Body != null) {
+        // There's a possible syntactic ambiguity, namely if the frame is empty (more precisely,
+        // if s.Mod.Expressions.Count is 0).  Since the statement was parsed at some point, this
+        // situation can occur only if the modify statement inherited its frame by refinement
+        // and we're printing the post-resolve AST.  In this special case, print an explicit
+        // empty set as the frame.
+        if (s.Mod.Expressions.Count == 0) {
+          wr.Write(" {}");
+        }
+        wr.Write(" ");
+        PrintStatement(s.Body, indent);
+      } else {
+        wr.Write(";");
       }
     }
 

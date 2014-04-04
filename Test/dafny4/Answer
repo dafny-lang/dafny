@@ -37,3 +37,7 @@ Dafny program verifier finished with 16 verified, 0 errors
 -------------------- ACL2-extractor.dfy --------------------
 
 Dafny program verifier finished with 33 verified, 0 errors
+
+-------------------- ClassRefinement.dfy --------------------
+
+Dafny program verifier finished with 18 verified, 0 errors

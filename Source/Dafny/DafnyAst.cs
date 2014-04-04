@@ -3860,6 +3860,10 @@ namespace Microsoft.Dafny {
   ///   ConditionOmitted == true && BodyOmitted == true
   /// * while ... invariant J; { Stmt }
   ///   ConditionOmitted == true && BodyOmitted == false
+  /// * modify ...;
+  ///   ConditionOmitted == true && BodyOmitted == false
+  /// * modify ... { Stmt }
+  ///   ConditionOmitted == true && BodyOmitted == false
   /// </summary>
   public class SkeletonStatement : Statement
   {

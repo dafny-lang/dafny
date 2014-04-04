@@ -875,32 +875,36 @@ namespace Microsoft.Dafny
         } else {
           var oldS = oldStmt.Body[j];
           /* See how the two statements match up.
-           *   cur                         oldS                         result
+           *   oldS                         cur                         result
            *   ------                      ------                       ------
-           *   assert ...;                 assume E;                    assert E;
-           *   assert ...;                 assert E;                    assert E;
+           *   assume E;                    assert ...;                 assert E;
+           *   assert E;                    assert ...;                 assert E;
            *   assert E;                                                assert E;
            *   
-           *   assume ...;                 assume E;                    assume E;
+           *   assume E;                    assume ...;                 assume E;
            *   
-           *   var x := E;                 var x;                       var x := E;
-           *   var x := E;                 var x := *;                  var x := E;
-           *   var x := E1;                var x :| P;                  var x := E1; assert P;
+           *   var x;                       var x := E;                 var x := E;
+           *   var x := *;                  var x := E;                 var x := E;
+           *   var x :| P;                  var x := E1;                var x := E1; assert P;
            *   var VarProduction;                                       var VarProduction;
            *   
-           *   x := E;                     x := *;                      x := E;
-           *   x := E;                     x :| P;                      x := E; assert P;
+           *   x := *;                      x := E;                     x := E;
+           *   x :| P;                      x := E;                     x := E; assert P;
            *   
-           *   if ... Then else Else       if (G) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
-           *   if (G) Then else Else       if (*) Then' else Else'      if (G) Merge(Then,Then') else Merge(Else,Else')
+           *   modify E;                    modify ...;                 modify E;
+           *   modify E;                    modify ... { S }            modify E { S }
+           *   modify E { S }               modify ... { S' }           modify E { Merge(S, S') }
            *
-           *   while ... LoopSpec ...      while (G) LoopSpec' Body     while (G) Merge(LoopSpec,LoopSpec') Body
-           *   while ... LoopSpec Body     while (G) LoopSpec' Body'    while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
-           *   while (G) LoopSpec ...      while (*) LoopSpec' Body     while (G) Merge(LoopSpec,LoopSpec') Body
-           *   while (G) LoopSpec Body     while (*) LoopSpec' Body'    while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   if (G) Then' else Else'      if ... Then else Else       if (G) Merge(Then,Then') else Merge(Else,Else')
+           *   if (*) Then' else Else'      if (G) Then else Else       if (G) Merge(Then,Then') else Merge(Else,Else')
            *   
-           *   ... where x = e; S          StmtThatDoesNotMatchS; S'    StatementThatDoesNotMatchS[e/x]; Merge( ... where x = e; S , S')
-           *   ... where x = e; S          StmtThatMatchesS; S'         StmtThatMatchesS; S'
+           *   while (G) LoopSpec' Body     while ... LoopSpec ...      while (G) Merge(LoopSpec,LoopSpec') Body
+           *   while (G) LoopSpec' Body'    while ... LoopSpec Body     while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   while (*) LoopSpec' Body     while (G) LoopSpec ...      while (G) Merge(LoopSpec,LoopSpec') Body
+           *   while (*) LoopSpec' Body'    while (G) LoopSpec Body     while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
+           *   
+           *   StmtThatDoesNotMatchS; S'    ... where x = e; S          StatementThatDoesNotMatchS[e/x]; Merge( ... where x = e; S , S')
+           *   StmtThatMatchesS; S'         ... where x = e; S          StmtThatMatchesS; S'
            * 
            * Note, LoopSpec must contain only invariant declarations (as the parser ensures for the first three cases).
            * Note, there is an implicit "...;" at the end of every block in a skeleton.
@@ -1023,6 +1027,31 @@ namespace Microsoft.Dafny
                 // which has the same merging behavior.
                 var r = MergeWhileStmt(skel, oldWhile, guard);
                 body.Add(r);
+                i++; j++;
+              }
+
+            } else if (S is ModifyStmt) {
+              var skel = (ModifyStmt)S;
+              Contract.Assert(c.ConditionOmitted);
+              var oldModifyStmt = oldS as ModifyStmt;
+              if (oldModifyStmt == null) {
+                reporter.Error(cur.Tok, "modify template does not match inherited statement");
+                i++;
+              } else {
+                var mod = refinementCloner.CloneSpecFrameExpr(oldModifyStmt.Mod);
+                BlockStmt mbody;
+                if (oldModifyStmt.Body == null && skel.Body == null) {
+                  mbody = null;
+                } else if (oldModifyStmt.Body == null) {
+                  mbody = oldModifyStmt.Body;
+                } else if (skel.Body == null) {
+                  reporter.Error(cur.Tok, "modify template must have a body if the inherited modify statement does");
+                  mbody = null;
+                } else {
+                  mbody = MergeBlockStmt(skel.Body, oldModifyStmt.Body);
+                }
+                body.Add(new ModifyStmt(skel.Tok, skel.EndTok, mod.Expressions, mod.Attributes, mbody));
+                ReportAdditionalInformation(c.ConditionEllipsis, Printer.FrameExprListToString(mod.Expressions), 3);
                 i++; j++;
               }
 
