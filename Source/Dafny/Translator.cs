@@ -5598,6 +5598,9 @@ namespace Microsoft.Dafny {
           } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
             var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
             yield return bnd.UpperBound;
+          } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
+            var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
+            yield return bnd.LowerBound;
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var st = ((ComprehensionExpr.SetBoundedPool)bound).Set.Resolved;
             if (st is DisplayExpression) {

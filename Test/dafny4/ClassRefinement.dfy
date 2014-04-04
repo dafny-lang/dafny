@@ -21,7 +21,6 @@ module M0 {
       ensures Valid() && fresh(Repr - {this});
     {
       Repr := {};
-      assert {this} <= {this} && fresh({this} - {this});
       ghost var repr :| {this} <= repr && fresh(repr - {this});
       N, Repr := 0, repr;
     }
