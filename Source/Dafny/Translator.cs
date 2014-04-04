@@ -5233,20 +5233,26 @@ namespace Microsoft.Dafny {
         int modifyId = loopHeapVarCount;
         loopHeapVarCount++;
         string modifyFrameName = "#_Frame#" + modifyId;
-        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, modifyFrameName);
         var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap" + modifyId, predef.HeapType));
         locals.Add(preModifyHeapVar);
-        var preModifyHeap = new Bpl.IdentifierExpr(s.Tok, preModifyHeapVar);
-        // preModifyHeap := $Heap;
-        builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preModifyHeap, etran.HeapExpr));
-        // havoc $Heap;
-        builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
-        // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
-        builder.Add(new Bpl.AssumeCmd(s.Tok, FunctionCall(s.Tok, s.IsGhost ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, preModifyHeap, etran.HeapExpr)));
-        // assume nothing outside the frame was changed
-        var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
-        var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
-        builder.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, modifyFrameName);
+        if (s.Body == null) {
+          var preModifyHeap = new Bpl.IdentifierExpr(s.Tok, preModifyHeapVar);
+          // preModifyHeap := $Heap;
+          builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preModifyHeap, etran.HeapExpr));
+          // havoc $Heap;
+          builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+          // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
+          builder.Add(new Bpl.AssumeCmd(s.Tok, FunctionCall(s.Tok, s.IsGhost ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, preModifyHeap, etran.HeapExpr)));
+          // assume nothing outside the frame was changed
+          var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
+          var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+          builder.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        } else {
+          // do the body, but with preModifyHeapVar as the governing frame
+          var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+          TrStmt(s.Body, builder, locals, updatedFrameEtran);
+        }
         builder.Add(CaptureState(stmt));
 
       } else if (stmt is ForallStmt) {

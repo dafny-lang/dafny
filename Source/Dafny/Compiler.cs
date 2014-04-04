@@ -1564,7 +1564,10 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ModifyStmt) {
-        // do nothing
+        var s = (ModifyStmt)stmt;
+        if (s.Body != null) {
+          TrStmt(s.Body, indent);
+        }
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

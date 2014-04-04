@@ -490,7 +490,8 @@ namespace Microsoft.Dafny
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         var mod = CloneSpecFrameExpr(s.Mod);
-        r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes);
+        var body = s.Body == null ? null : CloneBlockStmt(s.Body);
+        r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes, body);
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

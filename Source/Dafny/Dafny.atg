@@ -1462,8 +1462,10 @@ ForallStmt<out Statement/*!*/ s>
   .
 
 ModifyStmt<out Statement s>
-= (. IToken tok;  FrameExpression fe;  var mod = new List<FrameExpression>();
+= (. IToken tok;  IToken endTok = Token.NoToken;
      Attributes attrs = null;
+     FrameExpression fe;  var mod = new List<FrameExpression>();
+     BlockStmt body = null;  IToken bodyStart;
   .)
   "modify"           (. tok = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
@@ -1471,7 +1473,10 @@ ModifyStmt<out Statement s>
     { "," FrameExpression<out fe>   (. mod.Add(fe); .)
     }
   ]
-  SYNC ";"           (. s = new ModifyStmt(tok, t, mod, attrs); .)
+  ( BlockStmt<out body, out bodyStart, out endTok>
+  | SYNC ";"         (. endTok = t; .)
+  )
+  (. s = new ModifyStmt(tok, endTok, mod, attrs, body); .)
   .
 
 CalcStmt<out Statement/*!*/ s>

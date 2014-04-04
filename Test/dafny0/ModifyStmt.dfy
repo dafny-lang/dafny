@@ -158,3 +158,62 @@ class MyClass {
     }
   }
 }
+
+class ModifyBody {
+  var x: int;
+  var y: int;
+  method M0()
+    modifies this;
+  {
+    modify {} {
+      x := 3;  // error: violates modifies clause of the modify statement
+    }
+  }
+  method M1()
+    modifies this;
+  {
+    modify {} {
+      var o := new ModifyBody;
+      o.x := 3;  // fine
+    }
+  }
+  method M2()
+    modifies this;
+  {
+    modify this {
+      x := 3;
+    }
+  }
+  method M3(o: ModifyBody, p: ModifyBody)
+    modifies this, o, p;
+  {
+    modify {this, o, p} {
+      modify this, o;
+      modify o, this {
+        modify o {
+          modify o;
+          modify {} {
+            modify {};
+          }
+        }
+      }
+    }
+  }
+  method P0()
+    modifies this;
+  {
+   var xx := x;
+    modify this;
+    assert xx == x;  // error
+  }
+  method P1()
+    modifies this;
+  {
+   var xx := x;
+    modify this {
+      y := 3;
+    }
+    assert xx == x;  // fine, because the modify body trumps the modify frame
+  }
+}
+

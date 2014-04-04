@@ -2197,8 +2197,14 @@ ModifyStmt.dfy(157,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
+ModifyStmt.dfy(169,7): Error: assignment may update an object not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(207,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 23 verified, 10 errors
+Dafny program verifier finished with 33 verified, 12 errors
 
 -------------------- Superposition.dfy --------------------
 

@@ -1980,6 +1980,10 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is AssignStmt) {
       } else if (stmt is ModifyStmt) {
+        var s = (ModifyStmt)stmt;
+        if (s.Body != null) {
+          return CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method == enclosingMethod) {
@@ -3074,28 +3078,20 @@ namespace Microsoft.Dafny
       if (t is CollectionType) {
         t = ((CollectionType)t).Arg;
       }
-      if (t is ObjectType) {
-        // fine, as long as there's no field name
-        if (fe.FieldName != null) {
-          Error(fe.E, "type '{0}' does not contain a field named '{1}'", t, fe.FieldName);
-        }
-      } else if (UserDefinedType.DenotesClass(t) != null) {
-        // fine type
-        if (fe.FieldName != null) {
-          NonProxyType nptype;
-          MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out nptype);
-          UserDefinedType ctype = (UserDefinedType)nptype;  // correctness of cast follows from the DenotesClass test above
-          if (member == null) {
-            // error has already been reported by ResolveMember
-          } else if (!(member is Field)) {
-            Error(fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, cce.NonNull(ctype).Name);
-          } else {
-            Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
-            fe.Field = (Field)member;
-          }
-        }
-      } else {
+      if (!UnifyTypes(t, new ObjectTypeProxy())) {
         Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", kind, fe.E.Type);
+      } else if (fe.FieldName != null) {
+        NonProxyType nptype;
+        MemberDecl member = ResolveMember(fe.E.tok, t, fe.FieldName, out nptype);
+        UserDefinedType ctype = (UserDefinedType)nptype;  // correctness of cast follows from the DenotesClass test above
+        if (member == null) {
+          // error has already been reported by ResolveMember
+        } else if (!(member is Field)) {
+          Error(fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, cce.NonNull(ctype).Name);
+        } else {
+          Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
+          fe.Field = (Field)member;
+        }
       }
     }
 
@@ -4479,6 +4475,9 @@ namespace Microsoft.Dafny
         foreach (FrameExpression fe in s.Mod.Expressions) {
           // (yes, say "modifies", not "modify", in the next line -- it seems to give a more readable error message
           ResolveFrameExpression(fe, "modifies", codeContext);
+        }
+        if (s.Body != null) {
+          ResolveBlockStatement(s.Body, specContextOnly, codeContext);
         }
         s.IsGhost = specContextOnly;
 

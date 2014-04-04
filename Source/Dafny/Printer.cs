@@ -732,7 +732,20 @@ namespace Microsoft.Dafny {
         PrintAttributes(s.Mod.Attributes);
         wr.Write(" ");
         PrintFrameExpressionList(s.Mod.Expressions);
-        wr.Write(";");
+        if (s.Body != null) {
+          // There's a possible syntactic ambiguity, namely if the frame is empty (more precisely,
+          // if s.Mod.Expressions.Count is 0).  Since the statement was parsed at some point, this
+          // situation can occur only if the modify statement inherited its frame by refinement
+          // and we're printing the post-resolve AST.  In this special case, print an explicit
+          // empty set as the frame.
+          if (s.Mod.Expressions.Count == 0) {
+            wr.Write(" {}");
+          }
+          wr.Write(" ");
+          PrintStatement(s.Body, indent);
+        } else {
+          wr.Write(";");
+        }
 
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
