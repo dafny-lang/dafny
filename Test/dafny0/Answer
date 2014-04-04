@@ -2154,6 +2154,10 @@ Execution trace:
 
 Dafny program verifier finished with 52 verified, 8 errors
 
+-------------------- DatatypeUpdate.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
 -------------------- ModifyStmt.dfy --------------------
 ModifyStmt.dfy(24,14): Error: assertion violation
 Execution trace:
@@ -2197,10 +2201,6 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 25 verified, 11 errors
-
--------------------- DatatypeUpdate.dfy --------------------
-
-Dafny program verifier finished with 2 verified, 0 errors
 
 -------------------- Superposition.dfy --------------------
 
