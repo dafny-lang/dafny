@@ -726,6 +726,14 @@ namespace Microsoft.Dafny {
         }
         PrintStatement(s.Body, indent);
 
+      } else if (stmt is ModifyStmt) {
+        var s = (ModifyStmt)stmt;
+        wr.Write("modify");
+        PrintAttributes(s.Mod.Attributes);
+        wr.Write(" ");
+        PrintFrameExpressionList(s.Mod.Expressions);
+        wr.Write(";");
+
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
         wr.Write("calc ");

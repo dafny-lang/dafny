@@ -211,8 +211,8 @@ public class UTF8Buffer: Buffer {
 public class Scanner {
 	const char EOL = '\n';
 	const int eofSym = 0; /* pdt */
-	const int maxT = 125;
-	const int noSym = 125;
+	const int maxT = 126;
+	const int noSym = 126;
 
 
 	[ContractInvariantMethod]
@@ -549,16 +549,17 @@ public class Scanner {
 			case "print": t.kind = 84; break;
 			case "forall": t.kind = 85; break;
 			case "parallel": t.kind = 86; break;
-			case "calc": t.kind = 87; break;
-			case "in": t.kind = 105; break;
-			case "false": t.kind = 112; break;
-			case "true": t.kind = 113; break;
-			case "null": t.kind = 114; break;
-			case "this": t.kind = 115; break;
-			case "fresh": t.kind = 116; break;
-			case "old": t.kind = 117; break;
-			case "then": t.kind = 118; break;
-			case "exists": t.kind = 121; break;
+			case "modify": t.kind = 87; break;
+			case "calc": t.kind = 88; break;
+			case "in": t.kind = 106; break;
+			case "false": t.kind = 113; break;
+			case "true": t.kind = 114; break;
+			case "null": t.kind = 115; break;
+			case "this": t.kind = 116; break;
+			case "fresh": t.kind = 117; break;
+			case "old": t.kind = 118; break;
+			case "then": t.kind = 119; break;
+			case "exists": t.kind = 122; break;
 			default: break;
 		}
 	}
@@ -721,56 +722,56 @@ public class Scanner {
 			case 38:
 				{t.kind = 79; break;}
 			case 39:
-				{t.kind = 88; break;}
+				{t.kind = 89; break;}
 			case 40:
-				{t.kind = 90; break;}
-			case 41:
 				{t.kind = 91; break;}
-			case 42:
+			case 41:
 				{t.kind = 92; break;}
-			case 43:
+			case 42:
 				{t.kind = 93; break;}
-			case 44:
+			case 43:
 				{t.kind = 94; break;}
-			case 45:
+			case 44:
 				{t.kind = 95; break;}
-			case 46:
+			case 45:
 				{t.kind = 96; break;}
-			case 47:
+			case 46:
 				{t.kind = 97; break;}
-			case 48:
+			case 47:
 				{t.kind = 98; break;}
+			case 48:
+				{t.kind = 99; break;}
 			case 49:
-				{t.kind = 100; break;}
+				{t.kind = 101; break;}
 			case 50:
 				if (ch == '&') {AddCh(); goto case 51;}
 				else {goto case 0;}
 			case 51:
-				{t.kind = 101; break;}
-			case 52:
 				{t.kind = 102; break;}
-			case 53:
+			case 52:
 				{t.kind = 103; break;}
-			case 54:
+			case 53:
 				{t.kind = 104; break;}
+			case 54:
+				{t.kind = 105; break;}
 			case 55:
-				{t.kind = 107; break;}
-			case 56:
 				{t.kind = 108; break;}
-			case 57:
+			case 56:
 				{t.kind = 109; break;}
-			case 58:
+			case 57:
 				{t.kind = 110; break;}
-			case 59:
+			case 58:
 				{t.kind = 111; break;}
+			case 59:
+				{t.kind = 112; break;}
 			case 60:
-				{t.kind = 120; break;}
+				{t.kind = 121; break;}
 			case 61:
-				{t.kind = 122; break;}
-			case 62:
 				{t.kind = 123; break;}
-			case 63:
+			case 62:
 				{t.kind = 124; break;}
+			case 63:
+				{t.kind = 125; break;}
 			case 64:
 				recEnd = pos; recKind = 7;
 				if (ch == '=') {AddCh(); goto case 34;}
@@ -778,10 +779,10 @@ public class Scanner {
 				else if (ch == ':') {AddCh(); goto case 62;}
 				else {t.kind = 7; break;}
 			case 65:
-				recEnd = pos; recKind = 106;
+				recEnd = pos; recKind = 107;
 				if (ch == 'i') {AddCh(); goto case 18;}
 				else if (ch == '=') {AddCh(); goto case 41;}
-				else {t.kind = 106; break;}
+				else {t.kind = 107; break;}
 			case 66:
 				recEnd = pos; recKind = 20;
 				if (ch == '=') {AddCh(); goto case 71;}
@@ -808,17 +809,17 @@ public class Scanner {
 				if (ch == '>') {AddCh(); goto case 47;}
 				else {t.kind = 32; break;}
 			case 72:
-				recEnd = pos; recKind = 119;
+				recEnd = pos; recKind = 120;
 				if (ch == '.') {AddCh(); goto case 32;}
-				else {t.kind = 119; break;}
+				else {t.kind = 120; break;}
 			case 73:
-				recEnd = pos; recKind = 89;
+				recEnd = pos; recKind = 90;
 				if (ch == '=') {AddCh(); goto case 74;}
-				else {t.kind = 89; break;}
+				else {t.kind = 90; break;}
 			case 74:
-				recEnd = pos; recKind = 99;
+				recEnd = pos; recKind = 100;
 				if (ch == '>') {AddCh(); goto case 45;}
-				else {t.kind = 99; break;}
+				else {t.kind = 100; break;}
 
 		}
 		t.val = new String(tval, 0, tlen);

@@ -1563,6 +1563,9 @@ namespace Microsoft.Dafny {
           TrStmt(s.Update, indent);
         }
 
+      } else if (stmt is ModifyStmt) {
+        // do nothing
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

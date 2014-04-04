@@ -40,7 +40,7 @@
    `(,(dafny-regexp-opt '(
         "assert" "assume" "break" "then" "else" "if" "label" "return" "yield"
         "while" "print" "where"
-        "old" "forall" "exists" "new" "calc" "in" "this" "fresh"
+        "old" "forall" "exists" "new" "calc" "modify" "in" "this" "fresh"
         "match" "case" "false" "true" "null")) . font-lock-keyword-face)
    `(,(dafny-regexp-opt '("array" "array2" "array3" "bool" "multiset" "map" "nat" "int" "real" "object" "set" "seq")) . font-lock-type-face)
    )

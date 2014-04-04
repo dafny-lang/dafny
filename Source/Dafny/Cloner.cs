@@ -487,6 +487,11 @@ namespace Microsoft.Dafny
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
+      } else if (stmt is ModifyStmt) {
+        var s = (ModifyStmt)stmt;
+        var mod = CloneSpecFrameExpr(s.Mod);
+        r = new ModifyStmt(Tok(s.Tok), Tok(s.EndTok), mod.Expressions, mod.Attributes);
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

@@ -3507,6 +3507,28 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ModifyStmt : Statement
+  {
+    public readonly Specification<FrameExpression> Mod;
+
+    public ModifyStmt(IToken tok, IToken endTok, List<FrameExpression> mod, Attributes attrs)
+      : base(tok, endTok)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(mod != null);
+      Mod = new Specification<FrameExpression>(mod, attrs); 
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var fe in Mod.Expressions) {
+          yield return fe.E;
+        }
+      }
+    }
+  }
+
   public class CalcStmt : Statement
   {
     public abstract class CalcOp {

@@ -29,7 +29,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy RealTypes.dfy Definedness.dfy
             IteratorResolution.dfy Iterators.dfy
             RankPos.dfy RankNeg.dfy
             Computations.dfy ComputationsNeg.dfy
-            Include.dfy AutoReq.dfy) do (
+            Include.dfy AutoReq.dfy ModifyStmt.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f

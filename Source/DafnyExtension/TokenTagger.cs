@@ -291,6 +291,7 @@ namespace DafnyLanguage
                 case "match":
                 case "method":
                 case "modifies":
+                case "modify":
                 case "module":
                 case "multiset":
                 case "nat":

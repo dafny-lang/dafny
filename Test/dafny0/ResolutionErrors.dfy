@@ -826,3 +826,13 @@ module ObjectType {
     o := co;  // error
   }
 }
+
+// ------------------ modify statment ---------------------------
+
+class ModifyStatementClass {
+  var x: int;
+  method M()
+  {
+    modify x;  // error: type error
+  }
+}

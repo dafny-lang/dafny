@@ -1979,6 +1979,7 @@ namespace Microsoft.Dafny
           return CheckTailRecursive(s.hiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
         }
       } else if (stmt is AssignStmt) {
+      } else if (stmt is ModifyStmt) {
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method == enclosingMethod) {
@@ -4472,6 +4473,15 @@ namespace Microsoft.Dafny
           CheckForallStatementBodyRestrictions(s.Body, s.Kind);
         }
 		
+      } else if (stmt is ModifyStmt) {
+        var s = (ModifyStmt)stmt;
+        ResolveAttributes(s.Mod.Attributes, true, codeContext);
+        foreach (FrameExpression fe in s.Mod.Expressions) {
+          // (yes, say "modifies", not "modify", in the next line -- it seems to give a more readable error message
+          ResolveFrameExpression(fe, "modifies", codeContext);
+        }
+        s.IsGhost = specContextOnly;
+
       } else if (stmt is CalcStmt) {
         var prevErrorCount = ErrorCount;
         CalcStmt s = (CalcStmt)stmt;

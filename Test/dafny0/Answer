@@ -498,6 +498,7 @@ ResolutionErrors.dfy(433,14): Error: when allocating an object of type 'YHWH', o
 ResolutionErrors.dfy(438,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
 ResolutionErrors.dfy(439,6): Error: when allocating an object of type 'Lucifer', one of its constructor methods must be called
 ResolutionErrors.dfy(441,9): Error: class Lamb does not have a default constructor
+ResolutionErrors.dfy(836,11): Error: a modifies-clause expression must denote an object or a collection of objects (instead got int)
 ResolutionErrors.dfy(10,16): Error: 'decreases *' is not allowed on ghost loops
 ResolutionErrors.dfy(22,11): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(23,12): Error: sequence/array/multiset/map selection requires a sequence, array, multiset, or map (got array3<T>)
@@ -549,7 +550,7 @@ ResolutionErrors.dfy(541,20): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(543,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(544,18): Error: unresolved identifier: w
 ResolutionErrors.dfy(651,11): Error: lemmas are not allowed to have modifies clauses
-120 resolution/type errors detected in ResolutionErrors.dfy
+121 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -2147,6 +2148,57 @@ Execution trace:
     (0,0): anon11_Then
 
 Dafny program verifier finished with 52 verified, 8 errors
+
+-------------------- ModifyStmt.dfy --------------------
+ModifyStmt.dfy(24,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(39,5): Error: modify statement may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(45,5): Error: modify statement may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(58,5): Error: modify statement may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(67,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(111,11): Error: assignment may update an object not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon18_Then
+    ModifyStmt.dfy(107,7): anon19_LoopHead
+    (0,0): anon19_LoopBody
+    ModifyStmt.dfy(107,7): anon20_Else
+    ModifyStmt.dfy(107,7): anon21_Else
+    (0,0): anon22_Then
+ModifyStmt.dfy(124,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon18_Then
+    ModifyStmt.dfy(107,7): anon19_LoopHead
+    (0,0): anon19_LoopBody
+    ModifyStmt.dfy(107,7): anon20_Else
+    (0,0): anon21_Then
+    ModifyStmt.dfy(116,7): anon23_LoopHead
+    (0,0): anon23_LoopBody
+    ModifyStmt.dfy(116,7): anon24_Else
+    (0,0): anon25_Then
+    (0,0): anon17
+ModifyStmt.dfy(134,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(145,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(157,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+
+Dafny program verifier finished with 23 verified, 10 errors
 
 -------------------- Superposition.dfy --------------------
 

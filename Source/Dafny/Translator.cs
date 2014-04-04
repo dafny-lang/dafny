@@ -2607,7 +2607,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
     }
 
-    void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
+    void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame, bool calleeIsGhost,
                           Expression receiverReplacement, Dictionary<IVariable,Expression/*!*/> substMap,
                           ExpressionTranslator/*!*/ etran, Bpl.StmtListBuilder/*!*/ builder, string errorMessage,
                           Bpl.QKeyValue kv)
@@ -2620,13 +2620,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(errorMessage != null);
       Contract.Requires(predef != null);
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && GhostCheck(f) && (o,f) in subFrame ==> $_Frame[o,f]);
+      // where GhostCheck(f) is "true" for a non-ghost context and is $IsGhostField(f) for a ghost context.
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      if (calleeIsGhost) {
+        ante = Bpl.Expr.And(ante, FunctionCall(tok, BuiltinFunction.IsGhostField, alpha, f));
+      }
       Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
@@ -3629,7 +3633,7 @@ namespace Microsoft.Dafny {
         }
         if (options.DoReadsChecks) {
           // check that the callee reads only what the caller is already allowed to read
-          CheckFrameSubset(expr.tok, e.Function.Reads, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function", options.AssertKv);
+          CheckFrameSubset(expr.tok, e.Function.Reads, e.Function.IsGhost, e.Receiver, substMap, etran, builder, "insufficient reads clause to invoke function", options.AssertKv);
         }
 
         Bpl.Expr allowance = null;
@@ -4371,7 +4375,7 @@ namespace Microsoft.Dafny {
       }
 
       // Check modifies clause of a subcall is a subset of the current frame.
-      CheckFrameSubset(method.tok, method.Mod.Expressions, receiver, substMap, etran, builder, "call may modify locations not in the refined method's modifies clause", null);
+      CheckFrameSubset(method.tok, method.Mod.Expressions, method.IsGhost, receiver, substMap, etran, builder, "call may modify locations not in the refined method's modifies clause", null);
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
       var outs = new List<Bpl.IdentifierExpr>();
@@ -5220,6 +5224,31 @@ namespace Microsoft.Dafny {
           delegate(Bpl.StmtListBuilder bld, ExpressionTranslator e) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e); },
           builder, locals, etran);
 
+      } else if (stmt is ModifyStmt) {
+        AddComment(builder, stmt, "modify statement");
+        var s = (ModifyStmt)stmt;
+        // check that the modifies is a subset
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, s.IsGhost, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
+        // cause the change of the heap according to the given frame
+        int modifyId = loopHeapVarCount;
+        loopHeapVarCount++;
+        string modifyFrameName = "#_Frame#" + modifyId;
+        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, modifyFrameName);
+        var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap" + modifyId, predef.HeapType));
+        locals.Add(preModifyHeapVar);
+        var preModifyHeap = new Bpl.IdentifierExpr(s.Tok, preModifyHeapVar);
+        // preModifyHeap := $Heap;
+        builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preModifyHeap, etran.HeapExpr));
+        // havoc $Heap;
+        builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
+        // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
+        builder.Add(new Bpl.AssumeCmd(s.Tok, FunctionCall(s.Tok, s.IsGhost ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, preModifyHeap, etran.HeapExpr)));
+        // assume nothing outside the frame was changed
+        var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
+        var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+        builder.Add(new Bpl.AssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        builder.Add(CaptureState(stmt));
+
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         if (s.Kind == ForallStmt.ParBodyKind.Assign) {
@@ -6048,13 +6077,13 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "#_Frame#" + loopId;
-      if(s.Mod.Expressions != null)
+      if (s.Mod.Expressions != null)
         updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
       else
         updatedFrameEtran = etran;
 
-      if (s.Mod.Expressions != null) { // check that the modifies is a strict subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
+      if (s.Mod.Expressions != null) { // check that the modifies is a subset
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, s.IsGhost, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
@@ -6395,7 +6424,7 @@ namespace Microsoft.Dafny {
 
       // Check modifies clause of a subcall is a subset of the current frame.
       if (codeContext is IMethodCodeContext) {
-        CheckFrameSubset(tok, callee.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+        CheckFrameSubset(tok, callee.Mod.Expressions, callee.IsGhost, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
       }
 
       // Check termination

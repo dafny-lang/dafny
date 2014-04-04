@@ -1011,6 +1011,7 @@ OneStmt<out Statement/*!*/ s>
   | MatchStmt<out s>
   | ForallStmt<out s>
   | CalcStmt<out s>
+  | ModifyStmt<out s>
   | "label"                            (. x = t; .)
     NoUSIdent<out id> ":"
     OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
@@ -1458,6 +1459,19 @@ ForallStmt<out Statement/*!*/ s>
   }
   BlockStmt<out block, out bodyStart, out bodyEnd>
   (. s = new ForallStmt(x, block.EndTok, bvars, attrs, range, ens, block); .)
+  .
+
+ModifyStmt<out Statement s>
+= (. IToken tok;  FrameExpression fe;  var mod = new List<FrameExpression>();
+     Attributes attrs = null;
+  .)
+  "modify"           (. tok = t; .)
+  { IF(IsAttribute()) Attribute<ref attrs> }
+  [ FrameExpression<out fe>         (. mod.Add(fe); .)
+    { "," FrameExpression<out fe>   (. mod.Add(fe); .)
+    }
+  ]
+  SYNC ";"           (. s = new ModifyStmt(tok, t, mod, attrs); .)
   .
 
 CalcStmt<out Statement/*!*/ s>
