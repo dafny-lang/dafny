@@ -4627,6 +4627,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression Index;
     public readonly Expression Value;
+    public Expression ResolvedUpdateExpr;       // May be filled in during resolution
 
     public SeqUpdateExpr(IToken tok, Expression seq, Expression index, Expression val)
       : base(tok) {
@@ -4637,13 +4638,24 @@ namespace Microsoft.Dafny {
       Seq = seq;
       Index = index;
       Value = val;
+      ResolvedUpdateExpr = null;
     }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        yield return Seq;
-        yield return Index;
-        yield return Value;
+        if (ResolvedUpdateExpr == null)
+        {
+          yield return Seq;
+          yield return Index;
+          yield return Value;
+        }
+        else
+        {
+          foreach (var e in ResolvedUpdateExpr.SubExpressions)
+          {
+            yield return e;
+          }
+        }
       }
     }
   }

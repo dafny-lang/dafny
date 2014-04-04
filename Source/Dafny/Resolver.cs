@@ -5893,8 +5893,74 @@ namespace Microsoft.Dafny
           }
           expr.Type = e.Seq.Type;
 
-        } else {
-          Error(expr, "update requires a sequence or map (got {0})", e.Seq.Type);
+        }
+        else if (e.Seq.Type is UserDefinedType && ((UserDefinedType)e.Seq.Type).IsDatatype)
+        {          
+          DatatypeDecl dt = ((UserDefinedType)e.Seq.Type).AsDatatype;
+
+          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger)))  
+          {
+            Error(expr, "datatype updates must be to datatype destructors");
+          } else {
+            string destructor_str = null;
+
+            if (e.Index is IdentifierSequence)
+            {
+              IdentifierSequence iseq = (IdentifierSequence)e.Index;
+
+              if (iseq.Tokens.Count() != 1)
+              {
+                Error(expr, "datatype updates must name a single datatype destructor");
+              }
+              else
+              {
+                destructor_str = iseq.Tokens.First().val;
+              }
+            }
+            else
+            {
+              Contract.Assert(e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger);
+              destructor_str = ((LiteralExpr)e.Index).tok.val;
+            }
+
+            if (destructor_str != null)
+            {
+              MemberDecl member;
+              if (!datatypeMembers[dt].TryGetValue(destructor_str, out member))
+              {
+                Error(expr, "member {0} does not exist in datatype {1}", destructor_str, dt.Name);
+              }
+              else
+              {
+                // Rewrite an update of the form "dt[dtor := E]" to be "dtCtr(E, dt.dtor2, dt.dtor3,...)"
+                DatatypeDestructor destructor = (DatatypeDestructor)member;
+                DatatypeCtor ctor = destructor.EnclosingCtor;
+
+                List<Expression> ctor_args = new List<Expression>();
+                foreach (Formal d in ctor.Formals)
+                {
+                  if (d.Name == destructor.Name)
+                  {
+                    ctor_args.Add(e.Value);
+                  }
+                  else
+                  {
+                    ctor_args.Add(new ExprDotName(expr.tok, e.Seq, d.Name));
+                  }
+                }
+
+                DatatypeValue ctor_call = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
+                ResolveExpression(ctor_call, twoState, codeContext);
+                e.ResolvedUpdateExpr = ctor_call;
+
+                expr.Type = e.Seq.Type;
+              }
+            }
+          }
+        }
+        else
+        {
+          Error(expr, "update requires a sequence, map, or datatype (got {0})", e.Seq.Type);
         }
 
 
