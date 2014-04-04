@@ -831,8 +831,48 @@ module ObjectType {
 
 class ModifyStatementClass {
   var x: int;
+  ghost var g: int;
   method M()
   {
     modify x;  // error: type error
+  }
+  ghost method G0()
+    modifies `g;
+    modifies `x;  // error: non-ghost field mentioned in ghost context
+  {
+    modify `g;
+    modify `x;  // error: non-ghost field mentioned in ghost context
+  }
+  method G1()
+    modifies this;
+  {
+    modify `x;
+    if g < 100 {
+      // we are now in a ghost context
+      modify `x;  // error: non-ghost field mentioned in ghost context
+    }
+  }
+  method G2(y: nat)
+    modifies this;
+  {
+    if g < 100 {
+      // we're now in a ghost context
+      var n := 0;
+      while n < y
+        modifies `x;  // error: non-ghost field mentioned in ghost context
+      {
+        if * {
+          g := g + 1;  // if we got as far as verification, this would be flagged as an error too
+        }
+        n := n + 1;
+      }
+    }
+    modify `x;  // fine
+    ghost var i := 0;
+    while i < y
+      modifies `x;  // error: non-ghost field mentioned in ghost context
+    {
+      i := i + 1;
+    }
   }
 }

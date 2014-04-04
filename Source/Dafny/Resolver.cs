@@ -3041,7 +3041,7 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fr in f.Reads) {
-        ResolveFrameExpression(fr, "reads", f);
+        ResolveFrameExpression(fr, "reads", f.IsGhost, f);
       }
       foreach (Expression r in f.Ens) {
         ResolveExpression(r, false, f);  // since this is a function, the postcondition is still a one-state predicate
@@ -3068,7 +3068,7 @@ namespace Microsoft.Dafny
       scope.PopMarker();
     }
 
-    void ResolveFrameExpression(FrameExpression fe, string kind, ICodeContext codeContext) {
+    void ResolveFrameExpression(FrameExpression fe, string kind, bool isGhostContext, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(kind != null);
       Contract.Requires(codeContext != null);
@@ -3087,7 +3087,9 @@ namespace Microsoft.Dafny
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (!(member is Field)) {
-          Error(fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, cce.NonNull(ctype).Name);
+          Error(fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, ctype.Name);
+        } else if (isGhostContext && !member.IsGhost) {
+          Error(fe.E, "in a ghost context, only ghost fields can be mentioned as frame targets ({0})", fe.FieldName);
         } else {
           Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           fe.Field = (Field)member;
@@ -3146,7 +3148,7 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fe in m.Mod.Expressions) {
-        ResolveFrameExpression(fe, "modifies", m);
+        ResolveFrameExpression(fe, "modifies", m.IsGhost, m);
         if (m is Lemma) {
           Error(fe.tok, "lemmas are not allowed to have modifies clauses");
         } else if (m is CoLemma) {
@@ -3261,10 +3263,10 @@ namespace Microsoft.Dafny
         }
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
-        ResolveFrameExpression(fe, "reads", iter);
+        ResolveFrameExpression(fe, "reads", false, iter);
       }
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
-        ResolveFrameExpression(fe, "modifies", iter);
+        ResolveFrameExpression(fe, "modifies", false, iter);
       }
       foreach (MaybeFreeExpression e in iter.Requires) {
         ResolveExpression(e.E, false, iter);
@@ -4353,7 +4355,7 @@ namespace Microsoft.Dafny
 
         if (s.Mod.Expressions != null) {
           foreach (FrameExpression fe in s.Mod.Expressions) {
-            ResolveFrameExpression(fe, "modifies", codeContext);
+            ResolveFrameExpression(fe, "modifies", bodyMustBeSpecOnly, codeContext);
           }
         }
         s.IsGhost = bodyMustBeSpecOnly;
@@ -4474,7 +4476,7 @@ namespace Microsoft.Dafny
         ResolveAttributes(s.Mod.Attributes, true, codeContext);
         foreach (FrameExpression fe in s.Mod.Expressions) {
           // (yes, say "modifies", not "modify", in the next line -- it seems to give a more readable error message
-          ResolveFrameExpression(fe, "modifies", codeContext);
+          ResolveFrameExpression(fe, "modifies", specContextOnly, codeContext);
         }
         if (s.Body != null) {
           ResolveBlockStatement(s.Body, specContextOnly, codeContext);

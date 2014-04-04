@@ -67,35 +67,6 @@ class MyClass {
     assert x == xx;  // error: x just changed
   }
 
-  ghost method GhostFrame0()
-    modifies `x, `g;  // the `x has no effect, since this is a ghost context
-  {
-    modify `x, `g;
-  }
-
-  ghost method GhostFrame1()
-    modifies `g;
-  {
-    modify `x, `g;  // the `x has no effect, since this is a ghost context
-  }
-
-  ghost method GhostFrame2()
-  {
-    var xx := x;
-    modify `x;  // fine, since we're in a ghost context, so `x doesn't count
-    assert xx == x;  // fine
-  }
-
-  method GhostFrame3()
-  {
-    var xx := x;
-    if g < 100 {
-      // we're now in a ghost context
-      modify `x;  // fine, since `x doesn't count here
-    }
-    assert xx == x;  // fine
-  }
-
   method GhostFrame4()
     modifies this;
   {
@@ -105,16 +76,7 @@ class MyClass {
       // we're now in a ghost context
       var n := 0;
       while n < y
-        modifies `x;
-      {
-        if * {
-          g := g + 1;  // error: this is an error here, since it violates the loop's modifies clause
-        }
-        n := n + 1;
-      }
-      n := 0;
-      while n < y
-        modifies `x, `g;
+        modifies this;
       {
         g := g + 1;
         n := n + 1;
@@ -139,8 +101,8 @@ class MyClass {
   {
     var xx := x;
     var gg := g;
-    modify `x, `g;  // since we're in the context of a ghost method, this will only modify
-                    // ghost fields, despite the specific mention of non-ghost fields
+    modify `g;  // since we're in the context of a ghost method, this will only modify
+                // ghost fields, despite the specific mention of non-ghost fields
     assert x == xx;  // fine
     assert g == gg;  // error
   }
