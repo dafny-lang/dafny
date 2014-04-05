@@ -1484,7 +1484,7 @@ ModifyStmt<out Statement s>
   )
   (. s = new ModifyStmt(tok, endTok, mod, attrs, body);
      if (ellipsisToken != null) {
-       s = new SkeletonStmt(s, ellipsisToken, null);
+       s = new SkeletonStatement(s, ellipsisToken, null);
      }
   .)
   .

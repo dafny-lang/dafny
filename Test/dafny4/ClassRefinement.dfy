@@ -1,4 +1,4 @@
-module M0 {
+abstract module M0 {
   class Cell {
     var data: int;
     constructor (d: int)
@@ -32,6 +32,7 @@ module M0 {
       ensures Valid() && fresh(Repr - old(Repr));
     {
       N := N + 1;
+      modify Repr - {this};
     }
 
     method Get() returns (n: int)
@@ -65,7 +66,10 @@ module M1 refines M0 {
 
     method Inc...
     {
-      c.data := c.data + 1;
+      ...;
+      modify ... {
+        c.data := c.data + 1;
+      }
     }
 
     method Get...

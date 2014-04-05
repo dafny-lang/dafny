@@ -1043,7 +1043,7 @@ namespace Microsoft.Dafny
                 if (oldModifyStmt.Body == null && skel.Body == null) {
                   mbody = null;
                 } else if (oldModifyStmt.Body == null) {
-                  mbody = oldModifyStmt.Body;
+                  mbody = skel.Body;
                 } else if (skel.Body == null) {
                   reporter.Error(cur.Tok, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
@@ -1266,6 +1266,8 @@ namespace Microsoft.Dafny
           return other is IfStmt;
         } else if (S is WhileStmt) {
           return other is WhileStmt;
+        } else if (S is ModifyStmt) {
+          return other is ModifyStmt;
         } else {
           Contract.Assume(false);  // unexpected skeleton
         }
