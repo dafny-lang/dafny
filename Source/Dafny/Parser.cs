@@ -3065,7 +3065,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void Suffix(ref Expression e) {
 		Contract.Requires(e != null); Contract.Ensures(e!=null); IToken/*!*/ id, x;  List<Expression/*!*/>/*!*/ args;
-		Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false;
+		Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false; List<Expression> multipleLengths = null; bool takeRest = false;
 		List<Expression> multipleIndices = null;
 		bool func = false;
 		
@@ -3113,6 +3113,22 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					Get();
 					Expression(out ee, true);
 					e1 = ee; 
+				} else if (la.kind == 7 || la.kind == 75) {
+					while (la.kind == 7) {
+						Get();
+						if (multipleLengths == null) {
+						 multipleLengths = new List<Expression>();
+						 multipleLengths.Add(e0);
+						}
+						takeRest = true;                                                  
+						
+						if (StartOf(16)) {
+							Expression(out ee, true);
+							multipleLengths.Add(ee); 
+							takeRest = false;
+							
+						}
+					}
 				} else if (la.kind == 30 || la.kind == 75) {
 					while (la.kind == 30) {
 						Get();
@@ -3146,6 +3162,23 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 if (anyDots) {
 			   //Contract.Assert(e0 != null || e1 != null);
 			   e = new SeqSelectExpr(x, false, e, e0, e1);
+			 } else if (multipleLengths != null || takeRest) {
+			   Expression prev = new LiteralExpr(x, 0);
+			   List<Expression> seqs = new List<Expression>();
+			   if (multipleLengths != null)
+			   {
+			     foreach (var len in multipleLengths)
+			     {
+			       var end = new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len);
+			       seqs.Add(new SeqSelectExpr(x, false, e, prev, end));
+			       prev = end;
+			     }
+			   }
+			   if (takeRest)
+			   {
+			     seqs.Add(new SeqSelectExpr(x, false, e, prev, null));
+			   }
+			   e = new SeqDisplayExpr(x, seqs);
 			 } else if (e1 == null) {
 			   Contract.Assert(e0 != null);
 			   e = new SeqSelectExpr(x, true, e, e0, null);
@@ -3676,8 +3709,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
-		{x,x,x,x, x,x,x,x, T,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,x,x, x,x,x,T, x,T,T,T, x,T,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, T,T,x,x},
-		{x,x,x,x, x,x,x,x, T,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,x,x, x,T,x,x, x,x,T,T, x,T,T,T, x,T,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, T,T,x,x},
+		{x,x,x,x, x,x,x,T, T,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,x,x, x,x,x,T, x,T,T,T, x,T,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, T,T,x,x},
+		{x,x,x,x, x,x,x,T, T,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,x,x, x,T,x,x, x,x,T,T, x,T,T,T, x,T,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, T,T,x,x},
 		{x,T,T,T, T,x,T,x, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x}
 
 	};

@@ -2202,6 +2202,10 @@ Execution trace:
 
 Dafny program verifier finished with 25 verified, 11 errors
 
+-------------------- SeqSlice.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...

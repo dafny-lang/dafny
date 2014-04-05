@@ -2093,7 +2093,7 @@ DottedIdentifiersAndFunction<out Expression e>
   .
 Suffix<ref Expression e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null); IToken/*!*/ id, x;  List<Expression/*!*/>/*!*/ args;
-     Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false;
+     Expression e0 = null;  Expression e1 = null;  Expression/*!*/ ee;  bool anyDots = false; List<Expression> multipleLengths = null; bool takeRest = false;
      List<Expression> multipleIndices = null;
      bool func = false;
   .)
@@ -2118,6 +2118,17 @@ Suffix<ref Expression e>
           ]
         | ":="
           Expression<out ee, true>             (. e1 = ee; .)
+        | { ":"                                (. if (multipleLengths == null) {
+                                                    multipleLengths = new List<Expression>();
+                                                    multipleLengths.Add(e0);
+                                                  }
+                                                  takeRest = true;                                                  
+                                               .)
+            [Expression<out ee, true>          (. multipleLengths.Add(ee); 
+                                                  takeRest = false;
+                                               .)
+            ]
+          }
         | { "," Expression<out ee, true>       (. if (multipleIndices == null) {
                                                     multipleIndices = new List<Expression>();
                                                     multipleIndices.Add(e0);
@@ -2143,6 +2154,23 @@ Suffix<ref Expression e>
            if (anyDots) {
              //Contract.Assert(e0 != null || e1 != null);
              e = new SeqSelectExpr(x, false, e, e0, e1);
+           } else if (multipleLengths != null || takeRest) {
+             Expression prev = new LiteralExpr(x, 0);
+             List<Expression> seqs = new List<Expression>();
+             if (multipleLengths != null)
+             {
+               foreach (var len in multipleLengths)
+               {
+                 var end = new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len);
+                 seqs.Add(new SeqSelectExpr(x, false, e, prev, end));
+                 prev = end;
+               }
+             }
+             if (takeRest)
+             {
+               seqs.Add(new SeqSelectExpr(x, false, e, prev, null));
+             }
+             e = new SeqDisplayExpr(x, seqs);
            } else if (e1 == null) {
              Contract.Assert(e0 != null);
              e = new SeqSelectExpr(x, true, e, e0, null);
