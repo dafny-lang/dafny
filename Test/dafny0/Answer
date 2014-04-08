@@ -2206,6 +2206,17 @@ Dafny program verifier finished with 25 verified, 11 errors
 
 Dafny program verifier finished with 2 verified, 0 errors
 
+-------------------- RealCompare.dfy --------------------
+RealCompare.dfy(32,5): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+RealCompare.dfy(47,3): Error: decreases expression must be bounded below by 0.0
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 22 verified, 2 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...

@@ -6656,13 +6656,15 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < k; i++) {
             prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
           }
-          if (types0[k] is IntType) {
-            Bpl.Expr bounded = Bpl.Expr.Le(Bpl.Expr.Literal(0), ee1[k]);
+          if (types0[k] is IntType || types0[k] is RealType) {
+            var zero = types0[k] is IntType ? Bpl.Expr.Literal(0) : Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
+            Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
             for (int i = 0; i < k; i++) {
               bounded = Bpl.Expr.Or(bounded, Less[i]);
             }
             string component = N == 1 ? "" : " (component " + k + ")";
-            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by 0" + suffixMsg);
+            string zerostr = types0[k] is IntType ? "0" : "0.0";
+            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by " + zerostr + suffixMsg);
             builder.Add(cmd);
           }
         }
@@ -6691,7 +6693,7 @@ namespace Microsoft.Dafny {
       } else if (t is IntType) {
         return u is IntType;
       } else if (t is RealType) {
-        return false;
+        return u is RealType;
       } else if (t is SetType) {
         return u is SetType;
       } else if (t is SeqType) {
@@ -6732,15 +6734,13 @@ namespace Microsoft.Dafny {
 
       Nullable<BuiltinFunction> rk0 = RankFunction(ty0);
       Nullable<BuiltinFunction> rk1 = RankFunction(ty1);
-      if (rk0 != null && rk1 != null && rk0 != rk1)
-      {
+      if (rk0 != null && rk1 != null && rk0 != rk1) {
         eq = Bpl.Expr.False;
         Bpl.Expr b0 = FunctionCall(tok, rk0.Value, null, e0);
         Bpl.Expr b1 = FunctionCall(tok, rk1.Value, null, e1);
         less = Bpl.Expr.Lt(b0, b1);
         atmost = Bpl.Expr.Le(b0, b1);
-      }
-      else if (ty0 is BoolType) {
+      } else if (ty0 is BoolType) {
         eq = Bpl.Expr.Iff(e0, e1);
         less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
         atmost = Bpl.Expr.Imp(e0, e1);
@@ -6764,6 +6764,15 @@ namespace Microsoft.Dafny {
         if (ty0 is IntType && includeLowerBound) {
           less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
           atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
+        }
+
+      } else if (ty0 is RealType) {
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.Le(e0, Bpl.Expr.Sub(e1, Bpl.Expr.Literal(Basetypes.BigDec.FromInt(1))));
+        atmost = Bpl.Expr.Le(e0, e1);
+        if (includeLowerBound) {
+          less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(Basetypes.BigDec.ZERO), e0), less);
+          atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(Basetypes.BigDec.ZERO), e0), atmost);
         }
 
       } else if (ty0 is IteratorDecl.EverIncreasingType) {

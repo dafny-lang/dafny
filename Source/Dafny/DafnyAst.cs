@@ -4058,11 +4058,11 @@ namespace Microsoft.Dafny {
     public static Expression CreateSubtract(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
+      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-      s.Type = Type.Int;  // resolve here
+      s.Type = e0.Type;  // resolve here
       return s;
     }
 
@@ -4156,7 +4156,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateAtMost(Expression e0, Expression e1) {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      Contract.Requires(e0.Type is IntType && e1.Type is IntType);
+      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here

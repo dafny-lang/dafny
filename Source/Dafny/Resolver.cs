@@ -4656,7 +4656,7 @@ namespace Microsoft.Dafny
                 guess = Expression.CreateSubtract(bin.E0, bin.E1);
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
-                if (bin.E0.Type is IntType) {
+                if (bin.E0.Type is IntType || bin.E0.Type is RealType) {
                   // for A != B where A and B are integers, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
                   var AminusB = Expression.CreateSubtract(bin.E0, bin.E1);
                   var BminusA = Expression.CreateSubtract(bin.E1, bin.E0);
