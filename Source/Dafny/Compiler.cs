@@ -870,8 +870,7 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return "BigInteger";
       } else if (type is RealType) {
-        Error("compilation of real is not supported");
-        return "object";
+        return "Dafny.BigRational";
       } else if (type is ObjectType) {
         return "object";
       } else if (type.IsArrayType) {
@@ -971,8 +970,7 @@ namespace Microsoft.Dafny {
       } else if (type is IntType) {
         return "new BigInteger(0)";
       } else if (type is RealType) {
-        Error("compilation of real is not supported");
-        return "null";
+        return "Dafny.BigRational.ZERO";
       } else if (type.IsRefType) {
         return string.Format("({0})null", TypeName(type));
       } else if (type.IsDatatype) {
@@ -1970,6 +1968,21 @@ namespace Microsoft.Dafny {
             wr.Write("new BigInteger({0})", i);
           } else {
             wr.Write("BigInteger.Parse(\"{0}\")", i);
+          }
+        } else if (e.Value is Basetypes.BigDec) {
+          var n = (Basetypes.BigDec)e.Value;
+          if (0 <= n.Exponent) {
+            wr.Write("new Dafny.BigRational(new BigInteger({0}", n.Mantissa);
+            for (int i = 0; i < n.Exponent; i++) {
+              wr.Write("0");
+            }
+            wr.Write("), BigInteger.One)");
+          } else {
+            wr.Write("new Dafny.BigRational(new BigInteger({0}), new BigInteger(1", n.Mantissa);
+            for (int i = n.Exponent; i < 0; i++) {
+              wr.Write("0");
+            }
+            wr.Write("))");
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal

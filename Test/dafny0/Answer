@@ -2214,8 +2214,22 @@ Execution trace:
 RealCompare.dfy(47,3): Error: decreases expression must be bounded below by 0.0
 Execution trace:
     (0,0): anon0
+RealCompare.dfy(138,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    RealCompare.dfy(130,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    RealCompare.dfy(130,3): anon8_Else
+    (0,0): anon9_Then
+RealCompare.dfy(153,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    RealCompare.dfy(144,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    RealCompare.dfy(144,3): anon10_Else
+    (0,0): anon12_Then
 
-Dafny program verifier finished with 22 verified, 2 errors
+Dafny program verifier finished with 24 verified, 4 errors
 
 -------------------- Superposition.dfy --------------------
 

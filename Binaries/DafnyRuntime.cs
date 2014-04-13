@@ -638,4 +638,107 @@ namespace Dafny
     }
     public delegate Result Function<Input,Result>(Input input);
   }
+
+  public struct BigRational
+  {
+    public static readonly BigRational ZERO = new BigRational(0);
+
+    BigInteger num, den;  // invariant 1 <= den
+    public override string ToString() {
+      return string.Format("({0}.0 / {1}.0)", num, den);
+    }
+    public BigRational(int n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
+    public BigRational(BigInteger n, BigInteger d) {
+      // requires 1 <= d
+      num = n;
+      den = d;
+    }
+    /// <summary>
+    /// Returns values such that aa/dd == a and bb/dd == b.
+    /// </summary>
+    private static void Normalize(BigRational a, BigRational b, out BigInteger aa, out BigInteger bb, out BigInteger dd) {
+      var gcd = BigInteger.GreatestCommonDivisor(a.den, b.den);
+      var xx = a.den / gcd;
+      var yy = b.den / gcd;
+      // We now have a == a.num / (xx * gcd) and b == b.num / (yy * gcd).
+      aa = a.num * yy;
+      bb = b.num * xx;
+      dd = a.den * yy;
+    }
+    public int CompareTo(BigRational that) {
+      // simple things first
+      int asign = this.num.Sign;
+      int bsign = that.num.Sign;
+      if (asign < 0 && 0 <= bsign) {
+        return 1;
+      } else if (asign <= 0 && 0 < bsign) {
+        return 1;
+      } else if (bsign < 0 && 0 <= asign) {
+        return -1;
+      } else if (bsign <= 0 && 0 < asign) {
+        return -1;
+      }
+      BigInteger aa, bb, dd;
+      Normalize(this, that, out aa, out bb, out dd);
+      return aa.CompareTo(bb);
+    }
+    public override int GetHashCode() {
+      return num.GetHashCode() + 29 * den.GetHashCode();
+    }
+    public override bool Equals(object obj) {
+      if (obj is BigRational) {
+        return this == (BigRational)obj;
+      } else {
+        return false;
+      }
+    }
+    public static bool operator ==(BigRational a, BigRational b) {
+      return a.CompareTo(b) == 0;
+    }
+    public static bool operator !=(BigRational a, BigRational b) {
+      return a.CompareTo(b) != 0;
+    }
+    public static bool operator >(BigRational a, BigRational b) {
+      return 0 < a.CompareTo(b);
+    }
+    public static bool operator >=(BigRational a, BigRational b) {
+      return 0 <= a.CompareTo(b);
+    }
+    public static bool operator <(BigRational a, BigRational b) {
+      return a.CompareTo(b) < 0;
+    }
+    public static bool operator <=(BigRational a, BigRational b) {
+      return a.CompareTo(b) <= 0;
+    }
+    public static BigRational operator +(BigRational a, BigRational b) {
+      BigInteger aa, bb, dd;
+      Normalize(a, b, out aa, out bb, out dd);
+      return new BigRational(aa + bb, dd);
+    }
+    public static BigRational operator -(BigRational a, BigRational b) {
+      BigInteger aa, bb, dd;
+      Normalize(a, b, out aa, out bb, out dd);
+      return new BigRational(aa - bb, dd);
+    }
+    public static BigRational operator -(BigRational a) {
+      return new BigRational(-a.num, a.den);
+    }
+    public static BigRational operator *(BigRational a, BigRational b) {
+      return new BigRational(a.num * b.num, a.den * b.den);
+    }
+    public static BigRational operator /(BigRational a, BigRational b) {
+      // Compute the reciprocal of b
+      BigRational bReciprocal;
+      if (0 < b.num) {
+        bReciprocal = new BigRational(b.den, b.num);
+      } else {
+        // this is the case b.num < 0
+        bReciprocal = new BigRational(-b.den, -b.num);
+      }
+      return a * bReciprocal;
+    }
+  }
 }

@@ -123,3 +123,32 @@ method W5(N: real)
     }
   }
 }
+
+method Test_AbsInt0()
+{
+  var a, i := 0.3, 0;
+  while i < 10
+    invariant a == 0.3 + 0.5 * real(i);
+  {
+    a, i := a + 0.5, i + 1;
+  }
+  assert a == 5.3;
+  assert a < 5.9;
+  assert 0.59 <= a;
+  assert a < 0.62;  // error
+}
+
+method Test_AbsInt1()
+{
+  var a, i := 0.3, 0.0;
+  while i < 10.0
+    invariant i <= 10.0 && i == real(int(i));
+    invariant a == 0.3 + 0.5 * i;
+  {
+    a, i := a + 0.5, i + 1.0;
+  }
+  assert a == 5.3;
+  assert a < 5.9;
+  assert 0.59 <= a;
+  assert a < 0.62;  // error
+}
