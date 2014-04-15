@@ -24,26 +24,26 @@
 
 method M(N: int, A: array<int>, B: array<int>)
   requires 0 <= N && A != null && B != null && N == A.Length && N == B.Length && A != B;
-  requires (forall k :: 0 <= k && k < N ==> 0 <= A[k] && A[k] < N);
-  requires (forall j,k :: 0 <= j && j < k && k < N ==> A[j] != A[k]);  // A is injective
-  requires (forall m :: 0 <= m && m < N && inImage(m) ==> (exists k :: 0 <= k && k < N && A[k] == m));  // A is surjective
+  requires forall k :: 0 <= k < N ==> 0 <= A[k] < N;
+  requires forall j,k :: 0 <= j < k < N ==> A[j] != A[k];  // A is injective
+  requires forall m :: 0 <= m < N && inImage(m) ==> exists k :: 0 <= k && k < N && A[k] == m;  // A is surjective
   modifies B;
-  ensures (forall k :: 0 <= k && k < N ==> 0 <= B[k] && B[k] < N);
-  ensures (forall k :: 0 <= k && k < N ==> B[A[k]] == k && A[B[k]] == k);  // A and B are each other's inverses
-  ensures (forall j,k :: 0 <= j && j < k && k < N ==> B[j] != B[k]);  // (which means that) B is injective
+  ensures forall k :: 0 <= k < N ==> 0 <= B[k] < N;
+  ensures forall k :: 0 <= k < N ==> B[A[k]] == k == A[B[k]];  // A and B are each other's inverses
+  ensures forall j,k :: 0 <= j < k < N ==> B[j] != B[k];  // (which means that) B is injective
 {
   var n := 0;
-  while (n < N)
+  while n < N
     invariant n <= N;
-    invariant (forall k :: 0 <= k && k < n ==> B[A[k]] == k);
+    invariant forall k :: 0 <= k < n ==> B[A[k]] == k;
   {
     B[A[n]] := n;
     n := n + 1;
   }
-  assert (forall i :: 0 <= i && i < N ==> A[i] == old(A[i]));  // the elements of A were not changed by the loop
+  assert forall i :: 0 <= i < N ==> A[i] == old(A[i]);  // the elements of A were not changed by the loop
   // it now follows from the surjectivity of A that A is the inverse of B:
-  assert (forall j :: 0 <= j && j < N && inImage(j) ==> 0 <= B[j] && B[j] < N && A[B[j]] == j);
-  assert (forall j,k :: 0 <= j && j < k && k < N ==> B[j] != B[k]);
+  assert forall j :: 0 <= j < N && inImage(j) ==> 0 <= B[j] < N && A[B[j]] == j;
+  assert forall j,k :: 0 <= j < k < N ==> B[j] != B[k];
 }
 
 static function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification
@@ -73,7 +73,7 @@ method PrintArray(a: array<int>)
   requires a != null;
 {
   var i := 0;
-  while (i < a.Length) {
+  while i < a.Length {
     print a[i], "\n";
     i := i + 1;
   }
