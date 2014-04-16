@@ -4189,9 +4189,7 @@ namespace Microsoft.Dafny
             // the LHS didn't resolve correctly; some error would already have been reported
           } else {
             lvalueIsGhost = var.IsGhost || codeContext.IsGhost;
-            if (!var.IsMutable) {
-              Error(stmt, "LHS of assignment must denote a mutable variable or field");
-            }
+            CheckIsLvalue(lhs);
             if (!lvalueIsGhost && specContextOnly) {
               Error(stmt, "Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
@@ -4211,33 +4209,27 @@ namespace Microsoft.Dafny
                 }
               }
             }
-            if (!fse.Field.IsUserMutable) {
-              Error(stmt, "LHS of assignment does not denote a mutable field");
-            }
+            CheckIsLvalue(fse);
           }
         } else if (lhs is SeqSelectExpr) {
           var slhs = (SeqSelectExpr)lhs;
           // LHS is fine, provided the "sequence" is really an array
           if (lhsResolvedSuccessfully) {
             Contract.Assert(slhs.Seq.Type != null);
-            if (!UnifyTypes(slhs.Seq.Type, builtIns.ArrayType(1, new InferredTypeProxy()))) {
-              Error(slhs.Seq, "LHS of array assignment must denote an array element (found {0})", slhs.Seq.Type);
-            }
             if (specContextOnly) {
               Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
             }
-            if (!slhs.SelectOne) {
-              Error(stmt, "cannot assign to a range of array elements (try the 'forall' statement)");
-            }
+            CheckIsLvalue(slhs);
           }
 
         } else if (lhs is MultiSelectExpr) {
           if (specContextOnly) {
             Error(stmt, "Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           }
+          CheckIsLvalue(lhs);
 
         } else {
-          Error(stmt, "LHS of assignment must denote a mutable variable or field");
+          CheckIsLvalue(lhs);
         }
 
         s.IsGhost = lvalueIsGhost;
@@ -5056,17 +5048,7 @@ namespace Microsoft.Dafny
               }
             }
             // LHS must denote a mutable field.
-            if (resolvedLhs is IdentifierExpr) {
-              var ll = (IdentifierExpr)resolvedLhs;
-              if (!ll.Var.IsMutable) {
-                Error(resolvedLhs, "LHS of assignment must denote a mutable variable");
-              }
-            } else if (resolvedLhs is FieldSelectExpr) {
-              var ll = (FieldSelectExpr)resolvedLhs;
-              if (!ll.Field.IsUserMutable) {
-                Error(resolvedLhs, "LHS of assignment must denote a mutable field");
-              }
-            }
+            CheckIsLvalue(resolvedLhs);
           }
         }
 
@@ -5087,6 +5069,38 @@ namespace Microsoft.Dafny
             }
           }
         }
+      }
+    }
+
+    /// <summary>
+    /// Checks if lhs, which is expected to be a successfully resolved expression, denotes something
+    /// that can be assigned to.  In particular, this means that lhs denotes a mutable variable, field,
+    /// or array element.  If a violation is detected, an error is reported.
+    /// </summary>
+    void CheckIsLvalue(Expression lhs) {
+      Contract.Requires(lhs != null);
+      if (lhs is IdentifierExpr) {
+        var ll = (IdentifierExpr)lhs;
+        if (!ll.Var.IsMutable) {
+          Error(lhs, "LHS of assignment must denote a mutable variable");
+        }
+      } else if (lhs is FieldSelectExpr) {
+        var ll = (FieldSelectExpr)lhs;
+        if (!ll.Field.IsUserMutable) {
+          Error(lhs, "LHS of assignment must denote a mutable field");
+        }
+      } else if (lhs is SeqSelectExpr) {
+        var ll = (SeqSelectExpr)lhs;
+        if (!UnifyTypes(ll.Seq.Type, builtIns.ArrayType(1, new InferredTypeProxy()))) {
+          Error(ll.Seq, "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
+        }
+        if (!ll.SelectOne) {
+          Error(ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
+        }
+      } else if (lhs is MultiSelectExpr) {
+        // nothing to check; this can only denote an array element
+      } else {
+        Error(lhs, "LHS of assignment must denote a mutable variable or field");
       }
     }
 

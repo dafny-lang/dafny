@@ -476,6 +476,14 @@ ResolutionErrors.dfy(819,6): Error: RHS (of type B) not assignable to LHS (of ty
 ResolutionErrors.dfy(824,6): Error: RHS (of type G) not assignable to LHS (of type object)
 ResolutionErrors.dfy(825,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
 ResolutionErrors.dfy(826,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
+ResolutionErrors.dfy(888,4): Error: LHS of array assignment must denote an array element (found seq<int>)
+ResolutionErrors.dfy(889,4): Error: LHS of array assignment must denote an array element (found seq<int>)
+ResolutionErrors.dfy(894,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(895,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(896,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(897,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(898,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(899,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors.dfy(427,2): Error: More than one default constructor
 ResolutionErrors.dfy(48,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(109,9): Error: ghost variables are allowed only in specification contexts
@@ -555,7 +563,7 @@ ResolutionErrors.dfy(541,20): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(543,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(544,18): Error: unresolved identifier: w
 ResolutionErrors.dfy(651,11): Error: lemmas are not allowed to have modifies clauses
-126 resolution/type errors detected in ResolutionErrors.dfy
+134 resolution/type errors detected in ResolutionErrors.dfy
 
 -------------------- ParseErrors.dfy --------------------
 ParseErrors.dfy(4,19): error: a chain cannot have more than one != operator
@@ -1106,7 +1114,7 @@ Dafny program verifier finished with 27 verified, 6 errors
 
 -------------------- ParallelResolveErrors.dfy --------------------
 ParallelResolveErrors.dfy(7,9): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(18,6): Error: LHS of assignment must denote a mutable variable or field
+ParallelResolveErrors.dfy(18,4): Error: LHS of assignment must denote a mutable variable
 ParallelResolveErrors.dfy(23,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 ParallelResolveErrors.dfy(41,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ParallelResolveErrors.dfy(53,13): Error: new allocation not supported in forall statements
@@ -1930,16 +1938,16 @@ TailCalls.dfy(64,12): Error: 'decreases *' is allowed only on tail-recursive met
 5 resolution/type errors detected in TailCalls.dfy
 
 -------------------- IteratorResolution.dfy --------------------
-IteratorResolution.dfy(59,11): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(59,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(64,18): Error: arguments must have the same type (got _T0 and int)
 IteratorResolution.dfy(76,19): Error: RHS (of type bool) not assignable to LHS (of type int)
 IteratorResolution.dfy(79,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
 IteratorResolution.dfy(83,15): Error: logical negation expects a boolean argument (instead got int)
-IteratorResolution.dfy(17,11): Error: LHS of assignment does not denote a mutable field
-IteratorResolution.dfy(19,12): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(17,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(19,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(123,9): Error: unresolved identifier: _decreases3
 IteratorResolution.dfy(124,21): Error: arguments must have the same type (got int and ?)
-IteratorResolution.dfy(125,14): Error: LHS of assignment does not denote a mutable field
+IteratorResolution.dfy(125,2): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(132,9): Error: unresolved identifier: _decreases1
 IteratorResolution.dfy(137,9): Error: unresolved identifier: _decreases0
 12 resolution/type errors detected in IteratorResolution.dfy

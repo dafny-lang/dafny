@@ -876,3 +876,30 @@ class ModifyStatementClass {
     }
   }
 }
+
+module LhsLvalue {
+  method M()
+  {
+    var mySeq: seq<int>;
+    var a := new int[78];
+    var b := new int[100, 200];
+    var c := new MyRecord[29];
+
+    mySeq[0] := 5;  // error: cannot assign to a sequence element
+    mySeq[0] := MyLemma();  // error: ditto
+    a[0] := 5;
+    a[0] := MyLemma();
+    b[20, 18] := 5;
+    b[20, 18] := MyLemma();
+    c[25].x := 5;  // error: cannot assign to a destructor
+    c[25].x := MyLemma();  // error: ditto
+    mySeq[0..4] := 5;  // error: cannot assign to a range
+    mySeq[0..4] := MyLemma();  // error: ditto
+    a[0..4] := 5;  // error: cannot assign to a range
+    a[0..4] := MyLemma();  // error: ditto
+  }
+
+  datatype MyRecord = Make(x: int, y: int)
+
+  method MyLemma() returns (w: int)
+}
