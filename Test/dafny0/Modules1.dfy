@@ -113,3 +113,20 @@ module Q_M {
     var q := new Q.Klassy.Init();
   }
 }
+
+// ----- regression test -----------------------------------------
+
+abstract module Regression {
+  module A
+  {
+    predicate p(m: map)
+
+    lemma m(m: map)
+      ensures exists m :: p(m);
+  }
+
+  abstract module B
+  {
+    import X as A
+  }
+}

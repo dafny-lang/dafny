@@ -792,7 +792,7 @@ Modules1.dfy(59,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 22 verified, 5 errors
+Dafny program verifier finished with 26 verified, 5 errors
 
 -------------------- Modules2.dfy --------------------
 Modules2.dfy(44,17): Error: The name C ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)

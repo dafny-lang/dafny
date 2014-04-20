@@ -1106,6 +1106,9 @@ namespace Microsoft.Dafny
         return new UserDefinedType(tt.tok, tt.Name, tt.TypeArgs.ConvertAll(CloneType), tt.Path.ConvertAll(x => x));
       } else if (t is InferredTypeProxy) {
         return new InferredTypeProxy();
+      } else if (t is ParamTypeProxy) {
+        var tt = (ParamTypeProxy)t;
+        return new ParamTypeProxy(CloneTypeParam(tt.orig));
       } else {
         Contract.Assert(false);  // unexpected type (e.g., no other type proxies are expected at this time)
         return null;  // to please compiler
