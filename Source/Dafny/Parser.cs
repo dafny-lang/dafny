@@ -242,11 +242,13 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			{
 			string parsedFile = t.filename;
 			string includedFile = t.val.Substring(1, t.val.Length - 2);
+			string fullPath = includedFile;
 			if (!Path.IsPathRooted(includedFile)) {
 			  string basePath = Path.GetDirectoryName(parsedFile);
-			  includedFile = Path.GetFullPath(Path.Combine(basePath, includedFile));
-			} 
-			defaultModule.Includes.Add(new Include(t, includedFile)); 
+			  includedFile = Path.Combine(basePath, includedFile);
+			  fullPath = Path.GetFullPath(includedFile);
+			}
+			defaultModule.Includes.Add(new Include(t, includedFile, fullPath)); 
 			}
 			
 		}
@@ -815,26 +817,19 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		if (la.kind == 9) {
 			FunctionBody(out body, out bodyStart, out bodyEnd);
 		}
-		if (!theVerifyThisFile) {  // We still need the func bodies, but don't bother verifying their correctness
-		  List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
-		  Attributes.Argument/*!*/ anArg;
-		  anArg = new Attributes.Argument(id, new LiteralExpr(t, false));
-		  args.Add(anArg);
-		  attrs = new Attributes("verify", args, attrs);
-		} 
-		
 		if (DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom")) {
 		  SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		
+		IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
 		if (isPredicate) {
-		  f = new Predicate(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
+		  f = new Predicate(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals,
 		                    reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
 		} else if (isCoPredicate) {
-		  f = new CoPredicate(id, id.val, mmod.IsStatic, typeArgs, openParen, formals,
+		  f = new CoPredicate(tok, id.val, mmod.IsStatic, typeArgs, openParen, formals,
 		                    reqs, reads, ens, body, attrs, signatureEllipsis);
 		} else {
-		  f = new Function(id, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
+		  f = new Function(tok, id.val, mmod.IsStatic, !isFunctionMethod, typeArgs, openParen, formals, returnType,
 		                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
 		}
 		f.BodyStartTok = bodyStart;
@@ -940,16 +935,6 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		if (la.kind == 9) {
 			BlockStmt(out body, out bodyStart, out bodyEnd);
 		}
-		if (!theVerifyThisFile) {
-		 body = null;
-		 
-		  List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
-		  Attributes.Argument/*!*/ anArg;
-		  anArg = new Attributes.Argument(id, new LiteralExpr(t, false));
-		  args.Add(anArg);
-		  attrs = new Attributes("verify", args, attrs);
-		}
-		
 		if (Attributes.Contains(attrs, "axiom") && !mmod.IsGhost && !isLemma) {
 		  SemErr(t, "only ghost methods can have the :axiom attribute");
 		}
@@ -958,17 +943,18 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 		  SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
 		}
 		
+		IToken tok = theVerifyThisFile ? id : new IncludeToken(id);
 		if (isConstructor) {
-		 m = new Constructor(id, hasName ? id.val : "_ctor", typeArgs, ins,
+		 m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
 		                     req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else if (isCoLemma) {
-		 m = new CoLemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
+		 m = new CoLemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
 		                 req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else if (isLemma) {
-		 m = new Lemma(id, id.val, mmod.IsStatic, typeArgs, ins, outs,
+		 m = new Lemma(tok, id.val, mmod.IsStatic, typeArgs, ins, outs,
 		               req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		} else {
-		 m = new Method(id, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
+		 m = new Method(tok, id.val, mmod.IsStatic, mmod.IsGhost, typeArgs, ins, outs,
 		                req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
 		}
 		m.BodyStartTok = bodyStart;

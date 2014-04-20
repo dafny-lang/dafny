@@ -86,13 +86,13 @@ namespace Microsoft.Dafny {
     // Lower-case file names before comparing them, since Windows uses case-insensitive file names
     private class IncludeComparer : IComparer<Include> {
       public int Compare(Include x, Include y) {
-        return x.filename.ToLower().CompareTo(y.filename.ToLower());
+        return x.fullPath.ToLower().CompareTo(y.fullPath.ToLower());
       }
     }
 
     public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, Errors errs) {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
-      bool newlyIncluded = false;
+      bool newlyIncluded;
       do {
         newlyIncluded = false;
 

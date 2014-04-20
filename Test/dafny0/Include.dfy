@@ -10,3 +10,22 @@ method test_include(z:int)
   var w := m_unproven(z);
   assert w == 2*z;
 }
+
+// and some refinement stuff, to make sure it works with includes
+module Concrete refines Abstract
+{
+  function method inc...  // error: postcondition violation
+  {
+    x - 1
+  }
+  method M...
+  {
+    var y := G(x);  // error: it is not know whether or not G(x) is non-negative, as required
+    if x < 68 {
+      return 70;  // error
+    } else if 30 <= x {  // this will always be true here
+      return x;  // fine
+    }
+    ...;
+  }
+}

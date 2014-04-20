@@ -2112,8 +2112,36 @@ Execution trace:
 Dafny program verifier finished with 7 verified, 5 errors
 
 -------------------- Include.dfy --------------------
+Include.dfy(17,19): Error BP5003: A postcondition might not hold on this return path.
+Includee.dfy(15,20): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Includee.dfy[Concrete](20,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Include.dfy(25,7): Error BP5003: A postcondition might not hold on this return path.
+Includee.dfy[Concrete](18,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 4 verified, 3 errors
+
+-------------------- Includee.dfy --------------------
+Includee.dfy(19,3): Error BP5003: A postcondition might not hold on this return path.
+Includee.dfy(18,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Includee.dfy(22,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Includee.dfy(4,1): Error BP5003: A postcondition might not hold on this return path.
+Includee.dfy(3,13): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 5 verified, 3 errors
 
 -------------------- AutoReq.dfy --------------------
 AutoReq.dfy(245,3): Error: possible violation of function precondition

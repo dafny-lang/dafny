@@ -1086,7 +1086,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           AddClassMember_Function(f);
-          if (!IsOpaqueFunction(f) && !f.IsBuiltin) { // Opaque function's well-formedness is checked on the full version
+          if (!IsOpaqueFunction(f) && !f.IsBuiltin && !(f.tok is IncludeToken)) { // Opaque function's well-formedness is checked on the full version
             AddWellformednessCheck(f);
           }
           var cop = f as CoPredicate;
@@ -1104,7 +1104,9 @@ namespace Microsoft.Dafny {
           } else {
             var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
             sink.TopLevelDeclarations.Add(proc);
-            AddMethodImpl(m, proc, true);
+            if (!(m.tok is IncludeToken)) {
+              AddMethodImpl(m, proc, true);
+            }
           }
           // the method spec itself
           sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.InterModuleCall));
@@ -1115,7 +1117,7 @@ namespace Microsoft.Dafny {
             m = ((CoLemma)m).PrefixLemma;
             sink.TopLevelDeclarations.Add(AddMethod(m, MethodTranslationKind.CoCall));
           }
-          if (m.Body != null) {
+          if (m.Body != null && !(m.tok is IncludeToken)) {
             // ...and its implementation
             var proc = AddMethod(m, MethodTranslationKind.Implementation);
             sink.TopLevelDeclarations.Add(proc);

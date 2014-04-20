@@ -49,17 +49,20 @@ namespace Microsoft.Dafny {
   public class Include : IComparable
   {
     public readonly IToken tok;
-    public readonly string filename;    
+    public readonly string filename;
+    public readonly string fullPath;
 
-    public Include(IToken tok, string theFilename) {
+    public Include(IToken tok, string theFilename, string fullPath) {
       this.tok = tok;
-      this.filename = theFilename;      
+      this.filename = theFilename;
+      this.fullPath = fullPath;
     }
 
 
     public int CompareTo(object obj) {
-      if (obj is Include) {
-        return this.filename.CompareTo(((Include)obj).filename);
+      var i = obj as Include;
+      if (i != null) {
+        return this.fullPath.CompareTo(i.fullPath);
       } else {
         throw new NotImplementedException();
       }
@@ -3962,6 +3965,19 @@ namespace Microsoft.Dafny {
     }
     public IToken Outer { get { return WrappedToken; } }
     public readonly IToken Inner;
+  }
+
+  /// <summary>
+  /// An IncludeToken is a wrapper that indicates that the function/method was
+  /// declared in a file that was included. Any proof obligations from such an
+  /// included file are to be ignored.
+  /// </summary>
+  public class IncludeToken : TokenWrapper
+  {
+    public IncludeToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
   }
 
   // ------------------------------------------------------------------------------------------------------

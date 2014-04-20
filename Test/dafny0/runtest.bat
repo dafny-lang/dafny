@@ -29,7 +29,7 @@ for %%f in (TypeTests.dfy NatTypes.dfy RealTypes.dfy Definedness.dfy
             IteratorResolution.dfy Iterators.dfy
             RankPos.dfy RankNeg.dfy
             Computations.dfy ComputationsNeg.dfy
-            Include.dfy AutoReq.dfy DatatypeUpdate.dfy ModifyStmt.dfy SeqSlice.dfy
+            Include.dfy Includee.dfy AutoReq.dfy DatatypeUpdate.dfy ModifyStmt.dfy SeqSlice.dfy
             RealCompare.dfy) do (
   echo.
   echo -------------------- %%f --------------------
