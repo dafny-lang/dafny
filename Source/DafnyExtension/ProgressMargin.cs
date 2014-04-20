@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -99,7 +100,10 @@ namespace DafnyLanguage
     ErrorListProvider _errorProvider;
     ITextBuffer _buffer;
     ITextDocument _document;
-    private bool m_disposed;
+    bool _disposed;
+    bool _logSnapshots = false;
+    DateTime _created;
+    int _version;
 
     readonly DispatcherTimer timer;
 
@@ -120,6 +124,7 @@ namespace DafnyLanguage
       tagAggregator.TagsChanged += new EventHandler<TagsChangedEventArgs>(_aggregator_TagsChanged);
       buffer.Changed += new EventHandler<TextContentChangedEventArgs>(buffer_Changed);
       bufferChangesPostVerificationStart.Add(new SnapshotSpan(buffer.CurrentSnapshot, 0, buffer.CurrentSnapshot.Length));
+      _created = DateTime.UtcNow;
     }
 
     public void Dispose()
@@ -132,7 +137,7 @@ namespace DafnyLanguage
     {
       lock (this)
       {
-        if (!m_disposed)
+        if (!_disposed)
         {
           if (disposing)
           {
@@ -156,7 +161,7 @@ namespace DafnyLanguage
             }
           }
 
-          m_disposed = true;
+          _disposed = true;
         }
       }
     }
@@ -315,11 +320,24 @@ namespace DafnyLanguage
       Contract.Requires(requestId != null);
       Contract.Requires(errorListHolder != null);
 
+      if (_logSnapshots)
+      {
+        var logDirName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(program.Name), "logs");
+        Directory.CreateDirectory(logDirName);
+        var logFileName = System.IO.Path.Combine(logDirName, System.IO.Path.GetFileName(System.IO.Path.ChangeExtension(program.Name, string.Format("{0}.v{1}{2}", _created.Ticks, _version, System.IO.Path.GetExtension(program.Name)))));        
+        using (var writer = new StreamWriter(logFileName))
+        {
+          var pr = new Dafny.Printer(writer);
+          pr.PrintProgram(program);
+        }
+        _version++;
+      }
+
       try
       {
         bool success = DafnyDriver.Verify(program, errorListHolder, GetHashCode().ToString(), requestId, errorInfo =>
         {
-          if (!m_disposed)
+          if (!_disposed)
           {
             errorInfo.BoogieErrorCode = null;
             if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
