@@ -5468,6 +5468,10 @@ namespace Microsoft.Dafny {
           Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration), varType, wh));
           var.Attributes = etran.TrAttributes(local.Attributes, null); ;
           locals.Add(var);
+          if (Attributes.Contains(local.Attributes, "assumption"))
+          {
+            builder.Add(new AssumeCmd(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration), varType), new QKeyValue(local.Tok, "assumption_variable_initialization", new List<object>(), null)));
+          }
         }
         if (s.Update != null) {
           TrStmt(s.Update, builder, locals, etran);

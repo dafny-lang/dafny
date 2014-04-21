@@ -2607,6 +2607,7 @@ namespace Microsoft.Dafny
     }
 
     ClassDecl currentClass;
+    Method currentMethod;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ labeledStatements = new Scope<Statement>();
@@ -3133,77 +3134,86 @@ namespace Microsoft.Dafny
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
 
-      // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
-      scope.PushMarker();
-      if (m.IsStatic) {
-        scope.AllowInstance = false;
-      }
-      foreach (Formal p in m.Ins) {
-        scope.Push(p.Name, p);
-      }
+      try
+      {
+        currentMethod = m;
 
-      // Start resolving specification...
-      foreach (MaybeFreeExpression e in m.Req) {
-        ResolveExpression(e.E, false, m);
-        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
+        // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
+        scope.PushMarker();
+        if (m.IsStatic) {
+          scope.AllowInstance = false;
         }
-      }
-      foreach (FrameExpression fe in m.Mod.Expressions) {
-        ResolveFrameExpression(fe, "modifies", m.IsGhost, m);
-        if (m is Lemma) {
-          Error(fe.tok, "lemmas are not allowed to have modifies clauses");
-        } else if (m is CoLemma) {
-          Error(fe.tok, "colemmas are not allowed to have modifies clauses");
-        }
-      }
-      foreach (Expression e in m.Decreases.Expressions) {
-        ResolveExpression(e, false, m);
-        // any type is fine
-        if (m.IsGhost && e is WildcardExpr) {
-          Error(e, "'decreases *' is not allowed on ghost methods");
-        }
-      }
-
-      // Add out-parameters to a new scope that will also include the outermost-level locals of the body
-      // Don't care about any duplication errors among the out-parameters, since they have already been reported
-      scope.PushMarker();
-      if (m is CoLemma && m.Outs.Count != 0) {
-        Error(m.Outs[0].tok, "colemmas are not allowed to have out-parameters");
-      } else {
-        foreach (Formal p in m.Outs) {
+        foreach (Formal p in m.Ins) {
           scope.Push(p.Name, p);
         }
-      }
 
-      // ... continue resolving specification
-      foreach (MaybeFreeExpression e in m.Ens) {
-        ResolveExpression(e.E, true, m);
-        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (!UnifyTypes(e.E.Type, Type.Bool)) {
-          Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+        // Start resolving specification...
+        foreach (MaybeFreeExpression e in m.Req) {
+          ResolveExpression(e.E, false, m);
+          Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.E.Type, Type.Bool)) {
+            Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
+          }
         }
-      }
-
-      // Resolve body
-      if (m.Body != null) {
-        var com = m as CoLemma;
-        if (com != null && com.PrefixLemma != null) {
-          // The body may mentioned the implicitly declared parameter _k.  Throw it into the
-          // scope before resolving the body.
-          var k = com.PrefixLemma.Ins[0];
-          scope.Push(k.Name, k);  // we expect no name conflict for _k
+        foreach (FrameExpression fe in m.Mod.Expressions) {
+          ResolveFrameExpression(fe, "modifies", m.IsGhost, m);
+          if (m is Lemma) {
+            Error(fe.tok, "lemmas are not allowed to have modifies clauses");
+          } else if (m is CoLemma) {
+            Error(fe.tok, "colemmas are not allowed to have modifies clauses");
+          }
         }
-        var codeContext = m;
-        ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
+        foreach (Expression e in m.Decreases.Expressions) {
+          ResolveExpression(e, false, m);
+          // any type is fine
+          if (m.IsGhost && e is WildcardExpr) {
+            Error(e, "'decreases *' is not allowed on ghost methods");
+          }
+        }
+
+        // Add out-parameters to a new scope that will also include the outermost-level locals of the body
+        // Don't care about any duplication errors among the out-parameters, since they have already been reported
+        scope.PushMarker();
+        if (m is CoLemma && m.Outs.Count != 0) {
+          Error(m.Outs[0].tok, "colemmas are not allowed to have out-parameters");
+        } else {
+          foreach (Formal p in m.Outs) {
+            scope.Push(p.Name, p);
+          }
+        }
+
+        // ... continue resolving specification
+        foreach (MaybeFreeExpression e in m.Ens) {
+          ResolveExpression(e.E, true, m);
+          Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+          if (!UnifyTypes(e.E.Type, Type.Bool)) {
+            Error(e.E, "Postcondition must be a boolean (got {0})", e.E.Type);
+          }
+        }
+
+        // Resolve body
+        if (m.Body != null) {
+          var com = m as CoLemma;
+          if (com != null && com.PrefixLemma != null) {
+            // The body may mentioned the implicitly declared parameter _k.  Throw it into the
+            // scope before resolving the body.
+            var k = com.PrefixLemma.Ins[0];
+            scope.Push(k.Name, k);  // we expect no name conflict for _k
+          }
+          var codeContext = m;
+          ResolveBlockStatement(m.Body, m.IsGhost, codeContext);
+        }
+
+        // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
+        ResolveAttributes(m.Attributes, false, m);
+
+        scope.PopMarker();  // for the out-parameters and outermost-level locals
+        scope.PopMarker();  // for the in-parameters
       }
-
-      // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
-      ResolveAttributes(m.Attributes, false, m);
-
-      scope.PopMarker();  // for the out-parameters and outermost-level locals
-      scope.PopMarker();  // for the in-parameters
+      finally
+      {
+        currentMethod = null;
+      }
     }
 
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
@@ -4176,6 +4186,24 @@ namespace Microsoft.Dafny
         if (!s.IsGhost) {
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
         }
+        foreach (var local in s.Locals)
+        {
+          if (Attributes.Contains(local.Attributes, "assumption"))
+          {
+            if (currentMethod == null)
+            {
+              Error(local.Tok, "assumption variable can only be declared in a method");
+            }
+            if (!local.IsGhost)
+            {
+              Error(local.Tok, "assumption variable must be ghost");
+            }
+            if (!(local.Type is BoolType))
+            {
+              Error(s, "assumption variable must be of type 'bool'");
+            }
+          }
+        }
 
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
@@ -4195,6 +4223,26 @@ namespace Microsoft.Dafny
             CheckIsLvalue(lhs);
             if (!lvalueIsGhost && specContextOnly) {
               Error(stmt, "Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+            }
+
+            var localVar = var as LocalVariable;
+            if (localVar != null && currentMethod != null && Attributes.Contains(localVar.Attributes, "assumption"))
+            {
+              var rhs = s.Rhs as ExprRhs;
+              var expr = (rhs != null ? rhs.Expr : null);
+              var binaryExpr = expr as BinaryExpr;
+              if (binaryExpr != null
+                  && (binaryExpr.Op == BinaryExpr.Opcode.And)
+                  && (binaryExpr.E0.Resolved is IdentifierExpr)
+                  && ((IdentifierExpr)(binaryExpr.E0.Resolved)).Var == localVar
+                  && !currentMethod.AssignedAssumptionVariables.Contains(localVar))
+              {
+                currentMethod.AssignedAssumptionVariables.Add(localVar);
+              }
+              else
+              {
+                Error(stmt, string.Format("there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{0} && <boolean expression>\"", localVar.Name));
+              }
             }
           }
         } else if (lhs is FieldSelectExpr) {

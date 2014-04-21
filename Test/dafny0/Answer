@@ -2267,6 +2267,26 @@ Execution trace:
 
 Dafny program verifier finished with 24 verified, 4 errors
 
+-------------------- AssumptionVariables0.dfy --------------------
+AssumptionVariables0.dfy(3,29): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
+AssumptionVariables0.dfy(4,33): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a2 && <boolean expression>"
+AssumptionVariables0.dfy(6,20): Error: assumption variable must be ghost
+AssumptionVariables0.dfy(6,2): Error: assumption variable must be of type 'bool'
+AssumptionVariables0.dfy(12,5): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a3 && <boolean expression>"
+AssumptionVariables0.dfy(14,5): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a3 && <boolean expression>"
+AssumptionVariables0.dfy(24,5): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
+AssumptionVariables0.dfy(28,5): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
+AssumptionVariables0.dfy(50,9): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
+AssumptionVariables0.dfy(54,26): Error: assumption variable must be ghost
+AssumptionVariables0.dfy(58,37): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
+AssumptionVariables0.dfy(58,10): Error: assumption variable must be of type 'bool'
+AssumptionVariables0.dfy(66,15): Error: there may be at most one assignment to an assumption variable, the RHS of which must match the expression "a0 && <boolean expression>"
+13 resolution/type errors detected in AssumptionVariables0.dfy
+
+-------------------- AssumptionVariables1.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+
 -------------------- Superposition.dfy --------------------
 
 Verifying CheckWellformed$$_0_M0.C.M ...

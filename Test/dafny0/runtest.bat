@@ -30,7 +30,8 @@ for %%f in (TypeTests.dfy NatTypes.dfy RealTypes.dfy Definedness.dfy
             RankPos.dfy RankNeg.dfy
             Computations.dfy ComputationsNeg.dfy
             Include.dfy Includee.dfy AutoReq.dfy DatatypeUpdate.dfy ModifyStmt.dfy SeqSlice.dfy
-            RealCompare.dfy) do (
+            RealCompare.dfy
+            AssumptionVariables0.dfy AssumptionVariables1.dfy) do (
   echo.
   echo -------------------- %%f --------------------
   %DAFNY_EXE% /compile:0 /print:out.bpl.tmp /dprint:out.dfy.tmp %* %%f
