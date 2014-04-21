@@ -170,10 +170,10 @@ namespace DafnyLanguage
 
     #region Compilation
 
-    public static void Compile(Dafny.Program dafnyProgram)
+    public static void Compile(Dafny.Program dafnyProgram, TextWriter outputWriter)
     {
       Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
-      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name);
+      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name, outputWriter);
     }
 
     #endregion

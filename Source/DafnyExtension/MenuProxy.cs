@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -75,7 +76,8 @@ namespace DafnyLanguage
           && DafnyLanguage.ResolverTagger.ResolverTaggers.TryGetValue(activeTextView.TextBuffer, out resolver)
           && resolver.Program != null)
       {
-        DafnyMenuPackage.ExecuteAsCompiling(() => { DafnyDriver.Compile(resolver.Program); });
+        var outputWriter = new StringWriter();
+        DafnyMenuPackage.ExecuteAsCompiling(() => { DafnyDriver.Compile(resolver.Program, outputWriter); }, outputWriter);
       }
     }
 

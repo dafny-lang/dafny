@@ -3,6 +3,7 @@ using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.ComponentModelHost;
@@ -281,13 +282,25 @@ namespace DafnyLanguage.DafnyMenu
       toggleBVDCommand.Text = (BVDDisabled ? "Enable" : "Disable") + " BVD";
     }
 
-    public void ExecuteAsCompiling(Action action)
+    public void ExecuteAsCompiling(Action action, TextWriter outputWriter)
     {
       IVsStatusbar statusBar = (IVsStatusbar)GetGlobalService(typeof(SVsStatusbar));
       uint cookie = 0;
       statusBar.Progress(ref cookie, 1, "Compiling...", 0, 0);
 
+      var gowp = (IVsOutputWindowPane)GetService(typeof(SVsGeneralOutputWindowPane));
+      if (gowp != null)
+      {
+        gowp.Clear();
+      }
+
       action();
+
+      if (gowp != null)
+      {
+        gowp.OutputStringThreadSafe(outputWriter.ToString());
+        gowp.Activate();
+      }
 
       statusBar.Progress(ref cookie, 0, "", 0, 0);
     }

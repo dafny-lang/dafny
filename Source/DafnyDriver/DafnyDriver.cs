@@ -240,13 +240,19 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName)
+    public static void CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName, TextWriter outputWriter = null)
     {
       Contract.Requires(dafnyProgram != null);
+
+      if (outputWriter == null)
+      {
+        outputWriter = Console.Out;
+      }
 
       // Compile the Dafny program into a string that contains the C# program
       StringWriter sw = new StringWriter();
       Dafny.Compiler compiler = new Dafny.Compiler(sw);
+      compiler.ErrorWriter = outputWriter;
       var hasMain = compiler.HasMain(dafnyProgram);
       if (DafnyOptions.O.RunAfterCompile && !hasMain) {
         // do no more
@@ -265,11 +271,11 @@ namespace Microsoft.Dafny
           target.Write(csharpProgram);
           if (completeProgram)
           {
-            Console.WriteLine("Compiled program written to {0}", targetFilename);
+            outputWriter.WriteLine("Compiled program written to {0}", targetFilename);
           }
           else
           {
-            Console.WriteLine("File {0} contains the partially compiled program", targetFilename);
+            outputWriter.WriteLine("File {0} contains the partially compiled program", targetFilename);
           }
         }
       }
@@ -281,7 +287,7 @@ namespace Microsoft.Dafny
       }
       else if (!CodeDomProvider.IsDefinedLanguage("CSharp"))
       {
-        Console.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
+        outputWriter.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
       }
       else
       {
@@ -302,26 +308,26 @@ namespace Microsoft.Dafny
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
         if (DafnyOptions.O.RunAfterCompile && cr.Errors.Count == 0) {
-          Console.WriteLine("Program compiled successfully");
-          Console.WriteLine("Running...");
-          Console.WriteLine();
+          outputWriter.WriteLine("Program compiled successfully");
+          outputWriter.WriteLine("Running...");
+          outputWriter.WriteLine();
           var entry = cr.CompiledAssembly.EntryPoint;
           try {
             entry.Invoke(null, new object[] { new string[0] });
           } catch (System.Reflection.TargetInvocationException e) {
-            Console.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-            Console.WriteLine(e.InnerException.ToString());
+            outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+            outputWriter.WriteLine(e.InnerException.ToString());
           } catch (Exception e) {
-            Console.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-            Console.WriteLine(e.ToString());
+            outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+            outputWriter.WriteLine(e.ToString());
           }
         } else if (cr.Errors.Count == 0) {
-          Console.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
+          outputWriter.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
         } else {
-          Console.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
+          outputWriter.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
           foreach (var ce in cr.Errors) {
-            Console.WriteLine(ce.ToString());
-            Console.WriteLine();
+            outputWriter.WriteLine(ce.ToString());
+            outputWriter.WriteLine();
           }
         }
       }

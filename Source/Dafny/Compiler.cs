@@ -49,12 +49,14 @@ namespace Microsoft.Dafny {
     }
 
     public int ErrorCount;
+    public TextWriter ErrorWriter = Console.Out;
+
     void Error(string msg, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
       string s = string.Format("Compilation error: " + msg, args);
-      Console.WriteLine(s);
+      ErrorWriter.WriteLine(s);
       wr.WriteLine("/* {0} */", s);
       ErrorCount++;
     }
