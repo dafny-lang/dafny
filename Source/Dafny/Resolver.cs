@@ -1452,7 +1452,7 @@ namespace Microsoft.Dafny
           if (prefixLemma == null) {
             continue;  // something went wrong during registration of the prefix lemma (probably a duplicated colemma name)
           }
-          Contract.Assume(prefixLemma.Ens.Count == 0 && prefixLemma.Body == null);  // there are not supposed have have been filled in before
+          Contract.Assume(prefixLemma.Ens.Count == 0 && prefixLemma.Body == null);  // these are not supposed to have been filled in before
           // compute the postconditions of the prefix lemma
           var k = prefixLemma.Ins[0];
           foreach (var p in com.Ens) {
@@ -1804,10 +1804,10 @@ namespace Microsoft.Dafny
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is Method) {
         var m = (Method)member;
-        m.Req.Iter(mfe => CheckTypeInference(mfe.E));
-        m.Ens.Iter(mfe => CheckTypeInference(mfe.E));
-        m.Mod.Expressions.Iter(fe => CheckTypeInference(fe.E));
-        m.Decreases.Expressions.Iter(CheckTypeInference);
+        m.Req.Iter(CheckTypeInference_MaybeFreeExpression);
+        m.Ens.Iter(CheckTypeInference_MaybeFreeExpression);
+        CheckTypeInference_Specification_FrameExpr(m.Mod);
+        CheckTypeInference_Specification_Expr(m.Decreases);
         if (m.Body != null) {
           CheckTypeInference(m.Body);
           bool tail = true;
@@ -1843,7 +1843,7 @@ namespace Microsoft.Dafny
         f.Req.Iter(CheckTypeInference);
         f.Ens.Iter(CheckTypeInference);
         f.Reads.Iter(fe => CheckTypeInference(fe.E));
-        f.Decreases.Expressions.Iter(CheckTypeInference);
+        CheckTypeInference_Specification_Expr(f.Decreases);
         if (f.Body != null) {
           CheckTypeInference(f.Body);
           bool tail = true;
@@ -1856,6 +1856,27 @@ namespace Microsoft.Dafny
           CheckTypeInference_Member(cop.PrefixPredicate);
         }
       }
+    }
+    private void CheckTypeInference_MaybeFreeExpression(MaybeFreeExpression mfe) {
+      Contract.Requires(mfe != null);
+      foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
+        CheckTypeInference(e);
+      }
+      CheckTypeInference(mfe.E);
+    }
+    private void CheckTypeInference_Specification_Expr(Specification<Expression> spec) {
+      Contract.Requires(spec != null);
+      foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
+        CheckTypeInference(e);
+      }
+      spec.Expressions.Iter(CheckTypeInference);
+    }
+    private void CheckTypeInference_Specification_FrameExpr(Specification<FrameExpression> spec) {
+      Contract.Requires(spec != null);
+      foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
+        CheckTypeInference(e);
+      }
+      spec.Expressions.Iter(fe => CheckTypeInference(fe.E));
     }
     void CheckTypeInference(Expression expr) {
       Contract.Requires(expr != null);
@@ -3054,6 +3075,7 @@ namespace Microsoft.Dafny
           Error(r, "Postcondition must be a boolean (got {0})", r.Type);
         }
       }
+      ResolveAttributes(f.Decreases.Attributes, false, f);
       foreach (Expression r in f.Decreases.Expressions) {
         ResolveExpression(r, false, f);
         // any type is fine
@@ -3149,12 +3171,14 @@ namespace Microsoft.Dafny
 
         // Start resolving specification...
         foreach (MaybeFreeExpression e in m.Req) {
+          ResolveAttributes(e.Attributes, false, m);
           ResolveExpression(e.E, false, m);
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(e.E.Type, Type.Bool)) {
             Error(e.E, "Precondition must be a boolean (got {0})", e.E.Type);
           }
         }
+        ResolveAttributes(m.Mod.Attributes, false, m);
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, "modifies", m.IsGhost, m);
           if (m is Lemma) {
@@ -3163,6 +3187,7 @@ namespace Microsoft.Dafny
             Error(fe.tok, "colemmas are not allowed to have modifies clauses");
           }
         }
+        ResolveAttributes(m.Decreases.Attributes, false, m);
         foreach (Expression e in m.Decreases.Expressions) {
           ResolveExpression(e, false, m);
           // any type is fine
@@ -3184,6 +3209,7 @@ namespace Microsoft.Dafny
 
         // ... continue resolving specification
         foreach (MaybeFreeExpression e in m.Ens) {
+          ResolveAttributes(e.Attributes, true, m);
           ResolveExpression(e.E, true, m);
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(e.E.Type, Type.Bool)) {
@@ -4019,6 +4045,7 @@ namespace Microsoft.Dafny
     public void ResolveStatement(Statement stmt, bool specContextOnly, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
+      ResolveAttributes(stmt.Attributes, true, codeContext);
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
         ResolveAttributes(s.Attributes, false, codeContext);
@@ -4381,6 +4408,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (MaybeFreeExpression inv in s.Invariants) {
+          ResolveAttributes(inv.Attributes, true, codeContext);
           ResolveExpression(inv.E, true, codeContext);
           Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
           if (!UnifyTypes(inv.E.Type, Type.Bool)) {
@@ -4388,6 +4416,7 @@ namespace Microsoft.Dafny
           }
         }
 
+        ResolveAttributes(s.Decreases.Attributes, true, codeContext);
         foreach (Expression e in s.Decreases.Expressions) {
           ResolveExpression(e, true, codeContext);
           if (bodyMustBeSpecOnly && e is WildcardExpr) {
@@ -4397,6 +4426,7 @@ namespace Microsoft.Dafny
         }
 
         if (s.Mod.Expressions != null) {
+          ResolveAttributes(s.Mod.Attributes, true, codeContext);
           foreach (FrameExpression fe in s.Mod.Expressions) {
             ResolveFrameExpression(fe, "modifies", bodyMustBeSpecOnly, codeContext);
           }

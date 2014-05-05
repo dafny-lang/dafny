@@ -159,6 +159,16 @@ namespace Microsoft.Dafny {
       Prev = prev;
     }
 
+    public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
+      for (; attrs != null; attrs = attrs.Prev) {
+        foreach (var arg in attrs.Args) {
+          if (arg.E != null) {
+            yield return arg.E;
+          }
+        }
+      }
+    }
+
     public static bool Contains(Attributes attrs, string nm) {
       Contract.Requires(nm != null);
       for (; attrs != null; attrs = attrs.Prev) {
@@ -2426,7 +2436,11 @@ namespace Microsoft.Dafny {
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
-      get { yield break; }
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+      }
     }
   }
 
@@ -2496,6 +2510,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         yield return Expr;
       }
     }
@@ -2536,6 +2551,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var arg in Args) {
           if (arg.E != null) {
             yield return arg.E;
@@ -2583,6 +2599,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         if (rhss != null) {
           foreach (var rhs in rhss) {
             foreach (var ee in rhs.SubExpressions) {
@@ -2655,7 +2672,11 @@ namespace Microsoft.Dafny {
     /// Returns the non-null subexpressions of the AssignmentRhs.
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
-      get { yield break; }
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+      }
     }
     /// <summary>
     /// Returns the non-null sub-statements of the AssignmentRhs.
@@ -2874,6 +2895,17 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Statement> SubStatements {
       get { if (Update != null) { yield return Update; } }
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var v in Locals) {
+          foreach (var e in Attributes.SubExpressions(v.Attributes)) {
+            yield return e;
+          }
+        }
+      }
+    }
   }
 
   /// <summary>
@@ -2925,6 +2957,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         yield return Expr;
         foreach (var lhs in Lhss) {
           yield return lhs;
@@ -3001,6 +3034,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         yield return Lhs;
         foreach (var ee in Rhs.SubExpressions) {
           yield return ee;
@@ -3167,6 +3201,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var ee in Lhs) {
           yield return ee;
         }
@@ -3222,6 +3257,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         if (Guard != null) {
           yield return Guard;
         }
@@ -3276,6 +3312,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
         }
@@ -3310,14 +3347,18 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var mfe in Invariants) {
+          foreach (var e in Attributes.SubExpressions(mfe.Attributes)) { yield return e; }
           yield return mfe.E;
         }
+        foreach (var e in Attributes.SubExpressions(Decreases.Attributes)) { yield return e; }
         if (Decreases.Expressions != null) {
           foreach (var e in Decreases.Expressions) {
             yield return e;
           }
         }
+        foreach (var e in Attributes.SubExpressions(Mod.Attributes)) { yield return e; }
         if (Mod.Expressions != null) {
           foreach (var fe in Mod.Expressions) {
             yield return fe.E;
@@ -3354,11 +3395,9 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         if (Guard != null) {
           yield return Guard;
-        }
-        foreach (var e in base.SubExpressions) {
-          yield return e;
         }
       }
     }
@@ -3407,11 +3446,9 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
-        }
-        foreach (var e in base.SubExpressions) {
-          yield return e;
         }
       }
     }
@@ -3503,8 +3540,10 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         yield return Range;
         foreach (var ee in Ens) {
+          foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
           yield return ee.E;
         }
       }
@@ -3535,6 +3574,8 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in Attributes.SubExpressions(Mod.Attributes)) { yield return e; }
         foreach (var fe in Mod.Expressions) {
           yield return fe.E;
         }
@@ -3749,6 +3790,7 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions
     {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var l in Lines) {
           yield return l;
         }
@@ -3824,6 +3866,7 @@ namespace Microsoft.Dafny {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in base.SubExpressions) { yield return e; }
         yield return Source;
       }
     }
@@ -5276,6 +5319,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
         if (Range != null) { yield return Range; }
         yield return Term;
       }
