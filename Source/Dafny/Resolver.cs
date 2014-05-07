@@ -6145,10 +6145,21 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Eq:
           case BinaryExpr.Opcode.Neq:
-            if (!ComparableTypes(e.E0.Type, e.E1.Type)) {
-              if (!UnifyTypes(e.E0.Type, e.E1.Type)) {
-                Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
-              }
+            // We will both check for comparability and attempt to unify the types, and we do them in this order so that
+            // the compatibility check is not influenced by the unification.
+            var areComparable = ComparableTypes(e.E0.Type, e.E1.Type);
+            var unificationSuccess = UnifyTypes(e.E0.Type, e.E1.Type);
+            if (areComparable) {
+              // The expression is legal.  For example, we may have received two equal types, or we have have gotten types like
+              // array<T> and array<U> where T is a type parameter and U is some type.
+              // Still, we're still happy that we did the type unification to assign type proxies as needed.
+            } else if (unificationSuccess) {
+              // The expression is legal.  This can happen if one of the types contains a type proxy.  For example, if the
+              // first type is array<T> and the second type is a proxy, then the compatibility check will return false but
+              // unification will succeed.
+            } else {
+              // The types are not comparable and do not unify.  It's time for an error message.
+              Error(expr, "arguments must have the same type (got {0} and {1})", e.E0.Type, e.E1.Type);
             }
             expr.Type = Type.Bool;
             break;

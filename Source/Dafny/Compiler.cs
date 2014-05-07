@@ -88,6 +88,10 @@ namespace Microsoft.Dafny {
     public void Compile(Program program) {
       Contract.Requires(program != null);
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
+      wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
+      wr.WriteLine("// and choosing /target:exe or /target:library");
+      wr.WriteLine("// You might also want to include compiler switches like:");
+      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219");
       wr.WriteLine();
       ReadRuntimeSystem();
       CompileBuiltIns(program.BuiltIns);
@@ -675,7 +679,7 @@ namespace Microsoft.Dafny {
             foreach (var member in c.Members) {
               var m = member as Method;
               if (m != null) {
-                if (!m.IsGhost && m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
+                if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
                   return true;
                 }
               }
@@ -763,7 +767,7 @@ namespace Microsoft.Dafny {
             Indent(indent);  wr.WriteLine("}");
 
             // allow the Main method to be an instance method
-            if (!m.IsStatic && m.Name == "Main" && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
+            if (!m.IsStatic && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0) {
               Indent(indent);
               wr.WriteLine("public static void Main(string[] args) {");
               Contract.Assert(m.EnclosingClass == c);
