@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // VSComp 2010, problem 3, find a 0 in a linked list and return how many nodes were skipped
 // until the first 0 (or end-of-list) was found.
 // Rustan Leino, 18 August 2010.

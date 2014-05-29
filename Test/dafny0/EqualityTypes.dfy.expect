@@ -1,0 +1,12 @@
+EqualityTypes.dfy(34,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
+EqualityTypes.dfy(35,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
+EqualityTypes.dfy(40,11): Error: arbitrary type 'X' is not allowed to be replaced by a datatype that takes a different number of type parameters
+EqualityTypes.dfy(41,8): Error: arbitrary type 'Y' is not allowed to be replaced by a class that takes a different number of type parameters
+EqualityTypes.dfy(45,11): Error: datatype 'X' is used to refine an arbitrary type with equality support, but 'X' does not support equality
+EqualityTypes.dfy(46,11): Error: datatype 'Y' is used to refine an arbitrary type with equality support, but 'Y' does not support equality
+EqualityTypes.dfy(66,7): Error: == can only be applied to expressions of types that support equality (got Dt<T>)
+EqualityTypes.dfy(85,8): Error: type parameter 0 (T) passed to method M must support equality (got _T0)
+EqualityTypes.dfy(109,7): Error: == can only be applied to expressions of types that support equality (got D)
+EqualityTypes.dfy(114,13): Error: == can only be applied to expressions of types that support equality (got D)
+EqualityTypes.dfy(118,16): Error: == can only be applied to expressions of types that support equality (got D)
+11 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\EqualityTypes.dfy

@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Example taken from:
 // Edsger W. Dijkstra: Heuristics for a Calculational Proof. Inf. Process. Lett. (IPL) 53(3):141-143 (1995)
 // Transcribed into Dafny by Valentin Wüstholz and Nadia Polikarpova.

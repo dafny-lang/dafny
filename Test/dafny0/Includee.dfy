@@ -1,3 +1,5 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method m_unproven(x:int) returns (y:int)
   ensures y == 2*x;

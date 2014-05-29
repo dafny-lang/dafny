@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // This Dafny program was inspired by Claude Marche's Why3ML program that solves
 // Challenge 2 of the COST Verification Competition.  It particular, it uses an
 // inductive datatype for the Tree data structure, and it uses a Contains function

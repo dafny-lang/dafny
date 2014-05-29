@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method MirrorImage<T>(m: array2<T>)
   requires m != null;
   modifies m;

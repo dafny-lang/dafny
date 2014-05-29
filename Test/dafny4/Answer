@@ -20,7 +20,7 @@ Dafny program verifier finished with 24 verified, 0 errors
 Dafny program verifier finished with 47 verified, 0 errors
 
 -------------------- SoftwareFoundations-Basics.dfy --------------------
-SoftwareFoundations-Basics.dfy(38,12): Error: assertion violation
+SoftwareFoundations-Basics.dfy(41,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

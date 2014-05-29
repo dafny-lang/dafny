@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class {:autocontracts} ExtensibleArray<T> {
   ghost var Contents: seq<T>;
 

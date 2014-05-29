@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Rustan Leino, June 2012.
 // This file verifies an algorithm, due to Boyer and Moore, that finds the majority choice
 // among a sequence of votes, see http://www.cs.utexas.edu/~moore/best-ideas/mjrty/.

@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 abstract module TotalOrder {
   type T // the type to be compared
   static predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b

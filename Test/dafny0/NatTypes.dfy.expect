@@ -1,0 +1,43 @@
+NatTypes.dfy(10,5): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+NatTypes.dfy(34,10): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    NatTypes.dfy(22,3): anon10_LoopHead
+    (0,0): anon10_LoopBody
+    NatTypes.dfy(22,3): anon11_Else
+    (0,0): anon12_Then
+NatTypes.dfy(41,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+NatTypes.dfy(43,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+NatTypes.dfy(60,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+NatTypes.dfy(74,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Then
+NatTypes.dfy(92,19): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+NatTypes.dfy(107,45): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+NatTypes.dfy(130,21): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+
+Dafny program verifier finished with 15 verified, 9 errors

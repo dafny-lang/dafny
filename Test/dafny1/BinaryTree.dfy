@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class IntSet {
   ghost var Contents: set<int>;
   ghost var Repr: set<object>;

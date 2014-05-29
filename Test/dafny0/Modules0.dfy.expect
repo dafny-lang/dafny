@@ -1,0 +1,29 @@
+Modules0.dfy(8,8): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(9,11): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(10,7): Error: Duplicate name of top-level declaration: WazzupA
+Modules0.dfy(13,7): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(14,8): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(15,11): Error: Duplicate name of top-level declaration: WazzupB
+Modules0.dfy(56,18): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name?)
+Modules0.dfy(57,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
+Modules0.dfy(68,18): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name?)
+Modules0.dfy(75,20): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name?)
+Modules0.dfy(75,34): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget to qualify a name?)
+Modules0.dfy(78,23): Error: Undeclared top-level type or type parameter: MyClass0 (did you forget to qualify a name?)
+Modules0.dfy(83,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
+Modules0.dfy(92,16): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name?)
+Modules0.dfy(224,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name?)
+Modules0.dfy(224,8): Error: new can be applied only to reference types (got X)
+Modules0.dfy(233,13): Error: Undeclared type X in module B
+Modules0.dfy(243,13): Error: unresolved identifier: X
+Modules0.dfy(244,15): Error: member DoesNotExist does not exist in class X
+Modules0.dfy(283,19): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name?)
+Modules0.dfy(283,12): Error: new can be applied only to reference types (got D)
+Modules0.dfy(286,25): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(287,16): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(287,6): Error: expected method call, found expression
+Modules0.dfy(288,16): Error: type of the receiver is not fully determined at this program point
+Modules0.dfy(288,6): Error: expected method call, found expression
+Modules0.dfy(310,24): Error: module Q_Imp does not exist
+Modules0.dfy(100,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
+28 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\Modules0.dfy

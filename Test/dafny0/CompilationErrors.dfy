@@ -1,3 +1,6 @@
+// RUN: %dafny "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 type MyType  // compile error: arbitrary type
 iterator Iter()  // compile error: body-less iterator
 ghost method M()  // compile error: body-less ghost method

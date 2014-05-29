@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Rustan Leino
 // 23 Dec 2013 (completed in 5 hours, but is missing the formulation and proof that the
 // sorting algorithm is stable, which the journal article below does and says is the most interesting

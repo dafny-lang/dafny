@@ -1,0 +1,41 @@
+Refinement.dfy(15,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(14,17): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Refinement.dfy[B](15,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(33,20): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(64,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(74,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(93,12): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(72,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Refinement.dfy(96,3): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy(77,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(183,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy[IncorrectConcrete](115,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(180,9): Related location
+Execution trace:
+    (0,0): anon0
+Refinement.dfy(187,5): Error BP5003: A postcondition might not hold on this return path.
+Refinement.dfy[IncorrectConcrete](123,15): Related location: This is the postcondition that might not hold.
+Refinement.dfy(180,9): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Refinement.dfy(193,7): Error: assertion violation
+Refinement.dfy[IncorrectConcrete](131,24): Related location
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 48 verified, 9 errors

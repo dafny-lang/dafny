@@ -1,0 +1,52 @@
+TypeParameters.dfy(47,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+TypeParameters.dfy(69,27): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+TypeParameters.dfy(156,12): Error: assertion violation
+TypeParameters.dfy(156,28): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon20_Then
+    TypeParameters.dfy(156,32): anon21_Else
+    (0,0): anon5
+TypeParameters.dfy(158,12): Error: assertion violation
+TypeParameters.dfy(158,33): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon23_Then
+    TypeParameters.dfy(158,37): anon24_Else
+    (0,0): anon11
+TypeParameters.dfy(160,12): Error: assertion violation
+TypeParameters.dfy(160,20): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon25_Then
+TypeParameters.dfy(162,12): Error: assertion violation
+TypeParameters.dfy(147,5): Related location
+TypeParameters.dfy(162,21): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+TypeParameters.dfy(164,12): Error: assertion violation
+TypeParameters.dfy(149,8): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon27_Then
+TypeParameters.dfy(178,15): Error BP5005: This loop invariant might not be maintained by the loop.
+TypeParameters.dfy(178,38): Related location
+Execution trace:
+    (0,0): anon0
+    TypeParameters.dfy(171,3): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    TypeParameters.dfy(171,3): anon17_Else
+    (0,0): anon19_Then
+    TypeParameters.dfy(177,3): anon20_LoopHead
+    (0,0): anon20_LoopBody
+    TypeParameters.dfy(177,3): anon21_Else
+    TypeParameters.dfy(177,3): anon23_Else
+
+Dafny program verifier finished with 58 verified, 8 errors

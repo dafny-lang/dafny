@@ -1,4 +1,5 @@
-
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 class Queue<T> {
   var head: Node<T>;

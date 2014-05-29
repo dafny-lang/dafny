@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method FindZero(a: array<int>) returns (r: int)
   requires a != null && forall i :: 0 <= i < a.Length ==> 0 <= a[i];
   requires forall i :: 0 <= i && i+1 < a.Length ==> a[i]-1 <= a[i+1];

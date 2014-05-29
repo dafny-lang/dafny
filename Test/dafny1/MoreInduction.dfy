@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 datatype List<X> = Nil | Cons(Node<X>, List<X>);
 datatype Node<X> = Element(X) | Nary(List<X>);
 

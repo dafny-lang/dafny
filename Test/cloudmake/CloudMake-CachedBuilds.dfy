@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // This module proves the correctness of the algorithms.  It leaves a number of things undefined.
 // They are defined in refinement modules below.
 abstract module M0 {

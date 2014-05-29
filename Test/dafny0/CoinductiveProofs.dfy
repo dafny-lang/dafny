@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 codatatype Stream<T> = Cons(head: T, tail: Stream);
 
 function Upward(n: int): Stream<int>

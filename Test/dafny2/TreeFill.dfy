@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 datatype Tree<T> = Leaf | Node(Tree, T, Tree)
 
 function Contains<T>(t: Tree, v: T): bool

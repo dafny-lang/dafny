@@ -45,7 +45,7 @@ public static int Parse (string/*!*/ filename, ModuleDecl module, BuiltIns built
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, module, builtIns, errors, verifyThisFile);
+      return Parse(s, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, module, builtIns, errors, verifyThisFile);
     }
   }
 }

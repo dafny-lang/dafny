@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class LazyInitArray<T> {
   ghost var Contents: seq<T>;
   var Zero: T;

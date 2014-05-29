@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Dafny transcription of the Coq development of insertion sort, as found in Coq'Art.
 
 datatype List<T> = Nil | Cons(head: T, tail: List)

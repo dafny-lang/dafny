@@ -1,0 +1,20 @@
+Modules1.dfy(79,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Modules1.dfy(92,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Modules1.dfy(94,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Modules1.dfy(56,3): Error: decreases expression must be bounded below by 0
+Execution trace:
+    (0,0): anon0
+Modules1.dfy(62,3): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 26 verified, 5 errors

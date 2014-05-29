@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // A Dafny rendition of an F* version of QuickSort (included at the bottom of this file).
 // Unlike the F* version, Dafny also proves termination and does not use any axioms.  However,
 // Dafny needs help with a couple of lemmas in places where F* does not need them.

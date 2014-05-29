@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // The following are Dafny versions from Section 8 of
 // "Mechanizing Coinduction and Corecursion in Higher-order Logic"
 // by Lawrence C. Paulson, 1996.

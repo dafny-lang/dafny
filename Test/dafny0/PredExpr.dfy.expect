@@ -1,0 +1,21 @@
+PredExpr.dfy(7,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+PredExpr.dfy(39,15): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+PredExpr.dfy(52,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+PredExpr.dfy(77,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon3
+    PredExpr.dfy(76,20): anon10_Else
+    (0,0): anon6
+
+Dafny program verifier finished with 11 verified, 4 errors

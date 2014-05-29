@@ -1,0 +1,68 @@
+Parallel.dfy(34,5): Error BP5002: A precondition for this call might not hold.
+Parallel.dfy(60,14): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Else
+    (0,0): anon32_Else
+    (0,0): anon33_Then
+    (0,0): anon34_Then
+    (0,0): anon35_Then
+    (0,0): anon14
+Parallel.dfy(38,5): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Else
+    (0,0): anon32_Else
+    (0,0): anon33_Else
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon38_Then
+    (0,0): anon20
+Parallel.dfy(42,18): Error: possible violation of postcondition of forall statement
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Else
+    (0,0): anon32_Else
+    (0,0): anon33_Else
+    (0,0): anon36_Else
+    (0,0): anon39_Then
+    (0,0): anon40_Then
+    (0,0): anon26
+Parallel.dfy(47,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Else
+    (0,0): anon32_Else
+    (0,0): anon33_Else
+    (0,0): anon36_Else
+    (0,0): anon39_Then
+    (0,0): anon40_Then
+Parallel.dfy(93,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Then
+Parallel.dfy(99,20): Error: possible violation of postcondition of forall statement
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+Parallel.dfy(122,12): Error: value assigned to a nat must be non-negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+    (0,0): anon7_Then
+    (0,0): anon3
+Parallel.dfy(185,12): Error: left-hand sides for different forall-statement bound variables may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon19_Then
+    (0,0): anon20_Then
+    (0,0): anon5
+Parallel.dfy(296,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+
+Dafny program verifier finished with 43 verified, 9 errors

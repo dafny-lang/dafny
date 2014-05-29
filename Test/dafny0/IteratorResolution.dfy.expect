@@ -1,0 +1,13 @@
+IteratorResolution.dfy(62,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(67,18): Error: arguments must have the same type (got _T0 and int)
+IteratorResolution.dfy(79,19): Error: RHS (of type bool) not assignable to LHS (of type int)
+IteratorResolution.dfy(82,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
+IteratorResolution.dfy(86,15): Error: logical negation expects a boolean argument (instead got int)
+IteratorResolution.dfy(20,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(22,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(126,9): Error: unresolved identifier: _decreases3
+IteratorResolution.dfy(127,21): Error: arguments must have the same type (got int and ?)
+IteratorResolution.dfy(128,2): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(135,9): Error: unresolved identifier: _decreases1
+IteratorResolution.dfy(140,9): Error: unresolved identifier: _decreases0
+12 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\IteratorResolution.dfy

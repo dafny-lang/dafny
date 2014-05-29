@@ -1,0 +1,3 @@
+RefinementModificationChecking.dfy(19,4): Error: cannot assign to variable defined previously
+RefinementModificationChecking.dfy(20,4): Error: cannot assign to variable defined previously
+2 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\RefinementModificationChecking.dfy

@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Note:  We used integers instead of a generic Comparable type, because
 // Dafny has no way of saying that the Comparable type's AtMost function
 // is total and transitive.

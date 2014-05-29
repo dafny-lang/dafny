@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 function f(x: int, y: int): int
 
 ghost method Associativity(x: int, y: int, z: int)

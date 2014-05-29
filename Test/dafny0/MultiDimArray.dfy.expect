@@ -1,0 +1,12 @@
+MultiDimArray.dfy(56,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+MultiDimArray.dfy(83,25): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+
+Dafny program verifier finished with 8 verified, 2 errors

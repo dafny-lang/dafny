@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // This is the Extractor Problem from section 11.8 of the ACL2 book,
 // "Computer-Aided Reasoning: An Approach" by Kaufmann, Manolios, and
 // Moore (2011 edition).

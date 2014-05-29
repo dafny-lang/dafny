@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // VSComp 2010, problem 4, N queens
 // Rustan Leino, 31 August 2010, updated 24 March 2011.
 //

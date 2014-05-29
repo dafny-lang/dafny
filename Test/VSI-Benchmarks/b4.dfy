@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 /*
 	This test works with Z3 4.3 (on Win8 x64). Other versions ... who knows.
 */

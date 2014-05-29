@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" /vcsMaxKeepGoingSplits:10 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class BreadthFirstSearch<Vertex(==)>
 {
   // The following function is left uninterpreted (for the purpose of the 

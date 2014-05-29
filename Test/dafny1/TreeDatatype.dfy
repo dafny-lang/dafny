@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // ------------------ generic list, non-generic tree
 
 datatype List<T> = Nil | Cons(T, List<T>);

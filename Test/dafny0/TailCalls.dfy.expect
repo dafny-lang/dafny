@@ -1,0 +1,6 @@
+TailCalls.dfy(21,15): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
+TailCalls.dfy(33,12): Error: 'decreases *' is allowed only on tail-recursive methods
+TailCalls.dfy(40,12): Error: 'decreases *' is allowed only on tail-recursive methods
+TailCalls.dfy(45,12): Error: 'decreases *' is allowed only on tail-recursive methods
+TailCalls.dfy(67,12): Error: 'decreases *' is allowed only on tail-recursive methods
+5 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\TailCalls.dfy

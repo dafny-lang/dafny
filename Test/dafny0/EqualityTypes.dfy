@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 module A {
   datatype Explicit<T(==)> = Nil | Cons(set<T>, Explicit<T>);
   datatype Inferred<T> = Nil | Cons(set<T>, Inferred<T>);

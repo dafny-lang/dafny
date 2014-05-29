@@ -1,0 +1,42 @@
+ModifyStmt.dfy(27,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(42,5): Error: modify statement may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(48,5): Error: modify statement may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(61,5): Error: modify statement may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(70,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(89,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    ModifyStmt.dfy(81,7): anon10_LoopHead
+    (0,0): anon10_LoopBody
+    ModifyStmt.dfy(81,7): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon8
+ModifyStmt.dfy(99,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(110,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(122,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+ModifyStmt.dfy(134,7): Error: assignment may update an object not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+ModifyStmt.dfy(172,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 25 verified, 11 errors

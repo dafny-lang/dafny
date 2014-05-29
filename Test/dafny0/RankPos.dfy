@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 datatype list<A> = Nil | Cons(head: A, tail: list<A>);
 datatype d = A | B(ds: list<d>);
 datatype d2 = A2 | B2(ds: seq<d2>);

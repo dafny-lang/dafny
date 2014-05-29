@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // The following function gives rise to an inconsistent axiom, except
 // for its CanUseFunctionDefs antecedent, which saves the day.
 function F(x: int): int

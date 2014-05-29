@@ -1,0 +1,18 @@
+RealTypes.dfy(8,23): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+RealTypes.dfy(14,12): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+    RealTypes.dfy(13,23): anon3_Else
+    (0,0): anon2
+RealTypes.dfy(14,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    RealTypes.dfy(13,23): anon3_Else
+    (0,0): anon2
+RealTypes.dfy(22,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 6 verified, 4 errors

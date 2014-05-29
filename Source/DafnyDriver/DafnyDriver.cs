@@ -90,6 +90,11 @@ namespace Microsoft.Dafny
           Console.WriteLine("Press Enter to exit.");
           Console.ReadLine();
         }
+        if (CommandLineOptions.Clo.UseBaseNameForFileName && exitValue != ExitValue.PREPROCESSING_ERROR)
+        {
+          // TODO(wuestholz): We should probably add a separate flag for this. This is currently only used by the new testing infrastructure.
+          return 0;
+        }
         return (int)exitValue;
     }
 
@@ -322,9 +327,9 @@ namespace Microsoft.Dafny
             outputWriter.WriteLine(e.ToString());
           }
         } else if (cr.Errors.Count == 0) {
-          outputWriter.WriteLine("Compiled assembly into {0}", cr.PathToAssembly);
+          outputWriter.WriteLine("Compiled assembly into {0}", DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(cr.PathToAssembly) : cr.PathToAssembly);
         } else {
-          outputWriter.WriteLine("Errors compiling program into {0}", cr.PathToAssembly);
+          outputWriter.WriteLine("Errors compiling program into {0}", DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(cr.PathToAssembly) : cr.PathToAssembly);
           foreach (var ce in cr.Errors) {
             outputWriter.WriteLine(ce.ToString());
             outputWriter.WriteLine();

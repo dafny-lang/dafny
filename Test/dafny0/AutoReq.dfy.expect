@@ -1,0 +1,45 @@
+AutoReq.dfy(247,3): Error: possible violation of function precondition
+AutoReq.dfy(239,12): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+AutoReq.dfy(13,3): Error: possible violation of function precondition
+AutoReq.dfy(5,14): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+AutoReq.dfy(25,3): Error: possible violation of function precondition
+AutoReq.dfy(5,14): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+AutoReq.dfy(38,12): Error: assertion violation
+AutoReq.dfy(31,13): Related location
+AutoReq.dfy(7,5): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+AutoReq.dfy(38,12): Error: possible violation of function precondition
+AutoReq.dfy(5,14): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+AutoReq.dfy(40,12): Error: assertion violation
+AutoReq.dfy(31,27): Related location
+AutoReq.dfy(7,5): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+AutoReq.dfy(40,12): Error: possible violation of function precondition
+AutoReq.dfy(5,14): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+AutoReq.dfy(45,12): Error: assertion violation
+AutoReq.dfy(31,13): Related location
+AutoReq.dfy(7,5): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+
+Dafny program verifier finished with 52 verified, 8 errors

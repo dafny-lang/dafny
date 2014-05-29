@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class IntegerInduction {
   // This class considers different ways of proving, for any natural n:
   //   (SUM i in [0, n] :: i^3) == (SUM i in [0, n] :: i)^2

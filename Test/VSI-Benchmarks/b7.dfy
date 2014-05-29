@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Edited B6 to include GetChar and PutChar 
 
 //This is the Queue from Benchmark 3.

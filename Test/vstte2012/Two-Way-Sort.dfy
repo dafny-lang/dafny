@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // This method is a slight generalization of the
 // code provided in the problem statement since it
 // is generic in the type of the array elements.

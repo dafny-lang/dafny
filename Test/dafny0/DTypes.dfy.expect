@@ -1,0 +1,27 @@
+DTypes.dfy(18,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+DTypes.dfy(56,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+DTypes.dfy(120,13): Error: assertion violation
+DTypes.dfy(92,30): Related location
+Execution trace:
+    (0,0): anon0
+DTypes.dfy(126,13): Error: assertion violation
+DTypes.dfy(92,20): Related location
+Execution trace:
+    (0,0): anon0
+DTypes.dfy(136,12): Error: assertion violation
+DTypes.dfy(131,6): Related location
+DTypes.dfy(92,20): Related location
+Execution trace:
+    (0,0): anon0
+DTypes.dfy(157,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+    (0,0): anon4
+
+Dafny program verifier finished with 27 verified, 6 errors

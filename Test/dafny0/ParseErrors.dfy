@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // ---------------------- chaining operators -----------------------------------
 
 method TestChaining0(j: int, k: int, m: int)

@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Dafny versions of examples from "Practical Coinduction" by Kozen and Silva.
 // The comments in this file explain some things about Dafny and its support for
 // co-induction; for a full description, see "Co-induction Simply" by Leino and

@@ -1,0 +1,50 @@
+CoPrefix.dfy(164,3): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(163,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+CoPrefix.dfy(169,3): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(168,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+CoPrefix.dfy(176,5): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoPrefix.dfy(63,7): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+CoPrefix.dfy(76,7): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+CoPrefix.dfy(114,1): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(113,11): Related location: This is the postcondition that might not hold.
+CoPrefix.dfy(101,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoPrefix.dfy(138,25): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+CoPrefix.dfy(142,25): Error: assertion violation
+CoPrefix.dfy(117,23): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon12_Then
+CoPrefix.dfy(151,1): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(150,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+
+Dafny program verifier finished with 41 verified, 9 errors

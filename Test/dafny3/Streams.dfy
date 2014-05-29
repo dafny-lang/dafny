@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // ----- Stream
 
 codatatype Stream<T> = Nil | Cons(head: T, tail: Stream);

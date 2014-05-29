@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 datatype Tree = Node(children: Stream<Tree>)
 

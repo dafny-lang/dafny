@@ -1,0 +1,13 @@
+
+Dafny program verifier finished with 15 verified, 0 errors
+Compilation error: Arbitrary type ('_module.MyType') cannot be compiled
+Compilation error: Iterator _module.Iter has no body
+Compilation error: Method _module._default.M has no body
+Compilation error: Method _module._default.P has no body
+Compilation error: an assume statement cannot be compiled (line 11)
+Compilation error: Function _module._default.F has no body
+Compilation error: Function _module._default.H has no body
+Compilation error: an assume statement cannot be compiled (line 20)
+Compilation error: an assume statement cannot be compiled (line 23)
+Compilation error: an assume statement cannot be compiled (line 28)
+Compilation error: an assume statement cannot be compiled (line 37)

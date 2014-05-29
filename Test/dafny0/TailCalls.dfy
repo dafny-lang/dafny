@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method {:tailrecursion} A(q: int) returns (x: int, ghost y: bool, z: nat)
 {
   if (q < 10) {

@@ -1,0 +1,103 @@
+Iterators.dfy(251,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(274,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(284,24): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(296,9): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(317,9): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(326,24): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(343,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(353,24): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(370,9): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(103,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(106,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Iterators.dfy(177,28): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Then
+Iterators.dfy(208,7): Error: an assignment to _new is only allowed to shrink the set
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(197,3): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    Iterators.dfy(197,3): anon17_Else
+    Iterators.dfy(197,3): anon19_Else
+    (0,0): anon20_Then
+Iterators.dfy(212,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(197,3): anon16_LoopHead
+    (0,0): anon16_LoopBody
+    Iterators.dfy(197,3): anon17_Else
+    Iterators.dfy(197,3): anon19_Else
+    (0,0): anon21_Then
+Iterators.dfy(40,14): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(4,10): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon35_Then
+    (0,0): anon2
+    (0,0): anon36_Then
+    (0,0): anon5
+    (0,0): anon37_Then
+Iterators.dfy(89,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(119,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Iterators.dfy(150,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+Iterators.dfy(155,16): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(125,10): Related location: This is the precondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+Iterators.dfy(234,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(225,3): anon14_LoopHead
+    (0,0): anon14_LoopBody
+    Iterators.dfy(225,3): anon15_Else
+    Iterators.dfy(225,3): anon18_Else
+    (0,0): anon19_Else
+
+Dafny program verifier finished with 65 verified, 20 errors

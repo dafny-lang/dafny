@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Benchmark 8
 
 // A dictionary is a mapping between words and sequences of words

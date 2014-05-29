@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Schorr-Waite algorithms, written and verified in Dafny.
 // Rustan Leino
 // Original version:  7 November 2008

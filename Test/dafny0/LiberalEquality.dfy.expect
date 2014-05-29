@@ -1,0 +1,4 @@
+LiberalEquality.dfy(20,14): Error: arguments must have the same type (got T and U)
+LiberalEquality.dfy(39,14): Error: arguments must have the same type (got Weird<T,int,V> and Weird<T,bool,V>)
+LiberalEquality.dfy(54,14): Error: arguments must have the same type (got array<int> and array<bool>)
+3 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\LiberalEquality.dfy

@@ -1,0 +1,28 @@
+Calculations.dfy(6,6): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon24_Then
+Calculations.dfy(11,15): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+Calculations.dfy(11,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+Calculations.dfy(55,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    Calculations.dfy(50,3): anon5_Else
+Calculations.dfy(78,15): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+Calculations.dfy(78,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+
+Dafny program verifier finished with 9 verified, 6 errors
+
+Dafny program verifier finished with 0 verified, 0 errors

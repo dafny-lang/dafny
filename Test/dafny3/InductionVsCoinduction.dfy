@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // A definition of a co-inductive datatype Stream, whose values are possibly
 // infinite lists.
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream<T>);

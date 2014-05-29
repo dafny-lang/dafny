@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // give the method signatures and specs
 abstract module M0 {
   class {:autocontracts} Container<T(==)> {

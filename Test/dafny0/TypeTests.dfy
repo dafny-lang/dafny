@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class C {
   function F(c: C, d: D): bool { true }
   method M(x: int) returns (y: int, c: C)

@@ -1,0 +1,13 @@
+Includee.dfy(21,3): Error BP5003: A postcondition might not hold on this return path.
+Includee.dfy(20,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+Includee.dfy(24,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Includee.dfy(6,1): Error BP5003: A postcondition might not hold on this return path.
+Includee.dfy(5,13): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 5 verified, 3 errors

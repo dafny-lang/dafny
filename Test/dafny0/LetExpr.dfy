@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"; %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method M0(n: int)
   requires var f := 100; n < f; requires var t, f := true, false; (t && f) || n < 100;
 {

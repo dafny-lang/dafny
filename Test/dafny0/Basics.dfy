@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class Global {
   static function G(x: int): int { x+x }
   static method N(ghost x: int) returns (ghost r: int)

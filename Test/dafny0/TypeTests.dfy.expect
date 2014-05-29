@@ -1,0 +1,34 @@
+TypeTests.dfy(7,13): Error: incorrect type of function argument 0 (expected C, got D)
+TypeTests.dfy(7,13): Error: incorrect type of function argument 1 (expected D, got C)
+TypeTests.dfy(8,13): Error: incorrect type of function argument 0 (expected C, got int)
+TypeTests.dfy(8,13): Error: incorrect type of function argument 1 (expected D, got int)
+TypeTests.dfy(14,15): Error: incorrect type of method in-parameter 0 (expected int, got bool)
+TypeTests.dfy(15,11): Error: incorrect type of method out-parameter 0 (expected int, got C)
+TypeTests.dfy(15,11): Error: incorrect type of method out-parameter 1 (expected C, got int)
+TypeTests.dfy(47,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+TypeTests.dfy(56,6): Error: Duplicate local-variable name: z
+TypeTests.dfy(58,6): Error: Duplicate local-variable name: x
+TypeTests.dfy(61,8): Error: Duplicate local-variable name: x
+TypeTests.dfy(64,6): Error: Duplicate local-variable name: y
+TypeTests.dfy(70,11): Error: unresolved identifier: x
+TypeTests.dfy(72,28): Error: unresolved identifier: z
+TypeTests.dfy(73,29): Error: unresolved identifier: w1
+TypeTests.dfy(73,47): Error: unresolved identifier: w0
+TypeTests.dfy(76,28): Error: unresolved identifier: e
+TypeTests.dfy(91,17): Error: member F in type C does not refer to a method
+TypeTests.dfy(92,17): Error: a method called as an initialization method must not have any result arguments
+TypeTests.dfy(101,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(102,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(103,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(105,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(106,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(107,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(113,6): Error: sorry, cannot instantiate collection type with a subrange type
+TypeTests.dfy(114,9): Error: sorry, cannot instantiate type parameter with a subrange type
+TypeTests.dfy(115,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(116,8): Error: sorry, cannot instantiate 'array' type with a subrange type
+TypeTests.dfy(128,15): Error: ghost variables are allowed only in specification contexts
+TypeTests.dfy(138,4): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(139,7): Error: cannot assign to non-ghost variable in a ghost context
+TypeTests.dfy(21,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
+33 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\TypeTests.dfy

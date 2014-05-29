@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /tracePOs /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 module M0 {
   class C {
     method M(c: C, x: int, y: int) returns (r: int)
@@ -53,4 +56,3 @@ module M1 refines M0 {
     // Ditto for R
   }
 }
-

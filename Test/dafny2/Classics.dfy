@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // A version of Turing's additive factorial program [Dr. A. Turing, "Checking a large routine",
 // In "Report of a Conference of High Speed Automatic Calculating Machines", pp. 67-69, 1949].
 

@@ -25,7 +25,7 @@ namespace Microsoft.Dafny
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Red;
       Console.WriteLine("{0}({1},{2}): Error: {3}",
-          tok.filename, tok.line, tok.col - 1,
+          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
           string.Format(msg, args));
       Console.ForegroundColor = col;
       ErrorCount++;
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny
       ConsoleColor col = Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Yellow;
       Console.WriteLine("{0}({1},{2}): Warning: {3}",
-          tok.filename, tok.line, tok.col - 1,
+          DafnyOptions.Clo.UseBaseNameForFileName ? System.IO.Path.GetFileName(tok.filename) : tok.filename, tok.line, tok.col - 1,
           string.Format(msg, args));
       Console.ForegroundColor = col;
     }

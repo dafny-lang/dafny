@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class SumOfCubes {
   static function SumEmUp(n: int, m: int): int
     requires 0 <= n && n <= m;

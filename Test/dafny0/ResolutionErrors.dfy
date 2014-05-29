@@ -1,3 +1,5 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 //Should not verify, as ghost loops should not be allowed to diverge.
 method GhostDivergentLoop()

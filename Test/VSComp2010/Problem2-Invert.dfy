@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // VSComp 2010, problem 2, compute the inverse 'B' of a permutation 'A' and prove that 'B' is
 // indeed an inverse of 'A' (or at least prove that 'B' is injective).
 // Rustan Leino, 31 August 2010.

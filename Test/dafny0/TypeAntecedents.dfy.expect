@@ -1,0 +1,26 @@
+TypeAntecedents.dfy(35,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+TypeAntecedents.dfy(58,1): Error BP5003: A postcondition might not hold on this return path.
+TypeAntecedents.dfy(57,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon25_Then
+    (0,0): anon6
+    (0,0): anon28_Then
+    (0,0): anon8
+    (0,0): anon29_Else
+    (0,0): anon31_Else
+    (0,0): anon33_Then
+    (0,0): anon20
+    (0,0): anon34_Then
+    (0,0): anon35_Then
+    (0,0): anon24
+TypeAntecedents.dfy(66,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon25_Else
+    (0,0): anon26_Then
+    (0,0): anon27_Else
+
+Dafny program verifier finished with 12 verified, 3 errors

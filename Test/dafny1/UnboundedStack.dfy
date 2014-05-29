@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class UnboundedStack<T> {
   ghost var representation: set<object>;
   ghost var content: seq<T>;

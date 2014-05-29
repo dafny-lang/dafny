@@ -1,0 +1,22 @@
+CoResolution.dfy(17,9): Error: member Undeclared# does not exist in class _default
+CoResolution.dfy(18,4): Error: unresolved identifier: Undeclared#
+CoResolution.dfy(21,7): Error: unresolved identifier: _k
+CoResolution.dfy(39,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)
+CoResolution.dfy(50,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+CoResolution.dfy(67,10): Error: a copredicate is not allowed to declare any reads clause
+CoResolution.dfy(73,31): Error: a copredicate is not allowed to declare any ensures clause
+CoResolution.dfy(82,20): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(86,20): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(95,4): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(109,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(110,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(115,17): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(121,17): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(129,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(130,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+CoResolution.dfy(135,17): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(141,17): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(149,4): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(151,4): Error: a recursive call from a copredicate can go only to other copredicates
+CoResolution.dfy(167,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
+21 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\CoResolution.dfy

@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 predicate IsPrime(n: int)
 {
   2 <= n && forall m :: 2 <= m < n ==> n % m != 0

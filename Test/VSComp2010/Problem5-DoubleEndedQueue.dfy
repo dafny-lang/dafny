@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // VSComp 2010, problem 5, double-ended queue.
 // Rustan Leino, 18 August 2010.
 //

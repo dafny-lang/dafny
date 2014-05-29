@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method R1(ghost x: real, ghost y: real, i: int) {
   assert x + y == y + x;
   assert int(real(i)) == i;

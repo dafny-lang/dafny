@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Celebrity example, inspired by the Rodin tutorial
 
 static function method Knows<Person>(a: Person, b: Person): bool

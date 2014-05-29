@@ -1,0 +1,22 @@
+MultiSets.dfy(159,3): Error BP5003: A postcondition might not hold on this return path.
+MultiSets.dfy(158,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+MultiSets.dfy(165,3): Error BP5003: A postcondition might not hold on this return path.
+MultiSets.dfy(164,15): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+MultiSets.dfy(178,11): Error: new number of occurrences might be negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+    (0,0): anon3
+MultiSets.dfy(269,24): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+    (0,0): anon3
+    (0,0): anon12_Then
+    (0,0): anon14_Else
+
+Dafny program verifier finished with 54 verified, 4 errors

@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 /*
   The well-known Fibonacci function defined in Dafny.  The postcondition of
   method FibLemma states a property about Fib, and the body of the method is

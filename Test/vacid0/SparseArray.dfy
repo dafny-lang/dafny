@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class SparseArray<T> {
   ghost var Contents: seq<T>;
   var zero: T;

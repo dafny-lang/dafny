@@ -1,3 +1,5 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 class Benchmark2 {
   method BinarySearch(a: array<int>, key: int) returns (result: int)

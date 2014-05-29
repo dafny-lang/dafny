@@ -1,0 +1,50 @@
+CoinductiveProofs.dfy(29,12): Error: assertion violation
+CoinductiveProofs.dfy(13,17): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+CoinductiveProofs.dfy(59,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(58,11): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(54,3): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoinductiveProofs.dfy(74,12): Error: assertion violation
+CoinductiveProofs.dfy(54,3): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+CoinductiveProofs.dfy(91,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(90,11): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(80,3): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoinductiveProofs.dfy(100,12): Error: assertion violation
+CoinductiveProofs.dfy(80,3): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+CoinductiveProofs.dfy(111,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(110,11): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(106,3): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoinductiveProofs.dfy(150,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(149,22): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(4,24): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+CoinductiveProofs.dfy(156,1): Error BP5003: A postcondition might not hold on this return path.
+CoinductiveProofs.dfy(155,22): Related location: This is the postcondition that might not hold.
+CoinductiveProofs.dfy(4,24): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+
+Dafny program verifier finished with 35 verified, 8 errors

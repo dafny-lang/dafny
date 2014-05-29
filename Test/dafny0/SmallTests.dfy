@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"; %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class Node {
   var next: Node;
 
