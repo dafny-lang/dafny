@@ -107,7 +107,7 @@ public static int Parse (string/*!*/ s, string/*!*/ filename, ModuleDecl module,
   parser.Parse();
   return parser.errors.count;
 }
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true) 
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -248,7 +248,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 			  includedFile = Path.Combine(basePath, includedFile);
 			  fullPath = Path.GetFullPath(includedFile);
 			}
-			defaultModule.Includes.Add(new Include(t, includedFile, fullPath)); 
+			defaultModule.Includes.Add(new Include(t, includedFile, fullPath));
 			}
 			
 		}
@@ -302,7 +302,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 
 	void SubModuleDecl(ModuleDefinition parent, out ModuleDecl submodule) {
 		ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; ArbitraryTypeDecl at; IteratorDecl iter;
-		Attributes attrs = null;  IToken/*!*/ id; 
+		Attributes attrs = null;  IToken/*!*/ id;
 		List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
 		List<IToken> idRefined = null, idPath = null, idAssignment = null;
 		ModuleDefinition module;
@@ -598,7 +598,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 	void NoUSIdent(out IToken/*!*/ x) {
 		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
 		Expect(1);
-		x = t; 
+		x = t;
 		if (x.val.StartsWith("_")) {
 		 SemErr("cannot declare identifier beginning with underscore");
 		}
@@ -1028,7 +1028,7 @@ bool SemiFollowsCall(bool allowSemi, Expression e) {
 	void WildIdent(out IToken/*!*/ x, bool allowWildcardId) {
 		Contract.Ensures(Contract.ValueAtReturn(out x) != null); 
 		Expect(1);
-		x = t; 
+		x = t;
 		if (x.val.StartsWith("_")) {
 		 if (allowWildcardId && x.val.Length == 1) {
 		   t.val = "_v" + anonymousIds++;
@@ -1977,12 +1977,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		var ens = new List<MaybeFreeExpression/*!*/>();
 		bool isFree;
 		Expression/*!*/ e;
-		BlockStmt/*!*/ block;
+		BlockStmt block = null;
 		IToken bodyStart, bodyEnd;
+		IToken tok = Token.NoToken;
 		
 		if (la.kind == 85) {
 			Get();
-			x = t; 
+			x = t; tok = x; 
 		} else if (la.kind == 86) {
 			Get();
 			x = t;
@@ -2005,7 +2006,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (la.kind == 33) {
 			Get();
 			if (!usesOptionalParen) { SemErr(t, "found but didn't expect a close parenthesis"); } 
-		} else if (la.kind == 9 || la.kind == 46 || la.kind == 48) {
+		} else if (StartOf(21)) {
 			if (usesOptionalParen) { SemErr(t, "expecting close parenthesis"); } 
 		} else SynErr(188);
 		while (la.kind == 46 || la.kind == 48) {
@@ -2016,19 +2017,30 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			}
 			Expect(48);
 			Expression(out e, false);
-			Expect(8);
 			ens.Add(new MaybeFreeExpression(e, isFree)); 
+			Expect(8);
+			tok = t; 
 		}
-		BlockStmt(out block, out bodyStart, out bodyEnd);
-		s = new ForallStmt(x, block.EndTok, bvars, attrs, range, ens, block); 
+		if (la.kind == 9) {
+			BlockStmt(out block, out bodyStart, out bodyEnd);
+		}
+		if (DafnyOptions.O.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
+		  SemErr(t, "a forall statement with an ensures clause must have a body");
+		}
+		
+		if (block != null) {
+		  tok = block.EndTok;
+		}
+		s = new ForallStmt(x, tok, bvars, attrs, range, ens, block);
+		
 	}
 
 	void CalcStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
 		Token x;
-		CalcStmt.CalcOp/*!*/ op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;     
+		CalcStmt.CalcOp/*!*/ op, calcOp = Microsoft.Dafny.CalcStmt.DefaultOp, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
 		var lines = new List<Expression/*!*/>();
-		var hints = new List<BlockStmt/*!*/>(); 
+		var hints = new List<BlockStmt/*!*/>();
 		CalcStmt.CalcOp stepOp;
 		var stepOps = new List<CalcStmt.CalcOp>();
 		CalcStmt.CalcOp maybeOp;
@@ -2039,13 +2051,13 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		
 		Expect(88);
 		x = t; 
-		if (StartOf(21)) {
+		if (StartOf(22)) {
 			CalcOp(out opTok, out calcOp);
 			maybeOp = calcOp.ResultOp(calcOp); // guard against non-transitive calcOp (like !=)
 			if (maybeOp == null) {
 			 SemErr(opTok, "the main operator of a calculation must be transitive");
 			}
-			resOp = calcOp; 
+			resOp = calcOp;
 			
 		}
 		Expect(9);
@@ -2053,7 +2065,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e, false);
 			lines.Add(e); stepOp = calcOp; danglingOperator = null; 
 			Expect(8);
-			if (StartOf(21)) {
+			if (StartOf(22)) {
 				CalcOp(out opTok, out op);
 				maybeOp = resOp.ResultOp(op);
 				if (maybeOp == null) {
@@ -2078,8 +2090,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		if (lines.Count > 0) {
 		 // Repeat the last line to create a dummy line for the dangling hint
 		 lines.Add(lines[lines.Count - 1]);
-		}  
-		s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp); 
+		}
+		s = new CalcStmt(x, t, calcOp, lines, hints, stepOps, resOp);
 		
 	}
 
@@ -2095,7 +2107,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		while (IsAttribute()) {
 			Attribute(ref attrs);
 		}
-		if (StartOf(22)) {
+		if (StartOf(23)) {
 			if (StartOf(12)) {
 				FrameExpression(out fe);
 				mod.Add(fe); 
@@ -2136,7 +2148,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			returnTok = t; isYield = true; 
 		} else SynErr(191);
-		if (StartOf(23)) {
+		if (StartOf(24)) {
 			Rhs(out r, null);
 			rhss = new List<AssignmentRhs>(); rhss.Add(r); 
 			while (la.kind == 30) {
@@ -2252,7 +2264,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			while (la.kind == 61 || la.kind == 74) {
 				Suffix(ref e);
 			}
-		} else if (StartOf(24)) {
+		} else if (StartOf(25)) {
 			ConstAtomExpression(out e);
 			Suffix(ref e);
 			while (la.kind == 61 || la.kind == 74) {
@@ -2317,7 +2329,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		decreases = new List<Expression/*!*/>();
 		mod = null;
 		
-		while (StartOf(25)) {
+		while (StartOf(26)) {
 			if (la.kind == 46 || la.kind == 81) {
 				Invariant(out invariant);
 				while (!(la.kind == 0 || la.kind == 8)) {SynErr(195); Get();}
@@ -2514,7 +2526,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 
 	void Hint(out BlockStmt s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null); // returns an empty block statement if the hint is empty
-		var subhints = new List<Statement/*!*/>(); 
+		var subhints = new List<Statement/*!*/>();
 		IToken bodyStart, bodyEnd;
 		BlockStmt/*!*/ block;
 		Statement/*!*/ calc;
@@ -2530,7 +2542,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				endTok = calc.EndTok; subhints.Add(calc); 
 			}
 		}
-		s = new BlockStmt(x, endTok, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container 
+		s = new BlockStmt(x, endTok, subhints); // if the hint is empty x is the first token of the next line, but it doesn't matter cause the block statement is just used as a container
 		
 	}
 
@@ -2572,7 +2584,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void ImpliesExpliesExpression(out Expression e0, bool allowSemi) {
 		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
 		LogicalExpression(out e0, allowSemi);
-		if (StartOf(26)) {
+		if (StartOf(27)) {
 			if (la.kind == 98 || la.kind == 99) {
 				ImpliesOp();
 				x = t; 
@@ -2596,7 +2608,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void LogicalExpression(out Expression e0, bool allowSemi) {
 		Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; 
 		RelationalExpression(out e0, allowSemi);
-		if (StartOf(27)) {
+		if (StartOf(28)) {
 			if (la.kind == 102 || la.kind == 103) {
 				AndOp();
 				x = t; 
@@ -2650,7 +2662,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		
 		Term(out e0, allowSemi);
 		e = e0; 
-		if (StartOf(28)) {
+		if (StartOf(29)) {
 			RelOp(out x, out op, out k);
 			firstOpTok = x; 
 			Term(out e1, allowSemi);
@@ -2663,7 +2675,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
 			}
 			
-			while (StartOf(28)) {
+			while (StartOf(29)) {
 				if (chain == null) {
 				 chain = new List<Expression>();
 				 ops = new List<BinaryExpr.Opcode>();
@@ -2930,7 +2942,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 				}
 			} else if (la.kind == 1) {
 				MapComprehensionExpr(x, out e, allowSemi);
-			} else if (StartOf(29)) {
+			} else if (StartOf(30)) {
 				SemErr("map must be followed by literal in brackets or comprehension."); 
 			} else SynErr(210);
 			break;
@@ -3106,11 +3118,11 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 						 multipleLengths = new List<Expression>();
 						 multipleLengths.Add(e0);
 						}
-						takeRest = true;                                                  
+						takeRest = true;
 						
 						if (StartOf(16)) {
 							Expression(out ee, true);
-							multipleLengths.Add(ee); 
+							multipleLengths.Add(ee);
 							takeRest = false;
 							
 						}
@@ -3223,7 +3235,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expression(out e, true);
 			e = new MultiSetFormingExpr(x, e); 
 			Expect(33);
-		} else if (StartOf(30)) {
+		} else if (StartOf(31)) {
 			SemErr("multiset must be followed by multiset literal or expression to coerce in parentheses."); 
 		} else SynErr(219);
 	}
@@ -3339,7 +3351,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(33);
 			IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
 			IToken fnTok = new Token(t.line, t.col); fnTok.val = "IntToReal";
-			//e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e }); 
+			//e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
 			e = new FunctionCallExpr(x, "IntToReal", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
 			
 			break;
@@ -3353,7 +3365,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(33);
 			IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
 			IToken fnTok = new Token(t.line, t.col); fnTok.val = "RealToInt";
-			//e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e }); 
+			//e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
 			e = new FunctionCallExpr(x, "RealToInt", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
 			
 			break;
@@ -3587,7 +3599,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			pat = new CasePattern(id, id.val, arguments); 
 		} else if (la.kind == 1) {
 			IdentTypeOptional(out bv);
-			pat = new CasePattern(bv.tok, bv); 
+			pat = new CasePattern(bv.tok, bv);
 			
 		} else SynErr(226);
 	}
@@ -3641,7 +3653,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		Expect(7);
 		Expect(1);
 		aName = t.val; 
-		if (StartOf(31)) {
+		if (StartOf(32)) {
 			AttributeArg(out aArg, true);
 			aArgs.Add(aArg); 
 			while (la.kind == 30) {
@@ -3687,6 +3699,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{T,T,T,T, T,x,x,x, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,T,T, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, T,x,x,x, T,x,x,x, T,x,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,x, x,x,x,x, x,x,x,x},
 		{x,T,T,T, T,x,x,x, x,T,x,T, T,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x},
 		{x,T,T,T, T,x,x,x, x,T,x,T, T,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x},
+		{x,T,T,T, T,x,x,x, x,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,T,x, T,x,x,T, x,x,T,T, x,x,x,x, x,x,x,x, x,x,T,T, x,x,T,x, T,x,x,x, T,x,T,x, T,x,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,T,T,T, T,x,x,x, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,T,T,x, x,x,x,x, T,x,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x},
 		{x,T,T,T, T,x,x,x, x,T,x,T, T,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,x,T,x, x,x,x,x, T,T,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x},
@@ -3695,8 +3708,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
-		{x,x,x,x, x,x,x,T, T,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,x,x, x,x,x,T, x,T,T,T, x,T,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, T,T,x,x},
-		{x,x,x,x, x,x,x,T, T,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,x,x, x,T,x,x, x,x,T,T, x,T,T,T, x,T,x,x, x,x,x,x, x,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,x,x,x, x,x,x,T, T,x,x,x, T,T,x,x},
+		{x,T,T,T, T,x,x,T, T,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,T, x,x,T,T, x,x,x,x, x,x,x,x, x,T,T,T, x,T,T,x, T,x,x,T, T,T,T,T, T,T,T,T, T,T,T,T, T,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,T,T,T, T,T,T,T, T,x,x,x, T,T,x,x},
+		{x,T,T,T, T,x,x,T, T,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,T,x, T,T,x,x, x,T,T,T, x,x,x,x, x,T,T,x, T,T,x,T, x,x,T,T, x,x,x,x, x,T,x,x, x,T,T,T, x,T,T,x, T,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,x,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, x,T,T,T, T,T,T,T, T,x,x,x, T,T,x,x},
 		{x,T,T,T, T,x,T,x, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,x,T,x, x,x,x,x, T,x,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x}
 
 	};

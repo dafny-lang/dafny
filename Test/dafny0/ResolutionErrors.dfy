@@ -905,3 +905,10 @@ module LhsLvalue {
 
   method MyLemma() returns (w: int)
 }
+
+// ------------------- dirty loops -------------------
+
+method DirtyM(S: set<int>) {
+  forall s | s in S ensures s < 0;
+  assert s < 0; // error: s is unresolved
+}

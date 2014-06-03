@@ -327,9 +327,9 @@ namespace Microsoft.Dafny {
     public Bpl.Program Translate(Program p) {
       Contract.Requires(p != null);
       Contract.Ensures(Contract.Result<Bpl.Program>() != null);
-      
+
       program = p;
-      
+
       if (sink == null || predef == null) {
         // something went wrong during construction, which reads the prelude; an error has
         // already been printed, so just return an empty program here (which is non-null)
@@ -579,7 +579,7 @@ namespace Microsoft.Dafny {
               rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, rhs);
               q = new Bpl.ForallExpr(ctor.tok, bvs, Bpl.Expr.Lt(lhs, rhs));
-              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));              
+              sink.TopLevelDeclarations.Add(new Bpl.Axiom(ctor.tok, q));
             } else if (arg.Type is SetType) {
               // axiom (forall params, d: Datatype :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
@@ -626,7 +626,7 @@ namespace Microsoft.Dafny {
       {
         InsertChecksum(dt, cases_fn);
       }
-      
+
       sink.TopLevelDeclarations.Add(cases_fn);
       // and here comes the actual axiom:
       {
@@ -717,7 +717,7 @@ namespace Microsoft.Dafny {
           {
             InsertChecksum(dt, fn);
           }
-          
+
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall d0, d1: DatatypeType :: { $Eq#Dt(d0, d1) } $Eq#Dt(d0, d1) <==>
@@ -845,7 +845,7 @@ namespace Microsoft.Dafny {
           {
             InsertChecksum(dt, fn);
           }
-          
+
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall k: int, d0, d1: DatatypeType :: { $PrefixEqual#Dt(k, d0, d1) } $PrefixEqual#Dt(k, d0, d1) <==>
@@ -896,7 +896,7 @@ namespace Microsoft.Dafny {
           {
             InsertChecksum(dt, fn);
           }
-          
+
           sink.TopLevelDeclarations.Add(fn);
         }
         // axiom (forall k: int, d0: DatatypeType, d1: DatatypeType  :: { $PrefixEqual#Dt(k,d0,d1) }
@@ -1131,7 +1131,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool IsOpaqueFunction(Function f) {
-      return Attributes.Contains(f.Attributes, "opaque") && 
+      return Attributes.Contains(f.Attributes, "opaque") &&
             !Attributes.Contains(f.Attributes, "opaque_full");  // The full version has both attributes
     }
 
@@ -2223,7 +2223,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
       List<Variable> localVariables = new List<Variable>();
       GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
-      
+
       Bpl.StmtList stmts;
       if (!wellformednessProc) {
         if (3 <= DafnyOptions.O.Induction && m.IsGhost && m.Mod.Expressions.Count == 0 && m.Outs.Count == 0 && !(m is CoLemma)) {
@@ -3501,7 +3501,7 @@ namespace Microsoft.Dafny {
           builder.Add(Assert(expr.tok, inDomain, "element may not be in domain", options.AssertKv));
         } else if (e.Seq.Type is MultiSetType) {
           // cool
-          
+
         } else {
           if (e.E0 != null) {
             e0 = etran.TrExpr(e.E0);
@@ -4182,7 +4182,7 @@ namespace Microsoft.Dafny {
     ///    method.
     ///    If the method has no body, there is no reason to include this kind
     ///    of procedure.
-    /// 
+    ///
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
@@ -4318,9 +4318,9 @@ namespace Microsoft.Dafny {
       var req = new List<Bpl.Requires>();
       List<Bpl.IdentifierExpr> mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
-      
+
       req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
-      
+
       mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
 
@@ -4435,7 +4435,7 @@ namespace Microsoft.Dafny {
       }
       var stmts = builder.Collect(method.tok); // this token is for the implict return, which should be for the refining method,
                                                // as this is where the error is.
-     
+
       var impl = new Bpl.Implementation(m.tok, proc.Name,
         typeParams, inParams, outParams,
         localVariables, stmts, etran.TrAttributes(m.Attributes, null));
@@ -4499,7 +4499,7 @@ namespace Microsoft.Dafny {
       foreach (Expression p in f.Req) {
         req.Add(Requires(p.tok, true, etran.TrExpr(p), null, null));
       }
-      
+
       // check that postconditions hold
       var ens = new List<Bpl.Ensures>();
       foreach (Expression p in f.Ens) {
@@ -4517,7 +4517,7 @@ namespace Microsoft.Dafny {
       List<Variable> implInParams = Bpl.Formal.StripWhereClauses(proc.InParams);
       List<Variable> locals = new List<Variable>();
       Bpl.StmtListBuilder builder = new Bpl.StmtListBuilder();
-      
+
       Bpl.FunctionCall funcOriginal = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
       Bpl.FunctionCall funcRefining = new Bpl.FunctionCall(new Bpl.IdentifierExpr(functionCheck.Refining.tok, functionCheck.Refining.FullSanitizedName, TrType(f.ResultType)));
       List<Bpl.Expr> args = new List<Bpl.Expr>();
@@ -4546,7 +4546,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(Token.NoToken, function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr canCall = new Bpl.NAryExpr(Token.NoToken, new Bpl.FunctionCall(canCallFuncID), argsCanCall);
       builder.Add(new AssumeCmd(function.tok, canCall));
-      
+
       // check that the preconditions for the call hold
       foreach (Expression p in function.Req) {
         Expression precond = Substitute(p, new ThisExpr(Token.NoToken), substMap);
@@ -5337,18 +5337,18 @@ namespace Microsoft.Dafny {
             assert line<n-1> op line<n>;
             assume false;
         }
-        assume line<0> op line<n>;        
+        assume line<0> op line<n>;
         */
         var s = (CalcStmt)stmt;
         Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
         AddComment(builder, stmt, "calc statement");
-        if (s.Lines.Count > 0) {          
+        if (s.Lines.Count > 0) {
           Bpl.IfCmd ifCmd = null;
           Bpl.StmtListBuilder b;
           // if the dangling hint is empty, do not generate anything for the dummy step
-          var stepCount = s.Hints.Last().Body.Count == 0 ? s.Steps.Count - 1 : s.Steps.Count; 
+          var stepCount = s.Hints.Last().Body.Count == 0 ? s.Steps.Count - 1 : s.Steps.Count;
           // check steps:
-          for (int i = stepCount; 0 <= --i; ) {            
+          for (int i = stepCount; 0 <= --i; ) {
             b = new Bpl.StmtListBuilder();
             // assume wf[line<i>]:
             AddComment(b, stmt, "assume wf[lhs]");
@@ -5358,7 +5358,7 @@ namespace Microsoft.Dafny {
             if (s.Steps[i] is BinaryExpr && (((BinaryExpr)s.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
               // assume line<i>:
               AddComment(b, stmt, "assume lhs");
-              b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(CalcStmt.Lhs(s.Steps[i])))); 
+              b.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(CalcStmt.Lhs(s.Steps[i]))));
             }
             // hint:
             AddComment(b, stmt, "Hint" + i.ToString());
@@ -5398,7 +5398,7 @@ namespace Microsoft.Dafny {
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
           // assume result:
-          if (s.Steps.Count > 1) {            
+          if (s.Steps.Count > 1) {
             builder.Add(new Bpl.AssumeCmd(s.Tok, etran.TrExpr(s.Result)));
           }
         }
@@ -6009,16 +6009,21 @@ namespace Microsoft.Dafny {
       TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
       definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
 
-      TrStmt(s.Body, definedness, locals, etran);
-
-      // check that postconditions hold
       foreach (var ens in s.Ens) {
         TrStmt_CheckWellformed(ens.E, definedness, locals, etran, false);
-        if (!ens.IsFree) {
-          bool splitHappened;  // we actually don't care
-          foreach (var split in TrSplitExpr(ens.E, etran, out splitHappened)) {
-            if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+      }
+
+      if (s.Body != null) {
+        TrStmt(s.Body, definedness, locals, etran);
+
+        // check that postconditions hold
+        foreach (var ens in s.Ens) {
+          if (!ens.IsFree) {
+            bool splitHappened;  // we actually don't care
+            foreach (var split in TrSplitExpr(ens.E, etran, out splitHappened)) {
+              if (split.IsChecked) {
+                definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+              }
             }
           }
         }
@@ -7145,7 +7150,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
-      
+
       for (int i = 0; i < lhss.Count; i++) {
         var lhs = lhss[i];
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
@@ -7189,7 +7194,7 @@ namespace Microsoft.Dafny {
                 string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
             }
           }
-          
+
         }
       }
     }
@@ -7226,7 +7231,7 @@ namespace Microsoft.Dafny {
       int i = 0;
 
       var lhsNameSet = new Dictionary<string, object>();
-      
+
       foreach (var lhs in lhss) {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
         IToken tok = lhs.tok;
@@ -8541,7 +8546,7 @@ namespace Microsoft.Dafny {
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type)));
             case BinaryExpr.ResolvedOpcode.MapDisjoint:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MapDisjoint, null, e0, e1);
-              
+
             case BinaryExpr.ResolvedOpcode.RankLt:
               return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Lt,
                 translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e0),
@@ -8648,7 +8653,7 @@ namespace Microsoft.Dafny {
           List<Variable> bvars = new List<Variable>();
           var bv = e.BoundVars[0];
           TrBoundVariables(e.BoundVars, bvars);
-          
+
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, null);
 
           var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$y#" + translator.otherTmpVarCount, predef.BoxType));
@@ -8657,7 +8662,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr unboxy = !ModeledAsBoxType(bv.Type) ? translator.FunctionCall(e.tok, BuiltinFunction.Unbox, translator.TrType(bv.Type), new Bpl.IdentifierExpr(expr.tok, yVar))
             : (Bpl.Expr)(new Bpl.IdentifierExpr(expr.tok, yVar));
           Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxy, bv.Type, this);
-          
+
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
           subst.Add(e.BoundVars[0], new BoogieWrapper(unboxy,e.BoundVars[0].Type));
@@ -8667,7 +8672,7 @@ namespace Microsoft.Dafny {
           ebody = TrExpr(translator.Substitute(e.Term, null, subst));
           Bpl.Expr l2 = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
 
-          
+
           return translator.FunctionCall(e.tok, BuiltinFunction.MapGlue, null, l1, l2);
 
         } else if (expr is StmtExpr) {
@@ -8974,9 +8979,9 @@ namespace Microsoft.Dafny {
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
         Bpl.QKeyValue kv = null;
         for ( ; attrs != null; attrs = attrs.Prev) {
-          if (attrs.Name == skipThisAttribute 
+          if (attrs.Name == skipThisAttribute
            || attrs.Name == "axiom") {  // Dafny's axiom attribute clashes with Boogie's axiom keyword
-            continue; 
+            continue;
           }
           List<object> parms = new List<object>();
           foreach (Attributes.Argument arg in attrs.Args) {
@@ -9123,7 +9128,7 @@ namespace Microsoft.Dafny {
       MultiSetSubset,
       MultiSetDisjoint,
       MultiSetFromSet,
-      MultiSetFromSeq,      
+      MultiSetFromSeq,
       IsGoodMultiSet,
       IsGoodMultiSet_Extended,
 
@@ -9200,7 +9205,7 @@ namespace Microsoft.Dafny {
     Bpl.Expr RemoveLit(Bpl.Expr expr) {
       var e = GetLit(expr);
       if (e == null) {
-        e = expr; 
+        e = expr;
       }
       return e;
     }
@@ -9745,7 +9750,7 @@ namespace Microsoft.Dafny {
           splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, negatedTest, s.E)));
         }
 
-        return true;        
+        return true;
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
@@ -10685,7 +10690,7 @@ namespace Microsoft.Dafny {
               var info = translator.letSuchThatExprInfo[e];
               translator.letSuchThatExprInfo.Add(newLet, new LetSuchThatExprInfo(info, translator, substMap));
             }
-            newExpr = newLet;         
+            newExpr = newLet;
           }
 
         } else if (expr is MatchExpr) {

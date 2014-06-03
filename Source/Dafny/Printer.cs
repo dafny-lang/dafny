@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintExtendedExpr(expr, 0, true, false);        
+        pr.PrintExtendedExpr(expr, 0, true, false);
         return wr.ToString();
       }
     }
@@ -560,7 +560,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent) {
+    internal void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent, bool newLine = true) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       foreach (MaybeFreeExpression e in ee)
@@ -577,7 +577,11 @@ namespace Microsoft.Dafny {
         wr.Write(" ");
         PrintExpression(e.E, true);
 
-        wr.WriteLine(";");
+        if (newLine) {
+          wr.WriteLine(";");
+        } else {
+          wr.Write(";");
+        }
       }
     }
 
@@ -730,10 +734,12 @@ namespace Microsoft.Dafny {
           wr.Write(" ");
         } else {
           wr.WriteLine();
-          PrintSpec("ensures", s.Ens, indent + IndentAmount);
+          PrintSpec("ensures", s.Ens, indent + IndentAmount, s.Body != null);
           Indent(indent);
         }
-        PrintStatement(s.Body, indent);
+        if (s.Body != null) {
+          PrintStatement(s.Body, indent);
+        }
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;

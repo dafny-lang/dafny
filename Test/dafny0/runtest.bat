@@ -50,5 +50,12 @@ for %%f in (SmallTests.dfy LetExpr.dfy Calculations.dfy) do (
   %DAFNY_EXE% /noVerify /compile:0 %* out.tmp.dfy
 )
 
+for %%f in (DirtyLoops.dfy) do (
+  echo.
+  echo -------------------- %%f --------------------
+  %DAFNY_EXE% /compile:0 /dprint:out.tmp.dfy %* %%f
+  %DAFNY_EXE% /noVerify /compile:0 %* out.tmp.dfy
+)
+
 %DAFNY_EXE% %* Compilation.dfy
 %DAFNY_EXE% %* CompilationErrors.dfy

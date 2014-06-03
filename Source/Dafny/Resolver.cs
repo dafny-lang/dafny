@@ -192,7 +192,7 @@ namespace Microsoft.Dafny
       var refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
-      var opaqueRewriter = new OpaqueFunctionRewriter();      
+      var opaqueRewriter = new OpaqueFunctionRewriter();
       rewriters.Add(new AutoReqFunctionRewriter(this, opaqueRewriter));
       rewriters.Add(opaqueRewriter);
 
@@ -201,7 +201,7 @@ namespace Microsoft.Dafny
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
           // to resolve. First we do refinement transformation. Then we construct the signature
-          // of the module. This is the public, externally visible signature. Then we add in 
+          // of the module. This is the public, externally visible signature. Then we add in
           // everything that the system defines, as well as any "import" (i.e. "opened" modules)
           // directives (currently not supported, but this is where we would do it.) This signature,
           // which is only used while resolving the members of the module is stored in the (basically)
@@ -1953,7 +1953,7 @@ namespace Microsoft.Dafny
     /// Note, the current implementation is rather conservative in its analysis; upon need, the
     /// algorithm could be improved.
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
-    /// 
+    ///
     /// The incoming value of "tailCall" is not used, but it's nevertheless a 'ref' parameter to allow the
     /// body to return the incoming value or to omit assignments to it.
     /// If the return value is CanBeFollowedByAnything, "tailCall" is unchanged.
@@ -2083,7 +2083,10 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        var status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        var status = TailRecursionStatus.NotTailRecursive;
+        if (s.Body != null) {
+          status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        }
         if (status != TailRecursionStatus.CanBeFollowedByAnything) {
           if (status == TailRecursionStatus.NotTailRecursive) {
             // an error has already been reported
@@ -2790,13 +2793,13 @@ namespace Microsoft.Dafny
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
     /// deemed to be rather small, this seems okay.
-    /// 
+    ///
     /// As a side effect of this checking, the DefaultCtor field is filled in (for every inductive datatype
     /// that passes the check).  It may be that several constructors could be used as the default, but
     /// only the first one encountered as recorded.  This particular choice is slightly more than an
     /// implementation detail, because it affects how certain cycles among inductive datatypes (having
     /// to do with the types used to instantiate type parameters of datatypes) are used.
-    /// 
+    ///
     /// The role of the SCC here is simply to speed up this method.  It would still be correct if the
     /// equivalence classes in the given SCC were unions of actual SCC's.  In particular, this method
     /// would still work if "dependencies" consisted of one large SCC containing all the inductive
@@ -3984,7 +3987,7 @@ namespace Microsoft.Dafny
           //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
           // pb is:
           //   seq(Arg) or multiset(Arg) or map(Domain, Arg), or
-          //   if AllowArray, array(Arg) 
+          //   if AllowArray, array(Arg)
           // Their intersection is:
           if (ib.AllowArray) {
             var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false);
@@ -4497,14 +4500,16 @@ namespace Microsoft.Dafny
         }
         s.IsGhost = bodyMustBeSpecOnly;
 
-        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
-        var prevLblStmts = labeledStatements;
-        var prevLoopStack = loopStack;
-        labeledStatements = new Scope<Statement>();
-        loopStack = new List<Statement>();
-        ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
-        labeledStatements = prevLblStmts;
-        loopStack = prevLoopStack;
+        if (s.Body != null) {
+          // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
+          var prevLblStmts = labeledStatements;
+          var prevLoopStack = loopStack;
+          labeledStatements = new Scope<Statement>();
+          loopStack = new List<Statement>();
+          ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
+          labeledStatements = prevLblStmts;
+          loopStack = prevLoopStack;
+        }
         scope.PopMarker();
 
         if (prevErrorCount == ErrorCount) {
@@ -4541,9 +4546,11 @@ namespace Microsoft.Dafny
               }
             }
           }
-          CheckForallStatementBodyRestrictions(s.Body, s.Kind);
+          if (s.Body != null) {
+            CheckForallStatementBodyRestrictions(s.Body, s.Kind);
+          }
         }
-		
+
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         ResolveAttributes(s.Mod.Attributes, true, codeContext);
@@ -4572,14 +4579,14 @@ namespace Microsoft.Dafny
               if (!UnifyTypes(e0.Type, e1.Type)) {
                 Error(e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
               } else {
-                var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator                
+                var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator
                 ResolveExpression(step, true, codeContext);
-                s.Steps.Add(step);            
+                s.Steps.Add(step);
               }
               e0 = e1;
             }
           }
-                  
+
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
           var prevLblStmts = labeledStatements;
           var prevLoopStack = loopStack;
@@ -4590,7 +4597,7 @@ namespace Microsoft.Dafny
             CheckHintRestrictions(h);
           }
           labeledStatements = prevLblStmts;
-          loopStack = prevLoopStack;          
+          loopStack = prevLoopStack;
 
         }
         if (prevErrorCount == ErrorCount && s.Lines.Count > 0) {
@@ -4600,8 +4607,8 @@ namespace Microsoft.Dafny
           s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Tok, 0), Expression.CreateIntLiteral(s.Tok, 0));
         }
         ResolveExpression(s.Result, true, codeContext);
-        Contract.Assert(s.Result != null);        
-        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);        
+        Contract.Assert(s.Result != null);
+        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
@@ -5327,7 +5334,7 @@ namespace Microsoft.Dafny
             Contract.Assert(false);  // unexpected kind
             break;
         }
-		
+
       } else if (stmt is CalcStmt) {
           // cool
 
@@ -5446,7 +5453,7 @@ namespace Microsoft.Dafny
             Contract.Assert(false);  // unexpected kind
             break;
         }
-		
+
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
         foreach (var h in s.Hints) {
@@ -5990,10 +5997,10 @@ namespace Microsoft.Dafny
 
         }
         else if (e.Seq.Type is UserDefinedType && ((UserDefinedType)e.Seq.Type).IsDatatype)
-        {          
+        {
           DatatypeDecl dt = ((UserDefinedType)e.Seq.Type).AsDatatype;
 
-          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger)))  
+          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger)))
           {
             Error(expr, "datatype updates must be to datatype destructors");
           } else {
@@ -7219,7 +7226,7 @@ namespace Microsoft.Dafny
 
       if (p < e.Tokens.Count) {
         Contract.Assert(e.Arguments != null);
-        
+
         bool itIsAMethod = false;
         if (allowMethodCall) {
           var udt = r.Type.Normalize() as UserDefinedType;

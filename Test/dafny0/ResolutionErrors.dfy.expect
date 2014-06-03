@@ -132,4 +132,5 @@ ResolutionErrors.dfy(543,20): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(545,7): Error: let-such-that expressions are allowed only in ghost contexts
 ResolutionErrors.dfy(546,18): Error: unresolved identifier: w
 ResolutionErrors.dfy(653,11): Error: lemmas are not allowed to have modifies clauses
-134 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\ResolutionErrors.dfy
+ResolutionErrors.dfy(913,9): Error: unresolved identifier: s
+135 resolution/type errors detected in ResolutionErrors.dfy
