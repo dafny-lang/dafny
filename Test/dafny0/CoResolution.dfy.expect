@@ -19,4 +19,4 @@ CoResolution.dfy(141,17): Error: a recursive call from a copredicate can go only
 CoResolution.dfy(149,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(151,4): Error: a recursive call from a copredicate can go only to other copredicates
 CoResolution.dfy(167,13): Error: a recursive call from a colemma can go only to other colemmas and prefix lemmas
-21 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\CoResolution.dfy
+21 resolution/type errors detected in CoResolution.dfy

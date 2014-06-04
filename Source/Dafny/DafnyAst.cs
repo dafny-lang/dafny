@@ -15,11 +15,11 @@ namespace Microsoft.Dafny {
   public class Program {
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Name != null);
+      Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
 
-    public readonly string Name;
+    public readonly string FullName;
     public List<ModuleDefinition> Modules; // filled in during resolution.
                                                      // Resolution essentially flattens the module hierarchy, for
                                                      // purposes of translation and compilation.
@@ -36,13 +36,28 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(module is LiteralModuleDecl);
-      Name = name;
+      FullName = name;
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       Modules = new List<ModuleDefinition>();
       CompileModules = new List<ModuleDefinition>();
       TranslationTasks = new List<TranslationTask>();
+    }
+
+    public string Name
+    {
+      get
+      {
+        try
+        {
+          return System.IO.Path.GetFileName(FullName);
+        }
+        catch (ArgumentException)
+        {
+          return FullName;
+        }
+      }
     }
   }
 

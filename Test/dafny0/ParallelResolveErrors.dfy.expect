@@ -19,4 +19,4 @@ ParallelResolveErrors.dfy(96,24): Error: break label is undefined or not in scop
 ParallelResolveErrors.dfy(107,9): Error: the body of the enclosing forall statement is not allowed to update heap locations
 ParallelResolveErrors.dfy(115,6): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
 ParallelResolveErrors.dfy(120,6): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
-21 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\ParallelResolveErrors.dfy
+21 resolution/type errors detected in ParallelResolveErrors.dfy

@@ -173,7 +173,7 @@ namespace DafnyLanguage
     public static void Compile(Dafny.Program dafnyProgram, TextWriter outputWriter)
     {
       Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = true;
-      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.Name, outputWriter);
+      Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.FullName, outputWriter);
     }
 
     #endregion

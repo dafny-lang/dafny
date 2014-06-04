@@ -18,4 +18,4 @@ NonGhostQuantifiers.dfy(106,5): Error: quantifiers in non-ghost contexts must be
 NonGhostQuantifiers.dfy(114,10): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'y'
 NonGhostQuantifiers.dfy(123,8): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'x'
 NonGhostQuantifiers.dfy(140,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-20 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\NonGhostQuantifiers.dfy
+20 resolution/type errors detected in NonGhostQuantifiers.dfy

@@ -10,4 +10,4 @@ IteratorResolution.dfy(127,21): Error: arguments must have the same type (got in
 IteratorResolution.dfy(128,2): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(135,9): Error: unresolved identifier: _decreases1
 IteratorResolution.dfy(140,9): Error: unresolved identifier: _decreases0
-12 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\IteratorResolution.dfy
+12 resolution/type errors detected in IteratorResolution.dfy

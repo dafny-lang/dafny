@@ -1,4 +1,4 @@
-// c:\codeplex\dafny\Test\dafny0\Simple.dfy
+// Simple.dfy
 
 class MyClass<T, U> {
   var x: int;

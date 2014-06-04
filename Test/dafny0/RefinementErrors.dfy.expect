@@ -9,4 +9,4 @@ RefinementErrors.dfy(38,13): Error: type parameters are not allowed to be rename
 RefinementErrors.dfy(39,23): Error: the type of parameter 'z' is different from the type of the same parameter in the corresponding function in the module it refines ('seq<C>' instead of 'set<C>')
 RefinementErrors.dfy(40,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
 RefinementErrors.dfy(57,20): Error: a function can be changed into a function method in a refining module only if the function has not yet been given a body: G
-11 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\RefinementErrors.dfy
+11 resolution/type errors detected in RefinementErrors.dfy

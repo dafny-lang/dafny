@@ -31,4 +31,4 @@ TypeTests.dfy(128,15): Error: ghost variables are allowed only in specification 
 TypeTests.dfy(138,4): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(139,7): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(21,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
-33 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\TypeTests.dfy
+33 resolution/type errors detected in TypeTests.dfy
