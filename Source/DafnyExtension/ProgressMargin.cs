@@ -322,9 +322,9 @@ namespace DafnyLanguage
 
       if (_logSnapshots)
       {
-        var logDirName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(program.Name), "logs");
+        var logDirName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(program.FullName), "logs");
         Directory.CreateDirectory(logDirName);
-        var logFileName = System.IO.Path.Combine(logDirName, System.IO.Path.GetFileName(System.IO.Path.ChangeExtension(program.Name, string.Format("{0}.v{1}{2}", _created.Ticks, _version, System.IO.Path.GetExtension(program.Name)))));        
+        var logFileName = System.IO.Path.Combine(logDirName, System.IO.Path.GetFileName(System.IO.Path.ChangeExtension(program.FullName, string.Format("{0}.v{1}{2}", _created.Ticks, _version, System.IO.Path.GetExtension(program.FullName)))));        
         using (var writer = new StreamWriter(logFileName))
         {
           var pr = new Dafny.Printer(writer);

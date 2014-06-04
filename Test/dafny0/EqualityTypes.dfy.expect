@@ -9,4 +9,4 @@ EqualityTypes.dfy(85,8): Error: type parameter 0 (T) passed to method M must sup
 EqualityTypes.dfy(109,7): Error: == can only be applied to expressions of types that support equality (got D)
 EqualityTypes.dfy(114,13): Error: == can only be applied to expressions of types that support equality (got D)
 EqualityTypes.dfy(118,16): Error: == can only be applied to expressions of types that support equality (got D)
-11 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\EqualityTypes.dfy
+11 resolution/type errors detected in EqualityTypes.dfy

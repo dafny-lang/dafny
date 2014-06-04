@@ -26,4 +26,4 @@ Modules0.dfy(288,16): Error: type of the receiver is not fully determined at thi
 Modules0.dfy(288,6): Error: expected method call, found expression
 Modules0.dfy(310,24): Error: module Q_Imp does not exist
 Modules0.dfy(100,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name?)
-28 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\Modules0.dfy
+28 resolution/type errors detected in Modules0.dfy

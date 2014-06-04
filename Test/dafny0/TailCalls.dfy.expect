@@ -3,4 +3,4 @@ TailCalls.dfy(33,12): Error: 'decreases *' is allowed only on tail-recursive met
 TailCalls.dfy(40,12): Error: 'decreases *' is allowed only on tail-recursive methods
 TailCalls.dfy(45,12): Error: 'decreases *' is allowed only on tail-recursive methods
 TailCalls.dfy(67,12): Error: 'decreases *' is allowed only on tail-recursive methods
-5 resolution/type errors detected in c:\codeplex\dafny\Test\dafny0\TailCalls.dfy
+5 resolution/type errors detected in TailCalls.dfy

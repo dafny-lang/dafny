@@ -77,7 +77,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (r.ErrorCount != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", r.ErrorCount, programName);
+        return string.Format("{0} resolution/type errors detected in {1}", r.ErrorCount, program.Name);
       }
 
       return null;  // success
@@ -117,14 +117,15 @@ namespace Microsoft.Dafny {
     }
 
     private static string ParseFile(string dafnyFileName, Bpl.IToken tok, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
+      var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFileName) : dafnyFileName;
       try {
         int errorCount = Dafny.Parser.Parse(dafnyFileName, module, builtIns, errs, verifyThisFile);
         if (errorCount != 0) {
-          return string.Format("{0} parse errors detected in {1}", errorCount, dafnyFileName);
+          return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }
       } catch (IOException e) {
         errs.SemErr(tok, "Unable to open included file");
-        return string.Format("Error opening file \"{0}\": {1}", dafnyFileName, e.Message);
+        return string.Format("Error opening file \"{0}\": {1}", fn, e.Message);
       }
       return null; // Success
     }

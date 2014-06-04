@@ -312,6 +312,7 @@ namespace Microsoft.Dafny
         cp.ReferencedAssemblies.Add("System.Numerics.dll");
 
         var cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
+        var assemblyName = Path.GetFileName(cr.PathToAssembly);
         if (DafnyOptions.O.RunAfterCompile && cr.Errors.Count == 0) {
           outputWriter.WriteLine("Program compiled successfully");
           outputWriter.WriteLine("Running...");
@@ -327,9 +328,9 @@ namespace Microsoft.Dafny
             outputWriter.WriteLine(e.ToString());
           }
         } else if (cr.Errors.Count == 0) {
-          outputWriter.WriteLine("Compiled assembly into {0}", DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(cr.PathToAssembly) : cr.PathToAssembly);
+          outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
         } else {
-          outputWriter.WriteLine("Errors compiling program into {0}", DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(cr.PathToAssembly) : cr.PathToAssembly);
+          outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
           foreach (var ce in cr.Errors) {
             outputWriter.WriteLine(ce.ToString());
             outputWriter.WriteLine();

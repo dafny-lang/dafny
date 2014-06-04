@@ -12,4 +12,4 @@ ParseErrors.dfy(66,2): error: this operator cannot continue this calculation
 ParseErrors.dfy(71,2): error: this operator cannot continue this calculation
 ParseErrors.dfy(72,2): error: this operator cannot continue this calculation
 ParseErrors.dfy(78,2): error: this operator cannot continue this calculation
-14 parse errors detected in c:\codeplex\dafny\Test\dafny0\ParseErrors.dfy
+14 parse errors detected in ParseErrors.dfy
