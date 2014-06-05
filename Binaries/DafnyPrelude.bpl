@@ -358,9 +358,13 @@ axiom (forall h: HeapType, a: ref ::
     Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
 axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h,a): Seq BoxType }
    (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
-axiom (forall<alpha> h: HeapType, o: ref, f: Field alpha, v: alpha, a: ref ::
-  { Seq#FromArray(update(h, o, f, v), a) }
-    o != a ==> Seq#FromArray(update(h, o, f, v), a) == Seq#FromArray(h, a) );
+axiom (forall h0, h1: HeapType, a: ref ::
+  { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
+  $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) &&
+  (forall i: int ::
+    0 <= i && i < _System.array.Length(a) ==> read(h0, a, IndexField(i)) == read(h1, a, IndexField(i)))
+  ==>
+  Seq#FromArray(h0, a) == Seq#FromArray(h1, a));
 axiom (forall h: HeapType, i: int, v: BoxType, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
     0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
@@ -389,7 +393,9 @@ axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
 // Extension axiom, triggers only on Takes from arrays.
 axiom (forall h: HeapType, a: ref, n0, n1: int ::
   { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
-    n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field BoxType)) );
+    0 <= n0 && n0 + 1 == n1 && n1 <= _System.array.Length(a) ==>
+      Seq#Take(Seq#FromArray(h, a), n1) ==
+      Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field BoxType)) );
 // drop commutes with build.
 axiom (forall<T> s: Seq T, v: T, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }

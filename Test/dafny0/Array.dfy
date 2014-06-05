@@ -137,6 +137,19 @@ class A {
     a != null && 0 <= j && j <= a.Length &&
     a[j..j] == []
   }
+
+  predicate Q0(s: seq<int>)
+  predicate Q1(s: seq<int>)
+  method FrameTest(a: array<int>) returns (b: array<int>)
+    requires a != null && Q0(a[..]);
+  {
+    b := CreateArray(a);
+    assert Q0(a[..]);  // this should still be known after the call to CreateArray
+    assert Q1(b[..]);
+  }
+  method CreateArray(a: array<int>) returns (b: array<int>)
+    requires a != null;
+    ensures fresh(b) && Q1(b[..]);
 }
 
 type B;
