@@ -10,6 +10,10 @@ axiom $$Language$Dafny;        // coming from a Dafny program.
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
+function {:identity} LitInt(x: int): int { x }
+axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
+function {:identity} LitReal(x: real): real { x }
+axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
 function {:identity} Lit<T>(x: T): T { x }
 axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
 

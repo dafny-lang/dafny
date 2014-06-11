@@ -8134,13 +8134,15 @@ namespace Microsoft.Dafny {
           Bpl.Expr result;
           if (e.Field.IsMutable) {
             result = ReadHeap(expr.tok, HeapExpr, obj, new Bpl.IdentifierExpr(expr.tok, translator.GetField(e.Field)));
+            return translator.CondApplyUnbox(expr.tok, result, e.Field.Type, expr.Type);
           } else {
             result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(e.Field)), new List<Bpl.Expr> { obj });
+            result = translator.CondApplyUnbox(expr.tok, result, e.Field.Type, expr.Type);
             if (translator.IsLit(obj)) {
               result = translator.Lit(result, translator.TrType(expr.Type));
             }
+            return result;
           }
-          return translator.CondApplyUnbox(expr.tok, result, e.Field.Type, cce.NonNull(expr.Type));
 
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -8268,10 +8270,11 @@ namespace Microsoft.Dafny {
           bool returnLit;
           var args = FunctionInvocationArguments(e, layerArgument, out returnLit);
           Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+          result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
           if (returnLit && !translator.IsOpaqueFunction(e.Function)) {
             result = translator.Lit(result, ty);
           }
-          return translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
+          return result;
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
@@ -8441,13 +8444,13 @@ namespace Microsoft.Dafny {
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Gt; break;
             case BinaryExpr.ResolvedOpcode.Add:
-              typ = Bpl.Type.Int;
+              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Add; break;
             case BinaryExpr.ResolvedOpcode.Sub:
-              typ = Bpl.Type.Int;
+              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Sub; break;
             case BinaryExpr.ResolvedOpcode.Mul:
-              typ = Bpl.Type.Int;
+              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mul; break;
             case BinaryExpr.ResolvedOpcode.Div:
               if (isReal) {
@@ -9104,6 +9107,8 @@ namespace Microsoft.Dafny {
 
     enum BuiltinFunction
     {
+      LitInt,
+      LitReal,
       Lit,
       LayerSucc,
 
@@ -9185,7 +9190,18 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
-      return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
+      Contract.Requires(expr != null);
+      Contract.Requires(typ != null);
+      // To avoid Boogie's int_2_U and U_2_int conversions, which seem to cause problems with
+      // arithmetic reasoning, we use several Lit functions.  In particular, we use one for
+      // integers, one for reals, and one for everything else.
+      if (typ.IsInt) {
+        return FunctionCall(expr.tok, BuiltinFunction.LitInt, null, expr);
+      } else if (typ.IsReal) {
+        return FunctionCall(expr.tok, BuiltinFunction.LitReal, null, expr);
+      } else {
+        return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
+      }
     }
 
     Bpl.Expr Lit(Bpl.Expr expr) {
@@ -9195,8 +9211,13 @@ namespace Microsoft.Dafny {
     Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is NAryExpr) {
         NAryExpr app = (NAryExpr)expr;
-        if (app.Fun.FunctionName == "Lit") {
-          return app.Args[0];
+        switch (app.Fun.FunctionName) {
+          case "LitInt":
+          case "LitReal":
+          case "Lit":
+            return app.Args[0];
+          default:
+            break;
         }
       }
       return null;
@@ -9223,6 +9244,14 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       switch (f) {
+        case BuiltinFunction.LitInt:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "LitInt", Bpl.Type.Int, args);
+        case BuiltinFunction.LitReal:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "LitReal", Bpl.Type.Real, args);
         case BuiltinFunction.Lit:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
