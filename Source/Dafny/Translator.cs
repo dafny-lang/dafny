@@ -8110,9 +8110,15 @@ namespace Microsoft.Dafny {
         } else if (expr is SeqDisplayExpr) {
           SeqDisplayExpr e = (SeqDisplayExpr)expr;
           Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
+          bool isLit = true;
           foreach (Expression ee in e.Elements) {
-            Bpl.Expr elt = BoxIfNecessary(expr.tok, TrExpr(ee), cce.NonNull(ee.Type));
+            var rawElement = TrExpr(ee);
+            isLit = isLit && translator.IsLit(rawElement);
+            Bpl.Expr elt = BoxIfNecessary(expr.tok, rawElement, ee.Type);
             s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, s, elt);
+          }
+          if (isLit) {
+            s = translator.Lit(s, predef.BoxType);
           }
           return s;
 
@@ -8187,13 +8193,20 @@ namespace Microsoft.Dafny {
             if (e.Seq.Type.IsArrayType) {
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqFromArray, elType, HeapExpr, seq);
             }
+            var isLit = translator.IsLit(seq);
             if (e1 != null) {
+              isLit = isLit && translator.IsLit(e1);
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqTake, elType, seq, e1);
             }
             if (e0 != null) {
+              isLit = isLit && translator.IsLit(e0);
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqDrop, elType, seq, e0);
             }
             // if e0 == null && e1 == null, then we have the identity operation seq[..] == seq;
+            if (isLit && (e0 != null || e1 != null)) {
+              // Lit-lift the expression
+              seq = translator.Lit(seq, translator.TrType(expr.Type));
+            }
             return seq;
           }
 
@@ -8286,7 +8299,7 @@ namespace Microsoft.Dafny {
             args.Add(translator.CondApplyBox(expr.tok, bArg, cce.NonNull(arg.Type), t));
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(dtv.tok, dtv.Ctor.FullName, predef.DatatypeType);
-          Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
+          Bpl.Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
           if (isLit) {
             ret = translator.Lit(ret, predef.DatatypeType);
           }
@@ -8681,9 +8694,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
-          Bpl.Expr g = translator.RemoveLit(TrExpr(e.Test));
-          Bpl.Expr thn = translator.RemoveLit(TrExpr(e.Thn));
-          Bpl.Expr els = translator.RemoveLit(TrExpr(e.Els));
+          var g = translator.RemoveLit(TrExpr(e.Test));
+          var thn = translator.RemoveLit(TrExpr(e.Thn));
+          var els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
 
         } else if (expr is MatchExpr) {
@@ -9203,11 +9216,7 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.Expr RemoveLit(Bpl.Expr expr) {
-      var e = GetLit(expr);
-      if (e == null) {
-        e = expr;
-      }
-      return e;
+      return GetLit(expr) ?? expr;
     }
 
     bool IsLit(Bpl.Expr expr) {

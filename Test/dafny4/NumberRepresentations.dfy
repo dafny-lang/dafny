@@ -8,6 +8,7 @@
 
 function eval(digits: seq<int>, base: int): int
   requires 2 <= base;
+  decreases digits;  // see comment in test_eval()
 {
   if |digits| == 0 then 0 else digits[0] + base * eval(digits[1..], base)
 }
@@ -16,36 +17,21 @@ lemma test_eval()
 {
   assert forall base :: 2 <= base ==> eval([], base) == 0;
   assert forall base :: 2 <= base ==> eval([0], base) == 0;
-  forall base | 2 <= base {
-    calc {
-      eval([0, 0], base);
-      0;
-    }
-  }
+  
+  // To prove this automatically, it is necessary that the Lit axiom is sensitive only to the
+  // 'digits' argument being a literal.  Hence, the explicit 'decreases digits' clause on the
+  // 'eval' function.
+  assert forall base :: 2 <= base ==> eval([0, 0], base) == 0;
 
-  calc {
-    eval([3, 2], 10);
-    3 + 10 * eval([2], 10);
-    23;
-  }
+  assert eval([3, 2], 10) == 23;
+
   var oct, dec := 8, 10;
-  calc {
-    eval([1, 3], oct);
-    1 + oct * eval([3], oct);
-    5 + dec * eval([2], dec);
-    eval([5, 2], dec);
-  }
+  assert eval([1, 3], oct) == eval([5, 2], dec);
 
   assert eval([29], 420) == 29;
   assert eval([29], 8) == 29;
 
-  calc {
-    eval([-2, 1, -3], 5);
-    -2 + 5 * eval([1, -3], 5);
-    -2 + 5 * 1 + 25 * eval([-3], 5);
-    -2 + 5 * 1 + 25 * (-3);
-    -72;
-  }
+  assert eval([-2, 1, -3], 5) == -72;
 }
 
 // To achieve a unique (except for leading zeros) representation of each number, we
