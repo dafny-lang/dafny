@@ -176,6 +176,7 @@ abstract module M1 refines M0 {
     // discharge the "everything reachable is marked" postcondition, whose proof we postponed above
     // by supplying an assume statement.  Here, we refine that assume statement into an assert.
     assert ...;
+    assume ...;
   }
 }
 
