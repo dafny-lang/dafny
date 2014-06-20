@@ -217,8 +217,9 @@ namespace DafnyLanguage
 
     public static bool ToggleIncrementalVerification()
     {
-      Dafny.DafnyOptions.Clo.VerifySnapshots = !Dafny.DafnyOptions.Clo.VerifySnapshots;
-      return Dafny.DafnyOptions.Clo.VerifySnapshots;
+      // TODO(wuestholz): Change this once there are more than two options.
+      Dafny.DafnyOptions.Clo.VerifySnapshots = (Dafny.DafnyOptions.Clo.VerifySnapshots + 1) % 2;
+      return 0 < Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
     public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
