@@ -12,5 +12,6 @@ namespace DafnyLanguage.DafnyMenu
     public const uint cmdidMenu = 0x1021;
     public static uint cmdidToggleSnapshotVerification = 0x103;
     public const uint cmdidToggleBVD = 0x104;
+    public static uint cmdidToggleMoreAdvancedSnapshotVerification = 0x105;
   };
 }

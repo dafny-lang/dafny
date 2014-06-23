@@ -17,9 +17,20 @@ namespace DafnyLanguage
       this.DafnyMenuPackage = DafnyMenuPackage;
     }
 
-    public bool ToggleSnapshotVerification(IWpfTextView activeTextView)
+    public int ToggleSnapshotVerification(IWpfTextView activeTextView)
     {
-      return DafnyDriver.ToggleIncrementalVerification();
+      return DafnyDriver.ChangeIncrementalVerification(1);
+    }
+
+    public int ToggleMoreAdvancedSnapshotVerification(IWpfTextView activeTextView)
+    {
+      return DafnyDriver.ChangeIncrementalVerification(2);
+    }
+
+    public bool MoreAdvancedSnapshotVerificationCommandEnabled(IWpfTextView activeTextView)
+    {
+      return activeTextView != null
+             && 0 < DafnyDriver.IncrementalVerificationMode();
     }
 
     public bool StopVerifierCommandEnabled(IWpfTextView activeTextView)

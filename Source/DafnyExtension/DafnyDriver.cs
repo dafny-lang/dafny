@@ -45,7 +45,7 @@ namespace DafnyLanguage
 
         ExecutionEngine.printer = new DummyPrinter();
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
-        ToggleIncrementalVerification();
+        ChangeIncrementalVerification(1);
       }
     }
 
@@ -215,11 +215,30 @@ namespace DafnyLanguage
       }
     }
 
-    public static bool ToggleIncrementalVerification()
+    public static int IncrementalVerificationMode()
     {
-      // TODO(wuestholz): Change this once there are more than two options.
-      Dafny.DafnyOptions.Clo.VerifySnapshots = (Dafny.DafnyOptions.Clo.VerifySnapshots + 1) % 2;
-      return 0 < Dafny.DafnyOptions.Clo.VerifySnapshots;
+      return Dafny.DafnyOptions.Clo.VerifySnapshots;
+    }
+
+    public static int ChangeIncrementalVerification(int mode)
+    {
+      var old = Dafny.DafnyOptions.Clo.VerifySnapshots;
+      if (mode == 1 && old != 0)
+      {
+        // Disable mode 1.
+        Dafny.DafnyOptions.Clo.VerifySnapshots = 0;
+      }
+      else if (mode == 2 && old == 2)
+      {
+        // Disable mode 2.
+        Dafny.DafnyOptions.Clo.VerifySnapshots = 1;
+      }
+      else
+      {
+        // Enable mode.
+        Dafny.DafnyOptions.Clo.VerifySnapshots = mode;
+      }
+      return Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
     public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {

@@ -19,7 +19,13 @@ namespace DafnyLanguage.DafnyMenu
 
   public interface IMenuProxy
   {
-    bool ToggleSnapshotVerification(IWpfTextView activeTextView);
+    int ToggleSnapshotVerification(IWpfTextView activeTextView);
+
+
+    int ToggleMoreAdvancedSnapshotVerification(IWpfTextView activeTextView);
+
+
+    bool MoreAdvancedSnapshotVerificationCommandEnabled(IWpfTextView activeTextView);
 
 
     bool StopVerifierCommandEnabled(IWpfTextView activeTextView);
@@ -80,6 +86,7 @@ namespace DafnyLanguage.DafnyMenu
     private OleMenuCommand runVerifierCommand;
     private OleMenuCommand stopVerifierCommand;
     private OleMenuCommand toggleSnapshotVerificationCommand;
+    private OleMenuCommand toggleMoreAdvancedSnapshotVerificationCommand;
     private OleMenuCommand toggleBVDCommand;
 
     bool BVDDisabled;
@@ -138,6 +145,11 @@ namespace DafnyLanguage.DafnyMenu
         toggleSnapshotVerificationCommand = new OleMenuCommand(ToggleSnapshotVerificationCallback, toggleSnapshotVerificationCommandID);
         mcs.AddCommand(toggleSnapshotVerificationCommand);
 
+        var toggleMoreAdvancedSnapshotVerificationCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleMoreAdvancedSnapshotVerification);
+        toggleMoreAdvancedSnapshotVerificationCommand = new OleMenuCommand(ToggleMoreAdvancedSnapshotVerificationCallback, toggleMoreAdvancedSnapshotVerificationCommandID);
+        toggleMoreAdvancedSnapshotVerificationCommand.BeforeQueryStatus += toggleMoreAdvancedSnapshotVerificationCommand_BeforeQueryStatus;
+        mcs.AddCommand(toggleMoreAdvancedSnapshotVerificationCommand);
+
         var showErrorModelCommandID = new CommandID(GuidList.guidDafnyMenuCmdSet, (int)PkgCmdIDList.cmdidToggleBVD);
         toggleBVDCommand = new OleMenuCommand(ToggleBVDCallback, showErrorModelCommandID);
         toggleBVDCommand.Enabled = true;
@@ -191,8 +203,20 @@ namespace DafnyLanguage.DafnyMenu
       var atv = ActiveTextView;
       if (MenuProxy != null && atv != null)
       {
-        var on = MenuProxy.ToggleSnapshotVerification(atv);
-        toggleSnapshotVerificationCommand.Text = (on ? "Disable" : "Enable") + " on-demand re-verification";
+        var mode = MenuProxy.ToggleSnapshotVerification(atv);
+        toggleSnapshotVerificationCommand.Text = (mode == 1 ? "Disable" : "Enable") + " on-demand re-verification";
+        toggleMoreAdvancedSnapshotVerificationCommand.Text = (mode == 2 ? "Disable" : "Enable") + " more advanced on-demand re-verification";
+      }
+    }
+
+    void ToggleMoreAdvancedSnapshotVerificationCallback(object sender, EventArgs e)
+    {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null)
+      {
+        var mode = MenuProxy.ToggleMoreAdvancedSnapshotVerification(atv);
+        toggleSnapshotVerificationCommand.Text = (mode != 0 ? "Disable" : "Enable") + " on-demand re-verification";
+        toggleMoreAdvancedSnapshotVerificationCommand.Text = (mode == 2 ? "Disable" : "Enable") + " more advanced on-demand re-verification";
       }
     }
 
@@ -273,6 +297,16 @@ namespace DafnyLanguage.DafnyMenu
       {
         var visible = MenuProxy.ShowErrorModelCommandEnabled(atv);
         toggleBVDCommand.Visible = visible;
+      }
+    }
+
+    private void toggleMoreAdvancedSnapshotVerificationCommand_BeforeQueryStatus(object sender, EventArgs e)
+    {
+      var atv = ActiveTextView;
+      if (MenuProxy != null && atv != null)
+      {
+        var visible = MenuProxy.MoreAdvancedSnapshotVerificationCommandEnabled(atv);
+        toggleMoreAdvancedSnapshotVerificationCommand.Visible = visible;
       }
     }
 
