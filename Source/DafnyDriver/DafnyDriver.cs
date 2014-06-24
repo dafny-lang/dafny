@@ -131,7 +131,7 @@ namespace Microsoft.Dafny
           Bpl.Program boogieProgram = translator.Translate(dafnyProgram);
           if (CommandLineOptions.Clo.PrintFile != null)
           {
-            ExecutionEngine.PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false, false);
+            ExecutionEngine.PrintBplFile(CommandLineOptions.Clo.PrintFile, boogieProgram, false, false, CommandLineOptions.Clo.PrettyPrint);
           }
 
           string bplFilename;
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
           {
-            ExecutionEngine.PrintBplFile(bplFileName, program, false, false);
+            ExecutionEngine.PrintBplFile(bplFileName, program, false, false, CommandLineOptions.Clo.PrettyPrint);
             Console.WriteLine();
             Console.WriteLine("*** Encountered internal translation error - re-running Boogie to get better debug information");
             Console.WriteLine();
