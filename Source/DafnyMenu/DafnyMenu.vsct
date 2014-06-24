@@ -103,6 +103,16 @@
         </Strings>
       </Button>
 
+      <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleMoreAdvancedSnapshotVerification" priority="0x0105" type="Button">
+        <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Enable more advanced on-demand re-verification</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="guidDafnyMenuCmdSet" id="cmdidToggleBVD" priority="0x010a" type="Button">
         <Parent guid="guidDafnyMenuCmdSet" id="DafnyMenuGroup" />
         <CommandFlag>DynamicVisibility</CommandFlag>
@@ -144,6 +154,7 @@
       <IDSymbol name="cmdidStopVerifier" value="0x0102" />
       <IDSymbol name="cmdidToggleSnapshotVerification" value="0x0103" />
       <IDSymbol name="cmdidToggleBVD" value="0x0104" />
+      <IDSymbol name="cmdidToggleMoreAdvancedSnapshotVerification" value="0x0105" />
     </GuidSymbol>
 
     <!--
