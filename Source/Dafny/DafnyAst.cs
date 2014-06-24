@@ -4128,6 +4128,20 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Create a resolved expression of the form "e0 + e1"
+    /// </summary>
+    public static Expression CreateAdd(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
+      s.Type = e0.Type;  // resolve here
+      return s;
+    }
+
+    /// <summary>
     /// Create a resolved expression of the form "e0 - e1"
     /// </summary>
     public static Expression CreateSubtract(Expression e0, Expression e1) {
@@ -4152,12 +4166,8 @@ namespace Microsoft.Dafny {
       if (n == 0) {
         return e;
       }
-      var nn = new LiteralExpr(e.tok, n);
-      nn.Type = Type.Int;
-      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Add, e, nn);
-      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
-      p.Type = Type.Int;
-      return p;
+      var nn = CreateIntLiteral(e.tok, n);
+      return CreateAdd(e, nn);
     }
 
     /// <summary>
@@ -4171,11 +4181,8 @@ namespace Microsoft.Dafny {
       if (n == 0) {
         return e;
       }
-      var nn = Expression.CreateIntLiteral(e.tok, n);
-      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, e, nn);
-      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-      p.Type = Type.Int;
-      return p;
+      var nn = CreateIntLiteral(e.tok, n);
+      return CreateSubtract(e, nn);
     }
 
     /// <summary>
@@ -4237,6 +4244,26 @@ namespace Microsoft.Dafny {
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
       s.Type = Type.Bool;  // resolve here
       return s;
+    }
+
+    public static Expression CreateEq(Expression e0, Expression e1, Type ty) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(ty != null);
+      var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1);
+      if (ty is SetType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SetEq;
+      } else if (ty is SeqType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SeqEq;
+      } else if (ty is MultiSetType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.InMultiSet;
+      } else if (ty is MapType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.MapEq;
+      } else {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
+      }
+      eq.type = Type.Bool;
+      return eq;
     }
 
     /// <summary>
@@ -4368,6 +4395,17 @@ namespace Microsoft.Dafny {
       q.Type = Type.Bool;
 
       return q;
+    }
+
+    /// <summary>
+    /// Create a resolved IdentifierExpr (whose token is that of the variable)
+    /// </summary>
+    public static Expression CreateIdentExpr(IVariable v) {
+      Contract.Requires(v != null);
+      var e = new IdentifierExpr(v.Tok, v.Name);
+      e.Var = v;  // resolve here
+      e.type = v.Type;  // resolve here
+      return e;
     }
 
     public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e) {
@@ -4982,6 +5020,18 @@ namespace Microsoft.Dafny {
     }
     public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!
       get { return _theResolvedOp; }
+    }
+    public static bool IsEqualityOp(ResolvedOpcode op) {
+      switch (op) {
+        case ResolvedOpcode.EqCommon:
+        case ResolvedOpcode.SetEq:
+        case ResolvedOpcode.SeqEq:
+        case ResolvedOpcode.MultiSetEq:
+        case ResolvedOpcode.MapEq:
+          return true;
+        default:
+          return false;
+      }
     }
 
     public static Opcode ResolvedOp2SyntacticOp(ResolvedOpcode rop) {
