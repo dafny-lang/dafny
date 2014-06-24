@@ -3859,8 +3859,9 @@ namespace Microsoft.Dafny {
     public readonly Expression Source;
     public readonly List<MatchCaseStmt> Cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+    public readonly bool UsesOptionalBraces;
 
-    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases)
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -3868,6 +3869,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
 
     public override IEnumerable<Statement> SubStatements {
@@ -4340,7 +4342,7 @@ namespace Microsoft.Dafny {
     /// Create a match expression with a resolved type
     /// </summary>
     public static Expression CreateMatch(IToken tok, Expression src, List<MatchCaseExpr> cases, Type type) {
-      MatchExpr e = new MatchExpr(tok, src, cases);
+      MatchExpr e = new MatchExpr(tok, src, cases, false);
       e.Type = type;  // resolve here
 
       return e;
@@ -5562,6 +5564,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Source;
     public readonly List<MatchCaseExpr> Cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+    public readonly bool UsesOptionalBraces;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -5570,13 +5573,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
-    public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases)
+    public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
 
     public override IEnumerable<Expression> SubExpressions {

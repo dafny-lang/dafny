@@ -349,7 +349,7 @@ namespace Microsoft.Dafny
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
+          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))), e.UsesOptionalBraces);
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
@@ -472,7 +472,7 @@ namespace Microsoft.Dafny
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source),
-          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))));
+          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))), s.UsesOptionalBraces);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
