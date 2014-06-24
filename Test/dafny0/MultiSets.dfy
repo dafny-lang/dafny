@@ -269,3 +269,29 @@ method MultiSetProperty0(s: multiset<object>, t: multiset<object>, p: object)
     assert s + (t - s) == t;  // error
   }
 }
+
+// ---------- additional properties
+
+lemma UpperBoundOnOccurrenceCount(s: multiset<int>, x: int)
+  ensures 0 <= s[x] <= |s|;
+{
+}
+
+lemma MultisetCardinalityFromSequenceLength(s: seq<int>)
+  ensures |multiset(s)| == |s|;
+{
+}
+
+lemma Set_and_Multiset_Cardinalities(x: int, y: int)
+{
+  if * {
+    assert 1 <= |{x,y}| <= 2;
+    if x != y {
+      assert 2 <= |{x,y}|;
+    } else {
+      assert 2 <= |{x,y}|;  // error
+    }
+  } else {
+    assert |multiset{x,y}| == 2;
+  }
+}

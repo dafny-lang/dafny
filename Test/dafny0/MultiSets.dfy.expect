@@ -18,5 +18,11 @@ Execution trace:
     (0,0): anon3
     (0,0): anon12_Then
     (0,0): anon14_Else
+MultiSets.dfy(292,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+    (0,0): anon3
+    (0,0): anon9_Else
 
-Dafny program verifier finished with 54 verified, 4 errors
+Dafny program verifier finished with 59 verified, 5 errors

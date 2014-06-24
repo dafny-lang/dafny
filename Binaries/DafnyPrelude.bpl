@@ -135,7 +135,8 @@ type MultiSet T = [T]int;
 function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
 // ints are non-negative, used after havocing, and for conversion from sequences to multisets.
 axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) } 
-  $IsGoodMultiSet(ms) <==> (forall bx: T :: { ms[bx] } 0 <= ms[bx]));
+  $IsGoodMultiSet(ms) <==>
+  (forall bx: T :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
 
 function MultiSet#Card<T>(MultiSet T): int;
 axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));     
@@ -228,6 +229,10 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
 function MultiSet#FromSeq<T>(Seq T): MultiSet T;
 // conversion produces a good map.
 axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
+// cardinality axiom
+axiom (forall<T> s: Seq T ::
+  { MultiSet#Card(MultiSet#FromSeq(s)) }
+    MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
 // building axiom
 axiom (forall<T> s: Seq T, v: T ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
@@ -356,12 +361,14 @@ axiom (forall<T> s, t: Seq T ::
   Seq#Take(Seq#Append(s, t), Seq#Length(s)) == s &&
   Seq#Drop(Seq#Append(s, t), Seq#Length(s)) == t);
 
+
 function Seq#FromArray(h: HeapType, a: ref): Seq BoxType;
 axiom (forall h: HeapType, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
-    Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
-axiom (forall h: HeapType, a: ref :: { Seq#FromArray(h,a): Seq BoxType }
-   (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
+  Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
+axiom (forall h: HeapType, a: ref, i: int ::
+  { Seq#Index(Seq#FromArray(h, a): Seq BoxType, i) }
+  0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i)));
 axiom (forall h0, h1: HeapType, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
   $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) &&
