@@ -11002,7 +11002,7 @@ namespace Microsoft.Dafny {
             cases.Add(newCaseExpr);
           }
           if (anythingChanged) {
-            var newME = new MatchExpr(expr.tok, src, cases);
+            var newME = new MatchExpr(expr.tok, src, cases, e.UsesOptionalBraces);
             newME.MissingCases.AddRange(e.MissingCases);
             newExpr = newME;
           }
@@ -11287,7 +11287,7 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt));
+          var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
           rr.MissingCases.AddRange(s.MissingCases);
           r = rr;
         } else if (stmt is AssignSuchThatStmt) {
