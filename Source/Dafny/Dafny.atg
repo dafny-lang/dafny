@@ -739,8 +739,9 @@ Type<out Type/*!*/ ty>
   TypeAndToken<out tok, out ty>
   .
 TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null); tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-     List<Type/*!*/>/*!*/ gt;
+= (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
+     tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
+     List<Type> gt;
   .)
   ( "bool"                          (. tok = t; .)
   | "nat"                           (. tok = t;  ty = new NatType(); .)
@@ -772,6 +773,20 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
                                          ty = new MapType(gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(gt[0], gt[1]);
+                                       }
+                                    .)
+  | "("                             (. tok = t; gt = new List<Type>(); .)
+    [ Type<out ty>                  (. gt.Add(ty); .)
+      { "," Type<out ty>            (. gt.Add(ty); .)
+      }
+    ]
+    ")"                             (. if (gt.Count == 1) {
+                                         // just return the type 'ty'
+                                       } else {
+                                         // make sure the nullary tuple type exists
+                                         var dims = gt.Count;
+                                         var tmp = theBuiltIns.TupleType(tok, dims, true);
+                                         ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), gt, new List<IToken>());
                                        }
                                     .)
   | ReferenceType<out tok, out ty>
@@ -1876,25 +1891,51 @@ ConstAtomExpression<out Expression e>
   | "|"                                        (. x = t; .)
       Expression<out e, true>                  (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
     "|"
-  | "("                                        (. x = t; .)
-      Expression<out e, true>                  (. e = new ParensExpression(x, e); .)
-    ")"
-  | "real"									   (. x = t; .)
-    "("										   (. IToken openParen = t; .)
-	Expression<out e, true>
-	")"										   (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
-											      IToken fnTok = new Token(t.line, t.col); fnTok.val = "IntToReal";
-											      //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
-												  e = new FunctionCallExpr(x, "IntToReal", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
-												.)
-  | "int"									   (. x = t; .)
-    "("										   (. IToken openParen = t; .)
-	Expression<out e, true>
-	")"										   (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
-											      IToken fnTok = new Token(t.line, t.col); fnTok.val = "RealToInt";
-											      //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
-												  e = new FunctionCallExpr(x, "RealToInt", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
-												.)
+  | ParensExpression<out e>
+  | "real"                                     (. x = t; .)
+    "("                                        (. IToken openParen = t; .)
+    Expression<out e, true>
+    ")"                                        (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
+                                                  IToken fnTok = new Token(t.line, t.col); fnTok.val = "IntToReal";
+                                                  //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
+                                                  e = new FunctionCallExpr(x, "IntToReal", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
+                                               .)
+  | "int"                                      (. x = t; .)
+    "("                                        (. IToken openParen = t; .)
+    Expression<out e, true>
+    ")"                                        (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
+                                                  IToken fnTok = new Token(t.line, t.col); fnTok.val = "RealToInt";
+                                                  //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
+                                                  e = new FunctionCallExpr(x, "RealToInt", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
+                                               .)
+  )
+  .
+ParensExpression<out Expression e>
+= (. IToken x;
+     List<Expression> args = null;
+  .)
+  "("                                 (. x = t; e = null; .)
+  ( ")"                               (. // unit
+                                         // make sure the nullary tuple type exists
+                                         var tmp = theBuiltIns.TupleType(x, 0, true);
+                                         e = new DatatypeValue(x, BuiltIns.TupleTypeName(0), BuiltIns.TupleTypeCtorName, new List<Expression>());
+                                      .)
+  | Expression<out e, true>
+    { ","                             (. if (args == null) {
+                                           args = new List<Expression>();
+                                           args.Add(e);  // add the first argument, which was parsed above
+                                        }
+                                      .)
+      Expression<out e, true>         (. args.Add(e); .)
+    }
+    ")"                               (. if (args == null) {
+                                           e = new ParensExpression(x, e);
+                                         } else {
+                                           // make sure the corresponding tuple type exists
+                                           var tmp = theBuiltIns.TupleType(x, args.Count, true);
+                                           e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
+                                         }
+                                      .)
   )
   .
 DisplayExpr<out Expression e>

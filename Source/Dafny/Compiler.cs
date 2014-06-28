@@ -107,6 +107,10 @@ namespace Microsoft.Dafny {
           indent += IndentAmount;
         }
         foreach (TopLevelDecl d in m.TopLevelDecls) {
+          bool compileIt = true;
+          if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
+            continue;
+          }
           wr.WriteLine();
           if (d is ArbitraryTypeDecl) {
             var at = (ArbitraryTypeDecl)d;
@@ -411,7 +415,12 @@ namespace Microsoft.Dafny {
 
         if (dt is IndDatatypeDecl) {
           Indent(ind); wr.WriteLine("public override string ToString() {");
-          string nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
+          string nm;
+          if (dt is TupleTypeDecl) {
+            nm = "";
+          } else {
+            nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
+          }
           Indent(ind + IndentAmount); wr.WriteLine("string s = \"{0}\";", nm);
           if (ctor.Formals.Count != 0) {
             Indent(ind + IndentAmount); wr.WriteLine("s += \"(\";");

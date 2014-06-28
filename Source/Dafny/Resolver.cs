@@ -197,6 +197,7 @@ namespace Microsoft.Dafny
       rewriters.Add(opaqueRewriter);
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
+      prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
@@ -1019,6 +1020,9 @@ namespace Microsoft.Dafny
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, null);
+      } else if (d is TupleTypeDecl) {
+        var dd = (TupleTypeDecl)d;
+        return new TupleTypeDecl(dd.Dims, dd.Module);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);

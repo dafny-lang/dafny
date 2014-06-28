@@ -1191,9 +1191,16 @@ namespace Microsoft.Dafny {
         wr.Write(((IdentifierExpr)expr).Name);
 
       } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        wr.Write("#{0}.{1}", dtv.DatatypeName, dtv.MemberName);
-        if (dtv.Arguments.Count != 0) {
+        var dtv = (DatatypeValue)expr;
+        bool printParens;
+        if (dtv.MemberName == BuiltIns.TupleTypeCtorName) {
+          // we're looking at a tuple, whose printed constructor name is essentially the empty string
+          printParens = true;
+        } else {
+          wr.Write("{0}.{1}", dtv.DatatypeName, dtv.MemberName);
+          printParens = dtv.Arguments.Count != 0;
+        }
+        if (printParens) {
           wr.Write("(");
           PrintExpressionList(dtv.Arguments, false);
           wr.Write(")");

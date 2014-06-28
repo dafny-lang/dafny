@@ -912,3 +912,34 @@ method DirtyM(S: set<int>) {
   forall s | s in S ensures s < 0;
   assert s < 0; // error: s is unresolved
 }
+
+// ------------------- tuples -------------------
+
+method TupleResolution(x: int, y: int, r: real)
+{
+  var unit: () := ();
+  var expr: int := (x);
+  var pair: (int,int) := (x, x);
+  var triple: (int,int,int) := (y, x, x);
+  var badTriple: (int,real,int) := (y, x, r);  // error: parameters 1 and 2 have the wrong types
+  var quadruple: (int,real,int,real) := (y, r, x);  // error: trying to use a triple as a quadruple
+
+  assert unit == ();
+  assert pair.0 == pair.1;
+  assert triple.2 == x;
+
+  assert triple.2;  // error: 2 has type int, not the expected bool
+  assert triple.3 == pair.x;  // error(s):  3 and x are not destructors
+
+  var k0 := (5, (true, 2, 3.14));
+  var k1 := (((false, 10, 2.7)), 100, 120);
+  if k0.1 == k1.0 {
+    assert false;
+  } else if k0.1.1 < k1.0.1 {
+    assert k1.2 == 120;
+  }
+
+  // int and (int) are the same type (i.e., there are no 1-tuples)
+  var pp: (int) := x;
+  var qq: int := pp;
+}
