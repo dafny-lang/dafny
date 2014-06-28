@@ -249,7 +249,8 @@ namespace DafnyLanguage
 
       resolver.ReInitializeVerificationErrors(requestId, boogieProgram.TopLevelDeclarations);
 
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, requestId, er);
+      // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);
       switch (oc) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
@@ -267,7 +268,7 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string requestId, ErrorReporterDelegate er)
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string programId, string requestId, ErrorReporterDelegate er)
     {
       Contract.Requires(program != null);
 
@@ -277,7 +278,7 @@ namespace DafnyLanguage
         ExecutionEngine.CollectModSets(program);
         ExecutionEngine.CoalesceBlocks(program);
         ExecutionEngine.Inline(program);  
-        return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), er, requestId);
+        return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), programId, er, requestId);
       }
       return oc;
     }
