@@ -1,0 +1,2 @@
+// RUN: %dafny /compile:0 /verifySnapshots:2 /verifySeparately Snapshots0.dfy > "%t"
+// RUN: %diff "%s.expect" "%t"

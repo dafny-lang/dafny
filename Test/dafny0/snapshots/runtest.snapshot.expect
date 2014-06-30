@@ -1,0 +1,7 @@
+
+Dafny program verifier finished with 3 verified, 0 errors
+Snapshots0.v1.dfy(4,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 2 verified, 1 error
