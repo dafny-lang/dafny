@@ -88,15 +88,17 @@ namespace Microsoft.Dafny {
   {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, null, true);
     Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
+    Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ClassDecl ObjectDecl;
     public readonly ClassDecl RealClass;
     //public readonly Function RealToInt;
     //public readonly Function IntToReal;
     public BuiltIns() {
       // create class 'object'
-      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
+      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile());
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
+      // Arrays of other dimensions may be added during parsing as the parser detects the need for these
       UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
       // add real number functions
       Function RealToInt = new Function(Token.NoToken, "RealToInt", true, true, new List<TypeParameter>(), Token.NoToken,
@@ -108,12 +110,19 @@ namespace Microsoft.Dafny {
         new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
         null, null, Token.NoToken);
       RealClass = new ClassDecl(Token.NoToken, "Real", SystemModule, new List<TypeParameter>(),
-        new List<MemberDecl>() { RealToInt, IntToReal }, null);
+        new List<MemberDecl>() { RealToInt, IntToReal }, DontCompile());
       RealToInt.EnclosingClass = RealClass;
       IntToReal.EnclosingClass = RealClass;
       RealToInt.IsBuiltin = true;
       IntToReal.IsBuiltin = true;
       SystemModule.TopLevelDecls.Add(RealClass);
+      // Note, in addition to these types, the _System module contains tuple types.  These tuple types are added to SystemModule
+      // by the parser as the parser detects the need for these.
+    }
+
+    private Attributes DontCompile() {
+      var flse = new Attributes.Argument(Token.NoToken, Expression.CreateBoolLiteral(Token.NoToken, false));
+      return new Attributes("compile", new List<Attributes.Argument>() { flse }, null);
     }
 
     public UserDefinedType ArrayType(int dims, Type arg) {
@@ -129,7 +138,7 @@ namespace Microsoft.Dafny {
       typeArgs.Add(arg);
       UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs, null);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
-        ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
+        ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
         for (int d = 0; d < dims; d++) {
           string name = dims == 1 ? "Length" : "Length" + d;
           string compiledName = dims == 1 ? "Length" : "GetLength(" + d + ")";
@@ -152,6 +161,30 @@ namespace Microsoft.Dafny {
         return "array" + dims;
       }
     }
+
+    public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(0 <= dims);
+      Contract.Ensures(Contract.Result<TupleTypeDecl>() != null);
+
+      TupleTypeDecl tt;
+      if (!tupleTypeDecls.TryGetValue(dims, out tt)) {
+        Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
+        tt = new TupleTypeDecl(dims, SystemModule);
+        tupleTypeDecls.Add(dims, tt);
+        SystemModule.TopLevelDecls.Add(tt);
+      }
+      return tt;
+    }
+    public static string TupleTypeName(int dims) {
+      Contract.Requires(0 <= dims);
+      return "_tuple#" + dims;
+    }
+    public static bool IsTupleTypeName(string s) {
+      Contract.Requires(s != null);
+      return s.StartsWith("_tuple#");
+    }
+    public const string TupleTypeCtorName = "_#Make";  // the printer wants this name to be uniquely recognizable
   }
 
   public class Attributes {
@@ -714,6 +747,9 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
+      if (BuiltIns.IsTupleTypeName(Name)) {
+        return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ")";
+      }
       string s = "";
       foreach (var t in Path) {
         if (context != null && t == context.tok) {
@@ -1355,10 +1391,10 @@ namespace Microsoft.Dafny {
 
   public class ArrayClassDecl : ClassDecl {
     public readonly int Dims;
-    public ArrayClassDecl(int dims, ModuleDefinition module)
+    public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
       new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
-      new List<MemberDecl>(), null)
+      new List<MemberDecl>(), attrs)
     {
       Contract.Requires(1 <= dims);
       Contract.Requires(module != null);
@@ -1367,7 +1403,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class DatatypeDecl : TopLevelDecl {
+  public abstract class DatatypeDecl : TopLevelDecl
+  {
     public readonly List<DatatypeCtor> Ctors;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1410,6 +1447,52 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(1 <= ctors.Count);
+    }
+  }
+
+  public class TupleTypeDecl : IndDatatypeDecl
+  {
+    public readonly int Dims;
+    /// <summary>
+    /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
+    /// </summary>
+    public TupleTypeDecl(int dims, ModuleDefinition systemModule)
+      : this(systemModule, CreateTypeParameters(dims)) {
+      Contract.Requires(0 <= dims);
+      Contract.Requires(systemModule != null);
+    }
+    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs)
+      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), null) {
+      Contract.Requires(systemModule != null);
+      Contract.Requires(typeArgs != null);
+      Dims = typeArgs.Count;
+      foreach (var ctor in Ctors) {
+        ctor.EnclosingDatatype = this;  // resolve here
+        DefaultCtor = ctor;
+        TypeParametersUsedInConstructionByDefaultCtor = new bool[typeArgs.Count];
+        for (int i = 0; i < typeArgs.Count; i++) {
+          TypeParametersUsedInConstructionByDefaultCtor[i] = true;
+        }
+      }
+    }
+    private static List<TypeParameter> CreateTypeParameters(int dims) {
+      Contract.Requires(0 <= dims);
+      var ts = new List<TypeParameter>();
+      for (int i = 0; i < dims; i++) {
+        ts.Add(new TypeParameter(Token.NoToken, "T" + i));
+      }
+      return ts;
+    }
+    private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      var formals = new List<Formal>();
+      for (int i = 0; i < typeArgs.Count; i++) {
+        var tp = typeArgs[i];
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp.Name, tp), true, false);
+        formals.Add(f);
+      }
+      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorName, formals, null);
+      return new List<DatatypeCtor>() { ctor };
     }
   }
 
@@ -1918,7 +2001,7 @@ namespace Microsoft.Dafny {
       }
       return UniqueName;
     }
-    static char[] specialChars = new char[] { '\'', '_', '?', '\\' };
+    static char[] specialChars = new char[] { '\'', '_', '?', '\\', '#' };
     public static string CompilerizeName(string nm) {
       if ('0' <= nm[0] && nm[0] <= '9') {
         // the identifier is one that consists of just digits
@@ -1942,6 +2025,7 @@ namespace Microsoft.Dafny {
             case '_': name += "__"; break;
             case '?': name += "_q"; break;
             case '\\': name += "_b"; break;
+            case '#': name += "_h"; break;
             default:
               Contract.Assume(false);  // unexpected character
               break;

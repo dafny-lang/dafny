@@ -17,6 +17,7 @@ namespace Microsoft.Dafny {
   public class Translator {
     [NotDelayed]
     public Translator() {
+      InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
         sink = boogieProgram;
@@ -2507,7 +2508,7 @@ namespace Microsoft.Dafny {
     public void InsertUniqueIdForImplementation(Bpl.Declaration decl)
     {
       var impl = decl as Bpl.Implementation;
-      var prefix = UniqueIdPrefix ?? decl.tok.filename;
+      var prefix = UniqueIdPrefix ?? System.Text.RegularExpressions.Regex.Replace(decl.tok.filename, @".v\d+.dfy", ".dfy");
       if (impl != null && !string.IsNullOrEmpty(prefix))
       {
         decl.AddAttribute("id", prefix + ":" + impl.Name + ":0");

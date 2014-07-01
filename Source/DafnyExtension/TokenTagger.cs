@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
+using System.Diagnostics.Contracts;
 
 
 namespace DafnyLanguage
@@ -69,11 +70,12 @@ namespace DafnyLanguage
     }
   }
 
-  internal sealed class DafnyTokenTagger : ITagger<DafnyTokenTag>
+  internal sealed class DafnyTokenTagger : ITagger<DafnyTokenTag>, IDisposable
   {
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;
     List<TokenRegion> _regions;
+    bool _disposed;
 
     internal DafnyTokenTagger(ITextBuffer buffer) {
       _buffer = buffer;
@@ -81,6 +83,19 @@ namespace DafnyLanguage
       _regions = Rescan(_snapshot);
 
       _buffer.Changed += new EventHandler<TextContentChangedEventArgs>(ReparseFile);
+    }
+
+    public void Dispose() {
+      lock (this) {
+        if (!_disposed) {
+          _buffer.Changed -= ReparseFile;
+          _buffer = null;
+          _snapshot = null;
+          _regions = null;
+          _disposed = true;
+        }
+      }
+      GC.SuppressFinalize(this);
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
@@ -148,20 +163,24 @@ namespace DafnyLanguage
     private static List<TokenRegion> Rescan(ITextSnapshot newSnapshot) {
       List<TokenRegion> newRegions = new List<TokenRegion>();
 
-      bool stillScanningLongComment = false;
-      SnapshotPoint commentStart = new SnapshotPoint();  // used only when stillScanningLongComment
-      SnapshotPoint commentEndAsWeKnowIt = new SnapshotPoint();  // used only when stillScanningLongComment
+      int longCommentDepth = 0;
+      SnapshotPoint commentStart = new SnapshotPoint();  // used only when longCommentDepth != 0
+      SnapshotPoint commentEndAsWeKnowIt = new SnapshotPoint();  // used only when longCommentDepth != 0
       foreach (ITextSnapshotLine line in newSnapshot.Lines) {
         string txt = line.GetText();  // the current line (without linebreak characters)
         int N = txt.Length;  // length of the current line
         int cur = 0;  // offset into the current line
 
-        if (stillScanningLongComment) {
-          if (ScanForEndOfComment(txt, ref cur)) {
+        if (longCommentDepth != 0) {
+          ScanForEndOfComment(txt, ref longCommentDepth, ref cur);
+          if (longCommentDepth == 0) {
+            // we just finished parsing a long comment
             newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + cur), DafnyTokenKind.Comment));
-            stillScanningLongComment = false;
           } else {
+            // we're still parsing the long comment
+            Contract.Assert(cur == txt.Length);
             commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, line.Start + cur);
+            goto OUTER_CONTINUE;
           }
         }
 
@@ -179,9 +198,9 @@ namespace DafnyLanguage
             if ('a' <= ch && ch <= 'z') break;
             if ('A' <= ch && ch <= 'Z') break;
             if ('0' <= ch && ch <= '9') { ty = DafnyTokenKind.Number; break; }
+            if (ch == '\'' || ch == '_' || ch == '?' || ch == '\\') break;  // parts of identifiers
             if (ch == '"') { ty = DafnyTokenKind.String; break; }
             if (ch == '/') { ty = DafnyTokenKind.Comment; break; }
-            if (ch == '\'' || ch == '_' || ch == '?' || ch == '\\') break;  // parts of identifiers
           }
 
           // advance to the end of the token
@@ -211,7 +230,7 @@ namespace DafnyLanguage
               }
             }
           } else if (ty == DafnyTokenKind.Comment) {
-            if (end == N) continue;  // this was not the start of a comment
+            if (end == N) continue;  // this was not the start of a comment; it was just a single "/" and we don't care to color it
             char ch = txt[end];
             if (ch == '/') {
               // a short comment
@@ -220,15 +239,18 @@ namespace DafnyLanguage
               // a long comment; find the matching "*/"
               end++;
               commentStart = new SnapshotPoint(newSnapshot, line.Start + cur);
-              if (ScanForEndOfComment(txt, ref end)) {
+              Contract.Assert(longCommentDepth == 0);
+              longCommentDepth = 1;
+              ScanForEndOfComment(txt, ref longCommentDepth, ref end);
+              if (longCommentDepth == 0) {
+                // we finished scanning a long comment, and "end" is set to right after it
                 newRegions.Add(new TokenRegion(commentStart, new SnapshotPoint(newSnapshot, line.Start + end), DafnyTokenKind.Comment));
               } else {
-                stillScanningLongComment = true;
                 commentEndAsWeKnowIt = new SnapshotPoint(newSnapshot, line.Start + end);
               }
               continue;
             } else {
-              // not a comment
+              // not a comment; it was just a single "/" and we don't care to color it
               continue;
             }
           } else {
@@ -322,7 +344,7 @@ namespace DafnyLanguage
                 #endregion
                   break;
                 default:
-                  continue;  // it was an identifier
+                  continue;  // it was an identifier, so we don't color it
               }
             }
           }
@@ -332,26 +354,40 @@ namespace DafnyLanguage
       OUTER_CONTINUE: ;
       }
 
-      if (stillScanningLongComment) {
+      if (longCommentDepth != 0) {
+        // This was a malformed comment, running to the end of the buffer.  Above, we let "commentEndAsWeKnowIt" be the end of the
+        // last line, so we can use it here.
         newRegions.Add(new TokenRegion(commentStart, commentEndAsWeKnowIt, DafnyTokenKind.Comment));
       }
 
       return newRegions;
     }
 
-    private static bool ScanForEndOfComment(string txt, ref int end) {
-      int N = txt.Length;
-      for (; end < N; end++) {
+    /// <summary>
+    /// Scans "txt" beginning with depth "depth", which is assumed to be non-0.  Any occurrences of "/*" or "*/"
+    /// increment or decrement "depth".  If "depth" ever reaches 0, then "end" returns as the number of characters
+    /// consumed from "txt" (including the last "*/").  If "depth" is still non-0 when the entire "txt" has
+    /// been consumed, then "end" returns as the length of "txt".  (Note, "end" may return as the length of "txt"
+    /// if "depth" is still non-0 or if "depth" became 0 from reading the last characters of "txt".)
+    /// </summary>
+    private static void ScanForEndOfComment(string txt, ref int depth, ref int end) {
+      Contract.Requires(depth > 0);
+
+      int Nminus1 = txt.Length - 1;  // no reason ever to look at the last character of the line, unless the second-to-last character is '*' or '/'
+      for (; end < Nminus1; ) {
         char ch = txt[end];
-        if (ch == '*' && end + 1 < N) {
-          ch = txt[end + 1];
-          if (ch == '/') {
-            end += 2;
-            return true;
-          }
+        if (ch == '*' && txt[end + 1] == '/') {
+          end += 2;
+          depth--;
+          if (depth == 0) { return; }
+        } else if (ch == '/' && txt[end + 1] == '*') {
+          end += 2;
+          depth++;
+        } else {
+          end++;
         }
       }
-      return false;  // hit end-of-line without finding end-of-comment
+      end = txt.Length;  // we didn't look at the last character, but we still consumed all the output
     }
   }
 

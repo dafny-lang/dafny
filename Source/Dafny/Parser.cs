@@ -1115,8 +1115,9 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 	}
 
 	void TypeAndToken(out IToken/*!*/ tok, out Type/*!*/ ty) {
-		Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null); tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-		List<Type/*!*/>/*!*/ gt;
+		Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
+		tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
+		List<Type> gt;
 		
 		switch (la.kind) {
 		case 52: {
@@ -1191,6 +1192,30 @@ bool CloseOptionalBrace(bool usesOptionalBrace) {
 			 ty = new MapType(gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
 			} else {
 			 ty = new MapType(gt[0], gt[1]);
+			}
+			
+			break;
+		}
+		case 11: {
+			Get();
+			tok = t; gt = new List<Type>(); 
+			if (StartOf(10)) {
+				Type(out ty);
+				gt.Add(ty); 
+				while (la.kind == 31) {
+					Get();
+					Type(out ty);
+					gt.Add(ty); 
+				}
+			}
+			Expect(12);
+			if (gt.Count == 1) {
+			 // just return the type 'ty'
+			} else {
+			 // make sure the nullary tuple type exists
+			 var dims = gt.Count;
+			 var tmp = theBuiltIns.TupleType(tok, dims, true);
+			 ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), gt, new List<IToken>());
 			}
 			
 			break;
@@ -3352,11 +3377,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			break;
 		}
 		case 11: {
-			Get();
-			x = t; 
-			Expression(out e, true);
-			e = new ParensExpression(x, e); 
-			Expect(12);
+			ParensExpression(out e);
 			break;
 		}
 		case 55: {
@@ -3427,6 +3448,41 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		
 	}
 
+	void ParensExpression(out Expression e) {
+		IToken x;
+		List<Expression> args = null;
+		
+		Expect(11);
+		x = t; e = null; 
+		if (la.kind == 12) {
+			Get();
+			var tmp = theBuiltIns.TupleType(x, 0, true);
+			e = new DatatypeValue(x, BuiltIns.TupleTypeName(0), BuiltIns.TupleTypeCtorName, new List<Expression>());
+			
+		} else if (StartOf(16)) {
+			Expression(out e, true);
+			while (la.kind == 31) {
+				Get();
+				if (args == null) {
+				 args = new List<Expression>();
+				 args.Add(e);  // add the first argument, which was parsed above
+				}
+				
+				Expression(out e, true);
+				args.Add(e); 
+			}
+			Expect(12);
+			if (args == null) {
+			 e = new ParensExpression(x, e);
+			} else {
+			 // make sure the corresponding tuple type exists
+			 var tmp = theBuiltIns.TupleType(x, args.Count, true);
+			 e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorName, args);
+			}
+			
+		} else SynErr(223);
+	}
+
 	void MapLiteralExpressions(out List<ExpressionPair> elements) {
 		Expression/*!*/ d, r;
 		elements = new List<ExpressionPair/*!*/>(); 
@@ -3448,7 +3504,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 125) {
 			Get();
-		} else SynErr(223);
+		} else SynErr(224);
 	}
 
 	void MatchExpression(out Expression e, bool allowSemi) {
@@ -3471,7 +3527,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(10);
 		} else if (StartOf(31)) {
 			if (usesOptionalBrace) { SemErr(t, "expecting close curly brace"); } 
-		} else SynErr(224);
+		} else SynErr(225);
 		e = new MatchExpr(x, e, cases, usesOptionalBrace); 
 	}
 
@@ -3489,7 +3545,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		} else if (la.kind == 122 || la.kind == 123) {
 			Exists();
 			x = t; 
-		} else SynErr(225);
+		} else SynErr(226);
 		QuantifierDomain(out bvars, out attrs, out range);
 		QSep();
 		Expression(out body, allowSemi);
@@ -3537,7 +3593,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			AssumeStmt(out s);
 		} else if (la.kind == 88) {
 			CalcStmt(out s);
-		} else SynErr(226);
+		} else SynErr(227);
 	}
 
 	void LetExpr(out Expression e, bool allowSemi) {
@@ -3577,7 +3633,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			 }
 			}
 			
-		} else SynErr(227);
+		} else SynErr(228);
 		Expression(out e, false);
 		letRHSs.Add(e); 
 		while (la.kind == 31) {
@@ -3628,7 +3684,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			IdentTypeOptional(out bv);
 			pat = new CasePattern(bv.tok, bv);
 			
-		} else SynErr(228);
+		} else SynErr(229);
 	}
 
 	void CaseExpression(out MatchCaseExpr c, bool allowSemi) {
@@ -3661,7 +3717,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 121) {
 			Get();
-		} else SynErr(229);
+		} else SynErr(230);
 	}
 
 	void Exists() {
@@ -3669,7 +3725,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 		} else if (la.kind == 123) {
 			Get();
-		} else SynErr(230);
+		} else SynErr(231);
 	}
 
 	void AttributeBody(ref Attributes attrs) {
@@ -3714,8 +3770,8 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
-		{x,T,T,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
-		{x,T,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+		{x,T,T,x, x,T,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+		{x,T,x,x, x,T,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,T,T,T, T,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
 		{x,T,T,T, T,x,x,x, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,T,x,T, x,x,x,x, x,T,T,x, x,x,x,x, T,x,T,x, T,x,x,x, x,x,T,T, x,T,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,T,x,x, T,T,T,T, T,T,T,x, x,T,T,T, x,x,x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, T,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
@@ -3986,14 +4042,15 @@ public class Errors {
 			case 220: s = "invalid MultiSetExpr"; break;
 			case 221: s = "invalid ConstAtomExpression"; break;
 			case 222: s = "invalid Nat"; break;
-			case 223: s = "invalid QSep"; break;
-			case 224: s = "invalid MatchExpression"; break;
-			case 225: s = "invalid QuantifierGuts"; break;
-			case 226: s = "invalid StmtInExpr"; break;
-			case 227: s = "invalid LetExpr"; break;
-			case 228: s = "invalid CasePattern"; break;
-			case 229: s = "invalid Forall"; break;
-			case 230: s = "invalid Exists"; break;
+			case 223: s = "invalid ParensExpression"; break;
+			case 224: s = "invalid QSep"; break;
+			case 225: s = "invalid MatchExpression"; break;
+			case 226: s = "invalid QuantifierGuts"; break;
+			case 227: s = "invalid StmtInExpr"; break;
+			case 228: s = "invalid LetExpr"; break;
+			case 229: s = "invalid CasePattern"; break;
+			case 230: s = "invalid Forall"; break;
+			case 231: s = "invalid Exists"; break;
 
 			default: s = "error " + n; break;
 		}
