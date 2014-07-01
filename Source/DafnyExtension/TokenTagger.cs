@@ -70,11 +70,12 @@ namespace DafnyLanguage
     }
   }
 
-  internal sealed class DafnyTokenTagger : ITagger<DafnyTokenTag>
+  internal sealed class DafnyTokenTagger : ITagger<DafnyTokenTag>, IDisposable
   {
     ITextBuffer _buffer;
     ITextSnapshot _snapshot;
     List<TokenRegion> _regions;
+    bool _disposed;
 
     internal DafnyTokenTagger(ITextBuffer buffer) {
       _buffer = buffer;
@@ -82,6 +83,19 @@ namespace DafnyLanguage
       _regions = Rescan(_snapshot);
 
       _buffer.Changed += new EventHandler<TextContentChangedEventArgs>(ReparseFile);
+    }
+
+    public void Dispose() {
+      lock (this) {
+        if (!_disposed) {
+          _buffer.Changed -= ReparseFile;
+          _buffer = null;
+          _snapshot = null;
+          _regions = null;
+          _disposed = true;
+        }
+      }
+      GC.SuppressFinalize(this);
     }
 
     public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
