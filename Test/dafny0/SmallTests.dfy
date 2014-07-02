@@ -204,7 +204,14 @@ class AllocatedTests {
     if (*) {
       assert !fresh(U);  // error: n was not allocated initially
     } else {
-      assert fresh(U);  // correct (note, the assertion does NOT say: everything was unallocated in the initial state)
+      assert fresh(U);  // error: k was not allocated initially
+    }
+
+    var Q := [k,n];
+    if (*) {
+      assert !fresh(Q);  // error: n was not allocated initially
+    } else {
+      assert fresh(Q);  // error: k was not allocated initially
     }
   }
 }

@@ -8561,15 +8561,16 @@ namespace Microsoft.Dafny {
             Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, body);
           } else if (e.E.Type is SeqType) {
-            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Seq#Index(X,$i),alloc])
+            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
             // TODO: trigger?
             Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
             Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
             Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
             Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
+            XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI);
             Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, XsubI));
-            Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI), predef.Null);
-            Bpl.Expr body = Bpl.Expr.And(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
+            Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
+            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
             return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body);
           } else if (e.E.Type.IsDatatype) {
             Bpl.Expr alloc = translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
