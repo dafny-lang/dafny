@@ -49,19 +49,35 @@ Execution trace:
 SmallTests.dfy(198,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Then
+    (0,0): anon9_Then
 SmallTests.dfy(205,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
+    (0,0): anon9_Else
     (0,0): anon3
-    (0,0): anon7_Then
+    (0,0): anon10_Then
 SmallTests.dfy(207,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Else
+    (0,0): anon9_Else
     (0,0): anon3
-    (0,0): anon7_Else
+    (0,0): anon10_Else
+SmallTests.dfy(212,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Then
+SmallTests.dfy(214,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon6
+    (0,0): anon11_Else
 SmallTests.dfy(260,24): Error BP5002: A precondition for this call might not hold.
 SmallTests.dfy(238,30): Related location: This is the precondition that might not hold.
 Execution trace:
@@ -180,6 +196,6 @@ SmallTests.dfy(672,9): Error: cannot establish the existence of LHS values that 
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 87 verified, 33 errors
+Dafny program verifier finished with 87 verified, 35 errors
 
 Dafny program verifier finished with 0 verified, 0 errors
