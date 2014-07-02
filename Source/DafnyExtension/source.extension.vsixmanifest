@@ -6,7 +6,7 @@
     <Description xml:space="preserve">This is a language mode for using the Dafny language inside Visual Studio.</Description>
   </Metadata>
   <Installation InstalledByMsi="false">
-    <InstallationTarget Version="[11.0,12.0)" Id="Microsoft.VisualStudio.Pro" />
+    <InstallationTarget Version="[11.0,13.0)" Id="Microsoft.VisualStudio.Pro" />
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="4.5" />
