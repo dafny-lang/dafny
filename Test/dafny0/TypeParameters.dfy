@@ -321,3 +321,35 @@ method IdentityMap(s: set<Pair>) returns (m: map)
     m, s := m[p.0 := p.1], s - {p};
   }
 }
+
+// -------------- auto filled-in type arguments for array types ------
+
+module ArrayTypeMagic {
+  method M(a: array2)
+  {
+  }
+
+  method F(b: array) returns (s: seq)
+    requires b != null;
+  {
+    return b[..];
+  }
+
+  datatype ArrayCubeTree = Leaf(array3) | Node(ArrayCubeTree, ArrayCubeTree)
+  datatype AnotherACT<T> = Leaf(array3) | Node(AnotherACT, AnotherACT)
+  datatype OneMoreACT<T,U> = Leaf(array3) | Node(OneMoreACT, OneMoreACT)
+
+  function G(t: ArrayCubeTree): array3
+  {
+    match t
+    case Leaf(d) => d
+    case Node(l, _) => G(l)
+  }
+
+  datatype Nat = Zero | Succ(Nat)
+
+  datatype List<T> = Nil | Cons(T, List)
+
+  datatype Cell<T> = Mk(T)
+  datatype DList<T,U> = Nil(Cell) | Cons(T, U, DList)
+}

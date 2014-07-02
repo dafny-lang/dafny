@@ -1472,7 +1472,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void ReferenceType(out IToken/*!*/ tok, out Type/*!*/ ty) {
 		Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
 		tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-		List<Type/*!*/>/*!*/ gt;
+		List<Type> gt;
 		List<IToken> path;
 		
 		if (la.kind == 60) {
@@ -1480,20 +1480,16 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			tok = t;  ty = new ObjectType(); 
 		} else if (la.kind == 5) {
 			Get();
-			tok = t;  gt = new List<Type/*!*/>(); 
-			GenericInstantiation(gt);
-			if (gt.Count != 1) {
-			 SemErr("array type expects exactly one type argument");
+			tok = t;  gt = new List<Type>(); 
+			if (la.kind == 38) {
+				GenericInstantiation(gt);
 			}
-			int dims = 1;
-			if (tok.val.Length != 5) {
-			 dims = int.Parse(tok.val.Substring(5));
-			}
-			ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
+			int dims = tok.val.Length == 5 ? 1 : int.Parse(tok.val.Substring(5));
+			ty = theBuiltIns.ArrayType(tok, dims, gt, true);
 			
 		} else if (la.kind == 1) {
 			Ident(out tok);
-			gt = new List<Type/*!*/>();
+			gt = new List<Type>();
 			path = new List<IToken>(); 
 			while (la.kind == 61) {
 				path.Add(tok); 
@@ -2262,7 +2258,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 					ee = new List<Expression>(); 
 					Expressions(ee);
 					Expect(75);
-					UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
+					var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
 					
 				} else {
 					x = null; args = new List<Expression/*!*/>(); 
@@ -3192,7 +3188,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (multipleIndices != null) {
 			 e = new MultiSelectExpr(x, e, multipleIndices);
 			 // make sure an array class with this dimensionality exists
-			 UserDefinedType tmp = theBuiltIns.ArrayType(x, multipleIndices.Count, new IntType(), true);
+			 var tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
 			} else {
 			 if (!anyDots && e0 == null) {
 			   /* a parsing error occurred */

@@ -3252,8 +3252,9 @@ namespace Microsoft.Dafny
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
       Contract.Requires(dtTypeArguments != null);
+      var option = dtTypeArguments.Count == 0 ? ResolveTypeOption.AllowPrefixExtend : ResolveTypeOption.AllowPrefix;
       foreach (Formal p in ctor.Formals) {
-        ResolveType(p.tok, p.Type, ResolveTypeOption.AllowExact, dtTypeArguments);
+        ResolveType(p.tok, p.Type, option, dtTypeArguments);
       }
     }
 
@@ -3515,10 +3516,6 @@ namespace Microsoft.Dafny
       /// </summary>
       InferTypeProxies,
       /// <summary>
-      /// if exactly defaultTypeArguments.Count type arguments are needed, use defaultTypeArguments
-      /// </summary>
-      AllowExact,
-      /// <summary>
       /// if at most defaultTypeArguments.Count type arguments are needed, use a prefix of defaultTypeArguments
       /// </summary>
       AllowPrefix,
@@ -3635,7 +3632,7 @@ namespace Microsoft.Dafny
           } else {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
-        } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
+        } else {
           TopLevelDecl d = null;
 
           int j;
@@ -3715,8 +3712,6 @@ namespace Microsoft.Dafny
         for (int i = 0; i < n; i++) {
           typeArgs.Add(new InferredTypeProxy());
         }
-      } else if (option == ResolveTypeOption.AllowExact && defaultTypeArguments.Count != n) {
-        // the number of default arguments is not exactly what we need, so don't add anything
       } else if (option == ResolveTypeOption.AllowPrefix && defaultTypeArguments.Count < n) {
         // there aren't enough default arguments, so don't do anything
       } else {
@@ -7030,7 +7025,7 @@ namespace Microsoft.Dafny
         // ----- root is a local variable, parameter, or bound variable
         r = new IdentifierExpr(id, id.val);
         ResolveExpression(r, twoState, codeContext);
-        r = ResolveSuffix(r, e, 1, twoState, codeContext,  allowMethodCall, out call);
+        r = ResolveSuffix(r, e, 1, twoState, codeContext, allowMethodCall, out call);
 
       } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {

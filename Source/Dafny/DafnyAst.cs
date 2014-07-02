@@ -99,7 +99,7 @@ namespace Microsoft.Dafny {
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
-      UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
+      UserDefinedType tmp = ArrayType(1, Type.Int, true);
       // add real number functions
       Function RealToInt = new Function(Token.NoToken, "RealToInt", true, true, new List<TypeParameter>(), Token.NoToken,
         new List<Formal> { new Formal(Token.NoToken, "x", Type.Real, true, true) }, Type.Int, new List<Expression>(),
@@ -125,17 +125,17 @@ namespace Microsoft.Dafny {
       return new Attributes("compile", new List<Attributes.Argument>() { flse }, null);
     }
 
-    public UserDefinedType ArrayType(int dims, Type arg) {
-      return ArrayType(Token.NoToken, dims, arg, false);
-    }
-    public UserDefinedType ArrayType(IToken tok, int dims, Type arg, bool allowCreationOfNewClass) {
-      Contract.Requires(tok != null);
+    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass = false) {
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
+      return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
+    }
+    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> typeArgs, bool allowCreationOfNewClass) {
+      Contract.Requires(tok != null);
+      Contract.Requires(1 <= dims);
+      Contract.Requires(typeArgs != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      List<Type> typeArgs = new List<Type>();
-      typeArgs.Add(arg);
       UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs, null);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());

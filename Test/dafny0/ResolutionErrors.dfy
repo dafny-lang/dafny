@@ -943,3 +943,25 @@ method TupleResolution(x: int, y: int, r: real)
   var pp: (int) := x;
   var qq: int := pp;
 }
+
+// --- filling in type arguments and checking that there aren't too many ---
+
+module TypeArgumentCount {
+  class C<T> {
+    var f: T;
+  }
+
+  method R0(a: array3, c: C)
+
+  method R1()
+  {
+    var a: array3;
+    var c: C;
+  }
+
+  method R2<T>()
+  {
+    var a: array3<T,int>;  // error: too many type arguments
+    var c: C<T,int>;  // error: too many type arguments
+  }
+}

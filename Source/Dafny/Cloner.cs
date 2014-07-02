@@ -64,18 +64,13 @@ namespace Microsoft.Dafny
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
       } else if (d is ClassDecl) {
+        var dd = (ClassDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new DefaultClassDecl(m, mm);
-          return cl;
+          return new DefaultClassDecl(m, mm);
         } else {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
-          return cl;
+          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
