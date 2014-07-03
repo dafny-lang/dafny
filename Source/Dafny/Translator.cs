@@ -1854,7 +1854,7 @@ namespace Microsoft.Dafny {
           bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
         }
         var etranBody = layer == null ? etran : etran.LimitedFunctions(f, new Bpl.IdentifierExpr(f.tok, layer));
-        meat = BplAnd(CanCallAssumption(bodyWithSubst, etran),
+        meat = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
           Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst)));
       }
       QKeyValue kv = null;
