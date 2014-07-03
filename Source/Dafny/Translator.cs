@@ -398,13 +398,13 @@ namespace Microsoft.Dafny {
           var impl = decl as Implementation;
           if (impl != null && impl.FindStringAttribute("checksum") == null)
           {
-            impl.AddAttribute("checksum", "dummy");
+            impl.AddAttribute("checksum", "stable");
           }
 
           var func = decl as Bpl.Function;
           if (func != null && func.FindStringAttribute("checksum") == null)
           {
-            func.AddAttribute("checksum", "dummy");
+            func.AddAttribute("checksum", "stable");
           }
         }
       }

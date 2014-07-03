@@ -1,7 +1,7 @@
 method foo()
 {
   bar();
-  assert false;
+  assert false;  // error
 }
 
 method bar()
