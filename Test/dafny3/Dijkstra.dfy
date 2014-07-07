@@ -65,7 +65,7 @@ ghost method lemma_pong(n: nat)
   <==  { lemma_monotonicity_0(n + 1, f(n)); }
     f(f(n)) < f(n + 1);
   ==  // P with m := n
-    true;        
+    true;
   }
 }
 

@@ -4,7 +4,7 @@
 datatype List<X> = Nil | Cons(Node<X>, List<X>);
 datatype Node<X> = Element(X) | Nary(List<X>);
 
-function FlattenMain<X>(list: List<X>): List<X>
+function FlattenMain<M>(list: List<M>): List<M>
   ensures IsFlat(FlattenMain(list));
 {
   Flatten(list, Nil)
@@ -22,7 +22,7 @@ function Flatten<X>(list: List<X>, ext: List<X>): List<X>
     case Nary(nn) => Flatten(nn, Flatten(rest, ext))
 }
 
-function IsFlat<X>(list: List<X>): bool
+function IsFlat<F>(list: List<F>): bool
 {
   match list
   case Nil => true

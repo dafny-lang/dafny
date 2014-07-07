@@ -26,7 +26,7 @@ function toList(d: int, t: Tree): seq<int>
   ensures (toList(d, t)[0] == d) == (t == Leaf);
   decreases t;
 {
-  match t 
+  match t
   case Leaf => [d]
   case Node(l, r) => toList(d+1, l) + toList(d+1, r)
 }
@@ -42,11 +42,11 @@ function toList(d: int, t: Tree): seq<int>
 // sequence that has been consumed.
 function method build_rec(d: int, s: seq<int>): Result
   ensures build_rec(d, s).Res? ==>
-            |build_rec(d, s).sOut| < |s| && 
+            |build_rec(d, s).sOut| < |s| &&
             build_rec(d, s).sOut == s[|s|-|build_rec(d, s).sOut|..];
-  ensures build_rec(d, s).Res? ==> 
+  ensures build_rec(d, s).Res? ==>
             toList(d,build_rec(d, s).t) == s[..|s|-|build_rec(d, s).sOut|];
-  decreases |s|, (if s==[] then 0 else s[0]-d);    
+  decreases |s|, (if s==[] then 0 else s[0]-d);
 {
   if s==[] || s[0] < d then
     Fail
@@ -85,7 +85,7 @@ function method build(s: seq<int>): Result
 // ensures that the induction hypothesis is applied
 // correctly (encoded by calls to this ghost method).
 ghost method lemma0(t: Tree, d: int, s: seq<int>)
-  ensures build_rec(d, toList(d, t) + s).Res? && 
+  ensures build_rec(d, toList(d, t) + s).Res? &&
           build_rec(d, toList(d, t) + s).sOut == s;
 {
   match(t) {
@@ -121,12 +121,12 @@ ghost method lemma2(s: seq<int>)
 {
   forall t | toList(0,t) == s {
     lemma1(t, s);
-  } 
+  }
 }
 
 
 // This ghost method encodes the completeness theorem.
-// For each sequence for which there is a corresponding 
+// For each sequence for which there is a corresponding
 // tree, function build yields a result different from Fail.
 // The body of the method converts the argument of lemma2
 // into a universally quantified variable.
@@ -170,6 +170,8 @@ method harness0()
 method harness1()
   ensures build([1,3,2,2]).Fail?;
 {
-  assert build_rec(3, [2,2]).Fail?;
-  assert build_rec(1, [3,2,2]).Fail?;
+  assert build_rec(1,[1,3,2,2]) == Res(Leaf, [3,2,2]);
+  assert build_rec(3,[2,2]).Fail?;
+  assert build_rec(2,[3,2,2]).Fail?;
+  assert build_rec(1,[3,2,2]).Fail?;
 }

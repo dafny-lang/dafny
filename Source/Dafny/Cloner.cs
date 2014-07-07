@@ -310,10 +310,16 @@ namespace Microsoft.Dafny
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is ForallExpr) {
-          return new ForallExpr(tk, bvs, range, term, CloneAttributes(e.Attributes));
-        } else if (e is ExistsExpr) {
-          return new ExistsExpr(tk, bvs, range, term, CloneAttributes(e.Attributes));
+        if (e is QuantifierExpr) {
+          var q = (QuantifierExpr)e;
+          var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
+          if (e is ForallExpr) {
+            return new ForallExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+          } else if (e is ExistsExpr) {
+            return new ExistsExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
+          }
         } else if (e is MapComprehension) {
           return new MapComprehension(tk, bvs, range, term);
         } else {

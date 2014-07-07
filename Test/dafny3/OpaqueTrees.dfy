@@ -10,7 +10,7 @@ function {:opaque} size(t: Tree): nat
   case Node(left, right) => 1 + size(left) + size(right)
 }
 
-function {:opaque} mirror(t: Tree): Tree
+function {:opaque} mirror<T>(t: Tree<T>): Tree<T>
 {
   match t
   case Leaf(_) => t

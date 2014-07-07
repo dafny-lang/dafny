@@ -3,16 +3,16 @@
 
 // Celebrity example, inspired by the Rodin tutorial
 
-static function method Knows<Person>(a: Person, b: Person): bool
+static function method Knows<X>(a: X, b: X): bool
   requires a != b;  // forbid asking about the reflexive case
 
-static function IsCelebrity<Person>(c: Person, people: set<Person>): bool
+static function IsCelebrity<Y>(c: Y, people: set<Y>): bool
 {
   c in people &&
   (forall p :: p in people && p != c ==> Knows(p, c) && !Knows(c, p))
 }
 
-method FindCelebrity0<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
+method FindCelebrity0<Z>(people: set<Z>, ghost c: Z) returns (r: Z)
   requires exists c :: IsCelebrity(c, people);
   ensures r == c;
 {
@@ -20,7 +20,7 @@ method FindCelebrity0<Person>(people: set<Person>, ghost c: Person) returns (r: 
   r := cc;
 }
 
-method FindCelebrity1<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
+method FindCelebrity1<W>(people: set<W>, ghost c: W) returns (r: W)
   requires IsCelebrity(c, people);
   ensures r == c;
 {
@@ -43,7 +43,7 @@ method FindCelebrity1<Person>(people: set<Person>, ghost c: Person) returns (r: 
   r := x;
 }
 
-method FindCelebrity2<Person>(people: set<Person>, ghost c: Person) returns (r: Person)
+method FindCelebrity2<V>(people: set<V>, ghost c: V) returns (r: V)
   requires IsCelebrity(c, people);
   ensures r == c;
 {

@@ -41,13 +41,13 @@ function qreverse(l: List): List
 
 // Here are two lemmas about the List functions.
 
-ghost method Lemma_ConcatNil()
-  ensures forall xs :: concat(xs, Nil) == xs;
+ghost method Lemma_ConcatNil(xs : List)
+  ensures concat(xs, Nil) == xs;
 {
 }
 
-ghost method Lemma_RevCatCommute()
-  ensures forall xs, ys, zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs);
+ghost method Lemma_RevCatCommute(xs : List)
+  ensures forall ys, zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs);
 {
 }
 
@@ -64,7 +64,7 @@ ghost method Theorem_QReverseIsCorrect_Calc(l: List)
     revacc(l, Nil);
     { Lemma_Revacc_calc(l, Nil); }
     concat(reverse(l), Nil);
-    { Lemma_ConcatNil(); }
+    { Lemma_ConcatNil(reverse(l)); }
     reverse(l);
   }
 }
@@ -81,7 +81,7 @@ ghost method Lemma_Revacc_calc(xs: List, ys: List)
         concat(concat(reverse(xrest), Cons(x, Nil)), ys);
         // induction hypothesis: Lemma_Revacc_calc(xrest, Cons(x, Nil))
         concat(revacc(xrest, Cons(x, Nil)), ys);
-        { Lemma_RevCatCommute(); } // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
+        { Lemma_RevCatCommute(xrest); } // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
         revacc(xrest, concat(Cons(x, Nil), ys));
         // def. concat (x2)
         revacc(xrest, Cons(x, ys));
@@ -102,7 +102,7 @@ ghost method Theorem_QReverseIsCorrect(l: List)
   Lemma_Revacc(l, Nil);
   assert revacc(l, Nil)
       == concat(reverse(l), Nil);
-  Lemma_ConcatNil();
+  Lemma_ConcatNil(reverse(l));
 }
 
 ghost method Lemma_Revacc(xs: List, ys: List)
@@ -120,7 +120,7 @@ ghost method Lemma_Revacc(xs: List, ys: List)
               concat(concat(reverse(xrest), Cons(x, Nil)), ys)
           == // induction hypothesis:  Lemma_Revacc(xrest, Cons(x, Nil))
               concat(revacc(xrest, Cons(x, Nil)), ys);
-          Lemma_RevCatCommute();  // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
+          Lemma_RevCatCommute(xrest);  // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
       assert concat(revacc(xrest, Cons(x, Nil)), ys)
           == revacc(xrest, concat(Cons(x, Nil), ys));
 
@@ -181,7 +181,7 @@ ghost method Lemma_Reverse_Length(xs: List)
         calc {
           length(Cons(x, Nil));
           // def. length
-          1 + length(Nil);
+          // 1 + length(Nil);  // ambigious type parameter
           // def. length
           1 + 0;
           1;
@@ -231,7 +231,7 @@ ghost method lemma_extensionality(xs: List, ys: List)
   ensures xs == ys;
 {
   match xs {
-    case Nil => 
+    case Nil =>
       calc {
         true;
         // (0)
@@ -255,7 +255,7 @@ ghost method lemma_extensionality(xs: List, ys: List)
               y;
             }
             Cons(y, xrest);
-            { 
+            {
               forall (j: nat | j < length(xrest)) {
                 calc {
                   ith(xrest, j);
@@ -265,7 +265,7 @@ ghost method lemma_extensionality(xs: List, ys: List)
                   ith(yrest, j);
                 }
               }
-              lemma_extensionality(xrest, yrest); 
+              lemma_extensionality(xrest, yrest);
             }
             Cons(y, yrest);
             ys;

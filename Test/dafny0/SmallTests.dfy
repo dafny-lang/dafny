@@ -507,7 +507,7 @@ static method TestAttributesVarDecls()
 {
   var {:foo} foo;
   var {:bar} bar := 0;
-  var {:foo} {:bar} foobar := {};
+  var {:foo} {:bar} foobar : set<int> := {};
   var {:baz} baz, {:foobaz} foobaz := true, false;
 }
 

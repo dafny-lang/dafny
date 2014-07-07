@@ -257,7 +257,11 @@ namespace Microsoft.Dafny
               var valid = new FunctionCallExpr(tok, "Valid", implicitSelf, tok, new List<Expression>());
               valid.Function = Valid;
               valid.Type = Type.Bool;
+							// Add the identity substitution to this call
               valid.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+              foreach (var p in cl.TypeArgs) {
+                valid.TypeArgumentSubstitutions.Add(p, new UserDefinedType(p)); 
+              }
               m.Ens.Insert(0, new MaybeFreeExpression(valid));
               // ensures fresh(Repr - old(Repr));
               var e0 = new OldExpr(tok, Repr);
@@ -368,7 +372,7 @@ namespace Microsoft.Dafny
   /// <summary>
   /// For any function foo() with the :opaque attribute,
   /// hide the body, so that it can only be seen within its
-  /// recursive clique (if any), or if the prgrammer
+  /// recursive clique (if any), or if the programmer
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
@@ -407,6 +411,7 @@ namespace Microsoft.Dafny
           var lem = (Lemma)decl;
           if (revealOriginal.ContainsKey(lem)) {
             fixupRevealLemma(lem, revealOriginal[lem]);
+            fixupTypeArguments(lem, revealOriginal[lem]);
           }
         }
       }
@@ -478,19 +483,27 @@ namespace Microsoft.Dafny
               reqExpr = new BinaryExpr(f.tok, BinaryExpr.Opcode.And, reqExpr, newReq);
             }
 
+            List<TypeParameter> typeVars = new List<TypeParameter>();
+            foreach (TypeParameter tp in f.TypeArgs) {
+              typeVars.Add(cloner.CloneTypeParam(tp));
+            }
+
             List<BoundVar> boundVars = new List<BoundVar>();
             foreach (Formal formal in f.Formals) {
               boundVars.Add(new BoundVar(f.tok, formal.Name, cloner.CloneType(formal.Type)));
             }
 
             // Build the implication connecting the function's requires to the connection with the revealed-body version
-            Func<Function, IdentifierSequence> func_builder = func => new IdentifierSequence(new List<Bpl.IToken>() { func.tok }, func.tok, func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name))); 
+            Func<Function, Expression> func_builder = func =>
+              new IdentifierSequence(
+                new List<Bpl.IToken>() { func.tok }, 
+                func.tok, 
+                func.Formals.ConvertAll(x => (Expression)new IdentifierExpr(func.tok, x.Name))); 
             var oldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, func_builder(f), func_builder(fWithBody));
             var requiresImpliesOldEqualsNew = new BinaryExpr(f.tok, BinaryExpr.Opcode.Imp, reqExpr, oldEqualsNew);            
 
             MaybeFreeExpression newEnsures;
-            if (f.Formals.Count > 0)
-            {
+            if (f.Formals.Count > 0) {
               // Build an explicit trigger for the forall, so Z3 doesn't get confused
               Expression trigger = func_builder(f);
               List<Attributes.Argument/*!*/> args = new List<Attributes.Argument/*!*/>();
@@ -499,10 +512,11 @@ namespace Microsoft.Dafny
               args.Add(anArg);
               Attributes attrs = new Attributes("trigger", args, null);
 
-              newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, boundVars, null, requiresImpliesOldEqualsNew, attrs));
-            }
-            else
-            {
+              // Also specify that this is a type quantifier
+              attrs = new Attributes("typeQuantifier", new List<Attributes.Argument>(), attrs);
+
+              newEnsures = new MaybeFreeExpression(new ForallExpr(f.tok, typeVars, boundVars, null, requiresImpliesOldEqualsNew, attrs));
+            } else {
               // No need for a forall
               newEnsures = new MaybeFreeExpression(oldEqualsNew);
             }
@@ -510,10 +524,10 @@ namespace Microsoft.Dafny
             newEnsuresList.Add(newEnsures);
 
             // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
-            List<Attributes.Argument/*!*/> argList = new List<Attributes.Argument/*!*/>();
+            List<Attributes.Argument> argList = new List<Attributes.Argument>();
             Attributes lemma_attrs = new Attributes("axiom", argList, null);
 
-            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, f.TypeArgs.ConvertAll(cloner.CloneTypeParam), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
+            var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.IsStatic, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<MaybeFreeExpression>(),
                                     new Specification<FrameExpression>(new List<FrameExpression>(), null), newEnsuresList,
                                     new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
             newDecls.Add(reveal);
@@ -551,6 +565,27 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected void fixupTypeArguments(Lemma lem, Function fn) {
+      var origForall = lem.Ens[0].E as ForallExpr;
+      if (origForall != null) {
+        Contract.Assert(origForall.TypeArgs.Count == fn.TypeArgs.Count);
+        fixupTypeArguments(lem.Ens[0].E, origForall.TypeArgs);
+      }
+    }
+
+    protected void fixupTypeArguments(Expression expr, List<TypeParameter> qparams) {
+      FunctionCallExpr e;
+      if ((e = expr as FunctionCallExpr) != null) {
+        e.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+        for (int i = 0; i < e.Function.TypeArgs.Count; i++) {
+          e.TypeArgumentSubstitutions[e.Function.TypeArgs[i]] = new UserDefinedType(qparams[i]);
+        }
+      }
+      foreach (var ee in expr.SubExpressions) {
+        fixupTypeArguments(ee, qparams);
+      }
+    }
+
     protected void fixupRevealLemma(Lemma lem, Function fn) {
       if (fn.Req.Count == 0) {
         return;
@@ -571,7 +606,7 @@ namespace Microsoft.Dafny
 
       var newImpl = Expression.CreateImplies(reqs, origImpl.E1);
       //var newForall = Expression.CreateQuantifier(origForall, true, newImpl);
-      var newForall = new ForallExpr(origForall.tok, origForall.BoundVars, origForall.Range, newImpl, origForall.Attributes);
+      var newForall = new ForallExpr(origForall.tok, origForall.TypeArgs, origForall.BoundVars, origForall.Range, newImpl, origForall.Attributes);
       newForall.Type = Type.Bool;
 
       lem.Ens[0] = new MaybeFreeExpression(newForall);
@@ -877,7 +912,7 @@ namespace Microsoft.Dafny
         //reqs.AddRange(generateAutoReqs(e.Range));
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }      
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -886,7 +921,7 @@ namespace Microsoft.Dafny
         //reqs.AddRange(generateAutoReqs(e.Range));        
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

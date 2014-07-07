@@ -275,6 +275,10 @@ namespace Microsoft.Dafny {
     public static readonly BoolType Bool = new BoolType();
     public static readonly IntType Int = new IntType();
     public static readonly RealType Real = new RealType();
+
+    // Type arguments to the type
+    public List<Type> TypeArgs = new List<Type> { };
+
     /// <summary>
     /// Used in error situations in order to reduce further error messages.
     /// </summary>
@@ -497,14 +501,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(arg != null);
       Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
       this.arg = arg;
+      this.TypeArgs = new List<Type> { arg };
     }
     [ContractInvariantMethod]
     void ObjectInvariant() {
+      // Contract.Invariant(Contract.ForAll(TypeArgs, tp => tp != null));
       // After resolution, the following is invariant:  Contract.Invariant(Arg != null);
       // However, it may not be true until then.
     }
     public CollectionType(Type arg) {
       this.arg = arg;
+      this.TypeArgs = new List<Type> { arg };
     }
     public override bool SupportsEquality {
       get {
@@ -546,7 +553,13 @@ namespace Microsoft.Dafny {
   }
   public class MapType : CollectionType
   {
-    public Type Range { get { return range; } }
+    public Type Range { 
+      get { return range; } 
+      set { 
+        range = Range;
+        TypeArgs = new List<Type> { Arg, range };
+      }
+    }
     private Type range;
     public void SetRangetype(Type range) {
       Contract.Requires(range != null);
@@ -556,9 +569,13 @@ namespace Microsoft.Dafny {
     public MapType(Type domain, Type range) : base(domain) {
       Contract.Requires((domain == null && range == null) || (domain != null && range != null));
       this.range = range;
+      this.TypeArgs = new List<Type> {domain,range};
     }
     public Type Domain {
       get { return Arg; }
+      set { 
+        TypeArgs = new List<Type> { Domain, range };
+      }
     }
     public override string CollectionTypeName { get { return "map"; } }
     [Pure]
@@ -587,7 +604,6 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;  // token of the Name
     public readonly string Name;
     [Rep]
-    public readonly List<Type> TypeArgs;
 
     public string FullName {
       get {
@@ -678,6 +694,12 @@ namespace Microsoft.Dafny {
       this.Path = new List<IToken>();
     }
 
+    public UserDefinedType(TypeParameter tp) 
+      : this(tp.tok, tp.Name, tp)
+    {
+      Contract.Requires(tp != null);
+    }
+
     public override bool Equals(Type that) {
       var t = that.Normalize() as UserDefinedType;
       return t != null && ResolvedClass == t.ResolvedClass && ResolvedParam == t.ResolvedParam;
@@ -714,20 +736,24 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      string s = "";
-      foreach (var t in Path) {
-        if (context != null && t == context.tok) {
-          // drop the prefix up to here
-          s = "";
-        } else {
-          s += t.val + ".";
+      if (ResolvedParam != null) {
+        return ResolvedParam.FullName();
+      } else {
+        string s = "";
+        foreach (var t in Path) {
+          if (context != null && t == context.tok) {
+            // drop the prefix up to here
+            s = "";
+          } else {
+            s += t.val + ".";
+          }
         }
+        s += Name;
+        if (TypeArgs.Count != 0) {
+          s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
+        }
+        return s;
       }
-      s += Name;
-      if (TypeArgs.Count != 0) {
-        s += "<" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ">";
-      }
-      return s;
     }
 
     public override bool SupportsEquality {
@@ -979,6 +1005,9 @@ namespace Microsoft.Dafny {
 
   public class TypeParameter : Declaration {
     public interface ParentType {
+      string FullName {
+        get;
+      }
     }
     [Peer]
     ParentType parent;
@@ -993,7 +1022,7 @@ namespace Microsoft.Dafny {
         // BUGBUG:  The following line is a workaround to tell the verifier that 'value' is not of an Immutable type.
         // A proper solution would be to be able to express that in the program (in a specification or attribute) or
         // to be able to declare 'parent' as [PeerOrImmutable].
-        Contract.Requires(value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor);
+        Contract.Requires(value is TopLevelDecl || value is Function || value is Method || value is DatatypeCtor || value is QuantifierExpr);
         //modifies parent;
         parent = value;
       }
@@ -1019,6 +1048,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       EqualitySupport = equalitySupport;
+    }
+
+    public TypeParameter(IToken tok, string name, int positionalIndex, ParentType parent) 
+       : this(tok, name)
+    {
+      PositionalIndex = positionalIndex;
+      Parent = parent;
+    }
+
+    public string FullName() {
+      // when debugging, print it all:
+      return /* Parent.FullName + "." + */ Name;
     }
   }
 
@@ -1455,9 +1496,9 @@ namespace Microsoft.Dafny {
     }
 
     public string FullName {
-      get {
-        Contract.Requires(EnclosingDatatype != null);
+      get {        
         Contract.Ensures(Contract.Result<string>() != null);
+        Contract.Assume(EnclosingDatatype != null);
 
         return "#" + EnclosingDatatype.FullName + "." + Name;
       }
@@ -2224,7 +2265,16 @@ namespace Microsoft.Dafny {
       args.AddRange(fexp.Args);
       var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
       prefixPredCall.Function = this.PrefixPredicate;  // resolve here
-      prefixPredCall.TypeArgumentSubstitutions = fexp.TypeArgumentSubstitutions;  // resolve here
+
+      prefixPredCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+      var old_to_new = new Dictionary<TypeParameter, TypeParameter>();
+      for (int i = 0; i < this.TypeArgs.Count; i++) {
+	 old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
+      }
+      foreach (var p in fexp.TypeArgumentSubstitutions) {
+        prefixPredCall.TypeArgumentSubstitutions[old_to_new[p.Key]] = p.Value;
+      }  // resolved here.
+
       prefixPredCall.Type = fexp.Type;  // resolve here
       prefixPredCall.CoCall = fexp.CoCall;  // resolve here
       return prefixPredCall;
@@ -3190,13 +3240,18 @@ namespace Microsoft.Dafny {
       Contract.Invariant(MethodName != null);
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
+      Contract.Invariant(TypeArgumentSubstitutions == null || 
+        Contract.ForAll(Method.TypeArgs, tp => TypeArgumentSubstitutions.ContainsKey(tp)));
     }
 
     public readonly List<Expression> Lhs;
     public Expression Receiver;  // non-null after resolution
     public readonly string MethodName;
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // create, initialized, and used by resolution (could be deleted once all of resolution is done)
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  
+	// create, initialized, and used by resolution 
+        // (could be deleted once all of resolution is done)
+	// That's not going to work! It should never be deleted!
     public Method Method;  // filled in by resolution
 
     public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, Expression receiver, string methodName, List<Expression> args)
@@ -3629,8 +3684,10 @@ namespace Microsoft.Dafny {
       /// </summary>
       [Pure]
       public static bool ValidOp(BinaryExpr.Opcode op) {
-        return op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
-          || op == BinaryExpr.Opcode.Neq
+        return
+             op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq
+          || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le 
+          || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge                    
           || LogicOp(op);
       }
 
@@ -4361,9 +4418,9 @@ namespace Microsoft.Dafny {
       
       QuantifierExpr q;
       if (forall) {
-        q = new ForallExpr(expr.tok, newVars, expr.Range, body, expr.Attributes);
+        q = new ForallExpr(expr.tok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
       } else {
-        q = new ExistsExpr(expr.tok, newVars, expr.Range, body, expr.Attributes);
+        q = new ExistsExpr(expr.tok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
       } 
       q.Type = Type.Bool;
 
@@ -4482,6 +4539,9 @@ namespace Microsoft.Dafny {
       Contract.Invariant(MemberName != null);
       Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
+      Contract.Invariant(
+	Ctor == null || 
+	InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
     }
 
     public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression> arguments)
@@ -4740,7 +4800,8 @@ namespace Microsoft.Dafny {
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  
+	// created, initialized, and used by resolution (and also used by translation)
     public enum CoCallResolution {
       No,
       Yes,
@@ -4757,6 +4818,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Name != null);
       Contract.Invariant(Receiver != null);
       Contract.Invariant(cce.NonNullElements(Args));
+      Contract.Invariant(
+        Function == null || TypeArgumentSubstitutions == null ||
+        Contract.ForAll(
+          Function.TypeArgs,
+        	  a => TypeArgumentSubstitutions.ContainsKey(a)) && 
+        Contract.ForAll(
+          TypeArgumentSubstitutions.Keys,
+        	  a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
     }
 
     public Function Function;  // filled in by resolution
@@ -5343,19 +5412,42 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class QuantifierExpr : ComprehensionExpr {
-    public QuantifierExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+  public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
+    public List<TypeParameter> TypeArgs;
+    public static int quantCount = 0;
+    private readonly int quantUnique;
+    private int typeRefreshCount = 0;
+    public string FullName {
+      get {
+        return "q$" + quantUnique;
+      }
+    }
+    public TypeParameter Refresh(TypeParameter p) {
+      TypeParameter cp = new TypeParameter(p.tok, typeRefreshCount++ + "#" + p.Name, p.EqualitySupport);
+      cp.Parent = this;
+      return cp;
+    }
+    public QuantifierExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : base(tok, bvars, range, term, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(term != null);
+      this.TypeArgs = tvars;
+      this.quantUnique = quantCount++;
+      this.typeRefreshCount = 0;
     }
     public abstract Expression LogicalBody();
   }
 
   public class ForallExpr : QuantifierExpr {
     public ForallExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, bvars, range, term, attrs) {
+      : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
+      Contract.Requires(cce.NonNullElements(bvars));
+      Contract.Requires(tok != null);
+      Contract.Requires(term != null);
+    }
+    public ForallExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, tvars, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
@@ -5373,7 +5465,13 @@ namespace Microsoft.Dafny {
 
   public class ExistsExpr : QuantifierExpr {
     public ExistsExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, bvars, range, term, attrs) {
+      : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
+      Contract.Requires(cce.NonNullElements(bvars));
+      Contract.Requires(tok != null);
+      Contract.Requires(term != null);
+    }
+    public ExistsExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, tvars, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);

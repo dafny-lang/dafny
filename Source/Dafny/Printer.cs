@@ -317,10 +317,15 @@ namespace Microsoft.Dafny {
       PrintAttributes(attrs);
 
       wr.Write(" {0}", name);
+      PrintTypeParams(typeArgs);
+    }
+
+    private void PrintTypeParams(List<TypeParameter> typeArgs) {
+      Contract.Requires(typeArgs != null);
       if (typeArgs.Count != 0) {
         wr.Write("<" +
                  Util.Comma(", ", typeArgs,
-                   tp => tp.Name + (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Required? "(==)": ""))
+                   tp => tp.Name + (tp.EqualitySupport == TypeParameter.EqualitySupportValue.Required ? "(==)" : ""))
                  + ">");
       }
     }
@@ -1129,10 +1134,17 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, bool isFollowedBySemicolon, int indent)
+    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, bool isFollowedBySemicolon, int indent, int resolv_count = 2)
     {
       Contract.Requires(-1 <= indent);
       Contract.Requires(expr != null);
+
+      /* When debugging:
+      if (resolv_count > 0 && expr.Resolved != null) {
+        PrintExpr(expr.Resolved, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, resolv_count - 1);
+        return;
+      }
+      */
 
       if (expr is StaticReceiverExpr) {
         StaticReceiverExpr e = (StaticReceiverExpr)expr;
@@ -1305,12 +1317,19 @@ namespace Microsoft.Dafny {
           wr.Write(".");
         }
         wr.Write(e.Name);
+        /* When debugging, this is nice to have:
+        if (e.TypeArgumentSubstitutions.Count > 0) {
+          wr.Write("[");
+          wr.Write(Util.Comma(",", e.TypeArgumentSubstitutions, kv => kv.Key.FullName() + "->" + kv.Value));
+          wr.Write("]");
+        }
+        */
         if (e.OpenParen == null && e.Args.Count == 0) {
         } else {
           PrintActualArguments(e.Args, e.Name);
         }
         if (parensNeeded) { wr.Write(")"); }
-
+ 
       } else if (expr is OldExpr) {
         wr.Write("old(");
         PrintExpression(((OldExpr)expr).E, false);
@@ -1510,7 +1529,9 @@ namespace Microsoft.Dafny {
         QuantifierExpr e = (QuantifierExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        wr.Write(e is ForallExpr ? "forall " : "exists ");
+        wr.Write(e is ForallExpr ? "forall" : "exists");
+        PrintTypeParams(e.TypeArgs); // new! 
+        wr.Write(" ");
         PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
         wr.Write(" :: ");
         if (0 <= indent) {

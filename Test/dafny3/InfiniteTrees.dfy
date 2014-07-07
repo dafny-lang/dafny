@@ -38,7 +38,7 @@ lemma Tail_Lemma2(s: Stream, n: nat)
 
 // Co-predicate IsNeverEndingStream(s) answers whether or not s ever contains Nil.
 
-copredicate IsNeverEndingStream(s: Stream)
+copredicate IsNeverEndingStream<S>(s: Stream<S>)
 {
   match s
   case Nil => false
@@ -247,7 +247,8 @@ lemma ValidPath_Lemma(p: Stream<int>)
     match p {
       case Nil =>
       case Cons(index, tail) =>  // proof by contradiction
-        Tail_Lemma1(Nil, 0, index);
+        var nil : Stream<Tree> := Nil;
+        Tail_Lemma1(nil, 0, index);
     }
   }
 }

@@ -174,7 +174,7 @@ module CallGraph {
 }
 
 module CrashRegression {
-  codatatype Stream<T> = Cons(T, Stream)
+  codatatype Stream = Cons(int, Stream)
 
   // The following functions (where A ends up being the representative in the
   // SCC and B, which is also in the same SCC, has no body) once crashed the
@@ -188,3 +188,19 @@ module CrashRegression {
 
   function S(): Stream
 }
+
+module AmbiguousTypeParameters {
+  codatatype Stream<T> = Cons(T, Stream)
+
+  function A(): Stream
+  {
+    B()
+  }
+
+  // Here, the type arguments to A and S cannot be resolved
+  function B(): Stream
+    ensures A() == S();
+
+  function S(): Stream
+}
+
