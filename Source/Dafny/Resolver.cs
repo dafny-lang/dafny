@@ -6204,7 +6204,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        ResolveType(e.tok, e.ToType, ResolveTypeOption.DontInfer, null);
+        ResolveType(e.tok, e.ToType, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         ResolveExpression(e.E, twoState, codeContext);
         if (e.ToType is IntType) {
           if (!(e.E.Type is RealType)) {
