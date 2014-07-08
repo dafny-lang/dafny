@@ -943,3 +943,21 @@ method TupleResolution(x: int, y: int, r: real)
   var pp: (int) := x;
   var qq: int := pp;
 }
+
+// ------------------- conversions -------------------
+
+method TypeConversions(m: nat, i: int, r: real) returns (n: nat, j: int, s: real)
+{
+  n := int(r);
+  j := int(r);
+  s := real(m);  // nat->real is allowed, just like int->real is
+  s := real(i);
+  s := real(i) / 2;  // error: division expects two reals
+  s := 15 % s;  // error: modulus is not defined for reals
+
+  s := (2.0 / 1.7) + (r / s) - (--r) * -12.3;
+
+  s := real(s);  // error: cannot convert real->real
+  j := int(j);  // error: cannot convert int->int
+  j := int(n);  // error: cannot convert nat->int
+}
