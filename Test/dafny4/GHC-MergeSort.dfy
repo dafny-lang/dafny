@@ -384,8 +384,8 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
 
 lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
   requires sorted(reverse(xs, ys));
-  requires forall y :: y in multiset_of(xs) ==> Below(y, a); // another precondition
-  requires forall y :: y in multiset_of(ys) ==> Below(a, y); // this is the precondition
+  requires forall y :: y in multiset_of(xs) ==> Below(y, a);
+  requires forall y :: y in multiset_of(ys) ==> Below(a, y);
   ensures sorted(reverse(xs, Cons(a, ys)));
 {
   match xs {
@@ -398,7 +398,7 @@ lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
         { sorted_replaceSuffix(xs', Cons(b, ys), Cons(a, ys)); }
         sorted(reverse(xs', Cons(a, ys)));
         { sorted_reverse(xs', Cons(b, ys));
-          sorted_insertInMiddle(xs', b, Cons(a, ys)); } // a precondition might not hold
+          sorted_insertInMiddle(xs', b, Cons(a, ys)); }
         sorted(reverse(xs', Cons(b, Cons(a, ys))));
       }
   }
@@ -416,25 +416,6 @@ lemma sorted_replaceSuffix(xs: List<G>, ys: List<G>, zs: List<G>)
         ensures Below(a, b);
       {
         sorted_reverse(xs', Cons(c, ys));
-      /*
-        assert a in multiset_of(xs);
-        if (b in multiset_of(Cons(c, ys))) {
-          sorted_reverse(xs', Cons(c, ys));
-        } else {
-          assert b !in multiset_of(Cons(c, ys));
-          assert multiset_of(Cons(c,ys)) == multiset{c} + multiset_of(ys);
-          var mc := multiset{c};
-          assert b !in mc;
-          assert b !in multiset{c};
-          assert b !in multiset_of(ys);
-          assert b !in multiset{c} && b !in multiset_of(ys);
-          assert b !in multiset{c} + multiset_of(ys);
-          assert b != c;
-          assert b in multiset_of(zs);
-          // use requires 409
-        }
- //       assume b != c;
- */
       }
       sorted_replaceSuffix(xs', Cons(c, ys), Cons(c, zs));
   }

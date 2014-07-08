@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 abstract module TotalOrder {
   type T // the type to be compared
   static predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b
@@ -137,7 +140,6 @@ module Client {
      // Call the sorting routine to sort the array
      IntSort.InsertionSort(a);
      // Check the answer
-//     assert IntSort.Sorted(a, 0, a.Length);
      assert IntSort.O.Leq(a[0], a[1]);  // lemma
      assert IntSort.O.Leq(a[1], a[2]);  // lemma
      assert IntSort.O.Leq(a[2], a[3]);  // lemma
