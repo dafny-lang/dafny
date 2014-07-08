@@ -76,8 +76,6 @@ class {:autocontracts} RingBuffer<T>
 
   method Dequeue() returns (x: T)
     requires Contents != [];
-    modifies Repr;
-    ensures Valid() && fresh(Repr - old(Repr));
     ensures x == old(Contents)[0] && Contents == old(Contents)[1..] && N == old(N);
   {
     x := data[start];  assert x == Contents[0];
