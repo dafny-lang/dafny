@@ -277,7 +277,7 @@ namespace DafnyLanguage
         ExecutionEngine.EliminateDeadVariables(program);
         ExecutionEngine.CollectModSets(program);
         ExecutionEngine.CoalesceBlocks(program);
-        ExecutionEngine.Inline(program);  
+        ExecutionEngine.Inline(program);
         return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), programId, er, requestId);
       }
       return oc;

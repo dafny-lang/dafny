@@ -795,21 +795,15 @@ TypeAndToken<out IToken/*!*/ tok, out Type/*!*/ ty>
 ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out tok) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
      tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-     List<Type/*!*/>/*!*/ gt;
+     List<Type> gt;
      List<IToken> path;
   .)
   ( "object"                        (. tok = t;  ty = new ObjectType(); .)
-  | arrayToken                      (. tok = t;  gt = new List<Type/*!*/>(); .)
-    GenericInstantiation<gt>        (. if (gt.Count != 1) {
-                                         SemErr("array type expects exactly one type argument");
-                                       }
-                                       int dims = 1;
-                                       if (tok.val.Length != 5) {
-                                         dims = int.Parse(tok.val.Substring(5));
-                                       }
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt[0], true);
+  | arrayToken                      (. tok = t;  gt = new List<Type>(); .)
+    [ GenericInstantiation<gt> ]    (. int dims = tok.val.Length == 5 ? 1 : int.Parse(tok.val.Substring(5));
+                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true);
                                     .)
-  | Ident<out tok>                  (. gt = new List<Type/*!*/>();
+  | Ident<out tok>                  (. gt = new List<Type>();
                                        path = new List<IToken>(); .)
     {                               (. path.Add(tok); .)
       "." Ident<out tok>
@@ -1135,7 +1129,7 @@ Rhs<out AssignmentRhs r, Expression receiverForInitCall>
     [ "["                              (. ee = new List<Expression>(); .)
       Expressions<ee>
       "]"                              (. // make sure an array class with this dimensionality exists
-                                          UserDefinedType tmp = theBuiltIns.ArrayType(x, ee.Count, new IntType(), true);
+                                          var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
                                        .)
     |                                  (. x = null; args = new List<Expression/*!*/>(); .)
       [ "." Ident<out x> ]
@@ -2193,7 +2187,7 @@ Suffix<ref Expression e>
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
-           UserDefinedType tmp = theBuiltIns.ArrayType(x, multipleIndices.Count, new IntType(), true);
+           var tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
          } else {
            if (!anyDots && e0 == null) {
              /* a parsing error occurred */

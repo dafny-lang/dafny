@@ -893,12 +893,28 @@ namespace Microsoft.Dafny
                 if (m is CoPredicate) {
                   var cop = (CoPredicate)m;
                   formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
+
+                  List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+
+	          /*
+                  Dictionary<TypeParameter, Type> su = new Dictionary<TypeParameter, Type>();
+                  for (int i = 0; i < tyvars.Count; i++) {
+                    su[cop.TypeArgs[i]] = new UserDefinedType(tyvars[i].tok, tyvars[i].Name, tyvars[i]);
+                  }
+                  var sub = new Translator.Substituter(null, new Dictionary<IVariable, Expression>(), su, null);
+		  // We would like to apply this substitution the new body... he-hum
+		  */
+
                   // create prefix predicate
                   cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.IsStatic,
-                    cop.TypeArgs.ConvertAll(cloner.CloneTypeParam), cop.OpenParen, k, formals,
-                    cop.Req.ConvertAll(cloner.CloneExpr), cop.Reads.ConvertAll(cloner.CloneFrameExpr), cop.Ens.ConvertAll(cloner.CloneExpr),
+                    tyvars, cop.OpenParen, k, formals,
+                    cop.Req.ConvertAll(cloner.CloneExpr),
+                    cop.Reads.ConvertAll(cloner.CloneFrameExpr),
+                    cop.Ens.ConvertAll(cloner.CloneExpr),
                     new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
-                    cop.Body, null, cop);
+                    cop.Body,
+                    null,
+                    cop);
                   extraMember = cop.PrefixPredicate;
                   // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
                   moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
@@ -1296,10 +1312,16 @@ namespace Microsoft.Dafny
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is ForallExpr) {
-          return new ForallExpr(tk, bvs, range, term, null);
-        } else if (e is ExistsExpr) {
-          return new ExistsExpr(tk, bvs, range, term, null);
+        if (e is QuantifierExpr) {
+          var q = (QuantifierExpr)e;
+          var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
+          if (e is ForallExpr) {
+            return new ForallExpr(tk, tvs, bvs, range, term, null);
+          } else if (e is ExistsExpr) {
+            return new ExistsExpr(tk, tvs, bvs, range, term, null);
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
+          }
         } else if (e is MapComprehension) {
           return new MapComprehension(tk, bvs, range, term);
         } else {
@@ -1907,6 +1929,13 @@ namespace Microsoft.Dafny
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+        } else if (stmt is CallStmt) {
+          var s = (CallStmt)stmt;
+          foreach (var p in s.TypeArgumentSubstitutions) {
+            if (p.Value.Normalize() is TypeProxy) {
+              Error(stmt.Tok, "type variable '{0}' in the method call to '{1}' could not determined", p.Key.Name, s.MethodName);
+            }
+          }
         }
       }
       protected override void VisitOneExpr(Expression expr) {
@@ -1919,24 +1948,53 @@ namespace Microsoft.Dafny
               }
             }
           }
-        }
-        if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
+        } else if (expr is FunctionCallExpr) {
+          var e = (FunctionCallExpr)expr;
+          foreach (var p in e.TypeArgumentSubstitutions) {
+            if (p.Value.Normalize() is TypeProxy) {
+              Error(e.tok, "type variable '{0}' in the function call to '{1}' could not determined{2}", p.Key.Name, e.Name,
+                (e.Name.Contains("reveal_") || e.Name.Contains("_FULL"))
+                ? ". If you are making an opaque function, make sure that the function can be called."
+                : ""
+              );
+            }
+          }
+        } else if (expr is LetExpr) {
+          var e = (LetExpr)expr;
+          foreach (var p in e.LHSs) {
+            foreach (var x in p.Vars) {
+              if (x.Type.Normalize() is TypeProxy) {
+                Error(e.tok, "the type of the bound variable '{0}' could not be determined", x.Name);
+              }
+            }
+          }
+        } else if (expr is DisplayExpression) {
+          CheckTypeIsDetermined(expr.tok, expr.Type, "collection constructor", true);
+        } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           var bin = expr as BinaryExpr;
           if (bin != null) {
             bin.ResolvedOp = ResolveOp(bin.Op, bin.E1.Type);
           }
         }
       }
-      bool CheckTypeIsDetermined(IToken tok, Type t, string what) {
+      bool CheckTypeIsDetermined(IToken tok, Type t, string what, bool aggressive = false) {
         Contract.Requires(tok != null);
         Contract.Requires(t != null);
         Contract.Requires(what != null);
         t = t.Normalize();
-        if (t is TypeProxy && !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy)) {
+        if (t is TypeProxy && (aggressive || !(t is InferredTypeProxy || t is ParamTypeProxy || t is ObjectTypeProxy))) {
           Error(tok, "the type of this {0} is underspecified, but it cannot be an arbitrary type.", what);
           return false;
+        } else if (aggressive && t is MapType) {
+          return CheckTypeIsDetermined(tok, ((MapType)t).Range, what, aggressive) &&
+                 CheckTypeIsDetermined(tok, ((MapType)t).Domain, what, aggressive);
+        } else if (aggressive && t is CollectionType) {
+          return CheckTypeIsDetermined(tok, ((CollectionType)t).Arg, what, aggressive);
+        } else if (aggressive && t is UserDefinedType) {
+          return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what, aggressive));
+        } else {
+          return true;
         }
-        return true;
       }
     }
     #endregion CheckTypeInference
@@ -2655,7 +2713,7 @@ namespace Microsoft.Dafny
       foreach (MemberDecl member in cl.Members) {
         member.EnclosingClass = cl;
         if (member is Field) {
-          ResolveType(member.tok, ((Field)member).Type, ResolveTypeOption.DontInfer, null);
+          ResolveType(member.tok, ((Field)member).Type, ResolveTypeOptionEnum.DontInfer, null);
 
         } else if (member is Function) {
           var f = (Function)member;
@@ -3020,7 +3078,6 @@ namespace Microsoft.Dafny
       // push non-duplicated type parameter names
       int index = 0;
       foreach (TypeParameter tp in tparams) {
-        Contract.Assert(tp != null);
         if (emitErrors) {
           // we're seeing this TypeParameter for the first time
           tp.Parent = parent;
@@ -3041,10 +3098,10 @@ namespace Microsoft.Dafny
       if (f.SignatureIsOmitted) {
         Error(f, "function signature can be omitted only in refining functions");
       }
-      var option = f.TypeArgs.Count == 0 ? ResolveTypeOption.AllowPrefixExtend : ResolveTypeOption.AllowPrefix;
+      var option = f.TypeArgs.Count == 0 ? new ResolveTypeOption(f) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in f.Formals) {
         if (!scope.Push(p.Name, p)) {
-          Error(p, "Duplicate parameter name: {0}", p.Name);
+          Error(p, "Duplicate earameter name: {0}", p.Name);
         }
         ResolveType(p.tok, p.Type, option, f.TypeArgs);
       }
@@ -3111,7 +3168,7 @@ namespace Microsoft.Dafny
       if (t is CollectionType) {
         t = ((CollectionType)t).Arg;
       }
-      if (!UnifyTypes(t, new ObjectTypeProxy())) {
+      if (!UnifyTypes(t, new ObjectType())) {
         Error(fe.E, "a {0}-clause expression must denote an object or a collection of objects (instead got {1})", kind, fe.E.Type);
       } else if (fe.FieldName != null) {
         NonProxyType nptype;
@@ -3139,7 +3196,7 @@ namespace Microsoft.Dafny
       if (m.SignatureIsOmitted) {
         Error(m, "method signature can be omitted only in refining methods");
       }
-      var option = m.TypeArgs.Count == 0 ? ResolveTypeOption.AllowPrefixExtend : ResolveTypeOption.AllowPrefix;
+      var option = m.TypeArgs.Count == 0 ? new ResolveTypeOption(m) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve in-parameters
       foreach (Formal p in m.Ins) {
         if (!scope.Push(p.Name, p)) {
@@ -3252,8 +3309,9 @@ namespace Microsoft.Dafny
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
       Contract.Requires(dtTypeArguments != null);
+      ResolveTypeOption option = dtTypeArguments.Count == 0 ? new ResolveTypeOption(ctor) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in ctor.Formals) {
-        ResolveType(p.tok, p.Type, ResolveTypeOption.AllowExact, dtTypeArguments);
+        ResolveType(p.tok, p.Type, option, dtTypeArguments);
       }
     }
 
@@ -3266,7 +3324,7 @@ namespace Microsoft.Dafny
       if (iter.SignatureIsOmitted) {
         Error(iter, "iterator signature can be omitted only in refining methods");
       }
-      var option = iter.TypeArgs.Count == 0 ? ResolveTypeOption.AllowPrefixExtend : ResolveTypeOption.AllowPrefix;
+      var option = iter.TypeArgs.Count == 0 ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve the types of the parameters
       foreach (var p in iter.Ins.Concat(iter.Outs)) {
         ResolveType(p.tok, p.Type, option, iter.TypeArgs);
@@ -3392,7 +3450,8 @@ namespace Microsoft.Dafny
           new FieldSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
       }
       // ensures this.Valid();
-      ens.Add(new MaybeFreeExpression(new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>())));
+      var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
+      ens.Add(new MaybeFreeExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
       Expression frameSet = new SetDisplayExpr(iter.tok, modSetSingletons);
@@ -3445,7 +3504,8 @@ namespace Microsoft.Dafny
       // ---------- here comes method MoveNext() ----------
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
-      req.Add(new MaybeFreeExpression(new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>())));
+      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
+      req.Add(new MaybeFreeExpression(valid_call));
       // requires YieldRequires;
       req.AddRange(iter.YieldRequires);
       // modifies this, this._modifies, this._new;
@@ -3460,9 +3520,10 @@ namespace Microsoft.Dafny
           new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
       // ensures more ==> this.Valid();
+      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
       ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(iter.tok, "more"),
-        new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>()))));
+        valid_call)));
       // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
       for (int i = 0; i < iter.OutsFields.Count; i++) {
@@ -3498,13 +3559,37 @@ namespace Microsoft.Dafny
       iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
     }
 
+    // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also
+    // contains a pointer to its Parent class, to fill in default type parameters properly.
+    public class ResolveTypeOption
+    {
+      public readonly ResolveTypeOptionEnum Opt;
+      public readonly TypeParameter.ParentType Parent;
+      [ContractInvariantMethod]
+      void ObjectInvariant() {
+        Contract.Invariant((Opt == ResolveTypeOptionEnum.AllowPrefixExtend) == (Parent != null));
+      }
+
+      public ResolveTypeOption(ResolveTypeOptionEnum opt) {
+        Contract.Requires(opt != ResolveTypeOptionEnum.AllowPrefixExtend);
+        Parent = null;
+        Opt = opt;
+      }
+
+      public ResolveTypeOption(TypeParameter.ParentType parent) {
+        Contract.Requires(parent != null);
+        Opt = ResolveTypeOptionEnum.AllowPrefixExtend;
+        Parent = parent;
+      }
+    }
+
     /// <summary>
     /// If ResolveType/ResolveTypeLenient encounters a (datatype or class) type "C" with no supplied arguments, then
     /// the ResolveTypeOption says what to do.  The last three options take a List as a parameter, which (would have
     /// been supplied as an argument if C# had datatypes instead of just enums, but since C# doesn't) is supplied
     /// as another parameter (called 'defaultTypeArguments') to ResolveType/ResolveTypeLenient.
     /// </summary>
-    public enum ResolveTypeOption
+    public enum ResolveTypeOptionEnum
     {
       /// <summary>
       /// never infer type arguments
@@ -3514,10 +3599,6 @@ namespace Microsoft.Dafny
       /// create a new InferredTypeProxy type for each needed argument
       /// </summary>
       InferTypeProxies,
-      /// <summary>
-      /// if exactly defaultTypeArguments.Count type arguments are needed, use defaultTypeArguments
-      /// </summary>
-      AllowExact,
       /// <summary>
       /// if at most defaultTypeArguments.Count type arguments are needed, use a prefix of defaultTypeArguments
       /// </summary>
@@ -3532,8 +3613,14 @@ namespace Microsoft.Dafny
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// </summary>
+    public void ResolveType(IToken tok, Type type, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
+      Contract.Requires(eopt != ResolveTypeOptionEnum.AllowPrefixExtend);
+      ResolveType(tok, type, new ResolveTypeOption(eopt), defaultTypeArguments);
+    }
+
     public void ResolveType(IToken tok, Type type, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
-      Contract.Requires((option == ResolveTypeOption.DontInfer || option == ResolveTypeOption.InferTypeProxies) == (defaultTypeArguments == null));
+      Contract.Requires(option != null);
+      Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
       var r = ResolveTypeLenient(tok, type, option, defaultTypeArguments, false);
       Contract.Assert(r == null);
     }
@@ -3562,7 +3649,7 @@ namespace Microsoft.Dafny
     public ResolveTypeReturn ResolveTypeLenient(IToken tok, Type type, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments, bool allowShortenedPath) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
-      Contract.Requires((option == ResolveTypeOption.DontInfer || option == ResolveTypeOption.InferTypeProxies) == (defaultTypeArguments == null));
+      Contract.Requires((option.Opt == ResolveTypeOptionEnum.DontInfer || option.Opt == ResolveTypeOptionEnum.InferTypeProxies) == (defaultTypeArguments == null));
       if (type is BasicType) {
         // nothing to resolve
       } else if (type is MapType) {
@@ -3572,7 +3659,7 @@ namespace Microsoft.Dafny
           ResolveType(tok, mt.Domain, option, defaultTypeArguments);
           ResolveType(tok, mt.Range, option, defaultTypeArguments);
           typeArgumentCount = 2;
-        } else if (option != ResolveTypeOption.DontInfer) {
+        } else if (option.Opt != ResolveTypeOptionEnum.DontInfer) {
           var inferredTypeArgs = new List<Type>();
           FillInTypeArguments(tok, 2, inferredTypeArgs, defaultTypeArguments, option);
           Contract.Assert(inferredTypeArgs.Count <= 2);
@@ -3594,7 +3681,6 @@ namespace Microsoft.Dafny
           }
           mt.SetRangetype(new InferredTypeProxy());
         }
-
         if (mt.Domain.IsSubrangeType || mt.Range.IsSubrangeType) {
           Error(tok, "sorry, cannot instantiate collection type with a subrange type");
         }
@@ -3602,7 +3688,7 @@ namespace Microsoft.Dafny
         var t = (CollectionType)type;
         if (t.HasTypeArg()) {
           ResolveType(tok, t.Arg, option, defaultTypeArguments);
-        } else if (option != ResolveTypeOption.DontInfer) {
+        } else if (option.Opt != ResolveTypeOptionEnum.DontInfer) {
           var inferredTypeArgs = new List<Type>();
           FillInTypeArguments(tok, 1, inferredTypeArgs, defaultTypeArguments, option);
           if (inferredTypeArgs.Count != 0) {
@@ -3635,7 +3721,7 @@ namespace Microsoft.Dafny
           } else {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
-        } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
+        } else {
           TopLevelDecl d = null;
 
           int j;
@@ -3679,7 +3765,7 @@ namespace Microsoft.Dafny
           } else {
             // d is a class or datatype, and it may have type parameters
             t.ResolvedClass = d;
-            if (option == ResolveTypeOption.DontInfer) {
+            if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
               // don't add anything
             } else if (d.TypeArgs.Count != t.TypeArgs.Count && t.TypeArgs.Count == 0) {
               FillInTypeArguments(t.tok, d.TypeArgs.Count, t.TypeArgs, defaultTypeArguments, option);
@@ -3710,21 +3796,25 @@ namespace Microsoft.Dafny
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
       Contract.Requires(typeArgs != null && typeArgs.Count == 0);
-      if (option == ResolveTypeOption.InferTypeProxies) {
+      if (option.Opt == ResolveTypeOptionEnum.InferTypeProxies) {
         // add type arguments that will be inferred
         for (int i = 0; i < n; i++) {
           typeArgs.Add(new InferredTypeProxy());
         }
-      } else if (option == ResolveTypeOption.AllowExact && defaultTypeArguments.Count != n) {
+      /*
+      } else if (option.Opt == ResolveTypeOptionEnum.AllowExact && defaultTypeArguments.Count != n) {
         // the number of default arguments is not exactly what we need, so don't add anything
-      } else if (option == ResolveTypeOption.AllowPrefix && defaultTypeArguments.Count < n) {
+      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefix && defaultTypeArguments.Count < n) {
+      */
+      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefix && defaultTypeArguments.Count < n) {
         // there aren't enough default arguments, so don't do anything
       } else {
         // we'll add arguments
-        if (option == ResolveTypeOption.AllowPrefixExtend) {
+        if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend) {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
-            defaultTypeArguments.Add(new TypeParameter(tok, "_T" + i));
+            var tp = new TypeParameter(tok, "_T" + i, i, option.Parent);
+            defaultTypeArguments.Add(tp);
           }
         }
         Contract.Assert(n <= defaultTypeArguments.Count);
@@ -4172,7 +4262,7 @@ namespace Microsoft.Dafny
 
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
-          ResolveType(local.Tok, local.OptionalType, ResolveTypeOption.InferTypeProxies, null);
+          ResolveType(local.Tok, local.OptionalType, ResolveTypeOptionEnum.InferTypeProxies, null);
           local.type = local.OptionalType;
           if (specContextOnly) {
             // a local variable in a specification-only context might as well be ghost
@@ -4475,7 +4565,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(s.Range, true, codeContext);
         Contract.Assert(s.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -4673,7 +4763,7 @@ namespace Microsoft.Dafny
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+            ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -5502,7 +5592,7 @@ namespace Microsoft.Dafny
         if (rr.ArrayDimensions != null) {
           // ---------- new T[EE]
           Contract.Assert(rr.Arguments == null && rr.OptionalNameComponent == null && rr.InitCall == null);
-          ResolveType(stmt.Tok, rr.EType, ResolveTypeOption.InferTypeProxies, null);
+          ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           if (rr.EType.IsSubrangeType) {
             Error(stmt, "sorry, cannot instantiate 'array' type with a subrange type");
@@ -5523,21 +5613,21 @@ namespace Microsoft.Dafny
             // * If rr.EType denotes a type, then set rr.OptionalNameComponent to "_ctor", which sets up a call to the default constructor.
             // * If the all-but-last components of rr.EType denote a type, then do EType,OptionalNameComponent := allButLast(EType),last(EType)
             // * Otherwise, report an error
-            var ret = ResolveTypeLenient(stmt.Tok, rr.EType, ResolveTypeOption.InferTypeProxies, null, true);
+            var ret = ResolveTypeLenient(stmt.Tok, rr.EType, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
             if (ret != null) {
               // While rr.EType does not denote a type, no error has been reported yet and the all-but-last components of rr.EType may
               // denote a type, so shift the last component to OptionalNameComponent and retry with the suggested type.
               rr.OptionalNameComponent = ret.LastName;
               rr.EType = ret.ReplacementType;
               initCallTok = ret.LastToken;
-              ResolveType(stmt.Tok, rr.EType, ResolveTypeOption.InferTypeProxies, null);
+              ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
             } else {
               // Either rr.EType resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set OptionalNameComponent to "_ctor" and continue.
               rr.OptionalNameComponent = "_ctor";
             }
           } else {
-            ResolveType(stmt.Tok, rr.EType, ResolveTypeOption.InferTypeProxies, null);
+            ResolveType(stmt.Tok, rr.EType, ResolveTypeOptionEnum.InferTypeProxies, null);
           }
           if (!rr.EType.IsRefType) {
             Error(stmt, "new can be applied only to reference types (got {0})", rr.EType);
@@ -5751,7 +5841,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// "twoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
-    void ResolveExpression(Expression expr, bool twoState, ICodeContext codeContext) {
+    public void ResolveExpression(Expression expr, bool twoState, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(codeContext != null);
       Contract.Ensures(expr.Type != null);
@@ -5814,7 +5904,7 @@ namespace Microsoft.Dafny
 
         if (e is StaticReceiverExpr) {
           StaticReceiverExpr eStatic = (StaticReceiverExpr)e;
-          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, ResolveTypeOption.InferTypeProxies, null);
+          this.ResolveType(eStatic.tok, eStatic.UnresolvedType, ResolveTypeOptionEnum.InferTypeProxies, null);
           eStatic.Type = eStatic.UnresolvedType;
         } else {
           if (e.Value == null) {
@@ -6357,7 +6447,7 @@ namespace Microsoft.Dafny
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate let-variable name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+            ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, twoState, codeContext);
@@ -6378,12 +6468,20 @@ namespace Microsoft.Dafny
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
         int prevErrorCount = ErrorCount;
+        bool _val = true;
+        bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val);
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(e.TypeArgs, true, e);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+          var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer);
+          ResolveType(v.tok, v.Type, option, typeQuantifier ? e.TypeArgs : null);
+        }
+        if (e.TypeArgs.Count > 0 && !typeQuantifier) {
+          Error(expr, "a quantifier cannot quantify over types. Possible fix: use the experimental attribute :typeQuantifier");
         }
         if (e.Range != null) {
           ResolveExpression(e.Range, twoState, codeContext);
@@ -6401,6 +6499,7 @@ namespace Microsoft.Dafny
         // first (above) and only then resolve the attributes (below).
         ResolveAttributes(e.Attributes, twoState, codeContext);
         scope.PopMarker();
+        allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
 
         if (prevErrorCount == ErrorCount) {
@@ -6434,7 +6533,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, twoState, codeContext);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -6471,7 +6570,7 @@ namespace Microsoft.Dafny
           if (!scope.Push(v.Name, v)) {
             Error(v, "Duplicate bound-variable name: {0}", v.Name);
           }
-          ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+          ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
         }
         ResolveExpression(e.Range, twoState, codeContext);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -6587,7 +6686,7 @@ namespace Microsoft.Dafny
             if (!scope.Push(v.Name, v)) {
               Error(v, "Duplicate parameter name: {0}", v.Name);
             }
-            ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+            ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
             if (ctor != null && i < ctor.Formals.Count) {
               Formal formal = ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
@@ -6651,7 +6750,7 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
-        ResolveType(v.tok, v.Type, ResolveTypeOption.InferTypeProxies, null);
+        ResolveType(v.tok, v.Type, ResolveTypeOptionEnum.InferTypeProxies, null);
         if (!UnifyTypes(v.Type, sourceType)) {
           Error(v.tok, "type of corresponding source/RHS ({0}) does not match type of bound variable ({1})", sourceType, v.Type);
         }
@@ -6912,7 +7011,7 @@ namespace Microsoft.Dafny
     /// Otherwise (that is, if "allowMethodCall" and what is being called refers to a method), resolves the receiver
     /// of "e" but NOT the arguments, and returns a CallRhs corresponding to the call.
     /// </summary>
-    CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, ICodeContext codeContext, bool allowMethodCall) {
+    public CallRhs ResolveFunctionCallExpr(FunctionCallExpr e, bool twoState, ICodeContext codeContext, bool allowMethodCall) {
       ResolveReceiver(e.Receiver, twoState, codeContext);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
       NonProxyType nptype;
@@ -7029,7 +7128,7 @@ namespace Microsoft.Dafny
         // ----- root is a local variable, parameter, or bound variable
         r = new IdentifierExpr(id, id.val);
         ResolveExpression(r, twoState, codeContext);
-        r = ResolveSuffix(r, e, 1, twoState, codeContext,  allowMethodCall, out call);
+        r = ResolveSuffix(r, e, 1, twoState, codeContext, allowMethodCall, out call);
 
       } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
@@ -7037,6 +7136,10 @@ namespace Microsoft.Dafny
         } else if (e.Tokens.Count == 1 && e.Arguments == null) {
           Error(id, "name of type ('{0}') is used as a variable", id.val);
         } else if (e.Tokens.Count == 1 && e.Arguments != null) {
+          // in
+          //   datatype Id = Id
+          // you cannot refer to the constructor, instead this error message is thrown:
+          // (bug?)
           Error(id, "name of type ('{0}') is used as a function", id.val);
           // resolve the arguments nonetheless
           foreach (var arg in e.Arguments) {

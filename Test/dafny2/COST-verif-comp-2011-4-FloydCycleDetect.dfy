@@ -208,6 +208,14 @@ class Node {
       decreases S - Visited;
     {
       p, steps, Visited := p.next, steps + 1, Visited + {p};
+
+      // with all: 3s
+      // without this: 20s
+      assert forall t :: 0 <= t < steps ==> Nexxxt(t, S) in Visited;
+      // without this: 5s
+      assert forall q :: q in (Visited - {null}) ==> exists t :: 0 <= t < steps && Nexxxt(t, S) == q;
+      // without this: >60s
+      assert forall k,l :: 0 <= k < l < steps ==> Nexxxt(k, S) != Nexxxt(l, S);
     }
     if (p == null) {
       A, B := steps, 1;

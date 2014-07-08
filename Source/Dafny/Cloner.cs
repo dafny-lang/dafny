@@ -64,18 +64,13 @@ namespace Microsoft.Dafny
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
       } else if (d is ClassDecl) {
+        var dd = (ClassDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new DefaultClassDecl(m, mm);
-          return cl;
+          return new DefaultClassDecl(m, mm);
         } else {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
-          return cl;
+          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
@@ -313,10 +308,16 @@ namespace Microsoft.Dafny
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is ForallExpr) {
-          return new ForallExpr(tk, bvs, range, term, CloneAttributes(e.Attributes));
-        } else if (e is ExistsExpr) {
-          return new ExistsExpr(tk, bvs, range, term, CloneAttributes(e.Attributes));
+        if (e is QuantifierExpr) {
+          var q = (QuantifierExpr)e;
+          var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
+          if (e is ForallExpr) {
+            return new ForallExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+          } else if (e is ExistsExpr) {
+            return new ExistsExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+          } else {
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
+          }
         } else if (e is MapComprehension) {
           return new MapComprehension(tk, bvs, range, term);
         } else {

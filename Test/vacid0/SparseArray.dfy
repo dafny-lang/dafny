@@ -40,8 +40,8 @@ class SparseArray<T> {
     ensures |Contents| == N && this.zero == zero;
     ensures (forall x :: x in Contents ==> x == zero);
   {
-    var aa := AllocateArray(N);  this.a := aa;
-    var bb := AllocateArray(N);  this.b := bb;
+    var aa : seq<T> := AllocateArray(N);  this.a := aa;
+    var bb : seq<int> := AllocateArray(N);  this.b := bb;
     bb := AllocateArray(N);  this.c := bb;
     this.n := 0;
 
@@ -101,19 +101,20 @@ class SparseArray<T> {
     Contents := Contents[i := x];
   }
 
-  /* The following method is here only to simulate support of arrays in Dafny */
-  /*private*/ static method AllocateArray<G>(n: int) returns (arr: seq<G>)
-    requires 0 <= n;
-    ensures |arr| == n;
+}
+
+/* The following method is here only to simulate support of arrays in Dafny */
+/*private*/ static method AllocateArray<G>(n: int) returns (arr: seq<G>)
+  requires 0 <= n;
+  ensures |arr| == n;
+{
+  arr := [];
+  var i := 0;
+  while (i < n)
+    invariant i <= n && |arr| == i;
   {
-    arr := [];
-    var i := 0;
-    while (i < n)
-      invariant i <= n && |arr| == i;
-    {
-      var g: G;
-      arr := arr + [g];
-      i := i + 1;
-    }
+    var g: G;
+    arr := arr + [g];
+    i := i + 1;
   }
 }

@@ -6,18 +6,18 @@
 syntax clear
 syntax case match
 syntax keyword dafnyFunction function predicate copredicate
-syntax keyword method lemma constructor colemma
+syntax keyword dafnyMethod method lemma constructor colemma
 syntax keyword dafnyTypeDef class datatype codatatype type iterator
-syntax keyword abstract module import opened as default
-syntax keyword dafnyConditional if then else match case 
+syntax keyword dafnyModule abstract module import opened as default
+syntax keyword dafnyConditional if then else match case
 syntax keyword dafnyRepeat while
 syntax keyword dafnyStatement assume assert return yield new print break label where calc modify
 syntax keyword dafnyKeyword var ghost returns yields null static this refines include
 syntax keyword dafnyType bool nat int real seq set multiset object array array2 array3 map
-syntax keyword dafnyLogic requires ensures modifies reads decreases invariant 
+syntax keyword dafnyLogic requires ensures modifies reads decreases invariant
 syntax keyword dafnyOperator forall exists old fresh
 syntax keyword dafnyBoolean true false
-  
+
 syntax region dafnyString start=/"/ skip=/\\"/ end=/"/
 
 syntax match dafnyComment /\/\/.*/
@@ -31,6 +31,8 @@ syntax match dafnyOperator "<==>"
 syntax match dafnyOperator "::"
 
 highlight link dafnyFunction Function
+highlight link dafnyMethod Statement
+highlight link dafnyModule StorageClass
 highlight link dafnyTypeDef Typedef
 highlight link dafnyConditional Conditional
 highlight link dafnyRepeat Repeat
@@ -42,4 +44,4 @@ highlight link dafnyString String
 highlight link dafnyNumber Number
 highlight link dafnyOperator Operator
 highlight link dafnyStatement Statement
-highlight link dafnyBoolean Boolean 
+highlight link dafnyBoolean Boolean

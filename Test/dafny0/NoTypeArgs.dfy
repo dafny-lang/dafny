@@ -73,14 +73,14 @@ ghost method Theorem(xs: List)
   }
 }
 
-ghost method Lemma(xs: List, ys: List)
+ghost method Lemma<A>(xs: List, ys: List)
   ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs));
 {
   match (xs) {
     case Nil =>
-      assert forall ws :: concat(ws, Nil) == ws;
+      assert forall ws :: concat(ws, Nil) == var ws : List<A> := ws; ws;
     case Cons(t, rest) =>
-      assert forall a, b, c :: concat(a, concat(b, c)) == concat(concat(a, b), c);
+      assert forall a, b, c :: concat(a, concat(b, c)) == var ws : List <A> := concat(concat(a, b), c); ws;
   }
 }
 

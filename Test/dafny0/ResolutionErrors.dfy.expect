@@ -2,7 +2,8 @@ ResolutionErrors.dfy(499,7): Error: RHS (of type List<A>) not assignable to LHS 
 ResolutionErrors.dfy(504,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>)
 ResolutionErrors.dfy(518,23): Error: type of case bodies do not agree (found Tree<_T1,_T0>, previous types Tree<_T0,_T1>)
 ResolutionErrors.dfy(530,24): Error: Wrong number of type arguments (0 instead of 2) passed to class/datatype: Tree
-ResolutionErrors.dfy(565,18): Error: type of bound variable 'z' could not determined; please specify the type explicitly
+ResolutionErrors.dfy(558,23): Error: type variable 'T' in the function call to 'P' could not determined
+ResolutionErrors.dfy(565,23): Error: type variable 'T' in the function call to 'P' could not determined
 ResolutionErrors.dfy(578,13): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(579,9): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(586,14): Error: new allocation not supported in forall statements
@@ -53,6 +54,8 @@ ResolutionErrors.dfy(898,9): Error: cannot assign to a range of array elements (
 ResolutionErrors.dfy(899,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors.dfy(900,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors.dfy(901,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors.dfy(964,11): Error: Wrong number of type arguments (2 instead of 1) passed to class/datatype: array3
+ResolutionErrors.dfy(965,11): Error: Wrong number of type arguments (2 instead of 1) passed to class/datatype: C
 ResolutionErrors.dfy(429,2): Error: More than one default constructor
 ResolutionErrors.dfy(50,13): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(111,9): Error: ghost variables are allowed only in specification contexts

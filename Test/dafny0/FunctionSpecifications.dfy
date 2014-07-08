@@ -97,7 +97,7 @@ function IncC(i: nat): int
 /////////////////////////////////////////////////////////////
 
 // Test basic function hiding
-function {:opaque} secret(x:int, y:int) : int 
+function {:opaque} secret(x:int, y:int) : int
   requires 0 <= x < 5;
   requires 0 <= y < 5;
   ensures secret(x, y) < 10;
@@ -107,7 +107,7 @@ method test_secret()
 {
   assert secret(2, 3) >= 5;   // Should fail because secret's body is hidden
   reveal_secret();
-  assert secret(2, 3) == 5;   // Should pass now that the body is "visible" 
+  assert secret(2, 3) == 5;   // Should pass now that the body is "visible"
   assert secret(4, 1) == 7;   // Make sure it catches incorrect applications as well
 }
 
@@ -132,7 +132,7 @@ method test_recursive_f()
 }
 
 // Check that opaque doesn't interfere with ensures checking
-function {:opaque} bad_ensures(x:int, y:int):int 
+function {:opaque} bad_ensures(x:int, y:int):int
   requires x >= 0 && y >= 0;
   ensures bad_ensures(x, y) > 0;
 {
@@ -172,7 +172,7 @@ method n()
   assert g(0) == g(0) + 1;
 }
 
-// Check that using the reveal_ lemma to prove the well-definedness of a function 
+// Check that using the reveal_ lemma to prove the well-definedness of a function
 // in a lower SCC does not cause a soundness problem
 
 function A(): int
@@ -188,4 +188,14 @@ function {:opaque} B(): int
   A()
 }
 
- 
+method m_noreveal()
+  ensures false;
+{
+  assert f(0) == f(0) + 1;
+}
+
+method n_noreveal()
+  ensures false;
+{
+  assert g(0) == g(0) + 1;
+}

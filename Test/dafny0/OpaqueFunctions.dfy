@@ -157,4 +157,9 @@ module M1 refines M0 {
 
 // ---------------------------------- opaque and generics
 
-function{:opaque} zero<A>():int { 0 }
+function{:opaque} id<A>(x : A):A { x }
+
+datatype Box<A> = Bx(A)
+
+function{:opaque} id_box(x : Box):Box { x }
+

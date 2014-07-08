@@ -122,10 +122,10 @@ module Q_M {
 abstract module Regression {
   module A
   {
-    predicate p(m: map)
+    predicate p<c,d>(m: map<c,d>)
 
-    lemma m(m: map)
-      ensures exists m :: p(m);
+    lemma m<a,b>(m: map<a,b>)
+      ensures exists m :: p(var m : map<a,b> := m; m);
   }
 
   abstract module B

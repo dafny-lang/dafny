@@ -7,7 +7,7 @@ method test1()
    var ms2: multiset<int> := multiset{3};
    assert 1 in ms;
    assert forall i :: i != 1 ==> i !in ms; // 1 is the only thing in ms.
-   
+
    assert ((ms - multiset{1}) - multiset {1}) != multiset{}; // it has more than 2 ones
    assert ((ms - multiset{1}) - multiset {1}) - multiset{1} == multiset{}; // and exactly three
 
@@ -15,7 +15,7 @@ method test1()
    assert ms - multiset{1} == multiset{1,1};
    assert !(multiset{1} !! multiset{1});
    assert exists m :: !(m !! multiset{1});
-   assert forall m :: m !! multiset{};
+   assert forall m :: (var m : multiset<int> := m; m) !! multiset{};
 
    assert forall s :: (s == set x: int | x in ms :: x) ==> s == {1};
 }
@@ -163,7 +163,7 @@ class BoxTests<G> {
     requires forall x :: x in a ==> x in b;
     ensures a <= b;  // error: this property does not hold for multisets
   {
-  }  
+  }
 }
 
 // ---------- indexing and updates ----------
