@@ -192,16 +192,17 @@ namespace Microsoft.Dafny
       var refinementTransformer = new RefinementTransformer(this, AdditionalInformationReporter, prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter());
-      var opaqueRewriter = new OpaqueFunctionRewriter();      
+      var opaqueRewriter = new OpaqueFunctionRewriter();
       rewriters.Add(new AutoReqFunctionRewriter(this, opaqueRewriter));
       rewriters.Add(opaqueRewriter);
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
+      prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       foreach (var decl in sortedDecls) {
         if (decl is LiteralModuleDecl) {
           // The declaration is a literal module, so it has members and such that we need
           // to resolve. First we do refinement transformation. Then we construct the signature
-          // of the module. This is the public, externally visible signature. Then we add in 
+          // of the module. This is the public, externally visible signature. Then we add in
           // everything that the system defines, as well as any "import" (i.e. "opened" modules)
           // directives (currently not supported, but this is where we would do it.) This signature,
           // which is only used while resolving the members of the module is stored in the (basically)
@@ -894,7 +895,7 @@ namespace Microsoft.Dafny
                   formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
 
                   List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-		   
+
 	          /*
                   Dictionary<TypeParameter, Type> su = new Dictionary<TypeParameter, Type>();
                   for (int i = 0; i < tyvars.Count; i++) {
@@ -907,12 +908,12 @@ namespace Microsoft.Dafny
                   // create prefix predicate
                   cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.IsStatic,
                     tyvars, cop.OpenParen, k, formals,
-                    cop.Req.ConvertAll(cloner.CloneExpr), 
-                    cop.Reads.ConvertAll(cloner.CloneFrameExpr), 
+                    cop.Req.ConvertAll(cloner.CloneExpr),
+                    cop.Reads.ConvertAll(cloner.CloneFrameExpr),
                     cop.Ens.ConvertAll(cloner.CloneExpr),
                     new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
-                    cop.Body, 
-                    null, 
+                    cop.Body,
+                    null,
                     cop);
                   extraMember = cop.PrefixPredicate;
                   // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
@@ -1035,6 +1036,9 @@ namespace Microsoft.Dafny
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(dd.tok, dd.Name, m, dd.EqualitySupport, null);
+      } else if (d is TupleTypeDecl) {
+        var dd = (TupleTypeDecl)d;
+        return new TupleTypeDecl(dd.Dims, dd.Module);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -1353,7 +1357,7 @@ namespace Microsoft.Dafny
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         return new MatchExpr(e.tok, CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr(c.tok, c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
+          e.Cases.ConvertAll(c => new MatchCaseExpr(c.tok, c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))), e.UsesOptionalBraces);
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
@@ -1949,7 +1953,7 @@ namespace Microsoft.Dafny
           foreach (var p in e.TypeArgumentSubstitutions) {
             if (p.Value.Normalize() is TypeProxy) {
               Error(e.tok, "type variable '{0}' in the function call to '{1}' could not determined{2}", p.Key.Name, e.Name,
-                (e.Name.Contains("reveal_") || e.Name.Contains("_FULL"))  
+                (e.Name.Contains("reveal_") || e.Name.Contains("_FULL"))
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
@@ -1985,7 +1989,7 @@ namespace Microsoft.Dafny
           return CheckTypeIsDetermined(tok, ((MapType)t).Range, what, aggressive) &&
                  CheckTypeIsDetermined(tok, ((MapType)t).Domain, what, aggressive);
         } else if (aggressive && t is CollectionType) {
-          return CheckTypeIsDetermined(tok, ((CollectionType)t).Arg, what, aggressive); 
+          return CheckTypeIsDetermined(tok, ((CollectionType)t).Arg, what, aggressive);
         } else if (aggressive && t is UserDefinedType) {
           return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what, aggressive));
         } else {
@@ -2011,7 +2015,7 @@ namespace Microsoft.Dafny
     /// Note, the current implementation is rather conservative in its analysis; upon need, the
     /// algorithm could be improved.
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
-    /// 
+    ///
     /// The incoming value of "tailCall" is not used, but it's nevertheless a 'ref' parameter to allow the
     /// body to return the incoming value or to omit assignments to it.
     /// If the return value is CanBeFollowedByAnything, "tailCall" is unchanged.
@@ -2141,7 +2145,10 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        var status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        var status = TailRecursionStatus.NotTailRecursive;
+        if (s.Body != null) {
+          status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
+        }
         if (status != TailRecursionStatus.CanBeFollowedByAnything) {
           if (status == TailRecursionStatus.NotTailRecursive) {
             // an error has already been reported
@@ -2848,13 +2855,13 @@ namespace Microsoft.Dafny
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
     /// deemed to be rather small, this seems okay.
-    /// 
+    ///
     /// As a side effect of this checking, the DefaultCtor field is filled in (for every inductive datatype
     /// that passes the check).  It may be that several constructors could be used as the default, but
     /// only the first one encountered as recorded.  This particular choice is slightly more than an
     /// implementation detail, because it affects how certain cycles among inductive datatypes (having
     /// to do with the types used to instantiate type parameters of datatypes) are used.
-    /// 
+    ///
     /// The role of the SCC here is simply to speed up this method.  It would still be correct if the
     /// equivalence classes in the given SCC were unions of actual SCC's.  In particular, this method
     /// would still work if "dependencies" consisted of one large SCC containing all the inductive
@@ -3079,7 +3086,7 @@ namespace Microsoft.Dafny
         if (!allTypeParameters.Push(tp.Name, tp) && emitErrors) {
           Error(tp, "Duplicate type-parameter name: {0}", tp.Name);
         }
-      } 
+      }
     }
 
     /// <summary>
@@ -3302,8 +3309,9 @@ namespace Microsoft.Dafny
     void ResolveCtorSignature(DatatypeCtor ctor, List<TypeParameter> dtTypeArguments) {
       Contract.Requires(ctor != null);
       Contract.Requires(dtTypeArguments != null);
+      ResolveTypeOption option = dtTypeArguments.Count == 0 ? new ResolveTypeOption(ctor) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       foreach (Formal p in ctor.Formals) {
-        ResolveType(p.tok, p.Type, ResolveTypeOptionEnum.AllowExact, dtTypeArguments);
+        ResolveType(p.tok, p.Type, option, dtTypeArguments);
       }
     }
 
@@ -3551,7 +3559,7 @@ namespace Microsoft.Dafny
       iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
     }
 
-    // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also 
+    // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also
     // contains a pointer to its Parent class, to fill in default type parameters properly.
     public class ResolveTypeOption
     {
@@ -3592,10 +3600,6 @@ namespace Microsoft.Dafny
       /// </summary>
       InferTypeProxies,
       /// <summary>
-      /// if exactly defaultTypeArguments.Count type arguments are needed, use defaultTypeArguments
-      /// </summary>
-      AllowExact,
-      /// <summary>
       /// if at most defaultTypeArguments.Count type arguments are needed, use a prefix of defaultTypeArguments
       /// </summary>
       AllowPrefix,
@@ -3610,7 +3614,7 @@ namespace Microsoft.Dafny
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// </summary>
     public void ResolveType(IToken tok, Type type, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
-      Contract.Requires(eopt != ResolveTypeOptionEnum.AllowPrefixExtend); 
+      Contract.Requires(eopt != ResolveTypeOptionEnum.AllowPrefixExtend);
       ResolveType(tok, type, new ResolveTypeOption(eopt), defaultTypeArguments);
     }
 
@@ -3717,7 +3721,7 @@ namespace Microsoft.Dafny
           } else {
             Error(t.tok, "Type parameter expects no type arguments: {0}", t.Name);
           }
-        } else if (t.ResolvedClass == null) {  // this test is because 'array' is already resolved; TODO: an alternative would be to pre-populate 'classes' with built-in references types like 'array' (and perhaps in the future 'string')
+        } else {
           TopLevelDecl d = null;
 
           int j;
@@ -3797,8 +3801,11 @@ namespace Microsoft.Dafny
         for (int i = 0; i < n; i++) {
           typeArgs.Add(new InferredTypeProxy());
         }
+      /*
       } else if (option.Opt == ResolveTypeOptionEnum.AllowExact && defaultTypeArguments.Count != n) {
         // the number of default arguments is not exactly what we need, so don't add anything
+      } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefix && defaultTypeArguments.Count < n) {
+      */
       } else if (option.Opt == ResolveTypeOptionEnum.AllowPrefix && defaultTypeArguments.Count < n) {
         // there aren't enough default arguments, so don't do anything
       } else {
@@ -4074,7 +4081,7 @@ namespace Microsoft.Dafny
           //   set(Arg) or multiset(Arg) or seq(Arg) or map(Arg, anyRange)
           // pb is:
           //   seq(Arg) or multiset(Arg) or map(Domain, Arg), or
-          //   if AllowArray, array(Arg) 
+          //   if AllowArray, array(Arg)
           // Their intersection is:
           if (ib.AllowArray) {
             var c = new IndexableTypeProxy(ib.Domain, ib.Range, ib.Arg, false);
@@ -4587,14 +4594,16 @@ namespace Microsoft.Dafny
         }
         s.IsGhost = bodyMustBeSpecOnly;
 
-        // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
-        var prevLblStmts = labeledStatements;
-        var prevLoopStack = loopStack;
-        labeledStatements = new Scope<Statement>();
-        loopStack = new List<Statement>();
-        ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
-        labeledStatements = prevLblStmts;
-        loopStack = prevLoopStack;
+        if (s.Body != null) {
+          // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
+          var prevLblStmts = labeledStatements;
+          var prevLoopStack = loopStack;
+          labeledStatements = new Scope<Statement>();
+          loopStack = new List<Statement>();
+          ResolveStatement(s.Body, bodyMustBeSpecOnly, codeContext);
+          labeledStatements = prevLblStmts;
+          loopStack = prevLoopStack;
+        }
         scope.PopMarker();
 
         if (prevErrorCount == ErrorCount) {
@@ -4631,9 +4640,11 @@ namespace Microsoft.Dafny
               }
             }
           }
-          CheckForallStatementBodyRestrictions(s.Body, s.Kind);
+          if (s.Body != null) {
+            CheckForallStatementBodyRestrictions(s.Body, s.Kind);
+          }
         }
-		
+
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         ResolveAttributes(s.Mod.Attributes, true, codeContext);
@@ -4662,14 +4673,14 @@ namespace Microsoft.Dafny
               if (!UnifyTypes(e0.Type, e1.Type)) {
                 Error(e1, "all lines in a calculation must have the same type (got {0} after {1})", e1.Type, e0.Type);
               } else {
-                var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator                
+                var step = s.StepOps[i - 1].StepExpr(e0, e1); // Use custom line operator
                 ResolveExpression(step, true, codeContext);
-                s.Steps.Add(step);            
+                s.Steps.Add(step);
               }
               e0 = e1;
             }
           }
-                  
+
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
           var prevLblStmts = labeledStatements;
           var prevLoopStack = loopStack;
@@ -4680,7 +4691,7 @@ namespace Microsoft.Dafny
             CheckHintRestrictions(h);
           }
           labeledStatements = prevLblStmts;
-          loopStack = prevLoopStack;          
+          loopStack = prevLoopStack;
 
         }
         if (prevErrorCount == ErrorCount && s.Lines.Count > 0) {
@@ -4690,8 +4701,8 @@ namespace Microsoft.Dafny
           s.Result = CalcStmt.DefaultOp.StepExpr(Expression.CreateIntLiteral(s.Tok, 0), Expression.CreateIntLiteral(s.Tok, 0));
         }
         ResolveExpression(s.Result, true, codeContext);
-        Contract.Assert(s.Result != null);        
-        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);        
+        Contract.Assert(s.Result != null);
+        Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
@@ -5417,7 +5428,7 @@ namespace Microsoft.Dafny
             Contract.Assert(false);  // unexpected kind
             break;
         }
-		
+
       } else if (stmt is CalcStmt) {
           // cool
 
@@ -5536,7 +5547,7 @@ namespace Microsoft.Dafny
             Contract.Assert(false);  // unexpected kind
             break;
         }
-		
+
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
         foreach (var h in s.Hints) {
@@ -6080,10 +6091,10 @@ namespace Microsoft.Dafny
 
         }
         else if (e.Seq.Type is UserDefinedType && ((UserDefinedType)e.Seq.Type).IsDatatype)
-        {          
+        {
           DatatypeDecl dt = ((UserDefinedType)e.Seq.Type).AsDatatype;
 
-          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger)))  
+          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger)))
           {
             Error(expr, "datatype updates must be to datatype destructors");
           } else {
@@ -6464,7 +6475,7 @@ namespace Microsoft.Dafny
         bool _val = true;
         bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val);
         allTypeParameters.PushMarker();
-        ResolveTypeParameters(e.TypeArgs, true, e); 
+        ResolveTypeParameters(e.TypeArgs, true, e);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
           if (!scope.Push(v.Name, v)) {
@@ -7118,7 +7129,7 @@ namespace Microsoft.Dafny
         // ----- root is a local variable, parameter, or bound variable
         r = new IdentifierExpr(id, id.val);
         ResolveExpression(r, twoState, codeContext);
-        r = ResolveSuffix(r, e, 1, twoState, codeContext,  allowMethodCall, out call);
+        r = ResolveSuffix(r, e, 1, twoState, codeContext, allowMethodCall, out call);
 
       } else if (moduleInfo.TopLevels.TryGetValue(id.val, out decl)) {
         if (decl is AmbiguousTopLevelDecl) {
@@ -7126,10 +7137,10 @@ namespace Microsoft.Dafny
         } else if (e.Tokens.Count == 1 && e.Arguments == null) {
           Error(id, "name of type ('{0}') is used as a variable", id.val);
         } else if (e.Tokens.Count == 1 && e.Arguments != null) {
-          // in 
+          // in
           //   datatype Id = Id
           // you cannot refer to the constructor, instead this error message is thrown:
-          // (bug?)         
+          // (bug?)
           Error(id, "name of type ('{0}') is used as a function", id.val);
           // resolve the arguments nonetheless
           foreach (var arg in e.Arguments) {
@@ -7322,7 +7333,7 @@ namespace Microsoft.Dafny
 
       if (p < e.Tokens.Count) {
         Contract.Assert(e.Arguments != null);
-        
+
         bool itIsAMethod = false;
         if (allowMethodCall) {
           var udt = r.Type.Normalize() as UserDefinedType;

@@ -61,47 +61,47 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon11_Then
     (0,0): anon12_Else
-Array.dfy(150,6): Error: insufficient reads clause to read array element
+Array.dfy(163,6): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(158,6): Error: insufficient reads clause to read array element
+Array.dfy(171,6): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Then
-Array.dfy(174,6): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(187,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(181,6): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(194,6): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(206,1): Error BP5003: A postcondition might not hold on this return path.
-Array.dfy(205,11): Related location: This is the postcondition that might not hold.
+Array.dfy(219,1): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(218,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Array.dfy(230,1): Error BP5003: A postcondition might not hold on this return path.
-Array.dfy(229,11): Related location: This is the postcondition that might not hold.
+Array.dfy(243,1): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(242,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Array.dfy(236,1): Error BP5003: A postcondition might not hold on this return path.
-Array.dfy(235,11): Related location: This is the postcondition that might not hold.
+Array.dfy(249,1): Error BP5003: A postcondition might not hold on this return path.
+Array.dfy(248,11): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Array.dfy(251,10): Error: value assigned to a nat must be non-negative
+Array.dfy(264,10): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(252,5): Error: value assigned to a nat must be non-negative
+Array.dfy(265,5): Error: value assigned to a nat must be non-negative
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
 
-Dafny program verifier finished with 41 verified, 20 errors
+Dafny program verifier finished with 46 verified, 20 errors

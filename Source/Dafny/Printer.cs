@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
-        pr.PrintExtendedExpr(expr, 0, true, false);        
+        pr.PrintExtendedExpr(expr, 0, true, false);
         return wr.ToString();
       }
     }
@@ -565,7 +565,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent) {
+    internal void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent, bool newLine = true) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       foreach (MaybeFreeExpression e in ee)
@@ -582,7 +582,11 @@ namespace Microsoft.Dafny {
         wr.Write(" ");
         PrintExpression(e.E, true);
 
-        wr.WriteLine(";");
+        if (newLine) {
+          wr.WriteLine(";");
+        } else {
+          wr.Write(";");
+        }
       }
     }
 
@@ -735,10 +739,12 @@ namespace Microsoft.Dafny {
           wr.Write(" ");
         } else {
           wr.WriteLine();
-          PrintSpec("ensures", s.Ens, indent + IndentAmount);
+          PrintSpec("ensures", s.Ens, indent + IndentAmount, s.Body != null);
           Indent(indent);
         }
-        PrintStatement(s.Body, indent);
+        if (s.Body != null) {
+          PrintStatement(s.Body, indent);
+        }
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -789,9 +795,12 @@ namespace Microsoft.Dafny {
         MatchStmt s = (MatchStmt)stmt;
         wr.Write("match ");
         PrintExpression(s.Source, false);
-        wr.WriteLine(" {");
-        int caseInd = indent + IndentAmount;
+        if (s.UsesOptionalBraces) {
+          wr.Write(" {");
+        }
+        int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
         foreach (MatchCaseStmt mc in s.Cases) {
+          wr.WriteLine();
           Indent(caseInd);
           wr.Write("case {0}", mc.Id);
           if (mc.Arguments.Count != 0) {
@@ -802,15 +811,18 @@ namespace Microsoft.Dafny {
             }
             wr.Write(")");
           }
-          wr.WriteLine(" =>");
+          wr.Write(" =>");
           foreach (Statement bs in mc.Body) {
+            wr.WriteLine();
             Indent(caseInd + IndentAmount);
             PrintStatement(bs, caseInd + IndentAmount);
-            wr.WriteLine();
           }
         }
-        Indent(indent);
-        wr.Write("}");
+        if (s.UsesOptionalBraces) {
+          wr.WriteLine();
+          Indent(indent);
+          wr.Write("}");
+        }
 
       } else if (stmt is ConcreteUpdateStatement) {
         var s = (ConcreteUpdateStatement)stmt;
@@ -1082,15 +1094,18 @@ namespace Microsoft.Dafny {
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         Indent(indent);
-        var parensNeeded = !isRightmost;
+        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("match ");
         PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
-        if (parensNeeded && e.Cases.Count == 0) { wr.WriteLine(")"); } else { wr.WriteLine(); }
+        if (e.UsesOptionalBraces) { wr.WriteLine(" {"); }
+        else if (parensNeeded && e.Cases.Count == 0) { wr.WriteLine(")"); }
+        else { wr.WriteLine(); }
         int i = 0;
+        int ind = indent + (e.UsesOptionalBraces ? IndentAmount : 0);
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
-          Indent(indent);
+          Indent(ind);
           wr.Write("case {0}", mc.Id);
           if (mc.Arguments.Count != 0) {
             string sep = "(";
@@ -1101,8 +1116,12 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           }
           wr.WriteLine(" =>");
-          PrintExtendedExpr(mc.Body, indent + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
+          PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
           i++;
+        }
+        if (e.UsesOptionalBraces) {
+          Indent(indent);
+          wr.WriteLine("}");
         }
       } else if (expr is ParensExpression) {
         PrintExtendedExpr(((ParensExpression)expr).E, indent, isRightmost, endWithCloseParen);
@@ -1184,9 +1203,16 @@ namespace Microsoft.Dafny {
         wr.Write(((IdentifierExpr)expr).Name);
 
       } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        wr.Write("#{0}.{1}", dtv.DatatypeName, dtv.MemberName);
-        if (dtv.Arguments.Count != 0) {
+        var dtv = (DatatypeValue)expr;
+        bool printParens;
+        if (dtv.MemberName == BuiltIns.TupleTypeCtorName) {
+          // we're looking at a tuple, whose printed constructor name is essentially the empty string
+          printParens = true;
+        } else {
+          wr.Write("{0}.{1}", dtv.DatatypeName, dtv.MemberName);
+          printParens = dtv.Arguments.Count != 0;
+        }
+        if (printParens) {
           wr.Write("(");
           PrintExpressionList(dtv.Arguments, false);
           wr.Write(")");
@@ -1651,10 +1677,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
-        var parensNeeded = !isRightmost;
+        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("match ");
         PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
+        if (e.UsesOptionalBraces) { wr.Write(" {"); }
         int i = 0;
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
@@ -1671,7 +1698,8 @@ namespace Microsoft.Dafny {
           PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
           i++;
         }
-        if (parensNeeded) { wr.Write(")"); }
+        if (e.UsesOptionalBraces) { wr.Write(" }"); }
+        else if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is BoxingCastExpr) {
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator

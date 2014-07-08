@@ -99,7 +99,7 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames)
+    static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames, bool lookForSnapshots = true)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
 
@@ -110,7 +110,21 @@ namespace Microsoft.Dafny
         {
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = ProcessFiles(new List<string> { f });
+          var ev = ProcessFiles(new List<string> { f }, lookForSnapshots);
+          if (exitValue != ev && ev != ExitValue.VERIFIED)
+          {
+            exitValue = ev;
+          }
+        }
+        return exitValue;
+      }
+
+      if (0 < CommandLineOptions.Clo.VerifySnapshots && lookForSnapshots)
+      {
+        var snapshotsByVersion = ExecutionEngine.LookForSnapshots(fileNames);
+        foreach (var s in snapshotsByVersion)
+        {
+          var ev = ProcessFiles(new List<string>(s), false);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -213,7 +227,7 @@ namespace Microsoft.Dafny
           ExecutionEngine.CollectModSets(program);
           ExecutionEngine.CoalesceBlocks(program);
           ExecutionEngine.Inline(program);
-          return ExecutionEngine.InferAndVerify(program, stats);
+          return ExecutionEngine.InferAndVerify(program, stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? "main_program_id" : null);
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome

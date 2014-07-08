@@ -56,6 +56,24 @@ class {:autocontracts} RingBuffer<T>
     Contents := Contents + [x];
   }
 
+  method ResizingEnqueue(x: T)
+    ensures Contents == old(Contents) + [x] && N >= old(N);
+  {
+    if data.Length == len {
+      var more := data.Length + 1;
+      var d := new T[data.Length + more];
+      forall i | 0 <= i < data.Length {
+        d[if i < start then i else i + more] := data[i];
+      }
+      N, data, start := N + more, d, if len == 0 then 0 else start + more;
+    }
+    var nextEmpty := if start + len < data.Length 
+                     then start + len else start + len - data.Length;
+    data[nextEmpty] := x;
+    len := len + 1;
+    Contents := Contents + [x];
+  }
+
   method Dequeue() returns (x: T)
     requires Contents != [];
     modifies Repr;

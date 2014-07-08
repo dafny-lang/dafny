@@ -1,0 +1,12 @@
+Inverses.dfy(70,1): Error BP5003: A postcondition might not hold on this return path.
+Inverses.dfy(69,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+Inverses.dfy(83,1): Error BP5003: A postcondition might not hold on this return path.
+Inverses.dfy(82,11): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+
+Dafny program verifier finished with 17 verified, 2 errors

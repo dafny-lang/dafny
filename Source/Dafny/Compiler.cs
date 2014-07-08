@@ -107,6 +107,10 @@ namespace Microsoft.Dafny {
           indent += IndentAmount;
         }
         foreach (TopLevelDecl d in m.TopLevelDecls) {
+          bool compileIt = true;
+          if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
+            continue;
+          }
           wr.WriteLine();
           if (d is ArbitraryTypeDecl) {
             var at = (ArbitraryTypeDecl)d;
@@ -130,16 +134,16 @@ namespace Microsoft.Dafny {
             //     public T x;  // yield-parameter
             //     public int y;  // yield-parameter
             //     IEnumerator<object> _iter;
-            //   
+            //
             //     public void _MyIteratorExample(T q) {
             //       this.q = q;
             //       _iter = TheIterator();
             //     }
-            //   
+            //
             //     public void MoveNext(out bool more) {
             //       more =_iter.MoveNext();
             //     }
-            //   
+            //
             //     private IEnumerator<object> TheIterator() {
             //       // the translation of the body of the iterator, with each "yield" turning into a "yield return null;"
             //       yield break;
@@ -411,7 +415,12 @@ namespace Microsoft.Dafny {
 
         if (dt is IndDatatypeDecl) {
           Indent(ind); wr.WriteLine("public override string ToString() {");
-          string nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
+          string nm;
+          if (dt is TupleTypeDecl) {
+            nm = "";
+          } else {
+            nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
+          }
           Indent(ind + IndentAmount); wr.WriteLine("string s = \"{0}\";", nm);
           if (ctor.Formals.Count != 0) {
             Indent(ind + IndentAmount); wr.WriteLine("s += \"(\";");
@@ -538,7 +547,7 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write(")");
-      
+
       wr.WriteLine(";");
       Indent(ind + 2 * IndentAmount);
       wr.WriteLine("}");
@@ -584,7 +593,7 @@ namespace Microsoft.Dafny {
         Indent(ind);
         wr.WriteLine("}");
       }
-  
+
       // destructors
       foreach (var ctor in dt.Ctors) {
         foreach (var arg in ctor.Formals) {
@@ -1018,6 +1027,11 @@ namespace Microsoft.Dafny {
           var s = (AssignSuchThatStmt)stmt;
           if (s.AssumeToken != null) {
             compiler.Error("an assume statement cannot be compiled (line {0})", s.AssumeToken.line);
+          }
+        } else if (stmt is ForallStmt) {
+          var s = (ForallStmt)stmt;
+          if (s.Body == null) {
+            compiler.Error("a forall statement without a body cannot be compiled (line {0})", stmt.Tok.line);
           }
         }
       }

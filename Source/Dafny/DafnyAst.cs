@@ -88,16 +88,18 @@ namespace Microsoft.Dafny {
   {
     public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, null, null, null, true);
     Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
+    Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ClassDecl ObjectDecl;
     public readonly ClassDecl RealClass;
     //public readonly Function RealToInt;
     //public readonly Function IntToReal;
     public BuiltIns() {
       // create class 'object'
-      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null);
+      ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile());
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
-      UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
+      // Arrays of other dimensions may be added during parsing as the parser detects the need for these
+      UserDefinedType tmp = ArrayType(1, Type.Int, true);
       // add real number functions
       Function RealToInt = new Function(Token.NoToken, "RealToInt", true, true, new List<TypeParameter>(), Token.NoToken,
         new List<Formal> { new Formal(Token.NoToken, "x", Type.Real, true, true) }, Type.Int, new List<Expression>(),
@@ -108,28 +110,35 @@ namespace Microsoft.Dafny {
         new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
         null, null, Token.NoToken);
       RealClass = new ClassDecl(Token.NoToken, "Real", SystemModule, new List<TypeParameter>(),
-        new List<MemberDecl>() { RealToInt, IntToReal }, null);
+        new List<MemberDecl>() { RealToInt, IntToReal }, DontCompile());
       RealToInt.EnclosingClass = RealClass;
       IntToReal.EnclosingClass = RealClass;
       RealToInt.IsBuiltin = true;
       IntToReal.IsBuiltin = true;
       SystemModule.TopLevelDecls.Add(RealClass);
+      // Note, in addition to these types, the _System module contains tuple types.  These tuple types are added to SystemModule
+      // by the parser as the parser detects the need for these.
     }
 
-    public UserDefinedType ArrayType(int dims, Type arg) {
-      return ArrayType(Token.NoToken, dims, arg, false);
+    private Attributes DontCompile() {
+      var flse = new Attributes.Argument(Token.NoToken, Expression.CreateBoolLiteral(Token.NoToken, false));
+      return new Attributes("compile", new List<Attributes.Argument>() { flse }, null);
     }
-    public UserDefinedType ArrayType(IToken tok, int dims, Type arg, bool allowCreationOfNewClass) {
-      Contract.Requires(tok != null);
+
+    public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass = false) {
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
+      return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
+    }
+    public UserDefinedType ArrayType(IToken tok, int dims, List<Type> typeArgs, bool allowCreationOfNewClass) {
+      Contract.Requires(tok != null);
+      Contract.Requires(1 <= dims);
+      Contract.Requires(typeArgs != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      List<Type> typeArgs = new List<Type>();
-      typeArgs.Add(arg);
       UserDefinedType udt = new UserDefinedType(tok, ArrayClassName(dims), typeArgs, null);
       if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
-        ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule);
+        ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
         for (int d = 0; d < dims; d++) {
           string name = dims == 1 ? "Length" : "Length" + d;
           string compiledName = dims == 1 ? "Length" : "GetLength(" + d + ")";
@@ -152,6 +161,30 @@ namespace Microsoft.Dafny {
         return "array" + dims;
       }
     }
+
+    public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(0 <= dims);
+      Contract.Ensures(Contract.Result<TupleTypeDecl>() != null);
+
+      TupleTypeDecl tt;
+      if (!tupleTypeDecls.TryGetValue(dims, out tt)) {
+        Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
+        tt = new TupleTypeDecl(dims, SystemModule);
+        tupleTypeDecls.Add(dims, tt);
+        SystemModule.TopLevelDecls.Add(tt);
+      }
+      return tt;
+    }
+    public static string TupleTypeName(int dims) {
+      Contract.Requires(0 <= dims);
+      return "_tuple#" + dims;
+    }
+    public static bool IsTupleTypeName(string s) {
+      Contract.Requires(s != null);
+      return s.StartsWith("_tuple#");
+    }
+    public const string TupleTypeCtorName = "_#Make";  // the printer wants this name to be uniquely recognizable
   }
 
   public class Attributes {
@@ -553,9 +586,9 @@ namespace Microsoft.Dafny {
   }
   public class MapType : CollectionType
   {
-    public Type Range { 
-      get { return range; } 
-      set { 
+    public Type Range {
+      get { return range; }
+      set {
         range = Range;
         TypeArgs = new List<Type> { Arg, range };
       }
@@ -573,7 +606,7 @@ namespace Microsoft.Dafny {
     }
     public Type Domain {
       get { return Arg; }
-      set { 
+      set {
         TypeArgs = new List<Type> { Domain, range };
       }
     }
@@ -679,7 +712,7 @@ namespace Microsoft.Dafny {
       else
         this.Path = new List<IToken>();
     }
-    
+
     /// <summary>
     /// This constructor constructs a resolved type parameter
     /// </summary>
@@ -694,7 +727,7 @@ namespace Microsoft.Dafny {
       this.Path = new List<IToken>();
     }
 
-    public UserDefinedType(TypeParameter tp) 
+    public UserDefinedType(TypeParameter tp)
       : this(tp.tok, tp.Name, tp)
     {
       Contract.Requires(tp != null);
@@ -736,8 +769,11 @@ namespace Microsoft.Dafny {
     [Pure]
     public override string TypeName(ModuleDefinition context) {
       Contract.Ensures(Contract.Result<string>() != null);
-      if (ResolvedParam != null) {
+      /* if (ResolvedParam != null) {
         return ResolvedParam.FullName();
+      } else */ 
+      if (BuiltIns.IsTupleTypeName(Name)) {
+        return "(" + Util.Comma(",", TypeArgs, ty => ty.TypeName(context)) + ")";
       } else {
         string s = "";
         foreach (var t in Path) {
@@ -923,7 +959,7 @@ namespace Microsoft.Dafny {
   /// Domain and Range refer to the types of the indexing operation.  That is, in A[i],
   /// i is of type Domain and A[i] is of type Range.
   /// Arg is either Domain or Range, depending on what type it is.  Arg is the type
-  /// one would use in an expression "x in C", whereas 
+  /// one would use in an expression "x in C", whereas
   /// This proxy stands for one of:
   ///   seq(T)       Domain,Range,Arg := int,T,T
   ///   multiset(T)  Domain,Range,Arg := T,int,T
@@ -1050,7 +1086,7 @@ namespace Microsoft.Dafny {
       EqualitySupport = equalitySupport;
     }
 
-    public TypeParameter(IToken tok, string name, int positionalIndex, ParentType parent) 
+    public TypeParameter(IToken tok, string name, int positionalIndex, ParentType parent)
        : this(tok, name)
     {
       PositionalIndex = positionalIndex;
@@ -1107,7 +1143,7 @@ namespace Microsoft.Dafny {
     public ModuleDecl CompileRoot;
     public readonly List<IToken> CompilePath;
     public ModuleSignature OriginalSignature;
-    
+
     public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, List<IToken> compilePath, bool opened)
       : base(name, name.val, parent, opened) {
       Path = path;
@@ -1117,7 +1153,7 @@ namespace Microsoft.Dafny {
   }
 
   public class ModuleSignature {
-    
+
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
@@ -1138,15 +1174,15 @@ namespace Microsoft.Dafny {
         } else return false;
       } else return false;
     }
-    
-      
+
+
   }
   public class ModuleDefinition : TopLevelDecl {
     public readonly List<IToken> RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
     public ModuleDefinition RefinementBase;  // filled in during resolution (null if no refinement base)
     public List<Include> Includes;
-    
+
     public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that
     public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
@@ -1396,10 +1432,10 @@ namespace Microsoft.Dafny {
 
   public class ArrayClassDecl : ClassDecl {
     public readonly int Dims;
-    public ArrayClassDecl(int dims, ModuleDefinition module)
+    public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
       new List<TypeParameter>(new TypeParameter[]{new TypeParameter(Token.NoToken, "arg")}),
-      new List<MemberDecl>(), null)
+      new List<MemberDecl>(), attrs)
     {
       Contract.Requires(1 <= dims);
       Contract.Requires(module != null);
@@ -1408,7 +1444,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class DatatypeDecl : TopLevelDecl {
+  public abstract class DatatypeDecl : TopLevelDecl
+  {
     public readonly List<DatatypeCtor> Ctors;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -1454,6 +1491,52 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TupleTypeDecl : IndDatatypeDecl
+  {
+    public readonly int Dims;
+    /// <summary>
+    /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
+    /// </summary>
+    public TupleTypeDecl(int dims, ModuleDefinition systemModule)
+      : this(systemModule, CreateTypeParameters(dims)) {
+      Contract.Requires(0 <= dims);
+      Contract.Requires(systemModule != null);
+    }
+    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs)
+      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), null) {
+      Contract.Requires(systemModule != null);
+      Contract.Requires(typeArgs != null);
+      Dims = typeArgs.Count;
+      foreach (var ctor in Ctors) {
+        ctor.EnclosingDatatype = this;  // resolve here
+        DefaultCtor = ctor;
+        TypeParametersUsedInConstructionByDefaultCtor = new bool[typeArgs.Count];
+        for (int i = 0; i < typeArgs.Count; i++) {
+          TypeParametersUsedInConstructionByDefaultCtor[i] = true;
+        }
+      }
+    }
+    private static List<TypeParameter> CreateTypeParameters(int dims) {
+      Contract.Requires(0 <= dims);
+      var ts = new List<TypeParameter>();
+      for (int i = 0; i < dims; i++) {
+        ts.Add(new TypeParameter(Token.NoToken, "T" + i));
+      }
+      return ts;
+    }
+    private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      var formals = new List<Formal>();
+      for (int i = 0; i < typeArgs.Count; i++) {
+        var tp = typeArgs[i];
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp.Name, tp), true, false);
+        formals.Add(f);
+      }
+      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorName, formals, null);
+      return new List<DatatypeCtor>() { ctor };
+    }
+  }
+
   public class CoDatatypeDecl : DatatypeDecl
   {
     public CoDatatypeDecl SscRepr;  // filled in during resolution
@@ -1496,7 +1579,7 @@ namespace Microsoft.Dafny {
     }
 
     public string FullName {
-      get {        
+      get {
         Contract.Ensures(Contract.Result<string>() != null);
         Contract.Assume(EnclosingDatatype != null);
 
@@ -1561,9 +1644,9 @@ namespace Microsoft.Dafny {
   public class NoContext : ICodeContext
   {
     public readonly ModuleDefinition Module;
-    public NoContext(ModuleDefinition module) 
+    public NoContext(ModuleDefinition module)
     {
-      this.Module = module;    
+      this.Module = module;
     }
     bool ICodeContext.IsGhost { get { return true; } }
     bool ICodeContext.IsStatic { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -1959,7 +2042,7 @@ namespace Microsoft.Dafny {
       }
       return UniqueName;
     }
-    static char[] specialChars = new char[] { '\'', '_', '?', '\\' };
+    static char[] specialChars = new char[] { '\'', '_', '?', '\\', '#' };
     public static string CompilerizeName(string nm) {
       if ('0' <= nm[0] && nm[0] <= '9') {
         // the identifier is one that consists of just digits
@@ -1983,6 +2066,7 @@ namespace Microsoft.Dafny {
             case '_': name += "__"; break;
             case '?': name += "_q"; break;
             case '\\': name += "_b"; break;
+            case '#': name += "_h"; break;
             default:
               Contract.Assume(false);  // unexpected character
               break;
@@ -3240,7 +3324,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(MethodName != null);
       Contract.Invariant(cce.NonNullElements(Lhs));
       Contract.Invariant(cce.NonNullElements(Args));
-      Contract.Invariant(TypeArgumentSubstitutions == null || 
+      Contract.Invariant(TypeArgumentSubstitutions == null ||
         Contract.ForAll(Method.TypeArgs, tp => TypeArgumentSubstitutions.ContainsKey(tp)));
     }
 
@@ -3248,8 +3332,8 @@ namespace Microsoft.Dafny {
     public Expression Receiver;  // non-null after resolution
     public readonly string MethodName;
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  
-	// create, initialized, and used by resolution 
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;
+	// create, initialized, and used by resolution
         // (could be deleted once all of resolution is done)
 	// That's not going to work! It should never be deleted!
     public Method Method;  // filled in by resolution
@@ -3560,7 +3644,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Range != null);
       Contract.Invariant(BoundVars.Count != 0 || LiteralExpr.IsTrue(Range));
       Contract.Invariant(Ens != null);
-      Contract.Invariant(Body != null);
     }
 
     public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<MaybeFreeExpression> ens, Statement body)
@@ -3571,7 +3654,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(range != null);
       Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
       Contract.Requires(cce.NonNullElements(ens));
-      Contract.Requires(body != null);
       this.BoundVars = boundVars;
       this.Attributes = attrs;
       this.Range = range;
@@ -3605,7 +3687,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Statement> SubStatements {
       get {
-        yield return Body;
+        if (Body != null) {
+          yield return Body;
+        }
       }
     }
     public override IEnumerable<Expression> SubExpressions {
@@ -3686,8 +3770,8 @@ namespace Microsoft.Dafny {
       public static bool ValidOp(BinaryExpr.Opcode op) {
         return
              op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq
-          || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le 
-          || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge                    
+          || op == BinaryExpr.Opcode.Lt || op == BinaryExpr.Opcode.Le
+          || op == BinaryExpr.Opcode.Gt || op == BinaryExpr.Opcode.Ge
           || LogicOp(op);
       }
 
@@ -3713,7 +3797,7 @@ namespace Microsoft.Dafny {
         var op2 = other.Op;
         if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
           return op2 == BinaryExpr.Opcode.Eq;
-        if (op1 == op2) 
+        if (op1 == op2)
           return true;
         if (LogicOp(op1) || LogicOp(op2))
           return op2 == BinaryExpr.Opcode.Eq ||
@@ -3805,7 +3889,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> Steps;  // expressions li op l<i + 1>, filled in during resolution (last step is dummy)
     public Expression Result;                     // expression l0 ResultOp ln, filled in during resolution
 
-    public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq); 
+    public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -3847,7 +3931,7 @@ namespace Microsoft.Dafny {
       } else {
         this.ResultOp = resultOp;
       }
-      this.Steps = new List<Expression>();  
+      this.Steps = new List<Expression>();
       this.Result = null;
     }
 
@@ -3916,8 +4000,9 @@ namespace Microsoft.Dafny {
     public readonly Expression Source;
     public readonly List<MatchCaseStmt> Cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+    public readonly bool UsesOptionalBraces;
 
-    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases)
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -3925,6 +4010,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
 
     public override IEnumerable<Statement> SubStatements {
@@ -4014,7 +4100,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       NameReplacements = nameReplacements;
       ExprReplacements = exprReplacements;
-      
+
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -4185,6 +4271,20 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Create a resolved expression of the form "e0 + e1"
+    /// </summary>
+    public static Expression CreateAdd(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires((e0.Type is IntType && e1.Type is IntType) || (e0.Type is RealType && e1.Type is RealType));
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
+      s.Type = e0.Type;  // resolve here
+      return s;
+    }
+
+    /// <summary>
     /// Create a resolved expression of the form "e0 - e1"
     /// </summary>
     public static Expression CreateSubtract(Expression e0, Expression e1) {
@@ -4209,12 +4309,8 @@ namespace Microsoft.Dafny {
       if (n == 0) {
         return e;
       }
-      var nn = new LiteralExpr(e.tok, n);
-      nn.Type = Type.Int;
-      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Add, e, nn);
-      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
-      p.Type = Type.Int;
-      return p;
+      var nn = CreateIntLiteral(e.tok, n);
+      return CreateAdd(e, nn);
     }
 
     /// <summary>
@@ -4228,11 +4324,8 @@ namespace Microsoft.Dafny {
       if (n == 0) {
         return e;
       }
-      var nn = Expression.CreateIntLiteral(e.tok, n);
-      var p = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, e, nn);
-      p.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-      p.Type = Type.Int;
-      return p;
+      var nn = CreateIntLiteral(e.tok, n);
+      return CreateSubtract(e, nn);
     }
 
     /// <summary>
@@ -4252,7 +4345,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Create a resolved expression for a bool b
-    /// </summary>        
+    /// </summary>
     public static Expression CreateBoolLiteral(IToken tok, bool b) {
       Contract.Requires(tok != null);
       var lit = new LiteralExpr(tok, b);
@@ -4294,6 +4387,26 @@ namespace Microsoft.Dafny {
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
       s.Type = Type.Bool;  // resolve here
       return s;
+    }
+
+    public static Expression CreateEq(Expression e0, Expression e1, Type ty) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(ty != null);
+      var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1);
+      if (ty is SetType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SetEq;
+      } else if (ty is SeqType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SeqEq;
+      } else if (ty is MultiSetType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.InMultiSet;
+      } else if (ty is MapType) {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.MapEq;
+      } else {
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
+      }
+      eq.type = Type.Bool;
+      return eq;
     }
 
     /// <summary>
@@ -4357,7 +4470,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
       ResolvedCloner cloner = new ResolvedCloner();
-      var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);   
+      var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
       new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x=>(NonglobalVariable)x), newVars, new_body);
 
       var new_case = new MatchCaseExpr(old_case.tok, old_case.Id, newVars, new_body);
@@ -4367,15 +4480,15 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Create a match expression with a resolved type 
+    /// Create a match expression with a resolved type
     /// </summary>
     public static Expression CreateMatch(IToken tok, Expression src, List<MatchCaseExpr> cases, Type type) {
-      MatchExpr e = new MatchExpr(tok, src, cases);
+      MatchExpr e = new MatchExpr(tok, src, cases, false);
       e.Type = type;  // resolve here
 
       return e;
     }
- 
+
     /// <summary>
     /// Create a let expression with a resolved type and fresh variables
     /// </summary>
@@ -4415,22 +4528,33 @@ namespace Microsoft.Dafny {
       }
 
       body = VarSubstituter(expr.BoundVars.ConvertAll<NonglobalVariable>(x=>(NonglobalVariable)x), newVars, body);
-      
+
       QuantifierExpr q;
       if (forall) {
         q = new ForallExpr(expr.tok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
       } else {
         q = new ExistsExpr(expr.tok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
-      } 
+      }
       q.Type = Type.Bool;
 
-      return q;           
+      return q;
+    }
+
+    /// <summary>
+    /// Create a resolved IdentifierExpr (whose token is that of the variable)
+    /// </summary>
+    public static Expression CreateIdentExpr(IVariable v) {
+      Contract.Requires(v != null);
+      var e = new IdentifierExpr(v.Tok, v.Name);
+      e.Var = v;  // resolve here
+      e.type = v.Type;  // resolve here
+      return e;
     }
 
     public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e) {
       Contract.Requires(oldVars != null && newVars != null);
       Contract.Requires(oldVars.Count == newVars.Count);
-      
+
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
       Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
 
@@ -4455,7 +4579,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Type UnresolvedType;
 
-    public StaticReceiverExpr(IToken tok, Type t) 
+    public StaticReceiverExpr(IToken tok, Type t)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
@@ -4525,7 +4649,7 @@ namespace Microsoft.Dafny {
       this.Value = b;
     }
   }
-  
+
   public class DatatypeValue : Expression {
     public readonly string DatatypeName;
     public readonly string MemberName;
@@ -4540,7 +4664,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Arguments));
       Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
       Contract.Invariant(
-	Ctor == null || 
+	Ctor == null ||
 	InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
     }
 
@@ -4638,7 +4762,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(elements));
     }
   }
-  
+
   public class MultiSetDisplayExpr : DisplayExpression {
     public MultiSetDisplayExpr(IToken tok, List<Expression> elements) : base(tok, elements) {
       Contract.Requires(tok != null);
@@ -4800,7 +4924,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;
 	// created, initialized, and used by resolution (and also used by translation)
     public enum CoCallResolution {
       No,
@@ -4822,7 +4946,7 @@ namespace Microsoft.Dafny {
         Function == null || TypeArgumentSubstitutions == null ||
         Contract.ForAll(
           Function.TypeArgs,
-        	  a => TypeArgumentSubstitutions.ContainsKey(a)) && 
+        	  a => TypeArgumentSubstitutions.ContainsKey(a)) &&
         Contract.ForAll(
           TypeArgumentSubstitutions.Keys,
         	  a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
@@ -5051,6 +5175,18 @@ namespace Microsoft.Dafny {
     }
     public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!
       get { return _theResolvedOp; }
+    }
+    public static bool IsEqualityOp(ResolvedOpcode op) {
+      switch (op) {
+        case ResolvedOpcode.EqCommon:
+        case ResolvedOpcode.SetEq:
+        case ResolvedOpcode.SeqEq:
+        case ResolvedOpcode.MultiSetEq:
+        case ResolvedOpcode.MapEq:
+          return true;
+        default:
+          return false;
+      }
     }
 
     public static Opcode ResolvedOp2SyntacticOp(ResolvedOpcode rop) {
@@ -5610,6 +5746,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Source;
     public readonly List<MatchCaseExpr> Cases;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+    public readonly bool UsesOptionalBraces;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -5618,13 +5755,14 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
-    public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases)
+    public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -5807,7 +5945,7 @@ namespace Microsoft.Dafny {
   public class MaybeFreeExpression {
     public readonly Expression E;
     public readonly bool IsFree;
-    
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);

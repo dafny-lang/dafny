@@ -18,6 +18,7 @@ namespace Microsoft.Dafny {
 
     [NotDelayed]
     public Translator() {
+      InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
         sink = boogieProgram;
@@ -409,13 +410,13 @@ namespace Microsoft.Dafny {
           var impl = decl as Implementation;
           if (impl != null && impl.FindStringAttribute("checksum") == null)
           {
-            impl.AddAttribute("checksum", "dummy");
+            impl.AddAttribute("checksum", "stable");
           }
 
           var func = decl as Bpl.Function;
           if (func != null && func.FindStringAttribute("checksum") == null)
           {
-            func.AddAttribute("checksum", "dummy");
+            func.AddAttribute("checksum", "stable");
           }
         }
       }
@@ -2614,7 +2615,7 @@ namespace Microsoft.Dafny {
     public void InsertUniqueIdForImplementation(Bpl.Declaration decl)
     {
       var impl = decl as Bpl.Implementation;
-      var prefix = UniqueIdPrefix ?? decl.tok.filename;
+      var prefix = UniqueIdPrefix ?? System.Text.RegularExpressions.Regex.Replace(decl.tok.filename, @".v\d+.dfy", ".dfy");
       if (impl != null && !string.IsNullOrEmpty(prefix))
       {
         decl.AddAttribute("id", prefix + ":" + impl.Name + ":0");
@@ -5858,15 +5859,33 @@ namespace Microsoft.Dafny {
       //     assume $HeapSucc(oldHeap, $Heap);
       //     (a)
       //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //         { $Heap[o,F] }
       //         $Heap[o,F] = oldHeap[o,F] ||
       //         (exists x,y :: Range(x,y) && o == E(x,y) && F = f));
-      //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]);
+      //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]); (**)
       //     (b)
       //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //         { $Heap[o,F] }
       //         $Heap[o,F] = oldHeap[o,F] ||
       //         (exists x,y :: Range(x,y) && o == A(x,y) && F = Index(I0,I1,...)));
-      //       assume (forall x,y ::  Range ==> $Heap[ A[$Heap:=oldHeap], Index(I0,I1,...)] == G[$Heap:=oldHeap]);
+      //       assume (forall x,y ::  Range ==> $Heap[ A[$Heap:=oldHeap], Index(I0,I1,...)] == G[$Heap:=oldHeap]); (**)
       //   }
+      //
+      // Note: In order to get a good trigger for the quantifiers (**), we will attempt to make the parameters
+      // that select from $Heap in the LHS of the equalities as plain as possible.  This involves taking the inverse
+      // of an expression, which isn't always easy or possible, so we settle for handling some common cases.  In
+      // particular, we change:
+      //   0: forall i | R(i) { F(i).f := E(i); }
+      //   1: forall i | R(i) { A[F(i)] := E(i); }
+      //   2: forall i | R(i) { F(i)[N] := E(i); }
+      // where f is some field and A and N are expressions that do not depend on i, into:
+      //   0: forall j | Q(j) { j.f := E(F-1(j)); }
+      //   1: forall j | Q(j) { A[j] := E(F-1(j)); }
+      //   2: forall j | Q(j) { j[N] := E(F-1(j)); }
+      // where we ensure that, for all i and j:
+      //   R(i) && j == F(i)    <==>    Q(j) && F-1(j) == i
+      // If the transformation succeeds, we use, respectively, j.f, A[j], and j[N] (each evaluated in the new heap) as
+      // the trigger of the quantifier generated.
 
       var substMap = SetupBoundVarsAsLocals(s.BoundVars, definedness, locals, etran);
       Expression range = Substitute(s.Range, null, substMap);
@@ -5932,6 +5951,7 @@ namespace Microsoft.Dafny {
 
       // Here comes:
       //   assume (forall<alpha> o: ref, f: Field alpha ::
+      //     { $Heap[o,f] }
       //     $Heap[o,f] = oldHeap[o,f] ||
       //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
       //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
@@ -5940,8 +5960,8 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-      Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f);
-      Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f);
+      Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, o, f);
+      Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(s.Tok, prevHeap, o, f);
       List<Variable> xBvars = new List<Variable>();
       var xBody = etran.TrBoundVariables(s.BoundVars, xBvars);
       xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
@@ -5951,30 +5971,249 @@ namespace Microsoft.Dafny {
       xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
       Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);
       Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
-      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, body);
+      var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
+      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, body);
       updater.Add(new Bpl.AssumeCmd(s.Tok, qq));
 
       if (s0.Rhs is ExprRhs) {
-        //   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
-        //                         $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap] ));
-        xBvars = new List<Variable>();
-        Bpl.Expr xAnte = etran.TrBoundVariables(s.BoundVars, xBvars);
-        xAnte = BplAnd(xAnte, prevEtran.TrExpr(s.Range));
-        var rhs = ((ExprRhs)s0.Rhs).Expr;
-        var g = prevEtran.TrExpr(rhs);
-        GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out xObj, out xField);
-        var xHeapOF = ReadHeap(s.Tok, etran.HeapExpr, xObj, xField);
-
-        Type lhsType;
-        if (lhs is FieldSelectExpr) {
-          lhsType = ((FieldSelectExpr)lhs).Type;
-        } else {
-          lhsType = null;
+        Expression Fi = null;
+        Func<Expression,Expression> lhsBuilder = null;
+        lhs = s0.Lhs.Resolved;
+        var i = s.BoundVars[0];
+        if (s.BoundVars.Count == 1) {
+          //var lhsContext = null;
+          // Detect the following cases:
+          //   0: forall i | R(i) { F(i).f := E(i); }
+          //   1: forall i | R(i) { A[F(i)] := E(i); }
+          //   2: forall i | R(i) { F(i)[N] := E(i); }
+          if (lhs is FieldSelectExpr) {
+            var ll = (FieldSelectExpr)lhs;
+            Fi = ll.Obj;
+            lhsBuilder = e => { var l = new FieldSelectExpr(ll.tok, e, ll.FieldName); l.Field = ll.Field; l.Type = ll.Type; return l; };
+          } else if (lhs is SeqSelectExpr) {
+            var ll = (SeqSelectExpr)lhs;
+            Contract.Assert(ll.SelectOne);
+            if (!ContainsFreeVariable(ll.Seq, false, i)) {
+              Fi = ll.E0;
+              lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, ll.Seq, e, null); l.Type = ll.Type; return l; };
+            } else if (!ContainsFreeVariable(ll.E0, false, i)) {
+              Fi = ll.Seq;
+              lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, e, ll.E0, null); l.Type = ll.Type; return l; };
+            }
+          }
         }
-        g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
+        var rhs = ((ExprRhs)s0.Rhs).Expr;
+        bool usedInversion = false;
+        if (Fi != null) {
+          var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type);
+          var jj = Expression.CreateIdentExpr(j);
+          var jList = new List<BoundVar>() { j };
+          var vals = InvertExpression(i, j, s.Range, Fi);
+#if DEBUG_PRINT
+          Console.WriteLine("DEBUG: Trying to invert:");
+          Console.WriteLine("DEBUG:   " + Printer.ExprToString(s.Range) + " && " + j.Name + " == " + Printer.ExprToString(Fi));
+          if (vals == null) {
+            Console.WriteLine("DEBUG: Can't");
+          } else {
+            Console.WriteLine("DEBUG: The inverse is the disjunction of the following:");
+            foreach (var val in vals) {
+              Console.WriteLine("DEBUG:   " + Printer.ExprToString(val.Range) + " && " + Printer.ExprToString(val.FInverse) + " == " + i.Name);
+            }
+          }
+#endif
+          if (vals != null) {
+            foreach (var val in vals) {
+              qq = TrForall_NewValueAssumption(s.Tok, jList, val.Range, lhsBuilder(jj), Substitute(rhs, i, val.FInverse), true, etran, prevEtran);
+              updater.Add(new Bpl.AssumeCmd(s.Tok, qq));
+            }
+            usedInversion = true;
+          }
+        }
+        if (!usedInversion) {
+          qq = TrForall_NewValueAssumption(s.Tok, s.BoundVars, s.Range, lhs, rhs, false, etran, prevEtran);
+          updater.Add(new Bpl.AssumeCmd(s.Tok, qq));
+        }
+      }
+    }
 
-        qq = new Bpl.ForallExpr(s.Tok, xBvars, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
-        updater.Add(new Bpl.AssumeCmd(s.Tok, qq));
+    /// <summary>
+    /// Generate:
+    ///   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
+    ///                         $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap] ));
+    /// where
+    ///   x,y           represent boundVars
+    ///   Object(x,y)   is the first part of lhs
+    ///   Field(x,y)    is the second part of lhs
+    ///   G             is rhs
+    /// If lhsAsTrigger is true, then use the LHS of the equality above as the trigger; otherwise, don't specify any trigger.
+    /// </summary>
+    private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, Expression range, Expression lhs, Expression rhs, bool lhsAsTrigger, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(boundVars != null);
+      Contract.Requires(range != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(prevEtran != null);
+
+      var xBvars = new List<Variable>();
+      Bpl.Expr xAnte = etran.TrBoundVariables(boundVars, xBvars);
+      xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
+      var g = prevEtran.TrExpr(rhs);
+      Bpl.Expr obj, field;
+      GetObjFieldDetails(lhs, prevEtran, out obj, out field);
+      var xHeapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, obj, field);
+
+      Type lhsType = lhs is FieldSelectExpr ? ((FieldSelectExpr)lhs).Type : null;
+      g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
+
+      Trigger tr = lhsAsTrigger ? new Trigger(tok, true, new List<Bpl.Expr>() { xHeapOF }) : null;
+      return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
+    }
+
+    class ForallStmtTranslationValues
+    {
+      public readonly Expression Range;
+      public readonly Expression FInverse;
+      public ForallStmtTranslationValues(Expression range, Expression fInverse) {
+        Contract.Requires(range != null);
+        Contract.Requires(fInverse != null);
+        Range = range;
+        FInverse = fInverse;
+      }
+      public ForallStmtTranslationValues Subst(IVariable j, Expression e, Translator translator) {
+        Contract.Requires(j != null);
+        Contract.Requires(e != null);
+        Contract.Requires(translator != null);
+        var substMap = new Dictionary<IVariable, Expression>();
+        substMap.Add(j, e);
+        var v = new ForallStmtTranslationValues(translator.Substitute(Range, null, substMap), translator.Substitute(FInverse, null, substMap));
+        return v;
+      }
+    }
+
+    /// <summary>
+    /// Find piecewise inverse of F under R.  More precisely, find lists of expressions P and F-1
+    /// such that
+    ///     R(i) && j == F(i)
+    /// holds iff the disjunction of the following predicates holds:
+    ///     P_0(j) && F-1_0(j) == i
+    ///     ...
+    ///     P_{n-1}(j) && F-1_{n-1}(j) == i
+    /// If no such disjunction is found, return null.
+    /// If such a disjunction is found, return for each disjunct:
+    ///     * The predicate P_k(j), which is an expression that may have free occurrences of j (but no free occurrences of i)
+    ///     * The expression F-1_k(j), which also may have free occurrences of j but not of i
+    /// </summary>
+    private List<ForallStmtTranslationValues> InvertExpression(BoundVar i, BoundVar j, Expression R, Expression F) {
+      Contract.Requires(i != null);
+      Contract.Requires(j != null);
+      Contract.Requires(R != null);
+      Contract.Requires(F != null);
+      var vals = new List<ForallStmtTranslationValues>(InvertExpressionIter(i, j, R, F));
+      if (vals.Count == 0) {
+        return null;
+      } else {
+        return vals;
+      }
+    }
+    /// <summary>
+    /// See InvertExpression.
+    /// </summary>
+    private IEnumerable<ForallStmtTranslationValues> InvertExpressionIter(BoundVar i, BoundVar j, Expression R, Expression F) {
+      Contract.Requires(i != null);
+      Contract.Requires(j != null);
+      Contract.Requires(R != null);
+      Contract.Requires(F != null);
+      F = F.Resolved;
+      if (!ContainsFreeVariable(F, false, i)) {
+        // We're looking at R(i) && j == K.
+        // We cannot invert j == K, but if we're lucky, R(i) contains a conjunct i==G.
+        Expression r = Expression.CreateBoolLiteral(R.tok, true);
+        Expression G = null;
+        foreach (var c in Expression.Conjuncts(R)) {
+          if (G == null && c is BinaryExpr) {
+            var bin = (BinaryExpr)c;
+            if (BinaryExpr.IsEqualityOp(bin.ResolvedOp)) {
+              var id = bin.E0.Resolved as IdentifierExpr;
+              if (id != null && id.Var == i) {
+                G = bin.E1;
+                continue;
+              }
+              id = bin.E1.Resolved as IdentifierExpr;
+              if (id != null && id.Var == i) {
+                G = bin.E0;
+                continue;
+              }
+            }
+          }
+          r = Expression.CreateAnd(r, c);
+        }
+        if (G != null) {
+          var jIsK = Expression.CreateEq(Expression.CreateIdentExpr(j), F, j.Type);
+          var rr = Substitute(r, i, G);
+          yield return new ForallStmtTranslationValues(Expression.CreateAnd(rr, jIsK), G);
+        }
+      } else if (F is IdentifierExpr) {
+        var e = (IdentifierExpr)F;
+        if (e.Var == i) {
+          // We're looking at R(i) && j == i, which is particularly easy to invert:  R(j) && j == i
+          var jj = Expression.CreateIdentExpr(j);
+          yield return new ForallStmtTranslationValues(Substitute(R, i, jj), jj);
+        }
+      } else if (F is BinaryExpr) {
+        var bin = (BinaryExpr)F;
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+          if (!ContainsFreeVariable(bin.E1, false, i)) {
+            // We're looking at:  R(i) && j == f(i) + K.
+            // By a recursive call, we'll ask to invert:  R(i) && j' == f(i).
+            // For each P_0(j') && f-1_0(j') == i we get back, we yield:
+            // P_0(j - K) && f-1_0(j - K) == i
+            var jMinusK = Expression.CreateSubtract(Expression.CreateIdentExpr(j), bin.E1);
+            foreach (var val in InvertExpression(i, j, R, bin.E0)) {
+              yield return val.Subst(j, jMinusK, this);
+            }
+          } else if (!ContainsFreeVariable(bin.E0, false, i)) {
+            // We're looking at:  R(i) && j == K + f(i)
+            // Do as in previous case, but with operands reversed.
+            var jMinusK = Expression.CreateSubtract(Expression.CreateIdentExpr(j), bin.E0);
+            foreach (var val in InvertExpression(i, j, R, bin.E1)) {
+              yield return val.Subst(j, jMinusK, this);
+            }
+          }
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
+          if (!ContainsFreeVariable(bin.E1, false, i)) {
+            // We're looking at:  R(i) && j == f(i) - K
+            // Recurse on f(i) and then replace j := j + K
+            var jPlusK = Expression.CreateAdd(Expression.CreateIdentExpr(j), bin.E1);
+            foreach (var val in InvertExpression(i, j, R, bin.E0)) {
+              yield return val.Subst(j, jPlusK, this);
+            }
+          } else if (!ContainsFreeVariable(bin.E0, false, i)) {
+            // We're looking at:  R(i) && j == K - f(i)
+            // Recurse on f(i) and then replace j := K - j
+            var kMinusJ = Expression.CreateAdd(Expression.CreateIdentExpr(j), bin.E0);
+            foreach (var val in InvertExpression(i, j, R, bin.E1)) {
+              yield return val.Subst(j, kMinusJ, this);
+            }
+          }
+        }
+      } else if (F is ITEExpr) {
+        var ife = (ITEExpr)F;
+        // We're looking at R(i) && j == if A(i) then B(i) else C(i), which is equivalent to the disjunction of:
+        //   R(i) && A(i) && j == B(i)
+        //   R(i) && !A(i) && j == C(i)
+        // We recurse on each one, yielding the results
+        var r = Expression.CreateAnd(R, ife.Test);
+        var valsThen = InvertExpression(i, j, r, ife.Thn);
+        if (valsThen != null) {
+          r = Expression.CreateAnd(R, Expression.CreateNot(ife.tok, ife.Test));
+          var valsElse = InvertExpression(i, j, r, ife.Els);
+          if (valsElse != null) {
+            foreach (var val in valsThen) { yield return val; }
+            foreach (var val in valsElse) { yield return val; }
+          }
+        }
       }
     }
 
@@ -6164,16 +6403,17 @@ namespace Microsoft.Dafny {
       TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
       definedness.Add(new Bpl.AssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
 
-      TrStmt(s.Body, definedness, locals, etran);
+      if (s.Body != null) {
+        TrStmt(s.Body, definedness, locals, etran);
 
-      // check that postconditions hold
-      foreach (var ens in s.Ens) {
-        TrStmt_CheckWellformed(ens.E, definedness, locals, etran, false);
-        if (!ens.IsFree) {
-          bool splitHappened;  // we actually don't care
-          foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
-            if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+        // check that postconditions hold
+        foreach (var ens in s.Ens) {
+          if (!ens.IsFree) {
+            bool splitHappened;  // we actually don't care
+            foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
+              if (split.IsChecked) {
+                definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+              }
             }
           }
         }
@@ -8289,9 +8529,15 @@ namespace Microsoft.Dafny {
         } else if (expr is SeqDisplayExpr) {
           SeqDisplayExpr e = (SeqDisplayExpr)expr;
           Bpl.Expr s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
-          foreach (Expression ee in e.Elements) {
-            Bpl.Expr elt = BoxIfNecessary(expr.tok, TrExpr(ee), cce.NonNull(ee.Type));
+          bool isLit = true;
+           foreach (Expression ee in e.Elements) {
+            var rawElement = TrExpr(ee);
+            isLit = isLit && translator.IsLit(rawElement);
+            Bpl.Expr elt = BoxIfNecessary(expr.tok, rawElement, ee.Type);
             s = translator.FunctionCall(expr.tok, BuiltinFunction.SeqBuild, predef.BoxType, s, elt);
+          }
+          if (isLit) {
+            s = translator.Lit(s, predef.BoxType);
           }
           return s;
 
@@ -8313,14 +8559,15 @@ namespace Microsoft.Dafny {
           Bpl.Expr result;
           if (e.Field.IsMutable) {
             result = ReadHeap(expr.tok, HeapExpr, obj, new Bpl.IdentifierExpr(expr.tok, translator.GetField(e.Field)));
-          } else {
-            result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(e.Field)), new List<Bpl.Expr> { obj });
-            if (translator.IsLit(obj)) {
-              result = translator.Lit(result, translator.TrType(expr.Type));
-            }
+            return translator.CondApplyUnbox(expr.tok, result, e.Field.Type, expr.Type);
+           } else {
+             result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(e.Field)), new List<Bpl.Expr> { obj });
+             result = translator.CondApplyUnbox(expr.tok, result, e.Field.Type, expr.Type);
+             if (translator.IsLit(obj)) {
+               result = translator.Lit(result, translator.TrType(expr.Type));
+             }
+             return result;
           }
-          return translator.CondApplyUnbox(expr.tok, result, e.Field.Type, cce.NonNull(expr.Type));
-
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
           Bpl.Expr seq = TrExpr(e.Seq);
@@ -8366,13 +8613,20 @@ namespace Microsoft.Dafny {
             if (e.Seq.Type.IsArrayType) {
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqFromArray, elType, HeapExpr, seq);
             }
+            var isLit = translator.IsLit(seq);
             if (e1 != null) {
+              isLit = isLit && translator.IsLit(e1);
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqTake, elType, seq, e1);
             }
             if (e0 != null) {
+              isLit = isLit && translator.IsLit(e0);
               seq = translator.FunctionCall(expr.tok, BuiltinFunction.SeqDrop, elType, seq, e0);
             }
             // if e0 == null && e1 == null, then we have the identity operation seq[..] == seq;
+            if (isLit && (e0 != null || e1 != null)) {
+              // Lit-lift the expression
+              seq = translator.Lit(seq, translator.TrType(expr.Type));
+            }
             return seq;
           }
 
@@ -8446,12 +8700,13 @@ namespace Microsoft.Dafny {
           var id = new Bpl.IdentifierExpr(e.tok, e.Function.FullSanitizedName, ty);
           bool returnLit;
           var args = FunctionInvocationArguments(e, layerArgument, out returnLit);
+
           Expr result = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(id), args);
+          result = translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
           if (returnLit && !translator.IsOpaqueFunction(e.Function)) {
             result = translator.Lit(result, ty);
           }
-          return translator.CondApplyUnbox(e.tok, result, e.Function.ResultType, e.Type);
-
+          return result;
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
           Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
@@ -8465,7 +8720,7 @@ namespace Microsoft.Dafny {
             args.Add(translator.CondApplyBox(expr.tok, bArg, cce.NonNull(arg.Type), t));
           }
           Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(dtv.tok, dtv.Ctor.FullName, predef.DatatypeType);
-          Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
+          Bpl.Expr ret = new Bpl.NAryExpr(dtv.tok, new Bpl.FunctionCall(id), args);
           if (isLit) {
             ret = translator.Lit(ret, predef.DatatypeType);
           }
@@ -8621,13 +8876,13 @@ namespace Microsoft.Dafny {
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Gt; break;
             case BinaryExpr.ResolvedOpcode.Add:
-              typ = Bpl.Type.Int;
+              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Add; break;
             case BinaryExpr.ResolvedOpcode.Sub:
-              typ = Bpl.Type.Int;
+              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Sub; break;
             case BinaryExpr.ResolvedOpcode.Mul:
-              typ = Bpl.Type.Int;
+              typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
               bOpcode = BinaryOperator.Opcode.Mul; break;
             case BinaryExpr.ResolvedOpcode.Div:
               if (isReal) {
@@ -8862,9 +9117,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
-          Bpl.Expr g = translator.RemoveLit(TrExpr(e.Test));
-          Bpl.Expr thn = translator.RemoveLit(TrExpr(e.Thn));
-          Bpl.Expr els = translator.RemoveLit(TrExpr(e.Els));
+          var g = translator.RemoveLit(TrExpr(e.Test));
+          var thn = translator.RemoveLit(TrExpr(e.Thn));
+          var els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
 
         } else if (expr is MatchExpr) {
@@ -9032,6 +9287,24 @@ namespace Microsoft.Dafny {
         return translator.BoxIfNecessary(tok, e, fromType);
       }
 
+      public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
+        Contract.Requires(tok != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(r != null);
+        Contract.Requires(f != null);
+        Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+
+        List<Bpl.Expr> args = new List<Bpl.Expr>();
+        args.Add(heap);
+        args.Add(r);
+        args.Add(f);
+        Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
+        return new Bpl.NAryExpr(tok,
+          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
+          args);
+      }
+
+
       public static Bpl.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
         Contract.Requires(tok != null);
         Contract.Requires(heap != null);
@@ -9193,8 +9466,10 @@ namespace Microsoft.Dafny {
     enum BuiltinFunction
     {
       Lit,
+      LitInt,
+      LitReal,
       LayerSucc,
-
+      
       Is, IsBox,
       IsAlloc, IsAllocBox,
 
@@ -9273,8 +9548,20 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
-      return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
+      Contract.Requires(expr != null);
+      Contract.Requires(typ != null);
+      // To avoid Boogie's int_2_U and U_2_int conversions, which seem to cause problems with
+      // arithmetic reasoning, we use several Lit functions.  In particular, we use one for
+      // integers, one for reals, and one for everything else.
+      if (typ.IsInt) {
+        return FunctionCall(expr.tok, BuiltinFunction.LitInt, null, expr);
+      } else if (typ.IsReal) {
+        return FunctionCall(expr.tok, BuiltinFunction.LitReal, null, expr);
+      } else {
+        return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
+      }
     }
+
 
     Bpl.Expr Lit(Bpl.Expr expr) {
       return Lit(expr, expr.Type);
@@ -9283,19 +9570,20 @@ namespace Microsoft.Dafny {
     Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is NAryExpr) {
         NAryExpr app = (NAryExpr)expr;
-        if (app.Fun.FunctionName == "Lit") {
-          return app.Args[0];
+        switch (app.Fun.FunctionName) {
+          case "LitInt":
+          case "LitReal":
+          case "Lit":
+            return app.Args[0];
+          default:
+            break;
         }
       }
       return null;
     }
 
     Bpl.Expr RemoveLit(Bpl.Expr expr) {
-      var e = GetLit(expr);
-      if (e == null) {
-        e = expr;
-      }
-      return e;
+      return GetLit(expr) ?? expr;
     }
 
     bool IsLit(Bpl.Expr expr) {
@@ -9311,6 +9599,14 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       switch (f) {
+        case BuiltinFunction.LitInt:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "LitInt", Bpl.Type.Int, args);
+        case BuiltinFunction.LitReal:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "LitReal", Bpl.Type.Real, args);
         case BuiltinFunction.Lit:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
@@ -10528,6 +10824,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns an expression like "expr", but where free occurrences of "v" have been replaced by "e".
+    /// </summary>
+    public Expression Substitute(Expression expr, IVariable v, Expression e) {
+      Contract.Requires(expr != null);
+      Contract.Requires(v != null);
+      Contract.Requires(e != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var substMap = new Dictionary<IVariable, Expression>();
+      substMap.Add(v, e);
+      return Substitute(expr, null, substMap);
+    }
+
     public Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type>/*?*/ typeMap = null) {
       Contract.Requires(expr != null);
       Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
@@ -10836,7 +11145,7 @@ namespace Microsoft.Dafny {
             cases.Add(newCaseExpr);
           }
           if (anythingChanged) {
-            var newME = new MatchExpr(expr.tok, src, cases);
+            var newME = new MatchExpr(expr.tok, src, cases, e.UsesOptionalBraces);
             newME.MissingCases.AddRange(e.MissingCases);
             newExpr = newME;
           }
@@ -11133,7 +11442,7 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
-          var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt));
+          var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
           rr.MissingCases.AddRange(s.MissingCases);
           r = rr;
         } else if (stmt is AssignSuchThatStmt) {

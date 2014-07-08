@@ -30,6 +30,9 @@ namespace Microsoft.Dafny
       if (d is ArbitraryTypeDecl) {
         var dd = (ArbitraryTypeDecl)d;
         return new ArbitraryTypeDecl(Tok(dd.tok), dd.Name, m, dd.EqualitySupport, CloneAttributes(dd.Attributes));
+      } else if (d is TupleTypeDecl) {
+        var dd = (TupleTypeDecl)d;
+        return new TupleTypeDecl(dd.Dims, dd.Module);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -61,18 +64,13 @@ namespace Microsoft.Dafny
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
         return iter;
       } else if (d is ClassDecl) {
+        var dd = (ClassDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new DefaultClassDecl(m, mm);
-          return cl;
+          return new DefaultClassDecl(m, mm);
         } else {
-          var dd = (ClassDecl)d;
-          var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-          var mm = dd.Members.ConvertAll(CloneMember);
-          var cl = new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
-          return cl;
+          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
@@ -355,7 +353,7 @@ namespace Microsoft.Dafny
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         return new MatchExpr(Tok(e.tok), CloneExpr(e.Source),
-          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))));
+          e.Cases.ConvertAll(c => new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body))), e.UsesOptionalBraces);
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
@@ -478,7 +476,7 @@ namespace Microsoft.Dafny
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source),
-          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))));
+          s.Cases.ConvertAll(c => new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt))), s.UsesOptionalBraces);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;

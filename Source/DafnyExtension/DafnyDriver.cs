@@ -45,7 +45,7 @@ namespace DafnyLanguage
 
         ExecutionEngine.printer = new DummyPrinter();
         ExecutionEngine.errorInformationFactory = new DafnyErrorInformationFactory();
-        ToggleIncrementalVerification();
+        ChangeIncrementalVerification(1);
       }
     }
 
@@ -215,11 +215,30 @@ namespace DafnyLanguage
       }
     }
 
-    public static bool ToggleIncrementalVerification()
+    public static int IncrementalVerificationMode()
     {
-      // TODO(wuestholz): Change this once there are more than two options.
-      Dafny.DafnyOptions.Clo.VerifySnapshots = (Dafny.DafnyOptions.Clo.VerifySnapshots + 1) % 2;
-      return 0 < Dafny.DafnyOptions.Clo.VerifySnapshots;
+      return Dafny.DafnyOptions.Clo.VerifySnapshots;
+    }
+
+    public static int ChangeIncrementalVerification(int mode)
+    {
+      var old = Dafny.DafnyOptions.Clo.VerifySnapshots;
+      if (mode == 1 && old != 0)
+      {
+        // Disable mode 1.
+        Dafny.DafnyOptions.Clo.VerifySnapshots = 0;
+      }
+      else if (mode == 2 && old == 2)
+      {
+        // Disable mode 2.
+        Dafny.DafnyOptions.Clo.VerifySnapshots = 1;
+      }
+      else
+      {
+        // Enable mode.
+        Dafny.DafnyOptions.Clo.VerifySnapshots = mode;
+      }
+      return Dafny.DafnyOptions.Clo.VerifySnapshots;
     }
 
     public static bool Verify(Dafny.Program dafnyProgram, ResolverTagger resolver, string uniqueIdPrefix, string requestId, ErrorReporterDelegate er) {
@@ -230,7 +249,8 @@ namespace DafnyLanguage
 
       resolver.ReInitializeVerificationErrors(requestId, boogieProgram.TopLevelDeclarations);
 
-      PipelineOutcome oc = BoogiePipeline(boogieProgram, requestId, er);
+      // TODO(wuestholz): Maybe we should use a fixed program ID to limit the memory overhead due to the program cache in Boogie.
+      PipelineOutcome oc = BoogiePipeline(boogieProgram, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? uniqueIdPrefix : null, requestId, er);
       switch (oc) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
@@ -248,7 +268,7 @@ namespace DafnyLanguage
     /// else.  Hence, any resolution errors and type checking errors are due to errors in
     /// the translation.
     /// </summary>
-    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string requestId, ErrorReporterDelegate er)
+    static PipelineOutcome BoogiePipeline(Bpl.Program/*!*/ program, string programId, string requestId, ErrorReporterDelegate er)
     {
       Contract.Requires(program != null);
 
@@ -257,8 +277,8 @@ namespace DafnyLanguage
         ExecutionEngine.EliminateDeadVariables(program);
         ExecutionEngine.CollectModSets(program);
         ExecutionEngine.CoalesceBlocks(program);
-        ExecutionEngine.Inline(program);  
-        return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), er, requestId);
+        ExecutionEngine.Inline(program);
+        return ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), programId, er, requestId);
       }
       return oc;
     }

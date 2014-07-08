@@ -62,6 +62,10 @@ axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
+function {:identity} LitInt(x: int): int { x }
+axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
+function {:identity} LitReal(x: real): real { x }
+axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
 function {:identity} Lit<T>(x: T): T { x }
 axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
 
@@ -613,7 +617,8 @@ type MultiSet T = [T]int;
 function $IsGoodMultiSet<T>(ms: MultiSet T): bool;
 // ints are non-negative, used after havocing, and for conversion from sequences to multisets.
 axiom (forall<T> ms: MultiSet T :: { $IsGoodMultiSet(ms) }
-  $IsGoodMultiSet(ms) <==> (forall bx: T :: { ms[bx] } 0 <= ms[bx]));
+  $IsGoodMultiSet(ms) <==>
+  (forall bx: T :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
 
 function MultiSet#Card<T>(MultiSet T): int;
 axiom (forall<T> s: MultiSet T :: { MultiSet#Card(s) } 0 <= MultiSet#Card(s));
@@ -706,6 +711,10 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
 function MultiSet#FromSeq<T>(Seq T): MultiSet T;
 // conversion produces a good map.
 axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
+// cardinality axiom
+axiom (forall<T> s: Seq T ::
+  { MultiSet#Card(MultiSet#FromSeq(s)) }
+    MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
 // building axiom
 axiom (forall<T> s: Seq T, v: T ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
@@ -848,12 +857,28 @@ axiom (forall<T> s, t: Seq T ::
 function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
+  /*
+<<<<<<< local
     Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
 axiom (forall h: Heap, a: ref :: { Seq#FromArray(h,a): Seq Box }
    (forall i: int :: 0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
 axiom (forall<alpha> h: Heap, o: ref, f: Field alpha, v: alpha, a: ref ::
   { Seq#FromArray(update(h, o, f, v), a) }
     o != a ==> Seq#FromArray(update(h, o, f, v), a) == Seq#FromArray(h, a) );
+axiom (forall h: Heap, i: int, v: Box, a: ref ::
+=======
+*/
+  Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
+axiom (forall h: Heap, a: ref, i: int ::
+  { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }
+  0 <= i && i < Seq#Length(Seq#FromArray(h, a)) ==> Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i)));
+axiom (forall h0, h1: Heap, a: ref ::
+  { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
+  $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) &&
+  (forall i: int ::
+    0 <= i && i < _System.array.Length(a) ==> read(h0, a, IndexField(i)) == read(h1, a, IndexField(i)))
+  ==>
+  Seq#FromArray(h0, a) == Seq#FromArray(h1, a));
 axiom (forall h: Heap, i: int, v: Box, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
     0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );

@@ -1,0 +1,27 @@
+
+-------------------- Snapshots0.dfy --------------------
+
+Dafny program verifier finished with 3 verified, 0 errors
+Snapshots0.v1.dfy(4,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 2 verified, 1 error
+
+-------------------- Snapshots1.dfy --------------------
+
+Dafny program verifier finished with 4 verified, 0 errors
+Snapshots1.v1.dfy(4,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 1 error
+
+-------------------- Snapshots2.dfy --------------------
+
+Dafny program verifier finished with 6 verified, 0 errors
+Snapshots2.v1.dfy(4,10): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 5 verified, 1 error
