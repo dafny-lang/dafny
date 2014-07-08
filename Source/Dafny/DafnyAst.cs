@@ -90,9 +90,6 @@ namespace Microsoft.Dafny {
     Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ClassDecl ObjectDecl;
-    public readonly ClassDecl RealClass;
-    //public readonly Function RealToInt;
-    //public readonly Function IntToReal;
     public BuiltIns() {
       // create class 'object'
       ObjectDecl = new ClassDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile());
@@ -100,22 +97,6 @@ namespace Microsoft.Dafny {
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
       UserDefinedType tmp = ArrayType(Token.NoToken, 1, Type.Int, true);
-      // add real number functions
-      Function RealToInt = new Function(Token.NoToken, "RealToInt", true, true, new List<TypeParameter>(), Token.NoToken,
-        new List<Formal> { new Formal(Token.NoToken, "x", Type.Real, true, true) }, Type.Int, new List<Expression>(),
-        new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
-        null, null, Token.NoToken);
-      Function IntToReal = new Function(Token.NoToken, "IntToReal", true, true, new List<TypeParameter>(), Token.NoToken,
-        new List<Formal> { new Formal(Token.NoToken, "x", Type.Int, true, true) }, Type.Real, new List<Expression>(),
-        new List<FrameExpression>(), new List<Expression>(), new Specification<Expression>(new List<Expression>(), null),
-        null, null, Token.NoToken);
-      RealClass = new ClassDecl(Token.NoToken, "Real", SystemModule, new List<TypeParameter>(),
-        new List<MemberDecl>() { RealToInt, IntToReal }, DontCompile());
-      RealToInt.EnclosingClass = RealClass;
-      IntToReal.EnclosingClass = RealClass;
-      RealToInt.IsBuiltin = true;
-      IntToReal.IsBuiltin = true;
-      SystemModule.TopLevelDecls.Add(RealClass);
       // Note, in addition to these types, the _System module contains tuple types.  These tuple types are added to SystemModule
       // by the parser as the parser detects the need for these.
     }
@@ -4299,7 +4280,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
       Contract.Requires(e.Type is BoolType);
-      var un = new UnaryExpr(tok, UnaryExpr.Opcode.Not, e);
+      var un = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e);
       un.Type = Type.Bool;  // resolve here
       return un;
     }
@@ -4957,46 +4938,20 @@ namespace Microsoft.Dafny {
       get { yield return E; }
     }
   }
-  public class FreshExpr : Expression {
-    public readonly Expression E;
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(E != null);
-    }
 
-    public FreshExpr(IToken tok, Expression expr)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(expr != null);
-      E = expr;
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { yield return E; }
-    }
-  }
-
-  public class UnaryExpr : Expression
+  public abstract class UnaryExpr : Expression
   {
-    public enum Opcode {
-      Lit,
-      Not,
-      SeqLength
-    }
-    public readonly Opcode Op;
     public readonly Expression E;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
     }
 
-    public UnaryExpr(IToken tok, Opcode op, Expression e)
+    public UnaryExpr(IToken tok, Expression e)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
-      this.Op = op;
       this.E = e;
-
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -5004,7 +4959,38 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class BinaryExpr : Expression {
+  public class UnaryOpExpr : UnaryExpr
+  {
+    public enum Opcode {
+      Not,
+      Cardinality,
+      Fresh,
+      Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
+    }
+    public readonly Opcode Op;
+
+    public UnaryOpExpr(IToken tok, Opcode op, Expression e)
+      : base(tok, e) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e != null);
+      this.Op = op;
+    }
+  }
+
+  public class ConversionExpr : UnaryExpr
+  {
+    public readonly Type ToType;
+    public ConversionExpr(IToken tok, Expression expr, Type toType)
+      : base(tok, expr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(toType != null);
+      ToType = toType;
+    }
+  }
+
+  public class BinaryExpr : Expression
+  {
     public enum Opcode {
       Iff,
       Imp,

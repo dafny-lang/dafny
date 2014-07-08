@@ -112,7 +112,7 @@ namespace Microsoft.Dafny
           // ensures Valid();
           ctor.Ens.Insert(0, new MaybeFreeExpression(new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>())));
           // ensures fresh(Repr - {this});
-          var freshness = new FreshExpr(tok, new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
+          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
             new FieldSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
             new SetDisplayExpr(tok, new List<Expression>() { new ThisExpr(tok) })));
           ctor.Ens.Insert(1, new MaybeFreeExpression(freshness));
@@ -265,7 +265,7 @@ namespace Microsoft.Dafny
               var e1 = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, Repr, e0);
               e1.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference;
               e1.Type = Repr.Type;
-              var freshness = new FreshExpr(tok, e1);
+              var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, e1);
               freshness.Type = Type.Bool;
               m.Ens.Insert(1, new MaybeFreeExpression(freshness));
             }
@@ -345,7 +345,9 @@ namespace Microsoft.Dafny
     /// </summary>
     static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
-      if (expr is OldExpr || expr is FreshExpr) {
+      if (expr is OldExpr) {
+        return true;
+      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
         return true;
       }
       foreach (var ee in expr.SubExpressions) {
@@ -803,7 +805,6 @@ namespace Microsoft.Dafny
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         reqs.AddRange(generateAutoReqs(e.E));
-      } else if (expr is FreshExpr) {
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
         Expression arg = e.E;                

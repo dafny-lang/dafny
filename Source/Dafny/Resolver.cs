@@ -1266,13 +1266,13 @@ namespace Microsoft.Dafny
         var e = (MultiSetFormingExpr)expr;
         return new MultiSetFormingExpr(e.tok, CloneExpr(e.E));
 
-      } else if (expr is FreshExpr) {
-        var e = (FreshExpr)expr;
-        return new FreshExpr(e.tok, CloneExpr(e.E));
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
+        return new UnaryOpExpr(e.tok, e.Op, CloneExpr(e.E));
 
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryExpr)expr;
-        return new UnaryExpr(e.tok, e.Op, CloneExpr(e.E));
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
+        return new ConversionExpr(e.tok, CloneExpr(e.E), CloneType(e.ToType));
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
@@ -2173,9 +2173,9 @@ namespace Microsoft.Dafny
             }
           }
           // fall through to do the subexpressions (with cp := Neither)
-        } else if (expr is UnaryExpr) {
-          var e = (UnaryExpr)expr;
-          if (e.Op == UnaryExpr.Opcode.Not) {
+        } else if (expr is UnaryOpExpr) {
+          var e = (UnaryOpExpr)expr;
+          if (e.Op == UnaryOpExpr.Opcode.Not) {
             // for the sub-parts, use Invert(cp)
             cp = Invert(cp);
             return true;
@@ -3455,7 +3455,7 @@ namespace Microsoft.Dafny
       mod.Add(new FrameExpression(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
       // ensures fresh(_new - old(_new));
       ens = iter.Member_MoveNext.Ens;
-      ens.Add(new MaybeFreeExpression(new FreshExpr(iter.tok,
+      ens.Add(new MaybeFreeExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new FieldSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
@@ -3485,7 +3485,7 @@ namespace Microsoft.Dafny
       // ensures !more ==> Ensures;
       foreach (var e in iter.Ensures) {
         ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
-          new UnaryExpr(iter.tok, UnaryExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
+          new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
           e.E),
           e.IsFree));
       }
@@ -5999,58 +5999,41 @@ namespace Microsoft.Dafny
           }
           expr.Type = e.Seq.Type;
 
-        }
-        else if (e.Seq.Type is UserDefinedType && ((UserDefinedType)e.Seq.Type).IsDatatype)
-        {
+        } else if (e.Seq.Type is UserDefinedType && ((UserDefinedType)e.Seq.Type).IsDatatype) {
           DatatypeDecl dt = ((UserDefinedType)e.Seq.Type).AsDatatype;
 
-          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger)))
-          {
+          if (!(e.Index is IdentifierSequence || (e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger))) {
             Error(expr, "datatype updates must be to datatype destructors");
           } else {
             string destructor_str = null;
 
-            if (e.Index is IdentifierSequence)
-            {
+            if (e.Index is IdentifierSequence) {
               IdentifierSequence iseq = (IdentifierSequence)e.Index;
 
-              if (iseq.Tokens.Count() != 1)
-              {
+              if (iseq.Tokens.Count() != 1) {
                 Error(expr, "datatype updates must name a single datatype destructor");
-              }
-              else
-              {
+              } else {
                 destructor_str = iseq.Tokens.First().val;
               }
-            }
-            else
-            {
+            } else {
               Contract.Assert(e.Index is LiteralExpr && ((LiteralExpr)e.Index).Value is BigInteger);
               destructor_str = ((LiteralExpr)e.Index).tok.val;
             }
 
-            if (destructor_str != null)
-            {
+            if (destructor_str != null) {
               MemberDecl member;
-              if (!datatypeMembers[dt].TryGetValue(destructor_str, out member))
-              {
+              if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
                 Error(expr, "member {0} does not exist in datatype {1}", destructor_str, dt.Name);
-              }
-              else
-              {
+              } else {
                 // Rewrite an update of the form "dt[dtor := E]" to be "dtCtr(E, dt.dtor2, dt.dtor3,...)"
                 DatatypeDestructor destructor = (DatatypeDestructor)member;
                 DatatypeCtor ctor = destructor.EnclosingCtor;
 
                 List<Expression> ctor_args = new List<Expression>();
-                foreach (Formal d in ctor.Formals)
-                {
-                  if (d.Name == destructor.Name)
-                  {
+                foreach (Formal d in ctor.Formals) {
+                  if (d.Name == destructor.Name) {
                     ctor_args.Add(e.Value);
-                  }
-                  else
-                  {
+                  } else {
                     ctor_args.Add(new ExprDotName(expr.tok, e.Seq, d.Name));
                   }
                 }
@@ -6063,12 +6046,9 @@ namespace Microsoft.Dafny
               }
             }
           }
-        }
-        else
-        {
+        } else {
           Error(expr, "update requires a sequence, map, or datatype (got {0})", e.Seq.Type);
         }
-
 
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
@@ -6089,49 +6069,65 @@ namespace Microsoft.Dafny
           Error(e.tok, "can only form a multiset from a seq or set.");
         }
         expr.Type = new MultiSetType(((CollectionType)e.E.Type).Arg);
-      } else if (expr is FreshExpr) {
-        FreshExpr e = (FreshExpr)expr;
-        if (!twoState) {
-          Error(expr, "fresh expressions are not allowed in this context");
-        }
-        ResolveExpression(e.E, twoState, codeContext);
-        // the type of e.E must be either an object or a collection of objects
-        Type t = e.E.Type;
-        Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
-        if (t is CollectionType) {
-          t = ((CollectionType)t).Arg;
-        }
-        if (t is ObjectType) {
-          // fine
-        } else if (UserDefinedType.DenotesClass(t) != null) {
-          // fine
-        } else if (t.IsDatatype) {
-          // fine, treat this as the datatype itself.
-        } else {
-          Error(expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);
-        }
-        expr.Type = Type.Bool;
 
-      } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
         ResolveExpression(e.E, twoState, codeContext);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         switch (e.Op) {
-          case UnaryExpr.Opcode.Not:
+          case UnaryOpExpr.Opcode.Not:
             if (!UnifyTypes(e.E.Type, Type.Bool)) {
               Error(expr, "logical negation expects a boolean argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Bool;
             break;
-          case UnaryExpr.Opcode.SeqLength:
+          case UnaryOpExpr.Opcode.Cardinality:
             if (!UnifyTypes(e.E.Type, new CollectionTypeProxy(new InferredTypeProxy()))) {
               Error(expr, "size operator expects a collection argument (instead got {0})", e.E.Type);
             }
             expr.Type = Type.Int;
             break;
+          case UnaryOpExpr.Opcode.Fresh:
+            if (!twoState) {
+              Error(expr, "fresh expressions are not allowed in this context");
+            }
+            // the type of e.E must be either an object or a collection of objects
+            Type t = e.E.Type;
+            Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
+            if (t is CollectionType) {
+              t = ((CollectionType)t).Arg;
+            }
+            if (t is ObjectType) {
+              // fine
+            } else if (UserDefinedType.DenotesClass(t) != null) {
+              // fine
+            } else if (t.IsDatatype) {
+              // fine, treat this as the datatype itself.
+            } else {
+              Error(expr, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})", e.E.Type);
+            }
+            expr.Type = Type.Bool;
+            break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }
+
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
+        ResolveType(e.tok, e.ToType, ResolveTypeOption.DontInfer, null);
+        ResolveExpression(e.E, twoState, codeContext);
+        if (e.ToType is IntType) {
+          if (!(e.E.Type is RealType)) {
+            Error(expr, "type conversion to int is allowed only from real (got {0})", e.E.Type);
+          }
+        } else if (e.ToType is RealType) {
+          if (!(e.E.Type is IntType)) {
+            Error(expr, "type conversion to real is allowed only from int (got {0})", e.E.Type);
+          }
+        } else {
+          Error(expr, "type conversions are not supported to this type (got {0})", e.ToType);
+        }
+        e.Type = e.ToType;
 
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -6837,9 +6833,12 @@ namespace Microsoft.Dafny
         Error(expr, "old expressions are allowed only in specification and ghost contexts");
         return;
 
-      } else if (expr is FreshExpr) {
-        Error(expr, "fresh expressions are allowed only in specification and ghost contexts");
-        return;
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
+        if (e.Op == UnaryOpExpr.Opcode.Fresh) {
+          Error(expr, "fresh expressions are allowed only in specification and ghost contexts");
+          return;
+        }
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
@@ -7646,8 +7645,8 @@ namespace Microsoft.Dafny
       }
 
       // Unary expression
-      var u = expr as UnaryExpr;
-      if (u != null && u.Op == UnaryExpr.Opcode.Not) {
+      var u = expr as UnaryOpExpr;
+      if (u != null && u.Op == UnaryOpExpr.Opcode.Not) {
         foreach (var c in NormalizedConjuncts(u.E, !polarity)) {
           yield return c;
         }
@@ -7706,7 +7705,7 @@ namespace Microsoft.Dafny
       if (polarity) {
         yield return expr;
       } else {
-        expr = new UnaryExpr(expr.tok, UnaryExpr.Opcode.Not, expr);
+        expr = new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr);
         expr.Type = Type.Bool;
         yield return expr;
       }
@@ -8017,10 +8016,12 @@ namespace Microsoft.Dafny
       } else if (expr is OldExpr) {
         OldExpr e = (OldExpr)expr;
         return UsesSpecFeatures(e.E);
-      } else if (expr is FreshExpr) {
-        return true;
       } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
+        var e = (UnaryExpr)expr;
+        var unaryOpExpr = e as UnaryOpExpr;
+        if (unaryOpExpr != null && unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh) {
+          return true;
+        }
         return UsesSpecFeatures(e.E);
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -8102,8 +8103,8 @@ namespace Microsoft.Dafny
         CheckCoLemmaConclusions(e.Body, position, coConclusions);
 
       } else if (expr is UnaryExpr) {
-        var e = (UnaryExpr)expr;
-        if (e.Op == UnaryExpr.Opcode.Not) {
+        var e = (UnaryOpExpr)expr;
+        if (e.Op == UnaryOpExpr.Opcode.Not) {
           CheckCoLemmaConclusions(e.E, !position, coConclusions);
         }
 

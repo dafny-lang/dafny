@@ -814,7 +814,7 @@ ReferenceType<out IToken/*!*/ tok, out Type/*!*/ ty>
     {                               (. path.Add(tok); .)
       "." Ident<out tok>
     }
-    [ GenericInstantiation<gt> ]    (. ty = (tok.val == "real") ? (Type)Microsoft.Dafny.Type.Real : new UserDefinedType(tok, tok.val, gt, path); .)
+    [ GenericInstantiation<gt> ]    (. ty = new UserDefinedType(tok, tok.val, gt, path); .)
   )
   .
 GenericInstantiation<.List<Type/*!*/>/*!*/ gt.>
@@ -1840,7 +1840,7 @@ UnaryExpression<out Expression e, bool allowSemi>
   ( "-"                                        (. x = t; .)
     UnaryExpression<out e, allowSemi>          (. e = new NegationExpression(x, e); .)
   | NegOp                                      (. x = t; .)
-    UnaryExpression<out e, allowSemi>          (. e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); .)
+    UnaryExpression<out e, allowSemi>          (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Not, e); .)
   | EndlessExpression<out e, allowSemi>   /* these have no further suffix */
   | DottedIdentifiersAndFunction<out e>
     { Suffix<ref e> }
@@ -1876,7 +1876,7 @@ NegOp = "!" | '\u00ac'.
 ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
-     e = dummyExpr;
+     e = dummyExpr;  Type toType = null;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
@@ -1885,29 +1885,17 @@ ConstAtomExpression<out Expression e>
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
-    "(" Expression<out e, true> ")"            (. e = new FreshExpr(x, e); .)
+    "(" Expression<out e, true> ")"            (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
   | "old"                                      (. x = t; .)
     "(" Expression<out e, true> ")"            (. e = new OldExpr(x, e); .)
   | "|"                                        (. x = t; .)
-      Expression<out e, true>                  (. e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); .)
+      Expression<out e, true>                  (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
+  | ( "int"                                    (. x = t; toType = new IntType(); .)
+    | "real"                                   (. x = t; toType = new RealType(); .)
+    )
+    "(" Expression<out e, true> ")"            (. e = new ConversionExpr(x, e, toType); .)
   | ParensExpression<out e>
-  | "real"                                     (. x = t; .)
-    "("                                        (. IToken openParen = t; .)
-    Expression<out e, true>
-    ")"                                        (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
-                                                  IToken fnTok = new Token(t.line, t.col); fnTok.val = "IntToReal";
-                                                  //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
-                                                  e = new FunctionCallExpr(x, "IntToReal", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
-                                               .)
-  | "int"                                      (. x = t; .)
-    "("                                        (. IToken openParen = t; .)
-    Expression<out e, true>
-    ")"                                        (. IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
-                                                  IToken fnTok = new Token(t.line, t.col); fnTok.val = "RealToInt";
-                                                  //e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
-                                                  e = new FunctionCallExpr(x, "RealToInt", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
-                                               .)
   )
   .
 ParensExpression<out Expression e>

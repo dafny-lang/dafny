@@ -280,13 +280,13 @@ namespace Microsoft.Dafny
         var e = (MultiSetFormingExpr)expr;
         return new MultiSetFormingExpr(Tok(e.tok), CloneExpr(e.E));
 
-      } else if (expr is FreshExpr) {
-        var e = (FreshExpr)expr;
-        return new FreshExpr(Tok(e.tok), CloneExpr(e.E));
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
+        return new UnaryOpExpr(Tok(e.tok), e.Op, CloneExpr(e.E));
 
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryExpr)expr;
-        return new UnaryExpr(Tok(e.tok), e.Op, CloneExpr(e.E));
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
+        return new ConversionExpr(Tok(e.tok), CloneExpr(e.E), CloneType(e.ToType));
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;

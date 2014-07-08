@@ -983,7 +983,7 @@ namespace Microsoft.Dafny {
       if (type is BoolType) {
         return "false";
       } else if (type is IntType) {
-        return "new BigInteger(0)";
+        return "BigInteger.Zero";
       } else if (type is RealType) {
         return "Dafny.BigRational.ZERO";
       } else if (type.IsRefType) {
@@ -2200,17 +2200,14 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost (right?)
 
-      } else if (expr is FreshExpr) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // 'fresh' is always a ghost
-
-      } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
         switch (e.Op) {
-          case UnaryExpr.Opcode.Not:
+          case UnaryOpExpr.Opcode.Not:
             wr.Write("!");
             TrParenExpr(e.E);
             break;
-          case UnaryExpr.Opcode.SeqLength:
+          case UnaryOpExpr.Opcode.Cardinality:
             if (cce.NonNull(e.E.Type).IsArrayType) {
               wr.Write("new BigInteger(");
               TrParenExpr(e.E);
@@ -2222,6 +2219,21 @@ namespace Microsoft.Dafny {
             break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+        }
+
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
+        if (e.ToType is IntType) {
+          Contract.Assert(e.E.Type is RealType);
+          TrParenExpr(e.E);
+          wr.Write(".ToBigInteger()");
+        } else if (e.ToType is RealType) {
+          Contract.Assert(e.E.Type is IntType);
+          wr.Write("new Dafny.BigRational(");
+          TrExpr(e.E);
+          wr.Write(", BigInteger.One)");
+        } else {
+          Contract.Assert(false);  // unexpected ConversionExpr to-type
         }
 
       } else if (expr is BinaryExpr) {
@@ -2285,18 +2297,26 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Mul:
             opString = "*";  break;
           case BinaryExpr.ResolvedOpcode.Div:
-            wr.Write("Dafny.Helpers.EuclideanDivision(");
-            TrParenExpr(e.E0);
-            wr.Write(", ");
-            TrExpr(e.E1);
-            wr.Write(")");
+            if (expr.Type is IntType) {
+              wr.Write("Dafny.Helpers.EuclideanDivision(");
+              TrParenExpr(e.E0);
+              wr.Write(", ");
+              TrExpr(e.E1);
+              wr.Write(")");
+            } else {
+              opString = "/";  // for reals
+            }
             break;
           case BinaryExpr.ResolvedOpcode.Mod:
-            wr.Write("Dafny.Helpers.EuclideanModulus(");
-            TrParenExpr(e.E0);
-            wr.Write(", ");
-            TrExpr(e.E1);
-            wr.Write(")");
+            if (expr.Type is IntType) {
+              wr.Write("Dafny.Helpers.EuclideanModulus(");
+              TrParenExpr(e.E0);
+              wr.Write(", ");
+              TrExpr(e.E1);
+              wr.Write(")");
+            } else {
+              opString = "%";  // for reals
+            }
             break;
           case BinaryExpr.ResolvedOpcode.SetEq:
           case BinaryExpr.ResolvedOpcode.MultiSetEq:

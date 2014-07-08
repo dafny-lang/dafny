@@ -1347,24 +1347,23 @@ namespace Microsoft.Dafny {
         PrintExpression(((MultiSetFormingExpr)expr).E, false);
         wr.Write(")");
 
-      } else if (expr is FreshExpr) {
-        wr.Write("fresh(");
-        PrintExpression(((FreshExpr)expr).E, false);
-        wr.Write(")");
-
-      } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
-        if (e.Op == UnaryExpr.Opcode.SeqLength) {
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
+        if (e.Op == UnaryOpExpr.Opcode.Cardinality) {
           wr.Write("|");
           PrintExpression(e.E, false);
           wr.Write("|");
+        } else if (e.Op == UnaryOpExpr.Opcode.Fresh) {
+          wr.Write("fresh(");
+          PrintExpression(e.E, false);
+          wr.Write(")");
         } else {
           // Prefix operator.
           // determine if parens are needed
           string op;
           int opBindingStrength;
           switch (e.Op) {
-            case UnaryExpr.Opcode.Not:
+            case UnaryOpExpr.Opcode.Not:
               op = "!";  opBindingStrength = 0x60;  break;
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
@@ -1374,13 +1373,20 @@ namespace Microsoft.Dafny {
 
           bool containsNestedNot = e.E is ParensExpression &&
                                 ((ParensExpression)e.E).E is UnaryExpr &&
-                                ((UnaryExpr)((ParensExpression)e.E).E).Op == UnaryExpr.Opcode.Not;
+                                ((UnaryOpExpr)((ParensExpression)e.E).E).Op == UnaryOpExpr.Opcode.Not;
 
           if (parensNeeded) { wr.Write("("); }
           wr.Write(op);
           PrintExpr(e.E, opBindingStrength, containsNestedNot, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1);
           if (parensNeeded) { wr.Write(")"); }
         }
+
+      } else if (expr is ConversionExpr) {
+        var e = (ConversionExpr)expr;
+        PrintType(e.ToType);
+        wr.Write("(");
+        PrintExpression(e.E, false);
+        wr.Write(")");
 
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;

@@ -1503,7 +1503,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			if (la.kind == 38) {
 				GenericInstantiation(gt);
 			}
-			ty = (tok.val == "real") ? (Type)Microsoft.Dafny.Type.Real : new UserDefinedType(tok, tok.val, gt, path); 
+			ty = new UserDefinedType(tok, tok.val, gt, path); 
 		} else SynErr(166);
 	}
 
@@ -2946,7 +2946,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			NegOp();
 			x = t; 
 			UnaryExpression(out e, allowSemi);
-			e = new UnaryExpr(x, UnaryExpr.Opcode.Not, e); 
+			e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Not, e); 
 			break;
 		}
 		case 25: case 30: case 56: case 66: case 72: case 76: case 82: case 83: case 85: case 88: case 121: case 122: case 123: {
@@ -3317,7 +3317,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 	void ConstAtomExpression(out Expression e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
 		IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
-		e = dummyExpr;
+		e = dummyExpr;  Type toType = null;
 		
 		switch (la.kind) {
 		case 113: {
@@ -3356,7 +3356,7 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Expect(11);
 			Expression(out e, true);
 			Expect(12);
-			e = new FreshExpr(x, e); 
+			e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); 
 			break;
 		}
 		case 118: {
@@ -3372,40 +3372,26 @@ List<Expression/*!*/>/*!*/ decreases, ref Attributes decAttrs, ref Attributes mo
 			Get();
 			x = t; 
 			Expression(out e, true);
-			e = new UnaryExpr(x, UnaryExpr.Opcode.SeqLength, e); 
+			e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); 
 			Expect(29);
+			break;
+		}
+		case 54: case 55: {
+			if (la.kind == 54) {
+				Get();
+				x = t; toType = new IntType(); 
+			} else {
+				Get();
+				x = t; toType = new RealType(); 
+			}
+			Expect(11);
+			Expression(out e, true);
+			Expect(12);
+			e = new ConversionExpr(x, e, toType); 
 			break;
 		}
 		case 11: {
 			ParensExpression(out e);
-			break;
-		}
-		case 55: {
-			Get();
-			x = t; 
-			Expect(11);
-			IToken openParen = t; 
-			Expression(out e, true);
-			Expect(12);
-			IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
-			IToken fnTok = new Token(t.line, t.col); fnTok.val = "IntToReal";
-			//e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
-			e = new FunctionCallExpr(x, "IntToReal", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
-			
-			break;
-		}
-		case 54: {
-			Get();
-			x = t; 
-			Expect(11);
-			IToken openParen = t; 
-			Expression(out e, true);
-			Expect(12);
-			IToken classTok = new Token(t.line, t.col); classTok.val = "Real";
-			IToken fnTok = new Token(t.line, t.col); fnTok.val = "RealToInt";
-			//e = new IdentifierSequence(new List<IToken>() { classTok, fnTok }, openParen, new List<Expression/*!*/>() { e });
-			e = new FunctionCallExpr(x, "RealToInt", new StaticReceiverExpr(x, theBuiltIns.RealClass), openParen, new List<Expression/*!*/>() { e });
-			
 			break;
 		}
 		default: SynErr(221); break;

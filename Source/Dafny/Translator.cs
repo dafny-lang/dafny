@@ -1329,7 +1329,7 @@ namespace Microsoft.Dafny {
       old_nw.Type = nw.Type;  // resolve here
       var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
-      Expression cond = new FreshExpr(iter.tok, setDiff);
+      Expression cond = new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh, setDiff);
       cond.Type = Type.Bool;  // resolve here
       builder.Add(new Bpl.AssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
@@ -1800,7 +1800,7 @@ namespace Microsoft.Dafny {
           args.Add(Lit(formal));
           var ie = new IdentifierExpr(p.tok, p.AssignUniqueName(f));
           ie.Var = p; ie.Type = ie.Var.Type;
-          var l = new UnaryExpr(p.tok, UnaryExpr.Opcode.Lit, ie);
+          var l = new UnaryOpExpr(p.tok, UnaryOpExpr.Opcode.Lit, ie);
           l.Type = ie.Var.Type;
           substMap.Add(p, l);
         } else {
@@ -3156,13 +3156,9 @@ namespace Microsoft.Dafny {
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         return CanCallAssumption(e.E, etran);
-      } else if (expr is FreshExpr) {
-        FreshExpr e = (FreshExpr)expr;
-        return CanCallAssumption(e.E, etran);
       } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
-        Bpl.Expr t = CanCallAssumption(e.E, etran);
-        return t;
+        var e = (UnaryExpr)expr;
+        return CanCallAssumption(e.E, etran);
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
         Bpl.Expr t0 = CanCallAssumption(e.E0, etran);
@@ -3717,9 +3713,6 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.E, options, locals, builder, etran.Old);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-        CheckWellformed(e.E, options, locals, builder, etran);
-      } else if (expr is FreshExpr) {
-        FreshExpr e = (FreshExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -8547,50 +8540,15 @@ namespace Microsoft.Dafny {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
 
-
-        } else if (expr is FreshExpr) {
-          FreshExpr e = (FreshExpr)expr;
-          if (e.E.Type is SetType) {
-            // generate:  (forall $o: ref :: $o != null && X[Box($o)] ==> !old($Heap)[$o,alloc])
-            // TODO: trigger?
-            Bpl.Variable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
-            Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
-            Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
-            Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)e.E.Type).Arg);
-            Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, o));
-            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
-            return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, body);
-          } else if (e.E.Type is SeqType) {
-            // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
-            // TODO: trigger?
-            Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
-            Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
-            Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
-            Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
-            XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI);
-            Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, XsubI));
-            Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
-            Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
-            return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body);
-          } else if (e.E.Type.IsDatatype) {
-            Bpl.Expr alloc = translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
-            return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, alloc);
-          } else {
-            // generate:  x != null && !old($Heap)[x]
-            Bpl.Expr oNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
-            Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
-            return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And, oNull, oIsFresh);
-          }
-
-        } else if (expr is UnaryExpr) {
-          UnaryExpr e = (UnaryExpr)expr;
+        } else if (expr is UnaryOpExpr) {
+          var e = (UnaryOpExpr)expr;
           Bpl.Expr arg = TrExpr(e.E);
           switch (e.Op) {
-            case UnaryExpr.Opcode.Lit:
+            case UnaryOpExpr.Opcode.Lit:
               return translator.Lit(arg);
-            case UnaryExpr.Opcode.Not:
+            case UnaryOpExpr.Opcode.Not:
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
-            case UnaryExpr.Opcode.SeqLength:
+            case UnaryOpExpr.Opcode.Cardinality:
               if (e.E.Type is SeqType) {
                 return translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, arg);
               } else if (e.E.Type is SetType) {
@@ -8602,9 +8560,54 @@ namespace Microsoft.Dafny {
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
               }
+            case UnaryOpExpr.Opcode.Fresh:
+              if (e.E.Type is SetType) {
+                // generate:  (forall $o: ref :: $o != null && X[Box($o)] ==> !old($Heap)[$o,alloc])
+                // TODO: trigger?
+                Bpl.Variable oVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$o", predef.RefType));
+                Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
+                Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)e.E.Type).Arg);
+                Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, o));
+                Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(oNotNull, oInSet), oIsFresh);
+                return new Bpl.ForallExpr(expr.tok, new List<Variable> { oVar }, body);
+              } else if (e.E.Type is SeqType) {
+                // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) && Unbox(Seq#Index(X,$i)) != null ==> !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
+                // TODO: trigger?
+                Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
+                Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
+                Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
+                Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
+                XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI);
+                Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, XsubI));
+                Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
+                Bpl.Expr body = Bpl.Expr.Imp(Bpl.Expr.And(iBounds, xsubiNotNull), oIsFresh);
+                return new Bpl.ForallExpr(expr.tok, new List<Variable> { iVar }, body);
+              } else if (e.E.Type.IsDatatype) {
+                Bpl.Expr alloc = translator.FunctionCall(e.tok, BuiltinFunction.DtAlloc, null, TrExpr(e.E), Old.HeapExpr);
+                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, alloc);
+              } else {
+                // generate:  x != null && !old($Heap)[x]
+                Bpl.Expr oNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
+                Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
+                return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And, oNull, oIsFresh);
+              }
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
           }
+
+        } else if (expr is ConversionExpr) {
+          var e = (ConversionExpr)expr;
+          Bpl.ArithmeticCoercion.CoercionType ct;
+          if (e.ToType is IntType) {
+            ct = Bpl.ArithmeticCoercion.CoercionType.ToInt;
+          } else if (e.ToType is RealType) {
+            ct = Bpl.ArithmeticCoercion.CoercionType.ToReal;
+          } else {
+            Contract.Assert(false);  // unexpected ConversionExpr to-type
+            ct = Bpl.ArithmeticCoercion.CoercionType.ToInt;  // please compiler
+          }
+          return new Bpl.NAryExpr(e.tok, new ArithmeticCoercion(e.tok, ct), new List<Expr> { TrExpr(e.E) });
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
@@ -9921,9 +9924,9 @@ namespace Microsoft.Dafny {
           return TrSplitExpr(d, splits, position, heightLimit, etran);
         }
 
-      } else if (expr is UnaryExpr) {
-        var e = (UnaryExpr)expr;
-        if (e.Op == UnaryExpr.Opcode.Not) {
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr)expr;
+        if (e.Op == UnaryOpExpr.Opcode.Not) {
           var ss = new List<SplitExprInfo>();
           if (TrSplitExpr(e.E, ss, !position, heightLimit, etran)) {
             foreach (var s in ss) {
@@ -10651,7 +10654,7 @@ namespace Microsoft.Dafny {
         usesHeap = true;
       } else if (expr is FunctionCallExpr) {
         usesHeap = true;
-      } else if (expr is FreshExpr) {
+      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
         usesOldHeap = true;
       }
 
@@ -10886,12 +10889,6 @@ namespace Microsoft.Dafny {
           if (se != e.E) {
             newExpr = new OldExpr(expr.tok, se);
           }
-        } else if (expr is FreshExpr) {
-          FreshExpr e = (FreshExpr)expr;
-          Expression se = Substitute(e.E);
-          if (se != e.E) {
-            newExpr = new FreshExpr(expr.tok, se);
-          }
         } else if (expr is MultiSetFormingExpr) {
           var e = (MultiSetFormingExpr)expr;
           var se = Substitute(e.E);
@@ -10905,10 +10902,18 @@ namespace Microsoft.Dafny {
             newExpr = new BoxingCastExpr(se, e.FromType, e.ToType);
           }
         } else if (expr is UnaryExpr) {
-          UnaryExpr e = (UnaryExpr)expr;
+          var e = (UnaryExpr)expr;
           Expression se = Substitute(e.E);
           if (se != e.E) {
-            newExpr = new UnaryExpr(expr.tok, e.Op, se);
+            if (e is UnaryOpExpr) {
+              var ee = (UnaryOpExpr)e;
+              newExpr = new UnaryOpExpr(expr.tok, ee.Op, se);
+            } else if (e is ConversionExpr) {
+              var ee = (ConversionExpr)e;
+              newExpr = new ConversionExpr(expr.tok, se, ee.ToType);
+            } else {
+              Contract.Assert(false);  // unexpected UnaryExpr subtype
+            }
           }
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
