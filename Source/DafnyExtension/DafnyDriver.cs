@@ -182,18 +182,19 @@ namespace DafnyLanguage
 
     class DafnyErrorInformationFactory : ErrorInformationFactory
     {
-      public override ErrorInformation CreateErrorInformation(IToken tok, string msg, string requestId, string category = null)
+      public override ErrorInformation CreateErrorInformation(IToken tok, string msg, string requestId, string originalRequestId, string category = null)
       {
-        return new DafnyErrorInformation(tok, msg, requestId, category);
+        return new DafnyErrorInformation(tok, msg, requestId, originalRequestId, category);
       }
     }
 
     class DafnyErrorInformation : ErrorInformation
     {
-      public DafnyErrorInformation(IToken tok, string msg, string requestId, string category = null)
+      public DafnyErrorInformation(IToken tok, string msg, string requestId, string originalRequestId, string category = null)
         : base(tok, msg)
       {
         RequestId = requestId;
+        OriginalRequestId = originalRequestId;
         Category = category;
         AddNestingsAsAux(tok);
       }

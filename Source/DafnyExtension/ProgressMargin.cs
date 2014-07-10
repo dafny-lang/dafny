@@ -340,13 +340,14 @@ namespace DafnyLanguage
           if (!_disposed)
           {
             errorInfo.BoogieErrorCode = null;
-            if (errorInfo.RequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.RequestId))
+            var recycled = errorInfo.OriginalRequestId != requestId ? " (recycled)" : "";
+            if (errorInfo.OriginalRequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.OriginalRequestId))
             {
-              var s = RequestIdToSnapshot[errorInfo.RequestId];
-              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg, s, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, requestId);
+              var s = RequestIdToSnapshot[errorInfo.OriginalRequestId];
+              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg + recycled, s, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, errorInfo.OriginalRequestId);
               foreach (var aux in errorInfo.Aux)
               {
-                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, requestId);
+                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, errorInfo.OriginalRequestId);
               }
             }
           }
