@@ -33,9 +33,23 @@ Execution trace:
     (0,0): anon3_Else
 
 Dafny program verifier finished with 1 verified, 1 error
-Snapshots3.v1.dfy(9,14): Error: assertion violation
+Snapshots3.v0.dfy(9,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
 Dafny program verifier finished with 1 verified, 1 error
+
+-------------------- Snapshots4.dfy --------------------
+
+Dafny program verifier finished with 2 verified, 0 errors
+Snapshots4.v1.dfy(5,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Snapshots4.v1.dfy(10,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+
+Dafny program verifier finished with 1 verified, 2 errors
