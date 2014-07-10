@@ -341,13 +341,21 @@ namespace DafnyLanguage
           {
             errorInfo.BoogieErrorCode = null;
             var recycled = errorInfo.OriginalRequestId != requestId ? " (recycled)" : "";
-            if (errorInfo.OriginalRequestId != null && RequestIdToSnapshot.ContainsKey(errorInfo.OriginalRequestId))
+            ITextSnapshot s = null;
+            if (errorInfo.OriginalRequestId != null)
             {
-              var s = RequestIdToSnapshot[errorInfo.OriginalRequestId];
-              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg + recycled, s, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, errorInfo.OriginalRequestId);
+              RequestIdToSnapshot.TryGetValue(errorInfo.OriginalRequestId, out s);
+            }
+            if (s == null && errorInfo.RequestId != null)
+            {
+              RequestIdToSnapshot.TryGetValue(errorInfo.RequestId, out s);
+            }
+            if (s != null)
+            {
+              errorListHolder.AddError(new DafnyError(errorInfo.Tok.filename, errorInfo.Tok.line - 1, errorInfo.Tok.col - 1, ErrorCategory.VerificationError, errorInfo.FullMsg + recycled, s, errorInfo.Model.ToString(), System.IO.Path.GetFullPath(_document.FilePath) == errorInfo.Tok.filename), errorInfo.ImplementationName, requestId);
               foreach (var aux in errorInfo.Aux)
               {
-                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, errorInfo.OriginalRequestId);
+                errorListHolder.AddError(new DafnyError(aux.Tok.filename, aux.Tok.line - 1, aux.Tok.col - 1, ErrorCategory.AuxInformation, aux.FullMsg, s, null, System.IO.Path.GetFullPath(_document.FilePath) == aux.Tok.filename), errorInfo.ImplementationName, requestId);
               }
             }
           }
