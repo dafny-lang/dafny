@@ -163,7 +163,7 @@ lemma TrimProperty(a: seq<int>)
   requires a == trim(a);
   ensures a == [] || a[1..] == trim(a[1..]);
 {
-  assert forall b :: |trim(b)| <= |b|;
+  assert forall b {:trigger trim(b)} :: |trim(b)| <= |b|;
 }
 
 lemma TrimPreservesValue(digits: seq<int>, base: nat)
