@@ -159,7 +159,62 @@ module M1 refines M0 {
 
 function{:opaque} id<A>(x : A):A { x }
 
+method id_ok()
+{
+  reveal_id();
+  assert id(1) == 1;
+}
+
+method id_fail()
+{
+  assert id(1) == 1;
+}
+
 datatype Box<A> = Bx(A)
 
 function{:opaque} id_box(x : Box):Box { x }
 
+method box_ok()
+{
+  reveal_id();
+  assert id(Bx(1)) == Bx(1);
+}
+
+method box_fail()
+{
+  assert id(Bx(1)) == Bx(1);
+}
+
+// ------------------------- opaque and layer quantifiers
+
+module LayerQuantifiers
+{
+  function{:opaque} f(x:nat) : bool { if x == 0 then true else f(x-1) }
+
+  method rec_should_ok()
+  {
+    reveal_f();
+    assert f(1);
+  }
+
+  method rec_should_fail()
+  {
+    assert f(1);
+  }
+
+  method rec_should_unroll_ok(one : int)
+    requires one == 1;
+  {
+    reveal_f();
+    // this one should have enough fuel
+    assert f(one + one);
+  }
+
+  method rec_should_unroll_fail(one : int)
+    requires one == 1;
+  {
+    reveal_f();
+    // this one does not have enough fuel
+    assert f(one + one + one);
+  }
+}

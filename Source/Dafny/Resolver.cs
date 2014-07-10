@@ -308,6 +308,9 @@ namespace Microsoft.Dafny
             }
           }
         }
+        foreach (var r in rewriters) {
+          r.PostCyclicityResolve(module);
+        }
       }
       // fill in default decreases clauses:  for functions and methods, and for loops
       FillInDefaultDecreasesClauses(prog);

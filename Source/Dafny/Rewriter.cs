@@ -10,6 +10,8 @@ namespace Microsoft.Dafny
   {
     void PreResolve(ModuleDefinition m);
     void PostResolve(ModuleDefinition m);
+    // After SCC/Cyclicity/Recursivity analysis:
+    void PostCyclicityResolve(ModuleDefinition m);
   }
   [ContractClassFor(typeof(IRewriter))]
   abstract class IRewriterContracts : IRewriter
@@ -18,6 +20,9 @@ namespace Microsoft.Dafny
       Contract.Requires(m != null);
     }
     public void PostResolve(ModuleDefinition m) {
+      Contract.Requires(m != null);
+    }
+    public void PostCyclicityResolve(ModuleDefinition m) {
       Contract.Requires(m != null);
     }
   }
@@ -134,6 +139,9 @@ namespace Microsoft.Dafny
           ProcessClassPostResolve((ClassDecl)d);
         }
       }
+    }
+
+    public void PostCyclicityResolve(ModuleDefinition m) { 
     }
 
     void ProcessClassPostResolve(ClassDecl cl) {
@@ -382,11 +390,13 @@ namespace Microsoft.Dafny
     protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
     protected Dictionary<Lemma, Function> revealOriginal; // Map reveal_* lemmas back to their original functions
 
-    public void PreResolve(ModuleDefinition m) {
+    public OpaqueFunctionRewriter() : base() {
       fullVersion = new Dictionary<Function, Function>();
       original = new Dictionary<Function, Function>();
       revealOriginal = new Dictionary<Lemma, Function>();
+    }
 
+    public void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is ClassDecl) {
           DuplicateOpaqueClassFunctions((ClassDecl)d);
@@ -414,6 +424,18 @@ namespace Microsoft.Dafny
           if (revealOriginal.ContainsKey(lem)) {
             fixupRevealLemma(lem, revealOriginal[lem]);
             fixupTypeArguments(lem, revealOriginal[lem]);
+          }
+        }
+      }
+    }
+
+    public void PostCyclicityResolve(ModuleDefinition m) {
+      // Add layer quantifier if the function is recursive 
+      foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+        if (decl is Lemma) {
+          var lem = (Lemma)decl;
+          if (revealOriginal.ContainsKey(lem)) {
+            needsLayerQuantifier(lem, revealOriginal[lem]);
           }
         }
       }
@@ -567,6 +589,24 @@ namespace Microsoft.Dafny
       }
     }
 
+    // If the function is recursive, make the reveal lemma quantifier a layerQuantifier
+    protected void needsLayerQuantifier(Lemma lem, Function fn) {
+      var origForall = lem.Ens[0].E as ForallExpr;
+      if (origForall != null && fn.IsRecursive) {
+        var newAttrib = new Attributes("layerQuantifier", new List<Attributes.Argument>(), origForall.Attributes);
+        var newForall = new ForallExpr(origForall.tok, origForall.TypeArgs, origForall.BoundVars, origForall.Range, origForall.Term, newAttrib);
+        newForall.Type = Type.Bool;
+        lem.Ens[0] = new MaybeFreeExpression(newForall);
+      }
+    }
+
+    // This is for the reveal_F function. The ensures clause looks like this:
+    // 
+    //     ensures forall<A,B> x : T<A,B> :: F(x) == F_FULL(x)
+    //
+    // But the type argument substitutions for F and F_FULL are way off, so 
+    // we use this function to make a substitution to the type variables the
+    // forall quantifier binds.
     protected void fixupTypeArguments(Lemma lem, Function fn) {
       var origForall = lem.Ens[0].E as ForallExpr;
       if (origForall != null) {
@@ -592,6 +632,8 @@ namespace Microsoft.Dafny
       if (fn.Req.Count == 0) {
         return;
       }
+
+      // DR: Note: I don't know of any example that actually gets to these lines below: 
 
       // Consolidate the requirements
       Expression reqs = Expression.CreateBoolLiteral(fn.tok, true);
@@ -685,6 +727,9 @@ namespace Microsoft.Dafny
           }
         } 
       }
+    }
+
+    public void PostCyclicityResolve(ModuleDefinition m) { 
     }
 
     Expression subVars(List<Formal> formals, List<Expression> values, Expression e, Expression f_this) {

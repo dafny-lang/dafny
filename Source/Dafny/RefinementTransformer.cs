@@ -492,6 +492,8 @@ namespace Microsoft.Dafny
       }
       moduleUnderConstruction = null;
     }
+    public void PostCyclicityResolve(ModuleDefinition m) { 
+    }
     Function CloneFunction(IToken tok, Function f, bool isGhost, List<Expression> moreEnsures, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);

@@ -37,20 +37,14 @@ FunctionSpecifications.dfy(130,27): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(165,3): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(158,3): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(181,3): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(167,3): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(194,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-FunctionSpecifications.dfy(200,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 FunctionSpecifications.dfy(135,20): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(137,29): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -62,16 +56,16 @@ FunctionSpecifications.dfy(146,3): Error: failure to decrease termination measur
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(160,3): Error: failure to decrease termination measure
+FunctionSpecifications.dfy(153,3): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(188,3): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(174,3): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(185,20): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(171,20): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 23 verified, 17 errors
+Dafny program verifier finished with 17 verified, 15 errors

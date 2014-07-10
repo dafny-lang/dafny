@@ -922,8 +922,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr LayerSucc(Bpl.Expr e) {
-      return FunctionCall(e.tok, BuiltinFunction.LayerSucc, null, e);
+    Bpl.Expr LayerSucc(Bpl.Expr e, int amt = 1) {
+      if (amt == 0) {
+        return e;
+      } else if (amt > 0) {
+        return FunctionCall(e.tok, BuiltinFunction.LayerSucc, null, LayerSucc(e, amt-1));
+      } else {
+        Contract.Assert(false);
+        return null;
+      }
     }
 
     // Makes a call to equality, if k is null, or otherwise prefix equality. For codatatypes.
@@ -8257,7 +8264,7 @@ namespace Microsoft.Dafny {
       public readonly string This;
       public readonly string modifiesFrame; // the name of the context's frame variable.
       readonly Function applyLimited_CurrentFunction;
-      public readonly int layerInterCluster = 1;
+      public readonly Bpl.Expr layerInterCluster;     
       public readonly Bpl.Expr layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
       public readonly bool ProducingCoCertificates = false;
@@ -8270,13 +8277,12 @@ namespace Microsoft.Dafny {
         Contract.Invariant(translator != null);
         Contract.Invariant(This != null);
         Contract.Invariant(modifiesFrame != null);
-        Contract.Invariant(0 <= layerInterCluster);
+        Contract.Invariant(layerInterCluster != null);
         Contract.Invariant(0 <= Statistics_CustomLayerFunctionCount);
       }
 
       /// <summary>
-      /// This is the most general constructor.  It is private and takes all the parameters.  Whenever
-      /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
+      /// This is a general constructor, but takes the layerInterCluster as an int.
       /// </summary>
       ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
         Function applyLimited_CurrentFunction, int layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame) {
@@ -8286,6 +8292,30 @@ namespace Microsoft.Dafny {
         Contract.Requires(heap != null);
         Contract.Requires(thisVar != null);
         Contract.Requires(0 <= layerInterCluster);
+        Contract.Requires(modifiesFrame != null);
+
+        this.translator = translator;
+        this.predef = predef;
+        this.HeapExpr = heap;
+        this.This = thisVar;
+        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
+        this.layerInterCluster = LayerN(layerInterCluster);
+        this.layerIntraCluster = layerIntraCluster;
+        this.modifiesFrame = modifiesFrame;
+      }
+
+      /// <summary>
+      /// This is the most general constructor.  It is private and takes all the parameters.  Whenever
+      /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
+      /// </summary>
+      ExpressionTranslator(Translator translator, PredefinedDecls predef, Bpl.Expr heap, string thisVar,
+        Function applyLimited_CurrentFunction, Bpl.Expr layerInterCluster, Bpl.Expr layerIntraCluster, string modifiesFrame) {
+
+        Contract.Requires(translator != null);
+        Contract.Requires(predef != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(thisVar != null);
+        Contract.Requires(layerInterCluster != null);
         Contract.Requires(modifiesFrame != null);
 
         this.translator = translator;
@@ -8369,9 +8399,9 @@ namespace Microsoft.Dafny {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster + offset, layerIntraCluster, modifiesFrame);
+        var et = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame);
         if (this.oldEtran != null) {
-          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster + offset, layerIntraCluster, modifiesFrame);
+          var etOld = new ExpressionTranslator(translator, predef, Old.HeapExpr, This, applyLimited_CurrentFunction, translator.LayerSucc(layerInterCluster, offset), layerIntraCluster, modifiesFrame);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }
@@ -8414,14 +8444,11 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
         return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", predef.LayerType);
       }
+
       public Bpl.Expr LayerN(int n) {
         Contract.Requires(0 <= n);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        var s = LayerZero();
-        for (; n != 0; n--) {
-          s = translator.FunctionCall(Token.NoToken, BuiltinFunction.LayerSucc, null, s);
-        }
-        return s;
+        return translator.LayerSucc(LayerZero(), n);
       }
 
       public Bpl.IdentifierExpr ModuleContextHeight() {
@@ -8695,7 +8722,7 @@ namespace Microsoft.Dafny {
               ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
               layerArgument = this.layerIntraCluster;
             } else {
-              layerArgument = LayerN(layerInterCluster);
+              layerArgument = this.layerInterCluster;
             }
           } else {
             layerArgument = null;
@@ -9054,6 +9081,15 @@ namespace Microsoft.Dafny {
           Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
           Bpl.Trigger tr = null;
+          ExpressionTranslator bodyEtran = this;
+          bool _scratch = true;
+          if (Attributes.ContainsBool(e.Attributes, "layerQuantifier", ref _scratch)) {
+            // If this is a layer quantifier, quantify over layers here, and use $LS(ly) layers in the translation of the body
+            Bpl.Expr ly; var lyVar = BplBoundVar(e.Refresh("$ly"), predef.LayerType, out ly);
+            bvars.Add(lyVar);
+            Expr layer = translator.LayerSucc(ly); 
+            bodyEtran = new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layer, layer, modifiesFrame);
+          }
           for (Attributes aa = e.Attributes; aa != null; aa = aa.Prev) {
             if (aa.Name == "trigger") {
               List<Bpl.Expr> tt = new List<Bpl.Expr>();
@@ -9061,17 +9097,17 @@ namespace Microsoft.Dafny {
                 if (arg.E == null) {
                   Console.WriteLine("Warning: string argument to 'trigger' attribute ignored");
                 } else {
-                  tt.Add(TrExpr(arg.E));
+                  tt.Add(bodyEtran.TrExpr(arg.E));
                 }
               }
               tr = new Bpl.Trigger(expr.tok, true, tt, tr);
-            }
+            } 
           }
           var antecedent = typeAntecedent;
           if (e.Range != null) {
-            antecedent = Bpl.Expr.And(antecedent, TrExpr(e.Range));
+            antecedent = Bpl.Expr.And(antecedent, bodyEtran.TrExpr(e.Range));
           }
-          Bpl.Expr body = TrExpr(e.Term);
+          Bpl.Expr body = bodyEtran.TrExpr(e.Term);
 
           if (e is ForallExpr) {
             return new Bpl.ForallExpr(expr.tok, new List<TypeVariable>(), Concat(tyvars,bvars), kv, tr, Bpl.Expr.Imp(antecedent, body));
@@ -10127,7 +10163,7 @@ namespace Microsoft.Dafny {
           var B2 = etran2.TrExpr(e.E2);
           var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
           // Dan: dafny4/Circ.dfy needs this one to be 2+, rather than 1+ 
-          Bpl.Expr layer = etran.LayerN(2 + etran.layerInterCluster); 
+          Bpl.Expr layer = LayerSucc(etran.layerInterCluster, 2); 
           foreach (var c in CoPrefixEquality(needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok, codecl, e.E1.Type.TypeArgs, e.E2.Type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
             var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kPos, c));
             splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));

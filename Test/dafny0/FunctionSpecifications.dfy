@@ -146,13 +146,6 @@ function {:opaque} f(i:int):int
   f(i) + 1
 }
 
-method m()
-  ensures false;
-{
-  reveal_f();
-  assert f(0) == f(0) + 1;
-}
-
 // Try a sneakier (nested) version of the test above
 function {:opaque} g(i:int):int
   decreases i;
@@ -163,13 +156,6 @@ function {:opaque} g(i:int):int
 function h(i:int):int
 {
   g(i)
-}
-
-method n()
-  ensures false;
-{
-  reveal_g();
-  assert g(0) == g(0) + 1;
 }
 
 // Check that using the reveal_ lemma to prove the well-definedness of a function
@@ -188,14 +174,3 @@ function {:opaque} B(): int
   A()
 }
 
-method m_noreveal()
-  ensures false;
-{
-  assert f(0) == f(0) + 1;
-}
-
-method n_noreveal()
-  ensures false;
-{
-  assert g(0) == g(0) + 1;
-}

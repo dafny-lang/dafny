@@ -214,6 +214,7 @@ namespace Microsoft.Dafny {
     /// - if the attribute is {:nm false}, then value==false
     /// - if the attribute is anything else, then value returns as whatever it was passed in as.
     /// </summary>
+    [Pure]
     public static bool ContainsBool(Attributes attrs, string nm, ref bool value) {
       Contract.Requires(nm != null);
       for (; attrs != null; attrs = attrs.Prev) {
@@ -5544,10 +5545,18 @@ namespace Microsoft.Dafny {
         return "q$" + quantUnique;
       }
     }
+    public String Refresh(String s) {
+      return s + "#" + typeRefreshCount++ + FullName; 
+    }
     public TypeParameter Refresh(TypeParameter p) {
       TypeParameter cp = new TypeParameter(p.tok, typeRefreshCount++ + "#" + p.Name, p.EqualitySupport);
       cp.Parent = this;
       return cp;
+    }
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      var _scratch = true;
+      Contract.Invariant(Attributes.ContainsBool(Attributes, "typeQuantifier", ref _scratch) || TypeArgs.Count == 0);
     }
     public QuantifierExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : base(tok, bvars, range, term, attrs) {
