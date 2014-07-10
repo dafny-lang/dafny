@@ -66,13 +66,13 @@ links) and false when it is not.
 
 // The proof is long.  One interesting aspect of it is that it is all constructed
 // as a program fed to a program verifier.  Since the additional properties
-// are specified using ghost variables, ghost methods, and other ghost constructs,
+// are specified using ghost variables, lemmas, and other ghost constructs,
 // the run-time execution of the program is not affected by including the
 // proof as part of the program, because the Dafny compiler ignores all ghost
 // constructs.
 
 // The proof (and in particular the proof of termination), makes use of two
-// numbers, called 'A' and 'B' and computed by the call to the ghost method
+// numbers, called 'A' and 'B' and computed by the call to the lemma
 // 'AnalyzeList'.  'A' is the number of steps from 'this' before a cycle is
 // reached.  If there is no cycle, 'A' is the length of the list.  'B' is the
 // length of the cycle, if any.  But, you ask, how are 'A' and 'B' obtained?
@@ -81,15 +81,15 @@ links) and false when it is not.
 // that 'AnalyzeList' uses a simpler algorithm, namely a depth-first traversal
 // from 'this' that uses a set to keep track of which nodes have been visited.
 // This set would not be nice to have to represent at run time, but since
-// 'AnalyzeList' is a ghost method, the variable holding the set does not survive
-// compilation.  So, 'Cyclic' first calls ghost method 'Analyze' to traverse
+// 'AnalyzeList' is a lemma, the variable holding the set does not survive
+// compilation.  So, 'Cyclic' first calls lemma 'Analyze' to traverse
 // the list and then, equipped with 'A' and 'B' to carry out the proof of Floyd's
 // algorithm, proceeds with Floyd's algorithm.
 
 // The ghost constructs in 'Cyclic' add some clutter to the program text.  To
 // alleviate matter a little, I have include the word "Lemma" in the names of
-// all ghost methods (except ghost method 'AnalyzeList', which I guess didn't
-// feel to me like a "lemma" per se).
+// all lemmas (except lemma 'AnalyzeList', which I guess didn't feel to me like
+// a "lemma" per se).
 
 // The Dafny verifier, which builds on verification engine Boogie, which in turn
 // builds on the SMT solver Z3, needs help throughout this proof.  To give it
@@ -120,7 +120,7 @@ links) and false when it is not.
 // the program matches your execution environment.  The only input fed to
 // the Dafny verifier/compiler is the program text below; Dafny then automatically
 // verifies and compiles the program (for this program in less than 30 seconds,
-// 25 seconds of which is spent verifying the ghost method AnalyzeList)
+// 25 seconds of which is spent verifying the lemma AnalyzeList)
 // without further human intervention.
 
 class Node {
@@ -159,7 +159,7 @@ class Node {
     ghost var A, B := AnalyzeList(S);
     var tortoise, hare:= this, next;
     ghost var t, h := 0, 1;
-    while (hare != tortoise)
+    while hare != tortoise
       invariant tortoise != null && tortoise in S && hare in S;
       invariant 0 <= t < h && Nexxxt(t, S) == tortoise && Nexxxt(h, S) == hare;
       // What follows of the invariant is for proving termination:
@@ -167,7 +167,7 @@ class Node {
       invariant forall k :: 0 <= k < t ==> Nexxxt(k, S) != Nexxxt(1+2*k, S);
       decreases A + B - t;
     {
-      if (hare == null || hare.next == null) {
+      if hare == null || hare.next == null {
         ghost var distanceToNull := if hare == null then h else h+1;
         Lemma_NullImpliesNoCycles(distanceToNull, S);
         assert !exists k,l :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null && Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k, S);  // this is a copy of the postcondition of lemma NullImpliesNoCycles
@@ -189,7 +189,7 @@ class Node {
   // details below--the specification of 'Cyclic' above and the fact that Dafny verifies
   // the program suffice.  (Of course, one also needs to trust the verifier.)
 
-  ghost method AnalyzeList(S: set<Node>) returns (A: int, B: int)
+  lemma AnalyzeList(S: set<Node>) returns (A: int, B: int)
     requires IsClosed(S);
     // find an A and B (0 <= A && 1 <= B) such that:
     // the first A steps are no on a cycle, and
@@ -199,59 +199,35 @@ class Node {
     ensures forall k,l :: 0 <= k < l < A ==> Nexxxt(k, S) != Nexxxt(l, S);
   {
     // since S is finite, we can just go ahead and compute the transitive closure of "next" from "this"
-    var p, steps, Visited := this, 0, {null};
-    while (p !in Visited)
+    var p, steps, Visited, NexxxtInverse: map<Node,int> := this, 0, {null}, map[];
+    while p !in Visited
       invariant 0 <= steps && p == Nexxxt(steps, S) && p in S && null in Visited && Visited <= S;
-      invariant forall t :: 0 <= t < steps ==> Nexxxt(t, S) in Visited;
-      invariant forall q :: q in (Visited - {null}) ==> exists t :: 0 <= t < steps && Nexxxt(t, S) == q;
-      invariant forall k,l :: 0 <= k < l < steps ==> Nexxxt(k, S) != Nexxxt(l, S);
+      invariant forall t :: 0 <= t < steps ==>
+         Nexxxt(t, S) in Visited && 
+         Nexxxt(t, S) in NexxxtInverse && NexxxtInverse[Nexxxt(t, S)] == t;
+      invariant forall q :: q in Visited && q != null ==>
+         q in NexxxtInverse && 0 <= NexxxtInverse[q] < steps && Nexxxt(NexxxtInverse[q], S) == q;
       decreases S - Visited;
     {
-      p, steps, Visited := p.next, steps + 1, Visited + {p};
-
-      // with all: 3s
-      // without this: 20s
-      assert forall t :: 0 <= t < steps ==> Nexxxt(t, S) in Visited;
-      // without this: 5s
-      assert forall q :: q in (Visited - {null}) ==> exists t :: 0 <= t < steps && Nexxxt(t, S) == q;
-      // without this: >60s
-      assert forall k,l :: 0 <= k < l < steps ==> Nexxxt(k, S) != Nexxxt(l, S);
+      p, steps, Visited, NexxxtInverse := p.next, steps + 1, Visited + {p}, NexxxtInverse[p := steps];
     }
-    if (p == null) {
+    if p == null {
       A, B := steps, 1;
     } else {
-      A := FindA(S, steps, p);
+      A := NexxxtInverse[p];
       B := steps - A;
       Lemma_NexxxtIsTransitive(A, B, S);
     }
   }
 
-  ghost method FindA(S: set<Node>, steps: int, p: Node) returns (A: int)
-    requires IsClosed(S);
-    requires 0 <= steps && p == Nexxxt(steps, S) && p in S && p != null;
-    requires exists k :: 0 <= k < steps && Nexxxt(k, S) == p;
-    ensures 0 <= A < steps;
-    ensures Nexxxt(A, S) == p;
-    ensures forall k :: 0 <= k < A ==> Nexxxt(k, S) != p;
-  {
-    A := 0;
-    while (Nexxxt(A, S) != p)
-      invariant 0 <= A < steps;
-      invariant forall k :: 0 <= k < A ==> Nexxxt(k, S) != p;
-      decreases steps - A;
-    {
-      A := A + 1;
-    }
-  }
-
-  ghost method CrucialLemma(a: int, b: int, S: set<Node>)
+  lemma CrucialLemma(a: int, b: int, S: set<Node>)
     requires IsClosed(S);
     requires 0 <= a && 1 <= b;
     requires forall k,l :: 0 <= k < l < a ==> Nexxxt(k, S) != Nexxxt(l, S);
     requires Nexxxt(a, S) == null || Nexxxt(a, S).Nexxxt(b, S) == Nexxxt(a, S);
     ensures exists T :: 0 <= T < a+b && Nexxxt(T, S) == Nexxxt(1+2*T, S);
   {
-    if (Nexxxt(a, S) == null) {
+    if Nexxxt(a, S) == null {
       Lemma_NullIsTerminal(1+2*a, S);
       assert Nexxxt(a, S) == null ==> Nexxxt(1+2*a, S) == null;
     } else {
@@ -266,7 +242,7 @@ class Node {
       // as many steps as the hare (but fewer than "b" steps more than the hare).
       var t, h := a, 1+2*a;  // steps traveled by the tortoise and the hare, respectively
       var vt := a;  // steps traveled by the virtual tortoise
-      while (vt < h)
+      while vt < h
         invariant t <= vt < h+b;
         invariant Nexxxt(t, S) == Nexxxt(vt, S);
       {
@@ -281,7 +257,7 @@ class Node {
       // Now, let the hare catch up with the virtual tortoise by simulating "catchup" steps
       // of the algorithm.
       var i := 0;
-      while (i < catchup)
+      while i < catchup
         invariant 0 <= i <= catchup;
         invariant t == a + i && h == 1 + 2*t && t <= vt;
         invariant Nexxxt(t, S) == Nexxxt(vt, S) == Nexxxt(h + catchup - i, S);
@@ -292,14 +268,14 @@ class Node {
     }
   }
 
-  ghost method Lemma_AboutCycles(a: int, b: int, k: int, S: set<Node>)
+  lemma Lemma_AboutCycles(a: int, b: int, k: int, S: set<Node>)
     requires IsClosed(S);
     requires 0 <= a <= k && 1 <= b && Nexxxt(a, S) != null && Nexxxt(a, S).Nexxxt(b, S) == Nexxxt(a, S);
     ensures Nexxxt(k + b, S) == Nexxxt(k, S);
   {
     Lemma_NexxxtIsTransitive(a, b, S);
     var n := a;
-    while (n < k)
+    while n < k
       invariant a <= n <= k;
       invariant Nexxxt(n + b, S) == Nexxxt(n, S);
     {
@@ -307,16 +283,16 @@ class Node {
     }
   }
 
-  ghost method Lemma_NexxxtIsTransitive(x: int, y: int, S: set<Node>)
+  lemma Lemma_NexxxtIsTransitive(x: int, y: int, S: set<Node>)
     requires IsClosed(S) && 0 <= x && 0 <= y;
     ensures Nexxxt(x, S) != null ==> Nexxxt(x, S).Nexxxt(y, S) == Nexxxt(x + y, S);
   {
-    if (Nexxxt(x, S) != null)
+    if Nexxxt(x, S) != null
     {
       assert forall j :: 0 <= j ==> Nexxxt(x, S).Nexxxt(j, S) == Nexxxt(x + j, S);  // Dafny's induction tactic kicks in
       /* Alternatively, here's a manual proof by induction (but only up to the needed y):
       var j := 0;
-      while (j < y)
+      while j < y
         invariant 0 <= j <= y;
         invariant Nexxxt(x, S).Nexxxt(j, S) == Nexxxt(x + j, S);
       {
@@ -326,23 +302,23 @@ class Node {
     }
   }
 
-  ghost method Lemma_NullIsTerminal(d: int, S: set<Node>)
+  lemma Lemma_NullIsTerminal(d: int, S: set<Node>)
     requires IsClosed(S) && 0 <= d;
     ensures forall k :: 0 <= k < d && Nexxxt(d, S) != null ==> Nexxxt(k, S) != null;
   {
     var j := d;
-    while (0 < j)
+    while 0 < j
       invariant 0 <= j <= d;
       invariant forall k :: j <= k < d && Nexxxt(k, S) == null ==> Nexxxt(d, S) == null;
     {
       j := j - 1;
-      if (Nexxxt(j, S) == null) {
+      if Nexxxt(j, S) == null {
         assert Nexxxt(j+1, S) == null;
       }
     }
   }
 
-  ghost method Lemma_NullImpliesNoCycles(n: int, S: set<Node>)
+  lemma Lemma_NullImpliesNoCycles(n: int, S: set<Node>)
     requires IsClosed(S) && 0 <= n && Nexxxt(n, S) == null;
     ensures !exists k,l :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null && Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k, S);
   {
@@ -353,14 +329,14 @@ class Node {
     Lemma_NullImpliesNoCycles_part2(n, S);
   }
 
-  ghost method Lemma_NullImpliesNoCycles_part0(n: int, S: set<Node>)
+  lemma Lemma_NullImpliesNoCycles_part0(n: int, S: set<Node>)
     requires IsClosed(S) && 0 <= n && Nexxxt(n, S) == null;
     ensures forall k,l :: n <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S);
   {
     assert forall k :: n <= k ==> Nexxxt(k, S) == null;  // Dafny proves this thanks to its induction tactic
   }
 
-  ghost method Lemma_NullImpliesNoCycles_part1(n: int, S: set<Node>)
+  lemma Lemma_NullImpliesNoCycles_part1(n: int, S: set<Node>)
     requires IsClosed(S) && 0 <= n && Nexxxt(n, S) == null;
     ensures forall k,l :: 0 <= k && n <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S);
   {
@@ -369,22 +345,22 @@ class Node {
     assert forall kl :: n <= kl ==> Nexxxt(kl, S) == null;
   }
 
-  ghost method Lemma_NullImpliesNoCycles_part2(n: int, S: set<Node>)
+  lemma Lemma_NullImpliesNoCycles_part2(n: int, S: set<Node>)
     requires IsClosed(S) && 0 <= n && Nexxxt(n, S) == null;
     ensures forall k,l :: 0 <= k < n && 0 <= l < n && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S);
   {
     var kn := 0;
-    while (kn < n)
+    while kn < n
       invariant 0 <= kn <= n;
       invariant forall k,l :: 0 <= k < kn && 0 <= l < n && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S);
     {
       var ln := 0;
-      while (ln < n)
+      while ln < n
         invariant 0 <= ln <= n;
         invariant forall k,l :: 0 <= k < kn && 0 <= l < n && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S);
         invariant forall l :: 0 <= l < ln && Nexxxt(kn, S) != null && Nexxxt(kn, S).next != null ==> Nexxxt(kn, S).next.Nexxxt(l, S) != Nexxxt(kn, S);
       {
-        if (Nexxxt(kn, S) != null && Nexxxt(kn, S).next != null) {
+        if Nexxxt(kn, S) != null && Nexxxt(kn, S).next != null {
           assert Nexxxt(kn+1, S) != null;
           Lemma_NexxxtIsTransitive(kn+1, ln, S);
           assert Nexxxt(kn, S).next.Nexxxt(ln, S) == Nexxxt(kn+1+ln, S);  // follows from the transitivity lemma on the previous line
@@ -393,9 +369,9 @@ class Node {
           // finally, here comes the central part of the argument, namely:
           // if Nexxxt(kn, S).Nexxxt(1+ln, S) == Nexxxt(kn, S), then for any h (0 <= h), Nexxxt(kn, S).Nexxxt(h*(1+ln), S) == Nexxxt(kn, S), but
           // that can't be for n <= h*(1+ln), since Nexxxt(kn, S) != null and Nexxxt(n.., S) == null.
-          if (Nexxxt(kn, S).Nexxxt(1+ln, S) == Nexxxt(kn, S)) {
+          if Nexxxt(kn, S).Nexxxt(1+ln, S) == Nexxxt(kn, S) {
             var nn := 1+ln;
-            while (nn < n)
+            while nn < n
               invariant 0 <= nn;
               invariant Nexxxt(kn, S).Nexxxt(nn, S) == Nexxxt(kn, S);
             {
