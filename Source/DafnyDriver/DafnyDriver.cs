@@ -99,9 +99,14 @@ namespace Microsoft.Dafny
     }
 
 
-    static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames, bool lookForSnapshots = true)
+    static ExitValue ProcessFiles(List<string/*!*/>/*!*/ fileNames, bool lookForSnapshots = true, string programId = null)
     {
       Contract.Requires(cce.NonNullElements(fileNames));
+
+      if (programId == null)
+      {
+        programId = "main_program_id";
+      }
 
       ExitValue exitValue = ExitValue.VERIFIED;
       if (CommandLineOptions.Clo.VerifySeparately && 1 < fileNames.Count)
@@ -110,7 +115,7 @@ namespace Microsoft.Dafny
         {
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = ProcessFiles(new List<string> { f }, lookForSnapshots);
+          var ev = ProcessFiles(new List<string> { f }, lookForSnapshots, f);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -124,7 +129,7 @@ namespace Microsoft.Dafny
         var snapshotsByVersion = ExecutionEngine.LookForSnapshots(fileNames);
         foreach (var s in snapshotsByVersion)
         {
-          var ev = ProcessFiles(new List<string>(s), false);
+          var ev = ProcessFiles(new List<string>(s), false, programId);
           if (exitValue != ev && ev != ExitValue.VERIFIED)
           {
             exitValue = ev;
@@ -158,7 +163,7 @@ namespace Microsoft.Dafny
           }
 
           PipelineStatistics stats = null;
-          PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats);
+          PipelineOutcome oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
           var allOk = stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
           switch (oc) {
             case PipelineOutcome.VerificationCompleted:
@@ -191,7 +196,7 @@ namespace Microsoft.Dafny
     /// their error code.
     /// </summary>
     static PipelineOutcome BoogiePipelineWithRerun(Bpl.Program/*!*/ program, string/*!*/ bplFileName,
-        out PipelineStatistics stats)
+        out PipelineStatistics stats, string programId)
     {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
@@ -227,7 +232,7 @@ namespace Microsoft.Dafny
           ExecutionEngine.CollectModSets(program);
           ExecutionEngine.CoalesceBlocks(program);
           ExecutionEngine.Inline(program);
-          return ExecutionEngine.InferAndVerify(program, stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? "main_program_id" : null);
+          return ExecutionEngine.InferAndVerify(program, stats, programId);
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
