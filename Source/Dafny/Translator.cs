@@ -4361,6 +4361,8 @@ namespace Microsoft.Dafny {
       mod.Add((Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr);
       mod.Add(etran.Tick());
 
+      var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
+
       if (kind != MethodTranslationKind.SpecWellformedness) {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
@@ -4373,6 +4375,10 @@ namespace Microsoft.Dafny {
             foreach (var s in TrSplitExpr(p.E, etran, kind == MethodTranslationKind.InterModuleCall ? 0 : int.MaxValue, true /* kind == MethodTranslationKind.Implementation */, out splitHappened)) {
               if ((kind == MethodTranslationKind.IntraModuleCall || kind == MethodTranslationKind.CoCall) && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
+              } else if (s.IsOnlyChecked && bodyKind) {
+                // don't include in split
+              } else if (s.IsOnlyFree && !bodyKind) {
+                // don't include in split -- it would be ignored, anyhow
               } else {
                 req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, null, comment));
                 comment = null;
@@ -4395,7 +4401,13 @@ namespace Microsoft.Dafny {
                 // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
                 post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "$_reverifyPost", Bpl.Type.Bool), post);
               }
-              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, post, null, null));
+              if (s.IsOnlyFree && bodyKind) {
+                // don't include in split -- it would be ignored, anyhow
+              } else if (s.IsOnlyChecked && !bodyKind) {
+                // don't include in split
+              } else {
+                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, post, null, null));
+              }
             }
           }
         }
@@ -9981,6 +9993,7 @@ namespace Microsoft.Dafny {
       public enum K { Free, Checked, Both }
       public K Kind;
       public bool IsOnlyFree { get { return Kind == K.Free; } }
+      public bool IsOnlyChecked { get { return Kind == K.Checked; } }
       public bool IsChecked { get { return Kind != K.Free; } }
       public readonly Bpl.Expr E;
       public SplitExprInfo(K kind, Bpl.Expr e) {
