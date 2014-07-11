@@ -1,0 +1,5 @@
+DisplayExpressions.dfy(5,11): Error: the type of this map constructor is underspecified, but it cannot be an arbitrary type.
+DisplayExpressions.dfy(10,11): Error: the type of this collection constructor is underspecified, but it cannot be an arbitrary type.
+DisplayExpressions.dfy(15,11): Error: the type of this collection constructor is underspecified, but it cannot be an arbitrary type.
+DisplayExpressions.dfy(20,11): Error: the type of this collection constructor is underspecified, but it cannot be an arbitrary type.
+4 resolution/type errors detected in DisplayExpressions.dfy
