@@ -4299,13 +4299,9 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", typeParams, formals, res /*, null, NeverPatternTrue() */);
+        var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", typeParams, formals, res);
         sink.TopLevelDeclarations.Add(canCallF);
       }
-    }
-
-    Bpl.QKeyValue NeverPatternTrue() {
-      return new QKeyValue(Token.NoToken, "never_pattern", new List<object>(), null);
     }
 
     /// <summary>
@@ -10344,9 +10340,7 @@ namespace Microsoft.Dafny {
             i++;
           }
           bvars = new List<Variable>();
-          typeAntecedent = BplAnd(
-            etran.TrBoundVariables(e.BoundVars, bvars),
-            CanCallAssumption(e.LogicalBody(), etran));
+          typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
           foreach (var kase in caseProduct) {
             var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
             var bdy = etran.LayerOffset(1).TrExpr(e.LogicalBody());

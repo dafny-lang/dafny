@@ -669,7 +669,7 @@ ghost method LetSuchThat3(n: int) returns (xx: int, yy: Lindgren) {
   xx := var x :| x in multiset{3, 3, 2, 3}; x+10;
   xx := var x :| x in map[5 := 10, 6 := 12]; x+10;
   xx := var x :| x in [n, n, 2]; x+10;
-  xx := var x :| x in map[]; x+10;  // error
+  xx := var x :| x in (var m : map<int,int> := map[]; m); x+10;  // error
 }
 
 // ------------- ghost loops only modify ghost fields

@@ -1999,6 +1999,8 @@ namespace Microsoft.Dafny
               }
             }
           }
+        } else if (expr is MapDisplayExpr) {
+          CheckTypeIsDetermined(expr.tok, expr.Type, "map constructor", true);
         } else if (expr is DisplayExpression) {
           CheckTypeIsDetermined(expr.tok, expr.Type, "collection constructor", true);
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
